@@ -348,187 +348,187 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 2 (34 routines)
 
-- [ ] `0x80D8` `scout_error` (in=0, out=3)
-- [ ] `0x8195` `port_match_found` (in=1, out=2)
-- [ ] `0x8268` `data_rx_complete` (in=0, out=1)
-- [ ] `0x83E5` `discard_reset_rx` (in=3, out=1)
-- [ ] `0x8493` `rx_imm_exec` (in=0, out=1)
-- [ ] `0x84CE` `rx_imm_peek` (in=0, out=2)
-- [ ] `0x8512` `setup_sr_tx` (in=1, out=1)
-- [ ] `0x86A2` `tx_ctrl_proc` (in=0, out=1)
-- [ ] `0x8C06` `loop_print_syntax` (in=0, out=4)
-- [ ] `0x8C42` `svc_4_star_command` (in=0, out=3)
-- [ ] `0x8C93` `print_version_header` (in=2, out=2)
-- [ ] `0x903C` `init_adlc_and_vectors` (in=2, out=2)
-- [ ] `0x945E` `send_fs_request` (in=1, out=1)
-- [ ] `0x9A3A` `append_drv_dot_num` (in=2, out=1)
-- [ ] `0x9BB6` `poll_adlc_tx_status` (in=2, out=1)
-- [ ] `0x9D4F` `print_5_hex_bytes` (in=2, out=2)
-- [ ] `0x9D87` `check_and_setup_txcb` (in=2, out=4)
-- [ ] `0xA1F3` `lookup_cat_slot_data` (in=1, out=1)
-- [ ] `0xA29F` `write_block_entry` (in=1, out=1)
-- [ ] `0xA638` `fsreply_3_set_csd` (in=1, out=2)
-- [ ] `0xA63E` `fsreply_5_set_lib` (in=0, out=2)
-- [ ] `0xA69A` `cmd_flip` (in=0, out=1)
-- [ ] `0xA6E5` `fsreply_2_copy_handles` (in=0, out=7)
-- [ ] `0xA910` `osword_10_handler` (in=0, out=3)
-- [ ] `0xB01A` `lang_2_save_palette_vdu` (in=0, out=2)
-- [ ] `0xB0A1` `cmd_cdir` (in=0, out=7)
-- [ ] `0xB2E4` `ex_print_col_sep` (in=1, out=2)
-- [ ] `0xB303` `print_decimal_3dig_no_spool` (in=1, out=1)
-- [ ] `0xB338` `print_decimal_digit` (in=1, out=6)
-- [ ] `0xB6F3` `cmd_wipe` (in=0, out=3)
-- [ ] `0xB7CB` `prompt_yn` (in=1, out=1)
-- [ ] `0xBD59` `loop_dump_line` (in=1, out=2)
-- [ ] `0xBE37` `print_hex_and_space` (in=2, out=2)
-- [ ] `0xBFBA` `advance_x_by_8` (in=3, out=1)
+- [x] `0x80D8` `scout_error` - triaged: bounds correct
+- [x] `0x8195` `port_match_found` - triaged: bounds correct
+- [x] `0x8268` `data_rx_complete` - triaged: bounds correct
+- [x] `0x83E5` `discard_reset_rx` - triaged: bounds correct
+- [x] `0x8493` `rx_imm_exec` - triaged: bounds correct
+- [x] `0x84CE` `rx_imm_peek` - triaged: bounds correct
+- [x] `0x8512` `setup_sr_tx` - triaged: bounds correct
+- [x] `0x86A2` `tx_ctrl_proc` - triaged: bounds correct
+- [x] `0x8C06` `loop_print_syntax` - triaged: bounds correct
+- [x] `0x8C42` `svc_4_star_command` - triaged: bounds correct
+- [x] `0x8C93` `print_version_header` - triaged: bounds correct
+- [x] `0x903C` `init_adlc_and_vectors` - triaged: bounds correct
+- [x] `0x945E` `send_fs_request` - triaged: bounds correct
+- [x] `0x9A3A` `append_drv_dot_num` - triaged: bounds correct
+- [x] `0x9BB6` `poll_adlc_tx_status` - triaged: bounds correct
+- [x] `0x9D4F` `print_5_hex_bytes` - triaged: bounds correct
+- [x] `0x9D87` `check_and_setup_txcb` - triaged: bounds correct
+- [x] `0xA1F3` `lookup_cat_slot_data` - triaged: bounds correct
+- [x] `0xA29F` `write_block_entry` - triaged: bounds correct
+- [x] `0xA638` `fsreply_3_set_csd` - triaged: bounds correct
+- [x] `0xA63E` `fsreply_5_set_lib` - triaged: bounds correct
+- [x] `0xA69A` `cmd_flip` - triaged: bounds correct
+- [x] `0xA6E5` `fsreply_2_copy_handles` - triaged: bounds correct
+- [x] `0xA910` `osword_10_handler` - triaged: bounds correct
+- [x] `0xB01A` `lang_2_save_palette_vdu` - triaged: bounds correct
+- [x] `0xB0A1` `cmd_cdir` - triaged: bounds correct
+- [x] `0xB2E4` `ex_print_col_sep` - triaged: bounds correct
+- [x] `0xB303` `print_decimal_3dig_no_spool` - triaged: bounds correct
+- [x] `0xB338` `print_decimal_digit` - triaged: bounds correct
+- [x] `0xB6F3` `cmd_wipe` - triaged: bounds correct
+- [x] `0xB7CB` `prompt_yn` - triaged: bounds correct
+- [x] `0xBD59` `loop_dump_line` - triaged: bounds correct
+- [x] `0xBE37` `print_hex_and_space` - triaged: bounds correct
+- [x] `0xBFBA` `advance_x_by_8` - triaged: bounds correct
 
 ## Depth 3 (17 routines)
 
-- [ ] `0x8215` `nmi_error_dispatch` (in=3, out=3)
-- [ ] `0x8395` `rx_complete_update_rxcb` (in=1, out=3)
-- [ ] `0x84B1` `rx_imm_poke` (in=0, out=1)
-- [ ] `0x8845` `nmi_data_tx_tube` (in=0, out=1)
-- [ ] `0x88E4` `tx_store_result` (in=1, out=1)
-- [ ] `0x8BC6` `print_cmd_table` (in=1, out=2)
-- [ ] `0x8C51` `svc_9_help` (in=0, out=3)
-- [ ] `0x9900` `cond_save_error_code` (in=4, out=3)
-- [ ] `0x9B2C` `send_net_packet` (in=6, out=4)
-- [ ] `0x9B89` `setup_pass_txbuf` (in=1, out=2)
-- [ ] `0x9CB5` `setup_dir_display` (in=1, out=6)
-- [ ] `0x9D44` `print_load_exec_addrs` (in=1, out=1)
-- [ ] `0xABE9` `init_bridge_poll` (in=5, out=3)
-- [ ] `0xB118` `fscv_5_cat` (in=0, out=14)
-- [ ] `0xB32A` `print_decimal_3dig` (in=1, out=1)
-- [ ] `0xB703` `request_next_wipe` (in=0, out=8)
-- [ ] `0xBE01` `print_dump_header` (in=2, out=2)
+- [x] `0x8215` `nmi_error_dispatch` - triaged: bounds correct
+- [x] `0x8395` `rx_complete_update_rxcb` - triaged: bounds correct
+- [x] `0x84B1` `rx_imm_poke` - triaged: bounds correct
+- [x] `0x8845` `nmi_data_tx_tube` - triaged: bounds correct
+- [x] `0x88E4` `tx_store_result` - triaged: bounds correct
+- [x] `0x8BC6` `print_cmd_table` - triaged: bounds correct
+- [x] `0x8C51` `svc_9_help` - triaged: bounds correct
+- [x] `0x9900` `cond_save_error_code` - triaged: bounds correct
+- [x] `0x9B2C` `send_net_packet` - triaged: bounds correct
+- [x] `0x9B89` `setup_pass_txbuf` - triaged: bounds correct
+- [x] `0x9CB5` `setup_dir_display` - triaged: bounds correct
+- [x] `0x9D44` `print_load_exec_addrs` - triaged: bounds correct
+- [x] `0xABE9` `init_bridge_poll` - triaged: bounds correct
+- [x] `0xB118` `fscv_5_cat` - triaged: bounds correct
+- [x] `0xB32A` `print_decimal_3dig` - triaged: bounds correct
+- [x] `0xB703` `request_next_wipe` - triaged: bounds correct
+- [x] `0xBE01` `print_dump_header` - triaged: bounds correct
 
 ## Depth 4 (18 routines)
 
-- [ ] `0x832D` `post_ack_scout` (in=0, out=2)
-- [ ] `0x8409` `save_acccon_for_shadow_ram` (in=0, out=2)
-- [ ] `0x8454` `immediate_op` (in=1, out=1)
-- [ ] `0x86E7` `nmi_tx_data` (in=0, out=1)
-- [ ] `0x8BBB` `help_print_nfs_cmds` (in=1, out=1)
-- [ ] `0x8E21` `clear_if_station_match` (in=2, out=1)
-- [ ] `0x993D` `classify_reply_error` (in=2, out=2)
-- [ ] `0x99A7` `error_bad_inline` (in=7, out=1)
-- [ ] `0x99C0` `error_inline_log` (in=9, out=1)
-- [ ] `0x9DDC` `dispatch_osword_op` (in=1, out=10)
-- [ ] `0xA3C4` `parse_fs_ps_args` (in=4, out=2)
-- [ ] `0xAA9D` `osword_13_write_ws_pair` (in=0, out=1)
-- [ ] `0xABA9` `osword_13_bridge_query` (in=0, out=1)
-- [ ] `0xACF8` `enable_irq_and_poll` (in=2, out=1)
-- [ ] `0xAD40` `tx_econet_abort` (in=3, out=1)
-- [ ] `0xAFA6` `send_disconnect_reply` (in=3, out=3)
-- [ ] `0xB556` `print_station_addr` (in=2, out=3)
-- [ ] `0xBD79` `loop_pop_stack_buf` (in=1, out=5)
+- [x] `0x832D` `post_ack_scout` - triaged: bounds correct
+- [x] `0x8409` `save_acccon_for_shadow_ram` - triaged: bounds correct
+- [x] `0x8454` `immediate_op` - triaged: bounds correct
+- [x] `0x86E7` `nmi_tx_data` - triaged: bounds correct
+- [x] `0x8BBB` `help_print_nfs_cmds` - triaged: bounds correct
+- [x] `0x8E21` `clear_if_station_match` - triaged: bounds correct
+- [x] `0x993D` `classify_reply_error` - triaged: bounds correct
+- [x] `0x99A7` `error_bad_inline` - triaged: bounds correct
+- [x] `0x99C0` `error_inline_log` - triaged: bounds correct
+- [x] `0x9DDC` `dispatch_osword_op` - triaged: bounds correct
+- [x] `0xA3C4` `parse_fs_ps_args` - triaged: bounds correct
+- [x] `0xAA9D` `osword_13_write_ws_pair` - triaged: bounds correct
+- [x] `0xABA9` `osword_13_bridge_query` - triaged: bounds correct
+- [x] `0xACF8` `enable_irq_and_poll` - triaged: bounds correct
+- [x] `0xAD40` `tx_econet_abort` - triaged: bounds correct
+- [x] `0xAFA6` `send_disconnect_reply` - triaged: bounds correct
+- [x] `0xB556` `print_station_addr` - triaged: bounds correct
+- [x] `0xBD79` `loop_pop_stack_buf` - triaged: bounds correct
 
 ## Depth 5 (30 routines)
 
-- [ ] `0x8112` `scout_complete` (in=0, out=2)
-- [ ] `0x8AEA` `cmd_roff` (in=0, out=2)
-- [ ] `0x8C64` `svc_return_unclaimed` (in=2, out=3)
-- [ ] `0x8DA6` `load_transfer_params` (in=0, out=5)
-- [ ] `0x90B5` `error_net_checksum` (in=1, out=1)
-- [ ] `0x934A` `err_bad_hex` (in=1, out=1)
-- [ ] `0x9437` `error_bad_filename` (in=2, out=1)
-- [ ] `0x9483` `parse_quoted_arg` (in=2, out=1)
-- [ ] `0x95EE` `set_fs_or_ps_cmos_station` (in=0, out=3)
-- [ ] `0x97CD` `recv_and_process_reply` (in=2, out=6)
-- [ ] `0x987E` `lang_3_exec_0100` (in=0, out=2)
-- [ ] `0x9895` `raise_escape_error` (in=1, out=2)
-- [ ] `0x9C85` `send_txcb_swap_addrs` (in=2, out=3)
-- [ ] `0xA0A9` `fscv_0_opt_entry` (in=0, out=4)
-- [ ] `0xA398` `cmd_fs` (in=0, out=3)
-- [ ] `0xA3BB` `print_fs_info_newline` (in=1, out=2)
-- [ ] `0xA5A1` `error_bad_command` (in=1, out=1)
-- [ ] `0xA5AE` `check_exec_addr` (in=1, out=1)
-- [ ] `0xAC67` `store_osword_pb_ptr` (in=0, out=3)
-- [ ] `0xACB7` `handle_tx_request` (in=0, out=2)
-- [ ] `0xAD64` `netv_claim_release` (in=0, out=2)
-- [ ] `0xADD3` `osword_8_handler` (in=0, out=1)
-- [ ] `0xAEB8` `process_spool_data` (in=3, out=7)
-- [ ] `0xAF80` `err_printer_busy` (in=1, out=1)
-- [ ] `0xB81C` `err_net_chan_invalid` (in=1, out=1)
-- [ ] `0xB88C` `check_not_dir` (in=2, out=2)
-- [ ] `0xB8DC` `alloc_fcb_or_error` (in=2, out=2)
-- [ ] `0xBCBC` `send_wipe_request` (in=2, out=3)
-- [ ] `0xBDBB` `loop_next_dump_col` (in=0, out=6)
-- [ ] `0xBEAB` `init_dump_buffer` (in=1, out=6)
+- [x] `0x8112` `scout_complete` - triaged: bounds correct
+- [x] `0x8AEA` `cmd_roff` - triaged: bounds correct
+- [x] `0x8C64` `svc_return_unclaimed` - triaged: bounds correct
+- [x] `0x8DA6` `load_transfer_params` - triaged: bounds correct
+- [x] `0x90B5` `error_net_checksum` - triaged: bounds correct
+- [x] `0x934A` `err_bad_hex` - triaged: bounds correct
+- [x] `0x9437` `error_bad_filename` - triaged: bounds correct
+- [x] `0x9483` `parse_quoted_arg` - triaged: bounds correct
+- [x] `0x95EE` `set_fs_or_ps_cmos_station` - triaged: bounds correct
+- [x] `0x97CD` `recv_and_process_reply` - triaged: bounds correct
+- [x] `0x987E` `lang_3_exec_0100` - triaged: bounds correct
+- [x] `0x9895` `raise_escape_error` - triaged: bounds correct
+- [x] `0x9C85` `send_txcb_swap_addrs` - triaged: bounds correct
+- [x] `0xA0A9` `fscv_0_opt_entry` - triaged: bounds correct
+- [x] `0xA398` `cmd_fs` - triaged: bounds correct
+- [x] `0xA3BB` `print_fs_info_newline` - triaged: bounds correct
+- [x] `0xA5A1` `error_bad_command` - triaged: bounds correct
+- [x] `0xA5AE` `check_exec_addr` - triaged: bounds correct
+- [x] `0xAC67` `store_osword_pb_ptr` - triaged: bounds correct
+- [x] `0xACB7` `handle_tx_request` - triaged: bounds correct
+- [x] `0xAD64` `netv_claim_release` - triaged: bounds correct
+- [x] `0xADD3` `osword_8_handler` - triaged: bounds correct
+- [x] `0xAEB8` `process_spool_data` - triaged: bounds correct
+- [x] `0xAF80` `err_printer_busy` - triaged: bounds correct
+- [x] `0xB81C` `err_net_chan_invalid` - triaged: bounds correct
+- [x] `0xB88C` `check_not_dir` - triaged: bounds correct
+- [x] `0xB8DC` `alloc_fcb_or_error` - triaged: bounds correct
+- [x] `0xBCBC` `send_wipe_request` - triaged: bounds correct
+- [x] `0xBDBB` `loop_next_dump_col` - triaged: bounds correct
+- [x] `0xBEAB` `init_dump_buffer` - triaged: bounds correct
 
 ## Depth 6 (14 routines)
 
-- [ ] `0x8B52` `select_fs_via_cmd_net_fs` (in=1, out=9)
-- [ ] `0x9670` `print_fs_address` (in=1, out=5)
-- [ ] `0x9D0C` `recv_reply` (in=1, out=7)
-- [ ] `0x9FCF` `clear_result` (in=1, out=3)
-- [ ] `0xA284` `recv_reply_preserve_flags` (in=1, out=1)
-- [ ] `0xA4A2` `loop_skip_trail_spaces` (in=0, out=1)
-- [ ] `0xAE6F` `netv_print_data` (in=0, out=3)
-- [ ] `0xAE9D` `handle_spool_ctrl_byte` (in=1, out=3)
-- [ ] `0xB251` `strip_token_prefix` (in=4, out=2)
-- [ ] `0xB3AC` `cmd_ps` (in=0, out=7)
-- [ ] `0xB3D7` `copy_ps_data` (in=1, out=12)
-- [ ] `0xB7D3` `flush_and_read_char` (in=0, out=3)
-- [ ] `0xBD41` `cmd_dump` (in=0, out=3)
-- [ ] `0xBE4E` `loop_parse_hex_digit` (in=0, out=2)
+- [x] `0x8B52` `select_fs_via_cmd_net_fs` - triaged: bounds correct
+- [x] `0x9670` `print_fs_address` - triaged: bounds correct
+- [x] `0x9D0C` `recv_reply` - triaged: bounds correct
+- [x] `0x9FCF` `clear_result` - triaged: bounds correct
+- [x] `0xA284` `recv_reply_preserve_flags` - triaged: bounds correct
+- [x] `0xA4A2` `loop_skip_trail_spaces` - triaged: bounds correct
+- [x] `0xAE6F` `netv_print_data` - triaged: bounds correct
+- [x] `0xAE9D` `handle_spool_ctrl_byte` - triaged: bounds correct
+- [x] `0xB251` `strip_token_prefix` - triaged: bounds correct
+- [x] `0xB3AC` `cmd_ps` - triaged: bounds correct
+- [x] `0xB3D7` `copy_ps_data` - triaged: bounds correct
+- [x] `0xB7D3` `flush_and_read_char` - triaged: bounds correct
+- [x] `0xBD41` `cmd_dump` - triaged: bounds correct
+- [x] `0xBE4E` `loop_parse_hex_digit` - triaged: bounds correct
 
 ## Depth 7 (9 routines)
 
-- [ ] `0x8CC7` `svc_3_autoboot` (in=0, out=5)
-- [ ] `0x8F38` `nfs_init_body` (in=0, out=13)
-- [ ] `0x944E` `read_filename_char` (in=1, out=2)
-- [ ] `0x9630` `svc_29_status` (in=0, out=6)
-- [ ] `0x9C3E` `do_fs_cmd_iteration` (in=1, out=6)
-- [ ] `0xA1FA` `setup_transfer_workspace` (in=2, out=9)
-- [ ] `0xA329` `tail_update_catalogue` (in=0, out=5)
-- [ ] `0xB22F` `parse_access_prefix` (in=3, out=1)
-- [ ] `0xB581` `cmd_pollps` (in=0, out=19)
+- [x] `0x8CC7` `svc_3_autoboot` - triaged: bounds correct
+- [x] `0x8F38` `nfs_init_body` - triaged: bounds correct
+- [x] `0x944E` `read_filename_char` - triaged: bounds correct
+- [x] `0x9630` `svc_29_status` - triaged: bounds correct
+- [x] `0x9C3E` `do_fs_cmd_iteration` - triaged: bounds correct
+- [x] `0xA1FA` `setup_transfer_workspace` - triaged: bounds correct
+- [x] `0xA329` `tail_update_catalogue` - triaged: bounds correct
+- [x] `0xB22F` `parse_access_prefix` - triaged: bounds correct
+- [x] `0xB581` `cmd_pollps` - triaged: bounds correct
 
 ## Depth 8 (5 routines)
 
-- [ ] `0x9425` `cmd_fs_operation` (in=0, out=4)
-- [ ] `0x94C5` `cmd_rename` (in=0, out=7)
-- [ ] `0x9C22` `filev_handler` (in=0, out=6)
-- [ ] `0xA5C3` `alloc_run_channel` (in=1, out=8)
-- [ ] `0xBD15` `send_and_receive` (in=2, out=2)
+- [x] `0x9425` `cmd_fs_operation` - triaged: bounds correct
+- [x] `0x94C5` `cmd_rename` - triaged: bounds correct
+- [x] `0x9C22` `filev_handler` - triaged: bounds correct
+- [x] `0xA5C3` `alloc_run_channel` - triaged: bounds correct
+- [x] `0xBD15` `send_and_receive` - triaged: bounds correct
 
 ## Depth 9 (2 routines)
 
-- [ ] `0xA4F1` `cmd_run_via_urd` (in=1, out=10)
-- [ ] `0xB99A` `start_wipe_pass` (in=2, out=5)
+- [x] `0xA4F1` `cmd_run_via_urd` - triaged: bounds correct
+- [x] `0xB99A` `start_wipe_pass` - triaged: bounds correct
 
 ## Depth 10 (3 routines)
 
-- [ ] `0x8E2D` `check_urd_prefix` (in=1, out=2)
-- [ ] `0xBA09` `save_fcb_context` (in=2, out=8)
-- [ ] `0xBB38` `process_all_fcbs` (in=8, out=1)
+- [x] `0x8E2D` `check_urd_prefix` - triaged: bounds correct
+- [x] `0xBA09` `save_fcb_context` - triaged: bounds correct
+- [x] `0xBB38` `process_all_fcbs` - triaged: bounds correct
 
 ## Depth 11 (10 routines)
 
-- [ ] `0x8D91` `cmd_iam` (in=0, out=2)
-- [ ] `0x9071` `fscv_6_shutdown` (in=0, out=2)
-- [ ] `0x9512` `cmd_dir` (in=0, out=12)
-- [ ] `0x9776` `cmd_bye` (in=0, out=3)
-- [ ] `0x9FB1` `close_all_fcbs` (in=1, out=1)
-- [ ] `0x9FEE` `send_open_file_request` (in=1, out=14)
-- [ ] `0xA14C` `gbpbv_handler` (in=0, out=14)
-- [ ] `0xA9DA` `osword_13_set_station` (in=0, out=4)
-- [ ] `0xBACC` `loop_save_before_match` (in=1, out=1)
-- [ ] `0xBC7C` `flush_fcb_with_init` (in=1, out=4)
+- [x] `0x8D91` `cmd_iam` - triaged: bounds correct
+- [x] `0x9071` `fscv_6_shutdown` - triaged: bounds correct
+- [x] `0x9512` `cmd_dir` - triaged: bounds correct
+- [x] `0x9776` `cmd_bye` - triaged: bounds correct
+- [x] `0x9FB1` `close_all_fcbs` - triaged: bounds correct
+- [x] `0x9FEE` `send_open_file_request` - triaged: bounds correct
+- [x] `0xA14C` `gbpbv_handler` - triaged: bounds correct
+- [x] `0xA9DA` `osword_13_set_station` - triaged: bounds correct
+- [x] `0xBACC` `loop_save_before_match` - triaged: bounds correct
+- [x] `0xBC7C` `flush_fcb_with_init` - triaged: bounds correct
 
 ## Depth 12 (3 routines)
 
-- [ ] `0x968E` `dispatch_help_command` (in=0, out=7)
-- [ ] `0x9EAB` `argsv_handler` (in=0, out=14)
-- [ ] `0xBACF` `find_matching_fcb` (in=3, out=3)
+- [x] `0x968E` `dispatch_help_command` - triaged: bounds correct
+- [x] `0x9EAB` `argsv_handler` - triaged: bounds correct
+- [x] `0xBACF` `find_matching_fcb` - triaged: bounds correct
 
 ## Depth 13 (3 routines)
 
-- [ ] `0xA10B` `fscv_1_eof` (in=0, out=2)
-- [ ] `0xBB68` `bgetv_handler` (in=0, out=5)
-- [ ] `0xBBE7` `bputv_handler` (in=0, out=6)
+- [x] `0xA10B` `fscv_1_eof` - triaged: bounds correct
+- [x] `0xBB68` `bgetv_handler` - triaged: bounds correct
+- [x] `0xBBE7` `bputv_handler` - triaged: bounds correct
 
 
 ## Session 1 progress

@@ -10752,6 +10752,17 @@ osword_subcode_dispatch = extract_osword_subcode+1
     jsr copy_pb_byte_to_ws                                            ; a927: 20 82 aa     ..            ; Copy data and begin transmission
     jmp tx_begin                                                      ; a92a: 4c 89 85    L..            ; Jump to begin Econet transmission
 
+; ***************************************************************************************
+; OSWORD &11 handler: receive network packet
+;
+; Reached via the OSWORD dispatch as well as via fall-through from osword_10_handler.
+; Configures the workspace pointer from nfs_workspace_hi, saves the Econet interrupt
+; state via ROR econet_flags, and either uses the slot specified by the caller (Y
+; non-zero) or scans from slot 3 onwards via byte_to_2bit_index to find a free slot.
+; Stores the resulting status byte and the copied PB bytes back into the caller's
+; parameter block.
+;
+; On Entry: X, Y: OSWORD parameter block pointer (low, high)
 .osword_11_handler
     ldx nfs_workspace_hi                                              ; a92d: a6 9f       ..             ; Load NFS workspace page high byte
     stx ws_ptr_lo                                                     ; a92f: 86 ab       ..             ; Set workspace pointer high
@@ -12814,14 +12825,14 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b170: 20 8a 92     ..            ; Print 'Owner' + CR
     equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own            ; End of PS name field (&20)?; No: continue pushing
 
-    bne public_label_msg                                              ; b179: d0 0a       ..             ; Non-zero: branch to public_label_msg
+    bne cat_after_label_print                                         ; b179: d0 0a       ..             ; Non-zero: branch to cat_after_label_print
 ; &b17b referenced 1 time by &b16e
 .print_public_label
     jsr print_inline_no_spool                                         ; b17b: 20 8a 92     ..            ; Print 'Public' + CR
     equs "Public", &0d                                                ; b17e: 50 75 62... Pub            ; Copy RX page to TX
 
 ; &b185 referenced 1 time by &b179
-.public_label_msg
+.cat_after_label_print
     lda hazel_fs_lib_flags                                            ; b185: ad 71 c2    .q.            ; Read hazel_fs_lib_flags
     pha                                                               ; b188: 48          H              ; Push for stack-based saves
     jsr mask_owner_access                                             ; b189: 20 cf b2     ..            ; Mask owner access bits; Copy 4 header bytes
@@ -16847,6 +16858,7 @@ save pydis_start, pydis_end
 ;     calc_peek_poke_size:             1
 ;     calc_transfer_size:              1
 ;     call_fscv:                       1
+;     cat_after_label_print:           1
 ;     cat_set_lib_flag:                1
 ;     cdir_size_done:                  1
 ;     cdir_size_thresholds:            1
@@ -17407,7 +17419,6 @@ save pydis_start, pydis_end
 ;     ps_print_template:               1
 ;     ps_template_base:                1
 ;     ps_tx_header_template:           1
-;     public_label_msg:                1
 ;     push_osword_handler_addr:        1
 ;     read_cat_info:                   1
 ;     read_cmos_byte_0:                1

@@ -1365,7 +1365,6 @@ label(0xA908, "loop_bcd_add")
 label(0xA90E, "done_bcd_convert")
 label(0xA910, "osword_10_handler")
 label(0xA919, "setup_ws_rx_ptrs")
-label(0xA92D, "osword_11_handler")
 label(0xA93D, "loop_find_rx_slot")
 label(0xA951, "store_rx_slot_found")
 label(0xA956, "use_specified_slot")
@@ -5405,6 +5404,19 @@ pointers from `net_rx_ptr_hi`; `C=0` (TX in progress) stores
 (`&FF`) in the workspace.""",
     on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
     on_exit={"a": "0 = success, &FF = TX pending"})
+subroutine(0xA92D, "osword_11_handler",
+    title="OSWORD &11 handler: receive network packet",
+    description="""\
+Reached via the OSWORD dispatch as well as via fall-through from
+[`osword_10_handler`](address:A910). Configures the workspace
+pointer from `nfs_workspace_hi`, saves the Econet interrupt state
+via `ROR econet_flags`, and either uses the slot specified by the
+caller (Y non-zero) or scans from slot 3 onwards via
+[`byte_to_2bit_index`](address:A3E9) to find a free slot. Stores
+the resulting status byte and the copied PB bytes back into the
+caller's parameter block.""",
+    on_entry={"x, y": "OSWORD parameter block pointer (low, high)"})
+
 subroutine(0xA985, "osword_12_handler",
     title="OSWORD &12 handler: receive packet from workspace",
     description="""\
@@ -10282,7 +10294,7 @@ comment(0xB0F0, "cdir_size_done[2] = &28 -> rx_wait_timeout "
     "(40 retries)", inline=True)
 comment(0xB0F1, "cdir_size_done[3] = &0A -> peek_retry_count "
     "(10 retries)", inline=True)
-label(0xB185, "public_label_msg")
+label(0xB185, "cat_after_label_print")
 label(0xB29C, "option_offset_table")
 label(0xB2F7, "col_sep_eol_check")
 label(0xB2F9, "col_sep_print_cr")
@@ -17979,7 +17991,7 @@ comment(0xB101, "Y=0: TX-buffer offset for the first byte", inline=True)
 comment(0xB16B, "Read hazel_txcb_type (FS reply opcode)", inline=True)
 comment(0xB16E, "Non-zero (private library): take the public-label "
     "branch", inline=True)
-comment(0xB179, "Non-zero: branch to public_label_msg", inline=True)
+comment(0xB179, "Non-zero: branch to cat_after_label_print", inline=True)
 comment(0xB185, "Read hazel_fs_lib_flags", inline=True)
 comment(0xB1A5, "Read hazel_fs_flags", inline=True)
 comment(0xB1B1, "Look up option-string offset for index X", inline=True)
