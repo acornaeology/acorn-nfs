@@ -2774,8 +2774,10 @@ tx_flags_table = check_tube_irq_loop+1
     sta tx_complete_flag                                              ; 88ea: 8d 60 0d    .`.            ; Signal TX complete
     jmp discard_reset_rx                                              ; 88ed: 4c e5 83    L..            ; Full ADLC reset and return to idle listen
 
+; ***************************************************************************************
+; Purpose unknown. Unreferenced, unreachable.
 .rom_gap_88f0
-    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...            ; Purpose unknown. Unreferenced, unreachable.
+    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...
 
 ; ***************************************************************************************
 ; Calculate transfer size and reclaim Tube buffer
