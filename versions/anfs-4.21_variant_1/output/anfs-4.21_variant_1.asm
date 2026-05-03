@@ -1711,8 +1711,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bcs enable_irq_pending                                            ; 8517: b0 0b       ..             ; Skip ahead to the ACCCON IRR set
     lda ws_0d68                                                       ; 8519: ad 68 0d    .h.            ; Load shadow ACR/IER state
     sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.            ; Stash a copy in ws_0d69 for later restore
-    ora #&1c                                                          ; 851f: 09 1c       ..
-    sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.
+    ora #&1c                                                          ; 851f: 09 1c       ..             ; ORA in shift-register mode-2 control bits
+    sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.            ; Write updated VIA ACR shadow back to ws_0d68
 ; &8524 referenced 1 time by &8517
 .enable_irq_pending
     lda #&80                                                          ; 8524: a9 80       ..             ; A=&80: ACCCON bit 7 (IRR -- raise interrupt)
@@ -3202,9 +3202,9 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry: A: service call number X: ROM slot Y: parameter
 ; &8a54 referenced 1 time by &8003
 .service_handler
-    pha                                                               ; 8a54: 48          H
-    cmp #&0f                                                          ; 8a55: c9 0f       ..
-    bne restore_rom_slot_entry                                        ; 8a57: d0 34       .4
+    pha                                                               ; 8a54: 48          H              ; Save service call number
+    cmp #&0f                                                          ; 8a55: c9 0f       ..             ; Service call &0F (vectors claimed)?
+    bne restore_rom_slot_entry                                        ; 8a57: d0 34       .4             ; No: skip vectors-claimed handling
     phy                                                               ; 8a59: 5a          Z              ; Save Y on stack across the version-check
     lda #osbyte_read_os_version                                       ; 8a5a: a9 00       ..             ; OSBYTE 0: read OS version
     ldx #1                                                            ; 8a5c: a2 01       ..             ; X=1 to request version number
@@ -3239,8 +3239,8 @@ nmi_shim_source = reset_enter_listen+2
     ply                                                               ; 8a8c: 7a          z              ; Restore Y from stack
 ; &8a8d referenced 1 time by &8a57
 .restore_rom_slot_entry
-    pla                                                               ; 8a8d: 68          h
-    pha                                                               ; 8a8e: 48          H              ; Save service call number
+    pla                                                               ; 8a8d: 68          h              ; Pop service call number into A
+    pha                                                               ; 8a8e: 48          H              ; Re-save service call number
     cmp #&24 ; '$'                                                    ; 8a8f: c9 24       .$             ; Service call &24 (Dynamic Workspace requirements)?
     bne check_adlc_flag                                               ; 8a91: d0 0e       ..             ; No: skip ADLC check
     lda adlc_cr1                                                      ; 8a93: ad a0 fe    ...            ; Read ADLC status register 1
@@ -3584,7 +3584,7 @@ nmi_shim_source = reset_enter_listen+2
     bvc print_table_newline                                           ; 8bc6: 50 0a       P.             ; V clear: need to print header first
     phx                                                               ; 8bc8: da          .              ; PHX -- save X (cmd-table offset)
     phy                                                               ; 8bc9: 5a          Z              ; PHY -- save Y (text-pointer offset)
-    jsr print_version_header                                          ; 8bca: 20 93 8c     ..
+    jsr print_version_header                                          ; 8bca: 20 93 8c     ..            ; Print the version-banner header
     ply                                                               ; 8bcd: 7a          z              ; PLY -- restore Y
     plx                                                               ; 8bce: fa          .              ; PLX -- restore X
     clv                                                               ; 8bcf: b8          .              ; Clear overflow flag
@@ -3867,7 +3867,7 @@ nmi_shim_source = reset_enter_listen+2
 ; &8cad referenced 4 times by &8b23, &8cbd, &8f2f, &b3a0
 .get_ws_page
     ldy romsel_copy                                                   ; 8cad: a4 f4       ..             ; Y = current ROM slot number from MOS copy at &F4
-    lda rom_ws_pages,y                                                ; 8caf: b9 f0 0d    ...
+    lda rom_ws_pages,y                                                ; 8caf: b9 f0 0d    ...            ; Load workspace page byte for this ROM slot
     tay                                                               ; 8cb2: a8          .              ; Hold a copy of the slot byte in Y while we test bit 6
     rol a                                                             ; 8cb3: 2a          *              ; ROL puts pre-ROL bit 6 into the post-ROL N flag (and pre-ROL bit 7 into C)
     php                                                               ; 8cb4: 08          .              ; Save those flags so the upcoming ROR doesn't lose N
@@ -3965,7 +3965,7 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry: A: FSCV reason code
 ; &8cff referenced 1 time by &a59e
 .call_fscv
-    jmp (vec_fscv)                                                    ; 8cff: 6c 1e 02    l..
+    jmp (vec_fscv)                                                    ; 8cff: 6c 1e 02    l..            ; Tail-jump via FSCV vector (filing-system change service)
 
 ; ***************************************************************************************
 ; Issue OSBYTE 143 service 15 (vectors-claimed) request
@@ -3978,9 +3978,9 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry: A: OSBYTE result is irrelevant -- this is fire-and-forget
 ; &8d02 referenced 1 time by &8bb1
 .issue_svc_15
-    ldx #&0f                                                          ; 8d02: a2 0f       ..
+    ldx #&0f                                                          ; 8d02: a2 0f       ..             ; X=&0F: ROM service call 10 (paged-ROM notify)
 .issue_svc_osbyte
-    lda #osbyte_issue_service_request                                 ; 8d04: a9 8f       ..
+    lda #osbyte_issue_service_request                                 ; 8d04: a9 8f       ..             ; A=&8F: OSBYTE 'Issue paged-ROM service request'
     jmp osbyte                                                        ; 8d06: 4c f4 ff    L..            ; Issue paged ROM service call
 
 ; ***************************************************************************************
@@ -4075,7 +4075,7 @@ nmi_shim_source = reset_enter_listen+2
     lda fs_last_byte_flag                                             ; 8d88: a5 bd       ..             ; Read fs_last_byte_flag (work_bd)
     ldx fs_options                                                    ; 8d8a: a6 bb       ..             ; Read fs_options (work_bb)
     ldy fs_block_offset                                               ; 8d8c: a4 bc       ..             ; Read fs_block_offset (work_bc)
-    pha                                                               ; 8d8e: 48          H
+    pha                                                               ; 8d8e: 48          H              ; Push fs_last_byte_flag for restore on return
     phx                                                               ; 8d8f: da          .              ; PHX -- push X
     phy                                                               ; 8d90: 5a          Z              ; PHY -- push Y
 ; ***************************************************************************************
@@ -4099,7 +4099,7 @@ nmi_shim_source = reset_enter_listen+2
     stz hazel_fs_pending_state                                        ; 8da0: 9c 07 c0    ...            ; STZ hazel_fs_pending_state -- clear connection-attempt flag
     ply                                                               ; 8da3: 7a          z              ; PLY -- restore Y
     plx                                                               ; 8da4: fa          .              ; PLX -- restore X
-    pla                                                               ; 8da5: 68          h
+    pla                                                               ; 8da5: 68          h              ; Pop and discard saved fs_last_byte_flag
 ; ***************************************************************************************
 ; Load and initialize file server transfer parameters.
 .load_transfer_params
@@ -4444,10 +4444,10 @@ ps_template_base = load_transfer_params+1
 ; On Exit: Y: &FF
 ; &8ecb referenced 1 time by &8067
 .osbyte_yff
-    ldy #&ff                                                          ; 8ecb: a0 ff       ..
+    ldy #&ff                                                          ; 8ecb: a0 ff       ..             ; Y=&FF: 'read' parameter for OSBYTE
 ; &8ecd referenced 1 time by &8ed6
 .jmp_osbyte
-    jmp osbyte                                                        ; 8ecd: 4c f4 ff    L..
+    jmp osbyte                                                        ; 8ecd: 4c f4 ff    L..            ; Tail-call OSBYTE
 
     equb &fc, &ac                                                     ; 8ed0: fc ac       ..
 
@@ -4656,8 +4656,8 @@ ps_template_base = load_transfer_params+1
 ; &8f56 referenced 1 time by &8f59
 .loop_zero_workspace
     sta (fs_ws_ptr),y                                                 ; 8f56: 91 cc       ..             ; Clear byte in FS workspace
-    iny                                                               ; 8f58: c8          .
-    bne loop_zero_workspace                                           ; 8f59: d0 fb       ..
+    iny                                                               ; 8f58: c8          .              ; INY -- next workspace byte
+    bne loop_zero_workspace                                           ; 8f59: d0 fb       ..             ; Loop until full page (256 bytes) cleared
     jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..            ; Copy initial PS template (1C bytes) into ws
     ldx #1                                                            ; 8f5e: a2 01       ..             ; X=1: CMOS &01 = port number
     jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..            ; Read CMOS &01
@@ -4668,12 +4668,12 @@ ps_template_base = load_transfer_params+1
     ldx #3                                                            ; 8f6e: a2 03       ..             ; X=3: CMOS &03 = FS station
     jsr osbyte_a1                                                     ; 8f70: 20 9a 8e     ..            ; Read CMOS &03
     tya                                                               ; 8f73: 98          .              ; TYA -- A = FS station
-    ldy #2                                                            ; 8f74: a0 02       ..
-    sta (nfs_workspace),y                                             ; 8f76: 91 9e       ..
+    ldy #2                                                            ; 8f74: a0 02       ..             ; Y=2: nfs_workspace offset for FS station
+    sta (nfs_workspace),y                                             ; 8f76: 91 9e       ..             ; Store FS station at (nfs_workspace)+2
     ldx #4                                                            ; 8f78: a2 04       ..             ; X=4: CMOS &04 = FS network
-    jsr osbyte_a1                                                     ; 8f7a: 20 9a 8e     ..
+    jsr osbyte_a1                                                     ; 8f7a: 20 9a 8e     ..            ; Read CMOS &04 (FS network)
     tya                                                               ; 8f7d: 98          .              ; TYA -- A = FS network
-    ldy #3                                                            ; 8f7e: a0 03       ..
+    ldy #3                                                            ; 8f7e: a0 03       ..             ; Y=3: nfs_workspace offset for FS network
     sta (nfs_workspace),y                                             ; 8f80: 91 9e       ..             ; Store at NFS workspace offset 2
     ldx #3                                                            ; 8f82: a2 03       ..             ; X=3: init data byte count
 ; &8f84 referenced 1 time by &8f8b
@@ -5744,10 +5744,10 @@ ps_template_base = load_transfer_params+1
 ; identifying which of the four shared commands was matched (Access, Delete, Info, or
 ; Lib)
 .cmd_fs_operation
-    jsr copy_fs_cmd_name                                              ; 9425: 20 63 94     c.
+    jsr copy_fs_cmd_name                                              ; 9425: 20 63 94     c.            ; Copy command name 'Access'/'Delete'/'Info'/'Lib' to TX buffer
     phx                                                               ; 9428: da          .              ; PHX -- save X
-    jsr parse_quoted_arg                                              ; 9429: 20 83 94     ..
-    jsr parse_access_prefix                                           ; 942c: 20 2f b2     /.
+    jsr parse_quoted_arg                                              ; 9429: 20 83 94     ..            ; Parse quoted filename argument from command line
+    jsr parse_access_prefix                                           ; 942c: 20 2f b2     /.            ; Parse the access prefix (e.g. L,W,R) into a bitmask
     plx                                                               ; 942f: fa          .              ; PLX -- restore X
     jsr check_not_ampersand                                           ; 9430: 20 46 94     F.            ; Reject '&' character in filename
     cmp #&0d                                                          ; 9433: c9 0d       ..             ; End of line?

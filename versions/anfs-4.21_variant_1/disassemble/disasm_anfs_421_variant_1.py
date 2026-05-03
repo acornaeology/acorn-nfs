@@ -6932,6 +6932,9 @@ comment(0x8515, "Op codes >= &86 (HALT/CONTINUE/machine-type) skip "
 comment(0x8517, "Skip ahead to the ACCCON IRR set", inline=True)
 comment(0x8519, "Load shadow ACR/IER state", inline=True)
 comment(0x851C, "Stash a copy in ws_0d69 for later restore", inline=True)
+comment(0x851F, "ORA in shift-register mode-2 control bits", inline=True)
+comment(0x8521, "Write updated VIA ACR shadow back to ws_0d68",
+    inline=True)
 comment(0x8524, "A=&80: ACCCON bit 7 (IRR -- raise interrupt)", inline=True)
 comment(0x8526, "TSB ACCCON: set IRR to flag a pending interrupt to MOS",
         inline=True)
@@ -7532,8 +7535,12 @@ comment(0x8A82, "OS 1.00: skip INX (table starts at slot 0)", inline=True)
 comment(0x8A84, "Adjust index for OS 1.20/2.00/5.00 layout", inline=True)
 comment(0x8A85, "A=0", inline=True)
 comment(0x8A87, "Clear workspace byte for this ROM", inline=True)
+comment(0x8A54, "Save service call number", inline=True)
+comment(0x8A55, "Service call &0F (vectors claimed)?", inline=True)
+comment(0x8A57, "No: skip vectors-claimed handling", inline=True)
 comment(0x8A8A, "Restore ROM slot to X", inline=True)
-comment(0x8A8E, "Save service call number", inline=True)
+comment(0x8A8D, "Pop service call number into A", inline=True)
+comment(0x8A8E, "Re-save service call number", inline=True)
 
 # svc_18_fs_select inline comments (4 items)
 comment(0x8B45, "Service 18 carries FS number in Y; Econet is FS 5", inline=True)
@@ -7542,6 +7549,8 @@ comment(0x8B49, "A=0 to claim the service", inline=True)
 comment(0x8B4B, "Clear svc_state and fall into ensure_fs_selected", inline=True)
 
 # osbyte_x0 inline comment (1 item)
+comment(0x8ECB, "Y=&FF: 'read' parameter for OSBYTE", inline=True)
+comment(0x8ECD, "Tail-call OSBYTE", inline=True)
 comment(0x8EC9, "Force X=0; the LDY #&FF in osbyte_yff sets Z, so the BEQ "
         "after this is unconditional", inline=True)
 
@@ -7737,6 +7746,8 @@ comment(0xB29F, "X=0: place the argument at the start of the TX buffer; "
         "fall into copy_arg_to_buf", inline=True)
 
 # get_ws_page: complete the existing partial annotation
+comment(0x8CAF, "Load workspace page byte for this ROM slot",
+    inline=True)
 comment(0x8CAD, "Y = current ROM slot number from MOS copy at &F4",
         inline=True)
 comment(0x8CB2, "Hold a copy of the slot byte in Y while we test bit 6",
@@ -9425,6 +9436,8 @@ comment(0x8D87, "PHY -- save caller Y", inline=True)
 comment(0x8D88, "Read fs_last_byte_flag (work_bd)", inline=True)
 comment(0x8D8A, "Read fs_options (work_bb)", inline=True)
 comment(0x8D8C, "Read fs_block_offset (work_bc)", inline=True)
+comment(0x8D8E, "Push fs_last_byte_flag for restore on return",
+    inline=True)
 comment(0x8D8F, "PHX -- push X", inline=True)
 comment(0x8D90, "PHY -- push Y", inline=True)
 
@@ -9654,6 +9667,7 @@ comment(0xB3CD, "PLA -- restore", inline=True)
 comment(0x8DA0, "STZ hazel_fs_pending_state -- clear connection-attempt flag", inline=True)
 comment(0x8DA3, "PLY -- restore Y", inline=True)
 comment(0x8DA4, "PLX -- restore X", inline=True)
+comment(0x8DA5, "Pop and discard saved fs_last_byte_flag", inline=True)
 comment(0x8DA6, "Set up transfer parameters", inline=True)
 comment(0x8DA9, "PLY -- restore Y", inline=True)
 
@@ -9863,6 +9877,7 @@ comment(0x90DB, "Read RX[1] = station number", inline=True)
 comment(0x90DD, "Print as decimal (no leading zeros)", inline=True)
 
 comment(0x8BC8, "PHX -- save X (cmd-table offset)", inline=True)
+comment(0x8BCA, "Print the version-banner header", inline=True)
 comment(0x8BC9, "PHY -- save Y (text-pointer offset)", inline=True)
 comment(0x8BCD, "PLY -- restore Y", inline=True)
 comment(0x8BCE, "PLX -- restore X", inline=True)
@@ -11402,6 +11417,12 @@ comment(0x8CF3, "Store updated boot flags", inline=True)
 comment(0x8CF6, "X=&1C: boot filename address low", inline=True)
 comment(0x8CF8, "Y=&8D: boot filename address high", inline=True)
 comment(0x8CFA, "Execute boot file", inline=True)
+comment(0x8CFF, "Tail-jump via FSCV vector "
+    "(filing-system change service)", inline=True)
+comment(0x8D02, "X=&0F: ROM service call 10 (paged-ROM notify)",
+    inline=True)
+comment(0x8D04, "A=&8F: OSBYTE 'Issue paged-ROM service request'",
+    inline=True)
 comment(0x8CFD, "A=6: notify new filing system", inline=True)
 comment(0x8D26, "X=5: start of credits keyword", inline=True)
 comment(0x8D28, "Load character from command line", inline=True)
@@ -11596,6 +11617,13 @@ comment(0x8F4F, "Set up workspace pointers", inline=True)
 comment(0x8F52, "Clear FS flags", inline=True)
 comment(0x8F55, "A=0, transfer to Y", inline=True)
 comment(0x8F56, "Clear byte in FS workspace", inline=True)
+comment(0x8F58, "INY -- next workspace byte", inline=True)
+comment(0x8F59, "Loop until full page (256 bytes) cleared", inline=True)
+comment(0x8F74, "Y=2: nfs_workspace offset for FS station", inline=True)
+comment(0x8F76, "Store FS station at (nfs_workspace)+2", inline=True)
+comment(0x8F7A, "Read CMOS &04 (FS network)", inline=True)
+comment(0x8F7E, "Y=3: nfs_workspace offset for FS network",
+    inline=True)
 comment(0x8F80, "Store at NFS workspace offset 2", inline=True)
 comment(0x8F82, "X=3: init data byte count", inline=True)
 comment(0x8F84, "Load initialisation data byte", inline=True)
@@ -13129,6 +13157,12 @@ comment(0xB6EE, "X=&11: CMOS offset for Econet flags", inline=True)
 comment(0xB6F0, "Tail-call OSBYTE", inline=True)
 
 # cmd_fs_operation (&92D2) — shared handler for *Access, *Delete, *Info, *Lib
+comment(0x9425, "Copy command name 'Access'/'Delete'/'Info'/"
+    "'Lib' to TX buffer", inline=True)
+comment(0x9429, "Parse quoted filename argument from command line",
+    inline=True)
+comment(0x942C, "Parse the access prefix (e.g. L,W,R) into a "
+    "bitmask", inline=True)
 comment(0x9430, "Reject '&' character in filename", inline=True)
 comment(0x9433, "End of line?", inline=True)
 comment(0x9435, "No: copy filename chars to buffer", inline=True)
