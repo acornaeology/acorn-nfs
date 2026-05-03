@@ -101,14 +101,14 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8E98` `read_cmos_byte_0` - description matches body (LDX #0, fall through to osbyte_a1)
 - [ ] `0x8E9A` `osbyte_a1`
 - [x] `0x8EA7` `fs_vector_table` - description matches table layout
-- [ ] `0x8EC9` `osbyte_x0`
-- [ ] `0x8ECB` `osbyte_yff`
-- [ ] `0x8ED2` `osbyte_x0_y0`
-- [ ] `0x8EE9` `raise_y_to_c8`
-- [ ] `0x8EF0` `store_ws_page_count`
-- [ ] `0x904F` `write_vector_entry`
-- [ ] `0x9064` `restore_fs_context`
-- [ ] `0x909E` `verify_ws_checksum`
+- [x] `0x8EC9` `osbyte_x0` - inline at &8EC9 had a confused claim about a 'BEQ after this is unconditional' (no BEQ exists; routine falls through to osbyte_yff). Cleaned up
+- [x] `0x8ECB` `osbyte_yff` - description matches body
+- [x] `0x8ED2` `osbyte_x0_y0` - description matches body (BEQ jmp_osbyte unconditional after LDY #0 sets Z)
+- [x] `0x8EE9` `raise_y_to_c8` - description matches body
+- [x] `0x8EF0` `store_ws_page_count` - two inline comments at &8EF2 and &8EF6 said '&21' but the cap value is &D3 (=211); fixed
+- [x] `0x904F` `write_vector_entry` - description matches body's vector-installation loop
+- [x] `0x9064` `restore_fs_context` - description claimed source is fs_context_save (&0DFA) but body actually copies from the HAZEL FS state block via the hazel_minus_2 indexing-base trick (&BFFE,Y with Y=9..2 -> &C007..&C000). Rewrote
+- [x] `0x909E` `verify_ws_checksum` - description matches body's checksum verification
 - [ ] `0x91F9` `print_newline_no_spool`
 - [ ] `0x91FB` `print_char_no_spool`
 - [ ] `0x9201` `print_byte_no_spool`

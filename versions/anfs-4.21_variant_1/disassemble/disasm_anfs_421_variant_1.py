@@ -3936,15 +3936,19 @@ restore FS state.""",
               "y": "starting offset in extended vector table"},
     on_exit={"y": "workspace page number + 1"})
 subroutine(0x9064, "restore_fs_context",
-    title="Restore FS context from saved workspace",
+    title="Restore FS context from HAZEL into RX block",
     description="""\
-Copies 8 bytes (offsets 2 to 9) from the saved workspace at
-`fs_context_save` (`&0DFA`) back into the receive control block
-via `(net_rx_ptr)`. This restores the station identity, directory
-handles, and library path after a filing-system reselection.
+Copies 8 bytes (offsets 2..9) from the HAZEL FS state block into
+the receive control block at `(net_rx_ptr)+Y`. The source uses
+the [`hazel_minus_2`](address:BFFE) indexing-base trick:
+`LDA hazel_minus_2,Y` with `Y` running 9 down to 2 lands at
+`&C007..&C000` (the [`hazel_fs_station`](address:C000) block --
+station, network, saved station, CSD/lib slots, FS flags, etc.).
+Restores those bytes into the RX control block when the caller
+needs to re-publish the FS context (e.g. after a flip-set boot).
 
-Called by [`svc_2_priv_ws`](address:8F10)
-during init, `deselect_fs_if_active` during FS teardown, and
+Called by [`svc_2_priv_ws`](address:8F10) during init,
+`deselect_fs_if_active` during FS teardown, and
 `flip_set_station_boot`.""",
     on_exit={"a, y": "clobbered (loop counter / data byte)"})
 subroutine(0x9071, "fscv_6_shutdown",
@@ -7734,8 +7738,7 @@ comment(0x8B4B, "Clear svc_state and fall into ensure_fs_selected", inline=True)
 # osbyte_x0 inline comment (1 item)
 comment(0x8ECB, "Y=&FF: 'read' parameter for OSBYTE", inline=True)
 comment(0x8ECD, "Tail-call OSBYTE", inline=True)
-comment(0x8EC9, "Force X=0; the LDY #&FF in osbyte_yff sets Z, so the BEQ "
-        "after this is unconditional", inline=True)
+comment(0x8EC9, "X=0 then fall through into osbyte_yff", inline=True)
 
 # is_decimal_digit inline comments (4 items)
 comment(0x939A, "Hex prefix '&'?", inline=True)
@@ -11866,9 +11869,9 @@ comment(0x8EEB, "Yes: return Y unchanged", inline=True)
 comment(0x8EED, "No: raise Y to &C8", inline=True)
 comment(0x8EEF, "Return", inline=True)
 comment(0x8EF0, "Transfer Y to A", inline=True)
-comment(0x8EF2, "Y >= &21?", inline=True)
+comment(0x8EF2, "Y >= &D3?", inline=True)
 comment(0x8EF4, "No: use Y as-is", inline=True)
-comment(0x8EF6, "Cap at &21", inline=True)
+comment(0x8EF6, "Cap at &D3", inline=True)
 comment(0x8EF8, "Offset &0B in receive block", inline=True)
 comment(0x8EFA, "Store workspace page count", inline=True)
 comment(0x8EFD, "Return -- ws_page count saved", inline=True)

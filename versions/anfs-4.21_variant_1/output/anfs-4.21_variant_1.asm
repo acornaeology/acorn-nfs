@@ -4535,7 +4535,7 @@ ps_template_base = load_transfer_params+1
 ; On Exit: X: 0 Y: &FF
 ; &8ec9 referenced 4 times by &805d, &9041, &9731, &99fd
 .osbyte_x0
-    ldx #0                                                            ; 8ec9: a2 00       ..             ; Force X=0; the LDY #&FF in osbyte_yff sets Z, so the BEQ after this is unconditional
+    ldx #0                                                            ; 8ec9: a2 00       ..             ; X=0 then fall through into osbyte_yff
 ; ***************************************************************************************
 ; OSBYTE wrapper with Y=&FF
 ;
@@ -4622,9 +4622,9 @@ ps_template_base = load_transfer_params+1
 .store_ws_page_count
     tya                                                               ; 8ef0: 98          .              ; Transfer Y to A
     pha                                                               ; 8ef1: 48          H              ; Push for save
-    cmp #&d3                                                          ; 8ef2: c9 d3       ..             ; Y >= &21?
+    cmp #&d3                                                          ; 8ef2: c9 d3       ..             ; Y >= &D3?
     bcc done_cap_ws_count                                             ; 8ef4: 90 02       ..             ; No: use Y as-is
-    lda #&d3                                                          ; 8ef6: a9 d3       ..             ; Cap at &21
+    lda #&d3                                                          ; 8ef6: a9 d3       ..             ; Cap at &D3
 ; &8ef8 referenced 1 time by &8ef4
 .done_cap_ws_count
     ldy #&0b                                                          ; 8ef8: a0 0b       ..             ; Offset &0B in receive block
@@ -4909,11 +4909,14 @@ ps_template_base = load_transfer_params+1
     rts                                                               ; 9063: 60          `              ; Return
 
 ; ***************************************************************************************
-; Restore FS context from saved workspace
+; Restore FS context from HAZEL into RX block
 ;
-; Copies 8 bytes (offsets 2 to 9) from the saved workspace at fs_context_save (&0DFA)
-; back into the receive control block via (net_rx_ptr). This restores the station
-; identity, directory handles, and library path after a filing-system reselection.
+; Copies 8 bytes (offsets 2..9) from the HAZEL FS state block into the receive control
+; block at (net_rx_ptr)+Y. The source uses the hazel_minus_2 indexing-base trick: LDA
+; hazel_minus_2,Y with Y running 9 down to 2 lands at &C007..&C000 (the
+; hazel_fs_station block -- station, network, saved station, CSD/lib slots, FS flags,
+; etc.). Restores those bytes into the RX control block when the caller needs to
+; re-publish the FS context (e.g. after a flip-set boot).
 ;
 ; Called by svc_2_priv_ws during init, deselect_fs_if_active during FS teardown, and
 ; flip_set_station_boot.
