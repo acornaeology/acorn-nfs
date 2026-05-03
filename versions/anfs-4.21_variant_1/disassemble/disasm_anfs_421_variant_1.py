@@ -4754,9 +4754,10 @@ Single caller (`&9CB2` in the OSWORD `&13` handler entry).""",
 subroutine(0x9E82, "format_filename_field",
     title="Format filename into fixed-width display field",
     description="Builds a 12-character space-padded filename at\n"
-    "&10F3 for directory listing output. Sources the\n"
-    "name from either the command line or the fs_cmd_data\n"
-    "reply buffer depending on the value in fs_cmd_csd.\n"
+    "[`filename_buf`](address:10F3) for directory listing\n"
+    "output. Sources the name from either the command line\n"
+    "or the [`fs_cmd_data`](address:0F05) reply buffer\n"
+    "depending on the value in [`fs_cmd_csd`](address:0F03).\n"
     "Truncates or pads to exactly 12 characters.",
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x9FB1, "close_all_fcbs",
@@ -16763,7 +16764,7 @@ comment(0x9D24, "No: copy next byte", inline=True)
 comment(0x9D26, "Load display flag from l0e06", inline=True)
 comment(0x9D29, "Zero: skip display, return", inline=True)
 comment(0x9D2B, "Y=&F4: index into l0fff for filename", inline=True)
-comment(0x9D2D, "Load filename character from l10f3", inline=True)
+comment(0x9D2D, "Load filename character from filename_buf", inline=True)
 comment(0x9D30, "Print character via OSASCI", inline=True)
 comment(0x9D33, "Advance to next character", inline=True)
 comment(0x9D34, "Printed all 12 characters?", inline=True)
@@ -16939,7 +16940,7 @@ comment(0x9E87, "Non-zero: copy from l0f05 buffer", inline=True)
 comment(0x9E89, "Load character from command line", inline=True)
 comment(0x9E8B, "Below '!' (control/space)?", inline=True)
 comment(0x9E8D, "Yes: pad with spaces", inline=True)
-comment(0x9E8F, "Store printable character in l10f3", inline=True)
+comment(0x9E8F, "Store printable character in filename_buf", inline=True)
 comment(0x9E92, "Advance to next character", inline=True)
 comment(0x9E93, "Loop for more characters", inline=True)
 comment(0x9E95, "A=' ': space for padding", inline=True)
@@ -16950,7 +16951,7 @@ comment(0x9E9D, "No: pad more spaces", inline=True)
 comment(0x9E9F, "Return with field formatted", inline=True)
 comment(0x9EA0, "Advance source and destination", inline=True)
 comment(0x9EA2, "Load byte from l0f05 buffer", inline=True)
-comment(0x9EA5, "Store in display buffer l10f3", inline=True)
+comment(0x9EA5, "Store in filename_buf", inline=True)
 comment(0x9EA8, "Bit 7 clear: more characters", inline=True)
 comment(0x9EAA, "Return (bit 7 set = terminator)", inline=True)
 comment(0x9EAB, "Verify workspace checksum", inline=True)

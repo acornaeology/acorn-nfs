@@ -7983,7 +7983,7 @@ bad_prefix_table = bad_str_anchor+1
     ldy #&f4                                                          ; 9d2b: a0 f4       ..             ; Y=&F4: index into l0fff for filename
 ; &9d2d referenced 1 time by &9d34
 .loop_print_filename
-    lda hazel_display_buf_minusF4,y                                   ; 9d2d: b9 ff c1    ...            ; Load filename character from l10f3
+    lda hazel_display_buf_minusF4,y                                   ; 9d2d: b9 ff c1    ...            ; Load filename character from filename_buf
     jsr print_char_no_spool                                           ; 9d30: 20 fb 91     ..            ; Print character via OSASCI
     iny                                                               ; 9d33: c8          .              ; Advance to next character
     bne loop_print_filename                                           ; 9d34: d0 f7       ..             ; Printed all 12 characters?
@@ -8341,8 +8341,8 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; Format filename into fixed-width display field
 ;
-; Builds a 12-character space-padded filename at &10F3 for directory listing output.
-; Sources the name from either the command line or the fs_cmd_data reply buffer
+; Builds a 12-character space-padded filename at filename_buf for directory listing
+; output. Sources the name from either the command line or the fs_cmd_data reply buffer
 ; depending on the value in fs_cmd_csd. Truncates or pads to exactly 12 characters.
 ;
 ; On Exit: A, X, Y: clobbered
@@ -8356,7 +8356,7 @@ bad_prefix_table = bad_str_anchor+1
     lda (fs_crc_lo),y                                                 ; 9e89: b1 be       ..             ; Load character from command line
     cmp #&21 ; '!'                                                    ; 9e8b: c9 21       .!             ; Below '!' (control/space)?
     bcc pad_with_spaces                                               ; 9e8d: 90 06       ..             ; Yes: pad with spaces
-    sta hazel_display_buf,y                                           ; 9e8f: 99 f3 c2    ...            ; Store printable character in l10f3
+    sta hazel_display_buf,y                                           ; 9e8f: 99 f3 c2    ...            ; Store printable character in filename_buf
     iny                                                               ; 9e92: c8          .              ; Advance to next character
     bne loop_copy_cmdline_char                                        ; 9e93: d0 f4       ..             ; Loop for more characters
 ; &9e95 referenced 2 times by &9e8d, &9e9d
@@ -8375,7 +8375,7 @@ bad_prefix_table = bad_str_anchor+1
 ; &9ea2 referenced 1 time by &9e87
 .copy_from_buf_entry
     lda hazel_txcb_data,x                                             ; 9ea2: bd 05 c1    ...            ; Load byte from l0f05 buffer
-    sta hazel_display_buf,y                                           ; 9ea5: 99 f3 c2    ...            ; Store in display buffer l10f3
+    sta hazel_display_buf,y                                           ; 9ea5: 99 f3 c2    ...            ; Store in filename_buf
     bpl loop_copy_buf_char                                            ; 9ea8: 10 f6       ..             ; Bit 7 clear: more characters
     rts                                                               ; 9eaa: 60          `              ; Return (bit 7 set = terminator)
 
