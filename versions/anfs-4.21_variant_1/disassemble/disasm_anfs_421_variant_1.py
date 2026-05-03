@@ -9103,7 +9103,20 @@ comment(0xA8D1, "LSR / LSR -- divide by 4", inline=True)
 comment(0xA8D2, "(continued)", inline=True)
 comment(0xA8D4, "Add &51 (offset base)", inline=True)
 comment(0xA8E6, "Return", inline=True)
+comment(0xA8E7, "Convert TXCB date/time bytes to BCD", inline=True)
+comment(0xA8EA, "Y=7: copy 8 bytes (Y=7 down to 0)", inline=True)
+comment(0xA8EC, "Load BCD byte from TXCB area "
+    "(hazel_txcb_lib + Y)", inline=True)
+comment(0xA8EF, "Store to PB[Y]", inline=True)
 comment(0xA8F1, "Decrement Y (advance backwards)", inline=True)
+comment(0xA8F2, "Loop until Y wraps", inline=True)
+comment(0xA8F4, "A=2: PB[0] parameter for OSWORD &0E "
+    "(seconds-since-midnight format)", inline=True)
+comment(0xA8F6, "Store parameter at PB[0]", inline=True)
+comment(0xA8F8, "A=&0E: OSWORD &0E (read CMOS RTC)", inline=True)
+comment(0xA8FA, "X = PB pointer low", inline=True)
+comment(0xA8FC, "Y = PB pointer high (via table_idx scratch)",
+    inline=True)
 
 # osword_13_set_handles partial gap-fill.
 comment(0xAAE5, "A=0: invalid-handle marker", inline=True)
@@ -9895,6 +9908,17 @@ comment(0x8FA2, "Bit clear: skip the &FF substitution", inline=True)
 comment(0x8FA4, "A=&FF -- enable protection", inline=True)
 comment(0x8FA6, "Set shadow ACR/IER pair", inline=True)
 comment(0x8FBB, "Read CMOS &00 (= station ID byte)", inline=True)
+comment(0x8FBE, "TYA -- Y (CMOS value) into A", inline=True)
+comment(0x8FBF, "Non-zero: station ID valid -> alloc_common_entry",
+    inline=True)
+comment(0x9000, "INY wrapped past 0 (station=&FF then INY=&00): "
+    "report 'CMOS RAM invalid' and default to 1", inline=True)
+comment(0x9004, "Y=1: net_rx_ptr offset for station-ID byte", inline=True)
+comment(0x9006, "Store station ID into (net_rx_ptr)+1", inline=True)
+comment(0x9008, "X=&40: econet_flags init value", inline=True)
+comment(0x900A, "Initialise econet_flags", inline=True)
+comment(0x901D, "A=3: spool-ctrl byte 'init'", inline=True)
+comment(0x901F, "Initialise *SPOOL handle in workspace", inline=True)
 comment(0x8FC1, "Print 'Station number in CMOS RAM invalid...' warning", inline=True)
 comment(0x8FFB, "A=1: default station ID", inline=True)
 comment(0x8FFD, "BRA to alloc_store_station_id with default", inline=True)
@@ -10411,7 +10435,19 @@ label(0xB821, "net_chan_err_strings")
 # &A74E: 'E.-NET-!Boot' (Exec the !Boot file -- alternate variant).
 # Each string is 12 chars + a 0x0D CR terminator at &A74D / &A75A.
 comment(0xA741, "Boot command 'L.-NET-!Boot' (Load !Boot)", inline=True)
+comment(0xA74D, "CR terminator", inline=True)
 comment(0xA74E, "Boot command 'E.-NET-!Boot' (Exec !Boot)", inline=True)
+comment(0xA75A, "CR terminator", inline=True)
+comment(0xA75B, "Boot command low-byte index table -- 4 bytes "
+    "spelling 'ZAHN', each the low byte of a boot-command address "
+    "in the &A7xx page (Z=&5A, A=&41, H=&48, N=&4E)",
+    inline=True)
+comment(0xA764, "Load boot-command low byte from "
+    "boot_prefix_string[Y]", inline=True)
+comment(0xA767, "Y=&A7: high byte (boot strings live in &A7xx)",
+    inline=True)
+comment(0xA769, "Tail-jump to OSCLI to execute the boot command",
+    inline=True)
 # &A83D: 13-byte block of OSWORD-related state bytes used by
 # svc_8_osword's setup. Mostly small constants and offsets.
 comment(0xA83D, "OSWORD setup state (13 bytes -- constants and "
@@ -13757,6 +13793,8 @@ comment(0x95F7, "Read existing CMOS[idx] (current station)",
     inline=True)
 comment(0x95FA, "Default station if user gives no args",
     inline=True)
+comment(0x95FC, "Recover CMOS index from stack", inline=True)
+comment(0x95FD, "X+=1: advance to network byte", inline=True)
 comment(0x95FE, "Read existing CMOS[idx+1] (current network)",
     inline=True)
 comment(0x9601, "Default network if user gives no args",
@@ -13764,11 +13802,14 @@ comment(0x9601, "Default network if user gives no args",
 comment(0x9603, "Restore command-line cursor", inline=True)
 comment(0x9604, "Parse '<net>.<stn>'; updates "
     "fs_work_5/6/7 if args present", inline=True)
+comment(0x9607, "Recover CMOS index from stack", inline=True)
 comment(0x9608, "Re-save CMOS index for second write",
     inline=True)
 comment(0x9609, "Y = station (parsed or pre-read default)",
     inline=True)
 comment(0x960B, "Write CMOS[idx] = station", inline=True)
+comment(0x960E, "Recover CMOS index from stack", inline=True)
+comment(0x960F, "X+=1: advance to network byte", inline=True)
 comment(0x9610, "Y = raw parsed network (NOT canonical "
     "fs_work_6); fall through into osbyte_a2 to write CMOS[idx+1]",
     inline=True)

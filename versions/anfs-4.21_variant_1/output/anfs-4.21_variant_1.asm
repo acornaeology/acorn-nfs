@@ -4711,8 +4711,8 @@ ps_template_base = load_transfer_params+1
 ; &8fbb referenced 1 time by &8f4d
 .alloc_post_restore_check
     jsr read_cmos_byte_0                                              ; 8fbb: 20 98 8e     ..            ; Read CMOS &00 (= station ID byte)
-    tya                                                               ; 8fbe: 98          .
-    bne alloc_common_entry                                            ; 8fbf: d0 3e       .>
+    tya                                                               ; 8fbe: 98          .              ; TYA -- Y (CMOS value) into A
+    bne alloc_common_entry                                            ; 8fbf: d0 3e       .>             ; Non-zero: station ID valid -> alloc_common_entry
 ; &8fc1 referenced 1 time by &9000
 .alloc_error_overflow
     jsr print_inline                                                  ; 8fc1: 20 61 92     a.            ; Print 'Station number in CMOS RAM invalid...' warning
@@ -4724,14 +4724,14 @@ ps_template_base = load_transfer_params+1
 ; &8fff referenced 1 time by &8fbf
 .alloc_common_entry
     iny                                                               ; 8fff: c8          .              ; INY -- check next byte (CMOS station ID hi?)
-    beq alloc_error_overflow                                          ; 9000: f0 bf       ..
+    beq alloc_error_overflow                                          ; 9000: f0 bf       ..             ; INY wrapped past 0 (station=&FF then INY=&00): report 'CMOS RAM invalid' and default to 1
     bra alloc_store_station_id                                        ; 9002: 80 00       ..             ; BRA to alloc_store_station_id (always)
 ; &9004 referenced 2 times by &8ffd, &9002
 .alloc_store_station_id
-    ldy #1                                                            ; 9004: a0 01       ..
-    sta (net_rx_ptr),y                                                ; 9006: 91 9c       ..
-    ldx #&40 ; '@'                                                    ; 9008: a2 40       .@
-    stx econet_flags                                                  ; 900a: 8e 61 0d    .a.
+    ldy #1                                                            ; 9004: a0 01       ..             ; Y=1: net_rx_ptr offset for station-ID byte
+    sta (net_rx_ptr),y                                                ; 9006: 91 9c       ..             ; Store station ID into (net_rx_ptr)+1
+    ldx #&40 ; '@'                                                    ; 9008: a2 40       .@             ; X=&40: econet_flags init value
+    stx econet_flags                                                  ; 900a: 8e 61 0d    .a.            ; Initialise econet_flags
     jsr cmd_net_fs                                                    ; 900d: 20 23 8b     #.            ; Call cmd_net_fs to select NFS
     beq complete_nfs_init                                             ; 9010: f0 08       ..             ; Z: selection succeeded
     lda #&10                                                          ; 9012: a9 10       ..             ; A=&10: bit 4 marker for fs_flags
@@ -4740,8 +4740,8 @@ ps_template_base = load_transfer_params+1
 ; &901a referenced 1 time by &9010
 .complete_nfs_init
     jsr init_adlc_and_vectors                                         ; 901a: 20 3c 90     <.            ; Initialise ADLC and FILEV/ARGSV/...vectors
-    lda #3                                                            ; 901d: a9 03       ..
-    jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..
+    lda #3                                                            ; 901d: a9 03       ..             ; A=3: spool-ctrl byte 'init'
+    jsr handle_spool_ctrl_byte                                        ; 901f: 20 9d ae     ..            ; Initialise *SPOOL handle in workspace
     jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..            ; Send a bridge-discovery packet and poll
     pha                                                               ; 9025: 48          H              ; PHA -- save current bridge byte
     eor hazel_fs_network                                              ; 9026: 4d 01 c0    M..            ; EOR with stored hazel_fs_network (network number)
@@ -6147,18 +6147,18 @@ ps_template_base = load_transfer_params+1
     phx                                                               ; 95f6: da          .              ; Save CMOS index again (consumed by first PLX below)
     jsr osbyte_a1                                                     ; 95f7: 20 9a 8e     ..            ; Read existing CMOS[idx] (current station)
     sty fs_work_5                                                     ; 95fa: 84 b5       ..             ; Default station if user gives no args
-    plx                                                               ; 95fc: fa          .
-    inx                                                               ; 95fd: e8          .
+    plx                                                               ; 95fc: fa          .              ; Recover CMOS index from stack
+    inx                                                               ; 95fd: e8          .              ; X+=1: advance to network byte
     jsr osbyte_a1                                                     ; 95fe: 20 9a 8e     ..            ; Read existing CMOS[idx+1] (current network)
     sty fs_work_6                                                     ; 9601: 84 b6       ..             ; Default network if user gives no args
     ply                                                               ; 9603: 7a          z              ; Restore command-line cursor
     jsr parse_fs_ps_args                                              ; 9604: 20 c4 a3     ..            ; Parse '<net>.<stn>'; updates fs_work_5/6/7 if args present
-    plx                                                               ; 9607: fa          .
+    plx                                                               ; 9607: fa          .              ; Recover CMOS index from stack
     phx                                                               ; 9608: da          .              ; Re-save CMOS index for second write
     ldy fs_work_5                                                     ; 9609: a4 b5       ..             ; Y = station (parsed or pre-read default)
     jsr osbyte_a2                                                     ; 960b: 20 12 96     ..            ; Write CMOS[idx] = station
-    plx                                                               ; 960e: fa          .
-    inx                                                               ; 960f: e8          .
+    plx                                                               ; 960e: fa          .              ; Recover CMOS index from stack
+    inx                                                               ; 960f: e8          .              ; X+=1: advance to network byte
     ldy fs_work_7                                                     ; 9610: a4 b7       ..             ; Y = raw parsed network (NOT canonical fs_work_6); fall through into osbyte_a2 to write CMOS[idx+1]
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
@@ -10246,12 +10246,12 @@ cmos_attr_table = sub_ca0fe+1
     rts                                                               ; a740: 60          `              ; CTRL pressed: cancel boot, return
 
     equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-            ; Boot command 'L.-NET-!Boot' (Load !Boot)
-    equb &0d                                                          ; a74d: 0d          .
+    equb &0d                                                          ; a74d: 0d          .              ; CR terminator
     equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-            ; Boot command 'E.-NET-!Boot' (Exec !Boot)
-    equb &0d                                                          ; a75a: 0d          .
+    equb &0d                                                          ; a75a: 0d          .              ; CR terminator
 ; &a75b referenced 1 time by &a764
 .boot_prefix_string
-    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH
+    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH            ; Boot command low-byte index table -- 4 bytes spelling 'ZAHN', each the low byte of a boot-command address in the &A7xx page (Z=&5A, A=&41, H=&48, N=&4E)
 
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_suffix_string
@@ -10268,9 +10268,9 @@ cmos_attr_table = sub_ca0fe+1
 ; On Entry: Y: boot-command index
 ; &a764 referenced 1 time by &a5d4
 .boot_cmd_oscli
-    ldx boot_prefix_string,y                                          ; a764: be 5b a7    .[.
-    ldy #&a7                                                          ; a767: a0 a7       ..
-    jmp oscli                                                         ; a769: 4c f7 ff    L..
+    ldx boot_prefix_string,y                                          ; a764: be 5b a7    .[.            ; Load boot-command low byte from boot_prefix_string[Y]
+    ldy #&a7                                                          ; a767: a0 a7       ..             ; Y=&A7: high byte (boot strings live in &A7xx)
+    jmp oscli                                                         ; a769: 4c f7 ff    L..            ; Tail-jump to OSCLI to execute the boot command
 
 ; ***************************************************************************************
 ; ANFS *command dispatch tables (5 concatenated sub-tables)
@@ -10511,19 +10511,19 @@ osword_subcode_dispatch = extract_osword_subcode+1
 
 ; &a8e7 referenced 1 time by &a88a
 .save_txcb_done
-    jsr save_txcb_and_convert                                         ; a8e7: 20 91 a8     ..
-    ldy #7                                                            ; a8ea: a0 07       ..
+    jsr save_txcb_and_convert                                         ; a8e7: 20 91 a8     ..            ; Convert TXCB date/time bytes to BCD
+    ldy #7                                                            ; a8ea: a0 07       ..             ; Y=7: copy 8 bytes (Y=7 down to 0)
 ; &a8ec referenced 1 time by &a8f2
 .loop_copy_pbytes_to_workspace
-    lda hazel_txcb_lib,y                                              ; a8ec: b9 04 c1    ...
-    sta (ws_ptr_hi),y                                                 ; a8ef: 91 ac       ..
+    lda hazel_txcb_lib,y                                              ; a8ec: b9 04 c1    ...            ; Load BCD byte from TXCB area (hazel_txcb_lib + Y)
+    sta (ws_ptr_hi),y                                                 ; a8ef: 91 ac       ..             ; Store to PB[Y]
     dey                                                               ; a8f1: 88          .              ; Decrement Y (advance backwards)
-    bne loop_copy_pbytes_to_workspace                                 ; a8f2: d0 f8       ..
-    lda #2                                                            ; a8f4: a9 02       ..
-    sta (ws_ptr_hi),y                                                 ; a8f6: 91 ac       ..
-    lda #osword_read_cmos_clock                                       ; a8f8: a9 0e       ..
-    ldx ws_ptr_hi                                                     ; a8fa: a6 ac       ..
-    ldy table_idx                                                     ; a8fc: a4 ad       ..
+    bne loop_copy_pbytes_to_workspace                                 ; a8f2: d0 f8       ..             ; Loop until Y wraps
+    lda #2                                                            ; a8f4: a9 02       ..             ; A=2: PB[0] parameter for OSWORD &0E (seconds-since-midnight format)
+    sta (ws_ptr_hi),y                                                 ; a8f6: 91 ac       ..             ; Store parameter at PB[0]
+    lda #osword_read_cmos_clock                                       ; a8f8: a9 0e       ..             ; A=&0E: OSWORD &0E (read CMOS RTC)
+    ldx ws_ptr_hi                                                     ; a8fa: a6 ac       ..             ; X = PB pointer low
+    ldy table_idx                                                     ; a8fc: a4 ad       ..             ; Y = PB pointer high (via table_idx scratch)
     jmp osword                                                        ; a8fe: 4c f1 ff    L..            ; Read CMOS clock
 
 ; ***************************************************************************************
