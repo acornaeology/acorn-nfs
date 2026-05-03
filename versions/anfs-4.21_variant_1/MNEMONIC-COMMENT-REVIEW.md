@@ -8,253 +8,35 @@ Use this file to walk every mention and decide:
 - **Trim** if there's a `MNEMONIC --` prefix but the rest is a real semantic remark.
 - **Keep** if the mnemonic mention is structural context (`BIT-trick`, `INY before LDA`, etc.) where dropping it would lose information.
 
-Total: 527 comments (186 prefix-style + 341 mid-text).
+Total: 181 comments (0 prefix-style + 181 mid-text).
 
-## Prefix-style `MNEMONIC -- ...` (186)
+## Prefix-style `MNEMONIC -- ...` (0)
 
 | Addr | Mnemonic | After `--` |
 |---|---|---|
-| `&8430` | `TAX` | restore X register |
-| `&870A` | `RTI` | wait for next NMI |
-| `&8BC8` | `PHX` | save X (cmd-table offset) |
-| `&8BC9` | `PHY` | save Y (text-pointer offset) |
-| `&8BCD` | `PLY` | restore Y |
-| `&8BCE` | `PLX` | restore X |
-| `&8C32` | `PHY` | save Y across OS call |
-| `&8C40` | `PLY` | restore Y |
-| `&8D87` | `PHY` | save caller Y |
-| `&8D8F` | `PHX` | push X |
-| `&8D90` | `PHY` | push Y |
-| `&8DA3` | `PLY` | restore Y |
-| `&8DA4` | `PLX` | restore X |
-| `&8DA9` | `PLY` | restore Y |
-| `&8E1B` | `PLX` | restore X |
-| `&8EFE` | `TYA` | caller's page (in Y) into A |
-| `&8F16` | `TYA` | A = CMOS &11 value |
-| `&8F58` | `INY` | next workspace byte |
-| `&8F73` | `TYA` | A = FS station |
-| `&8F7D` | `TYA` | A = FS network |
-| `&8F9F` | `TYA` | A = settings byte |
-| `&8FBE` | `TYA` | Y (CMOS value) into A |
-| `&8FFF` | `INY` | check next byte (CMOS station ID hi?) |
-| `&9025` | `PHA` | save current bridge byte |
-| `&9032` | `PLA` | restore saved byte |
-| `&90A0` | `PHY` | save Y |
-| `&90B1` | `PLY` | restore Y |
-| `&9428` | `PHX` | save X |
-| `&942F` | `PLX` | restore X |
-| `&9463` | `PHY` | save Y on entry |
-| `&9481` | `PLY` | restore Y |
-| `&94C8` | `PHX` | save X |
-| `&94D2` | `PLX` | restore X |
-| `&9504` | `PHX` | save loop index across the access parse |
-| `&9508` | `PLX` | restore loop index |
-| `&95D8` | `NOP` | bit-7 terminator |
-| `&95E7` | `NOP` | bit-7 terminator |
-| `&961E` | `TYA` | A = current CMOS &11 value |
-| `&9628` | `TYA` | A = current CMOS &11 value |
-| `&962B` | `TAY` | new CMOS value to Y |
-| `&9647` | `TYA` | A = CMOS &11 |
-| `&9652` | `NOP` | bit-7 terminator + resume |
-| `&965C` | `CLV` | bit-7 terminator + resume opcode |
-| `&9664` | `TYA` | A = CMOS &04 value |
-| `&9675` | `TYA` | A = CMOS &02 |
-| `&9682` | `TYA` | A = CMOS value |
-| `&969A` | `PHY` | save Y |
-| `&96A3` | `PLY` | restore caller Y |
-| `&96A4` | `PHY` | save Y again (preserve across loop) |
-| `&96B0` | `PLY` | restore Y |
-| `&96BC` | `PLY` | restore Y |
-| `&96E6` | `PHY` | save text-buffer index |
-| `&972E` | `PHY` | save file handle |
-| `&9734` | `PLY` | restore handle |
-| `&9735` | `TXA` | result to A |
-| `&9A0D` | `PHY` | save Y |
-| `&9A13` | `PLY` | restore Y |
-| `&A0DF` | `PHY` | save Y |
-| `&A0E0` | `PHX` | save sub-code across the CMOS read |
-| `&A0E6` | `PLX` | restore sub-code |
-| `&A0E7` | `TYA` | read CMOS &11 result to A |
-| `&A0EB` | `PLY` | restore Y |
-| `&A0F0` | `TAX` | value to X |
-| `&A0F1` | `TYA` | caller's Y back to A as the value to shift |
-| `&A0F2` | `ASL` | shift CMOS bits |
-| `&A0F3` | `DEX` | count down shift iterations |
-| `&A0FB` | `TAY` | back to Y |
-| `&A494` | `TAY` | A = matched offset, save in Y |
-| `&A49E` | `RTI` | effective unconditional jump |
-| `&A54A` | `ROL` | shift bit 7 into carry |
-| `&A5C9` | `TAY` | A = parsed character |
-| `&A662` | `TYA` | A = caller's index |
-| `&A68D` | `TYA` | A = caller's index |
-| `&A6DD` | `SEC` | mark this path as 'success' for the caller |
-| `&A6E4` | `PHA` | save state |
-| `&A710` | `TYA` | result to A |
-| `&A854` | `DEY` | next slot |
-| `&A879` | `TAY` | A = sub-code |
-| `&A879` | `TAY` | preserve sub-code in Y |
-| `&A901` | `PHP` | save caller flags (D may be in any state) |
-| `&A902` | `TAX` | save A across decimal-mode arithmetic |
-| `&A905` | `SED` | enter decimal mode |
-| `&A90E` | `PLP` | restore caller flags (incl. D) |
-| `&A913` | `TYA` | save Y |
-| `&A942` | `LSR` | divide by 2 |
-| `&A944` | `TAX` | index to X |
-| `&A94D` | `INX` | step to next slot |
-| `&A951` | `TXA` | found slot index |
-| `&A95B` | `DEY` | back up scan |
-| `&A9D6` | `DEY` | step back |
-| `&A9E9` | `DEY` | step back to previous byte |
-| `&AA03` | `TYA` | entry index to A |
-| `&AA18` | `TAY` | back to Y |
-| `&AA2F` | `TYA` | save Y |
-| `&AA32` | `TAY` | restore Y |
-| `&AA5E` | `TYA` | A = Y for store |
-| `&AA72` | `CLC` | WS-to-PB direction (read) |
-| `&AA8C` | `INY` | next byte |
-| `&AA96` | `TYA` | A = current byte index |
-| `&AA9A` | `CLC` | WS-to-PB direction |
-| `&AAA0` | `INY` | next byte |
-| `&AB01` | `TYA` | save Y for processing |
-| `&AB1D` | `TYA` | save current Y |
-| `&AB25` | `TAY` | restore Y |
-| `&AB43` | `TXA` | A = caller X |
-| `&AB4B` | `ROL` | shift bit into carry for test |
-| `&AB66` | `TAX` | restore X |
-| `&AB8D` | `SEC` | PB-to-WS direction (write) |
-| `&AB93` | `INY` | next ctx byte |
-| `&ABF0` | `TYA` | save Y on stack |
-| `&AC2B` | `PLX` | restore caller's X |
-| `&AC3C` | `TAY` | result byte to Y |
-| `&AC4B` | `PHA` | save state |
-| `&AC64` | `INY` | next byte |
-| `&ACBC` | `TAX` | A to X |
-| `&ACC8` | `TXA` | X back to A |
-| `&ACCB` | `PLP` | restore caller flags |
-| `&ACF8` | `CLI` | re-enable IRQs |
-| `&ACFC` | `PHP` | save flags |
-| `&ACFE` | `TXA` | save X |
-| `&AD00` | `TYA` | save Y |
-| `&AD10` | `PLA` | restore Y |
-| `&AD11` | `TAX` | back to X |
-| `&AD12` | `PLA` | restore X register |
-| `&AD13` | `PLP` | restore flags |
-| `&AD32` | `TSX` | read the MOS stack frame holding caller flags |
-| `&AD39` | `TYA` | save Y for storage |
-| `&AE5A` | `DEX` | step counter |
-| `&AE61` | `ROR` | shift bit 0 into C |
-| `&AE77` | `TSX` | read MOS stack frame |
-| `&AEA3` | `PHA` | save state byte |
-| `&AEA5` | `PLA` | restore |
-| `&AECF` | `DEY` | step back to offset &0A |
-| `&AED3` | `PHA` | save value |
-| `&AED4` | `ROL` | shift bit 7 into C |
-| `&AED5` | `PLA` | restore A |
-| `&AEDB` | `ROL` | shift bit 0 into bit 1 |
-| `&AEE0` | `PHA` | save |
-| `&AEEF` | `CLI` | re-enable IRQs (NMI window over) |
-| `&AEF3` | `PLA` | restore vdu_status |
-| `&AEFA` | `ROR` | shift bit 0 into C |
-| `&AEFF` | `PHA` | save |
-| `&AF06` | `PHA` | save TX command |
-| `&AF1A` | `PHA` | save |
-| `&AF1B` | `INY` | Y=3 |
-| `&AF22` | `DEY` | Y=&23 |
-| `&AF23` | `PLA` | restore saved value |
-| `&AF39` | `DEY` | next dest |
-| `&AF3A` | `DEX` | next source |
-| `&AF60` | `PLA` | discard saved TX cmd |
-| `&AF61` | `PLA` | restore vdu_status |
-| `&AF75` | `TAX` | save retry counter |
-| `&AF76` | `PLA` | pop saved TX cmd |
-| `&B01C` | `PHA` | save state byte |
-| `&B02F` | `PHA` | save another byte |
-| `&B03C` | `PLA` | restore inner saved |
-| `&B044` | `PHA` | save |
-| `&B052` | `PLA` | restore outer saved |
-| `&B05C` | `PLA` | restore final saved |
-| `&B072` | `TYA` | A = current Y (= 0) |
-| `&B091` | `TXA` | result to A |
-| `&B217` | `TAY` | new index |
-| `&B2FC` | `INX` | next entry |
-| `&B36F` | `TAY` | A = next index |
-| `&B3C8` | `TYA` | A = current Y |
-| `&B3C9` | `PHA` | save |
-| `&B3CD` | `PLA` | restore |
-| `&B441` | `DEY` | back up to network byte |
-| `&B446` | `DEY` | back up to station byte |
-| `&B450` | `TAY` | restore Y |
-| `&B469` | `CLV` | bit-7 terminator (next opcode) |
-| `&B473` | `NOP` | bit-7 terminator |
-| `&B624` | `NOP` | bit-7 terminator from preceding stringhi |
-| `&B657` | `CLV` | ensure V clear so next BVC always taken |
-| `&B783` | `NOP` | bit-7 terminator + resume |
-| `&BB38` | `PHX` | save X on entry |
-| `&BB39` | `PHY` | save Y across the body |
-| `&BB57` | `PLY` | restore Y |
-| `&BB65` | `PLY` | restore Y |
-| `&BB66` | `PLX` | restore X |
-| `&BC76` | `PHY` | save Y |
-| `&BC8C` | `PLY` | restore Y |
-| `&BC8D` | `PHY` | save Y again for the next iteration |
-| `&BCB8` | `PLY` | restore Y |
-| `&BCB9` | `PLX` | restore X |
-| `&BE71` | `PHA` | save A |
 
-## Mid-text mentions (341)
+## Mid-text mentions (181)
 
 | Addr | Mnemonic(s) | Comment body |
 |---|---|---|
-| `&8003` | `JMP` | JMP service_handler |
-| `&8034` | `TRB` | TRB ACCCON: clear bit 7 (release IRR mask) |
 | `&803A` | `BMI` | Bring saved Y back into A so BMI can test bit 7 |
 | `&803B` | `PHA` `RTS` | Bit 7 of caller's Y set: dispatch via PHA/PHA/RTS table |
 | `&804A` | `RTS` | High byte on stack for RTS |
 | `&804E` | `RTS` | Low byte on stack for RTS |
 | `&804F` | `PHA` `RTS` | RTS = dispatch to PHA'd address |
-| `&809D` | `AND` `BIT` | BIT SR2: Z = A AND SR2 -- tests if AP is set |
-| `&80B5` | `RTI` | Install next handler and RTI |
-| `&80B8` | `BIT` | BIT SR2: test for RDA (bit7 = data available) |
-| `&80C2` | `EOR` | EOR &FF: test if network = &FF (broadcast) |
-| `&80D5` | `RTI` | Install scout data loop and RTI |
-| `&810F` | `RTI` | SR2 = 0 -- RTI, wait for next NMI |
-| `&811E` | `BIT` | BIT SR2: test FV (Z) and RDA (N) |
-| `&8180` | `CLC` | CLC for 12-byte slot advance |
+| `&809D` | `AND` | Z = A AND SR2 -- tests if AP is set |
 | `&81AC` | `RTS` | CR2=&A7: RTS \| CLR_TX_ST \| FC_TDRA \| PSE |
-| `&81C4` | `BIT` | BIT SR2: test AP bit |
-| `&81E7` | `RTI` | Data ready: skip directly, no RTI |
-| `&81E9` | `RTI` | Install handler and return via RTI |
-| `&8207` | `RTI` | No: install handler and RTI |
-| `&820E` | `RTI` | Install Tube handler and RTI |
-| `&8276` | `BIT` | BIT SR2: test FV (Z) and RDA (N) |
-| `&82C0` | `BIT` | BIT SR2: test FV (Z) and RDA (N) |
 | `&82EF` | `RTS` | CR2=&A7: RTS\|CLR_TX_ST\|FC_TDRA\|2_1_BYTE\|PSE |
-| `&8301` | `BIT` | BIT SR1: test TDRA (V=bit6) |
-| `&8319` | `BIT` | BIT SR1: test TDRA |
-| `&8341` | `BIT` | BIT tx_flags: check data transfer bit |
-| `&8346` | `CLC` | CLC: init carry for 4-byte add |
-| `&835B` | `BIT` | BIT tx_flags: check Tube bit |
-| `&8364` | `CLC` | CLC for address calculation |
-| `&8375` | `SEC` | SEC: init carry for increment |
-| `&839C` | `CLC` | CLC for address add |
 | `&83F2` | `AND` | Tube flag bit 1 AND tx_flags bit 1 |
-| `&8406` | `BIT` | BIT tx_flags: check Tube bit |
-| `&8434` | `BCS` | Reset ADLC if BCS condition holds |
 | `&8451` | `LSR` | Clear release flag (LSR clears bit7) |
-| `&8464` | `SEC` | SEC for subtract |
 | `&8476` | `PHA` `RTS` | Push hi byte for PHA/PHA/RTS dispatch |
 | `&847B` | `RTS` | RTS dispatches to handler |
 | `&848D` | `JSR` | ctrl &83: JSR |
 | `&84ED` | `RTS` | CR2=&A7: RTS\|CLR_RX_ST\|FC_TDRA\|PSE |
-| `&851F` | `ORA` | ORA in shift-register mode-2 control bits |
-| `&8526` | `TSB` | TSB ACCCON: set IRR to flag a pending interrupt to MOS |
 | `&853B` | `JSR` | op &83: remote JSR |
 | `&8546` | `JSR` `RTS` | Call remote JSR; RTS to tx_done_exit |
-| `&85B1` | `SEC` | SEC: init borrow for 4-byte subtract |
-| `&85E2` | `BIT` | BIT SR2: test if line is idle |
 | `&85F6` | `RTS` | Y=&E7: CR2 value for TX prep (RTS\|CLR_TX_ST\|CLR_RX_ST\|FC_TDRA\|2_1_BYTE\|PSE) |
-| `&8602` | `AND` `BIT` | BIT SR2: Z = &04 AND SR2 -- tests INACTIVE |
-| `&8611` | `BIT` | BIT SR1: tests CTS present |
+| `&8602` | `AND` | Z = &04 AND SR2 -- tests INACTIVE |
 | `&864A` | `RTS` | Write CR2 = Y (&E7: RTS\|CLR_TX_ST\|CLR_RX_ST\|FC_TDRA\|2_1_BYTE\|PSE) |
 | `&865C` | `ROR` `SEC` | Set need_release_tube flag (SEC/ROR = bit7) |
 | `&8678` | `PHA` `RTS` | Push high byte for PHA/PHA/RTS dispatch |
@@ -262,37 +44,11 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&867D` | `RTS` | RTS dispatches to control-byte handler |
 | `&8680` | `JSR` | ctrl &83: JSR |
 | `&86AC` | `AND` | AND with dest network |
-| `&86E2` | `PLA` | Second PLA |
-| `&86E3` | `PLA` | Third PLA |
-| `&86E4` | `PLA` | Fourth PLA |
-| `&86EA` | `BIT` | BIT SR1: V=bit6(TDRA), N=bit7(IRQ) |
 | `&871B` | `PHA` `PLA` | PHA/PLA delay loop (256 iterations for NMI disable) |
 | `&871C` | `PHA` `PLA` | PHA/PLA delay (~7 cycles each) |
-| `&8748` | `RTI` | Install handler and RTI |
-| `&874D` | `BIT` | BIT SR2: test AP (Address Present) |
-| `&876B` | `BIT` | BIT SR1: test IRQ (N=bit7) -- more data ready? |
-| `&876E` | `RTI` | IRQ set -- fall through to &8779 without RTI |
-| `&8770` | `RTI` | IRQ not set -- install handler and RTI |
-| `&8776` | `BIT` | BIT SR2: test RDA (bit7). Must be set for valid reply. |
-| `&878D` | `BIT` | BIT SR2: test FV -- frame must be complete |
 | `&8792` | `RTS` | CR2=&A7: RTS\|CLR_TX_ST\|FC_TDRA\|2_1_BYTE\|PSE (TX in handshake) |
 | `&8794` | `RTS` | Write CR2: enable RTS for TX handshake |
-| `&87A9` | `BIT` | BIT SR1: test TDRA (V=bit6) |
-| `&87C1` | `BIT` | BIT SR1: test TDRA |
-| `&87EF` | `BIT` | BIT SR1: test TDRA (V=bit6) |
-| `&8845` | `BIT` | Tube TX: BIT SR1 test TDRA |
-| `&8876` | `BIT` | BIT SR1: test IRQ for tight loop |
-| `&8894` | `BIT` | BIT SR2: test AP |
-| `&88A6` | `BIT` | BIT SR2: test RDA |
-| `&88B2` | `BIT` | BIT SR1: test IRQ -- more data ready? |
-| `&88B7` | `RTI` | Install handler and RTI |
-| `&88BA` | `BIT` | BIT SR2: test RDA |
-| `&88D9` | `BIT` | BIT SR2: test FV -- frame must be complete |
-| `&88E0` | `BEQ` | BEQ: always taken (A=0) |
-| `&8920` | `TSB` | TSB escapable -- atomic bit-set |
-| `&894E` | `CLC` | CLC for base pointer addition |
 | `&8A82` | `INX` | OS 1.00: skip INX (table starts at slot 0) |
-| `&8B3B` | `BIT` | BIT &FEA1 -- read ADLC CR2 / SR2 |
 | `&8B47` | `RTS` | Not us: pass the call on (RTS via shared return) |
 | `&8B50` | `RTS` | Already active: tail-RTS via shared exit |
 | `&8C7F` | `RTS` | Push it for RTS dispatch |
@@ -303,22 +59,14 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&8CB4` | `ROR` | Save those flags so the upcoming ROR doesn't lose N |
 | `&8CB6` | `ROL` | Restore the ROL flags: N is now pre-ROL bit 6 |
 | `&8CD3` | `EOR` | EOR with &55: maps to zero if 'N' |
-| `&8DA0` | `STZ` | STZ hazel_fs_pending_state -- clear connection-attempt flag |
 | `&8E69` | `RTS` | Push high byte for RTS dispatch |
 | `&8E6D` | `RTS` | Push low byte for RTS dispatch |
 | `&8E70` | `RTS` | Dispatch via RTS |
 | `&8E71` | `DEY` | Claim 1 page (DEY = decrement Y by 1) |
-| `&8EE1` | `STZ` | STZ svc_state (clear via 65C02 STZ) |
 | `&8F1D` | `BRA` | BRA to common tail |
 | `&8F20` | `INY` `TYA` | TYA / INY / INY -- raise Y by 2 pages |
-| `&8F4A` | `BIT` | BIT fs_flags |
 | `&8FFD` | `BRA` | BRA to alloc_store_station_id with default |
 | `&9002` | `BRA` | BRA to alloc_store_station_id (always) |
-| `&9014` | `ORA` | ORA with fs_flags |
-| `&9026` | `EOR` | EOR with stored hazel_fs_network (network number) |
-| `&9035` | `EOR` | EOR with (nfs_workspace)+3 |
-| `&90F3` | `NOP` | NOP (string terminator) |
-| `&91FC` | `BIT` | BIT &FF unconditionally sets V=1 (bit 6 of operand) |
 | `&91FF` | `CLV` | V=1 always, branch always taken (skips the CLV path) |
 | `&920B` | `AND` `EOR` | Y=0: write mode (NEW = (OLD AND 0) EOR X = X = 0) |
 | `&921F` | `PLA` | Push it back so the final epilogue PLA still works |
@@ -331,7 +79,6 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&92CE` | `CMP` | Above '9'? (CMP #':') |
 | `&92D2` | `AND` | Force uppercase via AND #&5F |
 | `&92D6` | `ADC` | Carry out of ADC: was below 'A' -- bad hex |
-| `&9303` | `ASL` | ASL accumulator (* 2) |
 | `&93A2` | `CMP` | Above '9'? (CMP #':') |
 | `&93A6` | `CMP` | Below '0'? (CMP sets carry if A >= '0') |
 | `&93B7` | `INX` | X=&FF; INX inside the loop bumps to 0 for column 0 |
@@ -339,7 +86,6 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&93E1` | `LSR` | Save flags so the LSR doesn't disturb caller's NZC |
 | `&93EA` | `EOR` | EOR with parsed handle byte; Z set iff bytes match |
 | `&93FB` | `PHA` `PHX` | Re-read the original A from stack[X+2] (above PHX/PHA) |
-| `&941B` | `AND` | AND with current status byte |
 | `&9421` | `PHX` | Restore X (saved at PHX) |
 | `&945C` | `BRA` | BRA back to read_filename_char |
 | `&94B9` | `BRK` | Unbalanced: use BRK ptr for error |
@@ -351,33 +97,16 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&966E` | `BRA` | BRA print_cmos_decimal_nl: shared print-and-trail |
 | `&9689` | `JMP` | JMP svc_return_unclaimed (release service call) |
 | `&968E` | `JMP` | JMP svc4_dispatch_lookup -- shared parser dispatch |
-| `&96A9` | `EOR` | EOR pattern byte at on_suffix_pattern+X |
-| `&96B2` | `INY` | INY: advance text index |
-| `&96B3` | `INX` | INX: advance pattern index |
-| `&96B8` | `PHY` | Match -- PHY save Y |
-| `&96DB` | `INX` | INX: advance template index |
-| `&96E7` | `INX` | INX: advance dest index |
-| `&96EA` | `INY` | INY: advance source |
 | `&96F8` | `BRA` | BRA back to store the CR |
-| `&96FA` | `INX` | INX: account for last char |
-| `&96FE` | `AND` | AND #&3F -- preserve low bits, clear high bits |
-| `&9700` | `ORA` | ORA #&80 -- set bit 7 (load-pending flag) |
 | `&971C` | `BRA` | BRA back to match_char_process (return) |
-| `&971E` | `BIT` | BIT escape_flag |
 | `&972C` | `BRA` | BRA back to read next byte |
 | `&973B` | `BRA` | BRA back to read next byte |
-| `&9782` | `TRB` | TRB clears bit 6: mark FS session inactive |
-| `&9817` | `ROR` | ROR: bit 0 (was bit 6 of any &40 byte) -> C |
-| `&982E` | `PLA` | (2nd PLA) |
-| `&982F` | `PLA` | (3rd PLA) |
 | `&983B` | `INY` | Y=&FF: INY in loop bumps to 0 |
 | `&9840` | `BRK` | Copy to BRK error block at &0100+Y |
 | `&9843` | `EOR` | EOR with CR; Z set when we just copied the terminator |
 | `&984B` | `BRK` | Move Y into A for the BRK |
 | `&984D` | `BRK` | Tail-jump into the BRK-dispatch error path |
-| `&9859` | `ORA` | ORA #9 -- mark session as 'remote boot' |
 | `&989C` | `JMP` | JMP classify_reply_error (never returns) |
-| `&98F6` | `PLA` | done_poll_tx: discard inner counter (PLA) |
 | `&992D` | `BRK` | Tail-jump to dispatch the BRK error |
 | `&99AB` | `JSR` | Pop return address (low) — points to last byte of JSR |
 | `&99C4` | `JSR` | Pop return address (low) — points to last byte of JSR |
@@ -385,12 +114,8 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&99E7` | `BRK` | Yes: append error number and trigger BRK |
 | `&99E9` | `BRK` | Jump to BRK via error block |
 | `&9A38` | `BRK` | ALWAYS branch to trigger BRK error |
-| `&9B42` | `ASL` | ASL: bit 6 (error flag) into N |
-| `&9B45` | `ASL` | ASL: shift away error flag, keep error type |
 | `&9C54` | `JSR` | Branch to continue (C clear from JSR) |
 | `&9E6E` | `INX` | X=1 (INX from 0) |
-| `&9E82` | `JMP` | Dead: duplicate JMP finalise_and_return |
-| `&9EA1` | `INY` | INY |
 | `&9F08` | `LSR` | Save flags (carry from LSR) |
 | `&A103` | `AND` | Idx 0: AND mask = &01 (extract CMOS &11 bit 0) |
 | `&A104` | `AND` | Idx 1: AND mask = &02 (extract CMOS &11 bit 1) |
@@ -402,38 +127,18 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&A10A` | `AND` | Idx 7: AND mask = &3F (clear CMOS &11 bits 6,7) |
 | `&A13F` | `RTS` | RTS dispatches to command handler |
 | `&A25A` | `INX` | X=1 (INX from 0) |
-| `&A2EA` | `INX` | X=1 (INX) |
+| `&A2EA` | `INX` | X=1 (after INX) |
 | `&A3D4` | `EOR` | EOR with parsed network: Z set iff parse matched local |
 | `&A3EE` | `ASL` | Save the C flag from the third ASL |
-| `&A3F2` | `ROR` | ROR halves the result, putting the new C as bit 7 |
 | `&A3F3` | `ASL` | Restore the saved C (from the third ASL) |
-| `&A41F` | `ROL` | ROL: shift bit 7 of A into C |
-| `&A424` | `ROR` | Save bit 0 of econet_flags via ROR |
 | `&A455` | `RTS` | Push hi for RTS dispatch |
 | `&A459` | `RTS` | Push lo for RTS dispatch |
 | `&A45A` | `RTS` | RTS -> dispatched command handler |
-| `&A46A` | `EOR` | EOR with command-line char |
-| `&A49A` | `BIT` | BIT zp_0026 -- check separator flag |
-| `&A49C` | `ROL` | ROL |
-| `&A49D` | `DEC` | DEC |
 | `&A4BB` | `CLV` | V set: skip the CLV |
-| `&A4DC` | `BIT` | BIT fs_flags -- test bit 6 |
 | `&A522` | `RTS` | RTS dispatches to pushed handler |
-| `&A54B` | `ROL` | Second ROL |
-| `&A571` | `ORA` | ORA #&60 -- mark byte as 'argument' |
-| `&A588` | `ORA` | ORA #&80 -- mark caller's flags |
-| `&A5E4` | `CLC` | CLC for the loop entry |
 | `&A5EB` | `BCC` `CLC` | Always (BCC after CLC) loop back |
-| `&A5F5` | `EOR` | EOR #&0D -- test for CR (terminator) |
-| `&A5FF` | `ADC` | ADC carry from low add (no extra increment) |
-| `&A620` | `AND` | AND with l0f0c |
-| `&A630` | `JMP` | JMP tube_addr_data_dispatch -- relocated execute path |
-| `&A635` | `JMP` | JMP (hazel_exec_addr) -- indirect jump via workspace vector |
-| `&A63B` | `JMP` | JMP return_with_last_flag |
-| `&A641` | `JMP` | JMP return_with_last_flag |
 | `&A65A` | `BIT` | BIT always_set_v_byte: V <- 1 (match found) |
 | `&A685` | `BIT` | BIT always_set_v_byte: V <- 1 (match found) |
-| `&A6DA` | `TSB` | TSB fs_flags (set bit) |
 | `&A711` | `CLI` | Mask bit 1 (auto-CLI flag) |
 | `&A713` | `CLI` | Bit clear: skip auto-CLI |
 | `&A83B` | `BRA` | BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame |
@@ -441,108 +146,57 @@ Total: 527 comments (186 prefix-style + 341 mid-text).
 | `&A83F` | `CLC` `SBC` | A = OSWORD - &0E (CLC+SBC = -&0E) |
 | `&A870` | `RTS` | RTS dispatches to pushed handler |
 | `&A87C` | `BIT` `LDA` | LDA #&A9 -- 2-byte BIT-trick filler |
-| `&A881` | `EOR` | EOR with workspace-precomputed value |
-| `&A8D1` | `LSR` | LSR / LSR -- divide by 4 |
-| `&A96C` | `ADC` `CLC` | CLC for ADC chain |
+| `&A96C` | `ADC` | For the ADC chain |
 | `&A9A2` | `RTS` | Push hi for RTS dispatch |
 | `&A9A6` | `RTS` | Push lo for RTS dispatch |
 | `&A9A7` | `RTS` | RTS -> dispatched OSWORD &13 sub-handler |
-| `&A9A7` | `RTS` | RTS dispatches to handler |
-| `&A9F1` | `TSB` | TSB fs_flags: set bits 1..3 |
-| `&A9F6` | `TRB` | TRB fs_flags: clear FS-active flag (bit 6) |
-| `&AA04` | `AND` | AND #&DF -- mask bit 5 |
-| `&AA0F` | `ADC` | Clear C for ADC |
 | `&AA73` | `SEC` | Skip SEC |
-| `&AB29` | `ORA` | ORA #&28 (set bits 3+5) |
-| `&AC0A` | `ROL` | ROL econet_flags (rotate to update) |
-| `&AC0D` | `ASL` | ASL tx_complete_flag (clear bit 7) |
-| `&AC21` | `BIT` | BIT TXCB control byte (poll) |
-| `&AC41` | `EOR` | EOR #&FF -- invert (presence -> absence) |
 | `&AC64` | `INY` | Y=&18 (INY from &17) |
 | `&ACCB` | `PHP` | Restore flags from PHP |
-| `&ACDE` | `ADC` | Set carry for ADC |
-| `&AD01` | `PHA` | PHA |
 | `&AD14` | `RTS` | RTS dispatches via pushed address |
 | `&AD18` | `RTS` | Push for the eventual RTS dispatch |
-| `&AD18` | `RTS` | Push for RTS dispatch |
 | `&AD1C` | `RTS` | Push lo so RTS pulls (lo, hi)+1 -> handler entry |
-| `&AD1C` | `RTS` | Push for RTS dispatch |
 | `&AD1F` | `RTS` | RTS jumps to handler with A=OSWORD number |
-| `&AD1F` | `RTS` | RTS will dispatch to handler |
 | `&AD2F` | `RTS` | hi OSWORD 6: no-op (RTS) |
-| `&AD33` | `ROR` | ROR (stack[&106+X]) -- shift carry out of caller P |
-| `&AD36` | `ASL` | ASL back -- carry is now cleared in caller P |
 | `&AD73` | `DEY` | DEY: Y=0 (state 3 marker, two DEYs from 1) |
-| `&AD74` | `DEY` | (second DEY) |
-| `&AD7C` | `INY` | INY: Y=1 again (no match found, will return below) |
 | `&AD7F` | `BEQ` | Move match marker (Y) into A for the BEQ test |
 | `&ADAA` | `ORA` | Always branch (NZ from ORA) |
 | `&ADC0` | `CMP` | Return; Z reflects last CMP |
-| `&ADE8` | `INY` | INY: bring Y back to 0 for the next single-byte write |
-| `&AE02` | `BIT` | Test bit 6 via BIT (V flag check) |
 | `&AE05` | `CLV` | V=1 always: skip the narrow-mode prologue and CLV |
-| `&AE74` | `DEX` | DEX: step counter back |
-| `&AED6` | `EOR` | EOR #&80 -- toggle bit 7 |
-| `&AF6F` | `AND` | AND #&F0 -- mask high nibble |
-| `&AF77` | `SBC` | Set carry for SBC |
-| `&AF78` | `SBC` | SBC #1 -- decrement retry |
-| `&AF7C` | `CPX` | CPX #1 -- check the saved retry counter |
 | `&AFAF` | `INX` | X=&FF: scan counter -- INX in loop bumps to 0 |
 | `&AFF0` | `EOR` | Push the status (we'll EOR with reply below) |
 | `&AFFA` | `EOR` | EOR with TX[0]: zero iff reply matches saved |
-| `&B069` | `ORA` | ORA #&40 -- mark as palette entry |
 | `&B0A0` | `JMP` | JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir |
-| `&B214` | `ADC` `CLC` | CLC for ADC |
-| `&B227` | `JMP` | JMP print_newline_no_spool |
+| `&B214` | `ADC` | Clear carry for the ADC below |
 | `&B232` | `EOR` | EOR with '&'; Z set iff the byte was '&' |
 | `&B245` | `EOR` | EOR with '.'; Z set iff '&.' pair (URD root) |
 | `&B253` | `INX` | X=&FF: INX in loop bumps to 0 for first byte |
 | `&B25C` | `EOR` | EOR with CR; Z set if we just shifted the terminator |
 | `&B266` | `EOR` | EOR with space; Z set iff it's a trailing space |
-| `&B275` | `EOR` | EOR #&23 -- test for '#' prefix (3 ^ &23 = 0) |
-| `&B27C` | `EOR` | EOR #&1C -- test for ':' (3F ^ &1C = &23 etc) |
-| `&B283` | `EOR` | EOR #&2E -- test for '.' (path separator) |
-| `&B287` | `EOR` | EOR #&23 -- test for '#' |
 | `&B2AB` | `EOR` | Test against '!' to bias the EOR comparison |
 | `&B2AD` | `EOR` | EOR with '&'; Z set iff source byte was '&' |
 | `&B2B5` | `EOR` | EOR with CR; Z set iff we just stored the terminator |
 | `&B2BC` | `EOR` | EOR with space; Z set iff that byte was a trailing space |
-| `&B2FF` | `EOR` | EOR zp_0078 (column flag) |
-| `&B301` | `ADC` | ADC zp_0063 (column accumulator) |
 | `&B310` | `SBC` | Stash divisor in fs_error_ptr (the SBC target below) |
-| `&B315` | `SBC` | Set carry for SBC |
 | `&B48A` | `BVC` | Clear V so the BVC below is taken |
 | `&B4EF` | `ADC` | Save flags so the ADC's C doesn't leak |
 | `&B529` | `INY` | Final INY leaves Y pointing past the second write |
-| `&B764` | `NOP` | Inline string terminator (NOP) |
+| `&B657` | `BVC` | Ensure V clear so next BVC always taken |
 | `&B7BD` | `DEX` `INX` | DEX: pre-decrement before the INX in the loop |
-| `&B7BD` | `DEX` `INX` | DEX to offset following INX |
-| `&B831` | `STZ` | STZ tx_buffer_scratch+X (clear scratch) |
 | `&B860` | `BRK` | BRK opcode |
 | `&B862` | `BRK` | Store BRK at start of error block |
-| `&B928` | `EOR` | Compare with current station (EOR) |
-| `&B930` | `EOR` | Compare with current network (EOR) |
 | `&B955` | `INX` | Adjust for following INX |
-| `&B963` | `ROR` | Set carry for ROR restore |
 | `&BC37` | `BCC` `BCS` | Carry set from BCS/BCC above |
 | `&BD37` | `BRK` | Generate 'Escape' BRK error |
 | `&BD5C` | `INC` | A=&FF: count counter starts here so first INC -> 0 |
 | `&BD77` | `PHP` | 22 bytes to pop (21 buffer + PHP) |
-| `&BD9B` | `ADC` | ADC #&10: bump address by 16 bytes for next line |
 | `&BDB4` | `INC` | X = byte counter (-1 initially, INC'd to 0..&0F) |
-| `&BE1A` | `ADC` | ADC #0 with C set: A += 1 (the column index increments) |
 | `&BE63` | `AND` | Force uppercase via AND #&5F |
 | `&BE67` | `ADC` | Carry out of ADC: digit was below 'A' -> bad hex |
 | `&BE76` | `TYA` | A=0 (and C clear from TYA's flags) |
 | `&BE76` | `PHA` `PLP` | Clear A; C from PHA/PLP below |
-| `&BE78` | `PLP` | PLP: C = bit shifted out of prev iter |
-| `&BE7B` | `ROL` | ROL: shift in C from below, shift out top bit to C |
 | `&BE7F` | `PHA` | Pull A back (PHA earlier) |
 | `&BE7F` | `PHA` `PLP` | Transfer to A for PHA/PLP trick |
 | `&BE85` | `PHA` `PLP` | PHA/PLP: bring saved C into flag register |
-| `&BE86` | `PLP` | PLP |
-| `&BF1E` | `DEY` | (second DEY) |
-| `&BF29` | `DEY` | (second DEY) |
 | `&BFBA` | `JSR` | JSR+fall-through: 8+8=16 INXs total |
 | `&BFBD` | `JSR` | JSR+fall-through: 4+4=8 INXs |
-| `&BFC0` | `INX` | First INX |
