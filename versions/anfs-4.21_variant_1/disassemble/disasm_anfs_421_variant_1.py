@@ -1058,15 +1058,44 @@ label(0x9A81, "loop_count_digit")
 label(0x9A91, "store_digit")
 label(0x9A99, "return_from_store_digit")
 data_banner(0x9A9A, "net_error_lookup_data",
-    title="Net-error code -> message-table offset (12 bytes)",
+    title="Net-error class -> error_msg_table offset (12 bytes)",
     description="""\
-Maps Econet error codes (`&A0`-`&A8`: line jammed, net error, not
-listening, etc.) to byte offsets in `error_msg_table`. Indexed by
-the error code minus `err_line_jammed` (`&A0`); the result is
-added to `error_msg_table`'s base to find the per-error message
-string.""")
+Maps Econet network-error classes to byte offsets into
+[`error_msg_table`](address:9AA6).
+
+- Indices 0-7 are keyed by error class (the reply byte AND `7`).
+- Index 8 is used by `build_no_reply_error` to locate the
+  '`No reply from station`' message head.
+- Indices 9-11 point to the suffix strings appended after the
+  station address in compound errors ('` not listening`',
+  '` on channel`', '` not present`').
+
+Adding the looked-up offset to `error_msg_table`'s base (`&9AA6`)
+yields the address of either an error-code/message pair (indices
+0-8) or a bare suffix string (indices 9-11).""")
 for i in range(12):
     byte(0x9A9A + i)
+data_banner(0x9AA6, "error_msg_table",
+    title="Net-error message strings (126 bytes, &9AA6..&9B23)",
+    description="""\
+Body of error-text fragments referenced by
+[`net_error_lookup_data`](address:9A9A). Two layouts coexist:
+
+1. **Error entries** (offsets 0..&3F) — one byte holding the BRK
+   error code, immediately followed by the null-terminated
+   message string:
+
+   ```
+   <err_code> <message-bytes...> &00
+   ```
+
+2. **Suffix entries** (offsets &56, &65, &71) — bare
+   null-terminated strings appended to a built-up error message;
+   no leading error-code byte.
+
+Per-byte inline comments below name each error code and message;
+the bytes from this table are read by `build_simple_error` and
+`build_no_reply_error` when classifying a network reply.""")
 # Symbolic offsets into error_msg_table
 label(0x9B33, "set_timeout")
 label(0x9B3C, "start_tx_attempt")
@@ -9994,7 +10023,6 @@ label(0x9725, "help_print_char_check")
 label(0x9827, "scan_channel_store_reply")
 label(0x9984, "suffix_copy_loop")
 label(0x9A0D, "net_error_close_spool")
-label(0x9AA6, "error_msg_string_table")
 label(0xA0CF, "osargs_store_ptr_lo")
 label(0xA0DB, "osargs_check_length")
 label(0xA103, "osargs_close_jump")
@@ -12709,7 +12737,6 @@ comment(0x9119, "syntax help for *Pass / *I am", inline=True)
 comment(0x9193, "syntax help for *PS / *Pollps", inline=True)
 comment(0x9AA7, "err_line_jammed = &A0", inline=True)
 comment(0x9AB4, "err_net_error = &A1", inline=True)
-comment(0x9AE7, "joins to 'N' prefix", inline=True)
 comment(0xB1D1, "label for *Ex output", inline=True)
 comment(0xB49B, "fragment for 'File/Printer server is ...' "
     "messages", inline=True)
@@ -12756,12 +12783,14 @@ comment(0xBFFE, "Base for `hazel_minus_2,Y` reads/writes -- "
 comment(0xBFFF, "Base for `hazel_minus_1,Y` reads/writes -- "
     "`&BFFF + Y` reaches into HAZEL for Y >= 1 "
     "(used by loop_copy_station, osword_13_set_station)", inline=True)
-# Split error number and null terminator bytes
-byte(0x9AC8)   # error &A3
+# Force null-terminator and error-code bytes inside error_msg_table
+# onto their own lines so per-byte annotations attach cleanly.
+# Bytes labelled 'N' inside message strings ('No clock',
+# 'No reply from station') are deliberately NOT split so py8dis
+# folds them into the following EQUS run.
 byte(0x9AD0)   # null
 byte(0x9AD1)   # error &11
 byte(0x9AD9)   # error &CB
-byte(0x9AE6)   # error &A5
 byte(0x9B0A)   # null
 byte(0x9B16)   # null
 
@@ -16764,14 +16793,6 @@ comment(0x9A94, "Store ASCII digit in error text", inline=True)
 comment(0x9A97, "Advance text position", inline=True)
 comment(0x9A99, "Return", inline=True)
 
-# net_error_lookup_data (&9798) — error class offset table
-comment(0x9A9A, "Network error lookup table (12 bytes)\n"
-    "\n"
-    "Each byte is an offset into error_msg_table.\n"
-    "Indices 0-7 are keyed by error class (reply AND 7).\n"
-    "Index 8 is used by build_no_reply_error.\n"
-    "Indices 9-11 point to suffix strings appended\n"
-    "after the station address in compound errors.")
 comment(0x9A9A, "Class 0: &A0 \"Line jammed\"", inline=True)
 comment(0x9A9B, "Class 1: &A1 \"Net error\"", inline=True)
 comment(0x9A9E, "Class 4: &11 \"Escape\"", inline=True)

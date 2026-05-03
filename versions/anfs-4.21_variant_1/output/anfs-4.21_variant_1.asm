@@ -6943,11 +6943,11 @@ help_topic_template = dispatch_help_command+1
     ldy net_error_lookup_data,x                                       ; 990b: bc 9a 9a    ...            ; Y = message offset within the string table (&9AA6 base)
     ldx #0                                                            ; 990e: a2 00       ..             ; X=0: error-text buffer index
     stx error_block                                                   ; 9910: 8e 00 01    ...            ; Zero the &0100 length byte (length will be filled in later)
-    lda error_msg_string_table,y                                      ; 9913: b9 a6 9a    ...            ; Read first message byte (the error code)
+    lda error_msg_table,y                                             ; 9913: b9 a6 9a    ...            ; Read first message byte (the error code)
     jsr cond_save_error_code                                          ; 9916: 20 00 99     ..            ; Conditionally save it as last-error
 ; &9919 referenced 1 time by &9923
 .loop_copy_no_reply_msg
-    lda error_msg_string_table,y                                      ; 9919: b9 a6 9a    ...            ; Read next message byte
+    lda error_msg_table,y                                             ; 9919: b9 a6 9a    ...            ; Read next message byte
     sta error_text,x                                                  ; 991c: 9d 01 01    ...            ; Append to error-text buffer at &0101+X
     beq done_no_reply_msg                                             ; 991f: f0 04       ..             ; Null terminator: message done
     inx                                                               ; 9921: e8          .              ; Step buffer index
@@ -7019,13 +7019,13 @@ help_topic_template = dispatch_help_command+1
     php                                                               ; 9947: 08          .              ; Class 2 yes: save flags so we can branch on V later
     tax                                                               ; 9948: aa          .              ; X = error class (=2)
     ldy net_error_lookup_data,x                                       ; 9949: bc 9a 9a    ...            ; Y = lookup-table offset
-    lda error_msg_string_table,y                                      ; 994c: b9 a6 9a    ...            ; Read first message byte (error code)
+    lda error_msg_table,y                                             ; 994c: b9 a6 9a    ...            ; Read first message byte (error code)
     jsr cond_save_error_code                                          ; 994f: 20 00 99     ..            ; Conditionally save it
     ldx #0                                                            ; 9952: a2 00       ..             ; X=0: text-buffer index
     stx error_block                                                   ; 9954: 8e 00 01    ...            ; Zero length byte
 ; &9957 referenced 1 time by &9961
 .loop_copy_station_msg
-    lda error_msg_string_table,y                                      ; 9957: b9 a6 9a    ...            ; Read message byte
+    lda error_msg_table,y                                             ; 9957: b9 a6 9a    ...            ; Read message byte
     sta error_text,x                                                  ; 995a: 9d 01 01    ...            ; Append to buffer
     beq done_station_msg                                              ; 995d: f0 04       ..             ; Null terminator -- station message done
     iny                                                               ; 995f: c8          .              ; Advance Y
@@ -7051,7 +7051,7 @@ help_topic_template = dispatch_help_command+1
     tay                                                               ; 997a: a8          .              ; Y = suffix offset
 ; &997b referenced 1 time by &9985
 .loop_copy_suffix
-    lda error_msg_string_table,y                                      ; 997b: b9 a6 9a    ...            ; Read suffix byte
+    lda error_msg_table,y                                             ; 997b: b9 a6 9a    ...            ; Read suffix byte
     sta error_text,x                                                  ; 997e: 9d 01 01    ...            ; Append
     beq done_suffix                                                   ; 9981: f0 04       ..             ; Null: suffix done
     iny                                                               ; 9983: c8          .              ; Step Y
@@ -7068,11 +7068,11 @@ help_topic_template = dispatch_help_command+1
     ldy net_error_lookup_data,x                                       ; 998a: bc 9a 9a    ...            ; Y = lookup-table offset
     ldx #0                                                            ; 998d: a2 00       ..             ; X=0: buffer index
     stx error_block                                                   ; 998f: 8e 00 01    ...            ; Zero length
-    lda error_msg_string_table,y                                      ; 9992: b9 a6 9a    ...            ; Read first message byte (error code)
+    lda error_msg_table,y                                             ; 9992: b9 a6 9a    ...            ; Read first message byte (error code)
     jsr cond_save_error_code                                          ; 9995: 20 00 99     ..            ; Conditionally save it
 ; &9998 referenced 1 time by &99a2
 .loop_copy_error_msg
-    lda error_msg_string_table,y                                      ; 9998: b9 a6 9a    ...            ; Read next message byte
+    lda error_msg_table,y                                             ; 9998: b9 a6 9a    ...            ; Read next message byte
     sta error_text,x                                                  ; 999b: 9d 01 01    ...            ; Append to buffer
 ; &999e referenced 1 time by &9987
 .check_msg_terminator
@@ -7211,7 +7211,7 @@ bad_prefix_table = bad_str_anchor+1
     tay                                                               ; 9a20: a8          .              ; Transfer offset to Y
 ; &9a21 referenced 1 time by &9a2b
 .loop_copy_channel_msg
-    lda error_msg_string_table,y                                      ; 9a21: b9 a6 9a    ...            ; Load error message byte
+    lda error_msg_table,y                                             ; 9a21: b9 a6 9a    ...            ; Load error message byte
     sta error_text,x                                                  ; 9a24: 9d 01 01    ...            ; Append to error text buffer
     beq append_error_number                                           ; 9a27: f0 04       ..             ; Null terminator: done copying
     inx                                                               ; 9a29: e8          .              ; Advance error text index
@@ -7340,17 +7340,19 @@ bad_prefix_table = bad_str_anchor+1
     rts                                                               ; 9a99: 60          `              ; Return
 
 ; ***************************************************************************************
-; Net-error code -> message-table offset (12 bytes)
+; Net-error class -> error_msg_table offset (12 bytes)
 ;
-; Maps Econet error codes (&A0-&A8: line jammed, net error, not listening, etc.) to
-; byte offsets in error_msg_table. Indexed by the error code minus err_line_jammed
-; (&A0); the result is added to error_msg_table's base to find the per-error message
-; string.
-; Network error lookup table (12 bytes)
+; Maps Econet network-error classes to byte offsets into error_msg_table.
 ;
-; Each byte is an offset into error_msg_table. Indices 0-7 are keyed by error class
-; (reply AND 7). Index 8 is used by build_no_reply_error. Indices 9-11 point to suffix
-; strings appended after the station address in compound errors.
+; - Indices 0-7 are keyed by error class (the reply byte AND 7).
+; - Index 8 is used by build_no_reply_error to locate the 'No reply from station'
+;   message head.
+; - Indices 9-11 point to the suffix strings appended after the station address in
+;   compound errors (' not listening', ' on channel', ' not present').
+;
+; Adding the looked-up offset to error_msg_table's base (&9AA6) yields the address of
+; either an error-code/message pair (indices 0-8) or a bare suffix string (indices
+; 9-11).
 ; &9a9a referenced 5 times by &990b, &9949, &9977, &998a, &9a1d
 .net_error_lookup_data
     equb 0                                                            ; 9a9a: 00          .              ; Class 0: &A0 "Line jammed"
@@ -7365,8 +7367,24 @@ bad_prefix_table = bad_str_anchor+1
     equb &56                                                          ; 9aa3: 56          V              ; Index 9: " not listening" suffix
     equb &65                                                          ; 9aa4: 65          e
     equb &71                                                          ; 9aa5: 71          q              ; Index 11: " not present" suffix
+; ***************************************************************************************
+; Net-error message strings (126 bytes, &9AA6..&9B23)
+;
+; Body of error-text fragments referenced by net_error_lookup_data. Two layouts
+; coexist:
+;
+; 1. Error entries (offsets 0..&3F) — one byte holding the BRK error code, immediately
+;    followed by the null-terminated message string:
+;
+;        <err_code> <message-bytes...> &00
+; 2. Suffix entries (offsets &56, &65, &71) — bare null-terminated strings appended to
+;    a built-up error message; no leading error-code byte.
+;
+; Per-byte inline comments below name each error code and message; the bytes from this
+; table are read by build_simple_error and build_no_reply_error when classifying a
+; network reply.
 ; &9aa6 referenced 8 times by &9913, &9919, &994c, &9957, &997b, &9992, &9998, &9a21
-.error_msg_string_table
+.error_msg_table
     equb &a0                                                          ; 9aa6: a0          .
     equs "Line jammed"                                                ; 9aa7: 4c 69 6e... Lin            ; err_line_jammed = &A0
     equb 0                                                            ; 9ab2: 00          .              ; Null terminator
@@ -7378,8 +7396,7 @@ bad_prefix_table = bad_str_anchor+1
     equb &a2                                                          ; 9abe: a2          .              ; Error &A2: Station
     equs "Station"                                                    ; 9abf: 53 74 61... Sta
     equb 0, &a3                                                       ; 9ac6: 00 a3       ..
-    equb &4e                                                          ; 9ac8: 4e          N
-    equs "o clock"                                                    ; 9ac9: 6f 20 63... o c
+    equs "No clock"                                                   ; 9ac8: 4e 6f 20... No
     equb 0                                                            ; 9ad0: 00          .              ; Null terminator
 .msg_escape
     equb &11                                                          ; 9ad1: 11          .              ; Error &11: Escape
@@ -7389,8 +7406,7 @@ bad_prefix_table = bad_str_anchor+1
     equb &cb                                                          ; 9ad9: cb          .              ; Error &CB: Bad option
     equs "Bad option"                                                 ; 9ada: 42 61 64... Bad
     equb 0, &a5                                                       ; 9ae4: 00 a5       ..
-    equb &4e                                                          ; 9ae6: 4e          N
-    equs "o reply from station"                                       ; 9ae7: 6f 20 72... o r            ; joins to 'N' prefix
+    equs "No reply from station"                                      ; 9ae6: 4e 6f 20... No
     equb 0                                                            ; 9afb: 00          .
     equs " not listening"                                             ; 9afc: 20 6e 6f...  no
     equb 0                                                            ; 9b0a: 00          .              ; Null terminator
@@ -16218,7 +16234,7 @@ save pydis_start, pydis_end
 ;     tx_src_stn:                      9
 ;     txcb_end:                        9
 ;     ws_0d6a:                         9
-;     error_msg_string_table:          8
+;     error_msg_table:                 8
 ;     hazel_txcb_result:               8
 ;     tube_addr_data_dispatch:         8
 ;     tx_complete_flag:                8
@@ -17548,7 +17564,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1953 bytes (12%)
 ;
 ;     Number of instructions   = 7108
-;     Number of data bytes     = 646 bytes
+;     Number of data bytes     = 644 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 1279 bytes
+;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 151
