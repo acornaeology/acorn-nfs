@@ -4402,10 +4402,7 @@ Reads the receive-attribute byte:
 |---|---|
 | non-zero | network error – branch to `handle_net_error` |
 | zero, saved error = `&DE` (FS error code) | branch to `append_error_number` to add the FS-specific code to the error text |
-| zero, saved error other | tail-jump to `&0100` (BRK error block) to trigger BRK and let MOS dispatch |
-
-Three `JSR` sites (`&984D`, `&992D`, `&999E`) plus the `&BD02`
-`JMP` from [`cmd_dump`](address:BD41).""")
+| zero, saved error other | tail-jump to `&0100` (BRK error block) to trigger BRK and let MOS dispatch |""")
 subroutine(0x9A3A, "append_drv_dot_num",
     title="Append 'net.station' decimal string to error text",
     description="""\
