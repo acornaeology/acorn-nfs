@@ -300,16 +300,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x97B7` `prep_send_tx_cb` - description matches body
 - [x] `0x9850` `lang_1_remote_boot` - description matches body
 - [x] `0x98AF` `lang_0_insert_key` - description matches body
-- [ ] `0x99DF` `check_net_error_code`
-- [ ] `0x9A69` `append_decimal_num`
-- [ ] `0x9FB6` `finalise_and_return`
-- [ ] `0xA12C` `update_addr_from_offset9`
-- [ ] `0xA134` `adjust_fsopts_4bytes`
-- [ ] `0xA28A` `send_osbput_data`
-- [ ] `0xA2ED` `write_data_block`
-- [ ] `0xA405` `net_2_read_entry`
-- [ ] `0xA415` `net_3_close_handle`
-- [ ] `0xA42F` `fscv_3_star_cmd`
+- [x] `0x99DF` `check_net_error_code` - description matches body
+- [x] `0x9A69` `append_decimal_num` - description matches body
+- [x] `0x9FB6` `finalise_and_return` - description matches body
+- [x] `0xA12C` `update_addr_from_offset9` - description matches body
+- [x] `0xA134` `adjust_fsopts_4bytes` - description matches body's bit-7-controlled add/sub
+- [x] `0xA28A` `send_osbput_data` - description matches body; fixed two stale inline comments at &A28F and &A292 (pre-HAZEL fs_boot_option / fs_boot_data) that should reference hazel_fs_flags / hazel_txcb_byte_16
+- [x] `0xA2ED` `write_data_block` - description matches body's Tube-vs-direct dispatch
+- [x] `0xA405` `net_2_read_entry` - description matches body's get_pb_ptr_as_index lookup
+- [x] `0xA415` `net_3_close_handle` - description matches body's bit-rotation state save
+- [x] `0xA42F` `fscv_3_star_cmd` - description matches body
 - [ ] `0xA440` `cmd_fs_reentry`
 - [x] `0xA4E4` `fscv_2_star_run` - description compared against body, accurate
 - [ ] `0xA644` `find_station_bit2`

@@ -9399,8 +9399,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
     jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..            ; Send TX control block
-    lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...            ; Load display flag from fs_boot_option
-    sta hazel_txcb_byte_16                                            ; a292: 8d 16 c1    ...            ; Store in fs_boot_data
+    lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...            ; Load display flag from hazel_fs_flags
+    sta hazel_txcb_byte_16                                            ; a292: 8d 16 c1    ...            ; Store in hazel_txcb_byte_16
     stx fs_load_addr                                                  ; a295: 86 b0       ..             ; Clear fs_load_addr (X=0)
     stx fs_load_addr_hi                                               ; a297: 86 b1       ..             ; Clear fs_load_addr_hi
     lda #&12                                                          ; a299: a9 12       ..             ; A=&12: byte count for data block
