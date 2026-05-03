@@ -932,11 +932,43 @@ subroutine(0x93C8, "prot_bit_encode_table",
 [`get_access_bits`](address:93AB) to map source bits (the raw 5-bit
 or 6-bit access mask read from the directory entry) into the FS
 protocol's 8-bit protection-flag layout. The encoder loop at
-[`begin_prot_encode`](address:93B9) shifts each source bit out and
-ORs in the corresponding entry from this table, with `X` indexing
-backwards through the bits.""")
+[`begin_prot_encode`](address:93B9) shifts each source bit out via
+`LSR`; whenever the bit is 1 it ORs the corresponding entry into
+the result, then advances `X`.
+
+Two callers partition the table:
+
+- [`get_prot_bits`](address:93B5) enters at index 0 with 5 source
+  bits (raw protection mask, `AND #&1F`).
+- [`get_access_bits`](address:93AB) enters at index 5 with 6 source
+  bits (directory access byte, `AND #&3F`).
+
+| idx | caller            | src bit | mask  | output bits |
+| --- | ----------------- | ------- | ----- | ----------- |
+|   0 | `get_prot_bits`   |       0 | `&50` | 6, 4        |
+|   1 | `get_prot_bits`   |       1 | `&20` | 5           |
+|   2 | `get_prot_bits`   |       2 | `&05` | 2, 0        |
+|   3 | `get_prot_bits`   |       3 | `&02` | 1           |
+|   4 | `get_prot_bits`   |       4 | `&88` | 7, 3        |
+|   5 | `get_access_bits` |       0 | `&04` | 2           |
+|   6 | `get_access_bits` |       1 | `&08` | 3           |
+|   7 | `get_access_bits` |       2 | `&80` | 7           |
+|   8 | `get_access_bits` |       3 | `&10` | 4           |
+|   9 | `get_access_bits` |       4 | `&01` | 0           |
+|  10 | `get_access_bits` |       5 | `&02` | 1           |""")
 for i in range(11):
     byte(0x93C8 + i)
+comment(0x93C8, "prot src bit 0 -> out bits 6,4", inline=True)
+comment(0x93C9, "prot src bit 1 -> out bit 5", inline=True)
+comment(0x93CA, "prot src bit 2 -> out bits 2,0", inline=True)
+comment(0x93CB, "prot src bit 3 -> out bit 1", inline=True)
+comment(0x93CC, "prot src bit 4 -> out bits 7,3", inline=True)
+comment(0x93CD, "access src bit 0 -> out bit 2", inline=True)
+comment(0x93CE, "access src bit 1 -> out bit 3", inline=True)
+comment(0x93CF, "access src bit 2 -> out bit 7", inline=True)
+comment(0x93D0, "access src bit 3 -> out bit 4", inline=True)
+comment(0x93D1, "access src bit 4 -> out bit 0", inline=True)
+comment(0x93D2, "access src bit 5 -> out bit 1", inline=True)
 label(0x93E8, "loop_cmp_handle")
 label(0x93F1, "return_from_cmp_handle")
 label(0x93F2, "fscv_7_read_handles")

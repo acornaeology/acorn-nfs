@@ -5551,21 +5551,41 @@ ps_template_base = load_transfer_params+1
 ; 11-byte lookup table used by get_prot_bits and get_access_bits to map source bits
 ; (the raw 5-bit or 6-bit access mask read from the directory entry) into the FS
 ; protocol's 8-bit protection-flag layout. The encoder loop at begin_prot_encode shifts
-; each source bit out and ORs in the corresponding entry from this table, with X
-; indexing backwards through the bits.
+; each source bit out via LSR; whenever the bit is 1 it ORs the corresponding entry
+; into the result, then advances X.
+;
+; Two callers partition the table:
+;
+; - get_prot_bits enters at index 0 with 5 source bits (raw protection mask, AND #&1F).
+; - get_access_bits enters at index 5 with 6 source bits (directory access byte, AND
+;   #&3F).
+;
+; | idx | caller          | src bit | mask | output bits |
+; |-----|-----------------|---------|------|-------------|
+; | 0   | get_prot_bits   | 0       | &50  | 6, 4        |
+; | 1   | get_prot_bits   | 1       | &20  | 5           |
+; | 2   | get_prot_bits   | 2       | &05  | 2, 0        |
+; | 3   | get_prot_bits   | 3       | &02  | 1           |
+; | 4   | get_prot_bits   | 4       | &88  | 7, 3        |
+; | 5   | get_access_bits | 0       | &04  | 2           |
+; | 6   | get_access_bits | 1       | &08  | 3           |
+; | 7   | get_access_bits | 2       | &80  | 7           |
+; | 8   | get_access_bits | 3       | &10  | 4           |
+; | 9   | get_access_bits | 4       | &01  | 0           |
+; | 10  | get_access_bits | 5       | &02  | 1           |
 ; &93c8 referenced 1 time by &93c2
 .prot_bit_encode_table
-    equb &50                                                          ; 93c8: 50          P
-    equb &20                                                          ; 93c9: 20
-    equb 5                                                            ; 93ca: 05          .
-    equb 2                                                            ; 93cb: 02          .
-    equb &88                                                          ; 93cc: 88          .
-    equb 4                                                            ; 93cd: 04          .
-    equb 8                                                            ; 93ce: 08          .
-    equb &80                                                          ; 93cf: 80          .
-    equb &10                                                          ; 93d0: 10          .
-    equb 1                                                            ; 93d1: 01          .
-    equb 2                                                            ; 93d2: 02          .
+    equb &50                                                          ; 93c8: 50          P              ; prot src bit 0 -> out bits 6,4
+    equb &20                                                          ; 93c9: 20                         ; prot src bit 1 -> out bit 5
+    equb 5                                                            ; 93ca: 05          .              ; prot src bit 2 -> out bits 2,0
+    equb 2                                                            ; 93cb: 02          .              ; prot src bit 3 -> out bit 1
+    equb &88                                                          ; 93cc: 88          .              ; prot src bit 4 -> out bits 7,3
+    equb 4                                                            ; 93cd: 04          .              ; access src bit 0 -> out bit 2
+    equb 8                                                            ; 93ce: 08          .              ; access src bit 1 -> out bit 3
+    equb &80                                                          ; 93cf: 80          .              ; access src bit 2 -> out bit 7
+    equb &10                                                          ; 93d0: 10          .              ; access src bit 3 -> out bit 4
+    equb 1                                                            ; 93d1: 01          .              ; access src bit 4 -> out bit 0
+    equb 2                                                            ; 93d2: 02          .              ; access src bit 5 -> out bit 1
 
 ; ***************************************************************************************
 ; Set OS text pointer then transfer parameters
