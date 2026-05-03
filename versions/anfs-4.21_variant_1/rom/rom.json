@@ -1,5 +1,6 @@
 {
     "title": "Acorn ANFS 4.21 (variant 1)",
+    "platform": "bbc-master",
     "size": 16384,
     "md5": "03371d224a8f048c129335682434d025",
     "sha256": "a51c9b2ce63d16519880a33b0561048c7172ee53cebe06e8d21da479198398cd",

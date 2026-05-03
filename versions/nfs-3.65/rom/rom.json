@@ -1,5 +1,6 @@
 {
     "title": "Acorn NFS 3.65",
+    "platform": "bbc-model-b",
     "size": 8192,
     "md5": "1e150e6bd53d22c15eb05302b6e5f167",
     "sha256": "683e24f3cb30931892f5381dbd116afeb434d768152b9e9f3affc447e154bbaa",
