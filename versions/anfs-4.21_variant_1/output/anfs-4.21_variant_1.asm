@@ -2417,15 +2417,18 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; RX reply-scout handler
 ;
-; Handles reception of the reply scout frame after transmission. Checks SR2 bit 0 (AP)
-; for incoming data, reads the first byte (destination station) and compares it to our
-; station ID via econet_station_id (which also disables NMIs as a side effect).
+; NMI handler installed before the reply-scout reception phase. Tests SR2 bit 0 (AP)
+; for an incoming address; on AP clear falls through to tx_error. Otherwise reads the
+; first RX byte (destination station) and compares it against the workspace copy
+; tx_src_stn. On mismatch branches to reject_reply; on match installs nmi_reply_cont as
+; the next NMI handler via install_nmi_handler (low-byte only -- the high byte stays at
+; &87).
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
     bit adlc_cr2                                                      ; 874d: 2c a1 fe    ,..            ; Test SR2 AP (Address Present)
     beq tx_error                                                      ; 8750: f0 bb       ..             ; No AP -- error
     lda adlc_tx                                                       ; 8752: ad a2 fe    ...            ; Read first RX byte (destination station)
-    cmp tx_src_stn                                                    ; 8755: cd 22 0d    .".            ; Compare to our station ID (INTOFF side effect)
+    cmp tx_src_stn                                                    ; 8755: cd 22 0d    .".            ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8758: d0 19       ..             ; Not our station -- error/reject
     lda #&5f ; '_'                                                    ; 875a: a9 5f       ._             ; Install next handler at &8758 (reply continuation)
     jmp install_nmi_handler                                           ; 875c: 4c 11 0d    L..            ; Install continuation handler
@@ -2434,18 +2437,20 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX reply continuation handler
 ;
 ; Reads the second byte of the reply scout (destination network) and validates it is
-; zero (local network). Installs nmi_reply_validate (entry at &8779) for the remaining
-; two bytes (source station and network).
+; zero (local network). Loads A=&76, the low byte of nmi_reply_validate, to install it
+; as the next NMI handler.
 ;
-; Optimisation: checks SR1 bit 7 (IRQ still asserted) via BMI at &8767. If IRQ is still
-; set, falls through directly to &8779 without an RTI, avoiding NMI re-entry overhead
-; for short frames where all bytes arrive in quick succession.
+; Optimisation: before installing, checks SR1 bit 7 (IRQ still asserted) via BIT
+; adlc_cr1 / BMI. When IRQ is still set the next byte is already in the FIFO, so the
+; routine falls through directly to nmi_reply_validate without an intermediate RTI,
+; avoiding NMI re-entry overhead for short frames where all bytes arrive in quick
+; succession.
 .nmi_reply_cont
     bit adlc_cr2                                                      ; 875f: 2c a1 fe    ,..            ; Read RX byte (destination station)
     bpl reject_reply                                                  ; 8762: 10 0f       ..             ; No RDA -- error
     lda adlc_tx                                                       ; 8764: ad a2 fe    ...            ; Read destination network byte
     bne reject_reply                                                  ; 8767: d0 0a       ..             ; Non-zero -- network mismatch, error
-    lda #&76 ; 'v'                                                    ; 8769: a9 76       .v             ; Install next handler at &8779 (reply validation)
+    lda #&76 ; 'v'                                                    ; 8769: a9 76       .v             ; A=&76: low byte of nmi_reply_validate (&8776)
     bit adlc_cr1                                                      ; 876b: 2c a0 fe    ,..            ; Test SR1 IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 876e: 30 06       0.             ; IRQ set -- fall through to &8779
     jmp install_nmi_handler                                           ; 8770: 4c 11 0d    L..            ; IRQ not set -- install handler
@@ -2510,8 +2515,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX scout ACK: write source address
 ;
-; Continuation of the TX-side scout ACK. Reads our station ID from econet_station_id
-; (INTOFF), tests TDRA via SR1, and writes (station, network=0) to the TX FIFO.
+; Continuation of the TX-side scout ACK. Reads our station ID from the workspace copy
+; tx_src_stn, tests TDRA via SR1, and writes (station, network=0) to the TX FIFO.
 ;
 ; Then dispatches on bit 1 of rx_src_net to select the next NMI handler:
 ;
@@ -2523,7 +2528,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; Installs the chosen handler via set_nmi_vector. Shares the tx_check_tdra_ready entry
 ; with ack_tx.
 .nmi_scout_ack_src
-    lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
+    lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID from workspace copy
     bit adlc_cr1                                                      ; 87c1: 2c a0 fe    ,..            ; Test SR1 TDRA
 ; &87c4 referenced 1 time by &87ac
 .tx_check_tdra_ready

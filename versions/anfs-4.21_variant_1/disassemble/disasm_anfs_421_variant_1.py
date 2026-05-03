@@ -3180,23 +3180,29 @@ Dispatches on [`rx_src_net`](address:0D3E) flags:
 subroutine(0x874B, "nmi_reply_scout",
     title="RX reply-scout handler",
     description="""\
-Handles reception of the reply scout frame after transmission.
-Checks `SR2` bit 0 (`AP`) for incoming data, reads the first byte
-(destination station) and compares it to our station ID via
-[`econet_station_id`](address:FE18) (which also disables NMIs
-as a side effect).""")
+NMI handler installed before the reply-scout reception phase.
+Tests `SR2` bit 0 (`AP`) for an incoming address; on `AP` clear
+falls through to `tx_error`. Otherwise reads the first RX byte
+(destination station) and compares it against the workspace copy
+[`tx_src_stn`](address:0D22). On mismatch branches to
+[`reject_reply`](address:8773); on match installs
+[`nmi_reply_cont`](address:875F) as the next NMI handler via
+[`install_nmi_handler`](address:0D11) (low-byte only -- the high
+byte stays at `&87`).""")
 subroutine(0x875F, "nmi_reply_cont",
     title="RX reply continuation handler",
     description="""\
 Reads the second byte of the reply scout (destination network)
-and validates it is zero (local network). Installs
-[`nmi_reply_validate`](address:8776) (entry at `&8779`) for
-the remaining two bytes (source station and network).
+and validates it is zero (local network). Loads `A=&76`, the low
+byte of [`nmi_reply_validate`](address:8776), to install it as
+the next NMI handler.
 
-**Optimisation:** checks `SR1` bit 7 (IRQ still asserted) via
-`BMI` at `&8767`. If `IRQ` is still set, falls through directly
-to `&8779` without an `RTI`, avoiding NMI re-entry overhead for
-short frames where all bytes arrive in quick succession.""")
+**Optimisation:** before installing, checks `SR1` bit 7 (`IRQ`
+still asserted) via `BIT adlc_cr1` / `BMI`. When `IRQ` is still
+set the next byte is already in the FIFO, so the routine falls
+through directly to [`nmi_reply_validate`](address:8776) without
+an intermediate `RTI`, avoiding NMI re-entry overhead for short
+frames where all bytes arrive in quick succession.""")
 subroutine(0x8773, "reject_reply",
     title="Abandon reply scout (1-instruction trampoline)",
     description="""\
@@ -3229,7 +3235,7 @@ subroutine(0x87BE, "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
     description="""\
 Continuation of the TX-side scout ACK. Reads our station ID from
-[`econet_station_id`](address:FE18) (INTOFF), tests `TDRA`
+the workspace copy [`tx_src_stn`](address:0D22), tests `TDRA`
 via `SR1`, and writes `(station, network=0)` to the TX FIFO.
 
 Then dispatches on bit 1 of [`rx_src_net`](address:0D3E) to
@@ -7391,7 +7397,7 @@ comment(0x874B, "A=&01: AP mask for SR2", inline=True)
 comment(0x874D, "Test SR2 AP (Address Present)", inline=True)
 comment(0x8750, "No AP -- error", inline=True)
 comment(0x8752, "Read first RX byte (destination station)", inline=True)
-comment(0x8755, "Compare to our station ID (INTOFF side effect)", inline=True)
+comment(0x8755, "Compare to our station ID (workspace copy)", inline=True)
 comment(0x8758, "Not our station -- error/reject", inline=True)
 comment(0x875A, "Install next handler at &8758 (reply continuation)", inline=True)
 comment(0x875C, "Install continuation handler", inline=True)
@@ -7399,7 +7405,7 @@ comment(0x875F, "Read RX byte (destination station)", inline=True)
 comment(0x8762, "No RDA -- error", inline=True)
 comment(0x8764, "Read destination network byte", inline=True)
 comment(0x8767, "Non-zero -- network mismatch, error", inline=True)
-comment(0x8769, "Install next handler at &8779 (reply validation)", inline=True)
+comment(0x8769, "A=&76: low byte of nmi_reply_validate (&8776)", inline=True)
 comment(0x876B, "Test SR1 IRQ (N=bit7) -- more data ready?", inline=True)
 comment(0x876E, "IRQ set -- fall through to &8779", inline=True)
 comment(0x8770, "IRQ not set -- install handler", inline=True)
@@ -7432,7 +7438,7 @@ comment(0x87B4, "Write dest network to TX FIFO", inline=True)
 comment(0x87B7, "Install handler at &87B7 (write src addr for scout ACK)", inline=True)
 comment(0x87B9, "High byte &87 of handler address", inline=True)
 comment(0x87BB, "Set NMI vector and return", inline=True)
-comment(0x87BE, "Load our station ID (also INTOFF)", inline=True)
+comment(0x87BE, "Load our station ID from workspace copy", inline=True)
 comment(0x87C1, "Test SR1 TDRA", inline=True)
 comment(0x87C4, "TDRA not ready -- error", inline=True)
 comment(0x87C6, "Write our station to TX FIFO", inline=True)

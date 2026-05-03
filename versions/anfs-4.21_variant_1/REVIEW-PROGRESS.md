@@ -60,11 +60,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x868A` `tx_ctrl_peek` - description matches body
 - [x] `0x868E` `tx_ctrl_poke` - description matches body
 - [x] `0x8690` `tx_ctrl_store_and_add` - step 2 of description claimed the 4-byte addition wrote to '&0D1E..&0D21' but tx_addr_base is at &0D1E and Y starts at &0C so destination is actually &0D2A..&0D2D (tx_data_len area); corrected
-- [ ] `0x8723` `tx_last_data`
-- [ ] `0x874B` `nmi_reply_scout`
-- [ ] `0x875F` `nmi_reply_cont`
-- [ ] `0x8776` `nmi_reply_validate`
-- [ ] `0x87BE` `nmi_scout_ack_src`
+- [x] `0x8723` `tx_last_data` - description matches body; CR2 bit-name table follows ANFS author convention (different from datasheet) but byte values right
+- [x] `0x874B` `nmi_reply_scout` - description claimed station-ID compare uses econet_station_id (Model B INTOFF mechanism) but body reads tx_src_stn workspace copy; corrected, plus inline at &8755
+- [x] `0x875F` `nmi_reply_cont` - description had two refs to '&8779' for the next handler installation, but actual install target is &8776 (nmi_reply_validate); corrected, plus inline at &8769
+- [x] `0x8776` `nmi_reply_validate` - no changes needed - description was accurate
+- [x] `0x87BE` `nmi_scout_ack_src` - same pattern: description claimed econet_station_id (INTOFF) but body reads tx_src_stn workspace copy; corrected, plus inline
 - [ ] `0x87CE` `data_tx_begin`
 - [ ] `0x87E3` `nmi_data_tx`
 - [ ] `0x8886` `handshake_await_ack`
