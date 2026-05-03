@@ -6180,14 +6180,17 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
 ;
-; Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / BRA &95BE. Writes the Master 128
-; CMOS RAM byte indexed by X with the value in Y. The trailing BRA lands on
-; bra_target_svc_return (a 3-byte JMP trampoline to svc_return_unclaimed, needed
-; because BRA's 8-bit displacement can't reach &8C64 from here).
+; Three instructions: LDA #&A2 / JSR OSBYTE / BRA &95BE. Writes the Master 128 CMOS RAM
+; byte indexed by X with the value in Y. The trailing BRA lands on
+; bra_target_svc_return (a 3-byte JMP trampoline to svc_return_unclaimed, reached this
+; way because BRA's 8-bit displacement can't span &9617 → &8C64).
 ;
-; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), an inline
-; BRA shortcut at &962E, and an OSARGS-related read-modify-write of CMOS byte &11
-; ending at &A0FE. Counterpart of osbyte_a1 (read).
+; osbyte_a2 ends at &9618 (3 instructions, 8 bytes); the next labelled routine is
+; cmd_space. Counterpart of osbyte_a1 (read).
+;
+; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA
+; shortcut at &962E inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
+; byte &11 ending at osopt_cmos_writeback_jsr.
 ;
 ; On Entry: X: CMOS RAM byte index Y: value to write
 ; &9612 referenced 3 times by &960b, &962e, &a0fe
@@ -6195,20 +6198,47 @@ ps_template_base = load_transfer_params+1
     lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..             ; A=&A2: write CMOS RAM byte via OSBYTE
     jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y
     bra bra_target_svc_return                                         ; 9617: 80 a5       ..             ; BRA -91 -> bra_target_svc_return
+; ***************************************************************************************
+; *Space command: enable space-remaining display
+;
+; Reached via the cmd_table_fs dispatch entry for *Space. Reads CMOS byte &11 with
+; osbyte_a1, sets bit 0 of the value, then BRAs to the shared write-back tail at
+; osbyte_a2_value_tya.
+.cmd_space
     ldx #&11                                                          ; 9619: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
     tya                                                               ; 961e: 98          .              ; A = current CMOS &11 value
     ora #1                                                            ; 961f: 09 01       ..             ; Set bit 0 in A
     bra osbyte_a2_value_tya                                           ; 9621: 80 08       ..             ; BRA osbyte_a2_value_tya: shared write-back tail
+; ***************************************************************************************
+; *NoSpace command: disable space-remaining display
+;
+; Reached via the cmd_table_fs dispatch entry for *NoSpace. Reads CMOS byte &11 with
+; osbyte_a1, clears bit 0 of the value, falls through to osbyte_a2_value_tya, and BRAs
+; back into osbyte_a2 to write CMOS &11 = Y.
+.cmd_nospace
     ldx #&11                                                          ; 9623: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
     tya                                                               ; 9628: 98          .              ; A = current CMOS &11 value
     and #&fe                                                          ; 9629: 29 fe       ).             ; Clear bit 0 in A
+; ***************************************************************************************
+; Shared CMOS write-back tail
+;
+; Common tail used by cmd_space (via BRA from &9621 with the new value already in A)
+; and cmd_nospace (fall-through with the new value in A). TAY moves the byte to Y, then
+; LDX #&11 reloads the CMOS index and BRA osbyte_a2 performs the write.
 ; &962b referenced 1 time by &9621
 .osbyte_a2_value_tya
     tay                                                               ; 962b: a8          .              ; New CMOS value to Y
     ldx #&11                                                          ; 962c: a2 11       ..             ; X=&11: CMOS RAM byte index
     bra osbyte_a2                                                     ; 962e: 80 e2       ..             ; BRA osbyte_a2: write CMOS &11 = Y
+; ***************************************************************************************
+; Service &29: *STATUS handler
+;
+; Reached via svc_dispatch slot &18. With no argument on the command line (first byte =
+; CR) prints the FS and PS station addresses from CMOS &01-&04, then a single FS-active
+; flag drawn from bit 0 of CMOS &11 (the same bit that cmd_space / cmd_nospace set and
+; clear). With an argument, branches to help_dispatch_setup to parse it.
 .svc_29_status
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?

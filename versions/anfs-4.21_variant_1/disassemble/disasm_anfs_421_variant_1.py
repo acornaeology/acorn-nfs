@@ -776,7 +776,6 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 label(0x959A, "print_fs_ps_help")
 label(0x95CD, "print_field_tail_s")
 label(0x95E9, "dispatch_fs_ps_with_arg")
-label(0x9630, "svc_29_status")
 label(0x965F, "print_ps_address")
 label(0x9670, "print_fs_address")
 label(0x967F, "print_cmos_decimal_nl")
@@ -10137,7 +10136,6 @@ label(0x9298, "print_next_string_char")
 label(0x92AF, "print_char_terminator")
 label(0x9421, "clear_channel_flag")
 label(0x95BE, "bra_target_svc_return")
-label(0x962B, "osbyte_a2_value_tya")
 label(0x9653, "parse_object_space_print")
 label(0x968C, "help_dispatch_setup")
 label(0x9697, "on_suffix_pattern")
@@ -12198,19 +12196,60 @@ CMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via
 subroutine(0x9612, "osbyte_a2",
     title="OSBYTE &A2 (write Master CMOS RAM byte)",
     description="""\
-Three-instruction wrapper: `LDA #&A2 / JSR OSBYTE / BRA &95BE`.
-Writes the Master 128 CMOS RAM byte indexed by `X` with the value
-in `Y`. The trailing `BRA` lands on
-[`bra_target_svc_return`](address:95BE) (a 3-byte JMP trampoline
-to [`svc_return_unclaimed`](address:8C64), needed because BRA's
-8-bit displacement can't reach &8C64 from here).
+Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BE`. Writes
+the Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.
+The trailing `BRA` lands on
+[`bra_target_svc_return`](address:95BE) (a 3-byte `JMP` trampoline
+to [`svc_return_unclaimed`](address:8C64), reached this way
+because `BRA`'s 8-bit displacement can't span &9617 → &8C64).
+
+`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
+labelled routine is [`cmd_space`](address:9619). Counterpart of
+[`osbyte_a1`](address:8E9A) (read).
 
 Callers: [`set_fs_or_ps_cmos_station`](address:95EE) (once via
-`JSR`, once via fall-through), an inline `BRA` shortcut at
-[`&962E`](address:962C), and an `OSARGS`-related read-modify-write
-of CMOS byte &11 ending at [`&A0FE`](address:A0FE). Counterpart of
-[`osbyte_a1`](address:8E9A) (read).""",
+`JSR`, once via fall-through), the `BRA` shortcut at
+[`&962E`](address:962E) inside [`cmd_nospace`](address:9623), and
+an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
+[`osopt_cmos_writeback_jsr`](address:A0FE).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"})
+
+subroutine(0x9619, "cmd_space",
+    title="*Space command: enable space-remaining display",
+    description="""\
+Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for
+`*Space`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),
+sets bit 0 of the value, then `BRA`s to the shared write-back tail
+at [`osbyte_a2_value_tya`](address:962B).""")
+
+subroutine(0x9623, "cmd_nospace",
+    title="*NoSpace command: disable space-remaining display",
+    description="""\
+Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for
+`*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),
+clears bit 0 of the value, falls through to
+[`osbyte_a2_value_tya`](address:962B), and `BRA`s back into
+[`osbyte_a2`](address:9612) to write CMOS &11 = `Y`.""")
+
+subroutine(0x962B, "osbyte_a2_value_tya",
+    title="Shared CMOS write-back tail",
+    description="""\
+Common tail used by [`cmd_space`](address:9619) (via `BRA` from
+&9621 with the new value already in `A`) and
+[`cmd_nospace`](address:9623) (fall-through with the new value in
+`A`). `TAY` moves the byte to `Y`, then `LDX #&11` reloads the
+CMOS index and `BRA osbyte_a2` performs the write.""")
+
+subroutine(0x9630, "svc_29_status",
+    title="Service &29: *STATUS handler",
+    description="""\
+Reached via `svc_dispatch` slot &18. With no argument on the
+command line (first byte = `CR`) prints the FS and PS station
+addresses from CMOS &01-&04, then a single FS-active flag drawn
+from bit 0 of CMOS &11 (the same bit that
+[`cmd_space`](address:9619) / [`cmd_nospace`](address:9623) set
+and clear). With an argument, branches to
+[`help_dispatch_setup`](address:968C) to parse it.""")
 
 subroutine(0x8B45, "svc_18_fs_select",
     title="Service 18: filing-system selection request",
