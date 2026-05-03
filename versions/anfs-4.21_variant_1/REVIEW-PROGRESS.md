@@ -374,13 +374,13 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA910` `osword_10_handler` -- description had wrong Carry direction and called label 'setup_ws_rx_ptrs' configuring 'receive-side' pointers (actually TX-start path); rewrote, fixed three inlines
 - [x] `0xB01A` `lang_2_save_palette_vdu` -- duplicate inlines for entire routine (B01A-B05D) collapsed; deliberate review block kept
 - [x] `0xB0A1` `cmd_cdir` -- deleted ~70-line stale 4.18 inline block at lines 14172-14240 (PS-scan / PS-template / print-station inlines) misapplied to addresses now in cmd_cdir/cmd_lcat/cmd_lex/cmd_ex/fscv_5_cat -- removed 59 dupe-inlines from the count
-- [ ] `0xB2E4` `ex_print_col_sep`
-- [ ] `0xB303` `print_decimal_3dig_no_spool`
-- [ ] `0xB338` `print_decimal_digit`
-- [ ] `0xB6F3` `cmd_wipe`
-- [ ] `0xB7CB` `prompt_yn`
-- [ ] `0xBD59` `loop_dump_line`
-- [ ] `0xBE37` `print_hex_and_space`
+- [x] `0xB2E4` `ex_print_col_sep` -- duplicate inline block at &B2E0..&B2F0 collapsed (10-line older block deleted)
+- [x] `0xB303` `print_decimal_3dig_no_spool` -- description matches body, no dupes -- confirmed clean
+- [x] `0xB338` `print_decimal_digit` -- description matches body; declared cmd_info_dispatch (&B357) as a new subroutine to fix the print_decimal_digit extent (was running into cmd_info_dispatch)
+- [x] `0xB6F3` `cmd_wipe` -- description claimed routine 'loops sending examine requests' (actually only the setup phase) and bogus 'falls through to flush_and_read_char'; rewrote to describe setup + fall-through to request_next_wipe; deduped 7 inline duplicates
+- [x] `0xB7CB` `prompt_yn` -- deleted misplaced 4.18 'Force lower-case' inline at &B7D1 (instruction no longer exists at that address) + dedupe
+- [x] `0xBD59` `loop_dump_line` -- description matches body; deduped 13-line older inline block
+- [x] `0xBE37` `print_hex_and_space` -- description matches body; deduped 5-line older inline block
 - [x] `0xBFBA` `advance_x_by_8` - description claimed routine adds 8 INXs but it actually adds 16 (JSR advance_x_by_4 + fall-through, each pass runs inx4 twice). Name historically misleading. Rewrote
 
 ## Depth 3 (17 routines)

@@ -13213,8 +13213,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b2dd referenced 1 time by &b2fd
 .loop_scan_entries
     lda hazel_txcb_data,x                                             ; b2dd: bd 05 c1    ...            ; Read entry byte at hazel_txcb_data+X; Get entry byte from buffer
-    bmi return_from_copy_arg                                          ; b2e0: 30 e8       0.             ; Bit 7 set: end-of-entries -> return; High bit set: end of entries
-    bne col_sep_print_cr                                              ; b2e2: d0 15       ..             ; Non-printable: take CR-newline path at col_sep_print_cr; Non-zero: printable character
+    bmi return_from_copy_arg                                          ; b2e0: 30 e8       0.             ; Bit 7 set: end-of-entries -> return
+    bne col_sep_print_cr                                              ; b2e2: d0 15       ..             ; Non-printable: take CR-newline path at col_sep_print_cr
 ; ***************************************************************************************
 ; Print column separator or newline for *Ex/*Cat
 ;
@@ -13224,14 +13224,14 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; print the next entry's characters.
 ; &b2e4 referenced 1 time by &b210
 .ex_print_col_sep
-    ldy fs_spool_handle                                               ; b2e4: a4 ba       ..             ; Read fs_spool_handle (also column counter in *Cat mode); Get column counter
-    bmi col_sep_eol_check                                             ; b2e6: 30 0f       0.             ; Negative: *Ex mode (one-per-line) -- skip column logic, just print newline; Negative: newline mode (Ex)
-    iny                                                               ; b2e8: c8          .              ; Bump column counter; Increment column counter
-    tya                                                               ; b2e9: 98          .              ; Get the new value into A; Transfer to A
-    and #3                                                            ; b2ea: 29 03       ).             ; Wrap to 0..3 (4 columns per row); Modulo 4 (Cat: 3 per row)
-    sta fs_spool_handle                                               ; b2ec: 85 ba       ..             ; Save the new column index; Store updated counter
-    beq col_sep_eol_check                                             ; b2ee: f0 07       ..             ; Wrapped to 0: end of row, print newline; Zero: row full, print newline
-    jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline; Print ' ' column separator
+    ldy fs_spool_handle                                               ; b2e4: a4 ba       ..             ; Read fs_spool_handle (also column counter in *Cat mode)
+    bmi col_sep_eol_check                                             ; b2e6: 30 0f       0.             ; Negative: *Ex mode (one-per-line) -- skip column logic, just print newline
+    iny                                                               ; b2e8: c8          .              ; Bump column counter
+    tya                                                               ; b2e9: 98          .              ; Get the new value into A
+    and #3                                                            ; b2ea: 29 03       ).             ; Wrap to 0..3 (4 columns per row)
+    sta fs_spool_handle                                               ; b2ec: 85 ba       ..             ; Save the new column index
+    beq col_sep_eol_check                                             ; b2ee: f0 07       ..             ; Wrapped to 0: end of row, print newline
+    jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
     equs "  "                                                         ; b2f3: 20 20
 
     bne col_sep_print_char                                            ; b2f5: d0 05       ..             ; Non-zero: take col_sep_print_char tail
@@ -13358,6 +13358,17 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .return_from_print_digit
     rts                                                               ; b356: 60          `              ; Return
 
+; ***************************************************************************************
+; *Info command handler
+;
+; Dispatched from the star-command table at index &28. Clears the owner-only access
+; bits via mask_owner_access, then writes the two-byte FS command prefix 'i' '.' into
+; hazel_txcb_data/hazel_txcb_flag, saves the command-line pointer with
+; save_ptr_to_os_text, parses the *Info argument via parse_cmd_arg_y0, copies it into
+; the TX buffer at offset 2 with copy_arg_to_buf, and JMPs to send_cmd_and_dispatch to
+; send the request to the file server.
+;
+; On Entry: Y: command-line offset in text pointer
 .cmd_info_dispatch
     jsr mask_owner_access                                             ; b357: 20 cf b2     ..            ; Clear owner-only access bits before checking the URD
     lda #&69 ; 'i'                                                    ; b35a: a9 69       .i             ; A=&69: 'i' character (info prefix)
@@ -14224,21 +14235,21 @@ ps_print_template = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; *Wipe command handler
 ;
-; Masks owner access, parses a wildcard filename, and loops sending examine requests to
-; the file server. Skips locked files and non-empty directories. Shows each filename
-; with a '(Y/N/?) ' prompt — '?' shows full file info with a '(Y/N) ' reprompt, 'Y'
-; builds the delete command in the TX buffer. Falls through to flush_and_read_char on
-; completion.
+; Setup half of *Wipe. Masks owner access via mask_owner_access, zeroes the
+; file-iteration counter fs_work_5, preserves the command-line pointer with
+; save_ptr_to_os_text, parses the wildcard filename via parse_filename_arg, and records
+; the end-of-argument offset (X+1) in fs_work_6. Falls through to request_next_wipe,
+; which drives the per-file examine/prompt/delete loop until the wildcard is exhausted.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_wipe
-    jsr mask_owner_access                                             ; b6f3: 20 cf b2     ..            ; Reset access flags before parsing the new argument; Mask owner access flags to 5 bits
-    lda #0                                                            ; b6f6: a9 00       ..             ; A=0: clear the file-iteration counter; Initialise file index to 0
-    sta fs_work_5                                                     ; b6f8: 85 b5       ..             ; Store iteration counter (steps to next file each loop); Store file counter
-    jsr save_ptr_to_os_text                                           ; b6fa: 20 73 b3     s.            ; Save text pointer for re-reading the wildcard each iteration; Save pointer to command text
-    jsr parse_filename_arg                                            ; b6fd: 20 2c b2     ,.            ; Parse the wildcard filename into the &C030 buffer; Parse wildcard filename argument
-    inx                                                               ; b700: e8          .              ; Step X past the CR terminator (so X = filename length+1); Advance past CR terminator
-    stx fs_work_6                                                     ; b701: 86 b6       ..             ; Save end-of-buffer offset; Save end-of-argument buffer position
+    jsr mask_owner_access                                             ; b6f3: 20 cf b2     ..            ; Reset access flags before parsing the new argument
+    lda #0                                                            ; b6f6: a9 00       ..             ; A=0: clear the file-iteration counter
+    sta fs_work_5                                                     ; b6f8: 85 b5       ..             ; Store iteration counter (steps to next file each loop)
+    jsr save_ptr_to_os_text                                           ; b6fa: 20 73 b3     s.            ; Save text pointer for re-reading the wildcard each iteration
+    jsr parse_filename_arg                                            ; b6fd: 20 2c b2     ,.            ; Parse the wildcard filename into the &C030 buffer
+    inx                                                               ; b700: e8          .              ; Step X past the CR terminator (so X = filename length+1)
+    stx fs_work_6                                                     ; b701: 86 b6       ..             ; Save end-of-buffer offset
 ; ***************************************************************************************
 ; Build 'examine directory' TXCB for next wipe iteration
 ;
@@ -14381,8 +14392,8 @@ ps_print_template = write_ps_slot_hi_link+1
 ; On Exit: A: character read from keyboard (after the 'Y/N) ' prompt)
 ; &b7cb referenced 2 times by &b765, &b784
 .prompt_yn
-    jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper; Print 'Y/N) ' prompt
-    equs "Y/N) "                                                      ; b7ce: 59 2f 4e... Y/N            ; Inline string body — bytes consumed by print_inline_no_spool (above); Force lower-case (bit 5 = ' ' bit) for case-insensitive Y/N test
+    jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper
+    equs "Y/N) "                                                      ; b7ce: 59 2f 4e... Y/N            ; Inline string body — bytes consumed by print_inline_no_spool (above)
 
 ; ***************************************************************************************
 ; Flush keyboard buffer and read one character
@@ -15551,26 +15562,26 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Reachable from the alignment branch at &BD54 and the per-line tail at &BDF9.
 ; &bd59 referenced 2 times by &bd54, &bdf9
 .loop_dump_line
-    jsr abort_if_escape                                               ; bd59: 20 25 bd     %.            ; Test escape and abort if pressed; Check for Escape key
-    lda #&ff                                                          ; bd5c: a9 ff       ..             ; A=&FF: count counter starts here so first INC -> 0; Start byte counter at -1
-    sta osword_flag                                                   ; bd5e: 85 aa       ..             ; Save counter (-1); Reset counter
+    jsr abort_if_escape                                               ; bd59: 20 25 bd     %.            ; Test escape and abort if pressed
+    lda #&ff                                                          ; bd5c: a9 ff       ..             ; A=&FF: count counter starts here so first INC -> 0
+    sta osword_flag                                                   ; bd5e: 85 aa       ..             ; Save counter (-1)
 ; &bd60 referenced 1 time by &bd6f
 .loop_read_dump_byte
     ldy ws_page                                                       ; bd60: a4 a8       ..             ; Y = file handle
     jsr osbget                                                        ; bd62: 20 d7 ff     ..            ; Read one byte via OSBGET (C set on EOF)
-    bcs done_check_dump_eof                                           ; bd65: b0 0b       ..             ; EOF: finish off this line then exit; C=1 from OSBGET: end of file
-    inc osword_flag                                                   ; bd67: e6 aa       ..             ; Increment count counter; Increment byte counter (0-15)
-    ldy osword_flag                                                   ; bd69: a4 aa       ..             ; Y = current count (also buffer offset); Use counter as buffer index
-    sta (work_ae),y                                                   ; bd6b: 91 ae       ..             ; Store byte in 16-byte line buffer at (work_ae)+Y; Store byte in data buffer
-    cpy #&0f                                                          ; bd6d: c0 0f       ..             ; Done all 16 bytes?; Read 16 bytes? (index 0-15)
+    bcs done_check_dump_eof                                           ; bd65: b0 0b       ..             ; EOF: finish off this line then exit
+    inc osword_flag                                                   ; bd67: e6 aa       ..             ; Increment count counter
+    ldy osword_flag                                                   ; bd69: a4 aa       ..             ; Y = current count (also buffer offset)
+    sta (work_ae),y                                                   ; bd6b: 91 ae       ..             ; Store byte in 16-byte line buffer at (work_ae)+Y
+    cpy #&0f                                                          ; bd6d: c0 0f       ..             ; Done all 16 bytes?
     bne loop_read_dump_byte                                           ; bd6f: d0 ef       ..             ; No: read next byte
-    clc                                                               ; bd71: 18          .              ; C clear: not EOF (clean line); C=0: not EOF, full line read
+    clc                                                               ; bd71: 18          .              ; C clear: not EOF (clean line)
 ; &bd72 referenced 1 time by &bd65
 .done_check_dump_eof
-    php                                                               ; bd72: 08          .              ; Save the EOF/clean flag; Save C: EOF status
-    lda osword_flag                                                   ; bd73: a5 aa       ..             ; Reload counter byte; Check byte counter
-    bpl done_check_boundary                                           ; bd75: 10 09       ..             ; Bit 7 clear (counter is 0..&7F): bytes were read; Counter >= 0: have data to display
-    ldx #&15                                                          ; bd77: a2 15       ..             ; EOF and no bytes: clean up and exit; 22 bytes to pop (21 buffer + PHP)
+    php                                                               ; bd72: 08          .              ; Save the EOF/clean flag
+    lda osword_flag                                                   ; bd73: a5 aa       ..             ; Reload counter byte
+    bpl done_check_boundary                                           ; bd75: 10 09       ..             ; Bit 7 clear (counter is 0..&7F): bytes were read
+    ldx #&15                                                          ; bd77: a2 15       ..             ; EOF and no bytes: clean up and exit
 ; ***************************************************************************************
 ; Drain saved bytes off stack and close
 ;
@@ -15731,13 +15742,13 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; On Entry: A: byte value to print
 ; &be37 referenced 2 times by &bdb8, &be16
 .print_hex_and_space
-    pha                                                               ; be37: 48          H              ; Save A so the caller can re-use the value; Save byte value on stack
+    pha                                                               ; be37: 48          H              ; Save A so the caller can re-use the value
     jsr print_hex_byte                                                ; be38: 20 36 92     6.            ; Print A as two hex digits
-    lda #&20 ; ' '                                                    ; be3b: a9 20       .              ; A=' ': trailing column separator; A=&20: space character
-    jsr osasci                                                        ; be3d: 20 e3 ff     ..            ; Print the space via OSASCI; Print space character
+    lda #&20 ; ' '                                                    ; be3b: a9 20       .              ; A=' ': trailing column separator
+    jsr osasci                                                        ; be3d: 20 e3 ff     ..            ; Print the space via OSASCI
 .done_print_hex_space
-    pla                                                               ; be40: 68          h              ; Restore caller's A; Restore byte value from stack
-    rts                                                               ; be41: 60          `              ; Return; Return; Y = offset to next argument
+    pla                                                               ; be40: 68          h              ; Restore caller's A
+    rts                                                               ; be41: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Parse hex address for dump range

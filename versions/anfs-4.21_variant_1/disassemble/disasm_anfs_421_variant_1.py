@@ -6054,6 +6054,20 @@ subroutine(0xB338, "print_decimal_digit",
     "the OSASCI call when the digit is '0'.",
     on_entry={"a": "divisor", "y": "value to divide"},
     on_exit={"y": "remainder after division"})
+subroutine(0xB357, "cmd_info_dispatch",
+    title="*Info command handler",
+    description="""\
+Dispatched from the star-command table at index &28. Clears the
+owner-only access bits via [`mask_owner_access`](address:B2CF),
+then writes the two-byte FS command prefix `'i' '.'` into
+[`hazel_txcb_data`](address:C105)/[`hazel_txcb_flag`](address:C106),
+saves the command-line pointer with
+[`save_ptr_to_os_text`](address:B373), parses the *Info argument
+via [`parse_cmd_arg_y0`](address:B22A), copies it into the TX
+buffer at offset 2 with [`copy_arg_to_buf`](address:B2A1), and
+JMPs to [`send_cmd_and_dispatch`](address:8E3C) to send the
+request to the file server.""",
+    on_entry={"y": "command-line offset in text pointer"})
 subroutine(0xB373, "save_ptr_to_os_text",
     title="Copy text pointer to OS text pointer workspace",
     description="Saves fs_crc_lo/hi into the MOS text pointer\n"
@@ -8022,8 +8036,9 @@ comment(0xB2D7, "Return", inline=True)
 comment(0xB7CB, "Print 'Y/N) ' via the inline-string helper", inline=True)
 comment(0xB7CE, "Inline string body — bytes consumed by print_inline_no_spool (above)",
         inline=True)
-comment(0xB7D1, "Force lower-case (bit 5 = ' ' bit) for case-insensitive "
-        "Y/N test", inline=True)
+# &B7D1 is mid-inline-string; the 4.18 'Force lower-case' (AND #&20)
+# instruction lived at this address but no longer exists in 4.21.
+
 
 # close_ws_file inline comments (3 items)
 comment(0xBF71, "Y = saved file handle from ws_page", inline=True)
@@ -12998,13 +13013,16 @@ filename into the TX buffer and send the request.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB6F3, "cmd_wipe",
     title="*Wipe command handler",
-    description="Masks owner access, parses a wildcard filename, and\n"
-    "loops sending examine requests to the file server.\n"
-    "Skips locked files and non-empty directories. Shows\n"
-    "each filename with a '(Y/N/?) ' prompt — '?' shows\n"
-    "full file info with a '(Y/N) ' reprompt, 'Y' builds\n"
-    "the delete command in the TX buffer. Falls through to\n"
-    "flush_and_read_char on completion.",
+    description="""\
+Setup half of *Wipe. Masks owner access via
+[`mask_owner_access`](address:B2CF), zeroes the file-iteration
+counter [`fs_work_5`](address:00B5), preserves the command-line
+pointer with [`save_ptr_to_os_text`](address:B373), parses the
+wildcard filename via [`parse_filename_arg`](address:B22C), and
+records the end-of-argument offset (X+1) in
+[`fs_work_6`](address:00B6). Falls through to
+[`request_next_wipe`](address:B703), which drives the per-file
+examine/prompt/delete loop until the wildcard is exhausted.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB7CB, "prompt_yn",
     title="Print Y/N prompt and read user response",
@@ -15461,16 +15479,8 @@ comment(0xB2D2, "Mask to low 5 bits only", inline=True)
 comment(0xB2D4, "Store masked flags", inline=True)
 comment(0xB2DB, "X=0: start from first entry", inline=True)
 comment(0xB2DD, "Get entry byte from buffer", inline=True)
-comment(0xB2E0, "High bit set: end of entries", inline=True)
-comment(0xB2E2, "Non-zero: printable character", inline=True)
-comment(0xB2E4, "Get column counter", inline=True)
-comment(0xB2E6, "Negative: newline mode (Ex)", inline=True)
-comment(0xB2E8, "Increment column counter", inline=True)
-comment(0xB2E9, "Transfer to A", inline=True)
-comment(0xB2EA, "Modulo 4 (Cat: 3 per row)", inline=True)
-comment(0xB2EC, "Store updated counter", inline=True)
-comment(0xB2EE, "Zero: row full, print newline", inline=True)
-comment(0xB2F0, "Print '  ' column separator", inline=True)
+# &B2E0..&B2F0 inlines covered by the deliberate review block above
+# (loop_scan_entries / ex_print_col_sep).
 comment(0xB3AC, "A=1: check printer ready", inline=True)
 comment(0xB3AE, "Test printer server workspace flag", inline=True)
 comment(0xB3B1, "Non-zero: printer available", inline=True)
@@ -15677,13 +15687,7 @@ comment(0xB57C, "Data buffer end hi (placeholder)", inline=True)
 comment(0xB57E, "Reply buffer start hi (= rx page)", inline=True)
 comment(0xB57F, "Reply buffer end lo (placeholder)", inline=True)
 comment(0xB580, "Reply buffer end hi (placeholder)", inline=True)
-comment(0xB6F3, "Mask owner access flags to 5 bits", inline=True)
-comment(0xB6F6, "Initialise file index to 0", inline=True)
-comment(0xB6F8, "Store file counter", inline=True)
-comment(0xB6FA, "Save pointer to command text", inline=True)
-comment(0xB6FD, "Parse wildcard filename argument", inline=True)
-comment(0xB700, "Advance past CR terminator", inline=True)
-comment(0xB701, "Save end-of-argument buffer position", inline=True)
+# &B6F3..&B701 inlines covered by the deliberate review block above (cmd_wipe).
 comment(0xB703, "Command code 1 = examine directory", inline=True)
 comment(0xB705, "Store command in TX buffer byte 0", inline=True)
 comment(0xB708, "Store flag in TX buffer byte 2", inline=True)
@@ -15766,7 +15770,7 @@ comment(0xB7C2, "Store in delete command TX buffer", inline=True)
 comment(0xB7C5, "Is it a space (field terminator)?", inline=True)
 comment(0xB7C7, "No: continue copying second field", inline=True)
 comment(0xB7C9, "Space found: terminate with CR", inline=True)
-comment(0xB7CB, "Print 'Y/N) ' prompt", inline=True)
+# &B7CB inline covered by deliberate review block (prompt_yn).
 comment(0xB7D3, "OSBYTE &0F: flush buffer class", inline=True)
 comment(0xB7D5, "X=1: flush input buffers", inline=True)
 comment(0xB7D7, "Flush keyboard buffer before read", inline=True)
@@ -16331,19 +16335,7 @@ comment(0xBD50, "Load display address low byte", inline=True)
 comment(0xBD52, "Test high nibble", inline=True)
 comment(0xBD54, "Skip header if 16-byte aligned", inline=True)
 comment(0xBD56, "Print column header for offset start", inline=True)
-comment(0xBD59, "Check for Escape key", inline=True)
-comment(0xBD5C, "Start byte counter at -1", inline=True)
-comment(0xBD5E, "Reset counter", inline=True)
-comment(0xBD65, "C=1 from OSBGET: end of file", inline=True)
-comment(0xBD67, "Increment byte counter (0-15)", inline=True)
-comment(0xBD69, "Use counter as buffer index", inline=True)
-comment(0xBD6B, "Store byte in data buffer", inline=True)
-comment(0xBD6D, "Read 16 bytes? (index 0-15)", inline=True)
-comment(0xBD71, "C=0: not EOF, full line read", inline=True)
-comment(0xBD72, "Save C: EOF status", inline=True)
-comment(0xBD73, "Check byte counter", inline=True)
-comment(0xBD75, "Counter >= 0: have data to display", inline=True)
-comment(0xBD77, "22 bytes to pop (21 buffer + PHP)", inline=True)
+# &BD59..&BD77 inlines covered by deliberate review block (loop_dump_line).
 comment(0xBD79, "Pop one byte from stack", inline=True)
 comment(0xBD7A, "Count down", inline=True)
 comment(0xBD7B, "Loop until stack cleaned up", inline=True)
@@ -16383,11 +16375,7 @@ comment(0xBDBC, "All 16 columns done?", inline=True)
 comment(0xBDBE, "Yes: go to ASCII separator", inline=True)
 comment(0xBDC0, "Decrement remaining data bytes", inline=True)
 comment(0xBDC1, "More data: print next hex byte", inline=True)
-comment(0xBE37, "Save byte value on stack", inline=True)
-comment(0xBE3B, "A=&20: space character", inline=True)
-comment(0xBE3D, "Print space character", inline=True)
-comment(0xBE40, "Restore byte value from stack", inline=True)
-comment(0xBE41, "Return; Y = offset to next argument", inline=True)
+# &BE37..&BE41 inlines covered by deliberate review block (print_hex_and_space).
 comment(0xBE42, "Save command line offset to X", inline=True)
 comment(0xBE43, "X tracks current position", inline=True)
 comment(0xBE44, "Zero for clearing accumulator", inline=True)
