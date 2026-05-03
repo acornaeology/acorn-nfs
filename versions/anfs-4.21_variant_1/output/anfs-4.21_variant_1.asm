@@ -4626,37 +4626,34 @@ ps_template_base = load_transfer_params+1
 ; Returns via RTS at &903B.
 ;
 ; Reached via Master 128 service call &27 (= 39 decimal), documented in the Advanced
-; Reference Manual for the BBC Master as "Reset has occurred. Call made after hard
-; reset. Mainly for Econet Filing system so that it can claim NMIs. This call is now
-; required since the MOS no longer offers workspace on a soft BREAK. A Sideways ROM
-; should therefore re-initialise itself."
+; Reference Manual for the BBC Master:
 ;
-; The dispatch path is: service_handler (&8A54) feeds the call number through its CMP /
-; SBC normalisation chain at &8AB0..&8ACE. For S = &27 the chain flows &27 → &22 → &1D
-; → &15 (subtracting 5+5+8), lands on the BCC at &8ACC with A = &15 (= 21),
-; dispatch_svc_index (&8AD0) TAXs, and calls svc_dispatch with X = 21, Y = 0. The
-; dispatcher's INX/DEY/BPL loop settles X_final = 22, dispatching to
-; svc_dispatch_lo[22] / hi[22] = &8F38 = this routine.
+; > Reset has occurred. Call made after hard reset. Mainly for Econet Filing system so
+; > that it can claim NMIs. This call is now required since the MOS no longer offers
+; > workspace on a soft BREAK. A Sideways ROM should therefore re-initialise itself.
 ;
-; The CMP/SBC chain has three exit branches to dispatch_svc_index plus a fall-through
-; error path; together with the direct-path BCC at &8AB2 they cover exactly the Master
-; 128 service calls ANFS handles:
+; The full set of Master 128 service calls ANFS handles, dispatched via the CMP/SBC
+; normalisation chain in service_handler (&8A54):
 ;
-; svc 0..12 (&00..&0C) -- direct -- idx 1..13 (svc 1..12 stuff) svc 18 (&12)         --
-; BEQ &8AB8 -- idx 14: svc_18_fs_select svc 24 (&18)         -- BEQ &8AC0 -- idx 15:
-; match_on_suffix (Interactive HELP) svc 33..41 (&21..&29) -- BCC &8ACC -- idx 16..24:
-; idx &10 (svc &21): raise_y_to_c8           static ws claim idx &11 (svc &22):
-; set_rom_ws_page         dynamic ws offer idx &12 (svc &23): store_ws_page_count
-; top-of-static-ws idx &13 (svc &24): noop_dey_rts            dynamic ws claim (DEY =
-; claim 1 page) idx &14 (svc &25): copy_template_to_zp     FS name + info reply idx &15
-; (svc &26): check_help_continuation close all files idx &16 (svc &27): nfs_init_body
-; reset re-init (this) idx &17 (svc &28): parse_filename_validate *CONFIGURE option idx
-; &18 (svc &29): parse_object_argument   *STATUS option
+; | svc      | idx   | handler                 | purpose                 |
+; |----------|-------|-------------------------|-------------------------|
+; | &00..&0C | 1..13 | (svc-1..12 handlers)    | service-1 .. service-12 |
+; | &12      | 14    | svc_18_fs_select        | FS select               |
+; | &18      | 15    | match_on_suffix         | Interactive HELP        |
+; | &21      | 16    | raise_y_to_c8           | static ws claim         |
+; | &22      | 17    | set_rom_ws_page         | dynamic ws offer        |
+; | &23      | 18    | store_ws_page_count     | top-of-static-ws        |
+; | &24      | 19    | noop_dey_rts            | dynamic ws claim (1 pg) |
+; | &25      | 20    | copy_template_to_zp     | FS name + info reply    |
+; | &26      | 21    | check_help_continuation | close all files         |
+; | &27      | 22    | nfs_init_body (this)    | reset re-init           |
+; | &28      | 23    | parse_filename_validate | *CONFIGURE option       |
+; | &29      | 24    | parse_object_argument   | *STATUS option          |
 ;
-; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to c8ace, gets
-; A := 0, dispatches to idx 1 = dispatch_rts (no-op). That deliberately ignores e.g.
-; svc &15 (Polling interrupt, 100 Hz) and svc &2A (ROM-based language starting up) --
-; ANFS isn't a language ROM and has no use for the high-frequency poll.
+; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
+; dispatch_svc_state_check (&8ACE) with A := 0 and dispatches to idx 1 = dispatch_rts
+; (no-op) – deliberately ignoring svc &15 (100 Hz poll), svc &2A (language ROM
+; startup), etc.
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
