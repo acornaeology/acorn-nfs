@@ -420,9 +420,9 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xABA9` `osword_13_bridge_query` -- description matches body
 - [x] `0xACF8` `enable_irq_and_poll` -- description matches body
 - [x] `0xAD40` `tx_econet_abort` -- description matches body
-- [ ] `0xAFA6` `send_disconnect_reply`
-- [ ] `0xB556` `print_station_addr`
-- [ ] `0xBD79` `loop_pop_stack_buf`
+- [x] `0xAFA6` `send_disconnect_reply` -- description matches body
+- [x] `0xB556` `print_station_addr` -- description matches body
+- [x] `0xBD79` `loop_pop_stack_buf` -- description matches body
 
 ## Depth 5 (30 routines)
 
@@ -450,12 +450,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xADD3` `osword_8_handler` -- description matches body
 - [x] `0xAEB8` `process_spool_data` -- description matches body
 - [x] `0xAF80` `err_printer_busy` -- description matches body
-- [ ] `0xB81C` `err_net_chan_invalid`
-- [ ] `0xB88C` `check_not_dir`
-- [ ] `0xB8DC` `alloc_fcb_or_error`
-- [ ] `0xBCBC` `send_wipe_request`
-- [ ] `0xBDBB` `loop_next_dump_col`
-- [ ] `0xBEAB` `init_dump_buffer`
+- [x] `0xB81C` `err_net_chan_invalid` -- description matches body
+- [x] `0xB88C` `check_not_dir` -- description matches body
+- [x] `0xB8DC` `alloc_fcb_or_error` -- description matches body
+- [x] `0xBCBC` `send_wipe_request` -- description matches body
+- [x] `0xBDBB` `loop_next_dump_col` -- description matches body
+- [x] `0xBEAB` `init_dump_buffer` -- description matches body
 
 ## Depth 6 (14 routines)
 
@@ -467,12 +467,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA4A2` `loop_skip_trail_spaces` -- description matches body
 - [x] `0xAE6F` `netv_print_data` -- description matches body
 - [x] `0xAE9D` `handle_spool_ctrl_byte` -- description matches body
-- [ ] `0xB251` `strip_token_prefix`
-- [ ] `0xB3AC` `cmd_ps`
-- [ ] `0xB3D7` `copy_ps_data`
-- [ ] `0xB7D3` `flush_and_read_char`
-- [ ] `0xBD41` `cmd_dump`
-- [ ] `0xBE4E` `loop_parse_hex_digit`
+- [x] `0xB251` `strip_token_prefix` -- description matches body
+- [x] `0xB3AC` `cmd_ps` -- description matches body
+- [x] `0xB3D7` `copy_ps_data` -- description matches body
+- [x] `0xB7D3` `flush_and_read_char` -- description matches body
+- [x] `0xBD41` `cmd_dump` -- description matches body
+- [x] `0xBE4E` `loop_parse_hex_digit` -- description matches body
 
 ## Depth 7 (9 routines)
 
@@ -484,7 +484,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA1FA` `setup_transfer_workspace` -- description matches body
 - [x] `0xA329` `tail_update_catalogue` -- description matches body
 - [x] `0xB22F` `parse_access_prefix` - description compared against body, accurate
-- [ ] `0xB581` `cmd_pollps`
+- [x] `0xB581` `cmd_pollps` -- description matches body
 
 ## Depth 8 (5 routines)
 
@@ -492,18 +492,18 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x94C5` `cmd_rename` -- description matches body
 - [x] `0x9C22` `filev_handler` -- description matches body
 - [x] `0xA5C3` `alloc_run_channel` -- description matches body
-- [ ] `0xBD15` `send_and_receive`
+- [x] `0xBD15` `send_and_receive` -- description matches body
 
 ## Depth 9 (2 routines)
 
 - [x] `0xA4F1` `cmd_run_via_urd` - description compared against body, accurate
-- [ ] `0xB99A` `start_wipe_pass`
+- [x] `0xB99A` `start_wipe_pass` -- description matches body
 
 ## Depth 10 (3 routines)
 
 - [x] `0x8E2D` `check_urd_prefix` -- description matches body
-- [ ] `0xBA09` `save_fcb_context`
-- [ ] `0xBB38` `process_all_fcbs`
+- [x] `0xBA09` `save_fcb_context` -- description matches body
+- [x] `0xBB38` `process_all_fcbs` -- description matches body
 
 ## Depth 11 (10 routines)
 
@@ -515,20 +515,20 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9FEE` `send_open_file_request` -- description matches body
 - [x] `0xA14C` `gbpbv_handler` -- description matches body
 - [x] `0xA9DA` `osword_13_set_station` -- description matches body
-- [ ] `0xBACC` `loop_save_before_match`
-- [ ] `0xBC7C` `flush_fcb_with_init`
+- [x] `0xBACC` `loop_save_before_match` -- description matches body
+- [x] `0xBC7C` `flush_fcb_with_init` -- description matches body
 
 ## Depth 12 (3 routines)
 
 - [x] `0x968E` `dispatch_help_command` -- description matches body
 - [x] `0x9EAB` `argsv_handler` -- description matches body
-- [ ] `0xBACF` `find_matching_fcb`
+- [x] `0xBACF` `find_matching_fcb` -- description matches body
 
 ## Depth 13 (3 routines)
 
 - [x] `0xA10B` `fscv_1_eof` -- description matches body
-- [ ] `0xBB68` `bgetv_handler`
-- [ ] `0xBBE7` `bputv_handler`
+- [x] `0xBB68` `bgetv_handler` -- description matches body
+- [x] `0xBBE7` `bputv_handler` -- description matches body
 
 
 
