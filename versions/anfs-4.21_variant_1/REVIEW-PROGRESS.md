@@ -276,18 +276,18 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8A54` `service_handler` - description compared against body, accurate
 - [x] `0x8B23` `cmd_net_fs` - description's step 2 said 'fs_context_save (&0DFA)' but the 4.21 body copies into the HAZEL FS state at &C000 via the hazel_minus_2 indexing trick. Step 6 claimed 'copies workspace to &1000' which doesn't happen on 4.21. Rewrote
 - [x] `0x8BD8` `loop_next_entry` - description matches body
-- [ ] `0x8CBD` `setup_ws_ptr`
-- [ ] `0x8D09` `svc_dispatch_idx_2`
-- [ ] `0x8DD5` `cmd_pass`
-- [ ] `0x8E3C` `send_cmd_and_dispatch`
+- [x] `0x8CBD` `setup_ws_ptr` - description matches body
+- [x] `0x8D09` `svc_dispatch_idx_2` - description matches body's CMOS &11 bit-0 read
+- [x] `0x8DD5` `cmd_pass` - description matches body's password-prompt handler
+- [x] `0x8E3C` `send_cmd_and_dispatch` - description matches body's reply-code dispatch
 - [x] `0x8E8A` `svc_26_close_all_files` - description compared against body, accurate
-- [ ] `0x8ED8` `svc_7_osbyte`
-- [ ] `0x8F10` `svc_2_priv_ws`
+- [x] `0x8ED8` `svc_7_osbyte` - description matches body's &32-&35 to 0-3 mapping
+- [x] `0x8F10` `svc_2_priv_ws` - description matches body (already verified)
 - [x] `0x90C7` `print_station_id` - description compared against body, accurate
-- [ ] `0x9236` `print_hex_byte`
-- [ ] `0x924C` `print_hex_byte_no_spool`
-- [ ] `0x928A` `print_inline_no_spool`
-- [ ] `0x92B2` `parse_addr_arg`
+- [x] `0x9236` `print_hex_byte` - description matches body
+- [x] `0x924C` `print_hex_byte_no_spool` - description matches body
+- [x] `0x928A` `print_inline_no_spool` - description matches body
+- [x] `0x92B2` `parse_addr_arg` - description matches body's hex/decimal address parser
 - [ ] `0x93F7` `set_conn_active`
 - [ ] `0x940D` `clear_conn_active`
 - [ ] `0x95C1` `print_station_low`
