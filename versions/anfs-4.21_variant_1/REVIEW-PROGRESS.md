@@ -76,12 +76,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x898C` `adlc_full_reset` - description matches body's CR1/CR4/CR3/fall-through sequence
 - [x] `0x899B` `adlc_rx_listen` - description matches body (CR1=&82, CR2=&67)
 - [x] `0x89A6` `wait_idle_and_reset` - description claimed this is 'Service 12 handler: NMI release' but svc_dispatch idx &0D maps this routine to svc &0D (=13), and 'NMI release' is svc &0B handled by econet_restore. Description and on_entry corrected
-- [ ] `0x89D8` `rom_set_nmi_vector`
+- [x] `0x89D8` `rom_set_nmi_vector` - description matches body (STY hi, STA lo, restore ROM bank, fall through to nmi_rti)
 - [ ] `0x89ED` `svc_dispatch_lo`
 - [ ] `0x8A20` `svc_dispatch_hi`
-- [ ] `0x8B00` `scan_remote_keys`
-- [ ] `0x8B18` `save_text_ptr`
-- [ ] `0x8B45` `svc_18_fs_select`
+- [x] `0x8B00` `scan_remote_keys` - description matches body's OSBYTE keyboard-scan loop for keys &CE..&CF; minor uncertainty about exact OSBYTE semantics but flow is correct
+- [x] `0x8B18` `save_text_ptr` - description matches body; note that the destinations fs_crc_lo/hi (&BE/&BF) double as OS-text-pointer save slots in this context
+- [x] `0x8B45` `svc_18_fs_select` - description's table mentions 'Bit 7 of fs_flags' check which actually happens in the fall-through routine ensure_fs_selected, not in this routine -- but the chain is correctly described
 - [ ] `0x8B4D` `ensure_fs_selected`
 - [ ] `0x8BC0` `help_utils`
 - [ ] `0x8BC4` `help_net`
