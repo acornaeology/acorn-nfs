@@ -162,10 +162,10 @@ tx_port                     = &0d25  ; Destination port for next TX scout frame.
 tx_data_start               = &0d26  ; Start of TX data buffer (used by scout/data frame construction).
 tx_data_len                 = &0d2a
 scout_buf                   = &0d2e  ; Base of the 12-byte RX scout data buffer.
-scout_src_net               = &0d2f  ; Scout source network byte (scout_buf (&0D2E)+1).
-scout_ctrl                  = &0d30  ; Scout control byte (scout_buf (&0D2E)+2).
-scout_port                  = &0d31  ; Scout port byte (scout_buf (&0D2E)+3).
-scout_data                  = &0d32  ; Scout data payload base (scout_buf (&0D2E)+4).
+scout_src_net               = &0d2f  ; Scout source network byte (scout_buf+1).
+scout_ctrl                  = &0d30  ; Scout control byte (scout_buf+2).
+scout_port                  = &0d31  ; Scout port byte (scout_buf+3).
+scout_data                  = &0d32  ; Scout data payload base (scout_buf+4).
 rx_src_stn                  = &0d3d  ; Source station of the received scout frame.
 rx_src_net                  = &0d3e  ; Source network of the received scout frame.
 rx_ctrl                     = &0d3f  ; Control byte of the received scout frame.
@@ -444,10 +444,10 @@ rom_header_byte2 = rom_header+2
 ; Otherwise clears bit 7 of the Master 128 ACCCON register at &FE34 (TRB), zeros &0D65,
 ; then dispatches one of two ways depending on bit 7 of the saved Y:
 ;
-; | Caller Y bit 7 | Action                                                                                |
-; |----------------|---------------------------------------------------------------------------------------|
-; | Set            | Dispatch via the PHA/PHA/RTS table at dispatch_svc5 (&8048)                           |
-; | Clear          | Fire Econet RX event &FE via generate_event (&8045), then JMP to tx_done_exit (&8582) |
+; | Caller Y bit 7 | Action                                                                |
+; |----------------|-----------------------------------------------------------------------|
+; | Set            | Dispatch via the PHA/PHA/RTS table at dispatch_svc5                   |
+; | Clear          | Fire Econet RX event &FE via generate_event, then JMP to tx_done_exit |
 ;
 ; On Entry: A: 5 (service call number) X: ROM slot Y: parameter (high bit selects
 ; dispatch path)
@@ -497,10 +497,10 @@ rom_header_byte2 = rom_header+2
 ; ADLC initialisation
 ;
 ; Initialise ADLC hardware and Econet workspace. Reads the station ID via
-; econet_station_id (&FE18) (INTOFF side effect), performs a full ADLC reset via
-; adlc_full_reset (&898C), then probes for a Tube co-processor via OSBYTE &EA and
-; stores the result in tube_present. Issues an NMI-claim service request (OSBYTE &8F,
-; X=&0C). Falls through to init_nmi_workspace (&8070) to copy the NMI shim to RAM.
+; econet_station_id (INTOFF side effect), performs a full ADLC reset via
+; adlc_full_reset, then probes for a Tube co-processor via OSBYTE &EA and stores the
+; result in tube_present. Issues an NMI-claim service request (OSBYTE &8F, X=&0C).
+; Falls through to init_nmi_workspace to copy the NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
     bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.            ; INTOFF: read station ID, disable NMIs
@@ -601,7 +601,7 @@ rom_header_byte2 = rom_header+2
 ; | &FF   | broadcast       | accept and flag |
 ; | other | foreign network | reject          |
 ;
-; Installs copy_scout_to_buffer (&8400) as the scout-data reading loop handler.
+; Installs copy_scout_to_buffer as the scout-data reading loop handler.
 .nmi_rx_scout_net
     bit adlc_cr2                                                      ; 80b8: 2c a1 fe    ,..            ; BIT SR2: test for RDA (bit7 = data available)
     bpl scout_error                                                   ; 80bb: 10 1b       ..             ; No RDA -- check errors
@@ -634,8 +634,8 @@ rom_header_byte2 = rom_header+2
 ; - Either set – unexpected data is present; perform a full ADLC reset.
 ;
 ; Also serves as the common discard path for address/network mismatches from
-; nmi_rx_scout (&809B) and scout_complete (&8112) – reached by 5 branch sites across
-; the scout reception chain.
+; nmi_rx_scout and scout_complete – reached by 5 branch sites across the scout
+; reception chain.
 ; &80d8 referenced 5 times by &80a0, &80bb, &80ed, &8121, &8123
 .scout_error
     lda adlc_cr2                                                      ; 80d8: ad a1 fe    ...            ; Read SR2
@@ -680,9 +680,9 @@ rom_header_byte2 = rom_header+2
 ;
 ; Matches the port byte (&0D40) against open receive control blocks to find a listener:
 ;
-; - On match – calculates the transfer size via tx_calc_transfer (&8900), sets up the
-;   data RX handler chain, and sends a scout ACK.
-; - On no match or error – discards the frame via scout_error (&80D8).
+; - On match – calculates the transfer size via tx_calc_transfer, sets up the data RX
+;   handler chain, and sends a scout ACK.
+; - On no match or error – discards the frame via scout_error.
 ; &8112 referenced 2 times by &80fb, &8106
 .scout_complete
     lda #0                                                            ; 8112: a9 00       ..             ; Save Y for next iteration
@@ -769,17 +769,17 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Scout matched: arm data RX, ACK or discard
 ;
-; Sets scout_status=3 (match found) at rx_port, calls tx_calc_transfer (&8900) to
-; compute the transfer parameters from the RXCB, then triages:
+; Sets scout_status=3 (match found) at rx_port, calls tx_calc_transfer to compute the
+; transfer parameters from the RXCB, then triages:
 ;
-; | Carry | rx_src_net (V) | Action                                                 |
-; |-------|----------------|--------------------------------------------------------|
-; | C=0   | –              | no Tube claimed → nmi_error_dispatch (&8215) (discard) |
-; | C=1   | broadcast      | discard (broadcasts get no ACK)                        |
-; | C=1   | unicast        | send_data_rx_ack (&81A7)                               |
+; | Carry | rx_src_net (V) | Action                                         |
+; |-------|----------------|------------------------------------------------|
+; | C=0   | –              | no Tube claimed → nmi_error_dispatch (discard) |
+; | C=1   | broadcast      | discard (broadcasts get no ACK)                |
+; | C=1   | unicast        | send_data_rx_ack                               |
 ;
 ; Four inbound refs (one JSR from &84B9 and three branches from the scout_complete
-; (&8112) dispatch).
+; dispatch).
 ;
 ; On Exit: A: 3 (scout_status)
 ; &8195 referenced 4 times by &8169, &8173, &8178, &84b9
@@ -797,11 +797,11 @@ rom_header_byte2 = rom_header+2
 ;
 ; Switches the ADLC to TX mode for the scout ACK frame: writes CR1=&44 (RX_RESET |
 ; TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA | PSE), then loads (A,Y) = (&B8, &81) – the
-; address of data_rx_setup (&81B8) minus 1 – and JMPs to ack_tx_write_dest (&82F8)
-; which actually emits the TX frame and installs the new NMI handler.
+; address of data_rx_setup minus 1 – and JMPs to ack_tx_write_dest which actually emits
+; the TX frame and installs the new NMI handler.
 ;
-; Two callers: the dispatch in scout_complete (&8112) at &81A2 and the immediate-op
-; POKE path at &84AE (jmp_send_data_rx_ack).
+; Two callers: the dispatch in scout_complete at &81A2 and the immediate-op POKE path
+; at &84AE (jmp_send_data_rx_ack).
 ;
 ; On Exit: A: &B8 (low byte of data_rx_setup-1) Y: &81 (high byte of data_rx_setup-1)
 ; &81a7 referenced 2 times by &81a2, &84ae
@@ -817,11 +817,11 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI handler: switch ADLC to RX for the data frame
 ;
-; NMI continuation entry installed by send_data_rx_ack (&81A7) (which pushes (&81B8 -
-; 1) on the stack and routes it through ack_tx_write_dest (&82F8)). When the next NMI
-; fires, this body writes CR1 = &82 (TX_RESET | RIE) to switch the ADLC from scout-ACK
-; TX mode to data-frame RX mode, then JMPs to install_nmi_handler to install
-; nmi_data_rx (&81C2) as the next NMI handler.
+; NMI continuation entry installed by send_data_rx_ack (which pushes (&81B8 - 1) on the
+; stack and routes it through ack_tx_write_dest). When the next NMI fires, this body
+; writes CR1 = &82 (TX_RESET | RIE) to switch the ADLC from scout-ACK TX mode to
+; data-frame RX mode, then JMPs to install_nmi_handler to install nmi_data_rx as the
+; next NMI handler.
 .data_rx_setup
     lda #&82                                                          ; 81b8: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta adlc_cr1                                                      ; 81ba: 8d a0 fe    ...            ; Write CR1: switch to RX for data frame
@@ -836,9 +836,9 @@ rom_header_byte2 = rom_header+2
 ; bytes (dest_stn, dest_net) against our station address, then installs continuation
 ; handlers to read the remaining data payload into the open port buffer.
 ;
-; Handler chain: this routine (AP + dest-stn check) → nmi_data_rx_net (&81D6) (dest-net
-; check) → nmi_data_rx_skip (&81EC) (skip ctrl + port) → nmi_data_rx_bulk (&8223) (bulk
-; data read) → data_rx_complete (&8268) (completion).
+; Handler chain: this routine (AP + dest-stn check) → nmi_data_rx_net (dest-net check)
+; → nmi_data_rx_skip (skip ctrl + port) → nmi_data_rx_bulk (bulk data read) →
+; data_rx_complete (completion).
 .nmi_data_rx
     lda #1                                                            ; 81c2: a9 01       ..             ; A=1: AP mask for SR2 bit test
     bit adlc_cr2                                                      ; 81c4: 2c a1 fe    ,..            ; BIT SR2: test AP bit
@@ -852,10 +852,10 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI handler: validate dest-net byte of data frame
 ;
-; NMI continuation entry installed by nmi_data_rx (&81C2) once the AP and dest-station
-; bytes have validated. Polls SR2 (BIT econet_control23_or_status2); on no RDA,
-; branches to nmi_error_dispatch (&8215). Otherwise reads the dest- network byte from
-; the ADLC FIFO and falls through to the control/port skip step.
+; NMI continuation entry installed by nmi_data_rx once the AP and dest-station bytes
+; have validated. Polls SR2 (BIT econet_control23_or_status2); on no RDA, branches to
+; nmi_error_dispatch. Otherwise reads the dest- network byte from the ADLC FIFO and
+; falls through to the control/port skip step.
 ;
 ; On Exit: A: dest-network byte (validated against local)
 .nmi_data_rx_net
@@ -874,7 +874,7 @@ rom_header_byte2 = rom_header+2
 ;
 ; NMI continuation entry that consumes the control and port bytes of the data frame
 ; (already known from the scout) and proceeds to the bulk-data-read continuation. Polls
-; SR2 for RDA on entry; on no RDA, branches to nmi_error_dispatch (&8215).
+; SR2 for RDA on entry; on no RDA, branches to nmi_error_dispatch.
 ; &81ec referenced 1 time by &81e7
 .nmi_data_rx_skip
     bit adlc_cr2                                                      ; 81ec: 2c a1 fe    ,..            ; Skip control and port bytes (already known from scout)
@@ -887,15 +887,15 @@ rom_header_byte2 = rom_header+2
 ; Selects between the normal bulk-RX handler at &8239 and the Tube RX handler based on
 ; bit 1 of rx_src_net (tx_flags).
 ;
-; | rx_src_net bit 1 | Handler                                             |
-; |------------------|-----------------------------------------------------|
-; | clear            | bulk read at &8239 (nmi_data_rx_bulk (&8223) entry) |
-; | set              | Tube RX handler                                     |
+; | rx_src_net bit 1 | Handler                                     |
+; |------------------|---------------------------------------------|
+; | clear            | bulk read at &8239 (nmi_data_rx_bulk entry) |
+; | set              | Tube RX handler                             |
 ;
 ; In normal mode, after loading the handler address, checks SR1 bit 7. If IRQ is
-; already asserted (more data waiting), jumps directly to nmi_data_rx_bulk (&8223) to
-; avoid NMI re-entry overhead. Otherwise installs the handler via set_nmi_vector and
-; returns via RTI.
+; already asserted (more data waiting), jumps directly to nmi_data_rx_bulk to avoid NMI
+; re-entry overhead. Otherwise installs the handler via set_nmi_vector and returns via
+; RTI.
 ; &81f7 referenced 1 time by &88d4
 .install_data_rx_handler
     lda #2                                                            ; 81f7: a9 02       ..             ; A=2: Tube transfer flag mask
@@ -927,7 +927,7 @@ rom_header_byte2 = rom_header+2
 ; | tx_flags bit 7 | Path                                              |
 ; |----------------|---------------------------------------------------|
 ; | clear          | RX error – full ADLC reset; return to idle listen |
-; | set            | TX not-listening – JMP tx_result_fail (&88E2)     |
+; | set            | TX not-listening – JMP tx_result_fail             |
 ; &8215 referenced 11 times by &8187, &819d, &81c7, &81cf, &81d9, &81de, &81ef, &8279, &827f, &833c, &8488
 .nmi_error_dispatch
     lda rx_src_net                                                    ; 8215: ad 3e 0d    .>.            ; Check tx_flags for error path
@@ -946,7 +946,7 @@ rom_header_byte2 = rom_header+2
 ; at (open_port_buf),Y. Reads bytes in pairs (like the scout data loop), checking SR2
 ; between each pair.
 ;
-; - SR2 non-zero (FV or other) → completion via data_rx_complete (&8268).
+; - SR2 non-zero (FV or other) → completion via data_rx_complete.
 ; - SR2 = 0 → RTI, wait for next NMI to continue.
 ; &8223 referenced 1 time by &8205
 .nmi_data_rx_bulk
@@ -1003,7 +1003,7 @@ rom_header_byte2 = rom_header+2
 ; Reached when SR2 non-zero during data RX (FV detected). Same pattern as scout
 ; completion: disables PSE (CR2=&84, CR1=&00), then tests FV and RDA. If FV+RDA, reads
 ; the last byte; if extra data is available and buffer space remains, stores it.
-; Proceeds to send the final ACK via ack_tx (&82DF).
+; Proceeds to send the final ACK via ack_tx.
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
     lda #&84                                                          ; 8268: a9 84       ..             ; CR1=&00: disable all interrupts
@@ -1079,8 +1079,8 @@ rom_header_byte2 = rom_header+2
 ; ACK transmission
 ;
 ; Sends a scout ACK or final ACK frame as part of the four-way handshake. If bit 7 of
-; tx_flags (&0D4A) is set, this is a final ACK and completion runs through tx_result_ok
-; (&88E2). Otherwise configures for TX (CR1=&44, CR2=&A7) and sends the ACK frame
+; tx_flags (&0D4A) is set, this is a final ACK and completion runs through
+; tx_result_ok. Otherwise configures for TX (CR1=&44, CR2=&A7) and sends the ACK frame
 ; (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0). The ACK frame has no
 ; data payload -- just address bytes.
 ;
@@ -1110,8 +1110,7 @@ rom_header_byte2 = rom_header+2
 ; econet_control1_or_status1. A clear TDRA branches to dispatch_nmi_error to abort the
 ; ACK sequence.
 ;
-; Two callers: send_data_rx_ack (&81A7)'s tail JMP (&81B5) and imm_op_build_reply
-; (&84F9) at &84F6.
+; Two callers: send_data_rx_ack's tail JMP (&81B5) and imm_op_build_reply at &84F6.
 ;
 ; On Entry: A: low byte of next NMI handler Y: high byte of next NMI handler
 ; &82f8 referenced 2 times by &81b5, &84f6
@@ -1132,15 +1131,15 @@ rom_header_byte2 = rom_header+2
 ; ACK TX continuation
 ;
 ; Continuation of ACK frame transmission. Reads our station ID from econet_station_id
-; (&FE18) (INTOFF side effect), tests TDRA via SR1, and writes (station, network=0) to
-; the TX FIFO, completing the 4-byte ACK address header.
+; (INTOFF side effect), tests TDRA via SR1, and writes (station, network=0) to the TX
+; FIFO, completing the 4-byte ACK address header.
 ;
-; Then dispatches on rx_src_net (&0D3E) bit 7:
+; Then dispatches on rx_src_net bit 7:
 ;
-; | Bit 7 | Action                                                                  |
-; |-------|-------------------------------------------------------------------------|
-; | set   | branch to start_data_tx to begin the data phase                         |
-; | clear | write CR2=&3F (TX_LAST_DATA) and fall through to post_ack_scout (&832D) |
+; | Bit 7 | Action                                                          |
+; |-------|-----------------------------------------------------------------|
+; | set   | branch to start_data_tx to begin the data phase                 |
+; | clear | write CR2=&3F (TX_LAST_DATA) and fall through to post_ack_scout |
 .nmi_ack_tx_src
     lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
     bit adlc_cr1                                                      ; 8319: 2c a0 fe    ,..            ; BIT SR1: test TDRA
@@ -1155,9 +1154,8 @@ rom_header_byte2 = rom_header+2
 ; Post-ACK scout processing
 ;
 ; Called after the scout ACK has been transmitted. Processes the received scout data
-; stored in the buffer starting at rx_src_stn (&0D3D) (scout-ACK destination
-; addresses). Checks the port byte at rx_port (&0D40) against open receive blocks to
-; find a matching listener.
+; stored in the buffer starting at rx_src_stn (scout-ACK destination addresses). Checks
+; the port byte at rx_port against open receive blocks to find a matching listener.
 ;
 ; - Match – sets up the data-RX handler chain for the four-way- handshake data phase.
 ; - No match – discards the frame.
@@ -1184,8 +1182,8 @@ rom_header_byte2 = rom_header+2
 ;
 ; Reads:
 ;
-; - tx_flags (&0D4A) bit 1 – data transfer in progress
-; - tx_flags (&0D4A) bit 5 – Tube transfer
+; - tx_flags bit 1 – data transfer in progress
+; - tx_flags bit 5 – Tube transfer
 ; - 4-byte transfer count from net_tx_ptr,Y (Y=8..&0B)
 ; - RXCB pointer at (port_ws_offset),Y
 ;
@@ -1247,15 +1245,15 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Post-ACK frame-complete NMI handler
 ;
-; Installed by ack_tx_configure via saved_nmi_lo (&0D43) / saved_nmi_hi (&0D44). Fires
-; as an NMI after the ACK frame (CRC + closing flag) has been fully transmitted by the
-; ADLC. Dispatches on scout_port:
+; Installed by ack_tx_configure via saved_nmi_lo / saved_nmi_hi. Fires as an NMI after
+; the ACK frame (CRC + closing flag) has been fully transmitted by the ADLC. Dispatches
+; on scout_port:
 ;
-; | scout_port | Control    | Target                                                                       |
-; |------------|------------|------------------------------------------------------------------------------|
-; | ≠ 0        | –          | rx_complete_update_rxcb (&8395) (finalise data transfer, mark RXCB complete) |
-; | 0          | &82 (POKE) | rx_complete_update_rxcb (&8395) (same path)                                  |
-; | 0          | other      | imm_op_build_reply                                                           |
+; | scout_port | Control    | Target                                                               |
+; |------------|------------|----------------------------------------------------------------------|
+; | ≠ 0        | –          | rx_complete_update_rxcb (finalise data transfer, mark RXCB complete) |
+; | 0          | &82 (POKE) | rx_complete_update_rxcb (same path)                                  |
+; | 0          | other      | imm_op_build_reply                                                   |
 .nmi_post_ack_dispatch
     lda scout_port                                                    ; 8386: ad 31 0d    .1.            ; Load received port byte
     bne rx_complete_update_rxcb                                       ; 8389: d0 0a       ..             ; Port != 0: data transfer frame
@@ -1267,18 +1265,18 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Complete RX and update RXCB
 ;
-; Called from nmi_post_ack_dispatch (&8386) after the final ACK has been transmitted.
-; Finalises the received data transfer:
+; Called from nmi_post_ack_dispatch after the final ACK has been transmitted. Finalises
+; the received data transfer:
 ;
-; 1. Calls advance_rx_buffer_ptr (&833F) to update the 4-byte buffer pointer with the
-;    transfer count (and handle Tube re-claim if needed).
+; 1. Calls advance_rx_buffer_ptr to update the 4-byte buffer pointer with the transfer
+;    count (and handle Tube re-claim if needed).
 ; 2. Stores the source station, network, and port into the RXCB.
 ; 3. ORs &80 into the RXCB control byte (bit 7 = complete).
 ;
 ; This is the NMI-to-foreground synchronisation point: wait_net_tx_ack polls bit 7 of
 ; the RXCB control byte to detect that the reply has arrived.
 ;
-; Falls through to discard_reset_rx (&83E5) to reset the ADLC to idle RX-listen mode.
+; Falls through to discard_reset_rx to reset the ADLC to idle RX-listen mode.
 ; &8395 referenced 3 times by &8389, &8390, &8431
 .rx_complete_update_rxcb
     jsr advance_rx_buffer_ptr                                         ; 8395: 20 3f 83     ?.            ; Update buffer pointer and check for Tube
@@ -1337,11 +1335,10 @@ rom_header_byte2 = rom_header+2
 ;
 ; Three-stage idle-restore chain:
 ;
-; 1. discard_reset_listen (&83F2) – abandon any in-flight scout and release a held Tube
-;    claim.
-; 2. reset_adlc_rx_listen (&83E8) – call adlc_rx_listen (reset CR1/CR2 and re-arm RX).
-; 3. set_nmi_rx_scout (&83EB) – install nmi_rx_scout (&809B) as the active NMI handler
-;    and JMP out via set_nmi_vector (&0D0E).
+; 1. discard_reset_listen – abandon any in-flight scout and release a held Tube claim.
+; 2. reset_adlc_rx_listen – call adlc_rx_listen (reset CR1/CR2 and re-arm RX).
+; 3. set_nmi_rx_scout – install nmi_rx_scout as the active NMI handler and JMP out via
+;    set_nmi_vector.
 ;
 ; Used as the standard "something went wrong, get back to listening" exit.
 ; &83e5 referenced 6 times by &8220, &83af, &83d0, &83dc, &8883, &88ed
@@ -1350,20 +1347,19 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Reset ADLC and install RX-scout NMI
 ;
-; Tail of the discard_reset_rx (&83E5) chain entered directly when no scout needs
-; discarding. Calls adlc_rx_listen to reset CR1/CR2 to RX-only mode, then falls through
-; to set_nmi_rx_scout (&83EB).
+; Tail of the discard_reset_rx chain entered directly when no scout needs discarding.
+; Calls adlc_rx_listen to reset CR1/CR2 to RX-only mode, then falls through to
+; set_nmi_rx_scout.
 ;
-; Two inbound JSRs plus one fall-through (from discard_reset_rx (&83E5)).
+; Two inbound JSRs plus one fall-through (from discard_reset_rx).
 ; &83e8 referenced 3 times by &80e5, &8434, &8529
 .reset_adlc_rx_listen
     jsr adlc_rx_listen                                                ; 83e8: 20 9b 89     ..            ; Reset ADLC and return to RX listen
 ; ***************************************************************************************
 ; Install nmi_rx_scout as NMI handler
 ;
-; Sets A=&9B, Y=&80 (the nmi_rx_scout (&809B) address &809B-1, since set_nmi_vector
-; (&0D0E) adds 1) and JMPs to set_nmi_vector (&0D0E). Tail of the discard_reset_rx
-; (&83E5) / reset_adlc_rx_listen (&83E8) chain.
+; Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since set_nmi_vector adds 1) and
+; JMPs to set_nmi_vector. Tail of the discard_reset_rx / reset_adlc_rx_listen chain.
 ;
 ; Two callers: &80CB (after init) and &80E2 (after error).
 ; &83eb referenced 2 times by &80cb, &80e2
@@ -1375,9 +1371,9 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Discard with Tube release
 ;
-; Checks whether a Tube transfer is active by ANDing bit 1 of tube_present (&0D63) with
-; rx_src_net (&0D3E) (tx_flags). If a Tube claim is held, calls release_tube (&8448) to
-; free it before returning.
+; Checks whether a Tube transfer is active by ANDing bit 1 of tube_present with
+; rx_src_net (tx_flags). If a Tube claim is held, calls release_tube to free it before
+; returning.
 ;
 ; Used as the clean-up path after RXCB completion and after ADLC reset to ensure no
 ; stale Tube claims persist.
@@ -1396,17 +1392,17 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Copy scout data to port buffer
 ;
-; Copies scout data bytes (offsets 4–11) from the RX scout buffer at rx_src_stn (&0D3D)
-; into the open port buffer.
+; Copies scout data bytes (offsets 4–11) from the RX scout buffer at rx_src_stn into
+; the open port buffer.
 ;
-; Selects the write path on bit 1 of rx_src_net (&0D3E) (tx_flags):
+; Selects the write path on bit 1 of rx_src_net (tx_flags):
 ;
 ; | Bit 1 | Write path                                |
 ; |-------|-------------------------------------------|
 ; | clear | direct memory store via (open_port_buf),Y |
 ; | set   | Tube data register 3 write                |
 ;
-; Calls advance_buffer_ptr after each byte. Falls through to release_tube (&8448) on
+; Calls advance_buffer_ptr after each byte. Falls through to release_tube on
 ; completion. Handles page overflow (Y wrap) by branching to scout_page_overflow.
 ; &8400 referenced 1 time by &81a4
 .copy_scout_to_buffer
@@ -1419,11 +1415,11 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Save ACCCON across scout-buffer access
 ;
-; Saves the current acccon (&FE34) value, sets ACCCON for the upcoming
-; (open_port_buf),Y stores (so writes go to the right shadow / main RAM bank on the
-; Master 128), performs the copy, then restores the saved ACCCON before returning.
-; Wraps the inner copy loop with shadow-RAM gating so scout-buffer writes land in the
-; caller's address space rather than the FS-private HAZEL window.
+; Saves the current acccon value, sets ACCCON for the upcoming (open_port_buf),Y stores
+; (so writes go to the right shadow / main RAM bank on the Master 128), performs the
+; copy, then restores the saved ACCCON before returning. Wraps the inner copy loop with
+; shadow-RAM gating so scout-buffer writes land in the caller's address space rather
+; than the FS-private HAZEL window.
 .save_acccon_for_shadow_ram
 imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bne copy_scout_via_tube                                           ; 8409: d0 2b       .+             ; Tube active: use R3 write path
@@ -1506,17 +1502,17 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
 ;
-; Checks the control byte at scout_ctrl (&0D30) for immediate-operation codes:
+; Checks the control byte at scout_ctrl for immediate-operation codes:
 ;
-; | Range          | Op                                           | Treatment                                       |
-; |----------------|----------------------------------------------|-------------------------------------------------|
-; | < &81 or > &88 | –                                            | out of range; discarded                         |
-; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by econet_flags (&0D61) immediate-op mask |
-; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                           |
+; | Range          | Op                                           | Treatment                               |
+; |----------------|----------------------------------------------|-----------------------------------------|
+; | < &81 or > &88 | –                                            | out of range; discarded                 |
+; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by econet_flags immediate-op mask |
+; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                   |
 ;
 ; For &81..&86, converts the code to a 0-based index and tests against the immediate-op
-; mask at econet_flags (&0D61) to determine whether this station accepts the operation.
-; If accepted, dispatches via imm_op_dispatch_lo (&848B) (PHA/PHA/RTS).
+; mask at econet_flags to determine whether this station accepts the operation. If
+; accepted, dispatches via imm_op_dispatch_lo (PHA/PHA/RTS).
 ;
 ; Builds the reply by storing data length, station / network, and control byte into the
 ; RX buffer header.
@@ -1589,8 +1585,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: JSR / UserProc / OSProc setup
 ;
 ; Sets up the port buffer to receive remote-procedure data. Copies the 2-byte remote
-; address from scout_data (&0D32) into the execution-address workspace at exec_addr_lo
-; (&0D66) / exec_addr_hi (&0D67), then jumps to the common data-receive path at &81C1.
+; address from scout_data into the execution-address workspace at exec_addr_lo /
+; exec_addr_hi, then jumps to the common data-receive path at &81C1.
 ;
 ; Used for operation types &83 (JSR), &84 (UserProc), and &85 (OSProc).
 .rx_imm_exec
@@ -1630,8 +1626,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: machine-type query
 ;
 ; Sets up the response buffer for a machine-type query immediate operation (4-byte
-; response: machine code + version digits). Falls through to set_rx_buf_len_hi (&84BE)
-; to configure the buffer dimensions, then branches to set_tx_reply_flag.
+; response: machine code + version digits). Falls through to set_rx_buf_len_hi to
+; configure the buffer dimensions, then branches to set_tx_reply_flag.
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..             ; Buffer length hi = 1
 .set_rx_buf_len_hi
@@ -1648,8 +1644,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: PEEK setup
 ;
 ; Writes &0D2E to port_ws_offset / rx_buf_offset, sets scout_status = 2, then calls
-; tx_calc_transfer (&8900) to send the PEEK response data back to the requesting
-; station.
+; tx_calc_transfer to send the PEEK response data back to the requesting station.
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84ce: a9 2e       ..             ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84d0: 85 a6       ..             ; Store workspace offset lo
@@ -1698,15 +1693,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Save TX op type and configure shift-register mode
 ;
-; Stores the TX operation type in tx_op_type (&0D65).
+; Stores the TX operation type in tx_op_type.
 ;
-; | Op code                                | Path                                                                                                                                                             |
-; |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched                                                                                                   |
-; | < &86                                  | load the workspace shadow at ws_0d68 (&0D68), copy it to ws_0d69 (&0D69) (preserved for later restore), ORA in the SR-mode-2 bits, write back to ws_0d68 (&0D68) |
+; | Op code                                | Path                                                                                                                                     |
+; |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched                                                                           |
+; | < &86                                  | load the workspace shadow at ws_0d68, copy it to ws_0d69 (preserved for later restore), ORA in the SR-mode-2 bits, write back to ws_0d68 |
 ;
 ; The shadow is flushed to the real VIA ACR/SR registers later in the Master IRQ path.
-; Single caller (&83E2 in scout_complete (&8112)).
+; Single caller (&83E2 in scout_complete).
 ;
 ; On Entry: A: TX operation type
 ; &8512 referenced 1 time by &83e2
@@ -1754,11 +1749,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX done dispatch lo-byte table (5 entries)
 ;
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types &83-&87. Read by the
-; dispatch at dispatch_svc5 (&8048) via LDA tx_done_dispatch_lo-&83,Y (the operand
-; lands mid-instruction inside set_rx_buf_len_hi (&84BE)). The dispatch trampoline
-; pushes &85 as the high byte, so targets are &85xx+1. Entries for Y < &83 read from
-; preceding code bytes and are not valid operation types. Per-entry inline comments
-; identify each TX operation type's handler.
+; dispatch at dispatch_svc5 via LDA tx_done_dispatch_lo-&83,Y (the operand lands
+; mid-instruction inside set_rx_buf_len_hi). The dispatch trampoline pushes &85 as the
+; high byte, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes
+; and are not valid operation types. Per-entry inline comments identify each TX
+; operation type's handler.
 .tx_done_dispatch_lo
     equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?
     equb <(tx_done_econet_event-1)                                    ; 853c: 48          H
@@ -1769,10 +1764,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
-; Pushes (tx_done_exit (&8582)  - 1) on the stack so RTS returns to tx_done_exit
-; (&8582) when the remote routine completes, then does JMP indirect through
-; exec_addr_lo (&0D66) to call the remote-supplied JSR target. When that routine
-; returns via RTS, control resumes at tx_done_exit (&8582) which tidies up TX state.
+; Pushes (tx_done_exit  - 1) on the stack so RTS returns to tx_done_exit when the
+; remote routine completes, then does JMP indirect through exec_addr_lo to call the
+; remote-supplied JSR target. When that routine returns via RTS, control resumes at
+; tx_done_exit which tidies up TX state.
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: TX op &85 (OSProc)
     pha                                                               ; 8542: 48          H              ; Push hi byte on stack
@@ -1783,14 +1778,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: fire Econet event
 ;
-; Handler for TX operation type &84. Loads the remote address from exec_addr_lo (&0D66)
-; / exec_addr_hi (&0D67) into X / A and sets Y=8 (Econet event number), then falls
-; through to tx_done_fire_event to call OSEVEN.
+; Handler for TX operation type &84. Loads the remote address from exec_addr_lo /
+; exec_addr_hi into X / A and sets Y=8 (Econet event number), then falls through to
+; tx_done_fire_event to call OSEVEN.
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. The
-; dispatcher pushed the caller's X and Y onto the stack before transferring control,
-; and the shared tx_done_exit (&8582) restores them via PLA/TAY/PLA/TAX before
-; returning A=0.
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo / hi. The dispatcher
+; pushed the caller's X and Y onto the stack before transferring control, and the
+; shared tx_done_exit restores them via PLA/TAY/PLA/TAX before returning A=0.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_econet_event
@@ -1804,11 +1798,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: OSProc call
 ;
-; Calls the ROM service entry point with X = exec_addr_lo (&0D66), Y = exec_addr_hi
-; (&0D67). This invokes an OS-level procedure on behalf of the remote station, then
-; exits via tx_done_exit (&8582).
+; Calls the ROM service entry point with X = exec_addr_lo, Y = exec_addr_hi. This
+; invokes an OS-level procedure on behalf of the remote station, then exits via
+; tx_done_exit.
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi.
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo / hi.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_os_proc
@@ -1820,13 +1814,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: HALT
 ;
-; Sets bit 2 of econet_flags (&0D61), enables interrupts, and spin-waits until bit 2 is
-; cleared (by a CONTINUE from the remote station). If bit 2 is already set, skips to
-; exit.
+; Sets bit 2 of econet_flags, enables interrupts, and spin-waits until bit 2 is cleared
+; (by a CONTINUE from the remote station). If bit 2 is already set, skips to exit.
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. Falls
-; through to tx_done_continue (&857A) after the spin completes; on the already-halted
-; path it branches directly to tx_done_exit (&8582).
+; Reached only via PHA/PHA/RTS dispatch from tx_done_dispatch_lo / hi. Falls through to
+; tx_done_continue after the spin completes; on the already-halted path it branches
+; directly to tx_done_exit.
 ;
 ; On Exit: A: 0 (success status, set by tx_done_exit) I FLAG: interrupts enabled (CLI
 ; inside the spin) X, Y: restored from stack via tx_done_exit
@@ -1847,12 +1840,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX done: CONTINUE
 ;
-; Clears bit 2 of econet_flags (&0D61), releasing any station that is halted and
-; spinning in tx_done_halt (&8563).
+; Clears bit 2 of econet_flags, releasing any station that is halted and spinning in
+; tx_done_halt.
 ;
-; Reached either as a fall-through from tx_done_halt (&8563) or directly via
-; PHA/PHA/RTS dispatch from tx_done_dispatch_lo (&853B) / hi. Falls through to
-; tx_done_exit (&8582) which restores X and Y from the stack and returns A=0.
+; Reached either as a fall-through from tx_done_halt or directly via PHA/PHA/RTS
+; dispatch from tx_done_dispatch_lo / hi. Falls through to tx_done_exit which restores
+; X and Y from the stack and returns A=0.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_continue
@@ -1862,12 +1855,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Shared TX-done exit: restore X/Y, return A=0
 ;
-; Common cleanup tail used by every entry in the tx_done_dispatch_lo (&853B) table.
-; Pulls the saved Y and X off the stack (the dispatcher pushed them before the
-; PHA/PHA/RTS jump), loads A=0 (success status), and RTS to the caller.
+; Common cleanup tail used by every entry in the tx_done_dispatch_lo table. Pulls the
+; saved Y and X off the stack (the dispatcher pushed them before the PHA/PHA/RTS jump),
+; loads A=0 (success status), and RTS to the caller.
 ;
-; Five inbound refs: a tail-jump from &8042 (the SVC 5 IRQ-check path in svc5_irq_check
-; (&8028)), plus the JMPs at &8554, &8560, &8568, and the fall-through at &8578.
+; Five inbound refs: a tail-jump from &8042 (the SVC 5 IRQ-check path in
+; svc5_irq_check), plus the JMPs at &8554, &8560, &8568, and the fall-through at &8578.
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack
 ; &8582 referenced 5 times by &8042, &8554, &8560, &8568, &8578
@@ -1886,9 +1879,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; 1. Copies destination station / network from the TXCB to the scout buffer.
 ; 2. Dispatches: control byte ≥ &81 → immediate-op setup; else normal data transfer.
-; 3. Calculates transfer sizes via tx_calc_transfer (&8900); copies extra parameters
-;    into the workspace.
-; 4. Enters the INACTIVE polling loop at inactive_poll (&85F1).
+; 3. Calculates transfer sizes via tx_calc_transfer; copies extra parameters into the
+;    workspace.
+; 4. Enters the INACTIVE polling loop at inactive_poll.
 ; &8589 referenced 3 times by &9bc3, &a92a, &ac1e
 .tx_begin
     txa                                                               ; 8589: 8a          .              ; Save X on stack
@@ -1966,11 +1959,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Entry point for the Econet line-idle detection loop.
 ;
-; 1. Saves the TX index in rx_remote_addr (&0D41).
+; 1. Saves the TX index in rx_remote_addr.
 ; 2. Pushes two timeout-counter bytes onto the stack.
 ; 3. Loads Y = &E7 (CR2 value for TX preparation).
 ; 4. Loads the INACTIVE bit mask (&04) into A.
-; 5. Falls through to intoff_test_inactive (&85FC) to begin polling SR2 with interrupts
+; 5. Falls through to intoff_test_inactive to begin polling SR2 with interrupts
 ;    disabled.
 ;
 ; On Exit: Y: &E7 (CR2 value for tx_prepare)
@@ -1988,15 +1981,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
-; Disables NMIs via two reads of econet_station_id (&FE18) (INTOFF), then polls SR2 for
-; the INACTIVE bit (bit 2):
+; Disables NMIs via two reads of econet_station_id (INTOFF), then polls SR2 for the
+; INACTIVE bit (bit 2):
 ;
-; | SR2 INACTIVE | Action                                                                                                           |
-; |--------------|------------------------------------------------------------------------------------------------------------------|
-; | set          | read SR1, write CR2=&67 to clear status, then test CTS (SR1 bit 4); if CTS present, branch to tx_prepare (&864A) |
-; | clear        | re-enable NMIs via econet_nmi_enable (&FE20) (INTON) and decrement the 3-byte timeout counter on the stack       |
+; | SR2 INACTIVE | Action                                                                                                   |
+; |--------------|----------------------------------------------------------------------------------------------------------|
+; | set          | read SR1, write CR2=&67 to clear status, then test CTS (SR1 bit 4); if CTS present, branch to tx_prepare |
+; | clear        | re-enable NMIs via econet_nmi_enable (INTON) and decrement the 3-byte timeout counter on the stack       |
 ;
-; On timeout, falls through to tx_line_jammed (&8630).
+; On timeout, falls through to tx_line_jammed.
 ;
 ; On Entry: A: &04 (INACTIVE bit mask) Y: &E7 (CR2 value for tx_prepare)
 .intoff_test_inactive
@@ -2031,8 +2024,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; Loads error code &44 ("Bad control") and ALWAYS-branches to store_tx_error, which
 ; records it in the TX control block and finishes the TX attempt.
 ;
-; Reached from three early-validation sites in tx_begin (&8589) (&859E, &85CE, &85D2)
-; when the operation type is out of range.
+; Reached from three early-validation sites in tx_begin (&859E, &85CE, &85D2) when the
+; operation type is out of range.
 ;
 ; On Exit: A: &44 (TX 'Bad control' error code)
 ; &862c referenced 3 times by &859e, &85ce, &85d2
@@ -2043,8 +2036,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX timeout error handler (Line Jammed)
 ;
-; Reached when the inactive_poll (&85F1) / intoff_test_inactive (&85FC) loop times out
-; without detecting a quiet line.
+; Reached when the inactive_poll / intoff_test_inactive loop times out without
+; detecting a quiet line.
 ;
 ; 1. Writes CR2=&07 (FC_TDRA | 2_1_BYTE | PSE) to abort the TX attempt.
 ; 2. Pulls the 3-byte timeout state from the stack.
@@ -2079,10 +2072,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; 1. Writes CR2 = Y (&E7 = RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE) and
 ;    CR1 = &44 (RX_RESET | TIE) to enable TX with interrupts.
-; 2. Installs the nmi_tx_data (&86E7) handler at &86E0.
+; 2. Installs the nmi_tx_data handler at &86E0.
 ; 3. Sets need_release_tube flag via SEC / ROR.
-; 4. Writes the 4-byte destination address (tx_dst_stn (&0D20), tx_dst_net (&0D21),
-;    tx_src_stn (&0D22), src_net = 0) to the TX FIFO.
+; 4. Writes the 4-byte destination address (tx_dst_stn, tx_dst_net, tx_src_stn, src_net
+;    = 0) to the TX FIFO.
 ;
 ; | Path            | Action                                   |
 ; |-----------------|------------------------------------------|
@@ -2120,9 +2113,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte types &81-&88. Read by
 ; the dispatch at &8679 via LDA tx_ctrl_dispatch_lo-&81,Y (the operand lands mid-
-; instruction inside intoff_test_inactive (&85FC)). High byte pushed by the dispatcher
-; is always &86, so targets are &86xx+1. Last entry (&88) dispatches to
-; tx_ctrl_machine_type (&8686), the 4 bytes immediately after the table.
+; instruction inside intoff_test_inactive). High byte pushed by the dispatcher is
+; always &86, so targets are &86xx+1. Last entry (&88) dispatches to
+; tx_ctrl_machine_type, the 4 bytes immediately after the table.
 .tx_ctrl_dispatch_lo
     equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .
     equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .
@@ -2140,7 +2133,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; store_status_copy_ptr, skipping the 4-byte address addition (no address parameters
 ; needed for a machine-type query).
 ;
-; Reached only via PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo (&867E) entry &88.
+; Reached only via PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo entry &88.
 ;
 ; On Exit: A: 3 (scout_status for machine type query)
 .tx_ctrl_machine_type
@@ -2150,8 +2143,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
 ;
-; Sets A=3 (scout_status for PEEK) and branches to tx_ctrl_store_and_add (&8690) to
-; store the status and perform the 4-byte transfer-address addition.
+; Sets A=3 (scout_status for PEEK) and branches to tx_ctrl_store_and_add to store the
+; status and perform the 4-byte transfer-address addition.
 ;
 ; On Exit: A: 3 (scout_status for PEEK)
 .tx_ctrl_peek
@@ -2161,8 +2154,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: POKE transfer setup
 ;
-; Sets A=2 (scout_status for POKE) and falls through to tx_ctrl_store_and_add (&8690)
-; to store the status and perform the 4-byte transfer-address addition.
+; Sets A=2 (scout_status for POKE) and falls through to tx_ctrl_store_and_add to store
+; the status and perform the 4-byte transfer-address addition.
 ;
 ; On Exit: A: 2 (scout_status for POKE)
 .tx_ctrl_poke
@@ -2172,11 +2165,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Shared path for PEEK (A=3) and POKE (A=2):
 ;
-; 1. Stores A as the scout status byte at rx_port (&0D40).
+; 1. Stores A as the scout status byte at rx_port.
 ; 2. Performs a 4-byte addition with carry propagation, adding bytes from the TXCB
 ;    (nmi_tx_block+&0C .. +&0F) into the transfer-address workspace at &0D1E..&0D21.
-; 3. Falls through to tx_ctrl_proc (&86A2) which checks the loop boundary, then
-;    continues to tx_calc_transfer (&8900) and tx_ctrl_exit.
+; 3. Falls through to tx_ctrl_proc which checks the loop boundary, then continues to
+;    tx_calc_transfer and tx_ctrl_exit.
 ;
 ; On Entry: A: scout status (3=PEEK, 2=POKE)
 ; &8690 referenced 1 time by &868c
@@ -2196,9 +2189,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX ctrl: JSR / UserProc / OSProc setup
 ;
-; Sets scout_status = 2 and calls tx_calc_transfer (&8900) directly (no 4-byte address
-; addition needed for procedure calls). Shared by operation types &83..&85 (JSR,
-; UserProc, OSProc).
+; Sets scout_status = 2 and calls tx_calc_transfer directly (no 4-byte address addition
+; needed for procedure calls). Shared by operation types &83..&85 (JSR, UserProc,
+; OSProc).
 .tx_ctrl_proc
     cpy #&10                                                          ; 86a2: c0 10       ..             ; Compare Y with 16-byte boundary
     bcc add_bytes_loop                                                ; 86a4: 90 f1       ..             ; Below boundary: continue addition
@@ -2253,8 +2246,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; NMI TX data handler
 ;
-; Writes 2 bytes per NMI invocation to the TX FIFO at adlc_tx (&FEA2). Uses BIT
-; adlc_cr1 (&FEA0) on SR1 to test TDRA (V flag = bit 6) and IRQ (N flag = bit 7).
+; Writes 2 bytes per NMI invocation to the TX FIFO at adlc_tx. Uses BIT adlc_cr1 on SR1
+; to test TDRA (V flag = bit 6) and IRQ (N flag = bit 7).
 ;
 ; After writing 2 bytes, checks if the frame is complete:
 ;
@@ -2306,7 +2299,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX_LAST_DATA and frame completion
 ;
 ; Signals end of TX frame by writing CR2=&3F (TX_LAST_DATA), then installs
-; nmi_tx_complete (&872F) as the next NMI handler.
+; nmi_tx_complete as the next NMI handler.
 ;
 ; CR2=&3F = %0011_1111, with each bit selecting an ADLC control function:
 ;
@@ -2321,11 +2314,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; | 1   | 2_1_BYTE     | two-byte transfer mode                       |
 ; | 0   | PSE          | prioritised status enable                    |
 ;
-; The routine exits via JMP to set_nmi_vector (&0D0E), which installs nmi_tx_complete
-; (&872F) and falls through to nmi_rti (&0D14). The BIT of econet_nmi_enable (&FE20)
-; (INTON) inside nmi_rti (&0D14) creates the /NMI edge for the frame-complete interrupt
-; – essential because the ADLC IRQ may transition atomically from TDRA to
-; frame-complete without de-asserting in between.
+; The routine exits via JMP to set_nmi_vector, which installs nmi_tx_complete and falls
+; through to nmi_rti. The BIT of econet_nmi_enable (INTON) inside nmi_rti creates the
+; /NMI edge for the frame-complete interrupt – essential because the ADLC IRQ may
+; transition atomically from TDRA to frame-complete without de-asserting in between.
 ; &8723 referenced 1 time by &8703
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?             ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
@@ -2351,13 +2343,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; | 3    | &44 | data TX         |
 ; | 4    | &82 | await data ACK  |
 ;
-; Dispatches on rx_src_net (&0D3E) flags:
+; Dispatches on rx_src_net flags:
 ;
-; | Flag                               | Action                                                  |
-; |------------------------------------|---------------------------------------------------------|
-; | bit 6 set (broadcast)              | jump to tx_result_ok (&88DE)                            |
-; | bit 0 set (handshake data pending) | jump to handshake_await_ack (&8886)                     |
-; | both clear                         | install nmi_reply_scout (&874B) for scout ACK reception |
+; | Flag                               | Action                                          |
+; |------------------------------------|-------------------------------------------------|
+; | bit 6 set (broadcast)              | jump to tx_result_ok                            |
+; | bit 0 set (handshake data pending) | jump to handshake_await_ack                     |
+; | both clear                         | install nmi_reply_scout for scout ACK reception |
 .nmi_tx_complete
     lda #&82                                                          ; 872f: a9 82       ..             ; Jump to error handler
     sta adlc_cr1                                                      ; 8731: 8d a0 fe    ...            ; Write CR1 to switch from TX to RX
@@ -2382,7 +2374,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Handles reception of the reply scout frame after transmission. Checks SR2 bit 0 (AP)
 ; for incoming data, reads the first byte (destination station) and compares it to our
-; station ID via econet_station_id (&FE18) (which also disables NMIs as a side effect).
+; station ID via econet_station_id (which also disables NMIs as a side effect).
 .nmi_reply_scout
     lda #1                                                            ; 874b: a9 01       ..             ; A=&01: AP mask for SR2
     bit adlc_cr2                                                      ; 874d: 2c a1 fe    ,..            ; BIT SR2: test AP (Address Present)
@@ -2397,8 +2389,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX reply continuation handler
 ;
 ; Reads the second byte of the reply scout (destination network) and validates it is
-; zero (local network). Installs nmi_reply_validate (&8776) (entry at &8779) for the
-; remaining two bytes (source station and network).
+; zero (local network). Installs nmi_reply_validate (entry at &8779) for the remaining
+; two bytes (source station and network).
 ;
 ; Optimisation: checks SR1 bit 7 (IRQ still asserted) via BMI at &8767. If IRQ is still
 ; set, falls through directly to &8779 without an RTI, avoiding NMI re-entry overhead
@@ -2416,11 +2408,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Abandon reply scout (1-instruction trampoline)
 ;
-; Single JMP to tx_result_fail (&88E2). Acts as a near-target for the BPL/BNE exits
-; scattered through nmi_reply_scout (&874B), nmi_reply_validate (&8776), and
-; nmi_scout_ack_src (&87BE) that need to abort the reply path – the unconditional JMP
-; at &8773 takes them to tx_result_fail (&88E2) (which stores the error and returns to
-; idle).
+; Single JMP to tx_result_fail. Acts as a near-target for the BPL/BNE exits scattered
+; through nmi_reply_scout, nmi_reply_validate, and nmi_scout_ack_src that need to abort
+; the reply path – the unconditional JMP at &8773 takes them to tx_result_fail (which
+; stores the error and returns to idle).
 ;
 ; Seven inbound refs in total (one JSR plus six branches).
 ; &8773 referenced 7 times by &8758, &8762, &8767, &8779, &8781, &8789, &8790
@@ -2431,7 +2422,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX reply validation (Path 2 for FV/PSE interaction)
 ;
 ; Reads the source station and source network from the reply scout and validates them
-; against the original TX destination (tx_dst_stn (&0D20) / tx_dst_net (&0D21)).
+; against the original TX destination (tx_dst_stn / tx_dst_net).
 ;
 ; 1. Check SR2 bit 7 (RDA) -- must see data available.
 ; 2. Read source station, compare to tx_dst_stn.
@@ -2475,17 +2466,17 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX scout ACK: write source address
 ;
 ; Continuation of the TX-side scout ACK. Reads our station ID from econet_station_id
-; (&FE18) (INTOFF), tests TDRA via SR1, and writes (station, network=0) to the TX FIFO.
+; (INTOFF), tests TDRA via SR1, and writes (station, network=0) to the TX FIFO.
 ;
-; Then dispatches on bit 1 of rx_src_net (&0D3E) to select the next NMI handler:
+; Then dispatches on bit 1 of rx_src_net to select the next NMI handler:
 ;
 ; | Bit 1 | Handler                       |
 ; |-------|-------------------------------|
 ; | set   | immediate-op data NMI handler |
-; | clear | normal nmi_tx_data (&86E7)    |
+; | clear | normal nmi_tx_data            |
 ;
-; Installs the chosen handler via set_nmi_vector (&0D0E). Shares the
-; tx_check_tdra_ready (&87C4) entry with ack_tx (&82DF).
+; Installs the chosen handler via set_nmi_vector. Shares the tx_check_tdra_ready entry
+; with ack_tx.
 .nmi_scout_ack_src
     lda tx_src_stn                                                    ; 87be: ad 22 0d    .".            ; Load our station ID (also INTOFF)
     bit adlc_cr1                                                      ; 87c1: 2c a0 fe    ,..            ; BIT SR1: test TDRA
@@ -2498,14 +2489,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Begin data-frame TX: install nmi_data_tx or alt
 ;
-; Tests bit 1 of rx_src_net (&0D3E) (tx_flags (&0D4A)):
+; Tests bit 1 of rx_src_net (tx_flags):
 ;
-; | Bit 1              | Path                                                                                         |
-; |--------------------|----------------------------------------------------------------------------------------------|
-; | set (immediate-op) | branch to install_imm_data_nmi to use the alternative handler                                |
-; | clear              | install the normal nmi_data_tx (&87E3) handler at &87E3 (lo=&EB, hi=&87) into the NMI vector |
+; | Bit 1              | Path                                                                                 |
+; |--------------------|--------------------------------------------------------------------------------------|
+; | set (immediate-op) | branch to install_imm_data_nmi to use the alternative handler                        |
+; | clear              | install the normal nmi_data_tx handler at &87E3 (lo=&EB, hi=&87) into the NMI vector |
 ;
-; Then continues into the TX setup. Single caller (&8339 inside ack_tx (&82DF)).
+; Then continues into the TX setup. Single caller (&8339 inside ack_tx).
 ; &87ce referenced 1 time by &8339
 .data_tx_begin
     lda #2                                                            ; 87ce: a9 02       ..             ; Test bit 1 of tx_flags
@@ -2530,7 +2521,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; | Condition                    | Action                                                    |
 ; |------------------------------|-----------------------------------------------------------|
-; | count = 0                    | branch to tx_last_data (&8723) to signal end of frame     |
+; | count = 0                    | branch to tx_last_data to signal end of frame             |
 ; | count > 0, SR1 IRQ still set | tight loop: write another pair without returning from NMI |
 ; | count > 0, SR1 IRQ clear     | return via RTI and wait for next NMI                      |
 ; &87e3 referenced 1 time by &87ed
@@ -2607,7 +2598,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; via BIT econet_control1_or_status1, writes the next pair of bytes from the Tube
 ; buffer to the ADLC TX FIFO (the tube_tx_fifo_write shared body at &8848), and either
 ; continues the tight inner loop on a continuing IRQ or returns via RTI. Reached only
-; via the NMI vector after tx_prepare (&864A) installs it.
+; via the NMI vector after tx_prepare installs it.
 .nmi_data_tx_tube
     bit adlc_cr1                                                      ; 8845: 2c a0 fe    ,..            ; Tube TX: BIT SR1 test TDRA
 ; &8848 referenced 2 times by &87f2, &8879
@@ -2657,10 +2648,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Four-way handshake: switch to RX for final ACK
 ;
-; Called via JMP from nmi_tx_complete (&872F) when bit 0 of tx_flags (&0D4A) is set
-; (four-way handshake in progress). Writes CR1=&82 (TX_RESET|RIE) to switch the ADLC
-; from TX mode to RX mode, listening for the final ACK from the remote station.
-; Installs nmi_final_ack (&8892) as the next NMI handler via set_nmi_vector (&0D0E).
+; Called via JMP from nmi_tx_complete when bit 0 of tx_flags is set (four-way handshake
+; in progress). Writes CR1=&82 (TX_RESET|RIE) to switch the ADLC from TX mode to RX
+; mode, listening for the final ACK from the remote station. Installs nmi_final_ack as
+; the next NMI handler via set_nmi_vector.
 ; &8886 referenced 1 time by &8743
 .handshake_await_ack
     lda #&82                                                          ; 8886: a9 82       ..             ; CR1=&82: TX_RESET | RIE (switch to RX for final ACK)
@@ -2673,14 +2664,14 @@ tx_flags_table = check_tube_irq_loop+1
 ; RX final ACK handler
 ;
 ; Receives the final ACK in a four-way handshake. Same validation pattern as
-; nmi_reply_validate (&8776):
+; nmi_reply_validate:
 ;
 ; 1. Check AP, read dest_stn, compare to our station.
 ; 2. Check RDA, read dest_net, validate = 0.
 ; 3. Check RDA, read src_stn / src_net, compare to TX dest.
 ; 4. Check FV for frame completion.
 ;
-; On success, stores result=0 via tx_result_ok (&88DE). On failure, error &41.
+; On success, stores result=0 via tx_result_ok. On failure, error &41.
 .nmi_final_ack
     lda #1                                                            ; 8892: a9 01       ..             ; A=&01: AP mask
     bit adlc_cr2                                                      ; 8894: 2c a1 fe    ,..            ; BIT SR2: test AP
@@ -2696,9 +2687,9 @@ tx_flags_table = check_tube_irq_loop+1
 ;
 ; NMI continuation entry installed by nmi_final_ack. Polls SR2 for RDA, reads the
 ; source-network byte from the ADLC RX FIFO, and compares with the original TX
-; destination network (tx_dst_net, &0D21). On mismatch, branches to tx_result_fail
-; (&88E2). On match, falls through into nmi_final_ack_validate (&88BA) for the
-; source-station check. Reached only via the NMI vector (no static caller).
+; destination network (tx_dst_net, &0D21). On mismatch, branches to tx_result_fail. On
+; match, falls through into nmi_final_ack_validate for the source-station check.
+; Reached only via the NMI vector (no static caller).
 ;
 ; On Exit: A: source-network byte read from FIFO
 .nmi_final_ack_net
@@ -2714,13 +2705,13 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Final ACK validation
 ;
-; Continuation of nmi_final_ack (&8892). Tests SR2 for RDA, then reads the source
-; station and source network bytes from the RX FIFO, comparing each against the
-; original TX destination at tx_dst_stn (&0D20) and tx_dst_net (&0D21). Finally tests
-; SR2 bit 1 (FV) for frame completion.
+; Continuation of nmi_final_ack. Tests SR2 for RDA, then reads the source station and
+; source network bytes from the RX FIFO, comparing each against the original TX
+; destination at tx_dst_stn and tx_dst_net. Finally tests SR2 bit 1 (FV) for frame
+; completion.
 ;
-; Any mismatch or missing FV branches to tx_result_fail (&88E2). On success, falls
-; through to tx_result_ok (&88DE).
+; Any mismatch or missing FV branches to tx_result_fail. On success, falls through to
+; tx_result_ok.
 ; &88ba referenced 1 time by &88b5
 .nmi_final_ack_validate
     bit adlc_cr2                                                      ; 88ba: 2c a1 fe    ,..            ; BIT SR2: test RDA
@@ -2743,11 +2734,11 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX completion handler
 ;
-; Loads A=0 (success) and branches unconditionally to tx_store_result (&88E2) (BEQ is
-; always taken since A=0). This two-instruction entry point exists so that JMP sites
-; can target the success path without needing to set A. Called from ack_tx (&82DF) for
-; final-ACK completion and from nmi_tx_complete (&872F) for immediate-op completion
-; where no ACK is expected.
+; Loads A=0 (success) and branches unconditionally to tx_store_result (BEQ is always
+; taken since A=0). This two-instruction entry point exists so that JMP sites can
+; target the success path without needing to set A. Called from ack_tx for final-ACK
+; completion and from nmi_tx_complete for immediate-op completion where no ACK is
+; expected.
 ;
 ; On Exit: A: 0 (TX success)
 ; &88de referenced 2 times by &82e7, &8739
@@ -2758,9 +2749,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; TX failure: not listening
 ;
-; Loads error code &41 ("not listening") and falls through to tx_store_result (&88E4).
-; The most common TX-error path – reached from 11 sites across the final-ACK validation
-; chain when the remote station doesn't respond or the frame is malformed.
+; Loads error code &41 ("not listening") and falls through to tx_store_result. The most
+; common TX-error path – reached from 11 sites across the final-ACK validation chain
+; when the remote station doesn't respond or the frame is malformed.
 ;
 ; On Exit: A: &41 ('not listening' TX error)
 ; &88e2 referenced 11 times by &821a, &8773, &8881, &8897, &889f, &88a9, &88ae, &88bd, &88c5, &88cd, &88dc
@@ -2770,9 +2761,9 @@ tx_flags_table = check_tube_irq_loop+1
 ; TX result store and completion
 ;
 ; Stores the TX result code (in A) at offset 0 of the TX control block via
-; (nmi_tx_block),Y=0. Sets tx_complete_flag (&0D60) to &80 to signal TX completion to
-; the foreground polling loop. Then jumps to discard_reset_rx (&83E5) for a full ADLC
-; reset and return to idle RX-listen mode.
+; (nmi_tx_block),Y=0. Sets tx_complete_flag to &80 to signal TX completion to the
+; foreground polling loop. Then jumps to discard_reset_rx for a full ADLC reset and
+; return to idle RX-listen mode.
 ;
 ; On Entry: A: result code (0=success, &40=jammed, &41=not listening)
 ; &88e4 referenced 2 times by &8720, &88e0
@@ -2786,10 +2777,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Unreferenced 16-byte gap between TX-error path and tx_calc_transfer
 ;
-; 16 dead bytes between the JMP to discard_reset_rx (&83E5) at &88ED and
-; tx_calc_transfer (&8900). Unreachable as code (it sits past an unconditional JMP) and
-; unreferenced as data – no label, index, or indirect pointer targets any address in
-; the &88F0..&88FF range. Likely an unused remnant from development.
+; 16 dead bytes between the JMP to discard_reset_rx at &88ED and tx_calc_transfer.
+; Unreachable as code (it sits past an unconditional JMP) and unreferenced as data – no
+; label, index, or indirect pointer targets any address in the &88F0..&88FF range.
+; Likely an unused remnant from development.
     equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...            ; Purpose unknown
 
 ; ***************************************************************************************
@@ -2803,8 +2794,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; | Tube        | compute 4-byte transfer size by subtracting RXCB[8..&B] (start) from RXCB[4..7] (end); store via (port_ws_offset),Y; re-claim Tube via JSR &0406 with claim type &C2 |
 ; | Non-Tube    | fall through to fallback_calc_transfer for a 1-byte size subtraction without the Tube reclaim                                                                        |
 ;
-; Three callers: scout_complete (&8112) (&819A), rx_imm_peek (&84CE) (&84DB),
-; tx_ctrl_proc (&86A2) (&86DD).
+; Three callers: scout_complete (&819A), rx_imm_peek (&84DB), tx_ctrl_proc (&86DD).
 ;
 ; On Entry: Y: 0 -- caller convention
 ;
@@ -2911,7 +2901,7 @@ tx_flags_table = check_tube_irq_loop+1
 ;    with address-control enabled.
 ; 2. Configures CR4=&1E (8-bit RX word, abort extend, NRZ encoding).
 ; 3. Configures CR3=&00 (no loopback, no AEX, NRZ, no DTR).
-; 4. Falls through to adlc_rx_listen (&899B) to re-enter RX-listen mode.
+; 4. Falls through to adlc_rx_listen to re-enter RX-listen mode.
 ;
 ; On Exit: A, X, Y: clobbered
 ; &898c referenced 3 times by &8053, &80df, &821d
@@ -2946,13 +2936,13 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Wait for idle NMI state and reset Econet
 ;
-; Service 12 handler: NMI release. Checks econet_init_flag (&0D62) to see if Econet has
-; been initialised; if not, skips straight to adlc_rx_listen (&899B). Otherwise spins
-; in a tight loop comparing the NMI handler vector at nmi_jmp_lo (&0D0C) / nmi_jmp_hi
-; (&0D0D) against the address of nmi_rx_scout (&809B).
+; Service 12 handler: NMI release. Checks econet_init_flag to see if Econet has been
+; initialised; if not, skips straight to adlc_rx_listen. Otherwise spins in a tight
+; loop comparing the NMI handler vector at nmi_jmp_lo / nmi_jmp_hi against the address
+; of nmi_rx_scout.
 ;
-; When the NMI handler returns to idle, falls through to save_econet_state (&89B9) to
-; clear the initialised flags and re-enter RX-listen mode.
+; When the NMI handler returns to idle, falls through to save_econet_state to clear the
+; initialised flags and re-enter RX-listen mode.
 ;
 ; On Entry: A: 12 (service call number)
 ;
@@ -2971,10 +2961,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX-listen
 ;
-; Disables NMIs via two reads of econet_station_id (&FE18) (INTOFF), then clears
-; tx_complete_flag (&0D60) and econet_init_flag (&0D62) by storing the current A value.
-; Sets Y=5 (service-call workspace page) and jumps to adlc_rx_listen (&899B) to
-; configure the ADLC for passive listening.
+; Disables NMIs via two reads of econet_station_id (INTOFF), then clears
+; tx_complete_flag and econet_init_flag by storing the current A value. Sets Y=5
+; (service-call workspace page) and jumps to adlc_rx_listen to configure the ADLC for
+; passive listening.
 ;
 ; Used during NMI release (service 12) to safely tear down the Econet state before
 ; another ROM can claim the NMI workspace.
@@ -3001,8 +2991,8 @@ nmi_shim_source = reset_enter_listen+2
 ; An alternate NMI handler that lives in the ROM itself rather than in the RAM shim at
 ; the start of the NFS workspace block. Unlike the RAM shim (which uses a
 ; self-modifying JMP to dispatch to different handlers), this one hardcodes JMP
-; nmi_rx_scout (&809B). Used as the initial NMI handler before the workspace has been
-; properly set up during initialisation.
+; nmi_rx_scout. Used as the initial NMI handler before the workspace has been properly
+; set up during initialisation.
 ;
 ; Same sequence as the RAM shim:
 ;
@@ -3015,16 +3005,15 @@ nmi_shim_source = reset_enter_listen+2
 ;     STA &FE30
 ;     JMP nmi_rx_scout
 ;
-; The BIT of econet_station_id (&FE18) (INTOFF) at entry and BIT of econet_nmi_enable
-; (&FE20) (INTON) before RTI in nmi_rti (&0D14) are essential for edge-triggered NMI
-; re-delivery.
+; The BIT of econet_station_id (INTOFF) at entry and BIT of econet_nmi_enable (INTON)
+; before RTI in nmi_rti are essential for edge-triggered NMI re-delivery.
 ;
 ; The 6502 /NMI is falling-edge triggered; the Econet NMI-enable flip-flop (IC97) gates
 ; the ADLC IRQ onto /NMI. INTOFF clears the flip-flop, forcing /NMI high; INTON sets
 ; it, allowing the ADLC IRQ through. This creates a guaranteed high-to-low edge on /NMI
 ; even when the ADLC IRQ is continuously asserted (e.g. when it transitions atomically
 ; from TDRA to frame-complete without de-asserting). Without this mechanism,
-; nmi_tx_complete (&872F) would never fire after tx_last_data (&8723).
+; nmi_tx_complete would never fire after tx_last_data.
 .nmi_bootstrap_entry
     bit master_intoff                                                 ; 89ca: 2c 38 fe    ,8.            ; INTOFF: force /NMI high (IC97 flip-flop clear)
     pha                                                               ; 89cd: 48          H              ; Save A
@@ -3038,12 +3027,12 @@ nmi_shim_source = reset_enter_listen+2
 ; ROM copy of set_nmi_vector + nmi_rti
 ;
 ; ROM-resident version of the NMI-exit sequence; also the source for the initial copy
-; to RAM at set_nmi_vector (&0D0E).
+; to RAM at set_nmi_vector.
 ;
-; | RAM target             | Function                                                                                                                                              |
-; |------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-; | set_nmi_vector (&0D0E) | writes both hi and lo bytes of the JMP target at nmi_jmp_lo (&0D0C) / nmi_jmp_hi (&0D0D)                                                              |
-; | nmi_rti (&0D14)        | restores the original ROM bank, pulls Y and A from the stack, then BIT of econet_nmi_enable (&FE20) (INTON) to re-enable the NMI flip-flop before RTI |
+; | RAM target     | Function                                                                                                                                      |
+; |----------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+; | set_nmi_vector | writes both hi and lo bytes of the JMP target at nmi_jmp_lo / nmi_jmp_hi                                                                      |
+; | nmi_rti        | restores the original ROM bank, pulls Y and A from the stack, then BIT of econet_nmi_enable (INTON) to re-enable the NMI flip-flop before RTI |
 ;
 ; The INTON creates a guaranteed falling edge on /NMI if the ADLC IRQ is already
 ; asserted, ensuring the next handler fires immediately.
@@ -3062,8 +3051,8 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; svc_dispatch low-byte table (51 entries)
 ;
-; Low-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch (&8E61) as LDA
-; &89ED,X. Paired with the high-byte half at svc_dispatch_hi (&8A20).
+; Low-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &89ED,X.
+; Paired with the high-byte half at svc_dispatch_hi.
 ;
 ; Index 0 is a placeholder (target value unused – never reached); indices 1..50 cover:
 ;
@@ -3130,10 +3119,10 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; svc_dispatch high-byte table (51 entries + 1 padding)
 ;
-; High-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch (&8E61) as LDA
-; &8A20,X. The dispatcher pushes the hi byte first then the lo, so RTS lands on target
-; (the table stores target-1). The trailing byte at &8A53 is 1-byte padding – there are
-; only 51 valid entries (0..50).
+; High-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &8A20,X.
+; The dispatcher pushes the hi byte first then the lo, so RTS lands on target (the
+; table stores target-1). The trailing byte at &8A53 is 1-byte padding – there are only
+; 51 valid entries (0..50).
 ; &8a20 referenced 1 time by &8e66
 .svc_dispatch_hi
     equb &e9                                                          ; 8a20: e9          .              ; idx &00: placeholder
@@ -3322,7 +3311,7 @@ nmi_shim_source = reset_enter_listen+2
 ; Disables remote operation by clearing the flag at offset 0 in the receive block. If
 ; remote operation was active, re-enables the keyboard via OSBYTE &C9 (with X=0, Y=0)
 ; and calls tx_econet_abort with A=&0A to reinitialise the workspace area. Falls
-; through to scan_remote_keys (&8B00) which clears svc_state and nfs_workspace.
+; through to scan_remote_keys which clears svc_state and nfs_workspace.
 ;
 ; On Entry: Y: command line offset (unused -- *ROFF takes no args)
 ;
@@ -3344,12 +3333,12 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; Uses OSBYTE &7A with Y=&7F to check whether remote-operation keys (&CE..&CF) are
 ; currently pressed. If neither key is detected, clears svc_state and nfs_workspace to
-; zero via the clear_svc_and_ws entry point (also used directly by cmd_roff (&8AEA)).
-; Called by check_escape.
+; zero via the clear_svc_and_ws entry point (also used directly by cmd_roff). Called by
+; check_escape.
 ;
 ; X is saved into nfs_workspace across the OSBYTE call and restored each iteration –
 ; the loop reuses A as the key-code counter without needing X. clear_svc_and_ws is also
-; entered directly (label) by cmd_roff (&8AEA) with no register pre-conditions.
+; entered directly (label) by cmd_roff with no register pre-conditions.
 ;
 ; On Entry: X: preserved by being saved to nfs_workspace and reloaded each iteration
 ; (no other preconditions)
@@ -3379,8 +3368,8 @@ nmi_shim_source = reset_enter_listen+2
 ; Save OS text pointer for later retrieval
 ;
 ; Copies &F2/&F3 (os_text_ptr) into fs_crc_lo / fs_crc_hi. Called by svc_4_star_command
-; (&8C42) and svc_9_help (&8C51) before attempting command matches, and by match_fs_cmd
-; during iterative help-topic matching. Preserves A via PHA/PLA.
+; and svc_9_help before attempting command matches, and by match_fs_cmd during
+; iterative help-topic matching. Preserves A via PHA/PLA.
 ;
 ; On Exit: A: preserved
 ; &8b18 referenced 3 times by &8c46, &8c71, &a603
@@ -3403,11 +3392,11 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; 1. Notifies the OS via FSCV reason 6.
 ; 2. Copies the FS context block from the receive block to fs_context_save (&0DFA).
-; 3. Installs 7 filing-system vectors (FILEV etc.) from fs_vector_table (&8EA7).
+; 3. Installs 7 filing-system vectors (FILEV etc.) from fs_vector_table.
 ; 4. Initialises the ADLC and extended vectors.
 ; 5. Sets up the channel table.
 ; 6. Copies the workspace page to &1000 as a shadow.
-; 7. Sets bit 7 of fs_flags (&0D6C) to mark the FS as selected.
+; 7. Sets bit 7 of fs_flags to mark the FS as selected.
 ; 8. Issues service call 15.
 ;
 ; On Entry: Y: command line offset in text pointer (unused for *NET FS but supplied by
@@ -3443,11 +3432,11 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; Service-18 entry point.
 ;
-; | Condition                     | Action                                                                        |
-; |-------------------------------|-------------------------------------------------------------------------------|
-; | Y ≠ 5                         | return unclaimed (not the Econet FS)                                          |
-; | Bit 7 of fs_flags (&0D6C) set | return (FS already selected)                                                  |
-; | else                          | fall through to cmd_net_fs (&8B23) for the full network-FS selection sequence |
+; | Condition             | Action                                                                |
+; |-----------------------|-----------------------------------------------------------------------|
+; | Y ≠ 5                 | return unclaimed (not the Econet FS)                                  |
+; | Bit 7 of fs_flags set | return (FS already selected)                                          |
+; | else                  | fall through to cmd_net_fs for the full network-FS selection sequence |
 ;
 ; On Entry: Y: filing system number requested
 .svc_18_fs_select
@@ -3460,8 +3449,8 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; If bit 7 of fs_flags is set (ANFS already active), RTS via return_from_save_text_ptr.
 ; Otherwise calls cmd_net_fs to select ANFS now; on failure, JMPs to error_net_checksum
-; (&90B5) to raise the net checksum error. After successful selection, falls through to
-; the body at &8B5A which sets up the OSWORD parameter block pointer and continues the
+; to raise the net checksum error. After successful selection, falls through to the
+; body at &8B5A which sets up the OSWORD parameter block pointer and continues the
 ; caller's work.
 ;
 ; On Entry: X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call
@@ -3473,11 +3462,11 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Force ANFS selection (raise net checksum on failure)
 ;
-; Tail-fragment of ensure_fs_selected (&8B4D) used directly by svc_3_autoboot when an
-; autoboot needs to force-select ANFS as the active filing system. Calls cmd_net_fs to
-; perform the actual selection; on failure (BEQ not taken), JMPs to error_net_checksum
-; (&90B5) to raise the net checksum error. Used when there is no clean BIT fs_flags /
-; BMI shortcut for early-return.
+; Tail-fragment of ensure_fs_selected used directly by svc_3_autoboot when an autoboot
+; needs to force-select ANFS as the active filing system. Calls cmd_net_fs to perform
+; the actual selection; on failure (BEQ not taken), JMPs to error_net_checksum to raise
+; the net checksum error. Used when there is no clean BIT fs_flags / BMI shortcut for
+; early-return.
 ;
 ; On Entry: X, Y: preserved across cmd_net_fs (as per the ensure_fs_selected calling
 ; contract)
@@ -3547,8 +3536,8 @@ nmi_shim_source = reset_enter_listen+2
 ; *HELP NFS topic: print NFS-specific commands
 ;
 ; Loads X=&35 (the offset of the first NFS-specific command in cmd_table_fs) and
-; tail-falls into print_cmd_table (&8BC6) to emit the listing. Single caller (the *HELP
-; topic dispatch at &8C6E).
+; tail-falls into print_cmd_table to emit the listing. Single caller (the *HELP topic
+; dispatch at &8C6E).
 ;
 ; On Exit: X: &35 + advance through the table
 ; &8bbb referenced 1 time by &8c6e
@@ -3558,9 +3547,8 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP UTILS topic handler
 ;
-; Sets X = 0 to select the utility command sub-table and branches to print_cmd_table
-; (&8BC6) to display the command list. Prints the version header followed by all
-; utility commands.
+; Sets X = 0 to select the utility command sub-table and branches to print_cmd_table to
+; display the command list. Prints the version header followed by all utility commands.
 ;
 ; On Entry: Y: command-line offset (PHA/PHA/RTS dispatch contract)
 ;
@@ -3573,7 +3561,7 @@ nmi_shim_source = reset_enter_listen+2
 ; *HELP NET topic handler
 ;
 ; Sets X = &4A (the NFS command sub-table offset) and falls through to print_cmd_table
-; (&8BC6) to display the NFS command list with version header.
+; to display the NFS command list with version header.
 ;
 ; On Entry: Y: command-line offset (PHA/PHA/RTS dispatch contract)
 ;
@@ -3583,12 +3571,12 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Print *HELP command listing with optional header
 ;
-; | V flag | Action                                                                                                     |
-; |--------|------------------------------------------------------------------------------------------------------------|
-; | set    | save X/Y, call print_version_header (&8C93) to show the ROM version string and station number, restore X/Y |
-; | clear  | output a newline only                                                                                      |
+; | V flag | Action                                                                                             |
+; |--------|----------------------------------------------------------------------------------------------------|
+; | set    | save X/Y, call print_version_header to show the ROM version string and station number, restore X/Y |
+; | clear  | output a newline only                                                                              |
 ;
-; Either path then falls through to print_cmd_table_loop (&8BD5) to enumerate commands.
+; Either path then falls through to print_cmd_table_loop to enumerate commands.
 ;
 ; On Entry: X: offset into cmd_table_fs V: set=print version header, clear=newline only
 ; &8bc6 referenced 2 times by &8bbd, &8bc2
@@ -3618,8 +3606,8 @@ nmi_shim_source = reset_enter_listen+2
 ;
 ; The syntax descriptor byte's low 5 bits index into cmd_syntax_table; index &0E
 ; triggers special handling that lists shared command names in parentheses. Calls
-; help_wrap_if_serial (&8C29) to handle line continuation on serial output streams.
-; Preserves Y.
+; help_wrap_if_serial to handle line continuation on serial output streams. Preserves
+; Y.
 ;
 ; On Entry: X: offset into cmd_table_fs
 ; &8bd5 referenced 2 times by &8bd0, &8c61
@@ -3637,7 +3625,7 @@ nmi_shim_source = reset_enter_listen+2
 ; | clear | print_indent (continue with this entry)     |
 ; | set   | JMP done_print_table (end of table reached) |
 ;
-; Single caller (the BNE retry at &8C22 in print_cmd_table (&8BC6)'s outer loop).
+; Single caller (the BNE retry at &8C22 in print_cmd_table's outer loop).
 ;
 ; On Entry: X: current cmd_table_fs offset
 ; &8bd8 referenced 1 time by &8c22
@@ -3713,9 +3701,9 @@ nmi_shim_source = reset_enter_listen+2
 ; Cleanup epilogue for print_cmd_table
 ;
 ; Pops the saved P and Y registers off the stack and RTS. Used as the shared exit for
-; print_cmd_table (&8BC6) after it has emitted a help listing or detected end-of-table.
-; Single caller (the BEQ at &8BDD in print_cmd_table (&8BC6) when V was set on entry,
-; indicating the saved state needs restoring).
+; print_cmd_table after it has emitted a help listing or detected end-of-table. Single
+; caller (the BEQ at &8BDD in print_cmd_table when V was set on entry, indicating the
+; saved state needs restoring).
 ;
 ; On Exit: Y: restored from stack P (FLAGS): restored from stack
 ; &8c25 referenced 1 time by &8bdd
@@ -3728,7 +3716,7 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Wrap *HELP syntax lines for serial output
 ;
-; Checks the output destination via vdu_mode (&0355):
+; Checks the output destination via vdu_mode:
 ;
 ; | Stream      | Action                                                                                                   |
 ; |-------------|----------------------------------------------------------------------------------------------------------|
@@ -3852,9 +3840,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Print ANFS version string and station number
 ;
-; Uses an inline string after JSR to print_inline (&9261): CR + "Advanced NFS 4.21" +
-; CR. After the inline string, JMPs to print_station_id (&90C7) to append the local
-; Econet station number.
+; Uses an inline string after JSR to print_inline: CR + "Advanced NFS 4.21" + CR. After
+; the inline string, JMPs to print_station_id to append the local Econet station
+; number.
 ;
 ; On Exit: A, X, Y: clobbered (print_inline + print_station_id)
 ; &8c93 referenced 2 times by &8bca, &8c5c
@@ -3895,10 +3883,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Set up zero-page pointer to workspace page
 ;
-; Calls get_ws_page (&8CAD) to read the page number, stores it as the high byte in
-; nfs_temp (&CD), and clears the low byte at &CC to zero. This gives a page-aligned
-; pointer used by FS initialisation and cmd_net_fs (&8B23) to access the private
-; workspace.
+; Calls get_ws_page to read the page number, stores it as the high byte in nfs_temp
+; (&CD), and clears the low byte at &CC to zero. This gives a page-aligned pointer used
+; by FS initialisation and cmd_net_fs to access the private workspace.
 ;
 ; On Exit: A: 0 Y: workspace page number
 ; &8cbd referenced 2 times by &8b9c, &8f4f
@@ -3959,7 +3946,7 @@ nmi_shim_source = reset_enter_listen+2
 ; 2. Issues paged ROM service call 10 via OSBYTE &8F to inform other ROMs.
 ;
 ; Sets X=&0A and branches to issue_svc_osbyte which falls through from the call_fscv
-; (&8CFF) subroutine.
+; subroutine.
 ;
 ; On Exit: A: clobbered (FSCV reason 6 then OSBYTE &8F) X: &0A (the service number
 ; passed to OSBYTE &8F)
@@ -3969,11 +3956,11 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Dispatch to filing-system control vector (FSCV)
 ;
-; Indirect JMP through FSCV at vec_fscv (&021E), providing OS-level filing-system
-; services such as FS-selection notification (A=6) and *RUN handling.
+; Indirect JMP through FSCV at vec_fscv, providing OS-level filing-system services such
+; as FS-selection notification (A=6) and *RUN handling.
 ;
-; Also contains issue_svc_15 (&8D02) and issue_svc_osbyte entry points that issue
-; paged-ROM service requests via OSBYTE &8F.
+; Also contains issue_svc_15 and issue_svc_osbyte entry points that issue paged-ROM
+; service requests via OSBYTE &8F.
 ;
 ; On Entry: A: FSCV reason code
 ; &8cff referenced 1 time by &a59e
@@ -3999,12 +3986,11 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; svc_dispatch table[2] handler
 ;
-; Reached only via PHA/PHA/RTS dispatch from the svc_dispatch (&89ED) table at index 2.
-; Pushes Y onto the stack via PHY, sets X=&11 (CMOS RAM offset for the Econet
-; station-flags byte), calls osbyte_a1 (&8E9A) to read it, then ANDs the result with
-; &01 (bit 0 = "use page &0B fallback") and pulls Y back. Used by the
-; workspace-allocation path to discover whether the user has overridden the default
-; private workspace base.
+; Reached only via PHA/PHA/RTS dispatch from the svc_dispatch table at index 2. Pushes
+; Y onto the stack via PHY, sets X=&11 (CMOS RAM offset for the Econet station-flags
+; byte), calls osbyte_a1 to read it, then ANDs the result with &01 (bit 0 = "use page
+; &0B fallback") and pulls Y back. Used by the workspace-allocation path to discover
+; whether the user has overridden the default private workspace base.
 ;
 ; On Exit: A: 0 or 1 (CMOS bit 0 of station-flags byte)
 .svc_dispatch_idx_2
@@ -4213,7 +4199,7 @@ ps_template_base = load_transfer_params+1
 ; with the expected station at &0E01 using EOR. If the parsed value matches (EOR result
 ; is zero), clears &0E01.
 ;
-; Called by cmd_iam (&8D91) when processing a file server address in the logon command.
+; Called by cmd_iam when processing a file server address in the logon command.
 ;
 ; On Exit: A: 0 if matched, non-zero if different
 ; &8e21 referenced 2 times by &8db9, &a9ec
@@ -4253,15 +4239,15 @@ ps_template_base = load_transfer_params+1
 ; Send FS command and dispatch the reply
 ;
 ; 1. JSR save_net_tx_cb to set up and transmit the command.
-; 2. Read the reply function code from hazel_txcb_network (&C103).
+; 2. Read the reply function code from hazel_txcb_network.
 ;
-; | Reply code | Action                                                                                                                                        |
-; |------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-; | 0          | branch to the no-reply path (dispatch_rts)                                                                                                    |
-; | non-zero   | load hazel_txcb_data (&C105) (first reply byte), Y=&25 (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
+; | Reply code | Action                                                                                                                                |
+; |------------|---------------------------------------------------------------------------------------------------------------------------------------|
+; | 0          | branch to the no-reply path (dispatch_rts)                                                                                            |
+; | non-zero   | load hazel_txcb_data (first reply byte), Y=&25 (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
 ;
-; Two callers: the fall-through from check_urd_prefix (&8E2D) (&8E1F via pass_send_cmd)
-; and the JMP from send_fs_request (&9460).
+; Two callers: the fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and the
+; JMP from send_fs_request (&9460).
 ;
 ; On Entry: Y: extra dispatch offset (0 from send_fs_request, non-zero for some
 ; specialised paths)
@@ -4288,11 +4274,10 @@ ps_template_base = load_transfer_params+1
 ; Dispatch directory operation via PHA/PHA/RTS
 ;
 ; Validates X < 5 and sets Y = &18 as the dispatch offset, then falls through into
-; svc_dispatch (&8E61). The INX/DEY/BPL loop in svc_dispatch (&8E61) then settles
-; X_final = X_caller + Y + 1, landing on indices &19..&1D of the svc_dispatch_lo
-; (&89ED) / svc_dispatch_hi (&8A20) tables. Those slots map to the language-reply
-; handlers lang_0_insert_remote_key (idx &19) through lang_4_remote_validated (idx
-; &1D).
+; svc_dispatch. The INX/DEY/BPL loop in svc_dispatch then settles X_final = X_caller +
+; Y + 1, landing on indices &19..&1D of the svc_dispatch_lo / svc_dispatch_hi tables.
+; Those slots map to the language-reply handlers lang_0_insert_remote_key (idx &19)
+; through lang_4_remote_validated (idx &1D).
 ;
 ; (In 4.18 the offset was &0E, reaching indices 15..19. The 4.21 shift to &18 puts the
 ; targets ten slots higher in the rebuilt dispatch table.)
@@ -4364,11 +4349,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Read CMOS RAM byte 0 (Master 128)
 ;
-; Sets X=0 and falls through to osbyte_a1 (&8E9A), which issues OSBYTE &A1 to read CMOS
-; RAM byte 0 – the file-system / language byte holding the default boot mode and FS
+; Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to read CMOS RAM
+; byte 0 – the file-system / language byte holding the default boot mode and FS
 ; selection.
 ;
-; Single caller (&8FBB, inside nfs_init_body (&8F38)'s CMOS-read sequence).
+; Single caller (&8FBB, inside nfs_init_body's CMOS-read sequence).
 ;
 ; On Exit: Y: CMOS byte 0 (returned by OSBYTE &A1)
 ; &8e98 referenced 1 time by &8fbb
@@ -4378,10 +4363,10 @@ ps_template_base = load_transfer_params+1
 ; OSBYTE &A1 (read Master CMOS RAM byte)
 ;
 ; Loads A=&A1 and tail-jumps to OSBYTE – reads the Master 128 CMOS RAM byte indexed by
-; X. Two callers: format_filename_field (&A0E3) and flip_set_station_boot (&A70D).
+; X. Two callers: format_filename_field and flip_set_station_boot.
 ;
 ; Dual-use trick: the 5 bytes A9 A1 4C F4 FF also serve as the leading slot of the
-; vector-dispatch table that write_vector_entry (&904F) reads via LDA osbyte_a1,Y – a
+; vector-dispatch table that write_vector_entry reads via LDA osbyte_a1,Y – a
 ; deliberate overlap so the routine's body doubles as table data.
 ;
 ; On Entry: X: CMOS RAM byte index
@@ -4528,8 +4513,8 @@ ps_template_base = load_transfer_params+1
 ;
 ; Stores the workspace allocation from service 1 into offset &0B of the receive control
 ; block, capping the value at &D3 to prevent overflow into adjacent workspace areas.
-; Called by svc_2_private_workspace_pages (&8F10) after issuing the absolute workspace
-; claim service call.
+; Called by svc_2_private_workspace_pages after issuing the absolute workspace claim
+; service call.
 ;
 ; On Entry: Y: workspace page count from service 1
 .store_ws_page_count
@@ -4564,14 +4549,13 @@ ps_template_base = load_transfer_params+1
 ; Reads CMOS byte &11 to test bit 2 of the saved Econet status; either advances the
 ; caller's first-available-page (Y) by 2 and uses it, or forces page &0B as a fallback.
 ; Sets net_rx_ptr_hi / nfs_workspace_hi to the chosen page pair, clears the
-; corresponding lo bytes, and calls get_ws_page (&8CAD). If the resulting page is >=
-; &DC, branches to the helper at &8EFE (&8EFE) which publishes the page into
+; corresponding lo bytes, and calls get_ws_page. If the resulting page is >= &DC,
+; branches to the helper at &8EFE which publishes the page into
 ; rom_ws_pages[romsel_copy] with bit 7 masked off.
 ;
 ; This routine handles only the workspace-page allocation half of service 2. The
-; bring-up remainder (station ID, FS workspace zero, cmd_net_fs, init_adlc_and_vectors
-; (&903C)) lives at nfs_init_body (&8F38) and is dispatched separately – see the
-; comment block above.
+; bring-up remainder (station ID, FS workspace zero, cmd_net_fs, init_adlc_and_vectors)
+; lives at nfs_init_body and is dispatched separately – see the comment block above.
 ;
 ; On Entry: Y: first available private workspace page
 .svc_2_private_workspace_pages
@@ -4612,16 +4596,16 @@ ps_template_base = load_transfer_params+1
 ;
 ; - Clears ws_page / tx_complete_flag and the receive-block remote-op flag.
 ; - On warm reset (last_break_type non-zero) and fs_flags bit 4 set, calls setup_ws_ptr
-;   (&8CBD) and zeroes the FS workspace page in a 256-byte loop.
-; - Calls copy_ps_data_y1c (&B3D5) to install the printer- server template.
+;   and zeroes the FS workspace page in a 256-byte loop.
+; - Calls copy_ps_data_y1c to install the printer- server template.
 ; - Reads CMOS bytes &01..&04 via osbyte_a1, storing each into the workspace identity
 ;   block at nfs_workspace+{0..3}.
 ; - Reads CMOS byte &11 (Econet station): if zero, prints Station number in CMOS RAM
 ;   invalid. Using 1 instead! and defaults to station 1.
 ; - Stores station ID into the receive block.
 ; - Calls cmd_net_fs to select ANFS as the active filing system, then
-;   init_adlc_and_vectors (&903C) to install NETV / FSCV / etc., handle_spool_ctrl_byte
-;   and init_bridge_poll for protection setup.
+;   init_adlc_and_vectors to install NETV / FSCV / etc., handle_spool_ctrl_byte and
+;   init_bridge_poll for protection setup.
 ;
 ; Returns via RTS at &903B.
 ;
@@ -4633,7 +4617,7 @@ ps_template_base = load_transfer_params+1
 ; > workspace on a soft BREAK. A Sideways ROM should therefore re-initialise itself.
 ;
 ; The full set of Master 128 service calls ANFS handles, dispatched via the CMP/SBC
-; normalisation chain in service_handler (&8A54):
+; normalisation chain in service_handler:
 ;
 ; | svc      | idx   | handler                 | purpose                 |
 ; |----------|-------|-------------------------|-------------------------|
@@ -4651,9 +4635,8 @@ ps_template_base = load_transfer_params+1
 ; | &29      | 24    | parse_object_argument   | *STATUS option          |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
-; dispatch_svc_state_check (&8ACE) with A := 0 and dispatches to idx 1 = dispatch_rts
-; (no-op) – deliberately ignoring svc &15 (100 Hz poll), svc &2A (language ROM
-; startup), etc.
+; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
+; deliberately ignoring svc &15 (100 Hz poll), svc &2A (language ROM startup), etc.
 .nfs_init_body
     lda #0                                                            ; 8f38: a9 00       ..             ; A=0
     sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear workspace page counter
@@ -4782,8 +4765,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Reads the ROM pointer table via OSBYTE &A8, writes vector addresses and ROM ID into
 ; the extended vector table for NETV and one additional vector, then restores any
-; previous FS context via restore_fs_context (&9064). Falls through into
-; write_vector_entry (&904F).
+; previous FS context via restore_fs_context. Falls through into write_vector_entry.
 ;
 ; On Exit: A, X, Y: clobbered (falls through into write_vector_entry)
 ; &903c referenced 2 times by &8b81, &901a
@@ -4803,8 +4785,8 @@ ps_template_base = load_transfer_params+1
 ; MOS extended-vector table pointed to by fs_error_ptr. For each entry, writes address
 ; low, high, then the current ROM ID from romsel_copy (&F4). Loops X times.
 ;
-; After the loop, stores &FF at bridge_status (&0D72) as an installed flag, calls
-; deselect_fs_if_active and get_ws_page (&8CAD) to restore FS state.
+; After the loop, stores &FF at bridge_status as an installed flag, calls
+; deselect_fs_if_active and get_ws_page to restore FS state.
 ;
 ; On Entry: X: number of vectors to install Y: starting offset in extended vector table
 ;
@@ -4831,8 +4813,8 @@ ps_template_base = load_transfer_params+1
 ; back into the receive control block via (net_rx_ptr). This restores the station
 ; identity, directory handles, and library path after a filing-system reselection.
 ;
-; Called by svc_2_private_workspace_pages (&8F10) during init, deselect_fs_if_active
-; during FS teardown, and flip_set_station_boot.
+; Called by svc_2_private_workspace_pages during init, deselect_fs_if_active during FS
+; teardown, and flip_set_station_boot.
 ;
 ; On Exit: A, Y: clobbered (loop counter / data byte)
 ; &9064 referenced 3 times by &8fb8, &907b, &a6d2
@@ -4850,7 +4832,7 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Deselect filing system and save workspace
 ;
-; If the filing system is currently selected (bit 7 of fs_flags (&0D6C) set):
+; If the filing system is currently selected (bit 7 of fs_flags set):
 ;
 ; 1. Closes all open FCBs.
 ; 2. Closes *SPOOL/*EXEC files via OSBYTE &77.
@@ -4893,7 +4875,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Sums bytes 0..&76 of the workspace page via the zero-page pointer at &CC/&CD and
 ; compares with the stored value at offset &77. On mismatch, raises a 'net sum' error
-; (&AA) via error_net_checksum (&90B5).
+; (&AA) via error_net_checksum.
 ;
 ; The checksummed page holds open-file information (preserved when ANFS is not the
 ; current filing system) and the current printer type. Can only be reset by a
@@ -4929,10 +4911,9 @@ ps_template_base = load_transfer_params+1
 ; Raise 'net checksum' BRK error
 ;
 ; Loads error code &AA and tail-calls error_bad_inline with the inline string 'net
-; checksum'. Reached when ensure_fs_selected (&8B4D) (auto-select path) cannot bring
-; ANFS up, or when verify_ws_checksum (&909E) detects that the saved workspace checksum
-; at offset &77 doesn't match the live sum – only resettable by a control-BREAK. Never
-; returns.
+; checksum'. Reached when ensure_fs_selected (auto-select path) cannot bring ANFS up,
+; or when verify_ws_checksum detects that the saved workspace checksum at offset &77
+; doesn't match the live sum – only resettable by a control-BREAK. Never returns.
 ; &90b5 referenced 2 times by &8b57, &90af
 .error_net_checksum
     lda #&aa                                                          ; 90b5: a9 aa       ..             ; Error number &AA
@@ -4942,13 +4923,13 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print Econet station number and clock status
 ;
-; Uses print_inline (&9261) to output 'Econet Station ', then reads the station ID from
-; offset 1 of the receive control block and prints it as a decimal number via
-; print_num_no_leading. Tests ADLC status register 2 (adlc_cr2 (&FEA1)) to detect the
-; Econet clock; if absent, appends ' No Clock' via a second inline string. Finishes
-; with OSNEWL.
+; Uses print_inline to output 'Econet Station ', then reads the station ID from offset
+; 1 of the receive control block and prints it as a decimal number via
+; print_num_no_leading. Tests ADLC status register 2 (adlc_cr2) to detect the Econet
+; clock; if absent, appends ' No Clock' via a second inline string. Finishes with
+; OSNEWL.
 ;
-; Called by print_version_header (&8C93) and svc_3_autoboot (&8CC7).
+; Called by print_version_header and svc_3_autoboot.
 ;
 ; On Exit: A, X, Y: clobbered (print_inline + print_num_no_leading + OSNEWL)
 ; &90c7 referenced 2 times by &8caa, &8ce4
@@ -5039,12 +5020,12 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print CR via OSASCI, bypassing any open *SPOOL file
 ;
-; Loads A=&0D and falls into print_char_no_spool (&91FB). The underlying mechanism
-; temporarily writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the
-; printed CR is not captured by spool, then restores the previous handle on exit.
+; Loads A=&0D and falls into print_char_no_spool. The underlying mechanism temporarily
+; writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is
+; not captured by spool, then restores the previous handle on exit.
 ;
-; Called from service_handler (&8A54) (&8A7C) after the 'Bad ROM <slot>' message, and
-; from two other diagnostic sites (&8E10, &9D3E).
+; Called from service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two
+; other diagnostic sites (&8E10, &9D3E).
 ;
 ; On Exit: A, X, Y, P: preserved (print_char_no_spool brackets the call with full
 ; register save/restore via PHA/PHP/PLP/PLA)
@@ -5079,8 +5060,8 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print A via OSWRCH (raw, no CR translation), bypass *SPOOL
 ;
-; As print_char_no_spool (&91FB) but the inner PHP/CLV at &9201 forces V=0 in the saved
-; flags, so the BVC at &9220 takes the OSWRCH branch instead of OSASCI.
+; As print_char_no_spool but the inner PHP/CLV at &9201 forces V=0 in the saved flags,
+; so the BVC at &9220 takes the OSWRCH branch instead of OSASCI.
 ;
 ; Used when the caller wants to emit a raw byte (e.g. a VDU control code) without CR
 ; translation. Sole caller in this ROM is at &8DE6.
@@ -5132,10 +5113,10 @@ ps_template_base = load_transfer_params+1
 ; Print A as two hexadecimal digits
 ;
 ; Saves A on the stack, shifts right four times to isolate the high nybble, calls
-; print_hex_nybble (&923F) to print it, then restores the full byte and falls through
-; to print_hex_nybble (&923F) for the low nybble.
+; print_hex_nybble to print it, then restores the full byte and falls through to
+; print_hex_nybble for the low nybble.
 ;
-; Callers: print_5_hex_bytes, cmd_ex (&B103), cmd_dump (&BD41), and print_dump_header.
+; Callers: print_5_hex_bytes, cmd_ex, cmd_dump, and print_dump_header.
 ;
 ; On Entry: A: byte to print
 ;
@@ -5173,11 +5154,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print A as two hex digits, *SPOOL-bypassing
 ;
-; As print_hex_byte (&9236) but emits each digit via print_char_no_spool (&91FB) (the
-; *SPOOL-bypassing OSASCI wrapper), so the digits don't appear in any active spool
-; capture. Saves A, extracts the high nibble (LSR x4), prints it via
-; print_hex_nybble_no_spool (&9255), then restores A and falls through for the low
-; nibble. Sole caller: print_5_hex_bytes (&9D4F) at &9D53.
+; As print_hex_byte but emits each digit via print_char_no_spool (the *SPOOL-bypassing
+; OSASCI wrapper), so the digits don't appear in any active spool capture. Saves A,
+; extracts the high nibble (LSR x4), prints it via print_hex_nybble_no_spool, then
+; restores A and falls through for the low nibble. Sole caller: print_5_hex_bytes at
+; &9D53.
 ;
 ; On Entry: A: byte to print
 ;
@@ -5237,8 +5218,8 @@ ps_template_base = load_transfer_params+1
 ; print_inline pointer-advance step
 ;
 ; INC fs_error_ptr (lo); on overflow INC fs_crflag (hi). Single caller (the loop tail
-; at &9284 inside print_inline (&9261)). Falls through to load_char which reads the
-; next inline-string byte.
+; at &9284 inside print_inline). Falls through to load_char which reads the next
+; inline-string byte.
 ; &9269 referenced 1 time by &9284
 .loop_next_char
     inc fs_error_ptr                                                  ; 9269: e6 b8       ..             ; Advance pointer to next character
@@ -5267,17 +5248,16 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Print inline string, high-bit terminated, *SPOOL-bypassing
 ;
-; As print_inline (&9261), but each character is emitted via print_char_no_spool
-; (&91FB) instead of OSASCI directly, so the printed text does not appear in any active
-; *SPOOL capture.
+; As print_inline, but each character is emitted via print_char_no_spool instead of
+; OSASCI directly, so the printed text does not appear in any active *SPOOL capture.
 ;
 ; Used by status output that should not be saved to a spool file (e.g. *Wipe '(Y/N) '
 ; prompts, *Ex column separators, the 'Bad ROM' service-handler message via the
-; recv_and_process_reply 'Data Lost' warning, and inline-string arguments inside cmd_ex
-; (&B103)'s directory listing).
+; recv_and_process_reply 'Data Lost' warning, and inline-string arguments inside
+; cmd_ex's directory listing).
 ;
-; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex (&B103)), &B2F0
-; (ex_print_col_sep), &B75E (cmd_wipe (&B6F3)), &B7CB (prompt_yn).
+; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex), &B2F0
+; (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
 ;
 ; On Exit: A: terminator byte (bit 7 set, also next opcode) X: corrupted (by
 ; print_char_no_spool) Y: 0
@@ -5317,10 +5297,10 @@ ps_template_base = load_transfer_params+1
 ;
 ; Reads characters from the command argument at (fs_crc_lo),Y. Supports & prefix for
 ; hex, . separator for net.station addresses, and plain decimal. Returns the result in
-; fs_load_addr_2 (and A). Raises Bad hex (&934A), Bad number, Bad station number
-; (&9357), and overflow errors as appropriate. The body uses the standard 6502 idioms:
-; ASL ASL ASL ASL + ADC for hex-digit accumulation, and result*2 + result*8 for decimal
-; *10. Two named callers: from &A3C9 and &A3DE.
+; fs_load_addr_2 (and A). Raises Bad hex, Bad number, Bad station number, and overflow
+; errors as appropriate. The body uses the standard 6502 idioms: ASL ASL ASL ASL + ADC
+; for hex-digit accumulation, and result*2 + result*8 for decimal *10. Two named
+; callers: from &A3C9 and &A3DE.
 ;
 ; On Entry: Y: index into command-string buffer at (fs_crc_lo),Y A: ignored
 ;
@@ -5436,8 +5416,8 @@ ps_template_base = load_transfer_params+1
 ;
 ; Loads error code &F1 and tail-calls error_bad_inline with the inline string 'hex' –
 ; error_bad_inline prepends 'Bad ' to produce the final 'Bad hex' message. Called from
-; parse_addr_arg (&92B2) and the *DUMP / *LIST hex parsers when a digit is out of
-; range. Never returns.
+; parse_addr_arg and the *DUMP / *LIST hex parsers when a digit is out of range. Never
+; returns.
 ; &934a referenced 3 times by &92d6, &92da, &be9f
 .err_bad_hex
     lda #&f1                                                          ; 934a: a9 f1       ..             ; Error code &F1
@@ -5476,11 +5456,10 @@ ps_template_base = load_transfer_params+1
 ; Test for digit, '&', or '.' separator
 ;
 ; Compares A against '&' and '.' first; if either matches, returns with carry set via
-; the shared return_12 exit. Otherwise falls through to is_dec_digit_only (&93A2) for
-; the '0'..'9' range test.
+; the shared return_12 exit. Otherwise falls through to is_dec_digit_only for the
+; '0'..'9' range test.
 ;
-; Called by cmd_iam (&8D91), cmd_ps (&B3AC), and cmd_pollps (&B581) when parsing
-; station addresses.
+; Called by cmd_iam, cmd_ps, and cmd_pollps when parsing station addresses.
 ;
 ; On Entry: A: character to test
 ;
@@ -5499,7 +5478,7 @@ ps_template_base = load_transfer_params+1
 ; 1. CMP #&3A sets carry if A >= ':' (above digits).
 ; 2. CMP #&30 sets carry if A >= '0'.
 ;
-; The net effect: carry set only for '0'..'9'. Called by parse_addr_arg (&92B2).
+; The net effect: carry set only for '0'..'9'. Called by parse_addr_arg.
 ;
 ; On Entry: A: character to test
 ;
@@ -5522,9 +5501,9 @@ ps_template_base = load_transfer_params+1
 ; Read and encode directory entry access byte
 ;
 ; Loads the access byte from offset &0E of the directory entry via (fs_options),Y,
-; masks to 6 bits (AND #&3F), then sets X=4 and branches to begin_prot_encode (&93B9)
-; to map through prot_bit_encode_table (&93C8). Called by check_and_setup_txcb (&9D87)
-; for owner and public access.
+; masks to 6 bits (AND #&3F), then sets X=4 and branches to begin_prot_encode to map
+; through prot_bit_encode_table. Called by check_and_setup_txcb for owner and public
+; access.
 ;
 ; On Exit: A: encoded access flags X: &FF + bits-set (left in this state by
 ; get_prot_bits fall-through)
@@ -5540,9 +5519,9 @@ ps_template_base = load_transfer_params+1
 ; Encode protection bits via lookup table
 ;
 ; Masks A to 5 bits (AND #&1F), sets X=&FF to start at table index 0, then enters the
-; shared encoding loop at begin_prot_encode (&93B9). Shifts out each source bit and ORs
-; in the corresponding value from prot_bit_encode_table (&93C8). Called by
-; send_txcb_swap_addrs (&9C85) and check_and_setup_txcb (&9D87).
+; shared encoding loop at begin_prot_encode. Shifts out each source bit and ORs in the
+; corresponding value from prot_bit_encode_table. Called by send_txcb_swap_addrs and
+; check_and_setup_txcb.
 ;
 ; On Entry: A: raw protection bits (low 5 used)
 ;
@@ -5569,11 +5548,11 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Bit-permutation table for protection / access encoding
 ;
-; 11-byte lookup table used by get_prot_bits (&93B5) and get_access_bits (&93AB) to map
-; source bits (the raw 5-bit or 6-bit access mask read from the directory entry) into
-; the FS protocol's 8-bit protection-flag layout. The encoder loop at begin_prot_encode
-; (&93B9) shifts each source bit out and ORs in the corresponding entry from this
-; table, with X indexing backwards through the bits.
+; 11-byte lookup table used by get_prot_bits and get_access_bits to map source bits
+; (the raw 5-bit or 6-bit access mask read from the directory entry) into the FS
+; protocol's 8-bit protection-flag layout. The encoder loop at begin_prot_encode shifts
+; each source bit out and ORs in the corresponding entry from this table, with X
+; indexing backwards through the bits.
 ; &93c8 referenced 1 time by &93c2
 .prot_bit_encode_table
     equb &50                                                          ; 93c8: 50          P
@@ -5592,8 +5571,8 @@ ps_template_base = load_transfer_params+1
 ; Set OS text pointer then transfer parameters
 ;
 ; Stores X/Y into the MOS text pointer at &F2/&F3, then falls through to
-; set_xfer_params (&93D7) and set_options_ptr (&93DD) to configure the full FS transfer
-; context. Called by byte_to_2bit_index.
+; set_xfer_params and set_options_ptr to configure the full FS transfer context. Called
+; by byte_to_2bit_index.
 ;
 ; On Entry: X: text pointer low byte Y: text pointer high byte
 ; &93d3 referenced 2 times by &a42f, &b0fe
@@ -5605,9 +5584,9 @@ ps_template_base = load_transfer_params+1
 ;
 ; Stores A into fs_last_byte_flag (&BD) as the transfer byte count, and X/Y into
 ; fs_crc_lo/hi (&BE/&BF) as the source-data pointer. Falls through to set_options_ptr
-; (&93DD) to complete the transfer-context setup.
+; to complete the transfer-context setup.
 ;
-; Called by 5 sites across cmd_ex (&B103), format_filename_field, and gsread_to_buf.
+; Called by 5 sites across cmd_ex, format_filename_field, and gsread_to_buf.
 ;
 ; On Entry: A: transfer byte count X: source pointer low Y: source pointer high
 ; &93d7 referenced 6 times by &8da6, &8e4b, &9c22, &a032, &a14f, &b118
@@ -5619,8 +5598,8 @@ ps_template_base = load_transfer_params+1
 ; Set FS options pointer and clear escape flag
 ;
 ; Stores X/Y into fs_options/fs_block_offset (&BB/&BC) as the options-block pointer.
-; Then enters clear_escapable (&93E1) which uses PHP/LSR/PLP to clear bit 0 of the
-; escape flag at &97 without disturbing processor flags.
+; Then enters clear_escapable which uses PHP/LSR/PLP to clear bit 0 of the escape flag
+; at &97 without disturbing processor flags.
 ;
 ; Called by format_filename_field and send_and_receive.
 ;
@@ -5685,8 +5664,8 @@ ps_template_base = load_transfer_params+1
 ;
 ; Saves registers on the stack, recovers the original A from the stack via TSX/LDA
 ; &0102,X, then calls attr_to_chan_index to find the channel slot. ORAs bit 6 (&40)
-; into the channel status byte at hazel_fcb_status (&C260)+X. Preserves A, X, and
-; processor flags via PHP/PHA/PLA/PLP.
+; into the channel status byte at hazel_fcb_status+X. Preserves A, X, and processor
+; flags via PHP/PHA/PLA/PLP.
 ;
 ; Called by format_filename_field and adjust_fsopts_4bytes.
 ;
@@ -5707,10 +5686,10 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Clear connection-active flag in channel table
 ;
-; Mirror of set_conn_active (&93F7) but ANDs the channel status byte with &BF (bit-6
-; clear mask) instead of ORAing. Uses the same register-preservation pattern:
-; PHP/PHA/TSX to recover A, then attr_to_chan_index to find the slot. Shares the
-; done_conn_flag exit with set_conn_active (&93F7).
+; Mirror of set_conn_active but ANDs the channel status byte with &BF (bit-6 clear
+; mask) instead of ORAing. Uses the same register-preservation pattern: PHP/PHA/TSX to
+; recover A, then attr_to_chan_index to find the slot. Shares the done_conn_flag exit
+; with set_conn_active.
 ;
 ; On Entry: A: channel attribute byte
 ; &940d referenced 2 times by &9f96, &a1a7
@@ -5736,10 +5715,10 @@ ps_template_base = load_transfer_params+1
 ; Shared *Access / *Delete / *Info / *Lib command handler
 ;
 ; Copies the command name to the TX buffer, parses a quoted filename argument via
-; parse_quoted_arg (&9483), and checks the access prefix. Validates the filename does
-; not start with '&', then falls through to read_filename_char (&944E) to copy
-; remaining characters and send the request. Raises Bad file name (&9437) if a bare CR
-; is found where a filename was expected.
+; parse_quoted_arg, and checks the access prefix. Validates the filename does not start
+; with '&', then falls through to read_filename_char to copy remaining characters and
+; send the request. Raises Bad file name if a bare CR is found where a filename was
+; expected.
 ;
 ; On Entry: Y: command line offset in text pointer X: byte offset within cmd_table_fs
 ; identifying which of the four shared commands was matched (Access, Delete, Info, or
@@ -5758,8 +5737,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Loads error code &CC and tail-calls error_bad_inline with the inline string 'file
 ; name' – error_bad_inline prepends 'Bad ' to produce the final 'Bad file name'
-; message. Used by check_not_ampersand (&9446) and other filename validators. Never
-; returns.
+; message. Used by check_not_ampersand and other filename validators. Never returns.
 ; &9437 referenced 3 times by &944b, &953e, &b279
 .error_bad_filename
     lda #&cc                                                          ; 9437: a9 cc       ..             ; Error number &CC
@@ -5770,12 +5748,11 @@ ps_template_base = load_transfer_params+1
 ; Reject '&' as filename character
 ;
 ; Loads the first character from the parse buffer at &0E30 and compares with '&' (&26).
-; Branches to error_bad_filename (&9437) if matched, otherwise returns.
+; Branches to error_bad_filename if matched, otherwise returns.
 ;
-; Also contains read_filename_char (&944E) which loops reading characters from the
-; command line into the TX buffer at hazel_txcb_data (&C105), calling
-; strip_token_prefix on each byte and terminating on CR. Used by cmd_fs_operation
-; (&9425) and cmd_rename (&94C5).
+; Also contains read_filename_char which loops reading characters from the command line
+; into the TX buffer at hazel_txcb_data (&C105), calling strip_token_prefix on each
+; byte and terminating on CR. Used by cmd_fs_operation and cmd_rename.
 ;
 ; On Exit: A: first byte of parse buffer (preserved unchanged on the non-error path)
 ; &9446 referenced 2 times by &9430, &944e
@@ -5788,16 +5765,16 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Loop reading filename chars into TX buffer
 ;
-; Per-character loop body of the filename-copy logic in check_not_ampersand (&9446):
+; Per-character loop body of the filename-copy logic in check_not_ampersand:
 ;
-; 1. JSR to check_not_ampersand (&9446) to reject '&'.
-; 2. Store the byte at hazel_txcb_data (&C105)+X (TX buffer area).
+; 1. JSR to check_not_ampersand to reject '&'.
+; 2. Store the byte at hazel_txcb_data+X (TX buffer area).
 ; 3. Increment X.
-; 4. Branch to send_fs_request (&945E) on CR, or strip a BASIC token prefix via
+; 4. Branch to send_fs_request on CR, or strip a BASIC token prefix via
 ;    strip_token_prefix and re-enter the loop.
 ;
-; Three callers: the loop's own BRA at &945C, plus &9435 (cmd_rename (&94C5)'s
-; first-arg copy) and &950F (cmd_fs_operation (&9425)'s filename pickup).
+; Three callers: the loop's own BRA at &945C, plus &9435 (cmd_rename's first-arg copy)
+; and &950F (cmd_fs_operation's filename pickup).
 ;
 ; On Entry: A: current character to copy X: TX-buffer write index
 ;
@@ -5815,8 +5792,8 @@ ps_template_base = load_transfer_params+1
 ; Send FS command with no extra dispatch offset
 ;
 ; Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps to
-; send_cmd_and_dispatch (&8E3C). Two callers: read_filename_char (&944E)'s BEQ on CR
-; (&9457) and the *RUN argument-handling tail at &9537.
+; send_cmd_and_dispatch. Two callers: read_filename_char's BEQ on CR (&9457) and the
+; *RUN argument-handling tail at &9537.
 ; &945e referenced 2 times by &9457, &9537
 .send_fs_request
     ldy #0                                                            ; 945e: a0 00       ..             ; Y=0: no extra dispatch offset
@@ -5921,8 +5898,8 @@ ps_template_base = load_transfer_params+1
 ; Parses two space-separated filenames from the command line, each with its own access
 ; prefix. Sets the owner-only access mask before parsing each name. Validates that both
 ; names resolve to the same file server by comparing the FS-options word – raises 'Bad
-; rename' if they differ. Falls through to read_filename_char (&944E) to copy the
-; second filename into the TX buffer and send the request.
+; rename' if they differ. Falls through to read_filename_char to copy the second
+; filename into the TX buffer and send the request.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_rename
@@ -6339,21 +6316,21 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Set up open receive for FS reply on port &90
 ;
-; Loads A=&90 (the FS command/reply port) and falls through to init_txcb_port (&973F),
-; which creates an open receive control block: the template sets txcb_ctrl to &80, then
-; DEC makes it &7F (bit 7 clear = awaiting reply). The NMI RX handler sets bit 7 when a
-; reply arrives on this port, which wait_net_tx_ack (&98BE) polls for.
+; Loads A=&90 (the FS command/reply port) and falls through to init_txcb_port, which
+; creates an open receive control block: the template sets txcb_ctrl to &80, then DEC
+; makes it &7F (bit 7 clear = awaiting reply). The NMI RX handler sets bit 7 when a
+; reply arrives on this port, which wait_net_tx_ack polls for.
 ; &973d referenced 1 time by &97ce
 .init_txcb_bye
     lda #&90                                                          ; 973d: a9 90       ..             ; A=&90: bye command port
 ; ***************************************************************************************
 ; Create open receive control block on specified port
 ;
-; Calls init_txcb (&974B) to copy the 12-byte template into the TXCB workspace at
-; &00C0, then stores A as the port (txcb_port at &C1) and sets txcb_start to 3. The DEC
-; txcb_ctrl changes the control byte from &80 to &7F (bit 7 clear), creating an open
-; receive: the NMI RX handler will set bit 7 when a reply frame arrives on this port,
-; which wait_net_tx_ack (&98BE) polls for.
+; Calls init_txcb to copy the 12-byte template into the TXCB workspace at &00C0, then
+; stores A as the port (txcb_port at &C1) and sets txcb_start to 3. The DEC txcb_ctrl
+; changes the control byte from &80 to &7F (bit 7 clear), creating an open receive: the
+; NMI RX handler will set bit 7 when a reply frame arrives on this port, which
+; wait_net_tx_ack polls for.
 ;
 ; On Entry: A: port number
 ; &973f referenced 1 time by &9dcd
@@ -6372,8 +6349,8 @@ help_topic_template = dispatch_help_command+1
 ; the first two bytes (Y=0,1), also copies the destination station/network from &0E00
 ; into txcb_dest (&C2). Preserves A via PHA/PLA.
 ;
-; Called by 4 sites including cmd_pass (&8DD5), init_txcb_port (&973F), prep_send_tx_cb
-; (&97B7), and send_wipe_request.
+; Called by 4 sites including cmd_pass, init_txcb_port, prep_send_tx_cb, and
+; send_wipe_request.
 ;
 ; On Exit: A: preserved X, Y: clobbered (Y left at &FF on loop exit)
 ; &974b referenced 5 times by &8e15, &973f, &97bd, &ac55, &bccb
@@ -6398,20 +6375,20 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; TXCB initialisation template (12 bytes)
 ;
-; Copied by init_txcb (&974B) into the TXCB workspace at &00C0. For offsets 0-1 the
-; destination station bytes are also copied from the FS-options destination pair into
-; txcb_dest. The &FF byte at offset 6 (always_set_v_byte (&9769)) serves double duty:
-; it is part of this template AND a BIT $abs target used by 22 callers to set V and N
-; flags without clobbering A.
+; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1 the destination
+; station bytes are also copied from the FS-options destination pair into txcb_dest.
+; The &FF byte at offset 6 (always_set_v_byte) serves double duty: it is part of this
+; template AND a BIT $abs target used by 22 callers to set V and N flags without
+; clobbering A.
 ; TXCB initialisation template (12 bytes)
 ;
-; Copied by init_txcb (&974B) into the TXCB workspace at &00C0. For offsets 0-1, the
+; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1, the
 ; destination station bytes are also copied from the FS-options destination pair into
 ; txcb_dest.
 ;
-; The &FF byte at offset 6 (always_set_v_byte (&9769) in this build) serves double
-; duty: it is part of this template AND a BIT target used by 22 callers to set the V
-; and N flags without clobbering A.
+; The &FF byte at offset 6 (always_set_v_byte in this build) serves double duty: it is
+; part of this template AND a BIT target used by 22 callers to set the V and N flags
+; without clobbering A.
 ; &9763 referenced 1 time by &974e
 .txcb_init_template
     equb &80                                                          ; 9763: 80          .              ; Offset 0: txcb_ctrl = &80 (transmit)
@@ -6479,8 +6456,8 @@ help_topic_template = dispatch_help_command+1
 ; Save FS state and send command to file server
 ;
 ; Copies station address and function code (Y) to the TX buffer, builds the TXCB via
-; init_txcb (&974B), sends the packet through prep_send_tx_cb (&97B7), and waits for
-; the reply via recv_and_process_reply (&97CD). V is clear for standard mode.
+; init_txcb, sends the packet through prep_send_tx_cb, and waits for the reply via
+; recv_and_process_reply. V is clear for standard mode.
 ;
 ; On Entry: Y: FS function code (becomes TX[1] = txcb_func) X: TX buffer payload length
 ; (prep_send_tx_cb uses X+5 as txcb_end)
@@ -6492,9 +6469,9 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Save and send TXCB with V flag set
 ;
-; Variant of save_net_tx_cb (&978A) for callers that have already set V. Copies the FS
-; station address from &0E02 to &0F02, then falls through to txcb_copy_carry_clr which
-; clears carry and enters the common TXCB copy, send, and reply path.
+; Variant of save_net_tx_cb for callers that have already set V. Copies the FS station
+; address from &0E02 to &0F02, then falls through to txcb_copy_carry_clr which clears
+; carry and enters the common TXCB copy, send, and reply path.
 ;
 ; Called by check_and_setup_txcb, format_filename_field, and cmd_remove.
 ;
@@ -6540,7 +6517,7 @@ help_topic_template = dispatch_help_command+1
 ; Full send/receive cycle comprising two separate Econet transactions:
 ;
 ; 1. Save flags, set reply port &90.
-; 2. Call init_txcb (&974B), compute txcb_end = X + 5.
+; 2. Call init_txcb, compute txcb_end = X + 5.
 ; 3. Dispatch on carry:
 ;
 ;    | C     | Path                                                                                                          |
@@ -6548,7 +6525,7 @@ help_topic_template = dispatch_help_command+1
 ;    | set   | handle_disconnect                                                                                             |
 ;    | clear | init_tx_ptr_and_send for a client-initiated four-way handshake (scout, ACK, data, ACK) to deliver the command |
 ; 4. After TX completes, the ADLC returns to idle RX-listen.
-; 5. Falls through to recv_and_process_reply (&97CD) which waits for the server to
+; 5. Falls through to recv_and_process_reply which waits for the server to
 ;    independently initiate a new four-way handshake with the reply on port &90. There
 ;    is no reply data in the original ACK payload.
 ;
@@ -6575,11 +6552,10 @@ help_topic_template = dispatch_help_command+1
 ; Receive FS reply and dispatch on status codes
 ;
 ; Waits for a server-initiated reply transaction. After the command TX completes (a
-; separate client-initiated four-way handshake), calls init_txcb_bye (&973D) to set up
-; an open receive on port &90 (txcb_ctrl = &7F). The server independently initiates a
-; new four-way handshake to deliver the reply; the NMI RX handler matches the incoming
-; scout against this RXCB and sets bit 7 on completion. wait_net_tx_ack (&98BE) polls
-; for this.
+; separate client-initiated four-way handshake), calls init_txcb_bye to set up an open
+; receive on port &90 (txcb_ctrl = &7F). The server independently initiates a new
+; four-way handshake to deliver the reply; the NMI RX handler matches the incoming
+; scout against this RXCB and sets bit 7 on completion. wait_net_tx_ack polls for this.
 ;
 ; Iterates over reply bytes:
 ;
@@ -6589,8 +6565,8 @@ help_topic_template = dispatch_help_command+1
 ; | V set             | adjust by +&2B                 |
 ; | non-zero, V clear | dispatch to store_reply_status |
 ;
-; Handles disconnect requests (C set from prep_send_tx_cb (&97B7)) and 'Data Lost'
-; warnings when channel status bits indicate pending writes were interrupted.
+; Handles disconnect requests (C set from prep_send_tx_cb) and 'Data Lost' warnings
+; when channel status bits indicate pending writes were interrupted.
 ;
 ; On Entry: C FLAG: set = disconnect mode (caller sent a disconnect scout; handle the
 ; server's matching reply)
@@ -6692,9 +6668,9 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Language reply 1: remote-boot init / continue
 ;
-; Reads the reply byte at (net_rx_ptr),0. If zero, branches to init_remote_session
-; (&9859) to (re)initialise the remote session. Otherwise falls through to
-; done_commit_state which finalises the boot state byte for the active session.
+; Reads the reply byte at (net_rx_ptr),0. If zero, branches to init_remote_session to
+; (re)initialise the remote session. Otherwise falls through to done_commit_state which
+; finalises the boot state byte for the active session.
 .lang_1_remote_boot
     ldy #0                                                            ; 9850: a0 00       ..             ; Y=0: status byte offset
     lda (net_rx_ptr),y                                                ; 9852: b1 9c       ..             ; Read RX status byte
@@ -6727,10 +6703,10 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Language reply 3: raise 'Remoted' error at &0100
 ;
-; Calls commit_state_byte (&B05F) to record the new state, loads A=0 and tail-calls
-; error_inline_log (&99C0) with the inline string Remoted followed by &07 (BEL). Used
-; by remote-language replies that need to abort the current operation with a terminal
-; beep + error. Never returns.
+; Calls commit_state_byte to record the new state, loads A=0 and tail-calls
+; error_inline_log with the inline string Remoted followed by &07 (BEL). Used by
+; remote-language replies that need to abort the current operation with a terminal beep
+; + error. Never returns.
 .lang_3_execute_at_0100
     jsr commit_state_byte                                             ; 987e: 20 5f b0     _.            ; Commit the language-reply state byte
     lda #0                                                            ; 9881: a9 00       ..             ; A=0: 'Bad' error code
@@ -6776,9 +6752,9 @@ help_topic_template = dispatch_help_command+1
 ; Language reply 4: validate remote session and apply
 ;
 ; Reads the first reply byte at (net_rx_ptr),0. If zero, branches to
-; init_remote_session (&9859) to set up a fresh remote session. Otherwise reads the
-; validation byte at offset &80 and the local stored value at workspace offset &0E; on
-; mismatch, the remote session is rejected.
+; init_remote_session to set up a fresh remote session. Otherwise reads the validation
+; byte at offset &80 and the local stored value at workspace offset &0E; on mismatch,
+; the remote session is rejected.
 .lang_4_remote_validated
     ldy #0                                                            ; 989f: a0 00       ..             ; Y=0: status byte offset
     lda (net_rx_ptr),y                                                ; 98a1: b1 9c       ..             ; Read RX status byte
@@ -6792,8 +6768,8 @@ help_topic_template = dispatch_help_command+1
 ; Language reply 0: insert remote keypress
 ;
 ; Reads the keycode from the reply at (net_rx_ptr),&82 into Y, sets X=0, calls
-; commit_state_byte (&B05F) to record the state change, and issues OSBYTE &99 (insert
-; into keyboard buffer) to deliver the keypress to the local machine.
+; commit_state_byte to record the state change, and issues OSBYTE &99 (insert into
+; keyboard buffer) to deliver the keypress to the local machine.
 ;
 ; On Entry: A: ignored (entry from reply dispatch)
 .lang_0_insert_remote_key
@@ -6809,16 +6785,16 @@ help_topic_template = dispatch_help_command+1
 ; Wait for reply on open receive with timeout
 ;
 ; Despite the name, this does not wait for a TX acknowledgment. It polls an open
-; receive control block (bit 7 of txcb_ctrl, set to &7F by init_txcb_port (&973F))
-; until the NMI RX handler delivers a reply frame and sets bit 7.
+; receive control block (bit 7 of txcb_ctrl, set to &7F by init_txcb_port) until the
+; NMI RX handler delivers a reply frame and sets bit 7.
 ;
 ; Uses a three-level nested polling loop:
 ;
-; | Loop   | Source                  | Default  | Iterations |
-; |--------|-------------------------|----------|------------|
-; | inner  | wraps from 0            | –        | 256        |
-; | middle | wraps from 0            | –        | 256        |
-; | outer  | rx_wait_timeout (&0D6E) | &28 (40) | 40         |
+; | Loop   | Source          | Default  | Iterations |
+; |--------|-----------------|----------|------------|
+; | inner  | wraps from 0    | –        | 256        |
+; | middle | wraps from 0    | –        | 256        |
+; | outer  | rx_wait_timeout | &28 (40) | 40         |
 ;
 ; Total: 256 × 256 × 40 = 2,621,440 poll iterations. At ~17 cycles per poll on a 2 MHz
 ; 6502, the default gives ~22 seconds.
@@ -6873,7 +6849,7 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Conditionally store error code to workspace
 ;
-; Tests bit 7 of fs_flags (&0D6C) (FS-selected flag):
+; Tests bit 7 of fs_flags (FS-selected flag):
 ;
 ; | Bit 7 | Action                             |
 ; |-------|------------------------------------|
@@ -6940,9 +6916,9 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Load reply byte and classify error
 ;
-; Single-byte prologue to classify_reply_error (&993D): LDA (net_tx_ptr,X) reads the FS
-; reply status byte, then falls through. Single caller (&9B6C, after a
-; recv-and-classify path that already has X set).
+; Single-byte prologue to classify_reply_error: LDA (net_tx_ptr,X) reads the FS reply
+; status byte, then falls through. Single caller (&9B6C, after a recv-and-classify path
+; that already has X set).
 ;
 ; On Entry: X: indirect index into net_tx_ptr
 ; &993b referenced 1 time by &9b6c
@@ -6960,8 +6936,7 @@ help_topic_template = dispatch_help_command+1
 ; | 2 (station-related) | multi-line build_no_reply_error |
 ; | other               | build_simple_error              |
 ;
-; Two callers: raise_escape_error (&9895) (with A=6) and the FS reply dispatch at
-; &A0BD.
+; Two callers: raise_escape_error (with A=6) and the FS reply dispatch at &A0BD.
 ;
 ; On Entry: A: error code byte
 ; &993d referenced 2 times by &989c, &a0bd
@@ -7119,7 +7094,7 @@ bad_prefix_table = bad_str_anchor+1
 ; | zero, saved error = &DE (FS error code) | branch to append_error_number to add the FS-specific code to the error text |
 ; | zero, saved error other                 | tail-jump to &0100 (BRK error block) to trigger BRK and let MOS dispatch    |
 ;
-; Three JSR sites (&984D, &992D, &999E) plus the &BD02 JMP from cmd_dump (&BD41).
+; Three JSR sites (&984D, &992D, &999E) plus the &BD02 JMP from cmd_dump.
 ; &99df referenced 4 times by &984d, &992d, &999e, &bd02
 .check_net_error_code
     jsr read_rx_attribute                                             ; 99df: 20 1b bd     ..            ; Read receive attribute byte
@@ -7377,10 +7352,10 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; Transmit Econet packet with retry
 ;
-; Two-phase transmit with retry. Loads retry count from tx_retry_count (&0D6D) (default
-; &FF = 255; 0 means retry forever). Each failed attempt waits in a nested delay loop:
-; X = TXCB control byte (typically &80), Y = &60; total ~61 ms at 2 MHz (ROM-only
-; fetches, unaffected by video mode).
+; Two-phase transmit with retry. Loads retry count from tx_retry_count (default &FF =
+; 255; 0 means retry forever). Each failed attempt waits in a nested delay loop: X =
+; TXCB control byte (typically &80), Y = &60; total ~61 ms at 2 MHz (ROM-only fetches,
+; unaffected by video mode).
 ;
 ; | Phase | Activation                   | Behaviour                                                              |
 ; |-------|------------------------------|------------------------------------------------------------------------|
@@ -7388,8 +7363,8 @@ bad_prefix_table = bad_str_anchor+1
 ; | 2     | only when tx_retry_count = 0 | sets need_release_tube to enable escape checking, retries indefinitely |
 ;
 ; With default &FF, phase 2 is never entered. Failures go to load_reply_and_classify
-; (&993B) ('Line jammed', 'Net error', etc.), distinct from the 'No reply' timeout in
-; wait_net_tx_ack (&98BE).
+; ('Line jammed', 'Net error', etc.), distinct from the 'No reply' timeout in
+; wait_net_tx_ack.
 ;
 ; On Exit: A: TX result (0 = success; non-zero = error class consumed by the BRK path)
 ; &9b2c referenced 6 times by &acf9, &ad56, &af48, &afd3, &b419, &b5f8
@@ -7461,16 +7436,14 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Overlaid onto the TX control block by setup_pass_txbuf for pass-through operations.
 ; Offsets marked &FD are skipped, preserving the existing destination station and
-; network. Buffer addresses point into the NMI workspace area at rx_src_stn (&0D3D)
-; onwards. Original TX buffer values are pushed on the stack and restored after
-; transmission.
+; network. Buffer addresses point into the NMI workspace area at rx_src_stn onwards.
+; Original TX buffer values are pushed on the stack and restored after transmission.
 ; Pass-through TX buffer template (12 bytes)
 ;
 ; Overlaid onto the TX control block by setup_pass_txbuf for pass-through operations.
 ; Offsets marked &FD are skipped, preserving the existing destination station and
-; network. Buffer addresses point into the NMI workspace area at rx_src_stn (&0D3D)
-; onwards. Original TX buffer values are pushed on the stack and restored after
-; transmission.
+; network. Buffer addresses point into the NMI workspace area at rx_src_stn onwards.
+; Original TX buffer values are pushed on the stack and restored after transmission.
 ; &9b75 referenced 2 times by &9b8b, &9be5
 .pass_txbuf_init_table
     equb &88                                                          ; 9b75: 88          .              ; Offset 0: ctrl = &88 (immediate TX)
@@ -7547,14 +7520,14 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; Wait for TX ready, then start new transmission
 ;
-; 1. Polls tx_complete_flag (&0D60) via ASL (testing bit 7) until set, indicating any
-;    previous TX operation has completed and the ADLC is back in idle RX-listen mode.
+; 1. Polls tx_complete_flag via ASL (testing bit 7) until set, indicating any previous
+;    TX operation has completed and the ADLC is back in idle RX-listen mode.
 ; 2. Copies the TX control-block pointer from net_tx_ptr to nmi_tx_block.
-; 3. Calls tx_begin (&8589), which performs a complete transmission from scratch
-;    (copies destination from TXCB to scout buffer, polls for INACTIVE, configures ADLC
-;    CR1=&44 RX_RESET|TIE, CR2=&E7 RTS|CLR, runs the full four-way handshake via NMI).
-; 4. After tx_begin (&8589) returns, polls the TXCB first byte until bit 7 clears (NMI
-;    handler stores result there).
+; 3. Calls tx_begin, which performs a complete transmission from scratch (copies
+;    destination from TXCB to scout buffer, polls for INACTIVE, configures ADLC CR1=&44
+;    RX_RESET|TIE, CR2=&E7 RTS|CLR, runs the full four-way handshake via NMI).
+; 4. After tx_begin returns, polls the TXCB first byte until bit 7 clears (NMI handler
+;    stores result there).
 ;
 ; Result in A:
 ;
@@ -7681,11 +7654,11 @@ bad_prefix_table = bad_str_anchor+1
 ; FILEV vector handler: OSFILE
 ;
 ; Reached via the FILEV vector at &0212. Sets up transfer parameters via
-; set_xfer_params (&93D7), loads the OS text pointer and parses the filename via
-; load_text_ptr_and_parse (&9BF5), mask_owner_access (&B2CF) clears the FS-selection
-; bits, and parse_access_prefix (&B22F) records any access-byte prefix. Routes by
-; fs_last_byte_flag bit: positive (read / display) goes to check_display_type; negative
-; (write / save) falls into the create-new-file path.
+; set_xfer_params, loads the OS text pointer and parses the filename via
+; load_text_ptr_and_parse, mask_owner_access clears the FS-selection bits, and
+; parse_access_prefix records any access-byte prefix. Routes by fs_last_byte_flag bit:
+; positive (read / display) goes to check_display_type; negative (write / save) falls
+; into the create-new-file path.
 ;
 ; On Entry: A: OSFILE function code X, Y: control-block pointer (low, high)
 .filev_handler
@@ -7931,7 +7904,7 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Outputs X+1 bytes from (fs_options) starting at offset Y, decrementing Y for each
 ; byte (big-endian display order). Each byte is printed as two hex digits via
-; print_hex_byte (&9236). Finishes with a trailing space via OSASCI.
+; print_hex_byte. Finishes with a trailing space via OSASCI.
 ;
 ; The default entry with X=4 prints 5 bytes (a full 32-bit address plus extent).
 ;
@@ -8061,8 +8034,7 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; Set up data-transfer TXCB and dispatch reply
 ;
-; Compares the 5-byte handle via cmp_5byte_handle (&93E6); if unchanged, returns.
-; Otherwise:
+; Compares the 5-byte handle via cmp_5byte_handle; if unchanged, returns. Otherwise:
 ;
 ; 1. Computes start / end addresses with overflow clamping.
 ; 2. Sets the port and control byte.
@@ -8131,13 +8103,13 @@ bad_prefix_table = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSWORD &13 sub-operation triage (1-7)
 ;
-; Stores the sub-operation code in hazel_txcb_data (&C105) and triages by value:
+; Stores the sub-operation code in hazel_txcb_data and triages by value:
 ;
-; | Value | Target                                                     |
-; |-------|------------------------------------------------------------|
-; | 0..6  | dispatch_ops_1_to_6                                        |
-; | 7     | setup_dir_display (&9CB5) (*INFO expansion)                |
-; | > 7   | skip_if_error (routes through finalise_and_return (&9FB6)) |
+; | Value | Target                                             |
+; |-------|----------------------------------------------------|
+; | 0..6  | dispatch_ops_1_to_6                                |
+; | 7     | setup_dir_display (*INFO expansion)                |
+; | > 7   | skip_if_error (routes through finalise_and_return) |
 ;
 ; Single caller (&9CB2 in the OSWORD &13 handler entry).
 ;
@@ -8818,9 +8790,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Update both address fields in FS options
 ;
-; Calls add_workspace_to_fsopts (&A133) for offset 9 (the high address / exec address
-; field), then falls through to update_addr_from_offset1 (&A131) to process offset 1
-; (the low address / load address field).
+; Calls add_workspace_to_fsopts for offset 9 (the high address / exec address field),
+; then falls through to update_addr_from_offset1 to process offset 1 (the low address /
+; load address field).
 ;
 ; On Exit: A, X, Y, C FLAG: clobbered (4-byte arithmetic loop)
 ; &a12c referenced 1 time by &a277
@@ -8897,9 +8869,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; GBPBV vector handler: OSGBPB
 ;
-; Reached via the GBPBV vector at vec_gbpbv (&021C) after the fs_vector_table (&8EA7)
-; has copied the entry. Verifies the FS workspace checksum, sets up transfer
-; parameters, masks the access prefix, and dispatches the OSGBPB sub-operation in A:
+; Reached via the GBPBV vector at vec_gbpbv after the fs_vector_table has copied the
+; entry. Verifies the FS workspace checksum, sets up transfer parameters, masks the
+; access prefix, and dispatches the OSGBPB sub-operation in A:
 ;
 ; | A | Operation              |
 ; |---|------------------------|
@@ -9149,10 +9121,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; Send OSBPUT data block to file server
 ;
-; Sets Y=&15 (TX buffer size for OSBPUT data) and calls save_net_tx_cb (&978A) to
-; dispatch the TX. Then copies the display flag from hazel_fs_flags to
-; hazel_txcb_byte_16 (TX header continuation). Single caller in the
-; OSBPUT-buffered-write path.
+; Sets Y=&15 (TX buffer size for OSBPUT data) and calls save_net_tx_cb to dispatch the
+; TX. Then copies the display flag from hazel_fs_flags to hazel_txcb_byte_16 (TX header
+; continuation). Single caller in the OSBPUT-buffered-write path.
 ; &a28a referenced 1 time by &a2ba
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..             ; Y=&15: TX buffer size for OSBPUT data
@@ -9401,9 +9372,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Parse station address from *FS/*PS arguments
 ;
 ; Reads a station address in net.station format from the command line, with the network
-; number optional (defaults to local network). Calls init_bridge_poll (&AC4C) to ensure
-; the bridge routing table is populated, then validates the parsed address against
-; known stations. The parsed-station value is stored in fs_work_7 (&B7).
+; number optional (defaults to local network). Calls init_bridge_poll to ensure the
+; bridge routing table is populated, then validates the parsed address against known
+; stations. The parsed-station value is stored in fs_work_7 (&B7).
 ;
 ; On Entry: Y: current command-line offset
 ;
@@ -9493,7 +9464,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; FS reply: read handle byte from workspace table
 ;
-; Calls get_pb_ptr_as_index (&A3E7) to convert the OSWORD parameter-block pointer to a
+; Calls get_pb_ptr_as_index to convert the OSWORD parameter-block pointer to a
 ; workspace-table index. On out-of-range (C=1), returns zero. Otherwise reads the
 ; handle byte from nfs_workspace,Y; if the slot is ? (uninitialised marker), falls
 ; through to the zero-return path; otherwise stores the real handle into PB[0].
@@ -9514,9 +9485,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; FS reply: close handle entry
 ;
-; Calls get_pb_ptr_as_index (&A3E7) to look up the workspace slot. On out-of-range,
-; marks the workspace as uninitialised. Otherwise rotates fs_flags bit 0 into carry
-; (state save), reads PB[0] (the handle to close), and proceeds with the close path.
+; Calls get_pb_ptr_as_index to look up the workspace slot. On out-of-range, marks the
+; workspace as uninitialised. Otherwise rotates fs_flags bit 0 into carry (state save),
+; reads PB[0] (the handle to close), and proceeds with the close path.
 .net_3_close_handle
     jsr get_pb_ptr_as_index                                           ; a415: 20 e7 a3     ..            ; Convert PB pointer to workspace table offset
     bcc mark_ws_uninit                                                ; a418: 90 0a       ..             ; Out of range: mark as uninitialised
@@ -9724,11 +9695,11 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; FSCV reason 2: handle *RUN
 ;
-; Saves the OS text pointer via save_ptr_to_os_text (&B373), calls mask_owner_access
-; (&B2CF) to clear the FS-selection bit, ORs in bit 1 (the *RUN-in-progress flag), and
-; stores back to fs_lib_flags (hazel_fs_lib_flags). Falls through to the run-handling
-; chain that opens the file and starts execution. Reached via the FSCV vector dispatch
-; with reason code 2.
+; Saves the OS text pointer via save_ptr_to_os_text, calls mask_owner_access to clear
+; the FS-selection bit, ORs in bit 1 (the *RUN-in-progress flag), and stores back to
+; fs_lib_flags (hazel_fs_lib_flags). Falls through to the run-handling chain that opens
+; the file and starts execution. Reached via the FSCV vector dispatch with reason code
+; 2.
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
     jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.            ; Save text pointer (for GSREAD-driven parsing)
@@ -9984,9 +9955,8 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; FS reply handler: set library station
 ;
-; Two-instruction wrapper: JSR flip_set_station_boot (&A6A6) to record the new library
-; station, then JMP return_with_last_flag (&9FB4). Reached only via the FS reply
-; dispatch table.
+; Two-instruction wrapper: JSR flip_set_station_boot to record the new library station,
+; then JMP return_with_last_flag. Reached only via the FS reply dispatch table.
 .fsreply_5_set_lib
     jsr flip_set_station_boot                                         ; a63e: 20 a6 a6     ..            ; Set boot-station flag bit
     jmp return_with_last_flag                                         ; a641: 4c b4 9f    L..            ; JMP return_with_last_flag
@@ -10133,11 +10103,11 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; FS reply 1: copy boot handles + flag boot pending
 ;
-; Closes all network channels via close_all_net_chans (&B8F8), sets bit 6 of fs_flags
-; (TSB &0D6C, marking the boot-pending state), then loads the boot type from the FS
-; reply at hazel_txcb_result and stores it into both the current-boot-type slot
-; (hazel_fs_flags) and the FCB-flags table. Pushes the boot type for the fall-through
-; into fsreply_2_copy_handles which copies the per-handle table.
+; Closes all network channels via close_all_net_chans, sets bit 6 of fs_flags (TSB
+; &0D6C, marking the boot-pending state), then loads the boot type from the FS reply at
+; hazel_txcb_result and stores it into both the current-boot-type slot (hazel_fs_flags)
+; and the FCB-flags table. Pushes the boot type for the fall-through into
+; fsreply_2_copy_handles which copies the per-handle table.
 .fsreply_1_copy_handles_boot
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@             ; A=&40: protection-level marker
@@ -10150,9 +10120,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; FS reply 2: copy per-station handle table
 ;
 ; Iterates over the 16-entry station table, looking up each station by network and bit
-; number via find_station_bit2 (&A644) and find_station_bit3 (&A66F), then setting the
-; matching slot's boot configuration via flip_set_station_boot (&A6A6). Restores the
-; saved boot- type via PLP/PLA. Reached only via the FS reply dispatch table.
+; number via find_station_bit2 and find_station_bit3, then setting the matching slot's
+; boot configuration via flip_set_station_boot. Restores the saved boot- type via
+; PLP/PLA. Reached only via the FS reply dispatch table.
 ;
 ; On Entry: A: boot-type byte (saved on stack at entry)
 .fsreply_2_copy_handles
@@ -10238,11 +10208,10 @@ cmos_attr_table = store_carry_to_workspace+1
 ; ***************************************************************************************
 ; ANFS *command dispatch tables (5 concatenated sub-tables)
 ;
-; See the comment block immediately above the cmd_table_fs (&A76C) declaration in the
-; driver for the sub-table layout, walker contract, and flag-byte encoding. Each
-; entry's two-byte dispatch word stores target-1; PHA/PHA/RTS arrives at target.
-; Per-entry inline comments below name the command, syntax-template index, and dispatch
-; target.
+; See the comment block immediately above the cmd_table_fs declaration in the driver
+; for the sub-table layout, walker contract, and flag-byte encoding. Each entry's
+; two-byte dispatch word stores target-1; PHA/PHA/RTS arrives at target. Per-entry
+; inline comments below name the command, syntax-template index, and dispatch target.
 ; &a76c referenced 10 times by &8bd8, &8be7, &8bef, &8bfc, &9465, &946d, &a460, &a465, &a475, &a4ac
 .cmd_table_fs
 cmd_dispatch_lo_table = cmd_table_fs+1
@@ -10659,7 +10628,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; Reads net_rx_ptr_hi into ws_ptr_lo, sets Y=&7F and reads the status byte from the RX
 ; block, then Y=&80 to flag the packet as processed. The body proceeds to copy the
 ; packet payload from the RX buffer into the OSWORD parameter block via
-; copy_pb_byte_to_ws (&AA82).
+; copy_pb_byte_to_ws.
 ;
 ; On Entry: X, Y: OSWORD parameter block pointer (low, high)
 .osword_12_handler
@@ -10690,11 +10659,10 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 dispatch low-byte table (18 entries)
 ;
-; Read by osword_13_dispatch (&A99A) as LDA &A9A8,X. Paired with the high-byte half at
-; osword_13_dispatch_hi (&A9BA). Sub-codes 0..&11 cover read/set station, read/write
-; workspace pair, read/write protection, read/set handles, read RX flag/port/error,
-; read context, read/write CSD, read free buffers, read/write context 3, and bridge
-; query.
+; Read by osword_13_dispatch as LDA &A9A8,X. Paired with the high-byte half at
+; osword_13_dispatch_hi. Sub-codes 0..&11 cover read/set station, read/write workspace
+; pair, read/write protection, read/set handles, read RX flag/port/error, read context,
+; read/write CSD, read free buffers, read/write context 3, and bridge query.
 ; &a9a8 referenced 1 time by &a9a3
 .osword_13_dispatch_lo
     equb <(osword_13_read_station-1)                                  ; a9a8: cb          .              ; sub &00: osword_13_read_station (read FS station)
@@ -10718,8 +10686,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 dispatch high-byte table (18 entries)
 ;
-; Read by osword_13_dispatch (&A99A) as LDA &A9BA,X. The dispatcher pushes the hi byte
-; first then the lo, so RTS lands on target (the table stores target-1).
+; Read by osword_13_dispatch as LDA &A9BA,X. The dispatcher pushes the hi byte first
+; then the lo, so RTS lands on target (the table stores target-1).
 ; &a9ba referenced 1 time by &a99f
 .osword_13_dispatch_hi
     equb >(osword_13_read_station-1)                                  ; a9ba: a9          .              ; sub &00: osword_13_read_station; Store Y to workspace
@@ -10745,8 +10713,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; OSWORD &13 sub 0: read file server station
 ;
 ; Returns the current file server station and network numbers in PB[1..2]. If ANFS is
-; not active, ensure_fs_selected (&8B4D) auto-selects it (raising net checksum on
-; failure) before the body runs.
+; not active, ensure_fs_selected auto-selects it (raising net checksum on failure)
+; before the body runs.
 .osword_13_read_station
     jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Push on stack; Set TX ptr to workspace offset
 .read_station_bytes
@@ -10763,9 +10731,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; OSWORD &13 sub 1: set file server station
 ;
 ; Sets the file server station and network numbers from PB[1..2]. The prologue at &A9DA
-; calls ensure_fs_selected (&8B4D) to verify ANFS is active (auto-selecting it if not),
-; then the body at osword_13_set_station_body (&A9DD) processes all FCBs and scans the
-; 16-entry FCB table to reassign handles matching the new station.
+; calls ensure_fs_selected to verify ANFS is active (auto-selecting it if not), then
+; the body at osword_13_set_station_body processes all FCBs and scans the 16-entry FCB
+; table to reassign handles matching the new station.
 .osword_13_set_station
     jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Restore TX ptr high; Back to net_tx_ptr_hi
 .osword_13_set_station_body
@@ -10985,8 +10953,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; OSWORD &13 sub 6: read FCB handle info
 ;
 ; Returns the 3-byte FCB handle/port data from the workspace at C271[1..3] into
-; PB[1..3]. If ANFS is not active, ensure_fs_selected (&8B4D) auto-selects it before
-; the body runs.
+; PB[1..3]. If ANFS is not active, ensure_fs_selected auto-selects it before the body
+; runs.
 .osword_13_read_handles
     jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Narrow &0E: skip (dest station); Narrow &0F: skip (dest network); Narrow &10: buf start lo=&D9
     ldy #3                                                            ; aac5: a0 03       ..             ; Narrow &11: buf start hi=page ptr; Narrow &12: buf start ext lo
@@ -11342,9 +11310,9 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; OSWORD &14 handler: bridge poll / station status
 ;
-; Triages by A: A < 1 (CMP #1 / BCC) saves A, calls ensure_fs_selected (&8B4D) to bring
-; ANFS up if needed, restores A, then sets Y=&23 and calls mask_owner_access (&B2CF) to
-; clear FS-selection bits before the bridge-poll body runs. A >= 1 routes to
+; Triages by A: A < 1 (CMP #1 / BCC) saves A, calls ensure_fs_selected to bring ANFS up
+; if needed, restores A, then sets Y=&23 and calls mask_owner_access to clear
+; FS-selection bits before the bridge-poll body runs. A >= 1 routes to
 ; handle_tx_request for an alternative TX path.
 ;
 ; On Entry: A: OSWORD &14 sub-function code X, Y: OSWORD parameter block pointer (low,
@@ -11509,10 +11477,10 @@ bridge_err_table = compare_bridge_status+1
 ; NETV handler: OSWORD dispatch
 ;
 ; Installed as the NETV handler via write_vector_entry. Saves all registers, reads the
-; OSWORD number from the stack, and dispatches OSWORDs 0-8 via push_osword_handler_addr
-; (&AD15). OSWORDs >= 9 are ignored (registers restored, RTS returns to MOS). The
-; handler's address lives in the extended vector data area together with the other
-; fs_vector_table (&8EA7) entries.
+; OSWORD number from the stack, and dispatches OSWORDs 0-8 via
+; push_osword_handler_addr. OSWORDs >= 9 are ignored (registers restored, RTS returns
+; to MOS). The handler's address lives in the extended vector data area together with
+; the other fs_vector_table entries.
 ;
 ; On Entry: A: OSWORD number (read from stacked A on entry) X, Y: PB pointer low/high
 ; (per OSWORD calling convention)
@@ -11567,10 +11535,10 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; NETV reason-code dispatch low-byte table (9 entries)
 ;
-; Read by push_osword_handler_addr (&AD15) as LDA &AD20,X. Paired with the high-byte
-; half at netv_dispatch_hi (&AD29). The wrapper at netv_handler (&ACFC) reads the
-; original A from the MOS stack frame (&0103,X after TSX) and gates 9..&FF away to
-; return_6 (&AD0E) before dispatching reasons 0..8.
+; Read by push_osword_handler_addr as LDA &AD20,X. Paired with the high-byte half at
+; netv_dispatch_hi. The wrapper at netv_handler reads the original A from the MOS stack
+; frame (&0103,X after TSX) and gates 9..&FF away to return_6 before dispatching
+; reasons 0..8.
 ; &ad20 referenced 1 time by &ad19
 .netv_dispatch_lo
     equb <(dispatch_rts-1)                                            ; ad20: 6f          o              ; reason &00: dispatch_rts (no-op (RTS only))
@@ -11585,8 +11553,8 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; NETV reason-code dispatch high-byte table (9 entries)
 ;
-; Read by push_osword_handler_addr (&AD15) as LDA &AD29,X. The dispatcher pushes the hi
-; byte first then the lo, so RTS lands on target (the table stores target-1).
+; Read by push_osword_handler_addr as LDA &AD29,X. The dispatcher pushes the hi byte
+; first then the lo, so RTS lands on target (the table stores target-1).
 ; &ad29 referenced 1 time by &ad15
 .netv_dispatch_hi
     equb >(dispatch_rts-1)                                            ; ad29: 8e          .              ; reason &00: dispatch_rts
@@ -11606,7 +11574,7 @@ bridge_err_table = compare_bridge_status+1
 ; stack_page_6,X then ASL stack_page_6,X -- a read-modify cycle that lands the
 ; carry-out where bit 0 of the saved P was), so the caller resumes with C=0. Stores the
 ; caller's Y into NFS workspace at offset &DA, then falls through to tx_econet_abort
-; (&AD40) with A=0 to transmit a clean disconnect packet.
+; with A=0 to transmit a clean disconnect packet.
 ;
 ; On Entry: Y: OSWORD parameter byte (saved into nfs_workspace+&DA)
 .osword_4_handler
@@ -11744,10 +11712,10 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; OSWORD per-claim-code lookup table (18 bytes)
 ;
-; Looked up by match_rx_code (&ADB8) when an Econet RX event triggers an OSWORD-related
-; claim. The X register selects an 18-byte slice; bytes encode the claim type
-; (immediate-op, broadcast, port-specific) used by the dispatcher to decide which
-; handler chain to install. Per-byte inline comments document each entry.
+; Looked up by match_rx_code when an Econet RX event triggers an OSWORD-related claim.
+; The X register selects an 18-byte slice; bytes encode the claim type (immediate-op,
+; broadcast, port-specific) used by the dispatcher to decide which handler chain to
+; install. Per-byte inline comments document each entry.
 ; &adc1 referenced 1 time by &adb8
 .osword_claim_codes
     equb 4                                                            ; adc1: 04          .
@@ -12444,9 +12412,9 @@ cmd_cdir = cmd_cdir_indirect_dispatch+1
 ; directory name via parse_filename_arg, copies it to the TX buffer, and sends FS
 ; command code &1B to create the directory.
 ;
-; Reached via PHA/PHA/RTS dispatch from cmd_table_fs entry *Cdir (&A7B0); the byte at
-; the entry-1 address &B0A0 happens to decode as JMP (cdir_unused_dispatch_table,X) but
-; is never executed.
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs entry *Cdir; the byte at the
+; entry-1 address &B0A0 happens to decode as JMP (cdir_unused_dispatch_table,X) but is
+; never executed.
 ;
 ; On Entry: Y: command line offset in text pointer
     jsr mask_owner_access                                             ; b0a3: 20 cf b2     ..            ; Set owner-only access mask
@@ -12579,7 +12547,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; FSCV reason 5: catalogue (*CAT)
 ;
-; Sets up transfer parameters via set_xfer_params (&93D7), clears the library bit in
+; Sets up transfer parameters via set_xfer_params, clears the library bit in
 ; fs_lib_flags (hazel_fs_lib_flags) via the ROR/CLC/ROL idiom that uses carry to
 ; preserve other flags, and falls through to cat_set_lib_flag to issue the FS examine
 ; request. Reached via the FSCV vector with reason code 5.
@@ -13250,11 +13218,10 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ;
 ; Copies 8 bytes of default printer server data into the RX buffer at the current Y
 ; offset. Uses indexed addressing: LDA ps_template_base,X with X starting at &F8, so
-; the effective read address is ps_template_base+&F8 = ps_template_data (&8E9F
-; (&8E9F)). The 6502 trick reaches data 248 bytes past the base label in a single
-; instruction; the base address (ps_template_base) deliberately falls inside the
-; operand byte of a JSR instruction at &8DA6 -- see
-; docs/analysis/authors-easter-egg.md.
+; the effective read address is ps_template_base+&F8 = ps_template_data (&8E9F). The
+; 6502 trick reaches data 248 bytes past the base label in a single instruction; the
+; base address (ps_template_base) deliberately falls inside the operand byte of a JSR
+; instruction at &8DA6 -- see docs/analysis/authors-easter-egg.md.
 ;
 ; On Entry: Y: destination offset within the RX buffer
 ;
@@ -13638,8 +13605,8 @@ ps_print_template = write_ps_slot_hi_link+1
 ; Printer-server slot TXCB template (12 bytes)
 ;
 ; 12-byte Econet TXCB template for printer-server slot buffers. Copied by
-; init_ps_slot_from_rx (&B6A6) into workspace offsets &78-&83 via indexed addressing
-; from write_ps_slot_link_addr (write_ps_slot_hi_link+1). Substitutes net_rx_ptr_hi at
+; init_ps_slot_from_rx into workspace offsets &78-&83 via indexed addressing from
+; write_ps_slot_link_addr (write_ps_slot_hi_link+1). Substitutes net_rx_ptr_hi at
 ; offsets &7D and &81 (the hi bytes of the two buffer pointers) so they point into the
 ; current RX buffer page.
 ;
@@ -13844,8 +13811,8 @@ ps_print_template = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; Initialise PS slot buffer from template data
 ;
-; Copies the 12-byte ps_slot_txcb_template (&B575) into workspace at offsets &78-&83
-; via indexed addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).
+; Copies the 12-byte ps_slot_txcb_template into workspace at offsets &78-&83 via
+; indexed addressing from write_ps_slot_link_addr (write_ps_slot_hi_link+1).
 ; Substitutes net_rx_ptr_hi at offsets &7D and &81 (the hi bytes of the two buffer
 ; pointers) so they point into the current RX buffer page.
 ;
@@ -13903,10 +13870,10 @@ ps_print_template = write_ps_slot_hi_link+1
 ; shared protection-update body at &B6D8, which:
 ;
 ; 1. Saves the new flag (Z=0 for *Prot, Z=1 for *Unprot) on the stack via PHP.
-; 2. Calls set_via_shadow_pair (&AABB) to mirror A into the workspace shadow ACR
-;    (ws_0d68) and shadow IER (ws_0d69).
-; 3. Reads CMOS RAM byte &11 (Econet station/protection flags) via osbyte_a1 (&8E9A)
-;    into Y, copies to A.
+; 2. Calls set_via_shadow_pair to mirror A into the workspace shadow ACR (ws_0d68) and
+;    shadow IER (ws_0d69).
+; 3. Reads CMOS RAM byte &11 (Econet station/protection flags) via osbyte_a1 into Y,
+;    copies to A.
 ; 4. Restores the saved flag and selects:
 ;
 ;       - *Prot path: ORA #&40 (set bit 6 = protection on).    - *Unprot path: AND #&BF
@@ -13926,7 +13893,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ;
 ; Loads A=&00 (no protection) and falls through to the shared protection-update body at
 ; &B6D8, which clears bit 6 of CMOS RAM byte &11 (the Econet protection flag). See
-; cmd_prot (&B6D2) for the full body description.
+; cmd_prot for the full body description.
 ;
 ; On Entry: Y: command line offset (unused; *Unprot takes no args)
 .cmd_unprot
@@ -14843,10 +14810,10 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Process all active FCB slots
 ;
 ; Saves 9 workspace bytes (&FFB7–&FFBF) on the stack via a PHX/PHY/loop preamble, then
-; scans FCB slots &0F down to 0. Calls start_wipe_pass (&B99A) for each active entry
-; matching the filter attribute in Y (0 = match all). Restores all saved context on
-; completion. Also contains the OSBGET/OSBPUT inline logic for reading and writing
-; bytes through file channels.
+; scans FCB slots &0F down to 0. Calls start_wipe_pass for each active entry matching
+; the filter attribute in Y (0 = match all). Restores all saved context on completion.
+; Also contains the OSBGET/OSBPUT inline logic for reading and writing bytes through
+; file channels.
 ;
 ; On Entry: Y: filter attribute (0=process all)
 ; &bb38 referenced 9 times by &8d9d, &9078, &9778, &9ec9, &9f0e, &9fb1, &a06b, &a175, &a9df
@@ -14892,11 +14859,11 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; BGETV vector handler: read byte from open file
 ;
-; Reached via the BGETV vector at &021A, which the fs_vector_table (&8EA7) entries copy
-; into the MOS extended vector area. Saves caller's Y in hazel_chan_attr (channel
-; attribute slot), pushes X, calls store_result_check_dir (&B886) to validate the
-; channel, then either reads a byte from the FCB buffer (returning it in A with C=0) or
-; signals end-of-file (C=1).
+; Reached via the BGETV vector at &021A, which the fs_vector_table entries copy into
+; the MOS extended vector area. Saves caller's Y in hazel_chan_attr (channel attribute
+; slot), pushes X, calls store_result_check_dir to validate the channel, then either
+; reads a byte from the FCB buffer (returning it in A with C=0) or signals end-of-file
+; (C=1).
 ;
 ; On Entry: Y: channel handle
 ;
@@ -14972,8 +14939,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;
 ; Reached via the BPUTV vector at &0218. Saves caller's Y in hazel_chan_attr, pushes
 ; the data byte and X, then routes to the FCB buffer-write path: stores the byte in the
-; channel's transmit buffer, increments the byte count via inc_fcb_byte_count (&BB2A),
-; and exits via done_inc_byte_count (&BC65).
+; channel's transmit buffer, increments the byte count via inc_fcb_byte_count, and
+; exits via done_inc_byte_count.
 ;
 ; On Entry: A: byte to write Y: channel handle
 ;
@@ -15830,13 +15797,13 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; ROM-tail &FF padding (33 bytes positioning the HAZEL indexing bases)
 ;
-; 33 bytes of &FF filler between the last real instruction at inx4 (&BFC0) and the
-; HAZEL indexing-base labels starting at hazel_minus_1a (&BFE6).
+; 33 bytes of &FF filler between the last real instruction at inx4 and the HAZEL
+; indexing-base labels starting at hazel_minus_1a.
 ;
 ; These bytes exist purely to push the indexing-base labels to specific addresses
 ; immediately before &C000 (the start of HAZEL). The labels themselves do the work --
-; see the hazel_idx_bases (&BFE6) banner. The padding is never read or written; it is
-; whatever the assembler emitted to fill the gap (the BeebAsm default of &FF).
+; see the hazel_idx_bases banner. The padding is never read or written; it is whatever
+; the assembler emitted to fill the gap (the BeebAsm default of &FF).
     equb &ff, &ff                                                     ; bfc5: ff ff       ..             ; ROM-tail padding (2 bytes &FF)
     equb &ff                                                          ; bfc7: ff          .              ; ROM-tail padding (1 byte &FF; on its own line for annotation)
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; bfc8: ff ff ff... ...            ; ROM-tail padding (30 bytes &FF)
