@@ -321,16 +321,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA985` `osword_12_handler` - description matches body
 - [x] `0xA9CC` `osword_13_read_station` - description matches body's PB[1..2] copy from hazel_minus_1
 - [x] `0xAAB2` `osword_13_read_prot` - description matches body
-- [ ] `0xAAC2` `osword_13_read_handles`
-- [ ] `0xAAD0` `osword_13_set_handles`
-- [ ] `0xAB68` `osword_13_read_rx_flag`
-- [ ] `0xAC47` `osword_14_handler`
-- [ ] `0xACED` `handle_burst_xfer`
-- [ ] `0xACFC` `netv_handler`
-- [ ] `0xB066` `serialise_palette_entry`
-- [ ] `0xB0F8` `cmd_lex`
-- [ ] `0xB21C` `print_chars_from_buf`
-- [ ] `0xB22C` `parse_filename_arg`
+- [x] `0xAAC2` `osword_13_read_handles` - description matches body
+- [x] `0xAAD0` `osword_13_set_handles` - description matches body
+- [x] `0xAB68` `osword_13_read_rx_flag` - description matches body
+- [x] `0xAC47` `osword_14_handler` - description had dispatch direction reversed: claimed 'A < 1 branches to handle_tx_request' but body's BCS branches when A>=1. Corrected, including the new on_entry note about A=0 being the bridge-poll sub-code
+- [x] `0xACED` `handle_burst_xfer` - description matches body
+- [x] `0xACFC` `netv_handler` - description matches body
+- [x] `0xB066` `serialise_palette_entry` - description's claim of 'OSBYTE &0B' may be approximate (body reads vdu_mode and uses the read_osbyte_table to look up the OSBYTE code by mode); inline at &B066 has slightly imprecise wording but the high-level routine purpose matches
+- [x] `0xB0F8` `cmd_lex` - description matches body (already updated for the SEC-after-ROR ordering)
+- [x] `0xB21C` `print_chars_from_buf` - description matches body
+- [x] `0xB22C` `parse_filename_arg` - description had stale '&0E30' (pre-HAZEL); body's gsread_to_buf reads into hazel_parse_buf at &C030. Rewrote, also tightened gsread_to_buf's title/description
 - [ ] `0xB310` `print_decimal_digit_no_spool`
 - [ ] `0xB39E` `init_spool_drive`
 - [ ] `0xB483` `print_file_server_is`

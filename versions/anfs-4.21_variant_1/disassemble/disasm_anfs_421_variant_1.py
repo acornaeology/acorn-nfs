@@ -4713,12 +4713,14 @@ subroutine(0x9BF5, "load_text_ptr_and_parse",
     "address into the &0E30 buffer.",
     on_exit={"y": "0 (reset before GSINIT)"})
 subroutine(0x9C00, "gsread_to_buf",
-    title="Parse command line via GSINIT/GSREAD into &0E30",
-    description="Calls GSINIT to initialise string reading, then\n"
-    "loops calling GSREAD to copy characters into the\n"
-    "fs_filename_buf buffer until end-of-string. Appends a CR\n"
-    "terminator and sets fs_crc_lo/hi to point at &0E30\n"
-    "for subsequent parsing routines.",
+    title="Parse command line via GSINIT/GSREAD into hazel_parse_buf",
+    description="""\
+Calls GSINIT to initialise string reading, then loops calling
+GSREAD to copy characters into [`hazel_parse_buf`](address:C030)
+until end-of-string. Appends a CR terminator and sets
+`fs_crc_lo`/`hi` to point at the buffer for subsequent parsing
+routines. (Pre-HAZEL ROMs used `fs_filename_buf` at &0E30; the
+4.21 build uses HAZEL.)""",
     on_entry={"y": "current command-line offset (consumed by GSINIT)"},
     on_exit={"y": "advanced past the parsed source"})
 subroutine(0x9C22, "filev_handler",
@@ -5388,11 +5390,11 @@ subroutine(0xA901, "bin_to_bcd",
 subroutine(0xAC47, "osword_14_handler",
     title="OSWORD &14 handler: bridge poll / station status",
     description="""\
-Triages by `A`: `A < 1` (sub-code 0) branches to
+Triages by `A`: `A >= 1` branches via `BCS` to
 [`handle_tx_request`](address:ACB7) which reads the station and
 network from `PB[1]`/`PB[2]` into the RX-block destination slots
-and falls through to the burst-transfer body. `A >= 1` falls
-through here: pushes `A`, calls
+and falls through to the burst-transfer body. `A = 0` (the
+bridge-poll sub-code) falls through here: pushes `A`, calls
 [`ensure_fs_selected`](address:8B4D) to bring ANFS up if needed,
 pulls `A` back, sets `Y=&23` and calls
 [`mask_owner_access`](address:B2CF) to clear FS-selection bits,
@@ -5926,10 +5928,12 @@ subroutine(0xB22A, "parse_cmd_arg_y0",
     on_exit={"y": "advanced past the parsed argument"})
 subroutine(0xB22C, "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
-    description="Calls gsread_to_buf to read the command line\n"
-    "string into the &0E30 buffer, then falls through\n"
-    "to parse_access_prefix to process '&', ':', '.',\n"
-    "and '#' prefix characters.",
+    description="""\
+Calls [`gsread_to_buf`](address:9C00) to read the command-line
+string into [`hazel_parse_buf`](address:C030) (the 4.21 HAZEL
+parse buffer at &C030), then falls through to
+[`parse_access_prefix`](address:B22F) to process `'&'`, `':'`,
+`'.'` and `'#'` prefix characters.""",
     on_entry={"y": "current command-line offset (consumed by gsread_to_buf)"},
     on_exit={"y": "advanced past the parsed argument"})
 subroutine(0xB22F, "parse_access_prefix",

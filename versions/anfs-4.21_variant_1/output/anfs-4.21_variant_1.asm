@@ -7871,11 +7871,12 @@ bad_prefix_table = bad_str_anchor+1
     bpl loop_copy_text_ptr                                            ; 9bfd: 10 f8       ..             ; Loop until both bytes copied
     iny                                                               ; 9bff: c8          .              ; Y=0: reset index for string reading
 ; ***************************************************************************************
-; Parse command line via GSINIT/GSREAD into &0E30
+; Parse command line via GSINIT/GSREAD into hazel_parse_buf
 ;
 ; Calls GSINIT to initialise string reading, then loops calling GSREAD to copy
-; characters into the fs_filename_buf buffer until end-of-string. Appends a CR
-; terminator and sets fs_crc_lo/hi to point at &0E30 for subsequent parsing routines.
+; characters into hazel_parse_buf until end-of-string. Appends a CR terminator and sets
+; fs_crc_lo/hi to point at the buffer for subsequent parsing routines. (Pre-HAZEL ROMs
+; used fs_filename_buf at &0E30; the 4.21 build uses HAZEL.)
 ;
 ; On Entry: Y: current command-line offset (consumed by GSINIT)
 ;
@@ -11561,11 +11562,11 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; OSWORD &14 handler: bridge poll / station status
 ;
-; Triages by A: A < 1 (sub-code 0) branches to handle_tx_request which reads the
-; station and network from PB[1]/PB[2] into the RX-block destination slots and falls
-; through to the burst-transfer body. A >= 1 falls through here: pushes A, calls
-; ensure_fs_selected to bring ANFS up if needed, pulls A back, sets Y=&23 and calls
-; mask_owner_access to clear FS-selection bits, then runs the bridge-poll body.
+; Triages by A: A >= 1 branches via BCS to handle_tx_request which reads the station
+; and network from PB[1]/PB[2] into the RX-block destination slots and falls through to
+; the burst-transfer body. A = 0 (the bridge-poll sub-code) falls through here: pushes
+; A, calls ensure_fs_selected to bring ANFS up if needed, pulls A back, sets Y=&23 and
+; calls mask_owner_access to clear FS-selection bits, then runs the bridge-poll body.
 ;
 ; On Entry: A: OSWORD &14 sub-function code X, Y: OSWORD parameter block pointer (low,
 ; high)
@@ -13001,8 +13002,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Parse filename via GSREAD with prefix handling
 ;
-; Calls gsread_to_buf to read the command line string into the &0E30 buffer, then falls
-; through to parse_access_prefix to process '&', ':', '.', and '#' prefix characters.
+; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the 4.21
+; HAZEL parse buffer at &C030), then falls through to parse_access_prefix to process
+; '&', ':', '.' and '#' prefix characters.
 ;
 ; On Entry: Y: current command-line offset (consumed by gsread_to_buf)
 ;
