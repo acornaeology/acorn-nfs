@@ -1185,23 +1185,28 @@ data_banner(0x9B75, "pass_txbuf_init_table",
     description="""\
 Overlaid onto the TX control block by
 [`setup_pass_txbuf`](address:9B89) for pass-through operations.
-The 12 bytes follow the standard Econet TXCB layout:
+The 12 bytes follow the Econet TXCB layout used elsewhere in this
+ROM (compare [`bridge_rxcb_init_data`](address:ABDD)):
 
 | Offset | Field |
 |---|---|
 | 0     | TX control byte (`&88` = immediate TX)        |
 | 1     | TX port (`&00` = immediate op)                |
 | 2-3   | dest station / network (`&FD` skip = preserve)|
-| 4-7   | buffer-1 start address (lo, hi, ext-lo, ext-hi)|
-| 8-11  | buffer-1 end   address (lo, hi, ext-lo, ext-hi)|
+| 4-5   | buffer start address (lo, hi)                  |
+| 6-7   | extended-address fill (`&FF&FF`)               |
+| 8-9   | buffer end address (lo, hi)                    |
+| 10-11 | extended-address fill (`&FF&FF`)               |
 
 The buffer spans [`&0D3A`..`&0D3E`](address:0D3D) -- the bytes
 immediately preceding [`rx_src_stn`](address:0D3D) through
 [`rx_src_net`](address:0D3E) -- so the same RX-area bytes are
 echoed back as the TX payload (hence "pass-through"). The
-`&FF&FF` extended-address bytes mark the pointers as main-RAM
-(non-extended) addresses. Original TX buffer values are pushed
-on the stack and restored after transmission.""")
+`&FF&FF` filler bytes at offsets 6-7 and 10-11 are a software
+convention left over from a 4-byte-address format the BBC
+Econet driver anticipated; for main-RAM buffers they're left
+as `&FF&FF`. Original TX buffer values are pushed on the stack
+and restored after transmission.""")
 for i in range(12):
     byte(0x9B75 + i)
 label(0x9B8B, "loop_copy_template")
@@ -16093,12 +16098,12 @@ comment(0x9B77, "Offset 2: &FD skip (preserve dest stn)", inline=True)
 comment(0x9B78, "Offset 3: &FD skip (preserve dest net)", inline=True)
 comment(0x9B79, "Offset 4: buf start lo (&3A) -> &0D3A", inline=True)
 comment(0x9B7A, "Offset 5: buf start hi (&0D) -> &0D3A", inline=True)
-comment(0x9B7B, "Offset 6: buf start ext lo (&FF, main RAM)", inline=True)
-comment(0x9B7C, "Offset 7: buf start ext hi (&FF, main RAM)", inline=True)
+comment(0x9B7B, "Offset 6: extended-addr fill (&FF)", inline=True)
+comment(0x9B7C, "Offset 7: extended-addr fill (&FF)", inline=True)
 comment(0x9B7D, "Offset 8: buf end lo (&3E) -> &0D3E", inline=True)
 comment(0x9B7E, "Offset 9: buf end hi (&0D) -> &0D3E", inline=True)
-comment(0x9B7F, "Offset 10: buf end ext lo (&FF, main RAM)", inline=True)
-comment(0x9B80, "Offset 11: buf end ext hi (&FF, main RAM)", inline=True)
+comment(0x9B7F, "Offset 10: extended-addr fill (&FF)", inline=True)
+comment(0x9B80, "Offset 11: extended-addr fill (&FF)", inline=True)
 comment(0x9B81, "Y=&C0: TX control block base (low)", inline=True)
 comment(0x9B83, "Set TX pointer low byte", inline=True)
 comment(0x9B85, "Y=0: TX control block base (high)", inline=True)

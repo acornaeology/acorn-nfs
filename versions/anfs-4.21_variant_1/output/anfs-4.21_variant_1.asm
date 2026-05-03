@@ -7704,21 +7704,25 @@ bad_prefix_table = bad_str_anchor+1
 ; Pass-through TX buffer template (12 bytes)
 ;
 ; Overlaid onto the TX control block by setup_pass_txbuf for pass-through operations.
-; The 12 bytes follow the standard Econet TXCB layout:
+; The 12 bytes follow the Econet TXCB layout used elsewhere in this ROM (compare
+; bridge_rxcb_init_data):
 ;
-; | Offset | Field                                           |
-; |--------|-------------------------------------------------|
-; | 0      | TX control byte (&88 = immediate TX)            |
-; | 1      | TX port (&00 = immediate op)                    |
-; | 2-3    | dest station / network (&FD skip = preserve)    |
-; | 4-7    | buffer-1 start address (lo, hi, ext-lo, ext-hi) |
-; | 8-11   | buffer-1 end   address (lo, hi, ext-lo, ext-hi) |
+; | Offset | Field                                        |
+; |--------|----------------------------------------------|
+; | 0      | TX control byte (&88 = immediate TX)         |
+; | 1      | TX port (&00 = immediate op)                 |
+; | 2-3    | dest station / network (&FD skip = preserve) |
+; | 4-5    | buffer start address (lo, hi)                |
+; | 6-7    | extended-address fill (&FF&FF)               |
+; | 8-9    | buffer end address (lo, hi)                  |
+; | 10-11  | extended-address fill (&FF&FF)               |
 ;
 ; The buffer spans &0D3A..&0D3E -- the bytes immediately preceding rx_src_stn through
 ; rx_src_net -- so the same RX-area bytes are echoed back as the TX payload (hence
-; "pass-through"). The &FF&FF extended-address bytes mark the pointers as main-RAM
-; (non-extended) addresses. Original TX buffer values are pushed on the stack and
-; restored after transmission.
+; "pass-through"). The &FF&FF filler bytes at offsets 6-7 and 10-11 are a software
+; convention left over from a 4-byte-address format the BBC Econet driver anticipated;
+; for main-RAM buffers they're left as &FF&FF. Original TX buffer values are pushed on
+; the stack and restored after transmission.
 ; &9b75 referenced 2 times by &9b8b, &9be5
 .pass_txbuf_init_table
     equb &88                                                          ; 9b75: 88          .              ; Offset 0: ctrl = &88 (immediate TX)
@@ -7727,12 +7731,12 @@ bad_prefix_table = bad_str_anchor+1
     equb &fd                                                          ; 9b78: fd          .              ; Offset 3: &FD skip (preserve dest net)
     equb &3a                                                          ; 9b79: 3a          :              ; Offset 4: buf start lo (&3A) -> &0D3A
     equb &0d                                                          ; 9b7a: 0d          .              ; Offset 5: buf start hi (&0D) -> &0D3A
-    equb &ff                                                          ; 9b7b: ff          .              ; Offset 6: buf start ext lo (&FF, main RAM)
-    equb &ff                                                          ; 9b7c: ff          .              ; Offset 7: buf start ext hi (&FF, main RAM)
+    equb &ff                                                          ; 9b7b: ff          .              ; Offset 6: extended-addr fill (&FF)
+    equb &ff                                                          ; 9b7c: ff          .              ; Offset 7: extended-addr fill (&FF)
     equb &3e                                                          ; 9b7d: 3e          >              ; Offset 8: buf end lo (&3E) -> &0D3E
     equb &0d                                                          ; 9b7e: 0d          .              ; Offset 9: buf end hi (&0D) -> &0D3E
-    equb &ff                                                          ; 9b7f: ff          .              ; Offset 10: buf end ext lo (&FF, main RAM)
-    equb &ff                                                          ; 9b80: ff          .              ; Offset 11: buf end ext hi (&FF, main RAM)
+    equb &ff                                                          ; 9b7f: ff          .              ; Offset 10: extended-addr fill (&FF)
+    equb &ff                                                          ; 9b80: ff          .              ; Offset 11: extended-addr fill (&FF)
 
 ; ***************************************************************************************
 ; Set up TX pointer and send pass-through packet
