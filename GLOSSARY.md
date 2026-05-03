@@ -157,6 +157,23 @@ stream.
 
 ## Hardware
 
+**65C02**
+: The CMOS variant of the 6502 fitted to the Master 128. Adds a
+dozen new instructions over the original NMOS 6502 and fixes
+several long-standing edge cases.
+
+  Acorn used the Rockwell R65C02 (later units: GTE65SC02), a
+  superset of the standard 65C02 that adds bit-test instructions
+  (BBR / BBS / RMB / SMB). ANFS 4.21 doesn't use the bit-test
+  extensions but takes routine advantage of the core 65C02
+  additions: PHX / PHY / PLX / PLY (push/pull X / Y), BRA
+  (unconditional branch), STZ (store zero, no register needed),
+  TSB / TRB (test-and-set / test-and-reset bits in memory), and
+  BIT abs,X. All save bytes, cycles, or both over the equivalent
+  6502 sequences. Because the host-OS gate at the start of the
+  service handler refuses to install on a Model B / B+, the
+  assembler can rely on the 65C02 throughout.
+
 **ACCCON** (Access Control register)
 : The Master 128 access-control register at &FE34. Each bit gates a
 specific shadow- or hidden-RAM paging mode.
@@ -197,6 +214,19 @@ transmission and prioritised status bits.
   byte), b4=CLR_TX_ST (clear TX status), b5=RTS (request to send),
   b6-b7=not used. Typical values: &1E (RX idle), &82 (flag idle wait),
   &A7 (TX handshake with RTS+PSE).
+
+**CMOS** (CMOS RAM)
+: 50 bytes of battery-backed RAM in the Master 128, accessed
+through OSBYTE &A1 (read) and OSBYTE &A2 (write).
+
+  Holds settings that need to survive BREAK and power-cycle:
+  keyboard layout, default filing system, configured Econet
+  station number, screen mode, and so on. ANFS 4.21 stores its
+  protection state in CMOS byte &11 bit 6 – a single bit that
+  cmd_prot / cmd_unprot toggle. Persistence is automatic: the
+  state is in CMOS, not in volatile RAM, so it survives across
+  resets and power-off. ANFS 4.18 had no equivalent; its
+  protection mask was kept in workspace and lost on BREAK.
 
 **CTS** (Clear To Send)
 : ADLC status register 1 bit 4. Indicates that the Econet clock
@@ -293,6 +323,21 @@ peripheral devices pulling the IRQ line low.
   bracket their work with ACCCON save/restore so the in-flight
   byte transfer reaches the correct memory.
 
+**Master 128**
+: Acorn's 1986 successor to the BBC Model B. Same desktop
+form-factor, but adds a Rockwell R65C02 CPU, 128 KB of RAM
+(32 K main + 20 K LYNNE shadow + 8 K HAZEL hidden + 64 K paged
+ROM banks), and 50 bytes of CMOS-backed configuration store.
+
+  ANFS 4.21 (variant 1) is the first ANFS for the Master family.
+  Its host-OS gate accepts MOS 3.x (Master 128) and MOS 4.0
+  (Master Econet Terminal); it explicitly rejects MOS 5.0
+  (Master Compact). The Master's expanded memory map – HAZEL
+  for filing-system workspace, LYNNE for shadow display, CMOS
+  for persistent settings – drives major structural changes
+  through ANFS that have nothing to do with the network protocol
+  itself.
+
 **PSE** (Prioritised Status Enable)
 : ADLC control register 2 bit 0. When set, enables prioritised status
 reporting in status register 2: FV, RX abort, and error conditions
@@ -338,6 +383,18 @@ signal readiness to transmit on the Econet bus.
   NFS sets RTS in CR2 when beginning a transmission (scout or data
   frame). The typical TX setup value &A7 includes RTS along with
   CLR_TX_ST, FC_TDRA, and PSE.
+
+**shadow RAM**
+: A bank of RAM that mirrors part of the main address space and is
+paged into the same address window under software control.
+
+  The Master 128 has two shadow regions: LYNNE (20 KB at
+  &3000-&7FFF, used for the display bitmap when shadow-screen
+  modes are selected) and HAZEL (8 KB at &C000-&DFFF, used by
+  filing systems as workspace). Both are paged via bits of the
+  ACCCON register; routines that page shadow RAM in are
+  responsible for paging it back out before any code that
+  expects to see main RAM at the same address.
 
 **sideways ROM**
 : One of up to 16 ROM slots in the BBC Micro, all mapped to the same
@@ -397,6 +454,20 @@ second processor.
   handles command bytes, R3 handles multi-byte transfers, and R4 handles
   one-byte transfers. NFS 3.34B temporarily moved WRCH from R1 to R4;
   3.35D reverted this.
+
+**VIA** (Versatile Interface Adapter)
+: A 6522 chip providing parallel I/O ports, two timers, and a shift
+register. The BBC Micro and Master 128 both have two: the System
+VIA at &FE40-&FE4F and the User VIA at &FE60-&FE6F.
+
+  ANFS interacts mostly with the System VIA, whose shift register
+  (SR) and auxiliary control register (ACR) are involved in
+  Econet TX setup. On the Model B, ANFS 4.18 wrote the System
+  VIA directly. On the Master 128, MOS owns the System VIA – it
+  uses the shift register for sound and keyboard polling – so
+  ANFS 4.21 maintains a shadow ACR/SR pair in workspace
+  (&0D68 / &0D69) that the Master's IRQ dispatch path reconciles
+  with the live VIA.
 
 ## Filing systems
 

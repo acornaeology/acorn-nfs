@@ -100,6 +100,31 @@
                     "pattern": "ACCCON",
                     "occurrence": 0,
                     "term": "ACCCON"
+                },
+                {
+                    "pattern": "Master 128",
+                    "occurrence": 0,
+                    "term": "Master 128"
+                },
+                {
+                    "pattern": "65C02",
+                    "occurrence": 0,
+                    "term": "65C02"
+                },
+                {
+                    "pattern": "VIA",
+                    "occurrence": 0,
+                    "term": "VIA"
+                },
+                {
+                    "pattern": "CMOS",
+                    "occurrence": 0,
+                    "term": "CMOS"
+                },
+                {
+                    "pattern": "shadow RAM",
+                    "occurrence": 0,
+                    "term": "shadow RAM"
                 }
             ]
         }
