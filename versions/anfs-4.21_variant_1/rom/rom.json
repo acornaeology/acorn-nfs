@@ -1,6 +1,12 @@
 {
     "title": "Acorn ANFS 4.21 (variant 1)",
-    "platform": "bbc-master",
+    "memory_map_groups": {
+        "ram_workspace": "RAM workspace",
+        "hazel": "Filing system workspace (HAZEL)",
+        "mmio": "Memory-mapped I/O",
+        "ext_vectors": "MOS extended-vector trampolines",
+        "idx_base": "Indexing-base addresses (wrap into ZP)"
+    },
     "size": 16384,
     "md5": "03371d224a8f048c129335682434d025",
     "sha256": "a51c9b2ce63d16519880a33b0561048c7172ee53cebe06e8d21da479198398cd",

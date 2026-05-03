@@ -188,31 +188,31 @@ label(0xFE20, "econet_nmi_enable",
 label(0xFF1B, "ev_filev",
     description="FILEV extended-vector dispatcher (file operations: "
                 "OSFILE, OSFIND).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF1E, "ev_argsv",
     description="ARGSV extended-vector dispatcher (file argument "
                 "operations: OSARGS).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF21, "ev_bgetv",
     description="BGETV extended-vector dispatcher (single-byte read: "
                 "OSBGET).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF24, "ev_bputv",
     description="BPUTV extended-vector dispatcher (single-byte write: "
                 "OSBPUT).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF27, "ev_gbpbv",
     description="GBPBV extended-vector dispatcher (block transfer: "
                 "OSGBPB).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF2A, "ev_findv",
     description="FINDV extended-vector dispatcher (open / close: "
                 "OSFIND).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 label(0xFF2D, "ev_fscv",
     description="FSCV extended-vector dispatcher (filing-system "
                 "control: OSFSC, *commands).",
-    length=3, group="os_rom", access="r")
+    length=3, group="ext_vectors", access="r")
 
 # MOS vector table entries (the ROM-vector slots in &0200..&02xx).
 # Each is a 3-byte (lo, hi, rom_bank) tuple; the rom_bank slot lives
@@ -10559,14 +10559,14 @@ label(0xFFB0, "nmi_buf_idx_base",
                 "Used by the NMI RX setup as `STA nmi_buf_idx_base,Y` "
                 "with Y values that wrap into low memory; the bytes "
                 "at `&FFB0` themselves aren't read or written.",
-    length=1, group="os_rom", access="r")
+    length=1, group="idx_base", access="r")
 label(0xFFBD, "fcb_workspace_idx_base",
     description="FCB-workspace indexing-base (wraps into ZP).\n"
                 "Used by `loop_save_fcb_workspace` as the base of "
                 "`LDA &FFBD,X` with X=`&F7`..`&FF`; the effective "
                 "address wraps to `&00B4`..`&00BC` (= `fs_work_4`+"
                 "0..+8). The byte at `&FFBD` itself is never read.",
-    length=1, group="os_rom", access="r")
+    length=1, group="idx_base", access="r")
 
 # 14 indexing-base aliases that py8dis emitted as `lXXXX = symbol+offset`
 # because the code uses `LDA somelabel,X/Y` with a base that lies inside
