@@ -10234,7 +10234,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Two-instruction wrapper: JSR flip_set_station_boot to record the new library station,
 ; then JMP return_with_last_flag. Reached only via the FS reply dispatch table.
 .fsreply_5_set_lib
-    jsr flip_set_station_boot                                         ; a63e: 20 a6 a6     ..            ; Set boot-station flag bit
+    jsr flip_set_station_boot                                         ; a63e: 20 a6 a6     ..            ; Record library station in station table
     jmp return_with_last_flag                                         ; a641: 4c b4 9f    L..
 
 ; ***************************************************************************************
@@ -10318,11 +10318,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; ***************************************************************************************
 ; *Flip command handler
 ;
-; Exchanges the CSD and CSL (library) handles. Saves the current CSD handle (&0E03),
-; loads the library handle (&0E04) into Y, and calls find_station_bit3 to install it as
-; the new CSD. Restores the original CSD handle and falls through to
-; flip_set_station_boot to install it as the new library. Useful when files to be
-; LOADed are in the library and *DIR/*LIB would be inconvenient.
+; Exchanges the CSD and CSL (library) handles. Saves the current CSD handle from
+; hazel_fs_context_copy, loads the library handle from hazel_fs_prefix_stn into Y, and
+; calls find_station_bit3 to install it as the new CSD. Restores the original CSD
+; handle and falls through to flip_set_station_boot to install it as the new library.
+; Useful when files to be LOADed are in the library and *DIR/*LIB would be
+; inconvenient.
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_flip
@@ -10393,14 +10394,21 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...            ; Store as hazel_fs_flags
     pha                                                               ; a6e4: 48          H              ; Save state
 ; ***************************************************************************************
-; FS reply 2: copy per-station handle table
+; FS reply 2: install handles and (optionally) boot
 ;
-; Iterates over the 16-entry station table, looking up each station by network and bit
-; number via find_station_bit2 and find_station_bit3, then setting the matching slot's
-; boot configuration via flip_set_station_boot. Restores the saved boot- type via
-; PLP/PLA. Reached only via the FS reply dispatch table.
+; Records the file-server / printer-server / library handles from the I-AM reply into
+; the station table by calling find_station_bit2, find_station_bit3, and
+; flip_set_station_boot in turn with the three handle bytes loaded from the TXCB reply
+; (hazel_txcb_data, hazel_txcb_flag, hazel_txcb_count). PHP/PLP carry a flag across the
+; calls: when Carry is clear on entry the routine returns via return_with_last_flag;
+; when Carry is set it continues into the boot path at fsreply_2_handle_loop, which
+; OSCLIs -NET-FindLib, optionally calls osbyte_make_temporary_filing_system_permanent,
+; clears the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls
+; through to boot_suffix_string to execute the !Boot command. Reached only via the FS
+; reply dispatch table.
 ;
-; On Entry: A: boot-type byte (saved on stack at entry)
+; On Entry: A: boot-type byte (saved on stack at entry) CARRY: set when boot processing
+; should follow
 .fsreply_2_copy_handles
     php                                                               ; a6e5: 08          .              ; Save processor status
     ldy hazel_txcb_data                                               ; a6e6: ac 05 c1    ...            ; Load station number from reply
@@ -10780,21 +10788,21 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &10 handler: send network packet
 ;
-; Initiates a TX by setting tx_complete_flag via ASL (clearing the flag and propagating
-; bit 7 to carry), then dispatches: C=1 (set if no TX in progress) routes to
-; setup_ws_rx_ptrs to configure the receive-side workspace pointers from net_rx_ptr_hi;
-; C=0 (TX in progress) stores Y=&20 (TX-buffer status offset) and marks the packet as
-; pending (&FF) in the workspace.
+; ASL on tx_complete_flag shifts the old bit 7 into Carry. When that bit was clear
+; (C=0, TX in progress) the handler stores Y back through the parameter-block pointer
+; at (ws_ptr_hi),Y and RTS, leaving the caller a status byte. When it was set (C=1, TX
+; idle) execution falls through to the start path at setup_ws_rx_ptrs, which seeds the
+; workspace pointers from net_rx_ptr_hi/#&6F, copies 16 bytes of the parameter block
+; into the workspace via copy_pb_byte_to_ws and JMPs to tx_begin to launch the
+; transmission.
 ;
 ; On Entry: X, Y: OSWORD parameter block pointer (low, high)
-;
-; On Exit: A: 0 = success, &FF = TX pending
 .osword_10_handler
-    asl tx_complete_flag                                              ; a910: 0e 60 0d    .`.            ; Shift ws_0d60 left (status flag)
+    asl tx_complete_flag                                              ; a910: 0e 60 0d    .`.            ; ASL tx_complete_flag: old bit 7 -> C
     tya                                                               ; a913: 98          .              ; A = Y (saved index)
-    bcs setup_ws_rx_ptrs                                              ; a914: b0 03       ..             ; C=1: transmit active path
-    sta (ws_ptr_hi),y                                                 ; a916: 91 ac       ..             ; C=0: store Y to parameter block
-    rts                                                               ; a918: 60          `              ; Return (transmit not active)
+    bcs setup_ws_rx_ptrs                                              ; a914: b0 03       ..             ; C=1 (TX idle): start new transmission
+    sta (ws_ptr_hi),y                                                 ; a916: 91 ac       ..             ; C=0 (TX busy): write status byte back to PB
+    rts                                                               ; a918: 60          `              ; Return (TX still in progress)
 
 ; &a919 referenced 1 time by &a914
 .setup_ws_rx_ptrs
@@ -12561,45 +12569,45 @@ bridge_err_table = compare_bridge_status+1
 ; copies the palette / VDU state from MOS workspace at &0350 into the workspace
 ; transmit buffer for forwarding back to the station.
 .lang_2_save_palette_vdu
-    lda osword_flag                                                   ; b01a: a5 aa       ..             ; Read osword_flag (preserved across the dispatch); Save table_idx counter
-    pha                                                               ; b01c: 48          H              ; Save state byte; Push for later restore
-    lda #&e9                                                          ; b01d: a9 e9       ..             ; A=&E9: workspace start lo for palette save; Set workspace low to &E9
-    sta nfs_workspace                                                 ; b01f: 85 9e       ..             ; Store as nfs_workspace lo; Store to nfs_workspace low
-    ldy #0                                                            ; b021: a0 00       ..             ; Y=0; Y=0: initial palette index
-    sty osword_flag                                                   ; b023: 84 aa       ..             ; Reset osword_flag = 0; Clear palette counter
-    lda vdu_screen_mode                                               ; b025: ad 50 03    .P.            ; Read vdu_screen_mode (MOS state byte); Load current screen mode
-    sta (nfs_workspace),y                                             ; b028: 91 9e       ..             ; Store at (nfs_workspace)+0; Store mode to workspace
-    inc nfs_workspace                                                 ; b02a: e6 9e       ..             ; Advance nfs_workspace lo; Advance workspace ptr
-    lda vdu_display_start_hi                                          ; b02c: ad 51 03    .Q.            ; Read vdu_display_start_hi (next MOS byte); Load video ULA copy
-    pha                                                               ; b02f: 48          H              ; Save another byte; Save for later restore
+    lda osword_flag                                                   ; b01a: a5 aa       ..             ; Read osword_flag (preserved across the dispatch)
+    pha                                                               ; b01c: 48          H              ; Save state byte
+    lda #&e9                                                          ; b01d: a9 e9       ..             ; A=&E9: workspace start lo for palette save
+    sta nfs_workspace                                                 ; b01f: 85 9e       ..             ; Store as nfs_workspace lo
+    ldy #0                                                            ; b021: a0 00       ..             ; Y=0
+    sty osword_flag                                                   ; b023: 84 aa       ..             ; Reset osword_flag = 0
+    lda vdu_screen_mode                                               ; b025: ad 50 03    .P.            ; Read vdu_screen_mode (MOS state byte)
+    sta (nfs_workspace),y                                             ; b028: 91 9e       ..             ; Store at (nfs_workspace)+0
+    inc nfs_workspace                                                 ; b02a: e6 9e       ..             ; Advance nfs_workspace lo
+    lda vdu_display_start_hi                                          ; b02c: ad 51 03    .Q.            ; Read vdu_display_start_hi (next MOS byte)
+    pha                                                               ; b02f: 48          H              ; Save another byte
     tya                                                               ; b030: 98          .              ; A=0 for first palette entry
 ; &b031 referenced 1 time by &b050
 .loop_read_palette
-    sta (nfs_workspace),y                                             ; b031: 91 9e       ..             ; Store at (nfs_workspace); Store logical colour to workspace
-    ldx nfs_workspace                                                 ; b033: a6 9e       ..             ; Read updated nfs_workspace lo; X = workspace ptr low
-    ldy nfs_workspace_hi                                              ; b035: a4 9f       ..             ; Read nfs_workspace hi; Y = workspace ptr high
-    lda #osword_read_palette                                          ; b037: a9 0b       ..             ; A=&0B: OSWORD &0B = read palette entry; OSWORD &0B: read palette
+    sta (nfs_workspace),y                                             ; b031: 91 9e       ..             ; Store at (nfs_workspace)
+    ldx nfs_workspace                                                 ; b033: a6 9e       ..             ; Read updated nfs_workspace lo
+    ldy nfs_workspace_hi                                              ; b035: a4 9f       ..             ; Read nfs_workspace hi
+    lda #osword_read_palette                                          ; b037: a9 0b       ..             ; A=&0B: OSWORD &0B = read palette entry
     jsr osword                                                        ; b039: 20 f1 ff     ..            ; Read palette entry
-    pla                                                               ; b03c: 68          h              ; Restore inner saved; Restore previous ULA value
-    ldy #0                                                            ; b03d: a0 00       ..             ; Y=0; Y=0: reset index
-    sta (nfs_workspace),y                                             ; b03f: 91 9e       ..             ; Store palette result at workspace; Store ULA value to workspace
+    pla                                                               ; b03c: 68          h              ; Restore inner saved
+    ldy #0                                                            ; b03d: a0 00       ..             ; Y=0
+    sta (nfs_workspace),y                                             ; b03f: 91 9e       ..             ; Store palette result at workspace
     iny                                                               ; b041: c8          .              ; Y=1: physical colour offset
-    lda (nfs_workspace),y                                             ; b042: b1 9e       ..             ; Re-read palette result; Load physical colour
+    lda (nfs_workspace),y                                             ; b042: b1 9e       ..             ; Re-read palette result
     pha                                                               ; b044: 48          H              ; Save for next iteration
-    ldx nfs_workspace                                                 ; b045: a6 9e       ..             ; Read updated workspace lo; X = workspace ptr
-    inc nfs_workspace                                                 ; b047: e6 9e       ..             ; Advance workspace; Advance workspace ptr
-    inc osword_flag                                                   ; b049: e6 aa       ..             ; Increment osword_flag (palette index); Advance palette counter
+    ldx nfs_workspace                                                 ; b045: a6 9e       ..             ; Read updated workspace lo
+    inc nfs_workspace                                                 ; b047: e6 9e       ..             ; Advance workspace
+    inc osword_flag                                                   ; b049: e6 aa       ..             ; Increment osword_flag (palette index)
     dey                                                               ; b04b: 88          .              ; Y=0
-    lda osword_flag                                                   ; b04c: a5 aa       ..             ; Read updated osword_flag; Load counter
-    cpx #&f9                                                          ; b04e: e0 f9       ..             ; Compare with &F9 (last palette entry); Reached &F9 workspace limit?
-    bne loop_read_palette                                             ; b050: d0 df       ..             ; Not done: loop; No: read next palette entry
-    pla                                                               ; b052: 68          h              ; Restore outer saved; Discard last ULA value
-    sty osword_flag                                                   ; b053: 84 aa       ..             ; Reset osword_flag = 0 after palette loop; Clear counter
-    inc nfs_workspace                                                 ; b055: e6 9e       ..             ; Advance workspace; Advance workspace ptr
-    jsr serialise_palette_entry                                       ; b057: 20 66 b0     f.            ; Serialise the next palette entry; Store extra palette info
-    inc nfs_workspace                                                 ; b05a: e6 9e       ..             ; Advance workspace; Advance workspace ptr again
-    pla                                                               ; b05c: 68          h              ; Restore final saved; Restore original table_idx
-    sta osword_flag                                                   ; b05d: 85 aa       ..             ; Save osword_flag; Store restored counter
+    lda osword_flag                                                   ; b04c: a5 aa       ..             ; Read updated osword_flag
+    cpx #&f9                                                          ; b04e: e0 f9       ..             ; Compare with &F9 (last palette entry)
+    bne loop_read_palette                                             ; b050: d0 df       ..             ; Not done: loop
+    pla                                                               ; b052: 68          h              ; Restore outer saved
+    sty osword_flag                                                   ; b053: 84 aa       ..             ; Reset osword_flag = 0 after palette loop
+    inc nfs_workspace                                                 ; b055: e6 9e       ..             ; Advance workspace
+    jsr serialise_palette_entry                                       ; b057: 20 66 b0     f.            ; Serialise the next palette entry
+    inc nfs_workspace                                                 ; b05a: e6 9e       ..             ; Advance workspace
+    pla                                                               ; b05c: 68          h              ; Restore final saved
+    sta osword_flag                                                   ; b05d: 85 aa       ..             ; Save osword_flag
 ; ***************************************************************************************
 ; Copy current state byte to committed state
 ;
@@ -12721,7 +12729,7 @@ cmd_cdir = cmd_cdir_indirect_dispatch+1
     stx hazel_txcb_data                                               ; b0c0: 8e 05 c1    ...            ; Store allocation size index
     pla                                                               ; b0c3: 68          h              ; Restore command line offset
     tay                                                               ; b0c4: a8          .              ; Transfer to Y
-    jsr save_ptr_to_os_text                                           ; b0c5: 20 73 b3     s.            ; Save text pointer for filename parse; Print 'File'
+    jsr save_ptr_to_os_text                                           ; b0c5: 20 73 b3     s.            ; Save text pointer for filename parse
     jsr parse_filename_arg                                            ; b0c8: 20 2c b2     ,.            ; Parse directory name argument
     ldx #1                                                            ; b0cb: a2 01       ..             ; X=1: one argument to copy
     jsr copy_arg_to_buf                                               ; b0cd: 20 a1 b2     ..            ; Copy directory name to TX buffer
@@ -12760,10 +12768,10 @@ cdir_size_thresholds = cdir_dispatch_col+2
     equb &a7                                                          ; b0e6: a7          .              ; Index 18: threshold 167
     equb &b1                                                          ; b0e7: b1          .              ; Index 19: threshold 177
     equb &bb                                                          ; b0e8: bb          .
-    equb &c5                                                          ; b0e9: c5          .              ; Index 21: threshold 197; Return
+    equb &c5                                                          ; b0e9: c5          .              ; Index 21: threshold 197
     equb &cf                                                          ; b0ea: cf          .
     equb &d8                                                          ; b0eb: d8          .              ; Index 23: threshold 216
-    equb &e2                                                          ; b0ec: e2          .              ; Index 24: threshold 226; Read station low
+    equb &e2                                                          ; b0ec: e2          .              ; Index 24: threshold 226
     equb &ec                                                          ; b0ed: ec          .              ; Index 25: threshold 236
 ; &b0ee referenced 1 time by &8f84
 .cdir_size_done
@@ -12784,8 +12792,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; dispatch path)
 .cmd_lcat
     ror hazel_fs_lib_flags                                            ; b0f2: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7
-    sec                                                               ; b0f5: 38          8              ; Set carry (= library directory); Return
-    bcs cat_set_lib_flag                                              ; b0f6: b0 29       .)             ; Pop return address low
+    sec                                                               ; b0f5: 38          8              ; Set carry (= library directory)
+    bcs cat_set_lib_flag                                              ; b0f6: b0 29       .)             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; *LEx command handler
@@ -12799,7 +12807,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .cmd_lex
     ror hazel_fs_lib_flags                                            ; b0f8: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7
     sec                                                               ; b0fb: 38          8              ; Set carry (= library directory)
-    bcs ex_set_lib_flag                                               ; b0fc: b0 09       ..             ; Push 0 as end-of-list marker
+    bcs ex_set_lib_flag                                               ; b0fc: b0 09       ..             ; ALWAYS branch
 
 .ps_scan_resume
     jsr set_text_and_xfer_ptr                                         ; b0fe: 20 d3 93     ..            ; Set OS text pointer and FS-options transfer ptr
@@ -12816,18 +12824,18 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ;
 ; On Entry: Y: command line offset in text pointer
 .cmd_ex
-    ror hazel_fs_lib_flags                                            ; b103: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7; Shift PS slot flags right
-    clc                                                               ; b106: 18          .              ; Clear carry (= current directory); Counter: 3 PS slots
+    ror hazel_fs_lib_flags                                            ; b103: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7
+    clc                                                               ; b106: 18          .              ; Clear carry (= current directory)
 ; &b107 referenced 1 time by &b0fc
 .ex_set_lib_flag
     rol hazel_fs_lib_flags                                            ; b107: 2e 71 c2    .q.            ; Rotate carry back, clearing bit 7
     lda #&ff                                                          ; b10a: a9 ff       ..             ; A=&FF: initial column counter
     sta fs_spool_handle                                               ; b10c: 85 ba       ..             ; Store column counter
-    lda #1                                                            ; b10e: a9 01       ..             ; One entry per line (Ex format); To get slot offset
-    sta fs_work_7                                                     ; b110: 85 b7       ..             ; Store entries per page; Read slot status byte
-    lda #3                                                            ; b112: a9 03       ..             ; FS command code 3: Examine; Zero: empty slot, done
-    sta fs_work_5                                                     ; b114: 85 b5       ..             ; Store command code; Is it processed marker (&3F)?
-    bne setup_ex_request                                              ; b116: d0 16       ..             ; Yes: re-initialise this slot
+    lda #1                                                            ; b10e: a9 01       ..             ; One entry per line (Ex format)
+    sta fs_work_7                                                     ; b110: 85 b7       ..             ; Store entries per page
+    lda #3                                                            ; b112: a9 03       ..             ; FS command code 3: Examine
+    sta fs_work_5                                                     ; b114: 85 b5       ..             ; Store command code
+    bne setup_ex_request                                              ; b116: d0 16       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; FSCV reason 5: catalogue (*CAT)
@@ -12837,10 +12845,10 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; and falls through to cat_set_lib_flag to issue the FS examine request. Reached via
 ; the FSCV vector with reason code 5.
 .fscv_5_cat
-    jsr set_xfer_params                                               ; b118: 20 d7 93     ..            ; Set transfer parameters; Try next slot
+    jsr set_xfer_params                                               ; b118: 20 d7 93     ..            ; Set transfer parameters
     ldy #0                                                            ; b11b: a0 00       ..             ; Y=0: start from entry 0
-    ror hazel_fs_lib_flags                                            ; b11d: 6e 71 c2    nq.            ; Rotate carry into lib flag; Push slot offset for scan list
-    clc                                                               ; b120: 18          .              ; Clear carry (= current directory); Write status byte
+    ror hazel_fs_lib_flags                                            ; b11d: 6e 71 c2    nq.            ; Rotate carry into lib flag
+    clc                                                               ; b120: 18          .              ; Clear carry (= current directory)
 ; &b121 referenced 1 time by &b0f6
 .cat_set_lib_flag
     rol hazel_fs_lib_flags                                            ; b121: 2e 71 c2    .q.            ; Rotate carry back, clearing bit 7
@@ -12848,15 +12856,15 @@ cdir_size_thresholds = cdir_dispatch_col+2
     sta fs_spool_handle                                               ; b126: 85 ba       ..             ; Store column counter
     sta fs_work_7                                                     ; b128: 85 b7       ..             ; Store entries per page
     lda #&0b                                                          ; b12a: a9 0b       ..             ; FS command code &0B: Catalogue
-    sta fs_work_5                                                     ; b12c: 85 b5       ..             ; Store command code; Get current scan page
+    sta fs_work_5                                                     ; b12c: 85 b5       ..             ; Store command code
 ; &b12e referenced 1 time by &b116
 .setup_ex_request
-    jsr save_ptr_to_os_text                                           ; b12e: 20 73 b3     s.            ; Save text pointer; Write RX buffer page low
-    lda #&ff                                                          ; b131: a9 ff       ..             ; A=&FF: enable escape checking; Save processor status
+    jsr save_ptr_to_os_text                                           ; b12e: 20 73 b3     s.            ; Save text pointer
+    lda #&ff                                                          ; b131: a9 ff       ..             ; A=&FF: enable escape checking
     sta need_release_tube                                             ; b133: 85 98       ..             ; Set escapable flag
-    lda #6                                                            ; b135: a9 06       ..             ; Command code 6; Update scan position
-    sta hazel_txcb_data                                               ; b137: 8d 05 c1    ...            ; Store in TX buffer; Write buffer page + &FF bytes
-    jsr parse_filename_arg                                            ; b13a: 20 2c b2     ,.            ; Parse directory argument; Get updated scan position
+    lda #6                                                            ; b135: a9 06       ..             ; Command code 6
+    sta hazel_txcb_data                                               ; b137: 8d 05 c1    ...            ; Store in TX buffer
+    jsr parse_filename_arg                                            ; b13a: 20 2c b2     ,.            ; Parse directory argument
     ldx #1                                                            ; b13d: a2 01       ..             ; X=1: offset in buffer
     jsr copy_arg_to_buf                                               ; b13f: 20 a1 b2     ..            ; Copy argument to TX buffer
     lda hazel_fs_lib_flags                                            ; b142: ad 71 c2    .q.            ; Get library/FS flags
@@ -12865,50 +12873,46 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ora #&40 ; '@'                                                    ; b148: 09 40       .@             ; Set bit 6 (owner access flag)
 ; &b14a referenced 1 time by &b146
 .store_owner_flags
-    rol a                                                             ; b14a: 2a          *              ; Rotate back; Restore return address low
+    rol a                                                             ; b14a: 2a          *              ; Rotate back
     sta hazel_fs_lib_flags                                            ; b14b: 8d 71 c2    .q.            ; Store modified flags
     ldy #&12                                                          ; b14e: a0 12       ..             ; Y=&12: FS command for examine
     jsr save_net_tx_cb                                                ; b150: 20 8a 97     ..            ; Send request to file server
-    ldx #3                                                            ; b153: a2 03       ..             ; X=3: offset to directory title; Decrement Y (inner loop)
+    ldx #3                                                            ; b153: a2 03       ..             ; X=3: offset to directory title
     jsr print_10_chars                                                ; b155: 20 1a b2     ..            ; Print directory title (10 chars)
     jsr print_inline_no_spool                                         ; b158: 20 8a 92     ..            ; Print '('
-    equs "("                                                          ; b15b: 28          (              ; Outer loop: ~1000 delay cycles
+    equs "("                                                          ; b15b: 28          (
 
     lda hazel_txcb_objtype                                            ; b15c: ad 13 c1    ...            ; Load FS object-type code from hazel_txcb_objtype (file/dir/etc)
-    jsr print_decimal_3dig_no_spool                                   ; b15f: 20 03 b3     ..            ; Get buffer page
+    jsr print_decimal_3dig_no_spool                                   ; b15f: 20 03 b3     ..
     jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..            ; Print ') ' to close the type-code field
-    equs ")     "                                                     ; b165: 29 20 20... )              ; Advance Y
+    equs ")     "                                                     ; b165: 29 20 20... )
 
     ldy hazel_txcb_type                                               ; b16b: ac 12 c1    ...            ; Read hazel_txcb_type (FS reply opcode)
     bne print_public_label                                            ; b16e: d0 0b       ..             ; Non-zero (private library): take the public-label branch
     jsr print_inline_no_spool                                         ; b170: 20 8a 92     ..            ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own            ; End of PS name field (&20)?; No: continue pushing
+    equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own
 
     bne cat_after_label_print                                         ; b179: d0 0a       ..             ; Non-zero: branch to cat_after_label_print
 ; &b17b referenced 1 time by &b16e
 .print_public_label
     jsr print_inline_no_spool                                         ; b17b: 20 8a 92     ..            ; Print 'Public' + CR
-    equs "Public", &0d                                                ; b17e: 50 75 62... Pub            ; Copy RX page to TX
+    equs "Public", &0d                                                ; b17e: 50 75 62... Pub
 
 ; &b185 referenced 1 time by &b179
 .cat_after_label_print
     lda hazel_fs_lib_flags                                            ; b185: ad 71 c2    .q.            ; Read hazel_fs_lib_flags
     pha                                                               ; b188: 48          H              ; Push for stack-based saves
-    jsr mask_owner_access                                             ; b189: 20 cf b2     ..            ; Mask owner access bits; Copy 4 header bytes
+    jsr mask_owner_access                                             ; b189: 20 cf b2     ..            ; Mask owner access bits
     ldy #&15                                                          ; b18c: a0 15       ..             ; Y=&15: FS command for dir info
-    jsr save_net_tx_cb                                                ; b18e: 20 8a 97     ..            ; Send request to file server; Store in TX buffer
-    inx                                                               ; b191: e8          .              ; Advance X past header; Loop until all 4 copied
+    jsr save_net_tx_cb                                                ; b18e: 20 8a 97     ..            ; Send request to file server
+    inx                                                               ; b191: e8          .              ; Advance X past header
     ldy #&10                                                          ; b192: a0 10       ..             ; Y=&10: print 16 chars
-; Printer server TX header template
-;
-; 4-byte header copied to the TX control block by reverse_ps_name_to_tx. Sets up an
-; immediate transmit on port &9F (PS port) to any station.
-    jsr print_chars_from_buf                                          ; b194: 20 1c b2     ..            ; Print file entry; Control byte &80 (immediate TX)
-    jsr print_inline_no_spool                                         ; b197: 20 8a 92     ..            ; Print ' Option '; Network &FF (any)
-    equs "    Option "                                                ; b19a: 20 20 20...                ; Print network as 3 digits; '.' separator
+    jsr print_chars_from_buf                                          ; b194: 20 1c b2     ..            ; Print file entry
+    jsr print_inline_no_spool                                         ; b197: 20 8a 92     ..            ; Print ' Option '
+    equs "    Option "                                                ; b19a: 20 20 20...
 
     lda hazel_fs_flags                                                ; b1a5: ad 05 c0    ...            ; Read hazel_fs_flags
-    tax                                                               ; b1a8: aa          .              ; Transfer to X for table lookup; V set: skip padding spaces
+    tax                                                               ; b1a8: aa          .              ; Transfer to X for table lookup
     jsr print_hex_byte_no_spool                                       ; b1a9: 20 4c 92     L.            ; Print option as hex
     jsr print_inline_no_spool                                         ; b1ac: 20 8a 92     ..            ; Print ' ('
     equs " ("                                                         ; b1af: 20 28        (
@@ -12924,7 +12928,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b1bf referenced 1 time by &b1b7
 .print_dir_header
     jsr print_inline_no_spool                                         ; b1bf: 20 8a 92     ..            ; Print ')\rDir. ' header for the directory listing
-    equs ")", &0d, "Dir. "                                            ; b1c2: 29 0d 44... ).D            ; Reply buffer end hi (placeholder)
+    equs ")", &0d, "Dir. "                                            ; b1c2: 29 0d 44... ).D
 
     ldx #&11                                                          ; b1c9: a2 11       ..             ; X=&11: filename offset in TX buffer
     jsr print_10_chars                                                ; b1cb: 20 1a b2     ..            ; Print 10-char filename

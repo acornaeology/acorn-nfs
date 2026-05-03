@@ -5356,17 +5356,30 @@ current-boot-type slot (`hazel_fs_flags`) and the FCB-flags table. Pushes
 the boot type for the fall-through into `fsreply_2_copy_handles`
 which copies the per-handle table.""")
 subroutine(0xA6E5, "fsreply_2_copy_handles",
-    title="FS reply 2: copy per-station handle table",
+    title="FS reply 2: install handles and (optionally) boot",
     description="""\
-Iterates over the 16-entry station table, looking up each station
-by network and bit number via
-[`find_station_bit2`](address:A644) and
-[`find_station_bit3`](address:A66F), then setting the matching
-slot's boot configuration via
-[`flip_set_station_boot`](address:A6A6). Restores the saved boot-
-type via `PLP`/`PLA`. Reached only via the FS reply dispatch
+Records the file-server / printer-server / library handles from
+the I-AM reply into the station table by calling
+[`find_station_bit2`](address:A644),
+[`find_station_bit3`](address:A66F), and
+[`flip_set_station_boot`](address:A6A6) in turn with the three
+handle bytes loaded from the TXCB reply
+([`hazel_txcb_data`](address:C105),
+[`hazel_txcb_flag`](address:C106),
+[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across
+the calls: when Carry is clear on entry the routine returns via
+[`return_with_last_flag`](address:9FB4); when Carry is set it
+continues into the boot path at
+[`fsreply_2_handle_loop`](address:A70B), which OSCLIs
+`-NET-FindLib`, optionally calls
+[`osbyte_make_temporary_filing_system_permanent`](address:FFF4),
+clears the auto-boot flag in
+[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
+falls through to [`boot_suffix_string`](address:A75F) to execute
+the !Boot command. Reached only via the FS reply dispatch
 table.""",
-    on_entry={"a": "boot-type byte (saved on stack at entry)"})
+    on_entry={"a": "boot-type byte (saved on stack at entry)",
+              "carry": "set when boot processing should follow"})
 subroutine(0xA764, "boot_cmd_oscli",
     title="Look up boot command in boot_prefix_string table and OSCLI it",
     description="""\
@@ -5480,15 +5493,18 @@ subroutine(0xAA82, "copy_pb_byte_to_ws",
 subroutine(0xA910, "osword_10_handler",
     title="OSWORD &10 handler: send network packet",
     description="""\
-Initiates a TX by setting `tx_complete_flag` via `ASL` (clearing
-the flag and propagating bit 7 to carry), then dispatches:
-`C=1` (set if no TX in progress) routes to
-`setup_ws_rx_ptrs` to configure the receive-side workspace
-pointers from `net_rx_ptr_hi`; `C=0` (TX in progress) stores
-`Y=&20` (TX-buffer status offset) and marks the packet as pending
-(`&FF`) in the workspace.""",
-    on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
-    on_exit={"a": "0 = success, &FF = TX pending"})
+ASL on [`tx_complete_flag`](address:0D60) shifts the old bit 7
+into Carry. When that bit was clear (`C=0`, TX in progress) the
+handler stores Y back through the parameter-block pointer at
+`(ws_ptr_hi),Y` and RTS, leaving the caller a status byte. When
+it was set (`C=1`, TX idle) execution falls through to the start
+path at [`setup_ws_rx_ptrs`](address:A919), which seeds the
+workspace pointers from
+[`net_rx_ptr_hi`](address:009D)/`#&6F`, copies 16 bytes of the
+parameter block into the workspace via
+[`copy_pb_byte_to_ws`](address:AA82) and JMPs to
+[`tx_begin`](address:8589) to launch the transmission.""",
+    on_entry={"x, y": "OSWORD parameter block pointer (low, high)"})
 subroutine(0xA92D, "osword_11_handler",
     title="OSWORD &11 handler: receive network packet",
     description="""\
@@ -10209,7 +10225,7 @@ comment(0x9961, "Loop until X wraps", inline=True)
 comment(0xA3B8, "Print 'File server is ' fragment", inline=True)
 comment(0xA5B8, "A=&93: error code 'Bad command'", inline=True)
 comment(0xA638, "Find station-bit-3 entry", inline=True)
-comment(0xA63E, "Set boot-station flag bit", inline=True)
+comment(0xA63E, "Record library station in station table", inline=True)
 comment(0xA6D8, "A=&40: protection-level marker", inline=True)
 comment(0xA6E4, "Save state", inline=True)
 comment(0xA9D6, "Step back", inline=True)
@@ -12839,14 +12855,15 @@ subroutine(0xB103, "cmd_ex",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA69A, "cmd_flip",
     title="*Flip command handler",
-    description="Exchanges the CSD and CSL (library) handles.\n"
-    "Saves the current CSD handle (&0E03), loads the\n"
-    "library handle (&0E04) into Y, and calls\n"
-    "find_station_bit3 to install it as the new CSD.\n"
-    "Restores the original CSD handle and falls through\n"
-    "to flip_set_station_boot to install it as the new\n"
-    "library. Useful when files to be LOADed are in the\n"
-    "library and *DIR/*LIB would be inconvenient.",
+    description="""\
+Exchanges the CSD and CSL (library) handles. Saves the current
+CSD handle from [`hazel_fs_context_copy`](address:C003), loads
+the library handle from [`hazel_fs_prefix_stn`](address:C004)
+into Y, and calls [`find_station_bit3`](address:A66F) to install
+it as the new CSD. Restores the original CSD handle and falls
+through to [`flip_set_station_boot`](address:A6A6) to install
+it as the new library. Useful when files to be LOADed are in
+the library and *DIR/*LIB would be inconvenient.""",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xA398, "cmd_fs",
     title="*FS command handler",
@@ -14146,81 +14163,14 @@ comment(0xAE92, "Y=0: start of command line", inline=True)
 
 # parse_filename_arg (&AE82)
 
-# NOTE: An 18-line block of stale 4.18 cmd_ps PS-status comments at
-# &B099..&B0C4 was deleted here. Those addresses now hold cmd_cdir
-# (which has its own correct comments at the cmd_cdir parser block
-# higher up around &B0A0..&B0CD). The 4.18 cmd_ps body moved to
-# cmd_ps at &B3AC in 4.21.
-
-# print_file_server_is (&B0A1)
-comment(0xB0C5, "Print 'File'", inline=True)
-
-# print_printer_server_is (&B0AB)
-comment(0xB0E9, "Return", inline=True)
-
-# load_ps_server_addr (&B0C6) — load PS address from workspace
-comment(0xB0EC, "Read station low", inline=True)
-comment(0xB0F5, "Return", inline=True)
-
-# pop_requeue_ps_scan (&B0D2) — requeue print server scan
-comment(0xB0F6, "Pop return address low", inline=True)
-comment(0xB0FC, "Push 0 as end-of-list marker", inline=True)
-comment(0xB103, "Shift PS slot flags right", inline=True)
-comment(0xB106, "Counter: 3 PS slots", inline=True)
-
-# Slot scanning loop
-comment(0xB10E, "To get slot offset", inline=True)
-comment(0xB110, "Read slot status byte", inline=True)
-comment(0xB112, "Zero: empty slot, done", inline=True)
-comment(0xB114, "Is it processed marker (&3F)?", inline=True)
-comment(0xB116, "Yes: re-initialise this slot", inline=True)
-comment(0xB118, "Try next slot", inline=True)
-
-# Re-initialise PS slot
-comment(0xB11D, "Push slot offset for scan list", inline=True)
-comment(0xB120, "Write status byte", inline=True)
-comment(0xB12C, "Get current scan page", inline=True)
-comment(0xB12E, "Write RX buffer page low", inline=True)
-comment(0xB131, "Save processor status", inline=True)
-comment(0xB135, "Update scan position", inline=True)
-comment(0xB137, "Write buffer page + &FF bytes", inline=True)
-comment(0xB13A, "Get updated scan position", inline=True)
-
-# Done scanning: restore return addr and delay
-comment(0xB14A, "Restore return address low", inline=True)
-comment(0xB153, "Decrement Y (inner loop)", inline=True)
-comment(0xB15B, "Outer loop: ~1000 delay cycles", inline=True)
-
-# write_ps_slot_byte_ff (&B13A) — write page + two &FF bytes
-comment(0xB15F, "Get buffer page", inline=True)
-comment(0xB165, "Advance Y", inline=True)
-
-# reverse_ps_name_to_tx (&B149) — reverse PS name for TX buffer
-comment(0xB173, "End of PS name field (&20)?", inline=True)
-comment(0xB175, "No: continue pushing", inline=True)
-comment(0xB181, "Copy RX page to TX", inline=True)
-comment(0xB189, "Copy 4 header bytes", inline=True)
-comment(0xB18E, "Store in TX buffer", inline=True)
-comment(0xB191, "Loop until all 4 copied", inline=True)
-
-# ps_tx_header_template (&B170): 4-byte PS transmit header.
-comment(0xB194, "Printer server TX header template\n"
-    "\n"
-    "4-byte header copied to the TX control block by\n"
-    "reverse_ps_name_to_tx. Sets up an immediate\n"
-    "transmit on port &9F (PS port) to any station.")
-comment(0xB194, "Control byte &80 (immediate TX)", inline=True)
-comment(0xB197, "Network &FF (any)", inline=True)
-
-# print_station_addr (&B174) — print net.station address
-comment(0xB19D, "Print network as 3 digits", inline=True)
-comment(0xB1A0, "'.' separator", inline=True)
-comment(0xB1A8, "V set: skip padding spaces", inline=True)
-
-# &B1B7 in 4.21 is mid-instruction data inside the preceding
-# print-station code; the actual ps_slot_txcb_template lives at
-# &B575 with its own block of inline comments.
-comment(0xB1C2, "Reply buffer end hi (placeholder)", inline=True)
+# NOTE: A larger block of stale 4.18 cmd_ps / PS-scan / PS-template
+# inline commentary covering &B0C5..&B1C2 was deleted here. Those
+# 4.18 routines (print_file_server_is, print_printer_server_is,
+# load_ps_server_addr, pop_requeue_ps_scan, slot-scan loop,
+# write_ps_slot_byte_ff, reverse_ps_name_to_tx, ps_tx_header_template,
+# print_station_addr) shifted address in 4.21 and now collide with
+# cmd_cdir / cmd_lcat / cmd_lex / cmd_ex / fscv_5_cat. Each of those
+# 4.21 routines has its own correct inline block elsewhere.
 
 # cmd_bye (&948A) — *Bye: logoff from file server
 comment(0x94A3, "OSBYTE &77: close spool/exec", inline=True)
@@ -14743,11 +14693,11 @@ comment(0xA90B, "Count down binary value", inline=True)
 comment(0xA90C, "Loop until zero", inline=True)
 comment(0xA90E, "Restore flags (clears decimal mode)", inline=True)
 comment(0xA90F, "Return with BCD result in A", inline=True)
-comment(0xA910, "Shift ws_0d60 left (status flag)", inline=True)
+comment(0xA910, "ASL tx_complete_flag: old bit 7 -> C", inline=True)
 comment(0xA913, "A = Y (saved index)", inline=True)
-comment(0xA914, "C=1: transmit active path", inline=True)
-comment(0xA916, "C=0: store Y to parameter block", inline=True)
-comment(0xA918, "Return (transmit not active)", inline=True)
+comment(0xA914, "C=1 (TX idle): start new transmission", inline=True)
+comment(0xA916, "C=0 (TX busy): write status byte back to PB", inline=True)
+comment(0xA918, "Return (TX still in progress)", inline=True)
 comment(0xA919, "Set workspace high byte", inline=True)
 comment(0xA91B, "Copy to ws_ptr_lo", inline=True)
 comment(0xA91D, "Also set as NMI TX block high", inline=True)
@@ -15474,43 +15424,12 @@ comment(0xB014, "buf start ext lo=&FF", inline=True)
 comment(0xB015, "buf start ext hi=&FF", inline=True)
 comment(0xB018, "buf end ext lo=&FF", inline=True)
 comment(0xB019, "buf end ext hi=&FF", inline=True)
-comment(0xB01A, "Save table_idx counter", inline=True)
-comment(0xB01C, "Push for later restore", inline=True)
-comment(0xB01D, "Set workspace low to &E9", inline=True)
-comment(0xB01F, "Store to nfs_workspace low", inline=True)
-comment(0xB021, "Y=0: initial palette index", inline=True)
-comment(0xB023, "Clear palette counter", inline=True)
-comment(0xB025, "Load current screen mode", inline=True)
-comment(0xB028, "Store mode to workspace", inline=True)
-comment(0xB02A, "Advance workspace ptr", inline=True)
-comment(0xB02C, "Load video ULA copy", inline=True)
-comment(0xB02F, "Save for later restore", inline=True)
+# &B01A-&B05D inlines: see deliberate review block above (lang_2_save_palette_vdu)
 comment(0xB030, "A=0 for first palette entry", inline=True)
-comment(0xB031, "Store logical colour to workspace", inline=True)
-comment(0xB033, "X = workspace ptr low", inline=True)
-comment(0xB035, "Y = workspace ptr high", inline=True)
-comment(0xB037, "OSWORD &0B: read palette", inline=True)
 comment(0xB039, "Read palette entry", inline=True)
-comment(0xB03C, "Restore previous ULA value", inline=True)
-comment(0xB03D, "Y=0: reset index", inline=True)
-comment(0xB03F, "Store ULA value to workspace", inline=True)
 comment(0xB041, "Y=1: physical colour offset", inline=True)
-comment(0xB042, "Load physical colour", inline=True)
 comment(0xB044, "Save for next iteration", inline=True)
-comment(0xB045, "X = workspace ptr", inline=True)
-comment(0xB047, "Advance workspace ptr", inline=True)
-comment(0xB049, "Advance palette counter", inline=True)
 comment(0xB04B, "Y=0", inline=True)
-comment(0xB04C, "Load counter", inline=True)
-comment(0xB04E, "Reached &F9 workspace limit?", inline=True)
-comment(0xB050, "No: read next palette entry", inline=True)
-comment(0xB052, "Discard last ULA value", inline=True)
-comment(0xB053, "Clear counter", inline=True)
-comment(0xB055, "Advance workspace ptr", inline=True)
-comment(0xB057, "Store extra palette info", inline=True)
-comment(0xB05A, "Advance workspace ptr again", inline=True)
-comment(0xB05C, "Restore original table_idx", inline=True)
-comment(0xB05D, "Store restored counter", inline=True)
 comment(0xB05F, "Load current state", inline=True)
 comment(0xB062, "Store as committed state", inline=True)
 comment(0xB066, "Load palette register value", inline=True)

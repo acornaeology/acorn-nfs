@@ -368,12 +368,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA1F3` `lookup_cat_slot_data` - description had pre-HAZEL '&1030+X' reference and inline at &A1F6 referenced wrong label fcb_net_or_port (the actual access is hazel_fcb_slot_attr at &C230); both fixed
 - [x] `0xA29F` `write_block_entry` - description matches body
 - [x] `0xA638` `fsreply_3_set_csd` - description matches body
-- [ ] `0xA63E` `fsreply_5_set_lib`
-- [ ] `0xA69A` `cmd_flip`
-- [ ] `0xA6E5` `fsreply_2_copy_handles`
-- [ ] `0xA910` `osword_10_handler`
-- [ ] `0xB01A` `lang_2_save_palette_vdu`
-- [ ] `0xB0A1` `cmd_cdir`
+- [x] `0xA63E` `fsreply_5_set_lib` -- inline at &A63E was misleading 'boot' wording for the library handler -- replaced
+- [x] `0xA69A` `cmd_flip` -- description had pre-HAZEL &0E03/&0E04 references; updated to hazel_fs_context_copy/hazel_fs_prefix_stn with linked refs
+- [x] `0xA6E5` `fsreply_2_copy_handles` -- description only described the called routine's table walk; rewrote to cover handle-recording phase + carry-driven boot path
+- [x] `0xA910` `osword_10_handler` -- description had wrong Carry direction and called label 'setup_ws_rx_ptrs' configuring 'receive-side' pointers (actually TX-start path); rewrote, fixed three inlines
+- [x] `0xB01A` `lang_2_save_palette_vdu` -- duplicate inlines for entire routine (B01A-B05D) collapsed; deliberate review block kept
+- [x] `0xB0A1` `cmd_cdir` -- deleted ~70-line stale 4.18 inline block at lines 14172-14240 (PS-scan / PS-template / print-station inlines) misapplied to addresses now in cmd_cdir/cmd_lcat/cmd_lex/cmd_ex/fscv_5_cat -- removed 59 dupe-inlines from the count
 - [ ] `0xB2E4` `ex_print_col_sep`
 - [ ] `0xB303` `print_decimal_3dig_no_spool`
 - [ ] `0xB338` `print_decimal_digit`
