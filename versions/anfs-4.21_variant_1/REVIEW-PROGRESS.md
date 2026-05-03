@@ -83,12 +83,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8B18` `save_text_ptr` - description matches body; note that the destinations fs_crc_lo/hi (&BE/&BF) double as OS-text-pointer save slots in this context
 - [x] `0x8B45` `svc_18_fs_select` - description's table mentions 'Bit 7 of fs_flags' check which actually happens in the fall-through routine ensure_fs_selected, not in this routine -- but the chain is correctly described
 - [ ] `0x8B4D` `ensure_fs_selected`
-- [ ] `0x8BC0` `help_utils`
-- [ ] `0x8BC4` `help_net`
-- [ ] `0x8BD5` `print_cmd_table_loop`
-- [ ] `0x8C25` `done_print_table`
-- [ ] `0x8C29` `help_wrap_if_serial`
-- [ ] `0x8CAD` `get_ws_page`
+- [x] `0x8BC0` `help_utils` - description matches body (X=0)
+- [x] `0x8BC4` `help_net` - description claimed X=&4A but body sets X=&35; corrected
+- [x] `0x8BD5` `print_cmd_table_loop` - description matches body's table walker
+- [x] `0x8C25` `done_print_table` - description matches body (PLP, PLA, TAY, RTS)
+- [x] `0x8C29` `help_wrap_if_serial` - description matches body's stream-mode dispatch
+- [x] `0x8CAD` `get_ws_page` - description gave wrong addresses for the ROL/PHP/ROR/PLP block (claimed &8CB7-&8CB9; actual &8CB3-&8CB6) and was vague about what bit is folded into the flags. Rewrote to be precise about the trick: the rotate sequence preserves A while leaving N set to bit 6 of the original byte (ADLC-absent flag)
 - [ ] `0x8CFD` `notify_new_fs`
 - [ ] `0x8CFF` `call_fscv`
 - [ ] `0x8D02` `issue_svc_15`

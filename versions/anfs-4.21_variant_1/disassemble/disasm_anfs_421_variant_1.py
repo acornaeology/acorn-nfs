@@ -3646,13 +3646,16 @@ station number.""",
 subroutine(0x8CAD, "get_ws_page",
     title="Read workspace page number for current ROM slot",
     description="""\
-Indexes into the MOS per-ROM workspace table at `&0DF0` using
-`romsel_copy` (`&F4`) as the ROM slot. Returns the allocated page
-number in both `A` and `Y` for caller convenience. A `ROL`/`PHP`/
-`ROR`/`PLP` trick at `&8CB7`–`&8CB9` also folds bit 7 of the slot
-flag back into `A` on exit (the ADLC-absent flag).""",
-    on_exit={"a": "workspace page number (with bit 7 = ADLC-absent flag)",
-             "y": "workspace page number (low 7 bits)"})
+Indexes into the MOS per-ROM workspace table
+[`rom_ws_pages`](address:0DF0) using `romsel_copy` (`&F4`) as
+the ROM slot. Holds a copy of the slot byte in `Y`, then runs a
+`ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CB3`–`&8CB6` that
+restores `A` to the original byte while leaving the saved-flags
+register reflecting bit 6 of the original byte (the ADLC-absent
+flag). Falls through to whichever caller-specific tail follows.""",
+    on_exit={"a": "workspace page byte (preserved through ROL/ROR)",
+             "y": "same byte (set by `TAY` before the rotate trick)",
+             "n": "set to bit 6 of the original byte (ADLC-absent flag)"})
 subroutine(0x8CBD, "setup_ws_ptr",
     title="Set up zero-page pointer to workspace page",
     description="""\
@@ -12944,7 +12947,7 @@ label(0x8BC0, "help_utils")
 subroutine(0x8BC4, "help_net",
     title="*HELP NET topic handler",
     description="""\
-Sets `X = &4A` (the NFS command sub-table offset) and falls
+Sets `X = &35` (the NFS command sub-table offset) and falls
 through to [`print_cmd_table`](address:8BC6) to display the
 NFS command list with version header.""",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},

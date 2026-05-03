@@ -3619,7 +3619,7 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; *HELP NET topic handler
 ;
-; Sets X = &4A (the NFS command sub-table offset) and falls through to print_cmd_table
+; Sets X = &35 (the NFS command sub-table offset) and falls through to print_cmd_table
 ; to display the NFS command list with version header.
 ;
 ; On Entry: Y: command-line offset (PHA/PHA/RTS dispatch contract)
@@ -3916,13 +3916,14 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Read workspace page number for current ROM slot
 ;
-; Indexes into the MOS per-ROM workspace table at &0DF0 using romsel_copy (&F4) as the
-; ROM slot. Returns the allocated page number in both A and Y for caller convenience. A
-; ROL/PHP/ ROR/PLP trick at &8CB7–&8CB9 also folds bit 7 of the slot flag back into A
-; on exit (the ADLC-absent flag).
+; Indexes into the MOS per-ROM workspace table rom_ws_pages using romsel_copy (&F4) as
+; the ROM slot. Holds a copy of the slot byte in Y, then runs a ROL / PHP / ROR / PLP
+; sequence at &8CB3–&8CB6 that restores A to the original byte while leaving the
+; saved-flags register reflecting bit 6 of the original byte (the ADLC-absent flag).
+; Falls through to whichever caller-specific tail follows.
 ;
-; On Exit: A: workspace page number (with bit 7 = ADLC-absent flag) Y: workspace page
-; number (low 7 bits)
+; On Exit: A: workspace page byte (preserved through ROL/ROR) Y: same byte (set by TAY
+; before the rotate trick) N: set to bit 6 of the original byte (ADLC-absent flag)
 ; &8cad referenced 4 times by &8b23, &8cbd, &8f2f, &b3a0
 .get_ws_page
     ldy romsel_copy                                                   ; 8cad: a4 f4       ..             ; Y = current ROM slot number from MOS copy at &F4
