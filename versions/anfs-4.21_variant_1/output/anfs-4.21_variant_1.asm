@@ -11182,9 +11182,10 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; Store A in both shadow ACR/IER bytes
 ;
-; Single caller during nfs_init_body (&8FA6): copies A to both ws_0d68 (shadow ACR) and
-; ws_0d69 (shadow IER), then RTS. The caller picks A=0 or A=&FF based on FS-options bit
-; 6, so the helper is just a 2-store-and-return convenience to keep the init body flat.
+; Copies A to both ws_0d68 (shadow ACR) and ws_0d69 (shadow IER), then RTS. Two
+; callers: nfs_init_body at &8FA6 (where A is 0 or &FF based on FS-options bit 6) and
+; cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return convenience to keep both
+; call sites flat.
 ;
 ; On Entry: A: value to mirror into both shadow VIA bytes
 ; &aabb referenced 2 times by &8fa6, &b6d9

@@ -183,18 +183,18 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xAA82` `copy_pb_byte_to_ws` - description's claim that 'C=0 uses the value already in A' is misleading -- the body BCC's away to copy_ws_byte_to_pb when C=0, so the C=0 path is workspace-to-PB direction (the inverse of C=1). Real dual-direction copy. Note added
 - [x] `0xAA91` `osword_13_read_ws_pair` - description matches body
 - [x] `0xAAB8` `osword_13_write_prot` - description compared against body, accurate
-- [ ] `0xAABB` `set_via_shadow_pair`
-- [ ] `0xAB43` `update_fcb_flag_bits`
-- [ ] `0xAB71` `osword_13_read_rx_port`
+- [x] `0xAABB` `set_via_shadow_pair` - description claimed 'single caller during nfs_init_body' but routine has 2 callers (nfs_init_body and cmd_prot); rewrote
+- [x] `0xAB43` `update_fcb_flag_bits` - description matches body's FCB-status scan-and-update loop
+- [x] `0xAB71` `osword_13_read_rx_port` - description matches body
 - [x] `0xAB7F` `osword_13_read_error` - description compared against body, accurate
-- [ ] `0xAB82` `store_a_to_pb_1`
+- [x] `0xAB82` `store_a_to_pb_1` - description matches body
 - [x] `0xAB86` `osword_13_read_context` - description compared against body, accurate
-- [ ] `0xAB8B` `osword_13_read_free_bufs`
-- [ ] `0xAB93` `osword_13_read_ctx_3`
-- [ ] `0xAB9E` `osword_13_write_ctx_3`
-- [ ] `0xACAD` `store_ptr_at_ws_y`
-- [ ] `0xAD15` `push_osword_handler_addr`
-- [ ] `0xAD20` `netv_dispatch_lo`
+- [x] `0xAB8B` `osword_13_read_free_bufs` - description matches body's &6F-spool_buf_idx free-count calculation
+- [x] `0xAB93` `osword_13_read_ctx_3` - description matches body's PB[1..3] = fs_flags+1..3 copy
+- [x] `0xAB9E` `osword_13_write_ctx_3` - description matches body
+- [x] `0xACAD` `store_ptr_at_ws_y` - description matches body
+- [x] `0xAD15` `push_osword_handler_addr` - description matches body's high-then-low PHA/PHA
+- [x] `0xAD20` `netv_dispatch_lo` - table description matches contents
 - [ ] `0xAD29` `netv_dispatch_hi`
 - [ ] `0xAD32` `osword_4_handler`
 - [ ] `0xADB8` `match_rx_code`

@@ -5568,11 +5568,12 @@ shadow ACR (`ws_0d68`) and shadow IER (`ws_0d69`).""")
 subroutine(0xAABB, "set_via_shadow_pair",
     title="Store A in both shadow ACR/IER bytes",
     description="""\
-Single caller during nfs_init_body (&8FA6): copies A to both
-ws_0d68 (shadow ACR) and ws_0d69 (shadow IER), then RTS. The
-caller picks A=0 or A=&FF based on FS-options bit 6, so the helper
-is just a 2-store-and-return convenience to keep the init body
-flat.""",
+Copies `A` to both `ws_0d68` (shadow ACR) and `ws_0d69` (shadow
+IER), then `RTS`. Two callers:
+[`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or
+`&FF` based on FS-options bit 6) and
+[`cmd_prot`](address:B6D2) at `&B6D9` (the *Prot path).
+A 2-store-and-return convenience to keep both call sites flat.""",
     on_entry={"a": "value to mirror into both shadow VIA bytes"})
 entry(0xAAC2)
 subroutine(0xAAC2, "osword_13_read_handles",
