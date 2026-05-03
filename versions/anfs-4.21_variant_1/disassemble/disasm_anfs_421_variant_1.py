@@ -16881,23 +16881,20 @@ comment(0x9B70, "Pull timeout", inline=True)
 comment(0x9B71, "Pull retry count", inline=True)
 comment(0x9B72, "Clear escapable flag and return", inline=True)
 
-# pass_txbuf_init_table (&9873) — pass-through TXCB template
-comment(0x9B75, "Pass-through TX buffer template (12 bytes)\n"
-    "\n"
-    "Overlaid onto the TX control block by\n"
-    "setup_pass_txbuf for pass-through operations.\n"
-    "Offsets marked &FD are skipped, preserving the\n"
-    "existing destination station and network. Buffer\n"
-    "addresses point into the NMI workspace area at\n"
-    "[`rx_src_stn`](address:0D3D) onwards. Original\n"
-    "TX buffer values are pushed on the stack and\n"
-    "restored after transmission.")
 comment(0x9B75, "Offset 0: ctrl = &88 (immediate TX)", inline=True)
 comment(0x9B76, "Offset 1: port = &00 (immediate op)", inline=True)
 comment(0x9B77, "Offset 2: &FD skip (preserve dest stn)", inline=True)
-comment(0x9B7A, "Offset 5: buf start hi (&0D) -> &0D3A", inline=True)
+comment(0x9B78, "Offset 3: &FD skip (preserve dest net)", inline=True)
+comment(0x9B79, "Offset 4: buf start lo (&3A)", inline=True)
+comment(0x9B7A, "Offset 5: buf start hi (&0D); buf start = &0D3A",
+    inline=True)
+comment(0x9B7B, "Offset 6: padding (&FF)", inline=True)
+comment(0x9B7C, "Offset 7: padding (&FF)", inline=True)
 comment(0x9B7D, "Offset 8: buf end lo (&3E)", inline=True)
-comment(0x9B80, "Offset 11: extended addr fill (&FF)", inline=True)
+comment(0x9B7E, "Offset 9: buf end hi (&0D); buf end = &0D3E",
+    inline=True)
+comment(0x9B7F, "Offset 10: padding (&FF)", inline=True)
+comment(0x9B80, "Offset 11: padding (&FF)", inline=True)
 
 # init_tx_ptr_for_pass: set up TX pointer for pass-through (&987F-&9886)
 comment(0x9B81, "Y=&C0: TX control block base (low)", inline=True)

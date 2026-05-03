@@ -7517,26 +7517,20 @@ bad_prefix_table = bad_str_anchor+1
 ; Offsets marked &FD are skipped, preserving the existing destination station and
 ; network. Buffer addresses point into the NMI workspace area at rx_src_stn onwards.
 ; Original TX buffer values are pushed on the stack and restored after transmission.
-; Pass-through TX buffer template (12 bytes)
-;
-; Overlaid onto the TX control block by setup_pass_txbuf for pass-through operations.
-; Offsets marked &FD are skipped, preserving the existing destination station and
-; network. Buffer addresses point into the NMI workspace area at rx_src_stn onwards.
-; Original TX buffer values are pushed on the stack and restored after transmission.
 ; &9b75 referenced 2 times by &9b8b, &9be5
 .pass_txbuf_init_table
     equb &88                                                          ; 9b75: 88          .              ; Offset 0: ctrl = &88 (immediate TX)
     equb 0                                                            ; 9b76: 00          .              ; Offset 1: port = &00 (immediate op)
     equb &fd                                                          ; 9b77: fd          .              ; Offset 2: &FD skip (preserve dest stn)
-    equb &fd                                                          ; 9b78: fd          .
-    equb &3a                                                          ; 9b79: 3a          :
-    equb &0d                                                          ; 9b7a: 0d          .              ; Offset 5: buf start hi (&0D) -> &0D3A
-    equb &ff                                                          ; 9b7b: ff          .
-    equb &ff                                                          ; 9b7c: ff          .
+    equb &fd                                                          ; 9b78: fd          .              ; Offset 3: &FD skip (preserve dest net)
+    equb &3a                                                          ; 9b79: 3a          :              ; Offset 4: buf start lo (&3A)
+    equb &0d                                                          ; 9b7a: 0d          .              ; Offset 5: buf start hi (&0D); buf start = &0D3A
+    equb &ff                                                          ; 9b7b: ff          .              ; Offset 6: padding (&FF)
+    equb &ff                                                          ; 9b7c: ff          .              ; Offset 7: padding (&FF)
     equb &3e                                                          ; 9b7d: 3e          >              ; Offset 8: buf end lo (&3E)
-    equb &0d                                                          ; 9b7e: 0d          .
-    equb &ff                                                          ; 9b7f: ff          .
-    equb &ff                                                          ; 9b80: ff          .              ; Offset 11: extended addr fill (&FF)
+    equb &0d                                                          ; 9b7e: 0d          .              ; Offset 9: buf end hi (&0D); buf end = &0D3E
+    equb &ff                                                          ; 9b7f: ff          .              ; Offset 10: padding (&FF)
+    equb &ff                                                          ; 9b80: ff          .              ; Offset 11: padding (&FF)
 
 ; ***************************************************************************************
 ; Set up TX pointer and send pass-through packet
