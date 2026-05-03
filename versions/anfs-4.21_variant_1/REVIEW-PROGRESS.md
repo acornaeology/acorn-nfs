@@ -32,11 +32,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x81B8` `data_rx_setup` - description compared against body, accurate
 - [x] `0x81C2` `nmi_data_rx` - description compared against body, accurate
 - [x] `0x81D6` `nmi_data_rx_net` - description compared against body, accurate
-- [ ] `0x81EC` `nmi_data_rx_skip`
-- [ ] `0x81F7` `install_data_rx_handler`
-- [ ] `0x8223` `nmi_data_rx_bulk`
-- [ ] `0x82F8` `ack_tx_write_dest`
-- [ ] `0x8316` `nmi_ack_tx_src`
+- [x] `0x81EC` `nmi_data_rx_skip` - description matches body; refined inline comment at &81EC (was 'Skip control and port bytes' but BIT actually tests SR2 RDA)
+- [x] `0x81F7` `install_data_rx_handler` - description claimed handlers at &8239/&8296 but bytes load &8223/&8291; rewrote desc and 4 inline comments
+- [x] `0x8223` `nmi_data_rx_bulk` - description matches body; inline comments accurate
+- [x] `0x82F8` `ack_tx_write_dest` - description was incomplete (stopped at TDRA error path); rewrote to cover success path; fixed inline comment claiming &8326 when target is &8316
+- [x] `0x8316` `nmi_ack_tx_src` - description claimed reads econet_station_id with INTOFF but body reads tx_src_stn workspace copy; corrected
 - [ ] `0x833F` `advance_rx_buffer_ptr`
 - [ ] `0x83EB` `set_nmi_rx_scout`
 - [ ] `0x8400` `copy_scout_to_buffer`

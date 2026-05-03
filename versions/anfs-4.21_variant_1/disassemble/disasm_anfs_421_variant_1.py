@@ -2504,19 +2504,22 @@ RDA, branches to [`nmi_error_dispatch`](address:8215).""")
 subroutine(0x81F7, "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="""\
-Selects between the normal bulk-RX handler at `&8239` and the Tube
-RX handler based on bit 1 of `rx_src_net` (`tx_flags`).
+Selects between the normal bulk-RX handler at
+[`nmi_data_rx_bulk`](address:8223) and the Tube RX handler at
+[`nmi_data_rx_tube`](address:8291) based on bit 1 of
+`rx_src_net` (`tx_flags`).
 
 | `rx_src_net` bit 1 | Handler |
 |---|---|
-| clear | bulk read at `&8239` ([`nmi_data_rx_bulk`](address:8223) entry) |
-| set   | Tube RX handler |
+| clear | [`nmi_data_rx_bulk`](address:8223) (`A=&23`, `Y=&82`) |
+| set   | [`nmi_data_rx_tube`](address:8291) (`A=&91`, `Y=&82`) |
 
-In normal mode, after loading the handler address, checks `SR1`
+In the bulk path, after loading the handler address, checks `SR1`
 bit 7. If `IRQ` is already asserted (more data waiting), jumps
 directly to [`nmi_data_rx_bulk`](address:8223) to avoid NMI
 re-entry overhead. Otherwise installs the handler via
-`set_nmi_vector` and returns via `RTI`.""")
+[`set_nmi_vector`](address:0D0E) (the `(A,Y)` pair becomes the
+NMI dispatch target) and returns via `RTI`.""")
 subroutine(0x8215, "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="""\
@@ -2569,28 +2572,38 @@ NMI handler from `nmi_next_lo` / `nmi_next_hi` (`&0D4B` / `&0D4C`,
 saved by the scout/data RX handler) and sends TX_LAST_DATA
 (`CR2=&3F`) to close the frame.""")
 subroutine(0x82F8, "ack_tx_write_dest",
-    title="Save next NMI vector and write dest stn to ADLC",
+    title="Begin ACK transmit: write destination address to ADLC",
     description="""\
-Saves `(A=lo, Y=hi)` of the next NMI handler into `saved_nmi_lo` /
-`saved_nmi_hi`, then loads the dest-station byte from `scout_buf`
-and tests `SR1` bit 6 (`TDRA`) via `BIT econet_control1_or_status1`.
-A clear `TDRA` branches to `dispatch_nmi_error` to abort the ACK
-sequence.
+First step of the four-byte ACK frame transmission. Saves the
+caller-supplied `(A=lo, Y=hi)` next-NMI handler address into
+`saved_nmi_lo` / `saved_nmi_hi`, loads the destination station
+from [`scout_buf`](address:0D2E) and tests `SR1` bit 6 (`TDRA`,
+TX Data Register Available) via `BIT adlc_cr1`. If `TDRA` is
+clear the TX FIFO isn't ready and control branches to
+[`dispatch_nmi_error`](address:833C) to abort.
 
-Two callers: [`send_data_rx_ack`](address:81A7)'s tail `JMP`
-(`&81B5`) and [`imm_op_build_reply`](address:84F9) at
-`&84F6`.""",
+When `TDRA` is set, writes the destination station and network
+bytes (from [`scout_src_net`](address:0D2F)) into `adlc_tx`, then
+installs [`nmi_ack_tx_src`](address:8316) as the next NMI handler
+via [`set_nmi_vector`](address:0D0E) -- that handler will write
+the source-address pair on the next NMI.
+
+Two callers: [`send_data_rx_ack`](address:81A7)'s tail `JMP` and
+[`imm_op_build_reply`](address:84F9).""",
     on_entry={"a": "low byte of next NMI handler",
               "y": "high byte of next NMI handler"})
 subroutine(0x8316, "nmi_ack_tx_src",
     title="ACK TX continuation",
     description="""\
-Continuation of ACK frame transmission. Reads our station ID from
-[`econet_station_id`](address:FE18) (INTOFF side effect),
-tests `TDRA` via `SR1`, and writes `(station, network=0)` to the
-TX FIFO, completing the 4-byte ACK address header.
+Continuation of ACK frame transmission, reached via NMI after
+[`ack_tx_write_dest`](address:82F8) installed it as the next
+handler. Reads our station ID from the workspace copy
+[`tx_src_stn`](address:0D22), tests `TDRA` via `SR1`, and writes
+`(station, network=0)` to the TX FIFO -- completing the 4-byte
+ACK address header.
 
-Then dispatches on [`rx_src_net`](address:0D3E) bit 7:
+Then dispatches on [`rx_src_net`](address:0D3E) bit 7 (which the
+caller uses as a TX-flags byte):
 
 | Bit 7 | Action |
 |---|---|
@@ -6681,20 +6694,20 @@ comment(0x81E2, "High byte of &8211 handler", inline=True)
 comment(0x81E4, "SR1 bit7: IRQ, data already waiting", inline=True)
 comment(0x81E7, "Data ready: skip directly, no return", inline=True)
 comment(0x81E9, "Install handler and return", inline=True)
-comment(0x81EC, "Skip control and port bytes (already known from scout)", inline=True)
+comment(0x81EC, "Test SR2 RDA (RX data byte ready)", inline=True)
 comment(0x81EF, "SR2 bit7 clear: error", inline=True)
 comment(0x81F1, "Discard control byte", inline=True)
 comment(0x81F4, "Discard port byte", inline=True)
 comment(0x81F7, "A=2: Tube transfer flag mask", inline=True)
 comment(0x81F9, "Check if Tube transfer active", inline=True)
 comment(0x81FC, "Tube active: use Tube RX path", inline=True)
-comment(0x81FE, "Install bulk read at &8239", inline=True)
-comment(0x8200, "High byte of &8239 handler", inline=True)
+comment(0x81FE, "A=&23: low byte of nmi_data_rx_bulk (&8223)", inline=True)
+comment(0x8200, "Y=&82: high byte of nmi_data_rx_bulk", inline=True)
 comment(0x8202, "SR1 bit7: more data already waiting?", inline=True)
 comment(0x8205, "Yes: enter bulk read directly", inline=True)
 comment(0x8207, "No: install handler", inline=True)
-comment(0x820A, "Tube: install Tube RX at &8296", inline=True)
-comment(0x820C, "High byte of &8296 handler", inline=True)
+comment(0x820A, "A=&91: low byte of nmi_data_rx_tube (&8291)", inline=True)
+comment(0x820C, "Y=&82: high byte of nmi_data_rx_tube", inline=True)
 comment(0x820E, "Install Tube handler", inline=True)
 comment(0x8211, """\
 Page-overflow exit from nmi_data_rx_bulk: restores the Master 128 ACCCON
@@ -6807,12 +6820,12 @@ comment(0x82FE, "Load dest station from RX scout buffer", inline=True)
 comment(0x8301, "Test SR1 TDRA (V=bit6)", inline=True)
 comment(0x8304, "TDRA not ready -- error", inline=True)
 comment(0x8306, "Write dest station to TX FIFO", inline=True)
-comment(0x8309, "Write dest network to TX FIFO", inline=True)
+comment(0x8309, "Load dest network from RX scout buffer", inline=True)
 comment(0x830C, "Write dest net byte to FIFO", inline=True)
-comment(0x830F, "Install handler at &8326 (write src addr)", inline=True)
+comment(0x830F, "A=&16: low byte of nmi_ack_tx_src (&8316)", inline=True)
 comment(0x8311, "High byte of nmi_ack_tx_src", inline=True)
 comment(0x8313, "Set NMI vector to ack_tx_src handler", inline=True)
-comment(0x8316, "Load our station ID (also INTOFF)", inline=True)
+comment(0x8316, "Load our station ID from workspace copy", inline=True)
 comment(0x8319, "Test SR1 TDRA", inline=True)
 comment(0x831C, "TDRA not ready -- error", inline=True)
 comment(0x831E, "Write our station to TX FIFO", inline=True)

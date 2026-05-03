@@ -892,40 +892,40 @@ rom_header_byte2 = rom_header+2
 ; SR2 for RDA on entry; on no RDA, branches to nmi_error_dispatch.
 ; &81ec referenced 1 time by &81e7
 .nmi_data_rx_skip
-    bit adlc_cr2                                                      ; 81ec: 2c a1 fe    ,..            ; Skip control and port bytes (already known from scout)
+    bit adlc_cr2                                                      ; 81ec: 2c a1 fe    ,..            ; Test SR2 RDA (RX data byte ready)
     bpl nmi_error_dispatch                                            ; 81ef: 10 24       .$             ; SR2 bit7 clear: error
     lda adlc_tx                                                       ; 81f1: ad a2 fe    ...            ; Discard control byte
     lda adlc_tx                                                       ; 81f4: ad a2 fe    ...            ; Discard port byte
 ; ***************************************************************************************
 ; Install data RX bulk or Tube handler
 ;
-; Selects between the normal bulk-RX handler at &8239 and the Tube RX handler based on
-; bit 1 of rx_src_net (tx_flags).
+; Selects between the normal bulk-RX handler at nmi_data_rx_bulk and the Tube RX
+; handler at nmi_data_rx_tube based on bit 1 of rx_src_net (tx_flags).
 ;
-; | rx_src_net bit 1 | Handler                                     |
-; |------------------|---------------------------------------------|
-; | clear            | bulk read at &8239 (nmi_data_rx_bulk entry) |
-; | set              | Tube RX handler                             |
+; | rx_src_net bit 1 | Handler                         |
+; |------------------|---------------------------------|
+; | clear            | nmi_data_rx_bulk (A=&23, Y=&82) |
+; | set              | nmi_data_rx_tube (A=&91, Y=&82) |
 ;
-; In normal mode, after loading the handler address, checks SR1 bit 7. If IRQ is
+; In the bulk path, after loading the handler address, checks SR1 bit 7. If IRQ is
 ; already asserted (more data waiting), jumps directly to nmi_data_rx_bulk to avoid NMI
-; re-entry overhead. Otherwise installs the handler via set_nmi_vector and returns via
-; RTI.
+; re-entry overhead. Otherwise installs the handler via set_nmi_vector (the (A,Y) pair
+; becomes the NMI dispatch target) and returns via RTI.
 ; &81f7 referenced 1 time by &88d4
 .install_data_rx_handler
     lda #2                                                            ; 81f7: a9 02       ..             ; A=2: Tube transfer flag mask
     bit rx_src_net                                                    ; 81f9: 2c 3e 0d    ,>.            ; Check if Tube transfer active
     bne install_tube_rx                                               ; 81fc: d0 0c       ..             ; Tube active: use Tube RX path
-    lda #&23 ; '#'                                                    ; 81fe: a9 23       .#             ; Install bulk read at &8239
-    ldy #&82                                                          ; 8200: a0 82       ..             ; High byte of &8239 handler
+    lda #&23 ; '#'                                                    ; 81fe: a9 23       .#             ; A=&23: low byte of nmi_data_rx_bulk (&8223)
+    ldy #&82                                                          ; 8200: a0 82       ..             ; Y=&82: high byte of nmi_data_rx_bulk
     bit adlc_cr1                                                      ; 8202: 2c a0 fe    ,..            ; SR1 bit7: more data already waiting?
     bmi nmi_data_rx_bulk                                              ; 8205: 30 1c       0.             ; Yes: enter bulk read directly
     jmp set_nmi_vector                                                ; 8207: 4c 0e 0d    L..            ; No: install handler
 
 ; &820a referenced 1 time by &81fc
 .install_tube_rx
-    lda #&91                                                          ; 820a: a9 91       ..             ; Tube: install Tube RX at &8296
-    ldy #&82                                                          ; 820c: a0 82       ..             ; High byte of &8296 handler
+    lda #&91                                                          ; 820a: a9 91       ..             ; A=&91: low byte of nmi_data_rx_tube (&8291)
+    ldy #&82                                                          ; 820c: a0 82       ..             ; Y=&82: high byte of nmi_data_rx_tube
     jmp set_nmi_vector                                                ; 820e: 4c 0e 0d    L..            ; Install Tube handler
 
 ; Page-overflow exit from nmi_data_rx_bulk: restores the Master 128 ACCCON that was
@@ -1118,14 +1118,19 @@ rom_header_byte2 = rom_header+2
     lda #&86                                                          ; 82f4: a9 86       ..             ; Install saved next handler (scout ACK path)
     ldy #&83                                                          ; 82f6: a0 83       ..             ; High byte of post-ACK handler
 ; ***************************************************************************************
-; Save next NMI vector and write dest stn to ADLC
+; Begin ACK transmit: write destination address to ADLC
 ;
-; Saves (A=lo, Y=hi) of the next NMI handler into saved_nmi_lo / saved_nmi_hi, then
-; loads the dest-station byte from scout_buf and tests SR1 bit 6 (TDRA) via BIT
-; econet_control1_or_status1. A clear TDRA branches to dispatch_nmi_error to abort the
-; ACK sequence.
+; First step of the four-byte ACK frame transmission. Saves the caller-supplied (A=lo,
+; Y=hi) next-NMI handler address into saved_nmi_lo / saved_nmi_hi, loads the
+; destination station from scout_buf and tests SR1 bit 6 (TDRA, TX Data Register
+; Available) via BIT adlc_cr1. If TDRA is clear the TX FIFO isn't ready and control
+; branches to dispatch_nmi_error to abort.
 ;
-; Two callers: send_data_rx_ack's tail JMP (&81B5) and imm_op_build_reply at &84F6.
+; When TDRA is set, writes the destination station and network bytes (from
+; scout_src_net) into adlc_tx, then installs nmi_ack_tx_src as the next NMI handler via
+; set_nmi_vector -- that handler will write the source-address pair on the next NMI.
+;
+; Two callers: send_data_rx_ack's tail JMP and imm_op_build_reply.
 ;
 ; On Entry: A: low byte of next NMI handler Y: high byte of next NMI handler
 ; &82f8 referenced 2 times by &81b5, &84f6
@@ -1136,9 +1141,9 @@ rom_header_byte2 = rom_header+2
     bit adlc_cr1                                                      ; 8301: 2c a0 fe    ,..            ; Test SR1 TDRA (V=bit6)
     bvc dispatch_nmi_error                                            ; 8304: 50 36       P6             ; TDRA not ready -- error
     sta adlc_tx                                                       ; 8306: 8d a2 fe    ...            ; Write dest station to TX FIFO
-    lda scout_src_net                                                 ; 8309: ad 2f 0d    ./.            ; Write dest network to TX FIFO
+    lda scout_src_net                                                 ; 8309: ad 2f 0d    ./.            ; Load dest network from RX scout buffer
     sta adlc_tx                                                       ; 830c: 8d a2 fe    ...            ; Write dest net byte to FIFO
-    lda #&16                                                          ; 830f: a9 16       ..             ; Install handler at &8326 (write src addr)
+    lda #&16                                                          ; 830f: a9 16       ..             ; A=&16: low byte of nmi_ack_tx_src (&8316)
     ldy #&83                                                          ; 8311: a0 83       ..             ; High byte of nmi_ack_tx_src
     jmp set_nmi_vector                                                ; 8313: 4c 0e 0d    L..            ; Set NMI vector to ack_tx_src handler
 
