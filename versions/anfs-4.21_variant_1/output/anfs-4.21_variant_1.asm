@@ -3189,11 +3189,21 @@ nmi_shim_source = reset_enter_listen+2
 ; | 14   | ROM initialisation complete |
 ; | 15   | Vectors claimed             |
 ;
-; On service 15 the ROM verifies the host OS via OSBYTE 0. Only Master 128 (OS 3.2 /
-; 3.5, X=3) and Master Econet Terminal (OS 4.0, X=4) are supported. Any other version
-; (OS 1.00, OS 1.20, OS 2.00 BBC B+, or OS 5.0 Master Compact) gets a Bad ROM <slot>
-; message printed and its workspace byte cleared at &02A0 + adjusted-slot, effectively
-; rejecting the ROM.
+; On service 15 the ROM verifies the host OS via OSBYTE 0 with the input X=1, which
+; returns the OS version code:
+;
+; | OSBYTE 1 value | Host                              |
+; |----------------|-----------------------------------|
+; | 0              | OS 1.00 (early BBC B or Electron) |
+; | 1              | OS 1.20 or American OS            |
+; | 2              | OS 2.00 (BBC B+)                  |
+; | 3              | OS 3.2 / 3.5 (Master 128)         |
+; | 4              | OS 4.0 (Master Econet Terminal)   |
+; | 5              | OS 5.0 (Master Compact)           |
+;
+; Only Master 128 and Master Econet Terminal are supported. Any other version gets a
+; Bad ROM <slot> message printed and its workspace byte cleared at &02A0 +
+; adjusted-slot, effectively rejecting the ROM.
 ;
 ; On Entry: A: service call number X: ROM slot Y: parameter
 ; &8a54 referenced 1 time by &8003
@@ -3206,9 +3216,6 @@ nmi_shim_source = reset_enter_listen+2
     ldx #1                                                            ; 8a5c: a2 01       ..             ; X=1 to request version number
 
     jsr osbyte                                                        ; 8a5e: 20 f4 ff     ..            ; Read OS version number into X
-    ; X is the OS version number: X=0, OS 1.00 (Early BBC B or Electron OS 1.00) X=1,
-    ; OS 1.20 or American OS X=2, OS 2.00 (BBC B+) X=3, OS 3.2/3.5 (Master 128) X=4, OS
-    ; 4.0 (Master Econet Terminal) X=5, OS 5.0 (Master Compact)
     cpx #3                                                            ; 8a61: e0 03       ..             ; OS 3.2/3.5 (Master 128)?
     beq restore_rom_slot                                              ; 8a63: f0 25       .%             ; Yes: target OS, skip Bad ROM message
     cpx #4                                                            ; 8a65: e0 04       ..             ; OS 4.0 (Master Econet Terminal)?

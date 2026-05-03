@@ -2064,13 +2064,27 @@ Handles service calls 1, 4, 8, 9, 13, 14, and 15.
 |   14 | ROM initialisation complete      |
 |   15 | Vectors claimed                  |
 
-On service 15 the ROM verifies the host OS via OSBYTE 0. Only Master
-128 (OS 3.2 / 3.5, `X=3`) and Master Econet Terminal (OS 4.0, `X=4`)
-are supported. Any other version (OS 1.00, OS 1.20, OS 2.00 BBC B+,
-or OS 5.0 Master Compact) gets a `Bad ROM <slot>` message printed
-and its workspace byte cleared at `&02A0 + adjusted-slot`,
-effectively rejecting the ROM.""",
+On service 15 the ROM verifies the host OS via OSBYTE 0 with the
+input `X=1`, which returns the OS version code:
+
+| OSBYTE 1 value | Host                                |
+|---------------:|-------------------------------------|
+|              0 | OS 1.00 (early BBC B or Electron)   |
+|              1 | OS 1.20 or American OS              |
+|              2 | OS 2.00 (BBC B+)                    |
+|              3 | OS 3.2 / 3.5 (Master 128)           |
+|              4 | OS 4.0 (Master Econet Terminal)     |
+|              5 | OS 5.0 (Master Compact)             |
+
+Only Master 128 and Master Econet Terminal are supported. Any
+other version gets a `Bad ROM <slot>` message printed and its
+workspace byte cleared at `&02A0 + adjusted-slot`, effectively
+rejecting the ROM.""",
     on_entry={"a": "service call number", "x": "ROM slot", "y": "parameter"})
+
+# Suppress the py8dis OSBYTE-0/X=1 auto-comment at &8A61 -- the same
+# table now lives in the service_handler banner.
+no_automatic_comment(0x8A61)
 
 
 # ============================================================
