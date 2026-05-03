@@ -34,8 +34,13 @@ Both classes need human review against the actual 4.21 code.
    is consistent with the actual instruction. Replace, remove, or keep.
 4. **Don't write subroutine banners yet** — that's a later pass. Focus on
    inline comments only.
-5. **Verify and lint.** `fantasm verify` must remain byte-identical, lint clean.
-6. **Mark the gap done** in the table below; commit with a short message naming
+5. **Note any rename candidates** in
+   [SUBROUTINE-RENAMES.md](SUBROUTINE-RENAMES.md). Inline-comment work often
+   surfaces label/subroutine names that don't match the actual behaviour;
+   record them as you go so they aren't lost when we get to the
+   subroutine-banner pass.
+6. **Verify and lint.** `fantasm verify` must remain byte-identical, lint clean.
+7. **Mark the gap done** in the table below; commit with a short message naming
    the gap range.
 
 ## Conventions reminder
