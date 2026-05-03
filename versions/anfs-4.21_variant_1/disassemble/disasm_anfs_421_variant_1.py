@@ -8845,6 +8845,8 @@ comment(0xA9EF, "A=&0E: bits 1..3 (FS-state mask)", inline=True)
 comment(0xA9F1, "TSB fs_flags: set bits 1..3", inline=True)
 comment(0xA9F4, "A=&40: FS-active flag bit", inline=True)
 comment(0xA9F6, "TRB fs_flags: clear FS-active flag (bit 6)", inline=True)
+comment(0xA9F9, "X=&0F: scan all 16 FCB slots (X = 15 down to 0)",
+    inline=True)
 
 # &AABB..&AAC1: set_via_shadow_pair body.
 comment(0xAABB, "Mirror A into ws_0d68 (shadow ACR)", inline=True)
@@ -9278,6 +9280,8 @@ comment(0xB1B7, "Bit 7 of A set (negative): print directory header", inline=True
 comment(0xB1B9, "Print char (no spool)", inline=True)
 comment(0xB1BC, "Advance Y", inline=True)
 comment(0xB1BD, "Loop until Y wraps", inline=True)
+comment(0xB1BF, "Print ')\\rDir. ' header for the directory listing",
+    inline=True)
 comment(0xB1C9, "X=&11: filename offset in TX buffer", inline=True)
 comment(0xB1CB, "Print 10-char filename", inline=True)
 comment(0xB1CE, "Print inline 'attr-bits' fragment", inline=True)
@@ -9372,6 +9376,7 @@ comment(0xAA65, "A=&0E: status flag value", inline=True)
 comment(0xAA67, "Test fs_flags bits 1..3", inline=True)
 comment(0xAA6A, "Non-zero: skip the FS-active set", inline=True)
 comment(0xAA6C, "A=&40: FS-active flag bit", inline=True)
+comment(0xAA71, "Return -- FCB-status update complete", inline=True)
 comment(0xAA6E, "Set FS-active flag (bit 6 of fs_flags)", inline=True)
 
 # match_fs_cmd gap-fill.
@@ -13797,6 +13802,10 @@ comment(0xB150, "Send request to file server", inline=True)
 comment(0xB153, "X=3: offset to directory title", inline=True)
 comment(0xB155, "Print directory title (10 chars)", inline=True)
 comment(0xB158, "Print '('", inline=True)
+comment(0xB15C, "Load FS object-type code from "
+    "hazel_txcb_objtype (file/dir/etc)", inline=True)
+comment(0xB162, "Print ')     ' to close the type-code field",
+    inline=True)
 
 # Directory header: cycle number and access
 comment(0xADB8, "Print ')     '", inline=True)
@@ -17228,6 +17237,8 @@ comment(0xA0C3, "Y=&16: OSARGS save command", inline=True)
 comment(0xA0C8, "Reload block offset", inline=True)
 comment(0xA0CD, "Positive: return with flag", inline=True)
 comment(0xA10B, "Verify workspace checksum", inline=True)
+comment(0xA10E, "Push checksum-verify result -- preserve it across "
+    "the FCB lookups below", inline=True)
 comment(0xA10F, "Load block offset", inline=True)
 comment(0xA111, "Push block offset", inline=True)
 comment(0xA112, "Store X in l10c9", inline=True)
@@ -17235,6 +17246,8 @@ comment(0xA115, "Find matching FCB entry", inline=True)
 comment(0xA118, "Zero: no match found", inline=True)
 comment(0xA11A, "Load FCB low byte from l1000", inline=True)
 comment(0xA11D, "Compare with stored offset l1098", inline=True)
+comment(0xA120, "FCB lo-byte below stored offset -> not the matching "
+    "FCB; mark_not_found", inline=True)
 comment(0xA122, "X=&FF: mark as found (all bits set)", inline=True)
 comment(0xA124, "ALWAYS branch (negative)", inline=True)
 comment(0xA126, "X=0: mark as not found", inline=True)
@@ -17644,6 +17657,8 @@ comment(0xAA1C, "Store as handle 1 station", inline=True)
 comment(0xAA1F, "FCB index", inline=True)
 comment(0xAA20, "Add &20 for FCB table offset", inline=True)
 comment(0xAA22, "Store as handle 1 FCB index", inline=True)
+comment(0xAA2A, "Y still holds the saved FCB status -- TYA so we "
+    "can re-test bit 3 (handle-2 active flag)", inline=True)
 comment(0xAA2B, "Test bit 3 (handle 2 active?)", inline=True)
 comment(0xAA2D, "No: check handle 3", inline=True)
 comment(0xAA30, "Set bit 5", inline=True)
@@ -17806,6 +17821,8 @@ comment(0xA9DA, "Ensure NFS is currently the selected FS", inline=True)
 comment(0xAA25, "A=2: fs_flags bit 1 mask", inline=True)
 comment(0xAA27, "Clear fs_flags bit 1", inline=True)
 comment(0xAA3F, "A=4: fs_flags bit 2 mask", inline=True)
+comment(0xAA44, "Y still holds the saved FCB status -- TYA so we "
+    "can re-test bit 4 (handle-3 active flag)", inline=True)
 comment(0xAA41, "Clear fs_flags bit 2", inline=True)
 comment(0xAAC2, "Ensure NFS is currently the selected FS", inline=True)
 comment(0xAAD0, "Ensure NFS is currently the selected FS", inline=True)

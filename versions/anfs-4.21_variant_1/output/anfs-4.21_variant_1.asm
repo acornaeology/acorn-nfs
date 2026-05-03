@@ -8871,7 +8871,7 @@ cmos_attr_table = sub_ca0fe+1
 ; On Exit: A: 0 = not at EOF, non-zero = EOF
 .fscv_1_eof
     jsr verify_ws_checksum                                            ; a10b: 20 9e 90     ..            ; Verify workspace checksum
-    pha                                                               ; a10e: 48          H
+    pha                                                               ; a10e: 48          H              ; Push checksum-verify result -- preserve it across the FCB lookups below
     lda fs_block_offset                                               ; a10f: a5 bc       ..             ; Load block offset
     pha                                                               ; a111: 48          H              ; Push block offset
     stx hazel_chan_attr                                               ; a112: 8e c9 c2    ...            ; Store X in l10c9
@@ -8879,7 +8879,7 @@ cmos_attr_table = sub_ca0fe+1
     beq mark_not_found                                                ; a118: f0 0c       ..             ; Zero: no match found
     lda hazel_fcb_addr_lo,y                                           ; a11a: b9 00 c2    ...            ; Load FCB low byte from l1000
     cmp hazel_fcb_offset_save,x                                       ; a11d: dd 98 c2    ...            ; Compare with stored offset l1098
-    bcc mark_not_found                                                ; a120: 90 04       ..
+    bcc mark_not_found                                                ; a120: 90 04       ..             ; FCB lo-byte below stored offset -> not the matching FCB; mark_not_found
     ldx #&ff                                                          ; a122: a2 ff       ..             ; X=&FF: mark as found (all bits set)
     bmi restore_and_return                                            ; a124: 30 02       0.             ; ALWAYS branch (negative)
 
@@ -10833,7 +10833,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     tsb fs_flags                                                      ; a9f1: 0c 6c 0d    .l.            ; TSB fs_flags: set bits 1..3
     lda #&40 ; '@'                                                    ; a9f4: a9 40       .@             ; A=&40: FS-active flag bit
     trb fs_flags                                                      ; a9f6: 1c 6c 0d    .l.            ; TRB fs_flags: clear FS-active flag (bit 6)
-    ldx #&0f                                                          ; a9f9: a2 0f       ..
+    ldx #&0f                                                          ; a9f9: a2 0f       ..             ; X=&0F: scan all 16 FCB slots (X = 15 down to 0)
 ; &a9fb referenced 1 time by &aa63
 .scan_fcb_entry
     lda hazel_fcb_status,x                                            ; a9fb: bd 60 c2    .`.            ; Load FCB flags
@@ -10862,7 +10862,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     trb fs_flags                                                      ; aa27: 1c 6c 0d    .l.            ; Clear fs_flags bit 1
 ; &aa2a referenced 1 time by &aa13
 .check_handle_2
-    tya                                                               ; aa2a: 98          .
+    tya                                                               ; aa2a: 98          .              ; Y still holds the saved FCB status -- TYA so we can re-test bit 3 (handle-2 active flag)
     and #8                                                            ; aa2b: 29 08       ).             ; Test bit 3 (handle 2 active?)
     beq check_handle_3                                                ; aa2d: f0 15       ..             ; No: check handle 3
     tya                                                               ; aa2f: 98          .              ; TYA -- save Y
@@ -10877,7 +10877,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     trb fs_flags                                                      ; aa41: 1c 6c 0d    .l.            ; Clear fs_flags bit 2
 ; &aa44 referenced 1 time by &aa2d
 .check_handle_3
-    tya                                                               ; aa44: 98          .
+    tya                                                               ; aa44: 98          .              ; Y still holds the saved FCB status -- TYA so we can re-test bit 4 (handle-3 active flag)
     and #&10                                                          ; aa45: 29 10       ).             ; Test bit 4 (handle 3 active?)
     beq store_updated_status                                          ; aa47: f0 15       ..             ; No: store final flags
     tya                                                               ; aa49: 98          .              ; Restore flags
@@ -10905,7 +10905,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Set FS-active flag (bit 6 of fs_flags)
 ; &aa71 referenced 1 time by &aa6a
 .return_5
-    rts                                                               ; aa71: 60          `
+    rts                                                               ; aa71: 60          `              ; Return -- FCB-status update complete
 
 ; ***************************************************************************************
 ; OSWORD &13 sub 12: read CSD path
@@ -12647,9 +12647,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b158: 20 8a 92     ..            ; Print '('
     equs "("                                                          ; b15b: 28          (              ; Outer loop: ~1000 delay cycles
 
-    lda hazel_txcb_objtype                                            ; b15c: ad 13 c1    ...
+    lda hazel_txcb_objtype                                            ; b15c: ad 13 c1    ...            ; Load FS object-type code from hazel_txcb_objtype (file/dir/etc)
     jsr print_decimal_3dig_no_spool                                   ; b15f: 20 03 b3     ..            ; Get buffer page
-    jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..
+    jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..            ; Print ') ' to close the type-code field
     equs ")     "                                                     ; b165: 29 20 20... )              ; Advance Y
 
     ldy hazel_txcb_type                                               ; b16b: ac 12 c1    ...            ; Read hazel_txcb_type (FS reply opcode)
@@ -12696,7 +12696,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     bne loop_print_dir_format                                         ; b1bd: d0 f5       ..             ; Loop until Y wraps
 ; &b1bf referenced 1 time by &b1b7
 .print_dir_header
-    jsr print_inline_no_spool                                         ; b1bf: 20 8a 92     ..
+    jsr print_inline_no_spool                                         ; b1bf: 20 8a 92     ..            ; Print ')\rDir. ' header for the directory listing
     equs ")", &0d, "Dir. "                                            ; b1c2: 29 0d 44... ).D            ; Reply buffer end hi (placeholder)
 
     ldx #&11                                                          ; b1c9: a2 11       ..             ; X=&11: filename offset in TX buffer
