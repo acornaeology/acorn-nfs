@@ -2788,12 +2788,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Unreferenced 16-byte gap between TX-error path and tx_calc_transfer
 ;
-; 16 dead bytes between the JMP [discard_reset_rx](address:83E5?hex) at &88ED and
+; 16 dead bytes between the JMP to discard_reset_rx (&83E5) at &88ED and
 ; tx_calc_transfer (&8900). Unreachable as code (it sits past an unconditional JMP) and
 ; unreferenced as data – no label, index, or indirect pointer targets any address in
-; the &88F0..&88FF range. Likely an unused remnant from development; declared as a
-; banner so the listing makes the gap visible rather than letting it merge into either
-; neighbour.
+; the &88F0..&88FF range. Likely an unused remnant from development.
     equb &0e                                                          ; 88f0: 0e          .              ; Dead data: &0E
     equb &0e                                                          ; 88f1: 0e          .
     equb &0a                                                          ; 88f2: 0a          .

@@ -7334,14 +7334,12 @@ comment(0x88ED, "Full ADLC reset and return to idle listen", inline=True)
 data_banner(0x88F0, "rom_gap_88f0",
     title="Unreferenced 16-byte gap between TX-error path and tx_calc_transfer",
     description="""\
-16 dead bytes between the `JMP
-[discard_reset_rx](address:83E5?hex)` at `&88ED` and
+16 dead bytes between the `JMP` to
+[`discard_reset_rx`](address:83E5?hex) at `&88ED` and
 [`tx_calc_transfer`](address:8900?hex). Unreachable as code (it
 sits past an unconditional `JMP`) and unreferenced as data – no
 label, index, or indirect pointer targets any address in the
-`&88F0..&88FF` range. Likely an unused remnant from development;
-declared as a banner so the listing makes the gap visible rather
-than letting it merge into either neighbour.""")
+`&88F0..&88FF` range. Likely an unused remnant from development.""")
 comment(0x88F0, "Dead data: &0E", inline=True)
 comment(0x88F3, "Dead data: &0A", inline=True)
 comment(0x88F4, "Dead data: &0A", inline=True)
