@@ -7365,7 +7365,7 @@ bad_prefix_table = bad_str_anchor+1
     equb &65                                                          ; 9aa4: 65          e
     equb &71                                                          ; 9aa5: 71          q              ; Index 11: " not present" suffix
 ; ***************************************************************************************
-; Net-error message strings (126 bytes, &9AA6..&9B23)
+; Net-error message strings
 ;
 ; Body of error-text fragments referenced by net_error_lookup_data. Two layouts
 ; coexist:

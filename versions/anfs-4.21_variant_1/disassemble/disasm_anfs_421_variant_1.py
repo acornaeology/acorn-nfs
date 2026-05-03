@@ -1084,7 +1084,7 @@ yields the address of either an error-code/message pair (indices
 for i in range(12):
     byte(0x9A9A + i)
 data_banner(0x9AA6, "error_msg_table",
-    title="Net-error message strings (126 bytes, &9AA6..&9B23)",
+    title="Net-error message strings",
     description="""\
 Body of error-text fragments referenced by
 [`net_error_lookup_data`](address:9A9A). Two layouts coexist:
