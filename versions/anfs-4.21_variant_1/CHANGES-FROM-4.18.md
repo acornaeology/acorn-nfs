@@ -36,13 +36,18 @@ shouldn't. There was no equivalent gate in 4.18 –
 service entry-point itself shifts from `&8A15` (4.18) to
 [`&8A54`](address:8A54), most of which is the gate code.
 
-The "variant 1" in the name is currently unexplained.
+"Variant 1" isn't part of the official name – the ROM image itself
+just calls itself "Acorn ANFS 4.21". Several distinct ROM images
+claiming to be ANFS 4.21 have turned up over the years; this
+project labels its first specimen "variant 1" to keep them apart.
+The relationship between the variants – their relative ordering,
+if any – is not known.
 
 ## HAZEL: hidden RAM under the OS
 
 The structural change with the broadest consequences is the move
-from MOS RAM to **HAZEL**, the Master 128's 8 KB of hidden RAM at
-`&C000`–`&DFFF`. HAZEL sits underneath the MOS VDU drivers in the
+from MOS workspace in main RAM to **HAZEL**, the Master 128's 8 KB
+of hidden RAM at `&C000`–`&DFFF`. HAZEL sits underneath the MOS VDU drivers in the
 address map and is reached by setting bit Y (bit 3) of the ACCCON
 register at [`&FE34`](address:FE34) – when ACCCON.Y is set, reads
 and writes to `&C000`–`&DFFF` go to HAZEL instead of the OS ROM.
