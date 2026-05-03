@@ -172,16 +172,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA3E9` `byte_to_2bit_index` - description matches body's A*6-via-A*12-then-LSR conversion
 - [x] `0xA3FF` `net_1_read_handle` - description matches body
 - [x] `0xA45B` `match_fs_cmd` - description matches body's case-insensitive table walker
-- [ ] `0xA764` `boot_cmd_oscli`
-- [ ] `0xA76C` `cmd_table_fs`
-- [ ] `0xA864` `osword_setup_handler`
-- [ ] `0xA901` `bin_to_bcd`
-- [ ] `0xA9A8` `osword_13_dispatch_lo`
-- [ ] `0xA9BA` `osword_13_dispatch_hi`
-- [ ] `0xAA72` `osword_13_read_csd`
-- [ ] `0xAA75` `osword_13_write_csd`
-- [ ] `0xAA82` `copy_pb_byte_to_ws`
-- [ ] `0xAA91` `osword_13_read_ws_pair`
+- [x] `0xA764` `boot_cmd_oscli` - description matches body
+- [x] `0xA76C` `cmd_table_fs` - table-banner description matches contents
+- [x] `0xA864` `osword_setup_handler` - description matches body's PHA/PHA/RTS-style dispatch (high then low)
+- [x] `0xA901` `bin_to_bcd` - description matches body's SED count-up loop
+- [x] `0xA9A8` `osword_13_dispatch_lo` - table description matches contents
+- [x] `0xA9BA` `osword_13_dispatch_hi` - table description matches contents
+- [x] `0xAA72` `osword_13_read_csd` - description matches body (CLC, fall-through to setup_csd_copy with workspace-to-PB direction)
+- [x] `0xAA75` `osword_13_write_csd` - description matches body (SEC, copy 5 bytes from PB to workspace)
+- [x] `0xAA82` `copy_pb_byte_to_ws` - description's claim that 'C=0 uses the value already in A' is misleading -- the body BCC's away to copy_ws_byte_to_pb when C=0, so the C=0 path is workspace-to-PB direction (the inverse of C=1). Real dual-direction copy. Note added
+- [x] `0xAA91` `osword_13_read_ws_pair` - description matches body
 - [x] `0xAAB8` `osword_13_write_prot` - description compared against body, accurate
 - [ ] `0xAABB` `set_via_shadow_pair`
 - [ ] `0xAB43` `update_fcb_flag_bits`
