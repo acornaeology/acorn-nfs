@@ -3669,14 +3669,15 @@ access the private workspace.""",
 subroutine(0x8CFD, "notify_new_fs",
     title="Notify OS of filing-system selection",
     description="""\
-1. Calls FSCV with `A=6` to announce the FS change.
-2. Issues paged ROM service call 10 via OSBYTE `&8F` to inform
-   other ROMs.
+Loads `A=6` (FSCV reason: filing system change) and falls
+through to [`call_fscv`](address:8CFF), which `JMP`-indirects
+through `vec_fscv` to invoke the FSCV vector. The FSCV handler
+returns to whatever invoked `notify_new_fs` -- this is a
+fire-and-forget notification, not a return-to-caller call.
 
-Sets `X=&0A` and branches to `issue_svc_osbyte` which falls
-through from the [`call_fscv`](address:8CFF) subroutine.""",
-    on_exit={"a": "clobbered (FSCV reason 6 then OSBYTE &8F)",
-             "x": "&0A (the service number passed to OSBYTE &8F)"})
+Single caller (&8b60 inside the FS-selection sequence).""",
+    on_entry={},
+    on_exit={"a": "6 (clobbered by FSCV handler)"})
 subroutine(0x8CFF, "call_fscv",
     title="Dispatch to filing-system control vector (FSCV)",
     description="""\
@@ -11683,7 +11684,7 @@ comment(0x8CF8, "Y=&8D: boot filename address high", inline=True)
 comment(0x8CFA, "Execute boot file", inline=True)
 comment(0x8CFF, "Tail-jump via FSCV vector "
     "(filing-system change service)", inline=True)
-comment(0x8D02, "X=&0F: ROM service call 10 (paged-ROM notify)",
+comment(0x8D02, "X=&0F: service 15 (vectors claimed)",
     inline=True)
 comment(0x8D04, "A=&8F: OSBYTE 'Issue paged-ROM service request'",
     inline=True)

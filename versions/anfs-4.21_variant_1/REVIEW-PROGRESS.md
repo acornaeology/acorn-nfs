@@ -89,18 +89,18 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8C25` `done_print_table` - description matches body (PLP, PLA, TAY, RTS)
 - [x] `0x8C29` `help_wrap_if_serial` - description matches body's stream-mode dispatch
 - [x] `0x8CAD` `get_ws_page` - description gave wrong addresses for the ROL/PHP/ROR/PLP block (claimed &8CB7-&8CB9; actual &8CB3-&8CB6) and was vague about what bit is folded into the flags. Rewrote to be precise about the trick: the rotate sequence preserves A while leaving N set to bit 6 of the original byte (ADLC-absent flag)
-- [ ] `0x8CFD` `notify_new_fs`
-- [ ] `0x8CFF` `call_fscv`
-- [ ] `0x8D02` `issue_svc_15`
-- [ ] `0x8D24` `check_credits_easter_egg`
-- [ ] `0x8E5B` `dir_op_dispatch`
+- [x] `0x8CFD` `notify_new_fs` - description claimed it does TWO things (FSCV + OSBYTE 143 service 10) but body is just LDA #6 then falls through to call_fscv (JMP indirect, no return). The 'Sets X=&0A' claim was fabricated. Description rewritten to match reality
+- [x] `0x8CFF` `call_fscv` - description matches body (JMP indirect through vec_fscv)
+- [x] `0x8D02` `issue_svc_15` - description matches body; fixed inline at &8D02 that said 'service call 10' for X=&0F (=15)
+- [x] `0x8D24` `check_credits_easter_egg` - description matches body
+- [x] `0x8E5B` `dir_op_dispatch` - description matches body's CPX/BCS/LDY-Y=&18 setup; dispatch math 'X+Y+1' lands &19..&1D for lang reply 0..4
 - [x] `0x8E61` `svc_dispatch` - description compared against body, accurate
 - [x] `0x8E71` `noop_dey_rts` - description compared against body, accurate
 - [x] `0x8E73` `copy_template_to_zp` - description compared against body, accurate
 - [x] `0x8E7F` `fs_info_template` - description compared against body, accurate
-- [ ] `0x8E98` `read_cmos_byte_0`
+- [x] `0x8E98` `read_cmos_byte_0` - description matches body (LDX #0, fall through to osbyte_a1)
 - [ ] `0x8E9A` `osbyte_a1`
-- [ ] `0x8EA7` `fs_vector_table`
+- [x] `0x8EA7` `fs_vector_table` - description matches table layout
 - [ ] `0x8EC9` `osbyte_x0`
 - [ ] `0x8ECB` `osbyte_yff`
 - [ ] `0x8ED2` `osbyte_x0_y0`

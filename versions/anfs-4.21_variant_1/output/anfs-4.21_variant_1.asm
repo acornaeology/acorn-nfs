@@ -4002,14 +4002,14 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Notify OS of filing-system selection
 ;
-; 1. Calls FSCV with A=6 to announce the FS change.
-; 2. Issues paged ROM service call 10 via OSBYTE &8F to inform other ROMs.
+; Loads A=6 (FSCV reason: filing system change) and falls through to call_fscv, which
+; JMP-indirects through vec_fscv to invoke the FSCV vector. The FSCV handler returns to
+; whatever invoked notify_new_fs -- this is a fire-and-forget notification, not a
+; return-to-caller call.
 ;
-; Sets X=&0A and branches to issue_svc_osbyte which falls through from the call_fscv
-; subroutine.
+; Single caller (&8b60 inside the FS-selection sequence).
 ;
-; On Exit: A: clobbered (FSCV reason 6 then OSBYTE &8F) X: &0A (the service number
-; passed to OSBYTE &8F)
+; On Exit: A: 6 (clobbered by FSCV handler)
 ; &8cfd referenced 1 time by &8b60
 .notify_new_fs
     lda #6                                                            ; 8cfd: a9 06       ..             ; A=6: notify new filing system
@@ -4038,7 +4038,7 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry: A: OSBYTE result is irrelevant -- this is fire-and-forget
 ; &8d02 referenced 1 time by &8bb1
 .issue_svc_15
-    ldx #&0f                                                          ; 8d02: a2 0f       ..             ; X=&0F: ROM service call 10 (paged-ROM notify)
+    ldx #&0f                                                          ; 8d02: a2 0f       ..             ; X=&0F: service 15 (vectors claimed)
 .issue_svc_osbyte
     lda #osbyte_issue_service_request                                 ; 8d04: a9 8f       ..             ; A=&8F: OSBYTE 'Issue paged-ROM service request'
     jmp osbyte                                                        ; 8d06: 4c f4 ff    L..            ; Issue paged ROM service call
