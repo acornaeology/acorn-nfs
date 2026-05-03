@@ -33,6 +33,8 @@ they do rather than inheriting the existing fiction.
 | `&967F` | `cmos_read_network_number` | `print_cmos_byte_decimal_newline` (shared tail) | Not specific to network numbers. Shared tail used by both `print_ps_address` and `print_fs_address`: read CMOS[X], print decimal, OSNEWL, fall into the JMP svc_return trampoline at &9689. | Gap cleanup &9619..&9651 |
 | `&9689` | `cmos_print_value` | (delete or rename to a generic name) | Just `JMP svc_return_unclaimed` -- a 3-byte trampoline. Doesn't print anything. Either rename to reflect that it's the shared no-arg-path return, or drop the label entirely if no caller really needs it (only one entry-point call from &9686 fall-through). | Gap cleanup &9619..&9651 |
 
+| `&A0FE` | `sub_ca0fe` (auto-name) + `cmos_attr_table = sub_ca0fe+1` overlap | (refactor) | The `cmos_attr_table` label deliberately overlaps the JSR osbyte_a2 instruction (cmos_attr_table = &A0FE+1 = &A0FF, which is the operand byte of the JSR). The `lda cmos_attr_table,x` at &A0ED reads through that overlap. Either we resolve this with an explicit table at the read addresses, or rename `sub_ca0fe` to something descriptive (it's just an internal entry point during the OSARGS chain). | Gap cleanup &A0CF..&A103 |
+
 ## Notes
 
 - When renaming, prefer single descriptive names over compound `_sub_`-style

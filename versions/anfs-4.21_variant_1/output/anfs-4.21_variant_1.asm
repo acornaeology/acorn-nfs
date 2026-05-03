@@ -1572,14 +1572,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; pushed by the dispatcher is constant (&84), so all targets sit in &84xx. Per-entry
 ; inline comments identify each control byte's handler.
 .imm_op_dispatch_lo
-    equb <(rx_imm_peek-1)                                             ; 848b: cd          .
-    equb <(rx_imm_poke-1)                                             ; 848c: b0          .
-    equb <(rx_imm_exec-1)                                             ; 848d: 92          .
-    equb <(rx_imm_exec-1)                                             ; 848e: 92          .
-    equb <(rx_imm_exec-1)                                             ; 848f: 92          .
-    equb <(rx_imm_halt_cont-1)                                        ; 8490: e7          .
-    equb <(rx_imm_halt_cont-1)                                        ; 8491: e7          .
-    equb <(rx_imm_machine_type-1)                                     ; 8492: bb          .
+    equb <(rx_imm_peek-1)                                             ; 848b: cd          .              ; ctrl &81: PEEK
+    equb <(rx_imm_poke-1)                                             ; 848c: b0          .              ; ctrl &82: POKE
+    equb <(rx_imm_exec-1)                                             ; 848d: 92          .              ; ctrl &83: JSR
+    equb <(rx_imm_exec-1)                                             ; 848e: 92          .              ; ctrl &84: UserProc
+    equb <(rx_imm_exec-1)                                             ; 848f: 92          .              ; ctrl &85: OSProc
+    equb <(rx_imm_halt_cont-1)                                        ; 8490: e7          .              ; ctrl &86: HALT
+    equb <(rx_imm_halt_cont-1)                                        ; 8491: e7          .              ; ctrl &87: CONTINUE
+    equb <(rx_imm_machine_type-1)                                     ; 8492: bb          .              ; ctrl &88: machine-type
 
 ; ***************************************************************************************
 ; RX immediate: JSR / UserProc / OSProc setup
@@ -7402,10 +7402,10 @@ bad_prefix_table = bad_str_anchor+1
 .msg_bad_option
     equb &cb                                                          ; 9ad9: cb          .              ; Error &CB: Bad option
     equs "Bad option"                                                 ; 9ada: 42 61 64... Bad
-    equb 0, &a5                                                       ; 9ae4: 00 a5       ..
-    equs "No reply from station"                                      ; 9ae6: 4e 6f 20... No
-    equb 0                                                            ; 9afb: 00          .
-    equs " not listening"                                             ; 9afc: 20 6e 6f...  no
+    equb 0, &a5                                                       ; 9ae4: 00 a5       ..             ; Null terminator + Error &A5: No reply from station
+    equs "No reply from station"                                      ; 9ae6: 4e 6f 20... No             ; err_no_reply = &A5 message body
+    equb 0                                                            ; 9afb: 00          .              ; Null terminator
+    equs " not listening"                                             ; 9afc: 20 6e 6f...  no            ; Suffix string (offset &56 in lookup)
     equb 0                                                            ; 9b0a: 00          .              ; Null terminator
 .msg_on_channel
     equs " on channel"                                                ; 9b0b: 20 6f 6e...  on            ; Suffix: " on channel"
@@ -8775,48 +8775,48 @@ bad_prefix_table = bad_str_anchor+1
     bpl done_close                                                    ; a0cd: 10 cd       ..             ; Positive: return with flag
 ; &a0cf referenced 1 time by &a0b4
 .osargs_store_ptr_lo
-    cpx #8                                                            ; a0cf: e0 08       ..
-    bcs error_osargs                                                  ; a0d1: b0 e8       ..
-    cpx #4                                                            ; a0d3: e0 04       ..
-    beq osargs_check_length                                           ; a0d5: f0 04       ..             ; Z set: option = 0, take fast path
-    cpy #4                                                            ; a0d7: c0 04       ..
-    bcc osopt_check_cmos_protect                                      ; a0d9: 90 04       ..
+    cpx #8                                                            ; a0cf: e0 08       ..             ; X >= 8?
+    bcs error_osargs                                                  ; a0d1: b0 e8       ..             ; Yes: out-of-range OSARGS sub-code
+    cpx #4                                                            ; a0d3: e0 04       ..             ; X == 4?
+    beq osargs_check_length                                           ; a0d5: f0 04       ..             ; Yes: take fast read path (osargs_check_length)
+    cpy #4                                                            ; a0d7: c0 04       ..             ; Y < 4?
+    bcc osopt_check_cmos_protect                                      ; a0d9: 90 04       ..             ; Yes: take CMOS-protect path
 ; &a0db referenced 1 time by &a0d5
 .osargs_check_length
-    cpy #2                                                            ; a0db: c0 02       ..
-    bcs error_osargs                                                  ; a0dd: b0 dc       ..
+    cpy #2                                                            ; a0db: c0 02       ..             ; Y >= 2?
+    bcs error_osargs                                                  ; a0dd: b0 dc       ..             ; Yes: argument out of range
 ; &a0df referenced 1 time by &a0d9
 .osopt_check_cmos_protect
     phy                                                               ; a0df: 5a          Z              ; PHY -- save Y
-    phx                                                               ; a0e0: da          .
+    phx                                                               ; a0e0: da          .              ; PHX -- save sub-code across the CMOS read
     ldx #&11                                                          ; a0e1: a2 11       ..             ; X=&11: CMOS RAM byte index
-    jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..
-    plx                                                               ; a0e6: fa          .
+    jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..            ; Read CMOS &11 (Econet status) -> Y
+    plx                                                               ; a0e6: fa          .              ; PLX -- restore sub-code
     tya                                                               ; a0e7: 98          .              ; TYA -- read CMOS &11 result to A
-    and osargs_close_jump,x                                           ; a0e8: 3d 03 a1    =..
+    and osargs_close_jump,x                                           ; a0e8: 3d 03 a1    =..            ; Mask CMOS &11 with osargs_close_jump[X]
     ply                                                               ; a0eb: 7a          z              ; PLY -- restore Y
     pha                                                               ; a0ec: 48          H              ; Push CMOS value
-    lda cmos_attr_table,x                                             ; a0ed: bd ff a0    ...
+    lda cmos_attr_table,x                                             ; a0ed: bd ff a0    ...            ; Load shift count from cmos_attr_table[X]
     tax                                                               ; a0f0: aa          .              ; TAX -- value to X
-    tya                                                               ; a0f1: 98          .
+    tya                                                               ; a0f1: 98          .              ; TYA -- caller's Y back to A as the value to shift
 ; &a0f2 referenced 1 time by &a0f4
 .loop_extract_attribute_bits
     asl a                                                             ; a0f2: 0a          .              ; ASL -- shift CMOS bits
-    dex                                                               ; a0f3: ca          .
-    bne loop_extract_attribute_bits                                   ; a0f4: d0 fc       ..
-    sta fs_load_addr                                                  ; a0f6: 85 b0       ..
+    dex                                                               ; a0f3: ca          .              ; DEX -- count down shift iterations
+    bne loop_extract_attribute_bits                                   ; a0f4: d0 fc       ..             ; Loop until X reaches 0
+    sta fs_load_addr                                                  ; a0f6: 85 b0       ..             ; Stash shifted value in fs_load_addr scratch
     pla                                                               ; a0f8: 68          h              ; Pop saved value
-    ora fs_load_addr                                                  ; a0f9: 05 b0       ..
+    ora fs_load_addr                                                  ; a0f9: 05 b0       ..             ; OR with the CMOS-masked value
     tay                                                               ; a0fb: a8          .              ; TAY -- back to Y
-    ldx #&11                                                          ; a0fc: a2 11       ..
+    ldx #&11                                                          ; a0fc: a2 11       ..             ; X=&11: target CMOS byte for write-back
 .sub_ca0fe
 cmos_attr_table = sub_ca0fe+1
-    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Save carry to fs_flags bit 7
+    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..
 ; &a0ff referenced 1 time by &a0ed
-    bra done_close                                                    ; a101: 80 99       ..
+    bra done_close                                                    ; a101: 80 99       ..             ; Tail-branch into the OSARGS done path
 ; &a103 referenced 1 time by &a0e8
 .osargs_close_jump
-    equb 1, 2, 4, 6, &fd, &f3, &cf, &3f                               ; a103: 01 02 04... ...            ; Restore fs_flags bit 7; Save carry to econet_flags bit 7
+    equb 1, 2, 4, 6, &fd, &f3, &cf, &3f                               ; a103: 01 02 04... ...
 
 ; ***************************************************************************************
 ; FSCV reason 1: EOF check
@@ -8832,15 +8832,15 @@ cmos_attr_table = sub_ca0fe+1
 ; On Exit: A: 0 = not at EOF, non-zero = EOF
 .fscv_1_eof
     jsr verify_ws_checksum                                            ; a10b: 20 9e 90     ..            ; Verify workspace checksum
-    pha                                                               ; a10e: 48          H              ; Store '?' to workspace
-    lda fs_block_offset                                               ; a10f: a5 bc       ..             ; Load block offset; Restore econet_flags bit 7
+    pha                                                               ; a10e: 48          H
+    lda fs_block_offset                                               ; a10f: a5 bc       ..             ; Load block offset
     pha                                                               ; a111: 48          H              ; Push block offset
     stx hazel_chan_attr                                               ; a112: 8e c9 c2    ...            ; Store X in l10c9
     jsr find_matching_fcb                                             ; a115: 20 cf ba     ..            ; Find matching FCB entry
     beq mark_not_found                                                ; a118: f0 0c       ..             ; Zero: no match found
     lda hazel_fcb_addr_lo,y                                           ; a11a: b9 00 c2    ...            ; Load FCB low byte from l1000
     cmp hazel_fcb_offset_save,x                                       ; a11d: dd 98 c2    ...            ; Compare with stored offset l1098
-    bcc mark_not_found                                                ; a120: 90 04       ..             ; Match command in FS table
+    bcc mark_not_found                                                ; a120: 90 04       ..
     ldx #&ff                                                          ; a122: a2 ff       ..             ; X=&FF: mark as found (all bits set)
     bmi restore_and_return                                            ; a124: 30 02       0.             ; ALWAYS branch (negative)
 

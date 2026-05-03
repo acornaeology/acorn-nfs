@@ -2702,14 +2702,22 @@ handler. The high byte pushed by the dispatcher is constant
 identify each control byte's handler.""")
 for addr in range(0x848B, 0x8493):
     byte(addr)
-expr(0x848B, "<(rx_imm_peek-1)")            # ctrl &81: PEEK
-expr(0x848C, "<(rx_imm_poke-1)")            # ctrl &82: POKE
-expr(0x848D, "<(rx_imm_exec-1)")            # ctrl &83: JSR
-expr(0x848E, "<(rx_imm_exec-1)")            # ctrl &84: UserProc
-expr(0x848F, "<(rx_imm_exec-1)")            # ctrl &85: OSProc
-expr(0x8490, "<(rx_imm_halt_cont-1)")       # ctrl &86: HALT
-expr(0x8491, "<(rx_imm_halt_cont-1)")       # ctrl &87: CONTINUE
-expr(0x8492, "<(rx_imm_machine_type-1)")    # ctrl &88: machine-type
+expr(0x848B, "<(rx_imm_peek-1)")
+expr(0x848C, "<(rx_imm_poke-1)")
+expr(0x848D, "<(rx_imm_exec-1)")
+expr(0x848E, "<(rx_imm_exec-1)")
+expr(0x848F, "<(rx_imm_exec-1)")
+expr(0x8490, "<(rx_imm_halt_cont-1)")
+expr(0x8491, "<(rx_imm_halt_cont-1)")
+expr(0x8492, "<(rx_imm_machine_type-1)")
+comment(0x848B, "ctrl &81: PEEK", inline=True)
+comment(0x848C, "ctrl &82: POKE", inline=True)
+comment(0x848D, "ctrl &83: JSR", inline=True)
+comment(0x848E, "ctrl &84: UserProc", inline=True)
+comment(0x848F, "ctrl &85: OSProc", inline=True)
+comment(0x8490, "ctrl &86: HALT", inline=True)
+comment(0x8491, "ctrl &87: CONTINUE", inline=True)
+comment(0x8492, "ctrl &88: machine-type", inline=True)
 
 subroutine(0x8493, "rx_imm_exec",
     title="RX immediate: JSR / UserProc / OSProc setup",
@@ -9312,7 +9320,6 @@ comment(0xA49D, "DEC", inline=True)
 comment(0xA49E, "RTI -- effective unconditional jump", inline=True)
 
 # fscv_0_opt_entry gap-fill.
-comment(0xA0D5, "Z set: option = 0, take fast path", inline=True)
 comment(0xA0DF, "PHY -- save Y", inline=True)
 comment(0xA0E1, "X=&11: CMOS RAM byte index", inline=True)
 comment(0xA0E7, "TYA -- read CMOS &11 result to A", inline=True)
@@ -13792,20 +13799,33 @@ comment(0xA0C0, "Transfer back to Y", inline=True)
 comment(0xA0C5, "Zero result: skip store", inline=True)
 comment(0xA0CA, "Transfer back to X", inline=True)
 
-# get_pb_ptr_as_index (&A0B4) — convert PB pointer to 2-bit index
-# byte_to_2bit_index (&A0B6) — map byte to 2-bit index in Y
-
-# OSWORD read handler (&A0CC)
-
-# OSWORD write handler (&A0E2)
-comment(0xA0FF, "Save carry to fs_flags bit 7", inline=True)
-comment(0xA105, "Restore fs_flags bit 7", inline=True)
-comment(0xA109, "Save carry to econet_flags bit 7", inline=True)
-comment(0xA10E, "Store '?' to workspace", inline=True)
-comment(0xA110, "Restore econet_flags bit 7", inline=True)
-
-# cmd_fs_entry (&A0FC) — FS command dispatch entry
-comment(0xA120, "Match command in FS table", inline=True)
+# OSARGS sub-code dispatcher (&A0CF..&A101): osargs_store_ptr_lo
+# routes by sub-code. X = OSARGS sub-code (0..7), Y = OSARGS arg.
+# Sub-code 4 takes the fast read path (osargs_check_length); sub-codes
+# 0..3 with low Y go to osopt_check_cmos_protect; sub-codes 5..7 fall
+# through into the same. Out-of-range -> error_osargs.
+comment(0xA0CF, "X >= 8?", inline=True)
+comment(0xA0D1, "Yes: out-of-range OSARGS sub-code", inline=True)
+comment(0xA0D3, "X == 4?", inline=True)
+comment(0xA0D5, "Yes: take fast read path (osargs_check_length)",
+    inline=True)
+comment(0xA0D7, "Y < 4?", inline=True)
+comment(0xA0D9, "Yes: take CMOS-protect path", inline=True)
+comment(0xA0DB, "Y >= 2?", inline=True)
+comment(0xA0DD, "Yes: argument out of range", inline=True)
+comment(0xA0E0, "PHX -- save sub-code across the CMOS read", inline=True)
+comment(0xA0E3, "Read CMOS &11 (Econet status) -> Y", inline=True)
+comment(0xA0E6, "PLX -- restore sub-code", inline=True)
+comment(0xA0E8, "Mask CMOS &11 with osargs_close_jump[X]", inline=True)
+comment(0xA0ED, "Load shift count from cmos_attr_table[X]", inline=True)
+comment(0xA0F1, "TYA -- caller's Y back to A as the value to shift",
+    inline=True)
+comment(0xA0F3, "DEX -- count down shift iterations", inline=True)
+comment(0xA0F4, "Loop until X reaches 0", inline=True)
+comment(0xA0F6, "Stash shifted value in fs_load_addr scratch", inline=True)
+comment(0xA0F9, "OR with the CMOS-masked value", inline=True)
+comment(0xA0FC, "X=&11: target CMOS byte for write-back", inline=True)
+comment(0xA101, "Tail-branch into the OSARGS done path", inline=True)
 
 # cmd_fs_reentry (&A10D)
 # error_syntax (&A10F)
@@ -16222,6 +16242,11 @@ comment(0x9ABE, "Error &A2: Station", inline=True)
 comment(0x9AD0, "Null terminator", inline=True)
 comment(0x9AD1, "Error &11: Escape", inline=True)
 comment(0x9AD9, "Error &CB: Bad option", inline=True)
+comment(0x9AE4, "Null terminator + Error &A5: No reply from station",
+    inline=True)
+comment(0x9AE6, "err_no_reply = &A5 message body", inline=True)
+comment(0x9AFB, "Null terminator", inline=True)
+comment(0x9AFC, "Suffix string (offset &56 in lookup)", inline=True)
 comment(0x9B0A, "Null terminator", inline=True)
 comment(0x9B0B, "Suffix: \\\" on channel\\\"", inline=True)
 comment(0x9B16, "Null terminator", inline=True)
