@@ -10613,6 +10613,14 @@ label(0x8877, "tx_flags_table")
 label(0x89C9, "nmi_shim_source")
 label(0x968F, "help_topic_template")
 label(0x99A3, "bad_prefix_table")
+# &A0FF is mid-instruction (operand byte of the JSR at &A0FE) so it
+# can't carry its own beebasm label -- py8dis instead emits an equate
+# `cmos_attr_table = osopt_cmos_writeback_jsr + 1`. Naming both
+# addresses keeps the equate readable (otherwise py8dis falls back to
+# auto-generated sub_cA0FE / la0ff names) and lets the indexed-base
+# trick `lda cmos_attr_table,X` (X=4..7) reach the read-masks at
+# offset -4 of the underlying cmos_opt_mask_table.
+label(0xA0FE, "osopt_cmos_writeback_jsr")
 label(0xA0FF, "cmos_attr_table",
     description="Indexing-base alias of "
                 "[`cmos_opt_mask_table`](address:A103) - 4.\n"

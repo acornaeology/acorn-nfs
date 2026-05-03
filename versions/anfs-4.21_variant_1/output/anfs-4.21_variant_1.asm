@@ -8846,8 +8846,8 @@ bad_prefix_table = bad_str_anchor+1
     ora fs_load_addr                                                  ; a0f9: 05 b0       ..             ; OR with the CMOS-masked value
     tay                                                               ; a0fb: a8          .
     ldx #&11                                                          ; a0fc: a2 11       ..             ; X=&11: target CMOS byte for write-back
-.sub_ca0fe
-cmos_attr_table = sub_ca0fe+1
+.osopt_cmos_writeback_jsr
+cmos_attr_table = osopt_cmos_writeback_jsr+1
     jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Write CMOS RAM byte (Y) to byte index (X)
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Tail-branch into the OSARGS done path
@@ -17578,7 +17578,6 @@ save pydis_start, pydis_end
 ;     return_6
 ;     return_7
 ;     return_8
-;     sub_ca0fe
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
