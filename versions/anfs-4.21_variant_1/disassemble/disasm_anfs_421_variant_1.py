@@ -995,13 +995,21 @@ label(0x975E, "skip_txcb_dest")
 data_banner(0x9763, "txcb_init_template",
     title="TXCB initialisation template (12 bytes)",
     description="""\
-Copied by [`init_txcb`](address:974B) into the TXCB workspace at
-`&00C0`. For offsets 0-1 the destination station bytes are also
-copied from the FS-options destination pair into `txcb_dest`. The
-`&FF` byte at offset 6 ([`always_set_v_byte`](address:9769))
+Copied byte-for-byte by [`init_txcb`](address:974B) into the
+TXCB workspace at `&00C0`. The Nth template byte (at `&9763 + N`)
+ends up at TXCB offset N (`&00C0 + N`).
+
+Bytes 2 and 3 (placeholders `&00 &00` here) are overwritten
+during the copy: while writing TXCB[0] and TXCB[1] the loop also
+copies `hazel_fs_station[0..1]` (HAZEL `&C000..&C001`) into
+`txcb_dest` (`&00C2..&00C3`), so the runtime destination station
+and network come from the live FS state rather than this
+template.
+
+The `&FF` byte at offset 6 ([`always_set_v_byte`](address:9769))
 serves double duty: it is part of this template AND a `BIT $abs`
 target used by 22 callers to set V and N flags without clobbering
-A.""")
+`A`.""")
 for i in range(12):
     byte(0x9763 + i)
 label(0x976A, "bit_test_ff")
@@ -11634,24 +11642,24 @@ comment(0x9241, "Digit >= &0A?", inline=True)
 comment(0x9243, "No: skip letter adjustment", inline=True)
 comment(0x9245, "Add 7 to get 'A'-'F' (6 + carry)", inline=True)
 comment(0x9247, "Add &30 for ASCII '0'-'9' or 'A'-'F'", inline=True)
-# txcb_init_template (&948B) — 12-byte TXCB template
-comment(0x9763, "TXCB initialisation template (12 bytes)\n"
-    "\n"
-    "Copied by [`init_txcb`](address:974B) into the TXCB\n"
-    "workspace at &00C0. For offsets 0-1, the destination\n"
-    "station bytes are also copied from the FS-options\n"
-    "destination pair into txcb_dest.\n"
-    "\n"
-    "The &FF byte at offset 6\n"
-    "([`always_set_v_byte`](address:9769) in this build)\n"
-    "serves double duty: it is part of this template AND\n"
-    "a BIT target used by 22 callers to set the V and N\n"
-    "flags without clobbering A.")
-comment(0x9763, "Offset 0: txcb_ctrl = &80 (transmit)", inline=True)
-comment(0x9765, "Offset 4: txcb_start = 0", inline=True)
-comment(0x976A, "Offset 6: BIT target / buffer end lo", inline=True)
-comment(0x976B, "Offset 7: txcb_pos = &FF", inline=True)
-comment(0x976E, "Offset 11: extended addr fill (&FF)", inline=True)
+comment(0x9763, "Offset 0: txcb_ctrl = &80 (TX command)", inline=True)
+comment(0x9764, "Offset 1: txcb_port = &99 (FS command port)", inline=True)
+comment(0x9765, "Offset 2: txcb_dest lo placeholder "
+    "(overwritten with hazel_fs_station[0])", inline=True)
+comment(0x9766, "Offset 3: txcb_dest hi placeholder "
+    "(overwritten with hazel_fs_station[1])", inline=True)
+comment(0x9767, "Offset 4: txcb_start lo = 0", inline=True)
+comment(0x9768, "Offset 5: txcb_start hi = &C1 (data buffer "
+    "starts at &C100 in HAZEL)", inline=True)
+comment(0x9769, "Offset 6: padding &FF; doubles as the "
+    "always_set_v_byte BIT $abs target", inline=True)
+comment(0x976A, "Offset 7: txcb_pos = &FF "
+    "(also labelled bit_test_ff)", inline=True)
+comment(0x976B, "Offset 8: txcb_end lo = &FF", inline=True)
+comment(0x976C, "Offset 9: txcb_end hi = &C1 "
+    "(buffer end &C1FF)", inline=True)
+comment(0x976D, "Offset 10: extended-addr fill (&FF)", inline=True)
+comment(0x976E, "Offset 11: extended-addr fill (&FF)", inline=True)
 
 # ============================================================
 # Service dispatch table entry points (&89ED / &8A20)

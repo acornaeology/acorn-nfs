@@ -6443,37 +6443,34 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; TXCB initialisation template (12 bytes)
 ;
-; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1 the destination
-; station bytes are also copied from the FS-options destination pair into txcb_dest.
+; Copied byte-for-byte by init_txcb into the TXCB workspace at &00C0. The Nth template
+; byte (at &9763 + N) ends up at TXCB offset N (&00C0 + N).
+;
+; Bytes 2 and 3 (placeholders &00 &00 here) are overwritten during the copy: while
+; writing TXCB[0] and TXCB[1] the loop also copies hazel_fs_station[0..1] (HAZEL
+; &C000..&C001) into txcb_dest (&00C2..&00C3), so the runtime destination station and
+; network come from the live FS state rather than this template.
+;
 ; The &FF byte at offset 6 (always_set_v_byte) serves double duty: it is part of this
 ; template AND a BIT $abs target used by 22 callers to set V and N flags without
 ; clobbering A.
-; TXCB initialisation template (12 bytes)
-;
-; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1, the
-; destination station bytes are also copied from the FS-options destination pair into
-; txcb_dest.
-;
-; The &FF byte at offset 6 (always_set_v_byte in this build) serves double duty: it is
-; part of this template AND a BIT target used by 22 callers to set the V and N flags
-; without clobbering A.
 ; &9763 referenced 1 time by &974e
 .txcb_init_template
-    equb &80                                                          ; 9763: 80          .              ; Offset 0: txcb_ctrl = &80 (transmit)
-    equb &99                                                          ; 9764: 99          .
-    equb 0                                                            ; 9765: 00          .              ; Offset 4: txcb_start = 0
-    equb 0                                                            ; 9766: 00          .
-    equb 0                                                            ; 9767: 00          .
-    equb &c1                                                          ; 9768: c1          .
+    equb &80                                                          ; 9763: 80          .              ; Offset 0: txcb_ctrl = &80 (TX command)
+    equb &99                                                          ; 9764: 99          .              ; Offset 1: txcb_port = &99 (FS command port)
+    equb 0                                                            ; 9765: 00          .              ; Offset 2: txcb_dest lo placeholder (overwritten with hazel_fs_station[0])
+    equb 0                                                            ; 9766: 00          .              ; Offset 3: txcb_dest hi placeholder (overwritten with hazel_fs_station[1])
+    equb 0                                                            ; 9767: 00          .              ; Offset 4: txcb_start lo = 0
+    equb &c1                                                          ; 9768: c1          .              ; Offset 5: txcb_start hi = &C1 (data buffer starts at &C100 in HAZEL)
 ; &9769 referenced 21 times by &8c67, &91fc, &993d, &9a6a, &9e2e, &9ff0, &a3bb, &a4b8, &a65a, &a685, &a6bc, &ae02, &b327, &b3e3, &b563, &b5c3, &b604, &b694, &b8f9, &b937, &bc22
 .always_set_v_byte
-    equb &ff                                                          ; 9769: ff          .
+    equb &ff                                                          ; 9769: ff          .              ; Offset 6: padding &FF; doubles as the always_set_v_byte BIT $abs target
 .bit_test_ff
-    equb &ff                                                          ; 976a: ff          .              ; Offset 6: BIT target / buffer end lo
-    equb &ff                                                          ; 976b: ff          .              ; Offset 7: txcb_pos = &FF
-    equb &c1                                                          ; 976c: c1          .
-    equb &ff                                                          ; 976d: ff          .
-    equb &ff                                                          ; 976e: ff          .              ; Offset 11: extended addr fill (&FF)
+    equb &ff                                                          ; 976a: ff          .              ; Offset 7: txcb_pos = &FF (also labelled bit_test_ff)
+    equb &ff                                                          ; 976b: ff          .              ; Offset 8: txcb_end lo = &FF
+    equb &c1                                                          ; 976c: c1          .              ; Offset 9: txcb_end hi = &C1 (buffer end &C1FF)
+    equb &ff                                                          ; 976d: ff          .              ; Offset 10: extended-addr fill (&FF)
+    equb &ff                                                          ; 976e: ff          .              ; Offset 11: extended-addr fill (&FF)
 
 ; ***************************************************************************************
 ; Send read-only FS request (carry set)
