@@ -3231,7 +3231,7 @@ nmi_shim_source = reset_enter_listen+2
     txa                                                               ; 8a69: 8a          .              ; Transfer OS version to A
     php                                                               ; 8a6a: 08          .              ; Save flags (Z set if OS 1.00) across print
     jsr print_inline                                                  ; 8a6b: 20 61 92     a.            ; Print '<CR>Bad ROM ' to mark non-Master OS
-    equs &0d, "Bad ROM "                                              ; 8a6e: 0d 42 61... .Ba            ; Inline: '\rBad ROM ' header (svc 13 fail path)
+    equs &0d, "Bad ROM "                                              ; 8a6e: 0d 42 61... .Ba            ; svc 13 fail path
 
     lda romsel_copy                                                   ; 8a77: a5 f4       ..             ; Load this ROM's slot number
     jsr print_num_no_leading                                          ; 8a79: 20 27 b3     '.            ; Print slot number as decimal
@@ -3861,7 +3861,7 @@ nmi_shim_source = reset_enter_listen+2
 .print_version_header
     jsr print_inline                                                  ; 8c93: 20 61 92     a.            ; Print version string via inline
 .version_string_cr
-    equs &0d, "Advanced NFS 4.21", &0d                                ; 8c96: 0d 41 64... .Ad            ; Inline: '\rAdvanced NFS 4.21\r' boot banner
+    equs &0d, "Advanced NFS 4.21", &0d                                ; 8c96: 0d 41 64... .Ad
 
     nop                                                               ; 8ca9: ea          .              ; Inline-string fallthrough lands here on terminator
     jmp print_station_id                                              ; 8caa: 4c c7 90    L..            ; Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)
@@ -4071,14 +4071,14 @@ nmi_shim_source = reset_enter_listen+2
 ; &8d45 referenced 2 times by &8d2a, &8d39
 .credits_keyword_start
     equb &0d                                                          ; 8d45: 0d          .              ; CR
-    equs "The authors of ANFS are;"                                   ; 8d46: 54 68 65... The            ; Inline: 'The authors of ANFS are;' credits header
+    equs "The authors of ANFS are;"                                   ; 8d46: 54 68 65... The
     equb &0d                                                          ; 8d5e: 0d          .              ; CR
-    equs "B Cockburn"                                                 ; 8d5f: 42 20 43... B C            ; Inline: 'B Cockburn' (author 1)
+    equs "B Cockburn"                                                 ; 8d5f: 42 20 43... B C
     equb &0d                                                          ; 8d69: 0d          .
     equs "J Du"                                                       ; 8d6a: 4a 20 44... J D
     equs "nn"                                                         ; 8d6e: 6e 6e       nn
     equb &0d                                                          ; 8d70: 0d          .
-    equs "B Robertson"                                                ; 8d71: 42 20 52... B R            ; Inline: 'B Robertson' (author 2)
+    equs "B Robertson"                                                ; 8d71: 42 20 52... B R
     equb &0d                                                          ; 8d7c: 0d          .
     equs "J Wills"                                                    ; 8d7d: 4a 20 57... J W
     equb &0d                                                          ; 8d84: 0d          .              ; CR
@@ -4940,7 +4940,7 @@ ps_template_base = load_transfer_params+1
 .error_net_checksum
     lda #&aa                                                          ; 90b5: a9 aa       ..             ; Error number &AA
     jsr error_bad_inline                                              ; 90b7: 20 a7 99     ..            ; Raise 'net checksum' error
-    equs "net checksum", 0                                            ; 90ba: 6e 65 74... net            ; Inline: 'net checksum.' error-suffix tail
+    equs "net checksum", 0                                            ; 90ba: 6e 65 74... net
 
 ; ***************************************************************************************
 ; Print Econet station number and clock status
@@ -4966,7 +4966,7 @@ ps_template_base = load_transfer_params+1
     bit adlc_cr2                                                      ; 90e2: 2c a1 fe    ,..            ; Check ADLC status register 2
     beq done_print_newline                                            ; 90e5: f0 0d       ..             ; Clock present: skip warning
     jsr print_inline                                                  ; 90e7: 20 61 92     a.            ; Print ' No Clock' via inline
-    equs " No Clock"                                                  ; 90ea: 20 4e 6f...  No            ; Inline: ' No Clock' error suffix
+    equs " No Clock"                                                  ; 90ea: 20 4e 6f...  No
 
     nop                                                               ; 90f3: ea          .              ; NOP (string terminator)
 ; &90f4 referenced 1 time by &90e5
@@ -4988,7 +4988,7 @@ ps_template_base = load_transfer_params+1
 .syn_iam
     equs "(<stn. id.>) <user id.> "                                   ; 9100: 28 3c 73... (<s            ; Syn 2: *I Am (login)
     equb &0d                                                          ; 9118: 0d          .              ; Line break
-    equs "((:<CR>)<password>)"                                        ; 9119: 28 28 3a... ((:            ; Inline: '((:<CR>)<password>)' -- syntax help for *Pass / *I am
+    equs "((:<CR>)<password>)"                                        ; 9119: 28 28 3a... ((:            ; syntax help for *Pass / *I am
     equb 0                                                            ; 912c: 00          .
 .syn_object
     equs "<object>"                                                   ; 912d: 3c 6f 62... <ob            ; Syn 3: *Delete, *FS, *Remove
@@ -5007,7 +5007,7 @@ ps_template_base = load_transfer_params+1
     equb &0d                                                          ; 9183: 0d          .
     equs "<new password>"                                             ; 9184: 3c 6e 65... <ne            ; Syn 7 continued: new password
     equb 0                                                            ; 9192: 00          .
-    equs "(<stn. id.>|<ps type>)"                                     ; 9193: 28 3c 73... (<s            ; Inline: '(<stn. id.>|<ps type>)' -- syntax help for *PS / *Pollps
+    equs "(<stn. id.>|<ps type>)"                                     ; 9193: 28 3c 73... (<s            ; syntax help for *PS / *Pollps
     equb 0                                                            ; 91a9: 00          .
 .syn_access
     equs "<object> (L)(W)(R)(/(W)(R))"                                ; 91aa: 3c 6f 62... <ob            ; Syn 9: *Access
@@ -5455,7 +5455,7 @@ ps_template_base = load_transfer_params+1
 .err_bad_station_num
     lda #&d0                                                          ; 9357: a9 d0       ..             ; A=&D0: 'Bad station' error code
     jsr error_bad_inline                                              ; 9359: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
-    equs "station number", 0                                          ; 935c: 73 74 61... sta            ; Inline: 'station number.' error suffix
+    equs "station number", 0                                          ; 935c: 73 74 61... sta
 
 ; &936b referenced 2 times by &92fd, &933f
 .error_bad_number
@@ -5467,13 +5467,13 @@ ps_template_base = load_transfer_params+1
 .error_bad_param
     lda #&94                                                          ; 9377: a9 94       ..             ; A=&94: 'Bad parameter' error code
     jsr error_bad_inline                                              ; 9379: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
-    equs "parameter", 0                                               ; 937c: 70 61 72... par            ; Inline: 'parameter.' error suffix
+    equs "parameter", 0                                               ; 937c: 70 61 72... par
 
 ; &9386 referenced 1 time by &9347
 .error_bad_net_num
     lda #&d1                                                          ; 9386: a9 d1       ..             ; A=&D1: 'Bad net number' error code
     jsr error_bad_inline                                              ; 9388: 20 a7 99     ..            ; Raise via error_bad_inline (never returns)
-    equs "network number", 0                                          ; 938b: 6e 65 74... net            ; Inline: 'network number.' error suffix
+    equs "network number", 0                                          ; 938b: 6e 65 74... net
 
 ; ***************************************************************************************
 ; Test for digit, '&', or '.' separator
@@ -5767,7 +5767,7 @@ ps_template_base = load_transfer_params+1
 .error_bad_filename
     lda #&cc                                                          ; 9437: a9 cc       ..             ; Error number &CC
     jsr error_bad_inline                                              ; 9439: 20 a7 99     ..            ; Raise 'Bad file name' error
-    equs "file name", 0                                               ; 943c: 66 69 6c... fil            ; Inline: 'file name.' error suffix
+    equs "file name", 0                                               ; 943c: 66 69 6c... fil
 
 ; ***************************************************************************************
 ; Reject '&' as filename character
@@ -6657,7 +6657,7 @@ help_topic_template = dispatch_help_command+1
     ror a                                                             ; 9817: 6a          j              ; ROR: bit 0 (was bit 6 of any &40 byte) -> C
     bcc scan_channel_store_reply                                      ; 9818: 90 0d       ..             ; Any channel was active: skip the warning
     jsr print_inline_no_spool                                         ; 981a: 20 8a 92     ..            ; No active channels were lost: print 'Data Lost' warning via inline string
-    equs "Data Lost", &0d                                             ; 981d: 44 61 74... Dat            ; Inline: 'Data Lost\r' RX-overflow warning
+    equs "Data Lost", &0d                                             ; 981d: 44 61 74... Dat
 
 ; &9827 referenced 1 time by &9818
 .scan_channel_store_reply
@@ -6738,7 +6738,7 @@ help_topic_template = dispatch_help_command+1
     jsr commit_state_byte                                             ; 987e: 20 5f b0     _.            ; Commit the language-reply state byte
     lda #0                                                            ; 9881: a9 00       ..             ; A=0: 'Bad' error code
     jsr error_inline_log                                              ; 9883: 20 c0 99     ..            ; Raise via error_inline_log (never returns)
-    equs "Remoted", 7, 0                                              ; 9886: 52 65 6d... Rem            ; Inline: 'Remoted..' status
+    equs "Remoted", 7, 0                                              ; 9886: 52 65 6d... Rem
 
 ; ***************************************************************************************
 ; Acknowledge escape (if pressed) and classify reply
@@ -7330,11 +7330,11 @@ bad_prefix_table = bad_str_anchor+1
 ; &9aa6 referenced 8 times by &9913, &9919, &994c, &9957, &997b, &9992, &9998, &9a21
 .error_msg_string_table
     equb &a0                                                          ; 9aa6: a0          .
-    equs "Line jammed"                                                ; 9aa7: 4c 69 6e... Lin            ; Inline: 'Line jammed' error msg (err_line_jammed = &A0)
+    equs "Line jammed"                                                ; 9aa7: 4c 69 6e... Lin            ; err_line_jammed = &A0
     equb 0                                                            ; 9ab2: 00          .              ; Null terminator
 .msg_net_error
     equb &a1                                                          ; 9ab3: a1          .              ; Error &A1: Net error
-    equs "Net error"                                                  ; 9ab4: 4e 65 74... Net            ; Inline: 'Net error' error msg (err_net_error = &A1)
+    equs "Net error"                                                  ; 9ab4: 4e 65 74... Net            ; err_net_error = &A1
     equb 0                                                            ; 9abd: 00          .
 .msg_station
     equb &a2                                                          ; 9abe: a2          .              ; Error &A2: Station
@@ -7349,12 +7349,12 @@ bad_prefix_table = bad_str_anchor+1
     equb 0                                                            ; 9ad8: 00          .
 .msg_bad_option
     equb &cb                                                          ; 9ad9: cb          .              ; Error &CB: Bad option
-    equs "Bad option"                                                 ; 9ada: 42 61 64... Bad            ; Inline: 'Bad option' error msg
+    equs "Bad option"                                                 ; 9ada: 42 61 64... Bad
     equb 0, &a5                                                       ; 9ae4: 00 a5       ..
     equb &4e                                                          ; 9ae6: 4e          N
-    equs "o reply from station"                                       ; 9ae7: 6f 20 72... o r            ; Inline: 'o reply from station' suffix (joins to 'N' prefix)
+    equs "o reply from station"                                       ; 9ae7: 6f 20 72... o r            ; joins to 'N' prefix
     equb 0                                                            ; 9afb: 00          .
-    equs " not listening"                                             ; 9afc: 20 6e 6f...  no            ; Inline: ' not listening' suffix
+    equs " not listening"                                             ; 9afc: 20 6e 6f...  no
     equb 0                                                            ; 9b0a: 00          .              ; Null terminator
 .msg_on_channel
     equs " on channel"                                                ; 9b0b: 20 6f 6e...  on            ; Suffix: " on channel"
@@ -9867,7 +9867,7 @@ cmos_attr_table = store_carry_to_workspace+1
 .error_bad_command
     lda #&fe                                                          ; a5a1: a9 fe       ..             ; Error code &FE
     jsr error_bad_inline                                              ; a5a3: 20 a7 99     ..            ; Raise 'Bad command' error
-    equs "command", 0                                                 ; a5a6: 63 6f 6d... com            ; Inline: 'command.' error suffix
+    equs "command", 0                                                 ; a5a6: 63 6f 6d... com
 
 ; ***************************************************************************************
 ; Validate exec address is non-zero
@@ -12187,13 +12187,13 @@ bridge_err_table = compare_bridge_status+1
 .err_printer_busy
     lda #&a6                                                          ; af80: a9 a6       ..             ; A=&A6: 'Printer busy' error code
     jsr error_inline_log                                              ; af82: 20 c0 99     ..            ; Raise via error_inline_log (never returns)
-    equs "Printer busy", 0                                            ; af85: 50 72 69... Pri            ; Inline: 'Printer busy.' error msg
+    equs "Printer busy", 0                                            ; af85: 50 72 69... Pri
 
 ; &af92 referenced 1 time by &af7e
 .printer_busy_msg
     lda #&a7                                                          ; af92: a9 a7       ..             ; A=&A7: 'Printer jammed' error code
     jsr error_inline_log                                              ; af94: 20 c0 99     ..            ; Raise via error_inline_log (never returns)
-    equs "Printer jammed", 0                                          ; af97: 50 72 69... Pri            ; Inline: 'Printer jammed.' error msg
+    equs "Printer jammed", 0                                          ; af97: 50 72 69... Pri
 
 ; ***************************************************************************************
 ; Send Econet disconnect reply packet
@@ -12679,7 +12679,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ldx #&11                                                          ; b1c9: a2 11       ..             ; X=&11: filename offset in TX buffer
     jsr print_10_chars                                                ; b1cb: 20 1a b2     ..            ; Print 10-char filename
     jsr print_inline_no_spool                                         ; b1ce: 20 8a 92     ..            ; Print inline 'attr-bits' fragment
-    equs "     Lib. "                                                 ; b1d1: 20 20 20...                ; Inline: ' Lib. ' label for *Ex output
+    equs "     Lib. "                                                 ; b1d1: 20 20 20...                ; label for *Ex output
 
     ldx #&1b                                                          ; b1db: a2 1b       ..             ; X=&1B: extension offset in TX buffer
     jsr print_10_chars                                                ; b1dd: 20 1a b2     ..            ; Print 10-char extension
@@ -13416,7 +13416,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b498 referenced 1 time by &b48b
 .print_server_is_suffix
     jsr print_inline                                                  ; b498: 20 61 92     a.            ; Print ' server is ' via inline string
-    equs " server is "                                                ; b49b: 20 73 65...  se            ; Inline: ' server is ' fragment for 'File/Printer server is ...' messages
+    equs " server is "                                                ; b49b: 20 73 65...  se            ; fragment for 'File/Printer server is ...' messages
 
     nop                                                               ; b4a6: ea          .              ; Inline-string fallthrough lands here
     rts                                                               ; b4a7: 60          `              ; Return; caller now prints the actual server (file or printer) address
@@ -13822,7 +13822,7 @@ ps_print_template = write_ps_slot_hi_link+1
     sta fs_work_5                                                     ; b679: 85 b5       ..             ; Store station low
     beq done_poll_status_line                                         ; b67b: f0 1d       ..             ; Zero: no client info, skip
     jsr print_inline                                                  ; b67d: 20 61 92     a.            ; Print ' with station '
-    equs " with station "                                             ; b680: 20 77 69...  wi            ; Inline: ' with station ' message fragment
+    equs " with station "                                             ; b680: 20 77 69...  wi
 
     inc work_ae                                                       ; b68e: e6 ae       ..             ; Advance work_ae to next status byte (lo)
     lda (work_ae,x)                                                   ; b690: a1 ae       ..             ; Read network number byte via (work_ae,X)
@@ -14233,11 +14233,11 @@ ps_print_template = write_ps_slot_hi_link+1
 net_chan_err_strings = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b81f: 20 c0 99     ..            ; Generate 'Net channel' error
 ; &b821 referenced 2 times by &b867, &b87b
-    equs "Net channel", 0                                             ; b822: 4e 65 74... Net            ; Inline: 'Net channel.' error msg
+    equs "Net channel", 0                                             ; b822: 4e 65 74... Net
 
     jsr false_ref_6f6e                                                ; b82e: 20 6e 6f     no            ; Error string continuation (unreachable)
     stz tx_buffer_scratch,x                                           ; b831: 74 20       t              ; STZ tx_buffer_scratch+X (clear scratch)
-    equs "on this file server"                                        ; b833: 6f 6e 20... on             ; Inline: 'on this file server' fragment
+    equs "on this file server"                                        ; b833: 6f 6e 20... on
     equb 0                                                            ; b846: 00          .
 
 ; ***************************************************************************************
@@ -14316,7 +14316,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     beq return_8                                                      ; b891: f0 14       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..            ; Generate 'Is a dir.' error
-    equs "Is a directory", 0                                          ; b898: 49 73 20... Is             ; Inline: 'Is a directory.' error msg
+    equs "Is a directory", 0                                          ; b898: 49 73 20... Is
 
 ; &b8a7 referenced 1 time by &b891
 .return_8
@@ -14382,7 +14382,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bne return_alloc_success                                          ; b8e2: d0 12       ..             ; Success: slot allocated
     lda #&c0                                                          ; b8e4: a9 c0       ..             ; Error code &C0
     jsr error_inline_log                                              ; b8e6: 20 c0 99     ..            ; Generate 'No more FCBs' error
-    equs "No more FCBs", 0                                            ; b8e9: 4e 6f 20... No             ; Inline: 'No more FCBs.' error msg
+    equs "No more FCBs", 0                                            ; b8e9: 4e 6f 20... No
 
 ; &b8f6 referenced 1 time by &b8e2
 .return_alloc_success
@@ -15435,7 +15435,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     lda (work_ae),y                                                   ; be01: b1 ae       ..             ; Read low nibble of starting address from (work_ae),Y
     pha                                                               ; be03: 48          H              ; Save it (we'll print it 16 times incrementing each iteration)
     jsr print_inline                                                  ; be04: 20 61 92     a.            ; Print '<CR>Address : ' header via inline string
-    equs &0d, "Address  : "                                           ; be07: 0d 41 64... .Ad            ; Inline: '\rAddress : ' -- *Dump column header
+    equs &0d, "Address  : "                                           ; be07: 0d 41 64... .Ad            ; *Dump column header
 
     ldx #&0f                                                          ; be13: a2 0f       ..             ; X=&0F: print 16 column-number digits
     pla                                                               ; be15: 68          h              ; Pull the starting low nibble back into A
@@ -15448,7 +15448,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     dex                                                               ; be1e: ca          .              ; Step column counter
     bpl loop_print_hex_row                                            ; be1f: 10 f5       ..             ; Loop while X >= 0 (16 iterations)
     jsr print_inline                                                  ; be21: 20 61 92     a.            ; Print ': ASCII data<CR><CR>' trailer via inline
-    equs ":    ASCII data", &0d, &0d                                  ; be24: 3a 20 20... :              ; Inline: ': ASCII data\r\r' -- *Dump trailer
+    equs ":    ASCII data", &0d, &0d                                  ; be24: 3a 20 20... :              ; *Dump trailer
 
     nop                                                               ; be35: ea          .              ; Inline-string fallthrough
     rts                                                               ; be36: 60          `              ; Return
@@ -15623,7 +15623,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr close_ws_file                                                 ; bed6: 20 71 bf     q.            ; Close the file before raising
     lda #&b7                                                          ; bed9: a9 b7       ..             ; A=&B7: 'Outside file' error code
     jsr error_inline                                                  ; bedb: 20 c3 99     ..            ; Raise via inline string; never returns
-    equs "Outside file", 0                                            ; bede: 4f 75 74... Out            ; Inline: 'Outside file.' *Dump range error
+    equs "Outside file", 0                                            ; bede: 4f 75 74... Out            ; *Dump range error
 
 ; &beeb referenced 1 time by &bef3
 .loop_copy_osword_data
@@ -15692,7 +15692,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr close_ws_file                                                 ; bf43: 20 71 bf     q.            ; Parse error: close file then raise 'Bad address'
     lda #&fc                                                          ; bf46: a9 fc       ..             ; A=&FC: 'Bad address' error code
     jsr error_bad_inline                                              ; bf48: 20 a7 99     ..            ; Raise; never returns
-    equs "address", 0                                                 ; bf4b: 61 64 64... add            ; Inline: 'address.' error suffix
+    equs "address", 0                                                 ; bf4b: 61 64 64... add
 
 ; &bf53 referenced 3 times by &bf2e, &bf3c, &bf41
 .done_add_disp_base
@@ -15759,7 +15759,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bne restore_text_ptr                                              ; bf8d: d0 0f       ..             ; Non-zero: open succeeded, skip error path
     lda #&d6                                                          ; bf8f: a9 d6       ..             ; A=&D6: 'Not found' error code
     jsr error_inline                                                  ; bf91: 20 c3 99     ..            ; Raise the error with the inline string below; never returns
-    equs "Not found", 0                                               ; bf94: 4e 6f 74... Not            ; Inline: 'Not found.' error msg
+    equs "Not found", 0                                               ; bf94: 4e 6f 74... Not
 
 ; &bf9e referenced 1 time by &bf8d
 .restore_text_ptr

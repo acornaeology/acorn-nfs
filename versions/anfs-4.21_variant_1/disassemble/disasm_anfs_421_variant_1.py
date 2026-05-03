@@ -12647,47 +12647,18 @@ label(0x9B17, "msg_not_present")
 # the high-bit byte (which doubles as the next opcode). Labels +
 # comments here describe each fragment's role in the user-visible
 # message stream.
-comment(0x8A6E, "Inline: '\\rBad ROM ' header (svc 13 fail path)", inline=True)
-comment(0x8C96, "Inline: '\\rAdvanced NFS 4.21\\r' boot banner", inline=True)
-comment(0x8D46, "Inline: 'The authors of ANFS are;' credits header", inline=True)
-comment(0x8D5F, "Inline: 'B Cockburn' (author 1)", inline=True)
-comment(0x8D71, "Inline: 'B Robertson' (author 2)", inline=True)
-comment(0x90BA, "Inline: 'net checksum.' error-suffix tail", inline=True)
-comment(0x90EA, "Inline: ' No Clock' error suffix", inline=True)
-comment(0x9119, "Inline: '((:<CR>)<password>)' -- syntax help "
-    "for *Pass / *I am", inline=True)
-comment(0x9193, "Inline: '(<stn. id.>|<ps type>)' -- syntax "
-    "help for *PS / *Pollps", inline=True)
-comment(0x935C, "Inline: 'station number.' error suffix", inline=True)
-comment(0x937C, "Inline: 'parameter.' error suffix", inline=True)
-comment(0x938B, "Inline: 'network number.' error suffix", inline=True)
-comment(0x943C, "Inline: 'file name.' error suffix", inline=True)
-comment(0x981D, "Inline: 'Data Lost\\r' RX-overflow warning", inline=True)
-comment(0x9886, "Inline: 'Remoted..' status", inline=True)
-comment(0x9AA7, "Inline: 'Line jammed' error msg "
-    "(err_line_jammed = &A0)", inline=True)
-comment(0x9AB4, "Inline: 'Net error' error msg "
-    "(err_net_error = &A1)", inline=True)
-comment(0x9ADA, "Inline: 'Bad option' error msg", inline=True)
-comment(0x9AE7, "Inline: 'o reply from station' suffix "
-    "(joins to 'N' prefix)", inline=True)
-comment(0x9AFC, "Inline: ' not listening' suffix", inline=True)
-comment(0xA5A6, "Inline: 'command.' error suffix", inline=True)
-comment(0xAF85, "Inline: 'Printer busy.' error msg", inline=True)
-comment(0xAF97, "Inline: 'Printer jammed.' error msg", inline=True)
-comment(0xB1D1, "Inline: '     Lib. ' label for *Ex output", inline=True)
-comment(0xB49B, "Inline: ' server is ' fragment "
-    "for 'File/Printer server is ...' messages", inline=True)
-comment(0xB680, "Inline: ' with station ' message fragment", inline=True)
-comment(0xB822, "Inline: 'Net channel.' error msg", inline=True)
-comment(0xB833, "Inline: 'on this file server' fragment", inline=True)
-comment(0xB898, "Inline: 'Is a directory.' error msg", inline=True)
-comment(0xB8E9, "Inline: 'No more FCBs.' error msg", inline=True)
-comment(0xBE07, "Inline: '\\rAddress  : ' -- *Dump column header", inline=True)
-comment(0xBE24, "Inline: ':    ASCII data\\r\\r' -- *Dump trailer", inline=True)
-comment(0xBEDE, "Inline: 'Outside file.' *Dump range error", inline=True)
-comment(0xBF4B, "Inline: 'address.' error suffix", inline=True)
-comment(0xBF94, "Inline: 'Not found.' error msg", inline=True)
+comment(0x8A6E, "svc 13 fail path", inline=True)
+comment(0x9119, "syntax help for *Pass / *I am", inline=True)
+comment(0x9193, "syntax help for *PS / *Pollps", inline=True)
+comment(0x9AA7, "err_line_jammed = &A0", inline=True)
+comment(0x9AB4, "err_net_error = &A1", inline=True)
+comment(0x9AE7, "joins to 'N' prefix", inline=True)
+comment(0xB1D1, "label for *Ex output", inline=True)
+comment(0xB49B, "fragment for 'File/Printer server is ...' "
+    "messages", inline=True)
+comment(0xBE07, "*Dump column header", inline=True)
+comment(0xBE24, "*Dump trailer", inline=True)
+comment(0xBEDE, "*Dump range error", inline=True)
 comment(0x9691, "'!Help.' prefix bytes (not used by the matcher; "
     "may be visible as a fallback help-message head)", inline=True)
 comment(0x9697, "'ON ' -- 3-char pattern read by match_on_suffix at "
