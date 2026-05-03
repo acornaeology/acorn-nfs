@@ -12162,12 +12162,12 @@ bridge_err_table = compare_bridge_status+1
     equb &fd                                                          ; ae51: fd          .              ; Spool &03: skip (dest network)
     equb &21                                                          ; ae52: 21          !
     equb &fd                                                          ; ae53: fd          .
-    equb &ff                                                          ; ae54: ff          .              ; Get command code; Spool &06: buf start ext lo
+    equb &ff                                                          ; ae54: ff          .              ; Spool &06: buf start ext lo
     equb &ff                                                          ; ae55: ff          .              ; Spool &07: buf start ext hi
-    equb &fd                                                          ; ae56: fd          .              ; Store in buffer; Spool &08: skip (buf end lo)
+    equb &fd                                                          ; ae56: fd          .              ; Spool &08: skip (buf end lo)
     equb &fd                                                          ; ae57: fd          .
     equb &ff                                                          ; ae58: ff          .
-    equb &ff                                                          ; ae59: ff          .              ; Get entries per page; Spool &0B: buf end ext hi
+    equb &ff                                                          ; ae59: ff          .              ; Spool &0B: buf end ext hi
 
 ; ***************************************************************************************
 ; OSWORD 5 handler: check spool PB and reset buffer
@@ -12179,7 +12179,7 @@ bridge_err_table = compare_bridge_status+1
 ; On Entry: X: OSWORD parameter block low byte (X-1 compared against osword_pb_ptr)
 .netv_spool_check
     dex                                                               ; ae5a: ca          .              ; Step counter; X = X - 1
-    cpx osword_pb_ptr                                                 ; ae5b: e4 f0       ..             ; Store in buffer; Match osword_pb_ptr?
+    cpx osword_pb_ptr                                                 ; ae5b: e4 f0       ..             ; Match osword_pb_ptr?
     bne return_from_spool_reset                                       ; ae5d: d0 0f       ..             ; No: return (not our PB)
     lda vdu_status                                                    ; ae5f: a5 d0       ..             ; Load spool state byte
     ror a                                                             ; ae61: 6a          j              ; Shift bit 0 into C; Rotate bit 0 into carry
@@ -12187,20 +12187,19 @@ bridge_err_table = compare_bridge_status+1
 ; ***************************************************************************************
 ; Reset spool buffer to initial state
 ;
-; Sets the spool buffer pointer to &25 (first available data position) and the control
-; state byte to &41 (ready for new data). Called after processing a complete spool data
-; block.
+; Sets the spool buffer pointer (spool_buf_idx) to &21 and the control byte (ws_0d6a)
+; to &41 (ready for new data). Called after processing a complete spool data block.
 ;
 ; On Exit: A, Y: clobbered
 ; &ae64 referenced 2 times by &8f93, &aeb5
 .reset_spool_buf_state
-    lda #&21 ; '!'                                                    ; ae64: a9 21       .!             ; Buffer start at &25
+    lda #&21 ; '!'                                                    ; ae64: a9 21       .!             ; Buffer start offset = &21
     sta spool_buf_idx                                                 ; ae66: 8d 6b 0d    .k.            ; Store as buffer pointer
-    lda #&41 ; 'A'                                                    ; ae69: a9 41       .A             ; Get number of entries returned; Control state &41
+    lda #&41 ; 'A'                                                    ; ae69: a9 41       .A             ; Control state &41
     sta ws_0d6a                                                       ; ae6b: 8d 6a 0d    .j.            ; Store as spool control state
 ; &ae6e referenced 4 times by &ae5d, &ae62, &ae71, &ae85
 .return_from_spool_reset
-    rts                                                               ; ae6e: 60          `              ; Save entry count; Return
+    rts                                                               ; ae6e: 60          `              ; Return
 
 ; ***************************************************************************************
 ; OSWORD 1-3 handler: drain printer buffer

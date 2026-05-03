@@ -5795,10 +5795,10 @@ subroutine(0xAE6F, "netv_print_data",
     on_entry={"x": "1 = drain printer buffer; >1 = control byte path"})
 subroutine(0xAE64, "reset_spool_buf_state",
     title="Reset spool buffer to initial state",
-    description="Sets the spool buffer pointer to &25 (first\n"
-    "available data position) and the control state\n"
-    "byte to &41 (ready for new data). Called after\n"
-    "processing a complete spool data block.",
+    description="Sets the spool buffer pointer (`spool_buf_idx`)\n"
+    "to `&21` and the control byte (`ws_0d6a`) to `&41`\n"
+    "(ready for new data). Called after processing a\n"
+    "complete spool data block.",
     on_entry={},
     on_exit={"a, y": "clobbered"})
 subroutine(0xAE94, "append_byte_to_rxbuf",
@@ -14077,14 +14077,6 @@ comment(0xAE33, "Print directory name (10 chars)", inline=True)
 comment(0xAE3A, "Print '     Lib. '", inline=True)
 comment(0xAE1F, "Bit 7 set: end of option string", inline=True)
 
-# Entry listing loop
-comment(0xAE54, "Get command code", inline=True)
-comment(0xAE56, "Store in buffer", inline=True)
-comment(0xAE59, "Get entries per page", inline=True)
-comment(0xAE5B, "Store in buffer", inline=True)
-comment(0xAE69, "Get number of entries returned", inline=True)
-comment(0xAE6E, "Save entry count", inline=True)
-
 # Scan for end-of-entry marker
 comment(0xAE6F, "Advance Y", inline=True)
 comment(0xAE73, "Bit 7 clear: more data", inline=True)
@@ -15215,7 +15207,7 @@ comment(0xAE5D, "No: return (not our PB)", inline=True)
 comment(0xAE5F, "Load spool state byte", inline=True)
 comment(0xAE61, "Rotate bit 0 into carry", inline=True)
 comment(0xAE62, "C=1: already active, return", inline=True)
-comment(0xAE64, "Buffer start at &25", inline=True)
+comment(0xAE64, "Buffer start offset = &21", inline=True)
 comment(0xAE66, "Store as buffer pointer", inline=True)
 comment(0xAE69, "Control state &41", inline=True)
 comment(0xAE6B, "Store as spool control state", inline=True)

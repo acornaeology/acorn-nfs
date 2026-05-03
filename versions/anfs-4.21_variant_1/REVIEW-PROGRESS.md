@@ -195,16 +195,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xACAD` `store_ptr_at_ws_y` - description matches body
 - [x] `0xAD15` `push_osword_handler_addr` - description matches body's high-then-low PHA/PHA
 - [x] `0xAD20` `netv_dispatch_lo` - table description matches contents
-- [ ] `0xAD29` `netv_dispatch_hi`
-- [ ] `0xAD32` `osword_4_handler`
-- [ ] `0xADB8` `match_rx_code`
-- [ ] `0xADC1` `osword_claim_codes`
-- [ ] `0xADFE` `init_ws_copy_wide`
-- [ ] `0xAE07` `init_ws_copy_narrow`
-- [ ] `0xAE0B` `ws_copy_vclr_entry`
-- [ ] `0xAE33` `ws_txcb_template_data`
-- [ ] `0xAE5A` `netv_spool_check`
-- [ ] `0xAE64` `reset_spool_buf_state`
+- [x] `0xAD29` `netv_dispatch_hi` - table description matches
+- [x] `0xAD32` `osword_4_handler` - description matches body's stack-clear-carry trick
+- [x] `0xADB8` `match_rx_code` - description matches body
+- [x] `0xADC1` `osword_claim_codes` - table description matches
+- [x] `0xADFE` `init_ws_copy_wide` - description matches body
+- [x] `0xAE07` `init_ws_copy_narrow` - description matches body
+- [x] `0xAE0B` `ws_copy_vclr_entry` - description matches body's marker-aware copy loop
+- [x] `0xAE33` `ws_txcb_template_data` - table description matches three overlapping regions
+- [x] `0xAE5A` `netv_spool_check` - description matches body; deleted 6 stale 'Entry listing loop' inline comments at &AE54-&AE6E that were left over from a different routine
+- [x] `0xAE64` `reset_spool_buf_state` - description claimed buffer pointer reset to '&25' but body loads &21; inline at &AE64 also said '&25' but byte is &21. Both fixed
 - [ ] `0xAE94` `append_byte_to_rxbuf`
 - [ ] `0xB002` `tx_econet_txcb_template`
 - [ ] `0xB05F` `commit_state_byte`
