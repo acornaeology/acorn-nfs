@@ -109,13 +109,13 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x904F` `write_vector_entry` - description matches body's vector-installation loop
 - [x] `0x9064` `restore_fs_context` - description claimed source is fs_context_save (&0DFA) but body actually copies from the HAZEL FS state block via the hazel_minus_2 indexing-base trick (&BFFE,Y with Y=9..2 -> &C007..&C000). Rewrote
 - [x] `0x909E` `verify_ws_checksum` - description matches body's checksum verification
-- [ ] `0x91F9` `print_newline_no_spool`
-- [ ] `0x91FB` `print_char_no_spool`
-- [ ] `0x9201` `print_byte_no_spool`
-- [ ] `0x923F` `print_hex_nybble`
-- [ ] `0x9255` `print_hex_nybble_no_spool`
-- [ ] `0x9261` `print_inline`
-- [ ] `0x9269` `loop_next_char`
+- [x] `0x91F9` `print_newline_no_spool` - description matches body
+- [x] `0x91FB` `print_char_no_spool` - description's V=1-via-BIT-&9769 trick verified against body; fall-through chain accurate
+- [x] `0x9201` `print_byte_no_spool` - description matches body's V=0 force via PHP/CLV
+- [x] `0x923F` `print_hex_nybble` - description matches body's nybble-to-ASCII conversion
+- [x] `0x9255` `print_hex_nybble_no_spool` - description matches body; tail-jumps to print_char_no_spool
+- [x] `0x9261` `print_inline` - description matches high-bit-terminated string protocol
+- [x] `0x9269` `loop_next_char` - description matches body's INC lo / on-zero INC hi pointer advance
 - [ ] `0x939A` `is_decimal_digit`
 - [ ] `0x93A2` `is_dec_digit_only`
 - [ ] `0x93AB` `get_access_bits`
