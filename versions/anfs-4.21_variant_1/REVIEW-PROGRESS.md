@@ -27,11 +27,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 ## Depth 0 (226 routines)
 
 - [x] `0x8045` `generate_event` (in=1, out=0) — split out dispatch_svc5 (&8048) and svc_5_unknown_irq (&804F) as their own subroutines; tightened generate_event description
-- [ ] `0x8070` `init_nmi_workspace` (in=0, out=0)
-- [ ] `0x809B` `nmi_rx_scout` (in=1, out=0)
-- [ ] `0x81B8` `data_rx_setup` (in=0, out=0)
-- [ ] `0x81C2` `nmi_data_rx` (in=0, out=0)
-- [ ] `0x81D6` `nmi_data_rx_net` (in=0, out=0)
+- [x] `0x8070` `init_nmi_workspace` - Inline comments accurate; description matches code.
+- [x] `0x809B` `nmi_rx_scout` - Inline comments accurate.
+- [x] `0x81B8` `data_rx_setup` - Inline comments accurate.
+- [x] `0x81C2` `nmi_data_rx` - Inline comments accurate.
+- [x] `0x81D6` `nmi_data_rx_net` - Inline comments accurate.
 - [ ] `0x81EC` `nmi_data_rx_skip` (in=0, out=0)
 - [ ] `0x81F7` `install_data_rx_handler` (in=1, out=0)
 - [ ] `0x8223` `nmi_data_rx_bulk` (in=0, out=0)
@@ -182,13 +182,13 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [ ] `0xAA75` `osword_13_write_csd` (in=0, out=0)
 - [ ] `0xAA82` `copy_pb_byte_to_ws` (in=2, out=0)
 - [ ] `0xAA91` `osword_13_read_ws_pair` (in=0, out=0)
-- [ ] `0xAAB8` `osword_13_write_prot` (in=0, out=0)
+- [x] `0xAAB8` `osword_13_write_prot` - Description was stale ('store_prot_mask'); rewrote to reference set_via_shadow_pair fall-through.
 - [ ] `0xAABB` `set_via_shadow_pair` (in=2, out=0)
 - [ ] `0xAB43` `update_fcb_flag_bits` (in=1, out=0)
 - [ ] `0xAB71` `osword_13_read_rx_port` (in=0, out=0)
-- [ ] `0xAB7F` `osword_13_read_error` (in=0, out=0)
+- [x] `0xAB7F` `osword_13_read_error` - Description referenced &0E09 fs_last_error but code reads hazel_fs_last_error (&C009); fixed.
 - [ ] `0xAB82` `store_a_to_pb_1` (in=2, out=0)
-- [ ] `0xAB86` `osword_13_read_context` (in=0, out=0)
+- [x] `0xAB86` `osword_13_read_context` - Description completely wrong (claimed tx_retry_count); fixed to reference hazel_fs_error_code.
 - [ ] `0xAB8B` `osword_13_read_free_bufs` (in=0, out=0)
 - [ ] `0xAB93` `osword_13_read_ctx_3` (in=0, out=0)
 - [ ] `0xAB9E` `osword_13_write_ctx_3` (in=0, out=0)
@@ -529,3 +529,14 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [ ] `0xA10B` `fscv_1_eof` (in=0, out=2)
 - [ ] `0xBB68` `bgetv_handler` (in=0, out=5)
 - [ ] `0xBBE7` `bputv_handler` (in=0, out=6)
+
+
+## Session 1 progress
+
+Pre-pass + first batch of depth-0 leaves:
+- Mass-swept 125 stale lXXXX auto-name references in inline comments.
+- generate_event split into 3 subroutines (was masquerading as one
+  6-instruction routine but actually 1 + 2 unrelated tenants).
+- 5 NMI/RX leaves spot-checked: comments accurate.
+- 3 OSWORD &13 sub-handlers had stale labels in their descriptions
+  pointing at the wrong addresses; rewrote against the actual code.

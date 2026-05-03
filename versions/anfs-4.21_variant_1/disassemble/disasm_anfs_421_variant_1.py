@@ -5456,8 +5456,10 @@ subroutine(0xAAB2, "osword_13_read_prot",
     "in PB[1].")
 subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
-    description="Sets the protection mask from PB[1] via\n"
-    "store_prot_mask.")
+    description="""\
+Loads the new protection mask from `PB[1]` and falls through into
+[`set_via_shadow_pair`](address:AABB) which mirrors it into both
+shadow ACR (`ws_0d68`) and shadow IER (`ws_0d69`).""")
 subroutine(0xAABB, "set_via_shadow_pair",
     title="Store A in both shadow ACR/IER bytes",
     description="""\
@@ -5504,7 +5506,10 @@ subroutine(0xAB71, "osword_13_read_rx_port",
     "block in PB[1], and stores &80 in PB[2].")
 subroutine(0xAB7F, "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
-    description="Returns the error flag (fs_last_error) in PB[1].")
+    description="""\
+Returns the latched FS last-error byte
+([`hazel_fs_last_error`](address:C009)) in `PB[1]`. Falls through
+into [`store_a_to_pb_1`](address:AB82).""")
 subroutine(0xAB82, "store_a_to_pb_1",
     title="Store A to OSWORD parameter block at offset 1",
     description="Increments Y to 1 and stores A into the\n"
@@ -5515,7 +5520,11 @@ subroutine(0xAB82, "store_a_to_pb_1",
     on_exit={"Y": "1"})
 subroutine(0xAB86, "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
-    description="Returns the context byte (tx_retry_count) in PB[1].")
+    description="""\
+Returns the FS context/error code
+([`hazel_fs_error_code`](address:C008)) in `PB[1]` when bit 7 is
+clear; if bit 7 is set the value is left alone (the BPL skips the
+store). Tail-merges into [`store_a_to_pb_1`](address:AB82).""")
 subroutine(0xAB8B, "osword_13_read_free_bufs",
     title="OSWORD &13 sub 14: read printer buffer free space",
     description="Returns the number of free bytes remaining in\n"

@@ -11100,7 +11100,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 5: write protection mask
 ;
-; Sets the protection mask from PB[1] via store_prot_mask.
+; Loads the new protection mask from PB[1] and falls through into set_via_shadow_pair
+; which mirrors it into both shadow ACR (ws_0d68) and shadow IER (ws_0d69).
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Y=1: PB data offset
     lda (ws_ptr_hi),y                                                 ; aab9: b1 ac       ..             ; Load new mask from PB[1]
@@ -11288,7 +11289,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 10: read error flag
 ;
-; Returns the error flag (fs_last_error) in PB[1].
+; Returns the latched FS last-error byte (hazel_fs_last_error) in PB[1]. Falls through
+; into store_a_to_pb_1.
 .osword_13_read_error
     lda hazel_fs_last_error                                           ; ab7f: ad 09 c0    ...            ; Load error flag
 ; ***************************************************************************************
@@ -11309,7 +11311,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 11: read context byte
 ;
-; Returns the context byte (tx_retry_count) in PB[1].
+; Returns the FS context/error code (hazel_fs_error_code) in PB[1] when bit 7 is clear;
+; if bit 7 is set the value is left alone (the BPL skips the store). Tail-merges into
+; store_a_to_pb_1.
 .osword_13_read_context
     lda hazel_fs_error_code                                           ; ab86: ad 08 c0    ...            ; Load context byte
     bpl store_a_to_pb_1                                               ; ab89: 10 f7       ..             ; Bit 7 clear: store context to PB
