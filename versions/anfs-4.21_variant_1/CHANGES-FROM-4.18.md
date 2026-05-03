@@ -55,7 +55,7 @@ Filing systems are HAZEL's intended client; ANFS occupies the
 first 768 bytes (`&C000`–`&C2FF`).
 
 The 4.18 → 4.21 workspace mapping is uniform: every byte that lived
-in the page-`&0E`–`&10` MOS RAM area shifts by `+&B200`.
+in the page-`&0E`–`&10` main-RAM area shifts by `+&B200`.
 
 | Workspace data         | 4.18    | 4.21                        |
 |------------------------|---------|-----------------------------|
@@ -66,7 +66,7 @@ in the page-`&0E`–`&10` MOS RAM area shifts by `+&B200`.
 | Saved catalogue buffer | `&10D9` | [`&C2D9`](address:C2D9)     |
 
 In 4.18 the Model B had no spare RAM for a 768-byte filing-system
-workspace. The ROM coped by stealing pages 4–6 of MOS RAM and
+workspace. The ROM coped by stealing pages 4–6 of main RAM and
 populating them on first selection from a copy loop in the main-ROM
 tail – about 130 bytes of code around
 [`&BE94`](address:BE94@4.18). In 4.21 that whole apparatus is gone:

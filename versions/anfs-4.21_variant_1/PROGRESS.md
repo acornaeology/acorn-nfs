@@ -167,7 +167,7 @@ against 4.18.
   a selection attempt.
 
 ### Master 128 workspace migration
-- ANFS 4.18 used MOS RAM pages &0Dxx-&10xx for filing-system state.
+- ANFS 4.18 used main RAM at &0Dxx-&10xx for filing-system state.
 - ANFS 4.21_v1 moves the same data into HAZEL (the Master 128's 8 KB
   hidden RAM at &C000-&DFFF, paged over the MOS VDU drivers via
   ACCCON bit Y). ANFS occupies the &C000-&C2FF slice. Visible in

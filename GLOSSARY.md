@@ -270,7 +270,7 @@ Y bit pages over the MOS VDU drivers.
   upper limit for static workspace claims is page &DB. ANFS 4.21
   variant 1 occupies the first 768 bytes (&C000-&C2FF) for its parse
   buffer, TX buffer, FS lib flags, FCB attributes, and saved-catalogue
-  buffer (the same data that 4.18 kept in MOS RAM pages &0Dxx-&10xx).
+  buffer (the same data that 4.18 kept in main RAM at &0Dxx-&10xx).
   Code that pages HAZEL in via ACCCON.Y must page it back out before
   any MOS VDU call.
 

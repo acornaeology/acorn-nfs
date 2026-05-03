@@ -233,8 +233,8 @@ them. Summary:
    factors the check into `ensure_fs_selected` (&8B4D) which calls
    `cmd_net_fs` to AUTO-SELECT instead, raising 'net checksum' on
    failure.
-3. **Master 128 workspace migration**: 4.18's MOS RAM pages
-   &0Dxx-&10xx replaced with sideways-RAM &C000-&C2FF.
+3. **Master 128 workspace migration**: 4.18's main-RAM pages
+   &0Dxx-&10xx replaced with HAZEL hidden-RAM at &C000-&C2FF.
 4. **65C12 instruction adoption** for tighter prologues.
 5. **No page-relocation copy loop** (the 4.18 &BE94 area).
 6. **Variant naming**: why this ROM is named "variant 1" is still
