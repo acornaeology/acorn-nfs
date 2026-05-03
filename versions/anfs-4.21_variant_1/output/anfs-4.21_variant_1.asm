@@ -9265,15 +9265,16 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Look up channel and return FCB flag byte
 ;
 ; Calls lookup_chan_by_char to find the channel slot for handle A in the channel table,
-; then loads the FCB flag byte from &1030+X.
+; then loads the FCB slot-attribute byte from hazel_fcb_slot_attr+X. (Pre-HAZEL ROMs
+; read from &1030+X.)
 ;
 ; On Entry: A: channel handle
 ;
-; On Exit: A: FCB flag byte X: channel slot index
+; On Exit: A: FCB slot-attribute byte X: channel slot index
 ; &a1f3 referenced 1 time by &a1b2
 .lookup_cat_slot_data
     jsr lookup_chan_by_char                                           ; a1f3: 20 47 b8     G.            ; Look up channel by character
-    lda hazel_fcb_slot_attr,x                                         ; a1f6: bd 30 c2    .0.            ; Load FCB flag byte from fcb_net_or_port
+    lda hazel_fcb_slot_attr,x                                         ; a1f6: bd 30 c2    .0.            ; Load slot-attribute byte from hazel_fcb_slot_attr,X
     rts                                                               ; a1f9: 60          `              ; Return with flag in A
 
 ; ***************************************************************************************

@@ -5068,11 +5068,14 @@ subroutine(0xA1EF, "lookup_cat_entry_0",
              "x": "channel slot index"})
 subroutine(0xA1F3, "lookup_cat_slot_data",
     title="Look up channel and return FCB flag byte",
-    description="Calls lookup_chan_by_char to find the channel\n"
-    "slot for handle A in the channel table, then\n"
-    "loads the FCB flag byte from &1030+X.",
+    description="""\
+Calls [`lookup_chan_by_char`](address:B847) to find the channel
+slot for handle `A` in the channel table, then loads the FCB
+slot-attribute byte from
+[`hazel_fcb_slot_attr`](address:C230)+`X`. (Pre-HAZEL ROMs read
+from &1030+X.)""",
     on_entry={"a": "channel handle"},
-    on_exit={"a": "FCB flag byte",
+    on_exit={"a": "FCB slot-attribute byte",
              "x": "channel slot index"})
 subroutine(0xA1FA, "setup_transfer_workspace",
     title="Prepare workspace for OSGBPB data transfer",
@@ -17607,7 +17610,7 @@ comment(0xA1EC, "Jump to finalise and return", inline=True)
 comment(0xA1EF, "Y=0: offset for channel handle", inline=True)
 comment(0xA1F1, "Load channel handle from FS options", inline=True)
 comment(0xA1F3, "Look up channel by character", inline=True)
-comment(0xA1F6, "Load FCB flag byte from fcb_net_or_port", inline=True)
+comment(0xA1F6, "Load slot-attribute byte from hazel_fcb_slot_attr,X", inline=True)
 comment(0xA1F9, "Return with flag in A", inline=True)
 comment(0xA1FA, "Push operation code on stack", inline=True)
 comment(0xA1FB, "Look up channel entry at Y=0", inline=True)

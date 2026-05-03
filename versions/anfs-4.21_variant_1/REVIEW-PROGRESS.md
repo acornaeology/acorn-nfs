@@ -358,16 +358,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x86A2` `tx_ctrl_proc` - description claimed routine 'sets scout_status=2 and calls tx_calc_transfer' but body is the TAIL of the address-add loop from tx_ctrl_store_and_add. The 'JSR/UserProc/OSProc setup' description was for a different (earlier) routine. Rewrote
 - [x] `0x8C06` `loop_print_syntax` - description matches body
 - [x] `0x8C42` `svc_4_star_command` - description matches body
-- [ ] `0x8C93` `print_version_header`
-- [ ] `0x903C` `init_adlc_and_vectors`
-- [ ] `0x945E` `send_fs_request`
-- [ ] `0x9A3A` `append_drv_dot_num`
-- [ ] `0x9BB6` `poll_adlc_tx_status`
-- [ ] `0x9D4F` `print_5_hex_bytes`
-- [ ] `0x9D87` `check_and_setup_txcb`
-- [ ] `0xA1F3` `lookup_cat_slot_data`
-- [ ] `0xA29F` `write_block_entry`
-- [ ] `0xA638` `fsreply_3_set_csd`
+- [x] `0x8C93` `print_version_header` - description matches body (verified inline string is 'Advanced NFS 4.21' surrounded by CRs)
+- [x] `0x903C` `init_adlc_and_vectors` - description matches body
+- [x] `0x945E` `send_fs_request` - description matches body
+- [x] `0x9A3A` `append_drv_dot_num` - description matches body
+- [x] `0x9BB6` `poll_adlc_tx_status` - description matches body's ASL-poll loop
+- [x] `0x9D4F` `print_5_hex_bytes` - description matches body
+- [x] `0x9D87` `check_and_setup_txcb` - description matches body
+- [x] `0xA1F3` `lookup_cat_slot_data` - description had pre-HAZEL '&1030+X' reference and inline at &A1F6 referenced wrong label fcb_net_or_port (the actual access is hazel_fcb_slot_attr at &C230); both fixed
+- [x] `0xA29F` `write_block_entry` - description matches body
+- [x] `0xA638` `fsreply_3_set_csd` - description matches body
 - [ ] `0xA63E` `fsreply_5_set_lib`
 - [ ] `0xA69A` `cmd_flip`
 - [ ] `0xA6E5` `fsreply_2_copy_handles`
