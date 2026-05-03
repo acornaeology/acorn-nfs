@@ -3340,10 +3340,11 @@ subroutine(0x88DE, "tx_result_ok",
     title="TX completion handler",
     description="""\
 Loads `A=0` (success) and branches unconditionally to
-[`tx_store_result`](address:88E2) (`BEQ` is always taken since
-A=0). This two-instruction entry point exists so that JMP sites
-can target the success path without needing to set `A`. Called
-from [`ack_tx`](address:82DF) for final-ACK completion and from
+[`tx_store_result`](address:88E4) (`BEQ` is always taken since
+A=0, skipping the `tx_result_fail` body at &88E2). This two-
+instruction entry point exists so that `JMP` sites can target
+the success path without needing to set `A`. Called from
+[`ack_tx`](address:82DF) for final-ACK completion and from
 [`nmi_tx_complete`](address:872F) for immediate-op completion
 where no ACK is expected.""",
     on_exit={"a": "0 (TX success)"})
@@ -3415,19 +3416,23 @@ frames via NMI.""",
 subroutine(0x89A6, "wait_idle_and_reset",
     title="Wait for idle NMI state and reset Econet",
     description="""\
-Service 12 handler: NMI release. Checks
+Service-13 (`&0D`) handler -- the post-hard-reset Econet
+shutdown path. Reached via
+[`svc_dispatch`](address:8E61) slot &0D. Checks
 [`econet_init_flag`](address:0D62) to see if Econet has been
 initialised; if not, skips straight to
 [`adlc_rx_listen`](address:899B). Otherwise spins in a tight
 loop comparing the NMI handler vector at
 [`nmi_jmp_lo`](address:0D0C) /
 [`nmi_jmp_hi`](address:0D0D) against the address of
-[`nmi_rx_scout`](address:809B).
+[`nmi_rx_scout`](address:809B) to wait until the in-flight
+NMI handler chain has unwound back to scout-listening.
 
-When the NMI handler returns to idle, falls through to
-[`save_econet_state`](address:89B9) to clear the initialised
-flags and re-enter RX-listen mode.""",
-    on_entry={"a": "12 (service call number)"},
+When the NMI vector matches `nmi_rx_scout` again, falls through
+to [`save_econet_state`](address:89B9) to clear the initialised
+flags and re-enter RX-listen mode. (Service &0B 'NMI release'
+is handled by the separate [`econet_restore`](address:806C).)""",
+    on_entry={"a": "13 (service call number, &0D)"},
     on_exit={"a, x, y": "clobbered"})
 subroutine(0x89B9, "save_econet_state",
     title="Reset Econet flags and enter RX-listen",

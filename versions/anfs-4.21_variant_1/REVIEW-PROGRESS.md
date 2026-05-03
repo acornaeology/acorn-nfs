@@ -70,12 +70,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8886` `handshake_await_ack` - description matches body (CR1=&82, install nmi_final_ack at &8892)
 - [x] `0x8892` `nmi_final_ack` - inline at &889C claimed station-ID compare was via INTOFF side effect of econet_station_id; body uses tx_src_stn workspace copy
 - [x] `0x88A6` `nmi_final_ack_net` - description matches body
-- [ ] `0x88DE` `tx_result_ok`
-- [ ] `0x88E2` `tx_result_fail`
+- [x] `0x88DE` `tx_result_ok` - description's reference to tx_store_result said '&88E2' but tx_store_result is at &88E4 (&88E2 is tx_result_fail); corrected
+- [x] `0x88E2` `tx_result_fail` - description matches body; references &88E4 correctly
 - [ ] `0x88F0` `rom_gap_88f0`
-- [ ] `0x898C` `adlc_full_reset`
-- [ ] `0x899B` `adlc_rx_listen`
-- [ ] `0x89A6` `wait_idle_and_reset`
+- [x] `0x898C` `adlc_full_reset` - description matches body's CR1/CR4/CR3/fall-through sequence
+- [x] `0x899B` `adlc_rx_listen` - description matches body (CR1=&82, CR2=&67)
+- [x] `0x89A6` `wait_idle_and_reset` - description claimed this is 'Service 12 handler: NMI release' but svc_dispatch idx &0D maps this routine to svc &0D (=13), and 'NMI release' is svc &0B handled by econet_restore. Description and on_entry corrected
 - [ ] `0x89D8` `rom_set_nmi_vector`
 - [ ] `0x89ED` `svc_dispatch_lo`
 - [ ] `0x8A20` `svc_dispatch_hi`

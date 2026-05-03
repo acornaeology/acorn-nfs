@@ -2789,10 +2789,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; TX completion handler
 ;
 ; Loads A=0 (success) and branches unconditionally to tx_store_result (BEQ is always
-; taken since A=0). This two-instruction entry point exists so that JMP sites can
-; target the success path without needing to set A. Called from ack_tx for final-ACK
-; completion and from nmi_tx_complete for immediate-op completion where no ACK is
-; expected.
+; taken since A=0, skipping the tx_result_fail body at &88E2). This two- instruction
+; entry point exists so that JMP sites can target the success path without needing to
+; set A. Called from ack_tx for final-ACK completion and from nmi_tx_complete for
+; immediate-op completion where no ACK is expected.
 ;
 ; On Exit: A: 0 (TX success)
 ; &88de referenced 2 times by &82e7, &8739
@@ -2986,15 +2986,17 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Wait for idle NMI state and reset Econet
 ;
-; Service 12 handler: NMI release. Checks econet_init_flag to see if Econet has been
-; initialised; if not, skips straight to adlc_rx_listen. Otherwise spins in a tight
-; loop comparing the NMI handler vector at nmi_jmp_lo / nmi_jmp_hi against the address
-; of nmi_rx_scout.
+; Service-13 (&0D) handler -- the post-hard-reset Econet shutdown path. Reached via
+; svc_dispatch slot &0D. Checks econet_init_flag to see if Econet has been initialised;
+; if not, skips straight to adlc_rx_listen. Otherwise spins in a tight loop comparing
+; the NMI handler vector at nmi_jmp_lo / nmi_jmp_hi against the address of nmi_rx_scout
+; to wait until the in-flight NMI handler chain has unwound back to scout-listening.
 ;
-; When the NMI handler returns to idle, falls through to save_econet_state to clear the
-; initialised flags and re-enter RX-listen mode.
+; When the NMI vector matches nmi_rx_scout again, falls through to save_econet_state to
+; clear the initialised flags and re-enter RX-listen mode. (Service &0B 'NMI release'
+; is handled by the separate econet_restore.)
 ;
-; On Entry: A: 12 (service call number)
+; On Entry: A: 13 (service call number, &0D)
 ;
 ; On Exit: A, X, Y: clobbered
 .wait_idle_and_reset
