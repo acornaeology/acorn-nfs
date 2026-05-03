@@ -1,378 +1,268 @@
 # Changes from ANFS 4.18 to ANFS 4.21 (variant 1)
 
-ANFS 4.21 (variant 1) is the first ANFS for Acorn's BBC Master 128
-series. The two 16 KB sideways ROMs share 86.7 % of their opcode
-structure but the 4.21 variant 1 build is 65C02-aware, drops the
-page 4-6 relocated workspace in favour of HAZEL hidden RAM at &C000-&C2FF, and gates
-the service-call handler with a Master-only OS-version check.
+ANFS 4.18 was the last ANFS to run on a Model B. ANFS 4.21
+(variant 1) is the first to run on a Master 128 – and the first to
+*refuse* to run on anything else. Between the two ROMs sits Acorn's
+biggest 8-bit hardware reshuffle, and ANFS's rewrite is shaped by it
+through and through.
 
-## Summary statistics
+The two 16 KB sideways ROMs share 86.7 % of their opcode structure
+but only 1.7 % of their bytes match at the same offset. Almost every operand
+has shifted, because the workspace has moved off-page and the ROM
+title gained a few bytes. The interesting changes lie underneath
+that arithmetic: the Model B's constraints – no hidden RAM, plain
+6502 instruction set, direct VIA access – pushed 4.18 into
+workarounds the Master makes unnecessary, and 4.21 takes them all
+apart.
 
-| Metric                          | Value         |
-|---------------------------------|---------------|
-| ROM size                        | 16384 bytes   |
-| Identical bytes at same offset  | 285 (1.7 %)   |
-| Byte-level similarity           | 75.8 %        |
-| Opcode-level similarity         | 86.7 %        |
-| Full instruction similarity     | 69.0 %        |
-| Instructions (4.18 / 4.21)      | 8189 / 8270   |
-| Structural change blocks        | 234           |
-| Subroutines (4.18 / 4.21)       | 326 / 454     |
+## The host-OS gate
 
-The low identical-byte count (1.7 %) reflects the +5-byte ROM-title
-shift cascading through almost every opcode operand, plus the
-relocation of every workspace access from `&0Dxx-&10xx` (4.18) to
-`&C0xx-&C2xx` (4.21). The opcode-level similarity (86.7 %) is the
-meaningful structural measure: roughly one instruction in seven has
-been substantively changed.
+The first thing the 4.21 service handler does, before dispatching
+anything, is ask the OS what it's running on. Pre-Master OSes, and
+the Master Compact, are sent away unclaimed:
 
-## ROM header
+| OS version | Hardware | Action |
+|---|---|---|
+| 1.x | BBC Model B | reject |
+| 2.x | BBC Model B+ | reject |
+| 3.x | Master 128 (MOS 3.20 / 3.50) | proceed |
+| 4.0 | Master Econet Terminal | proceed |
+| 5.0 | Master Compact | reject |
 
-| Field             | 4.18                | 4.21 variant 1      |
-|-------------------|---------------------|---------------------|
-| Service entry     | &8A15               | &8A54               |
-| ROM type          | &82                 | &82                 |
-| Copyright offset  | &19                 | &19                 |
-| Binary version    | &04                 | &04                 |
-| Title             | "Acorn ANFS 4.18"   | "Acorn ANFS 4.21"   |
-| Copyright         | "(C)1985 Acorn"     | "(C)1986 Acorn"     |
+A reject silently returns service unclaimed, so MOS keeps looking
+for a filing system without ANFS interfering with anything it
+shouldn't. There was no equivalent gate in 4.18 –
+[`service_handler`](address:8A15@4.18) dispatched directly. The
+service entry-point itself shifts from `&8A15` (4.18) to
+[`&8A54`](address:8A54), most of which is the gate code.
 
-## Changes
+The "variant 1" in the name is currently unexplained.
 
-### 1. Master 128 Bad-ROM gate at the service handler
+## HAZEL: hidden RAM under the OS
 
-The most visible structural change. The service handler at &8A54 (was
-&8A15 in 4.18) now begins with an OSBYTE 0 OS-version check:
+The structural change with the broadest consequences is the move
+from MOS RAM to **HAZEL**, the Master 128's 8 KB of hidden RAM at
+`&C000`–`&DFFF`. HAZEL sits underneath the MOS VDU drivers in the
+address map and is reached by setting bit Y (bit 3) of the ACCCON
+register at [`&FE34`](address:FE34) – when ACCCON.Y is set, reads
+and writes to `&C000`–`&DFFF` go to HAZEL instead of the OS ROM.
+Filing systems are HAZEL's intended client; ANFS occupies the
+first 768 bytes (`&C000`–`&C2FF`).
 
-| OS version returned          | Action                          |
-|------------------------------|---------------------------------|
-| 3.x (Master 128 MOS)         | proceed with service dispatch   |
-| 4.0 (Master Econet Terminal) | proceed                         |
-| anything else                | silently return unclaimed       |
+The 4.18 → 4.21 workspace mapping is uniform: every byte that lived
+in the page-`&0E`–`&10` MOS RAM area shifts by `+&B200`.
 
-The gate explicitly rejects OS 1.00, 1.20, 2.00 (BBC B / B+) and OS
-5.0 (Master Compact). Pre-Master OSes lack the CMOS RAM that 4.21
-uses to store station and protection state, so a "soft" failure is
-preferable to running and corrupting workspace.
+| Workspace data         | 4.18    | 4.21                        |
+|------------------------|---------|-----------------------------|
+| Parse buffer           | `&0E30` | `&C030`                     |
+| TX buffer base         | `&0F00` | `&C100`                     |
+| FS lib flags           | `&1071` | [`&C271`](address:C271)     |
+| FCB attributes         | `&10C9` | `&C2C9`                     |
+| Saved catalogue buffer | `&10D9` | [`&C2D9`](address:C2D9)     |
 
-4.18 had no equivalent gate -- its service handler dispatched
-directly. The "variant 1" naming captures that this build is not
-universal across the Master series.
+In 4.18 the Model B had no spare RAM for a 768-byte filing-system
+workspace. The ROM coped by stealing pages 4–6 of MOS RAM and
+populating them on first selection from a copy loop in the main-ROM
+tail – about 130 bytes of code around
+[`&BE94`](address:BE94@4.18). In 4.21 that whole apparatus is gone:
+the workspace is just *there* whenever ACCCON.Y is set, no copy
+required.
 
-### 2. CPU upgrade to 65C02 with R65C02 extensions
+## The `hazel_minus_2` trick
 
-The Master 128 ships with Rockwell's R65C02 (the GTE65SC02 silicon
-variant on later units behaves identically for the opcodes ANFS uses).
-The driver loads with `load(addr, file, "65c02")`; beebasm assembles
-under `CPU 1`.
+The 6502's indexed addressing modes are cheap, but there is no
+`STA (zp),Y` – you need a zero-page pointer pair to do indirect-
+indexed writes. ANFS routines that copy small blocks through HAZEL
+frequently want to start at `&C000`, but a typical zero-page layout
+already has every byte spoken for, and burning two more for "the
+HAZEL base" is wasteful when only `Y` ever varies.
 
-65C12 / R65C02 instructions adopted throughout:
+The 4.21 ROM solves this by putting the labels *just below* HAZEL.
+The ROM's last 64 bytes are `&FF` padding (read-only and otherwise
+unused), but two of those bytes are deliberately labelled:
 
-- `PHX` / `PHY` / `PLX` / `PLY` (replacing `TXA` / `PHA` / `TYA` /
-  `PHA` push/pop sequences). Saves 2 cycles per push/pop pair.
-- `BRA` for unconditional branches inside routines (saves 1 byte vs
-  `JMP abs`).
-- `STZ abs` / `STZ zp` for clearing single bytes (replaces `LDA #0` /
-  `STA <addr>`).
-- `BIT abs,X` for indexed BIT tests in dispatch tails.
-- `TSB` / `TRB` for atomic bit-set / bit-reset operations on memory
-  -- used in the Master shadow-VIA path (see change 6).
-
-Routines visibly rewritten with 65C12 prologues include
-`copy_fs_cmd_name` (&9463), `parse_fs_ps_args` (&A3C4), and
-`help_wrap_if_serial` (around &8C29).
-
-### 3. Workspace migration from MOS RAM to HAZEL hidden RAM
-
-4.18 used MOS RAM pages &0E.. &10 for its filing-system workspace
-(parse buffer, TX buffer base, FS lib flags, FCB attributes, saved
-catalogue buffer). 4.21 moves the entire workspace to HAZEL -- the
-Master 128's 8 KB hidden-RAM region at `&C000-&DFFF`, paged over
-the MOS VDU drivers when ACCCON bit Y is set. ANFS occupies the
-first 768 bytes of HAZEL (`&C000-&C2FF`); HAZEL's documented
-upper limit for filing-system static workspace is `page &DB`, so
-the choice of `&C8` as ANFS's claim base leaves room for other
-filing-system claimants.
-
-| Workspace data         | 4.18    | 4.21 variant 1 |
-|------------------------|---------|----------------|
-| Parse buffer           | `&0E30` | `&C030`        |
-| TX buffer base         | `&0F00` | `&C100`        |
-| FS lib flags           | `&1071` | `&C271`        |
-| FCB attributes         | `&10C9` | `&C2C9`        |
-| Saved catalogue buffer | `&10D9` | `&C2D9`        |
-
-The +&B200 offset is uniform: 4.18's `&0Dxx-&10xx` range maps to
-4.21's `&BFxx-&C2xx`. The migration removes the entire page-copy
-loop that 4.18 used to set up the relocated blocks (formerly around
-&BE94); 4.21 has no equivalent code in that region.
-
-### 4. svc5_irq_check rewritten around the Master deferred-work flag
-
-`svc5_irq_check` lives at the same address `&8028` in both ROMs but
-the body is completely different.
-
-4.18 (`svc5_irq_check`, runtime &8028):
-
-```
-    LDA &FE4D            ; VIA IFR
-    AND #&02             ; Bit 1: shift register IRQ
-    BEQ no_sr_irq        ; Not us
-    ...                  ; Service the SR completion
+```python
+hazel_minus_2 = &BFFE
+hazel_minus_1 = &BFFF
 ```
 
-4.21 (`svc5_irq_check`, runtime &8028):
+Now `STA hazel_minus_2,Y` with `Y ≥ 2` lands at `&BFFE + Y ≥
+&C000` – inside HAZEL. The instruction is three bytes, no zero-page
+pointer needed, no setup. Routines like `loop_copy_fs_ctx` use the
+pattern with just `LDA src,X / STA hazel_minus_2,Y`; the loop's
+`CPY` guard simply stops `Y` before it could underflow back into
+the ROM tail.
+
+It's a piece of code economy that becomes possible only because the
+ROM author controls both endpoints – the data layout in the tail
+*and* the access patterns in the routines. A few bytes of `&FF`
+padding are invisible to the user; what matters is that the labels
+at the right offsets exist so the assembler can resolve
+`hazel_minus_2,Y` to `&BFFE,Y`.
+
+## 65C02 instructions
+
+Because the host-OS gate guarantees a Master, the assembler runs in
+65C02 mode. About a dozen new instructions show up across the ROM:
+
+- **`PHX` / `PHY` / `PLX` / `PLY`** push and pull X and Y directly.
+  4.18 prologues that needed to save both registers wrote
+  `TXA / PHA / TYA / PHA`, costing 8 bytes and 14 cycles for the
+  round-trip; the 65C02 form does the same in 4 bytes and 6 cycles.
+  See [`copy_fs_cmd_name`](address:9463) or
+  [`parse_fs_ps_args`](address:A3C4) for typical examples.
+- **`BRA`** is an unconditional branch that costs 1 byte and 1 cycle
+  less than `JMP abs` (within ±127 bytes).
+- **`STZ`** stores zero without needing a register; it replaces
+  `LDA #0 / STA zp` with a single 2-byte instruction. The
+  disassembly has more than thirty STZ sites, and the
+  `LDA #0`-then-store sequence is nearly extinct.
+- **`TSB`** and **`TRB`** test-and-set / test-and-reset bits in
+  memory atomically. Used in the shadow-VIA path described below,
+  where read-modify-write needs to be a single instruction so an
+  interrupt can't see a half-updated flag.
+- **`BIT abs,X`** is indexed BIT, used in the dispatch tails.
+
+The savings aren't dramatic per call site, but they accumulate. The
+4.21 ROM has 81 more instructions than 4.18 (8270 vs 8189) while
+implementing strictly more functionality – because the new
+instructions paid for the new code.
+
+## Interrupts, deferred work, and the shadow VIA
+
+Master MOS owns the System VIA. Its auxiliary control register
+(ACR) and shift register (SR) are touched by the OS during VDU
+work, sound, and keyboard polling. A filing system that needed
+shift-register-driven I/O on the Model B could write the VIA
+directly; on the Master it can't, because MOS will overwrite its
+settings.
+
+ANFS 4.21 introduces a **shadow VIA pair**: two workspace bytes
+that ANFS treats as the canonical state of ACR (mirrored at
+`&0D68`) and SR (`&0D69`). [`setup_sr_tx`](address:8512) updates
+the shadow; the live VIA gets reconciled inside the Master's IRQ
+dispatch path. 4.18 wrote ACR and SR directly; in 4.21 those
+direct writes are simply gone.
+
+The IRQ entry [`svc5_irq_check`](address:8028) lives at the same
+address `&8028` in both ROMs, but the body is unrecognisable:
 
 ```
-    LDY &0D65            ; Master deferred-work flag
-    BEQ no_deferred      ; Nothing pending
-    TRB ACCCON           ; Clear bit 7 of &FE34 (shadow-RAM enable)
-    STZ &0D65            ; Consume the deferred flag
-    BMI dispatch_svc5    ; Y had bit 7 set on entry: PHA/PHA/RTS dispatch
-    LDA #&FE             ; Otherwise fire Econet RX event &FE
-    JSR generate_event
-    JMP tx_done_exit
+4.18:                         4.21:
+    LDA &FE4D    ; VIA IFR        LDY &0D65    ; deferred-work flag
+    AND #&02     ; SR IRQ?        BEQ no_deferred
+    BEQ no_sr_irq                 TRB ACCCON   ; release shadow-RAM
+    ...                           STZ &0D65    ; consume the flag
+                                  BMI dispatch_svc5
+                                  LDA #&FE     ; fire RX event
+                                  ...
 ```
 
-The 4.18 SR-IRQ handling is gone; the new mechanism uses a Master-
-specific workspace flag at `&0D65` set by IRQ and NMI paths and
-consumed here during deferred service. As a side effect, the 4.18
-`set_jsr_protection` prologue at &805D (which protected the SVC5
-dispatch via shadow-VIA state) is gone too -- no JMP-protection
-mechanism is needed in the new design. The shared `&0D68 / &0D69`
-shadow-pair body that fed JSR-protection now lives at `setup_sr_tx`
-(&8512) for an unrelated TX-prep purpose.
+The deferred-work flag at `&0D65` is set by IRQ and NMI paths when
+they spot work that can't be done in the interrupt context –
+because MOS may be holding the VIA, or shadow RAM is paged the
+wrong way for the address the handler wanted to touch. The next
+service-handler entry, which runs with the interrupt cleared and
+the OS in a known state, consumes the flag, restores ACCCON, and
+dispatches the deferred work. It's the standard *raise a flag in
+the ISR, drain it in non-IRQ code* pattern, but the architectural
+reason for it is explicit: the Master's memory paging makes some
+operations unsafe inside the ISR.
 
-The `&27` Master service call ("Reset has occurred") that runs
-`nfs_init_body` after a hard reset uses this same flag-passing
-discipline: ANFS uses the post-reset call specifically to claim
-NMIs for Econet receive handling, since the Master MOS no longer
-offers workspace on a soft BREAK.
+The Master's `&27` service call ("Reset has occurred") follows the
+same discipline. ANFS uses it specifically to claim NMIs for
+Econet receive – because the Master MOS no longer offers workspace
+on a soft `BREAK`, a 4.18 lifecycle assumption that 4.21 has to
+abandon.
 
-### 5. OSWORD &13 sub-handlers auto-select the FS
+## OSWORD &13: clean errors instead of quiet zeroes
 
-4.21's OSWORD &13 sub-handlers all begin with a `JSR ensure_fs_selected`
-(&8B4D) prologue. `ensure_fs_selected` tests bit 7 of `fs_flags`
-(`&0D6C`); if clear, it calls `cmd_net_fs` to AUTO-SELECT ANFS as the
-active filing system. On selection failure it raises a 'net checksum'
-error (`&AA`).
+OSWORD `&13` is ANFS's API surface – clients use it to read and
+write the saved file-server station, the receive-channel handles,
+the bridge state, and so on. In 4.18 each sub-handler began with a
+`BIT &0D6C / BPL <return>` that quietly bailed if ANFS wasn't the
+active filing system, returning a zeroed parameter block. A client
+that expected a station back and got `0.0` had no way to tell
+whether the FS was inactive or whether the FS was *on* station
+`0.0`.
 
-4.18's equivalent handlers inlined `BIT &0D6C / BPL <return>` and
-returned a zero in `PB[0]` if the FS was inactive -- a quiet failure.
-4.21's behaviour is louder but more robust: client code that uses
-OSWORD &13 will reliably get either real data or a clean error,
-not silent zeroes.
+4.21 wraps every OSWORD `&13` sub-handler in an
+[`ensure_fs_selected`](address:8B4D) prologue. It tests bit 7 of
+`fs_flags` and, if clear, calls [`cmd_net_fs`](address:9776) to
+make ANFS the active filing system. On selection failure it raises
+a `'net checksum'` error (`&AA`).
 
-### 6. setup_sr_tx via shadow VIA pair
+The new behaviour is more aggressive than the old quiet-zero, but
+it's more honest: the client either gets real data or a real
+error, never a confusable success with a misleading payload.
 
-Master MOS owns the System VIA's auxiliary control register and shift
-register; ANFS can't touch them directly without fighting MOS. 4.21
-introduces a shadow pair at workspace bytes `&0D68` (mirror of ACR)
-and `&0D69` (mirror of SR), updated by `setup_sr_tx` (&8512). The
-shadow is flushed into the live VIA inside the Master's IRQ dispatch
-path. 4.18 wrote `system_via_acr` / `system_via_sr` directly.
+## Protection moves into CMOS
 
-### 7. Protection state moved to CMOS RAM
+`*PROT` and `*UNPROT` in 4.18 took attribute keywords (`L`, `W`,
+`R`, `WR`, …) and accumulated the parsed bits into a workspace
+mask. The keyword-parser table and the per-keyword bit-encoding
+ran fifty-odd bytes; the parser body itself was more. The mask was
+lost on `BREAK`.
 
-4.18's `cmd_prot` / `cmd_unprot` (4.18 &B30C / &B33D) parsed attribute
-keywords (`L`, `W`, `R`, etc.) and accumulated the protection bits
-into a workspace mask at `ws_0d68 / ws_0d69`.
+[`cmd_prot`](address:B6D2) and [`cmd_unprot`](address:B6D6) in
+4.21 take **no arguments**. They're each a four-instruction toggle
+of bit 6 of CMOS RAM byte `&11` (the Master's Econet station-flags
+byte) via OSBYTE `&A1` (read CMOS) and OSBYTE `&A2` (write CMOS),
+with the new value mirrored into the shadow ACR/SR pair through
+`set_via_shadow_pair`:
 
-4.21's `cmd_prot` (&B6D2) and `cmd_unprot` (&B6D6) take **no
-arguments**. They just toggle bit 6 of CMOS RAM byte `&11` (the
-Econet station-flags byte) via OSBYTE `&A1` (read CMOS) and OSBYTE
-`&A2` (write CMOS), mirroring the new value into the shadow ACR/IER
-pair through `set_via_shadow_pair`.
+```6502
+cmd_prot:
+    LDA #&11                ; CMOS byte: station flags
+    JSR osbyte_a1           ; read into Y
+    TYA
+    ORA #&40                ; set bit 6
+    JSR osbyte_a2           ; write back
+    JMP set_via_shadow_pair
+```
 
-Because the state lives in CMOS, protection now survives BREAK and
-power-cycle without ANFS having to manage persistence. The keyword
-parser and the per-keyword bit-encoding table that fed it in 4.18 are
-gone.
+Storing the state in CMOS rather than volatile RAM means it
+survives `BREAK`, soft reset, and power-cycle – ANFS doesn't have
+to manage persistence at all. The keyword parser and its encoding
+table are gone. What's left is a routine the user could read and
+understand in thirty seconds.
 
-### 8. Star commands removed in 4.21
+## What 4.21 sheds
 
-The Master MOS handles `*CLOSE`, `*PRINT`, and `*TYPE` natively, so
-the ANFS ROM no longer wraps them. Removed entries:
+Some 4.18 features simply don't appear in 4.21, because the Master
+MOS already provides them or because the wrapper was vestigial:
 
-- `cmd_close` (4.18 wrapper for OSFIND close)
-- `cmd_print` (4.18 wrapper)
-- `cmd_type` (4.18 wrapper)
+- **`*CLOSE`, `*PRINT`, `*TYPE`** are handled natively by Master
+  MOS, so the ANFS wrappers (4.18's `cmd_close`, `cmd_print`,
+  `cmd_type`) are gone. The strings *Close*, *Print*, *Type* don't
+  appear anywhere in the 4.21 ROM.
+- **`read_paged_rom`** at [`&8AA0`](address:8AA0@4.18) used OSBYTE
+  `&FD` to fetch the current ROM number; 4.21 reads `&028D`
+  directly, and the `JSR &FFB9` that drove the 4.18 helper is gone
+  too.
+- **The relocation copy loop** at
+  [`&BE94`](address:BE94@4.18) – the 130-byte routine that
+  populated the 4.18 pages 4–6 workspace on first selection – has
+  no counterpart, because HAZEL needs no initialisation of that
+  kind.
+- **The `*PROT` / `*UNPROT` keyword parser** described above.
+- **The per-handler `BIT abs / BPL` early-returns** in OSWORD `&13`
+  sub-handlers, replaced by the unified `ensure_fs_selected`
+  prologue.
 
-The strings "Close", "Print", "Type" do not appear anywhere in the
-4.21 ROM.
+Together these account for several hundred bytes – roughly the
+budget that the host-OS gate, the 65C02-prologue rewrites, the
+shadow-VIA path, the deferred-work IRQ machinery, and
+`ensure_fs_selected` reclaim.
 
-`cmd_table_nfs` shrinks correspondingly. The 4.21 utility sub-table
-also drops `*Close`-adjacent entries; the freed bytes contribute to
-the space budget for the new Bad-ROM gate and CMOS handlers.
+## In sum
 
-### 9. *RUN argument with `&` prefix is URD-relative
-
-The 4.21 cmd_run handler splits into two entries:
-
-- `check_urd_prefix` at &8E2D -- tests first arg char for `&`
-- `cmd_run_via_urd` at &8E35 / &A4F1 -- the URD-prefixed entry
-
-If the first arg char is `&`, control JMPs to `cmd_run_via_urd`,
-which clears `fs_lib_flags` bit 1 before parsing the rest (so the
-file is looked up relative to the user's URD, not the current LIB).
-Otherwise control falls through to `pass_send_cmd` for normal
-FS-command dispatch.
-
-4.18's `check_escape` (&9570) bundled its escape-flag BIT-test prologue
-and the escape-acknowledge action; 4.21 splits them apart. Each call
-site now does its own BIT-test against the FS-options / escapable
-flag, then JSRs `raise_escape_error` (&9895) on hit. The action half
-emits OSBYTE &7E and tail-jumps to `classify_reply_error` with `A=6`.
-
-### 10. svc_2_private_workspace split
-
-4.18's `svc_2_private_workspace` (around &8EB8) bundled the
-workspace-allocation prologue and the ANFS bring-up sequence in a
-single body. 4.21 splits them:
-
-- `svc_2_private_workspace_pages` (&8F10) -- pages allocation
-- `nfs_init_body` (&8F38) -- bring-up
-
-The latter is reachable in 4.21 only via PHA/PHA/RTS dispatch (as
-table[22] in `svc_dispatch_lo / svc_dispatch_hi`); no static call
-exists.
-
-### 11. svc_dispatch table relocated and re-keyed
-
-The PHA/PHA/RTS service dispatch table moved:
-
-- Lo half: `&89CA` (4.18) -> `&89ED` (4.21)
-- Hi half: `&89EF` (4.18) -> `&8A20` (4.21)
-
-The +&23/&31 shift comes from the longer ROM title plus the inserted
-Bad-ROM gate code. The table content also gained six new dispatch
-slots for OSWORD-style sub-handlers, language reply 2 (palette/VDU
-state), and the help-suffix matcher; see the 4.21 `svc_dispatch_lo`
-declaration in the driver for the full mapping.
-
-`fs_vector_table` similarly shifts from 4.18's `&8E6F` to 4.21's
-`&8EB5` (`&8E9A + &1B`, the offset that the dispatcher's
-`svc_dispatch_lo_offset+&1B` indexed-access uses).
-
-### 12. Other dispatch-table layout shifts
-
-| Table                     | 4.18    | 4.21    | Notes                |
-|---------------------------|---------|---------|----------------------|
-| `imm_op_dispatch_lo`      | &8488   | &848B   | +3-byte shift        |
-| `tx_done_dispatch_lo`     | &853E   | &853B   | -3-byte shift        |
-| `tx_ctrl_dispatch_lo`     | &8681   | &867E   | -3-byte shift        |
-| `tx_ctrl_machine_type`    | &8689   | &8686   | -3-byte shift        |
-
-For each, the dispatcher operand uses an `expr_label` of the form
-`<table_label>-<base_offset>` so renames flow through cleanly.
-
-### 13. dir_op_dispatch Y value
-
-`dir_op_dispatch` at &8E5B sets `Y=&18` (was `&0E` in 4.18). The
-indices reachable through this dispatch path therefore shift from
-the old 15..19 range to the new 25..29 range (language replies 0-4).
-
-### 14. read_paged_rom uses LDX &028D directly
-
-4.21 reads the current ROM number at `&028D` inline rather than via
-OSBYTE `&FD`. Same optimisation 4.18 made vs 4.08.53 for the break-
-type read; here applied to the ROM-number read in a couple more sites.
-
-The 4.18 `read_paged_rom` helper (4.18 &8AA0) is removed entirely --
-no `JMP &FFB9` (osrdsc) instruction appears anywhere in the 4.21 ROM.
-
-### 15. Address-mapping table (recovered routines)
-
-| Routine                       | 4.18         | 4.21 variant 1 | Notes                              |
-|-------------------------------|--------------|----------------|------------------------------------|
-| `svc5_irq_check`              | &8028        | &8028          | rewritten body (see #4)            |
-| `tx_done_jsr`                 | &8543        | &8540          | -3 byte shift                      |
-| `tx_calc_transfer`            | &88F2        | &8900          |                                    |
-| `get_ws_page`                 | &8CB9        | &8CAD          | body extends with ROL/PHP/ROR/PLP  |
-| `issue_svc_15`                | &8D17        | &8D24          |                                    |
-| `osbyte_x0_y0`                | &8E8C        | &8ED2          | same body                          |
-| `osbyte_x0`                   | &8E83        | &8EC9          | same body                          |
-| `svc_2_private_workspace_pages` | &8EB8 (part) | &8F10        | split (see #10)                    |
-| `nfs_init_body`               | &8EB8 (part) | &8F38          | split (see #10)                    |
-| `print_station_id`            | &8FF1        | &90C7          |                                    |
-| `copy_fs_cmd_name`            | &9327        | &9463          | 65C12 PHY                          |
-| `read_filename_char` (TX buf) | &0F05        | &C105          | workspace migrated (see #3)        |
-| `parse_fs_ps_args`            | &A0A7        | &A3C4          | 65C12 PHX/PHY                      |
-| `osword_13_read_station`      | &A660        | &A9CC          |                                    |
-| `osword_13_set_station`       | &A673        | &A9DA          | FS-active gate factored out (#5)   |
-| `osword_13_read_handles`      | &A734        | &AAC2          |                                    |
-| `osword_13_set_handles`       | &A744        | &AAD0          |                                    |
-| `svc_8_osword`                | &A4EE        | &A83B          |                                    |
-| `ensure_fs_selected`          | &8B0D        | &8B45          |                                    |
-| `mask_owner_access`           | &AF32        | &B2CF          | `fs_lib_flags` migrated (see #3)   |
-| `process_all_fcbs`            | &B799        | &BB38          | rewritten -- uses `fs_options` + `fs_block_offset` |
-| `svc_18_fs_select` related    | &AD10        | &B0A0          |                                    |
-| `cmd_prot`                    | &B30C        | &B6D2          | reduced to CMOS toggle (see #7)    |
-| `cmd_unprot`                  | &B33D        | &B6D6          | reduced to CMOS toggle (see #7)    |
-
-### 16. ROM-tail workspace shift
-
-In 4.18 the relocated blocks for pages 4 / 5 / 6 lived at:
-
-- `&BF00` (page 4)
-- `&BC90` (page 5)
-- `&BD90` (page 6)
-
-4.21 has none of these. The bytes at the end of the 4.21 ROM
-(`&BFC0..&BFFF`) are a small stub plus 33 bytes of `&FF` padding
-plus three labels (`hazel_minus_1a` at `&BFE6`, `hazel_minus_2`
-at `&BFFE`, `hazel_minus_1` at `&BFFF`) used as **indexing
-bases for accesses into HAZEL**. The trick: HAZEL begins at
-`&C000`, so an indexed instruction like `STA hazel_minus_2,Y`
-with Y ≥ 2 lands at `&BFFE + Y ≥ &C000` -- inside HAZEL.
-Routines like `loop_copy_fs_ctx` (9 bytes at `&C000..&C007`),
-`osword_13_set_station` (2 bytes at `&C000..&C001`), and
-`loop_copy_ws_to_pb` (3 bytes at `&C002..&C004`) all use this
-pattern to copy small blocks between HAZEL and other buffers
-without burning a separate zero-page pointer for the HAZEL base
-address. Each loop's `CPY`/`BNE` guard stops Y before it would
-land inside the ROM tail. See the `rom_tail_padding` and
-`hazel_idx_bases` banners in the 4.21 driver for the full
-mapping.
-
-## Annotation / structural notes
-
-### svc_dispatch / fs_vector_table converted to symbolic equb pairs
-
-The 4.21 disassembly emits the lo/hi halves of the service-call
-dispatch table as `equb <(target-1)` / `equb >(target-1)` rather than
-raw bytes, and `fs_vector_table` as `equw label` rather than raw
-addresses. All target labels appear inline in the per-entry comments;
-renames flow through cleanly.
-
-### `osbyte_a1` is dual-use code + table base
-
-The 5 bytes at `&8E9A` (`A9 A1 4C F4 FF` = `LDA #&A1 / JMP OSBYTE`)
-are the routine's body AND the leading slot of a vector-dispatch
-read accessed via `LDA c8e9a,Y`. The driver expresses this with
-`expr_label` so the code, the table, and `osbyte_a1`'s callers all
-stay consistent under renaming.
-
-### print_inline_no_spool needed a stringhi_hook
-
-The *SPOOL-bypassing variant of `print_inline` at `&928A` follows the
-same inline-string + high-bit-terminator + resume-on-terminator
-contract as `print_inline` (`&9261`) but lacked the
-`hook_subroutine(0x928A, "print_inline_no_spool", stringhi_hook)`
-declaration in the early 4.21 driver. Without it, py8dis stopped
-tracing past every `JSR &928A` site, leaving the resume code
-byte-classified across roughly two dozen sites. Adding the hook
-recovered ~96 code items in a single change.
-
-## Open issues
-
-- **O-1**: the dispatch path that reaches `nfs_init_body` (`&8F38`)
-  is verified at the table level (svc_dispatch_lo[22] / hi[22] both
-  decode to that address) but no static `JSR` / `JMP` / branch to
-  `&8F38` exists in the disassembled code. The dispatch is
-  presumably triggered by an OS-event-driven `JMP svc_dispatch` with
-  the right `Y`, but the trigger site has not been identified.
-
-- **O-2..O-4**: minor stale-label survivals in the dispatch area
-  (the 'Service 1' inline at `&8A8F`, `dir_op_dispatch`'s `Y=&0E`
-  vs `&18` description). Tracked in `OPEN-ISSUES.md`.
+4.21 v1 is a leaner client running on a richer host. The Model B's
+constraints pushed 4.18 into workarounds: relocated workspace
+pages, hand-rolled push/pop sequences, direct VIA writes, persistent
+state held in volatile RAM. The Master 128 dissolves all of those
+constraints, and 4.21 takes them apart in favour of HAZEL workspace,
+65C02 push/pull, shadow-VIA reconciliation through the IRQ path,
+and CMOS-backed configuration. What's left is a ROM that's tightly
+bound to its host – which is exactly why it gates so aggressively
+against being run anywhere else.
