@@ -310,17 +310,17 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA405` `net_2_read_entry` - description matches body's get_pb_ptr_as_index lookup
 - [x] `0xA415` `net_3_close_handle` - description matches body's bit-rotation state save
 - [x] `0xA42F` `fscv_3_star_cmd` - description matches body
-- [ ] `0xA440` `cmd_fs_reentry`
+- [x] `0xA440` `cmd_fs_reentry` - description matches body
 - [x] `0xA4E4` `fscv_2_star_run` - description compared against body, accurate
-- [ ] `0xA644` `find_station_bit2`
-- [ ] `0xA66F` `find_station_bit3`
-- [ ] `0xA6A6` `flip_set_station_boot`
-- [ ] `0xA6D5` `fsreply_1_boot`
-- [ ] `0xA83B` `svc_8_osword`
-- [ ] `0xA877` `extract_osword_subcode`
-- [ ] `0xA985` `osword_12_handler`
-- [ ] `0xA9CC` `osword_13_read_station`
-- [ ] `0xAAB2` `osword_13_read_prot`
+- [x] `0xA644` `find_station_bit2` - description matches body's bit-2 station scan
+- [x] `0xA66F` `find_station_bit3` - description matches body's bit-3 station scan
+- [x] `0xA6A6` `flip_set_station_boot` - description matches body
+- [x] `0xA6D5` `fsreply_1_boot` - description matches body (already verified earlier)
+- [x] `0xA83B` `svc_8_osword` - description matches body's OSWORD &0E-&14 filter
+- [x] `0xA877` `extract_osword_subcode` - description matches body's nibble-split + EOR/CMP chain
+- [x] `0xA985` `osword_12_handler` - description matches body
+- [x] `0xA9CC` `osword_13_read_station` - description matches body's PB[1..2] copy from hazel_minus_1
+- [x] `0xAAB2` `osword_13_read_prot` - description matches body
 - [ ] `0xAAC2` `osword_13_read_handles`
 - [ ] `0xAAD0` `osword_13_set_handles`
 - [ ] `0xAB68` `osword_13_read_rx_flag`
