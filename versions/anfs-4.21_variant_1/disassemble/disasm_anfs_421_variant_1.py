@@ -296,106 +296,197 @@ constant(168, "osbyte_read_rom_ptr_table_low")
 # Zero page — Econet workspace (&90-&A9)
 # ============================================================
 
-label(0x0097, "escapable")           # b7=respond to Escape flag
-label(0x0098, "need_release_tube")   # b7=need to release Tube
+label(0x0097, "escapable",
+    description="b7=respond to Escape flag",
+    length=1, group="zero_page", access="rw")
+label(0x0098, "need_release_tube",
+    description="b7=need to release Tube",
+    length=1, group="zero_page", access="rw")
 label(0x0099, "prot_flags",
     description="PFLAGS: printer / protocol status flags.",
-    length=1, group="ram_workspace", access="rw")
-label(0x009A, "net_tx_ptr")          # NetTx control block pointer (low)
-label(0x009B, "net_tx_ptr_hi")       # NetTx control block pointer (high)
+    length=1, group="zero_page", access="rw")
+label(0x009A, "net_tx_ptr",
+    description="NetTx control block pointer (low)",
+    length=1, group="zero_page", access="rw")
+label(0x009B, "net_tx_ptr_hi",
+    description="NetTx control block pointer (high)",
+    length=1, group="zero_page", access="rw")
 label(0x009C, "net_rx_ptr",
     description="NetRx control blocks pointer (low byte). Pairs "
                 "with [`net_rx_ptr_hi`](address:009D).",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="zero_page", access="rw")
 label(0x009D, "net_rx_ptr_hi",
     description="NetRx control blocks pointer (high byte). Pairs "
                 "with [`net_rx_ptr`](address:009C) (low).",
-    length=1, group="ram_workspace", access="rw")
-label(0x009E, "nfs_workspace")       # General NFS workspace pointer (low)
-label(0x009F, "nfs_workspace_hi")    # General NFS workspace pointer (high)
+    length=1, group="zero_page", access="rw")
+label(0x009E, "nfs_workspace",
+    description="General NFS workspace pointer (low)",
+    length=1, group="zero_page", access="rw")
+label(0x009F, "nfs_workspace_hi",
+    description="General NFS workspace pointer (high)",
+    length=1, group="zero_page", access="rw")
 label(0x00A0, "nmi_tx_block",
     description="NMI TX block pointer (low byte). Address of the "
                 "TX control block currently being transmitted by "
                 "the NMI handler.",
-    length=1, group="ram_workspace", access="rw")
-label(0x00A1, "nmi_tx_block_hi")     # Block to be transmitted (high)
-label(0x00A2, "port_buf_len")        # Open port buffer length (low)
-label(0x00A3, "port_buf_len_hi")     # Open port buffer length (high)
-label(0x00A4, "open_port_buf")       # Open port buffer address (low)
-label(0x00A5, "open_port_buf_hi")    # Open port buffer address (high)
-label(0x00A6, "port_ws_offset")      # Port workspace offset
-label(0x00A7, "rx_buf_offset")       # Receive buffer offset
-label(0x00A8, "ws_page")             # Multi-purpose workspace page
-label(0x00A9, "svc_state")           # Multi-purpose service state
-label(0x00AA, "osword_flag")         # OSWORD param byte
-label(0x00AB, "ws_ptr_lo")           # Workspace indirect pointer (lo)
-label(0x00AC, "ws_ptr_hi")           # Workspace indirect pointer (hi)
-label(0x00AD, "table_idx")           # OSBYTE/palette table index counter
-label(0x00AE, "work_ae")             # Indexed workspace (multi-purpose scratch)
-label(0x00AF, "addr_work")           # Address work byte for comparison (indexed)
+    length=1, group="zero_page", access="rw")
+label(0x00A1, "nmi_tx_block_hi",
+    description="Block to be transmitted (high)",
+    length=1, group="zero_page", access="rw")
+label(0x00A2, "port_buf_len",
+    description="Open port buffer length (low)",
+    length=1, group="zero_page", access="rw")
+label(0x00A3, "port_buf_len_hi",
+    description="Open port buffer length (high)",
+    length=1, group="zero_page", access="rw")
+label(0x00A4, "open_port_buf",
+    description="Open port buffer address (low)",
+    length=1, group="zero_page", access="rw")
+label(0x00A5, "open_port_buf_hi",
+    description="Open port buffer address (high)",
+    length=1, group="zero_page", access="rw")
+label(0x00A6, "port_ws_offset",
+    description="Port workspace offset",
+    length=1, group="zero_page", access="rw")
+label(0x00A7, "rx_buf_offset",
+    description="Receive buffer offset",
+    length=1, group="zero_page", access="rw")
+label(0x00A8, "ws_page",
+    description="Multi-purpose workspace page",
+    length=1, group="zero_page", access="rw")
+label(0x00A9, "svc_state",
+    description="Multi-purpose service state",
+    length=1, group="zero_page", access="rw")
+label(0x00AA, "osword_flag",
+    description="OSWORD param byte",
+    length=1, group="zero_page", access="rw")
+label(0x00AB, "ws_ptr_lo",
+    description="Workspace indirect pointer (lo)",
+    length=1, group="zero_page", access="rw")
+label(0x00AC, "ws_ptr_hi",
+    description="Workspace indirect pointer (hi)",
+    length=1, group="zero_page", access="rw")
+label(0x00AD, "table_idx",
+    description="OSBYTE/palette table index counter",
+    length=1, group="zero_page", access="rw")
+label(0x00AE, "work_ae",
+    description="Indexed workspace (multi-purpose scratch)",
+    length=1, group="zero_page", access="rw")
+label(0x00AF, "addr_work",
+    description="Address work byte for comparison (indexed)",
+    length=1, group="zero_page", access="rw")
 
 # ============================================================
 # Zero page — Filing system workspace (&B0-&CF)
 # ============================================================
 
-label(0x00B0, "fs_load_addr")        # WORK: load/start address (4 bytes)
-label(0x00B1, "fs_load_addr_hi")
-label(0x00B2, "fs_load_addr_2")
-label(0x00B3, "fs_load_addr_3")
-label(0x00B4, "fs_work_4")
+label(0x00B0, "fs_load_addr",
+    description="WORK: load/start address (4 bytes)",
+    length=4, group="zero_page", access="rw")
+label(0x00B1, "fs_load_addr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x00B2, "fs_load_addr_2",
+    length=1, group="zero_page", access="rw")
+label(0x00B3, "fs_load_addr_3",
+    length=1, group="zero_page", access="rw")
+label(0x00B4, "fs_work_4",
+    length=1, group="zero_page", access="rw")
 label(0x00B5, "fs_work_5",
     description="FS scratch byte 5. Multi-purpose: "
                 "*Wipe iteration counter, parsed FS station number, "
                 "spool drive number, etc.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="zero_page", access="rw")
 label(0x00B6, "fs_work_6",
     description="FS scratch byte 6. Multi-purpose: "
                 "*Wipe end-of-buffer offset, parsed FS network "
                 "number, etc.",
-    length=1, group="ram_workspace", access="rw")
-label(0x00B7, "fs_work_7")
-label(0x00B8, "fs_error_ptr")
-label(0x00B9, "fs_crflag")
-label(0x00BA, "fs_spool_handle")
-label(0x00BB, "fs_options")
-label(0x00BC, "fs_block_offset")
-label(0x00BD, "fs_last_byte_flag")
-label(0x00BE, "fs_crc_lo")
-label(0x00BF, "fs_crc_hi")
-label(0x00CC, "fs_ws_ptr")            # FS workspace page pointer (lo, always 0)
-label(0x00C0, "txcb_ctrl")
-label(0x00C1, "txcb_port")
-label(0x00C2, "txcb_dest")
-label(0x00C4, "txcb_start")
-label(0x00C7, "txcb_pos")
-label(0x00C8, "txcb_end")
-label(0x00CD, "nfs_temp")
-label(0x00CE, "rom_svc_num")
-label(0x00CF, "fs_spool0")
-label(0x00D0, "vdu_status")           # VDU status register (OSBYTE &75)
+    length=1, group="zero_page", access="rw")
+label(0x00B7, "fs_work_7",
+    length=1, group="zero_page", access="rw")
+label(0x00B8, "fs_error_ptr",
+    length=1, group="zero_page", access="rw")
+label(0x00B9, "fs_crflag",
+    length=1, group="zero_page", access="rw")
+label(0x00BA, "fs_spool_handle",
+    length=1, group="zero_page", access="rw")
+label(0x00BB, "fs_options",
+    length=1, group="zero_page", access="rw")
+label(0x00BC, "fs_block_offset",
+    length=1, group="zero_page", access="rw")
+label(0x00BD, "fs_last_byte_flag",
+    length=1, group="zero_page", access="rw")
+label(0x00BE, "fs_crc_lo",
+    length=1, group="zero_page", access="rw")
+label(0x00BF, "fs_crc_hi",
+    length=1, group="zero_page", access="rw")
+label(0x00CC, "fs_ws_ptr",
+    description="FS workspace page pointer (lo, always 0)",
+    length=1, group="zero_page", access="rw")
+label(0x00C0, "txcb_ctrl",
+    length=1, group="zero_page", access="rw")
+label(0x00C1, "txcb_port",
+    length=1, group="zero_page", access="rw")
+label(0x00C2, "txcb_dest",
+    length=1, group="zero_page", access="rw")
+label(0x00C4, "txcb_start",
+    length=1, group="zero_page", access="rw")
+label(0x00C7, "txcb_pos",
+    length=1, group="zero_page", access="rw")
+label(0x00C8, "txcb_end",
+    length=1, group="zero_page", access="rw")
+label(0x00CD, "nfs_temp",
+    length=1, group="zero_page", access="rw")
+label(0x00CE, "rom_svc_num",
+    length=1, group="zero_page", access="rw")
+label(0x00CF, "fs_spool0",
+    length=1, group="zero_page", access="rw")
+label(0x00D0, "vdu_status",
+    description="VDU status register (OSBYTE &75)",
+    length=1, group="zero_page", access="rw")
 
 # Zero page — Additional OS locations
-label(0x0000, "zp_ptr_lo")
-label(0x0001, "zp_ptr_hi")
-label(0x0002, "zp_work_2")
-label(0x0003, "zp_work_3")
-label(0x0010, "zp_temp_10")
-label(0x0011, "zp_temp_11")
-label(0x0012, "tube_data_ptr")
-label(0x0013, "tube_data_ptr_hi")
-label(0x0014, "tube_claim_flag")
-label(0x0015, "tube_claimed_id")
-label(0x0063, "zp_0063")             # (false ref from inline string data)
-label(0x0078, "zp_0078")             # (false ref from inline string data)
+label(0x0000, "zp_ptr_lo",
+    length=1, group="zero_page", access="rw")
+label(0x0001, "zp_ptr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x0002, "zp_work_2",
+    length=1, group="zero_page", access="rw")
+label(0x0003, "zp_work_3",
+    length=1, group="zero_page", access="rw")
+label(0x0010, "zp_temp_10",
+    length=1, group="zero_page", access="rw")
+label(0x0011, "zp_temp_11",
+    length=1, group="zero_page", access="rw")
+label(0x0012, "tube_data_ptr",
+    length=1, group="zero_page", access="rw")
+label(0x0013, "tube_data_ptr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x0014, "tube_claim_flag",
+    length=1, group="zero_page", access="rw")
+label(0x0015, "tube_claimed_id",
+    length=1, group="zero_page", access="rw")
+label(0x0063, "zp_0063",
+    description="(false ref from inline string data)",
+    length=1, group="zero_page", access="rw")
+label(0x0078, "zp_0078",
+    description="(false ref from inline string data)",
+    length=1, group="zero_page", access="rw")
 
 # Zero page — MOS locations (&EF-&FF)
-label(0x00EF, "osbyte_a_copy")
-label(0x00F0, "osword_pb_ptr")
-label(0x00F1, "osword_pb_ptr_hi")
-label(0x00F3, "os_text_ptr_hi")
-label(0x00F7, "osrdsc_ptr_hi")
-label(0x00FD, "brk_ptr")
-label(0x00FF, "escape_flag")
+label(0x00EF, "osbyte_a_copy",
+    length=1, group="zero_page", access="rw")
+label(0x00F0, "osword_pb_ptr",
+    length=1, group="zero_page", access="rw")
+label(0x00F1, "osword_pb_ptr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x00F3, "os_text_ptr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x00F7, "osrdsc_ptr_hi",
+    length=1, group="zero_page", access="rw")
+label(0x00FD, "brk_ptr",
+    length=1, group="zero_page", access="rw")
+label(0x00FF, "escape_flag",
+    length=1, group="zero_page", access="rw")
 
 # Page 1 — Stack page
 
@@ -10621,9 +10712,12 @@ label(0xBE16, "loop_print_hex_row")
 # ref, flags); &C2C0..&C2F3 are individual working-state bytes.
 # Names now reflect each field's role. A few names (sentinel_cd/ce,
 # pass_counter, ctx_buffer) are still best-effort.
-label(0x0020, "tx_buffer_scratch")
-label(0x0026, "parse_separator_flag")
-label(0x00ED, "tx_imm_idx_base")
+label(0x0020, "tx_buffer_scratch",
+    length=1, group="zero_page", access="rw")
+label(0x0026, "parse_separator_flag",
+    length=1, group="zero_page", access="rw")
+label(0x00ED, "tx_imm_idx_base",
+    length=1, group="zero_page", access="rw")
 label(0x0100, "error_block")
 label(0x0101, "error_text")
 label(0x0102, "stack_page_2")

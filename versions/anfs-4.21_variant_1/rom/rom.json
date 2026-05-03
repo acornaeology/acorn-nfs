@@ -1,6 +1,7 @@
 {
     "title": "Acorn ANFS 4.21 (variant 1)",
     "memory_map_groups": {
+        "zero_page": "Zero page",
         "ram_workspace": "RAM workspace",
         "hazel": "Filing system workspace (HAZEL)",
         "mmio": "Memory-mapped I/O",
