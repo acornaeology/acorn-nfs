@@ -288,18 +288,18 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x924C` `print_hex_byte_no_spool` - description matches body
 - [x] `0x928A` `print_inline_no_spool` - description matches body
 - [x] `0x92B2` `parse_addr_arg` - description matches body's hex/decimal address parser
-- [ ] `0x93F7` `set_conn_active`
-- [ ] `0x940D` `clear_conn_active`
-- [ ] `0x95C1` `print_station_low`
-- [ ] `0x95C8` `print_fs_station`
-- [ ] `0x95DA` `print_dir_syntax`
+- [x] `0x93F7` `set_conn_active` - description matches body's stack-recover-A pattern
+- [x] `0x940D` `clear_conn_active` - description matches body (mirror of set_conn_active with AND #&BF)
+- [x] `0x95C1` `print_station_low` - description matches body's print 'P' + fall-through to print_field_tail_s for 'PS       '
+- [x] `0x95C8` `print_fs_station` - description matches body
+- [x] `0x95DA` `print_dir_syntax` - description matches body
 - [x] `0x9619` `cmd_space` - description compared against body, accurate
 - [x] `0x9623` `cmd_nospace` - description compared against body, accurate
-- [ ] `0x965F` `print_ps_address`
-- [ ] `0x973F` `init_txcb_port`
-- [ ] `0x97B7` `prep_send_tx_cb`
-- [ ] `0x9850` `lang_1_remote_boot`
-- [ ] `0x98AF` `lang_0_insert_key`
+- [x] `0x965F` `print_ps_address` - description matches body but inline at &966C said 'CMOS &03 (FS station)' -- should be 'PS station' since this routine prints PS address. Fixed
+- [x] `0x973F` `init_txcb_port` - description matches body
+- [x] `0x97B7` `prep_send_tx_cb` - description matches body
+- [x] `0x9850` `lang_1_remote_boot` - description matches body
+- [x] `0x98AF` `lang_0_insert_key` - description matches body
 - [ ] `0x99DF` `check_net_error_code`
 - [ ] `0x9A69` `append_decimal_num`
 - [ ] `0x9FB6` `finalise_and_return`

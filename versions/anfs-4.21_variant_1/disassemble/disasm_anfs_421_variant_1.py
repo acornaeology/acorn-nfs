@@ -9699,7 +9699,7 @@ comment(0x9661, "Read CMOS &04 via osbyte_a1", inline=True)
 comment(0x9664, "A = CMOS &04 value", inline=True)
 comment(0x9665, "Print as decimal (no leading zeros)", inline=True)
 comment(0x9668, "Print '.' separator via inline", inline=True)
-comment(0x966C, "X=3: CMOS &03 (FS station)", inline=True)
+comment(0x966C, "X=3: CMOS &03 (PS station)", inline=True)
 comment(0x966E, "BRA print_cmos_decimal_nl: shared print-and-trail", inline=True)
 
 comment(0x9670, "X=2: CMOS &02 (FS network)", inline=True)

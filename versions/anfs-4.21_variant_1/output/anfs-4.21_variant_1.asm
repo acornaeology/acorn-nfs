@@ -6395,7 +6395,7 @@ ps_template_base = load_transfer_params+1
     jsr print_inline                                                  ; 9668: 20 61 92     a.            ; Print '.' separator via inline
     equs "."                                                          ; 966b: 2e          .
 
-    ldx #3                                                            ; 966c: a2 03       ..             ; X=3: CMOS &03 (FS station)
+    ldx #3                                                            ; 966c: a2 03       ..             ; X=3: CMOS &03 (PS station)
     bra print_cmos_decimal_nl                                         ; 966e: 80 0f       ..             ; BRA print_cmos_decimal_nl: shared print-and-trail
 ; ***************************************************************************************
 ; Print file-server address from CMOS
