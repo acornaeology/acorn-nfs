@@ -7145,7 +7145,7 @@ bad_prefix_table = bad_str_anchor+1
 ; Generate BRK error from inline string (with logging)
 ;
 ; Like error_inline, but first conditionally logs the error code to workspace via
-; sub_c95fb before building the error block.
+; cond_save_error_code before building the error block.
 ;
 ; On Entry: A: error number
 ; &99c0 referenced 11 times by &9564, &9883, &a5ba, &af82, &af94, &b81f, &b895, &b8e6, &bb79, &bbb3, &bbfd

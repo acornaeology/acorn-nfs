@@ -117,7 +117,7 @@ hook_subroutine(0x928A, "print_inline_no_spool", stringhi_hook)
 hook_subroutine(0x99C3, "error_inline", stringz_hook)
 
 # error_inline_log (&96BB) is identical to error_inline but first logs the
-# error code via sub_c95fb. Never returns.
+# error code via cond_save_error_code. Never returns.
 hook_subroutine(0x99C0, "error_inline_log", stringz_hook)
 
 # error_bad_inline (&96A2) prepends "Bad " to the inline string before
@@ -9616,7 +9616,7 @@ comment(0x96F6, "A=&0D: replace space with CR", inline=True)
 comment(0x96F8, "BRA back to store the CR", inline=True)
 
 # Open-and-print-file path (start_help_file_load..&973C). Set up CMOS-bit flag,
-# call sub_c9fee (probably open_file), read bytes via OSBGET, write
+# call send_open_file_request, read bytes via OSBGET, write
 # via OSWRCH; close on EOF; respect Escape.
 comment(0x96FA, "Account for last char", inline=True)
 comment(0x96FB, "Read fs_lib_flags (hazel_fs_lib_flags)", inline=True)
@@ -13022,8 +13022,6 @@ subroutine(0x8E61, "svc_dispatch",
     on_exit={"x": "fs_options value"})
 label(0x8E61, "svc_dispatch")
 
-# sub_c8a97: read byte from paged ROM via OSRDSC
-
 subroutine(0x8EC9, "osbyte_x0",
     title="OSBYTE wrapper with X=0, Y=&FF",
     description="Sets X=0 and falls through to osbyte_yff to also\n"
@@ -13117,7 +13115,7 @@ subroutine(0x99C0, "error_inline_log",
     title="Generate BRK error from inline string (with logging)",
     description="""\
 Like error_inline, but first conditionally logs the error code to
-workspace via sub_c95fb before building the error block.""",
+workspace via cond_save_error_code before building the error block.""",
     on_entry={"a": "error number"})
 
 comment(0x99C0, "Conditionally log error code to workspace", inline=True)
