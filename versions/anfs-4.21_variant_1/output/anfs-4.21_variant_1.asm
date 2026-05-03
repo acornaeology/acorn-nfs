@@ -2104,19 +2104,26 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX preparation
 ;
-; Configures the ADLC for frame transmission.
+; Configures the ADLC for frame transmission and dispatches to the control-byte
+; handler.
 ;
-; 1. Writes CR2 = Y (&E7 = RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA | 2_1_BYTE | PSE) and
-;    CR1 = &44 (RX_RESET | TIE) to enable TX with interrupts.
-; 2. Installs the nmi_tx_data handler at &86E0.
-; 3. Sets need_release_tube flag via SEC / ROR.
-; 4. Writes the 4-byte destination address (tx_dst_stn, tx_dst_net, tx_src_stn, src_net
-;    = 0) to the TX FIFO.
+; 1. Writes CR2 = Y (&E7) and CR1 = &44 to enable TX with interrupts (RX_RESET +
+;    transmit-IRQ enable).
+; 2. Installs nmi_tx_data as the next NMI handler by writing &E7,&86 directly into
+;    nmi_jmp_lo / nmi_jmp_hi.
+; 3. Sets bit 7 of prot_flags (Tube-claimed marker, paired with release_tube) via SEC /
+;    ROR prot_flags.
+; 4. BIT master_inton re-enables NMIs so TDRA can fire.
 ;
-; | Path            | Action                                   |
-; |-----------------|------------------------------------------|
-; | Tube transfer   | claims the Tube address                  |
-; | Direct transfer | sets up the buffer pointer from the TXCB |
+; Then dispatches on tx_port:
+;
+; | tx_port             | Path                                                                                                                                                                                           |
+; |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | non-zero            | branch to setup_data_xfer (standard data transfer)                                                                                                                                             |
+; | zero (immediate op) | look up tx_flags / tx_length from tx_flags_table / tx_length_table indexed by tx_ctrl_byte, push &86 (high byte) and tx_ctrl_dispatch_lo[Y-&81] (low byte) and RTS to the control-byte handler |
+;
+; The 4-byte destination-address write to the TX FIFO happens in the dispatched-to
+; handler (e.g. setup_data_xfer, tx_ctrl_machine_type, etc.), not here.
 ;
 ; On Entry: Y: &E7 (CR2 prep value)
 ; &864a referenced 1 time by &8614
@@ -2124,12 +2131,12 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sty adlc_cr2                                                      ; 864a: 8c a1 fe    ...            ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44 ; 'D'                                                    ; 864d: a2 44       .D             ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx adlc_cr1                                                      ; 864f: 8e a0 fe    ...            ; Write to ADLC CR1
-    ldx #&e7                                                          ; 8652: a2 e7       ..             ; Install NMI handler at &86E0 (TX data handler)
+    ldx #&e7                                                          ; 8652: a2 e7       ..             ; X=&E7: low byte of nmi_tx_data (&86E7)
     ldy #&86                                                          ; 8654: a0 86       ..             ; High byte of NMI handler address
     stx nmi_jmp_lo                                                    ; 8656: 8e 0c 0d    ...            ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 8659: 8c 0d 0d    ...            ; Write NMI vector high byte directly
-    sec                                                               ; 865c: 38          8              ; Set need_release_tube flag (SEC/ROR = bit7)
-    ror prot_flags                                                    ; 865d: 66 99       f.             ; Rotate carry into bit 7 of flag
+    sec                                                               ; 865c: 38          8              ; SEC: prepare carry for ROR into bit 7
+    ror prot_flags                                                    ; 865d: 66 99       f.             ; Rotate carry into bit 7 of prot_flags (Tube-claimed)
     bit master_inton                                                  ; 865f: 2c 3c fe    ,<.            ; INTON -- NMIs now fire for TDRA (&FE20 read)
     lda tx_port                                                       ; 8662: ad 25 0d    .%.            ; Load destination port number
     bne setup_data_xfer                                               ; 8665: d0 42       .B             ; Port != 0: standard data transfer
@@ -2138,7 +2145,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta rx_src_net                                                    ; 866d: 8d 3e 0d    .>.            ; Store operation flags
     lda tx_length_table,y                                             ; 8670: b9 6f 88    .o.            ; Look up tx_length from table
     sta rx_ctrl                                                       ; 8673: 8d 3f 0d    .?.            ; Store expected transfer length
-    lda #&86                                                          ; 8676: a9 86       ..             ; Push high byte of return address (&9C)
+    lda #&86                                                          ; 8676: a9 86       ..             ; A=&86: high byte of tx_ctrl_* dispatch target
     pha                                                               ; 8678: 48          H              ; Push high byte for PHA/PHA/RTS dispatch
     lda tx_ctrl_dispatch_lo-&81,y                                     ; 8679: b9 fd 85    ...            ; Look up handler address low from table
     pha                                                               ; 867c: 48          H              ; Push low byte for PHA/PHA/RTS dispatch

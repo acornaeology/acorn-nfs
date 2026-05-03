@@ -3036,22 +3036,28 @@ detecting a quiet line.
 subroutine(0x864A, "tx_prepare",
     title="TX preparation",
     description="""\
-Configures the ADLC for frame transmission.
+Configures the ADLC for frame transmission and dispatches to the
+control-byte handler.
 
-1. Writes `CR2 = Y` (`&E7` = `RTS | CLR_TX_ST | CLR_RX_ST | FC_TDRA
-   | 2_1_BYTE | PSE`) and `CR1 = &44` (`RX_RESET | TIE`) to enable
-   TX with interrupts.
-2. Installs the [`nmi_tx_data`](address:86E7) handler at
-   `&86E0`.
-3. Sets `need_release_tube` flag via `SEC` / `ROR`.
-4. Writes the 4-byte destination address ([`tx_dst_stn`](address:0D20),
-   [`tx_dst_net`](address:0D21),
-   [`tx_src_stn`](address:0D22), `src_net = 0`) to the TX FIFO.
+1. Writes `CR2 = Y` (`&E7`) and `CR1 = &44` to enable TX with
+   interrupts (`RX_RESET` + transmit-IRQ enable).
+2. Installs [`nmi_tx_data`](address:86E7) as the next NMI handler
+   by writing `&E7,&86` directly into `nmi_jmp_lo` / `nmi_jmp_hi`.
+3. Sets bit 7 of [`prot_flags`](address:0099) (Tube-claimed
+   marker, paired with [`release_tube`](address:8448)) via
+   `SEC` / `ROR prot_flags`.
+4. `BIT master_inton` re-enables NMIs so `TDRA` can fire.
 
-| Path | Action |
+Then dispatches on [`tx_port`](address:0D25):
+
+| `tx_port` | Path |
 |---|---|
-| Tube transfer | claims the Tube address |
-| Direct transfer | sets up the buffer pointer from the TXCB |""",
+| non-zero | branch to `setup_data_xfer` (standard data transfer) |
+| zero (immediate op) | look up `tx_flags` / `tx_length` from `tx_flags_table` / `tx_length_table` indexed by [`tx_ctrl_byte`](address:0D24), push `&86` (high byte) and `tx_ctrl_dispatch_lo[Y-&81]` (low byte) and `RTS` to the control-byte handler |
+
+The 4-byte destination-address write to the TX FIFO happens in
+the dispatched-to handler (e.g. `setup_data_xfer`,
+[`tx_ctrl_machine_type`](address:8686), etc.), not here.""",
     on_entry={"y": "&E7 (CR2 prep value)"})
 subroutine(0x8686, "tx_ctrl_machine_type",
     title="TX ctrl: machine-type query setup",
@@ -7260,12 +7266,12 @@ comment(0x8649, "Return to TX caller", inline=True)
 comment(0x864A, "Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)", inline=True)
 comment(0x864D, "CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)", inline=True)
 comment(0x864F, "Write to ADLC CR1", inline=True)
-comment(0x8652, "Install NMI handler at &86E0 (TX data handler)", inline=True)
+comment(0x8652, "X=&E7: low byte of nmi_tx_data (&86E7)", inline=True)
 comment(0x8654, "High byte of NMI handler address", inline=True)
 comment(0x8656, "Write NMI vector low byte directly", inline=True)
 comment(0x8659, "Write NMI vector high byte directly", inline=True)
-comment(0x865C, "Set need_release_tube flag (SEC/ROR = bit7)", inline=True)
-comment(0x865D, "Rotate carry into bit 7 of flag", inline=True)
+comment(0x865C, "SEC: prepare carry for ROR into bit 7", inline=True)
+comment(0x865D, "Rotate carry into bit 7 of prot_flags (Tube-claimed)", inline=True)
 comment(0x865F, "INTON -- NMIs now fire for TDRA (&FE20 read)", inline=True)
 comment(0x8662, "Load destination port number", inline=True)
 comment(0x8665, "Port != 0: standard data transfer", inline=True)
@@ -7274,7 +7280,7 @@ comment(0x866A, "Look up tx_flags from table", inline=True)
 comment(0x866D, "Store operation flags", inline=True)
 comment(0x8670, "Look up tx_length from table", inline=True)
 comment(0x8673, "Store expected transfer length", inline=True)
-comment(0x8676, "Push high byte of return address (&9C)", inline=True)
+comment(0x8676, "A=&86: high byte of tx_ctrl_* dispatch target", inline=True)
 comment(0x8678, "Push high byte for PHA/PHA/RTS dispatch", inline=True)
 comment(0x8679, "Look up handler address low from table", inline=True)
 comment(0x867C, "Push low byte for PHA/PHA/RTS dispatch", inline=True)

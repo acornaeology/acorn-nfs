@@ -54,7 +54,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x85FC` `intoff_test_inactive` - description claimed Master 128 path uses econet_station_id (the Model B INTOFF mechanism) but body reads master_intoff at &FE38 (the dedicated Master 128 register); corrected description, including INTON path which uses master_inton
 - [x] `0x862C` `tx_bad_ctrl_error` - description and inline comments accurate
 - [x] `0x8630` `tx_line_jammed` - description correct re flow; CR2 bit-naming is sloppy (CR2=&07 is RIE|TIE|CLR_TX_ST not 'FC_TDRA|2_1_BYTE|PSE') but the byte value is right
-- [ ] `0x864A` `tx_prepare`
+- [x] `0x864A` `tx_prepare` - description had a fabricated step 4 (claimed it writes the 4-byte destination address to the TX FIFO; that actually happens in the dispatched-to handler) and described 'Tube transfer / Direct transfer' paths that don't match the body's port-based dispatch on tx_port. Rewrote. Also fixed three inline comments: &8652 said 'Install NMI handler at &86E0' but byte loaded is &E7 (target &86E7); &865C/D claimed 'need_release_tube flag' but body rotates prot_flags (different addr); &8676 said high byte was '&9C' but A=&86
 - [ ] `0x867E` `tx_ctrl_dispatch_lo`
 - [ ] `0x8686` `tx_ctrl_machine_type`
 - [ ] `0x868A` `tx_ctrl_peek`
