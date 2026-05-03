@@ -405,51 +405,51 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 4 (18 routines)
 
-- [ ] `0x832D` `post_ack_scout`
-- [ ] `0x8409` `save_acccon_for_shadow_ram`
-- [ ] `0x8454` `immediate_op`
-- [ ] `0x86E7` `nmi_tx_data`
-- [ ] `0x8BBB` `help_print_nfs_cmds`
-- [ ] `0x8E21` `clear_if_station_match`
-- [ ] `0x993D` `classify_reply_error`
-- [ ] `0x99A7` `error_bad_inline`
-- [ ] `0x99C0` `error_inline_log`
-- [ ] `0x9DDC` `dispatch_osword_op`
-- [ ] `0xA3C4` `parse_fs_ps_args`
-- [ ] `0xAA9D` `osword_13_write_ws_pair`
-- [ ] `0xABA9` `osword_13_bridge_query`
-- [ ] `0xACF8` `enable_irq_and_poll`
-- [ ] `0xAD40` `tx_econet_abort`
+- [x] `0x832D` `post_ack_scout` -- description matches body
+- [x] `0x8409` `save_acccon_for_shadow_ram` -- description matches body
+- [x] `0x8454` `immediate_op` -- description matches body
+- [x] `0x86E7` `nmi_tx_data` -- description matches body
+- [x] `0x8BBB` `help_print_nfs_cmds` -- description matches body
+- [x] `0x8E21` `clear_if_station_match` -- fixed description -- init_bridge_poll doesn't parse station numbers; reframed as bridge-status comparison
+- [x] `0x993D` `classify_reply_error` -- description matches body
+- [x] `0x99A7` `error_bad_inline` -- description matches body
+- [x] `0x99C0` `error_inline_log` -- description matches body
+- [x] `0x9DDC` `dispatch_osword_op` -- description matches body
+- [x] `0xA3C4` `parse_fs_ps_args` -- fixed wrong link target on init_bridge_poll (AC4C -> ABE9)
+- [x] `0xAA9D` `osword_13_write_ws_pair` -- description matches body
+- [x] `0xABA9` `osword_13_bridge_query` -- description matches body
+- [x] `0xACF8` `enable_irq_and_poll` -- description matches body
+- [x] `0xAD40` `tx_econet_abort` -- description matches body
 - [ ] `0xAFA6` `send_disconnect_reply`
 - [ ] `0xB556` `print_station_addr`
 - [ ] `0xBD79` `loop_pop_stack_buf`
 
 ## Depth 5 (30 routines)
 
-- [ ] `0x8112` `scout_complete`
-- [ ] `0x8AEA` `cmd_roff`
-- [ ] `0x8C64` `svc_return_unclaimed`
-- [ ] `0x8DA6` `load_transfer_params`
-- [ ] `0x90B5` `error_net_checksum`
-- [ ] `0x934A` `err_bad_hex`
-- [ ] `0x9437` `error_bad_filename`
-- [ ] `0x9483` `parse_quoted_arg`
-- [ ] `0x95EE` `set_fs_or_ps_cmos_station`
-- [ ] `0x97CD` `recv_and_process_reply`
-- [ ] `0x987E` `lang_3_exec_0100`
-- [ ] `0x9895` `raise_escape_error`
-- [ ] `0x9C85` `send_txcb_swap_addrs`
+- [x] `0x8112` `scout_complete` -- description matches body
+- [x] `0x8AEA` `cmd_roff` -- description matches body
+- [x] `0x8C64` `svc_return_unclaimed` -- description matches body
+- [x] `0x8DA6` `load_transfer_params` -- description matches body
+- [x] `0x90B5` `error_net_checksum` -- description matches body
+- [x] `0x934A` `err_bad_hex` -- description matches body
+- [x] `0x9437` `error_bad_filename` -- description matches body
+- [x] `0x9483` `parse_quoted_arg` -- description matches body
+- [x] `0x95EE` `set_fs_or_ps_cmos_station` -- description matches body
+- [x] `0x97CD` `recv_and_process_reply` -- description matches body
+- [x] `0x987E` `lang_3_exec_0100` -- description matches body
+- [x] `0x9895` `raise_escape_error` -- description matches body
+- [x] `0x9C85` `send_txcb_swap_addrs` -- description matches body
 - [x] `0xA0A9` `fscv_0_opt_entry` - description compared against body, accurate
-- [ ] `0xA398` `cmd_fs`
-- [ ] `0xA3BB` `print_fs_info_newline`
-- [ ] `0xA5A1` `error_bad_command`
-- [ ] `0xA5AE` `check_exec_addr`
-- [ ] `0xAC67` `store_osword_pb_ptr`
-- [ ] `0xACB7` `handle_tx_request`
-- [ ] `0xAD64` `netv_claim_release`
-- [ ] `0xADD3` `osword_8_handler`
-- [ ] `0xAEB8` `process_spool_data`
-- [ ] `0xAF80` `err_printer_busy`
+- [x] `0xA398` `cmd_fs` -- description matches body
+- [x] `0xA3BB` `print_fs_info_newline` -- description matches body
+- [x] `0xA5A1` `error_bad_command` -- description matches body
+- [x] `0xA5AE` `check_exec_addr` -- description matches body
+- [x] `0xAC67` `store_osword_pb_ptr` -- description matches body
+- [x] `0xACB7` `handle_tx_request` -- description matches body
+- [x] `0xAD64` `netv_claim_release` -- description matches body
+- [x] `0xADD3` `osword_8_handler` -- description matches body
+- [x] `0xAEB8` `process_spool_data` -- description matches body
+- [x] `0xAF80` `err_printer_busy` -- description matches body
 - [ ] `0xB81C` `err_net_chan_invalid`
 - [ ] `0xB88C` `check_not_dir`
 - [ ] `0xB8DC` `alloc_fcb_or_error`
@@ -459,14 +459,14 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 6 (14 routines)
 
-- [ ] `0x8B52` `select_fs_via_cmd_net_fs`
-- [ ] `0x9670` `print_fs_address`
-- [ ] `0x9D0C` `recv_reply`
-- [ ] `0x9FCF` `clear_result`
-- [ ] `0xA284` `recv_reply_preserve_flags`
-- [ ] `0xA4A2` `loop_skip_trail_spaces`
-- [ ] `0xAE6F` `netv_print_data`
-- [ ] `0xAE9D` `handle_spool_ctrl_byte`
+- [x] `0x8B52` `select_fs_via_cmd_net_fs` -- description matches body
+- [x] `0x9670` `print_fs_address` -- description matches body
+- [x] `0x9D0C` `recv_reply` -- description matches body
+- [x] `0x9FCF` `clear_result` -- description matches body
+- [x] `0xA284` `recv_reply_preserve_flags` -- description matches body
+- [x] `0xA4A2` `loop_skip_trail_spaces` -- description matches body
+- [x] `0xAE6F` `netv_print_data` -- description matches body
+- [x] `0xAE9D` `handle_spool_ctrl_byte` -- description matches body
 - [ ] `0xB251` `strip_token_prefix`
 - [ ] `0xB3AC` `cmd_ps`
 - [ ] `0xB3D7` `copy_ps_data`
@@ -476,22 +476,22 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 7 (9 routines)
 
-- [ ] `0x8CC7` `svc_3_autoboot`
-- [ ] `0x8F38` `nfs_init_body`
-- [ ] `0x944E` `read_filename_char`
+- [x] `0x8CC7` `svc_3_autoboot` -- description matches body
+- [x] `0x8F38` `nfs_init_body` -- description matches body
+- [x] `0x944E` `read_filename_char` -- description matches body
 - [x] `0x9630` `svc_29_status` - description compared against body, accurate
-- [ ] `0x9C3E` `do_fs_cmd_iteration`
-- [ ] `0xA1FA` `setup_transfer_workspace`
-- [ ] `0xA329` `tail_update_catalogue`
+- [x] `0x9C3E` `do_fs_cmd_iteration` -- description matches body
+- [x] `0xA1FA` `setup_transfer_workspace` -- description matches body
+- [x] `0xA329` `tail_update_catalogue` -- description matches body
 - [x] `0xB22F` `parse_access_prefix` - description compared against body, accurate
 - [ ] `0xB581` `cmd_pollps`
 
 ## Depth 8 (5 routines)
 
-- [ ] `0x9425` `cmd_fs_operation`
-- [ ] `0x94C5` `cmd_rename`
-- [ ] `0x9C22` `filev_handler`
-- [ ] `0xA5C3` `alloc_run_channel`
+- [x] `0x9425` `cmd_fs_operation` -- description matches body
+- [x] `0x94C5` `cmd_rename` -- description matches body
+- [x] `0x9C22` `filev_handler` -- description matches body
+- [x] `0xA5C3` `alloc_run_channel` -- description matches body
 - [ ] `0xBD15` `send_and_receive`
 
 ## Depth 9 (2 routines)
@@ -501,32 +501,32 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 10 (3 routines)
 
-- [ ] `0x8E2D` `check_urd_prefix`
+- [x] `0x8E2D` `check_urd_prefix` -- description matches body
 - [ ] `0xBA09` `save_fcb_context`
 - [ ] `0xBB38` `process_all_fcbs`
 
 ## Depth 11 (10 routines)
 
-- [ ] `0x8D91` `cmd_iam`
-- [ ] `0x9071` `fscv_6_shutdown`
-- [ ] `0x9512` `cmd_dir`
-- [ ] `0x9776` `cmd_bye`
-- [ ] `0x9FB1` `close_all_fcbs`
-- [ ] `0x9FEE` `send_open_file_request`
-- [ ] `0xA14C` `gbpbv_handler`
-- [ ] `0xA9DA` `osword_13_set_station`
+- [x] `0x8D91` `cmd_iam` -- description matches body
+- [x] `0x9071` `fscv_6_shutdown` -- description matches body
+- [x] `0x9512` `cmd_dir` -- description matches body
+- [x] `0x9776` `cmd_bye` -- description matches body
+- [x] `0x9FB1` `close_all_fcbs` -- description matches body
+- [x] `0x9FEE` `send_open_file_request` -- description matches body
+- [x] `0xA14C` `gbpbv_handler` -- description matches body
+- [x] `0xA9DA` `osword_13_set_station` -- description matches body
 - [ ] `0xBACC` `loop_save_before_match`
 - [ ] `0xBC7C` `flush_fcb_with_init`
 
 ## Depth 12 (3 routines)
 
-- [ ] `0x968E` `dispatch_help_command`
-- [ ] `0x9EAB` `argsv_handler`
+- [x] `0x968E` `dispatch_help_command` -- description matches body
+- [x] `0x9EAB` `argsv_handler` -- description matches body
 - [ ] `0xBACF` `find_matching_fcb`
 
 ## Depth 13 (3 routines)
 
-- [ ] `0xA10B` `fscv_1_eof`
+- [x] `0xA10B` `fscv_1_eof` -- description matches body
 - [ ] `0xBB68` `bgetv_handler`
 - [ ] `0xBBE7` `bputv_handler`
 

@@ -3734,16 +3734,20 @@ On a full match, prints the ANFS author credits:
 
 Each name is terminated by `CR`.""")
 subroutine(0x8E21, "clear_if_station_match",
-    title="Clear stored station if parsed argument matches",
+    title="Clear hazel_fs_network if it matches the bridge status byte",
     description="""\
-Parses a station number from the command line via
-`init_bridge_poll` and compares it with the expected station at
-`&0E01` using `EOR`. If the parsed value matches (`EOR` result
-is zero), clears `&0E01`.
+Calls [`init_bridge_poll`](address:ABE9) (returning the
+[`spool_control_flag`](address:0D71) bridge status byte in `A`,
+either freshly populated or already cached from a previous
+invocation) and EORs it with
+[`hazel_fs_network`](address:C001). When the two match (`EOR`
+result is zero), zeroes `hazel_fs_network` so subsequent FS
+operations fall back to the local network.
 
-Called by [`cmd_iam`](address:8D91) when processing a file
-server address in the logon command.""",
-    on_exit={"a": "0 if matched, non-zero if different"})
+Called by [`cmd_iam`](address:8D91) and
+[`osword_13_set_station`](address:A9EC) when reconciling a
+parsed file-server station address against the bridge state.""",
+    on_exit={"a": "0 if cleared (match), bridge-XOR-network otherwise"})
 subroutine(0x8E2D, "check_urd_prefix",
     title="Branch to *RUN handler if first arg char is '&'",
     description="""\
@@ -5164,7 +5168,7 @@ subroutine(0xA3C4, "parse_fs_ps_args",
     description="""\
 Reads a station address in `net.station` format from the command
 line, with the network number optional (defaults to local network).
-Calls [`init_bridge_poll`](address:AC4C) to ensure the bridge
+Calls [`init_bridge_poll`](address:ABE9) to ensure the bridge
 routing table is populated, then validates the parsed address
 against known stations. The parsed-station value is stored in
 `fs_work_7` (`&B7`).""",
@@ -11825,8 +11829,8 @@ comment(0x8E15, "Set up transmit control block", inline=True)
 comment(0x8E18, "Send to file server and get reply", inline=True)
 comment(0x8E1C, "Include terminator", inline=True)
 comment(0x8E1D, "Y=0", inline=True)
-comment(0x8E21, "Parse station number from cmd line", inline=True)
-comment(0x8E24, "Compare with expected station", inline=True)
+comment(0x8E21, "Ensure bridge initialised; A=spool_control_flag (bridge status)", inline=True)
+comment(0x8E24, "EOR with hazel_fs_network: zero result if equal", inline=True)
 comment(0x8E27, "Different: return without clearing", inline=True)
 comment(0x8E29, "Same: clear station byte", inline=True)
 comment(0x8E2C, "Return", inline=True)
