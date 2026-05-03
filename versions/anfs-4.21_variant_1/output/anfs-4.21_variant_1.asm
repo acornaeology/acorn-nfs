@@ -4736,7 +4736,7 @@ ps_template_base = load_transfer_params+1
 ; &8fc1 referenced 1 time by &9000
 .alloc_error_overflow
     jsr print_inline                                                  ; 8fc1: 20 61 92     a.            ; Print 'Station number in CMOS RAM invalid...' warning
-    equs "Station number in CMOS RAM invalid.", &0d, "Using 1 inst"   ; 8fc4: 53 74 61... Sta            ; Inline: 'Station number in CMOS RAM invalid' warning (nfs_init_body, CMOS station = 0)
+    equs "Station number in CMOS RAM invalid.", &0d, "Using 1 inst"   ; 8fc4: 53 74 61... Sta
     equs "ead!", 7, &0d, &0d                                          ; 8ff4: 65 61 64... ead
 
     lda #1                                                            ; 8ffb: a9 01       ..             ; A=1: default station ID

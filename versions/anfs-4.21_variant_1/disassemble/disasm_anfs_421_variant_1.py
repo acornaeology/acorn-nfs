@@ -12652,8 +12652,6 @@ comment(0x8C96, "Inline: '\\rAdvanced NFS 4.21\\r' boot banner", inline=True)
 comment(0x8D46, "Inline: 'The authors of ANFS are;' credits header", inline=True)
 comment(0x8D5F, "Inline: 'B Cockburn' (author 1)", inline=True)
 comment(0x8D71, "Inline: 'B Robertson' (author 2)", inline=True)
-comment(0x8FC4, "Inline: 'Station number in CMOS RAM invalid' "
-    "warning (nfs_init_body, CMOS station = 0)", inline=True)
 comment(0x90BA, "Inline: 'net checksum.' error-suffix tail", inline=True)
 comment(0x90EA, "Inline: ' No Clock' error suffix", inline=True)
 comment(0x9119, "Inline: '((:<CR>)<password>)' -- syntax help "
