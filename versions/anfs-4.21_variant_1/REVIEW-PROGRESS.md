@@ -151,16 +151,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9B24` `init_tx_ptr_and_send` - description matches body
 - [x] `0x9B75` `pass_txbuf_init_table` - table description matches contents
 - [x] `0x9B81` `init_tx_ptr_for_pass` - description matches body
-- [ ] `0x9BF5` `load_text_ptr_and_parse`
-- [ ] `0x9C00` `gsread_to_buf`
-- [ ] `0x9D5F` `copy_fsopts_to_zp`
-- [ ] `0x9D6B` `skip_one_and_advance5`
-- [ ] `0x9D6C` `advance_y_by_4`
-- [ ] `0x9D71` `copy_workspace_to_fsopts`
-- [ ] `0x9D7E` `retreat_y_by_4`
-- [ ] `0x9D7F` `retreat_y_by_3`
-- [ ] `0x9E82` `format_filename_field`
-- [ ] `0x9FB4` `return_with_last_flag`
+- [x] `0x9BF5` `load_text_ptr_and_parse` - description matches body
+- [x] `0x9C00` `gsread_to_buf` - description matches body's GSINIT/GSREAD loop
+- [x] `0x9D5F` `copy_fsopts_to_zp` - description matches body
+- [x] `0x9D6B` `skip_one_and_advance5` - description correctly identifies the entry-one-INY-before-advance_y_by_4 trick
+- [x] `0x9D6C` `advance_y_by_4` - description matches body (4 INYs, RTS)
+- [x] `0x9D71` `copy_workspace_to_fsopts` - description matches body
+- [x] `0x9D7E` `retreat_y_by_4` - description correctly counts 4 DEYs across the fall-through chain (1 here + 3 in retreat_y_by_3)
+- [x] `0x9D7F` `retreat_y_by_3` - description matches body (3 DEYs, RTS)
+- [x] `0x9E82` `format_filename_field` - description matches body (already verified in earlier session)
+- [x] `0x9FB4` `return_with_last_flag` - description matches body
 - [ ] `0x9FC2` `osfind_close_or_open`
 - [x] `0xA103` `cmos_opt_mask_table` - description compared against body, accurate
 - [ ] `0xA131` `update_addr_from_offset1`
