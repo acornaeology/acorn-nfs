@@ -341,10 +341,10 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB847` `lookup_chan_by_char` - description claimed it 'converts via attr_to_chan_index' but actually inlines the SBC #&20 conversion (no JSR). Rewrote
 - [x] `0xB886` `store_result_check_dir` - description matches body
 - [x] `0xB8FC` `scan_fcb_flags` - description matches body
-- [ ] `0xBC65` `done_inc_byte_count`
-- [ ] `0xBD25` `abort_if_escape`
-- [ ] `0xBF78` `open_file_for_read`
-- [ ] `0xBFBD` `advance_x_by_4`
+- [x] `0xBC65` `done_inc_byte_count` - description matches body
+- [x] `0xBD25` `abort_if_escape` - description matches body
+- [x] `0xBF78` `open_file_for_read` - description matches body
+- [x] `0xBFBD` `advance_x_by_4` - description was internally contradictory ('4 INXs then falls through to another 4' but 'when called directly yields X+4'). Reality: routine has no RTS, so always 8 INXs (JSR inx4 returns to &BFC0 which IS inx4 again). Name is historically misleading -- does +8, not +4. Rewrote
 
 ## Depth 2 (34 routines)
 
@@ -381,7 +381,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [ ] `0xB7CB` `prompt_yn`
 - [ ] `0xBD59` `loop_dump_line`
 - [ ] `0xBE37` `print_hex_and_space`
-- [ ] `0xBFBA` `advance_x_by_8`
+- [x] `0xBFBA` `advance_x_by_8` - description claimed routine adds 8 INXs but it actually adds 16 (JSR advance_x_by_4 + fall-through, each pass runs inx4 twice). Name historically misleading. Rewrote
 
 ## Depth 3 (17 routines)
 

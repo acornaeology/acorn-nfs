@@ -16047,28 +16047,33 @@ net_chan_err_strings = err_net_chan_not_found+2
     rts                                                               ; bfb9: 60          `              ; Restore caller's flags; Return; Y=offset past filename
 
 ; ***************************************************************************************
-; Advance X by 8 via nested JSR chain
+; Advance X by 16 via nested JSR + fall-through
 ;
-; Calls advance_x_by_4 (which itself JSRs inx4 then falls through to inx4), then falls
-; through to inx4 for a total of 4+4=8 INX operations.
+; Note: the name is historical and misleading -- this routine actually advances X by
+; 16, not 8.
+;
+; JSR advance_x_by_4 followed by no RTS, so control falls through into advance_x_by_4
+; itself for a second pass. Each pass through advance_x_by_4 runs inx4 twice (8 INXs),
+; so two passes give 16 INXs in total.
 ;
 ; On Entry: X: value to advance
 ;
-; On Exit: X: input + 8 A, Y: preserved N, Z FLAGS: reflect new X (last INX)
+; On Exit: X: input + 16 A, Y: preserved
 ; &bfba referenced 3 times by &9eda, &ac32, &bdd7
 .advance_x_by_8
     jsr advance_x_by_4                                                ; bfba: 20 bd bf     ..            ; First INX-by-4 via JSR; falls into advance_x_by_4 for the second four; JSR+fall-through: 8+8=16 INXs total
 ; ***************************************************************************************
-; Advance X by 4 via JSR and fall-through
+; Advance X by 8 via JSR and fall-through
 ;
-; JSRs to inx4 for 4 INX operations, then falls through to inx4 for another 4 — but
-; when called directly (not from advance_x_by_8), the caller returns after the first
-; inx4, yielding X+4.
+; Note: the name is historical and misleading -- this routine actually advances X by 8,
+; not 4.
+;
+; JSR inx4 (4 INXs); the JSR's RTS lands at &BFC0 which is inx4's entry, so a second
+; pass runs by fall- through (4 more INXs). Total: 8 INXs.
 ;
 ; On Entry: X: value to advance
 ;
-; On Exit: X: input + 4 (+8 when reached via fall-through from advance_x_by_8) A, Y:
-; preserved
+; On Exit: X: input + 8 A, Y: preserved
 ; &bfbd referenced 1 time by &bfba
 .advance_x_by_4
     jsr inx4                                                          ; bfbd: 20 c0 bf     ..            ; JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four; JSR+fall-through: 4+4=8 INXs

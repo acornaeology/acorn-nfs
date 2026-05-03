@@ -6558,23 +6558,29 @@ subroutine(0xBEAB, "init_dump_buffer",
     "exceeds the extent.",
     on_entry={"y": "command-line offset of the address arguments"})
 subroutine(0xBFBA, "advance_x_by_8",
-    title="Advance X by 8 via nested JSR chain",
-    description="Calls advance_x_by_4 (which itself JSRs inx4 then\n"
-    "falls through to inx4), then falls through to inx4\n"
-    "for a total of 4+4=8 INX operations.",
+    title="Advance X by 16 via nested JSR + fall-through",
+    description="""\
+**Note:** the name is historical and misleading -- this routine
+actually advances `X` by 16, not 8.
+
+`JSR advance_x_by_4` followed by no `RTS`, so control falls
+through into [`advance_x_by_4`](address:BFBD) itself for a
+second pass. Each pass through `advance_x_by_4` runs `inx4`
+twice (8 INXs), so two passes give 16 INXs in total.""",
+    on_entry={"x": "value to advance"},
+    on_exit={"x": "input + 16",
+             "a, y": "preserved"})
+subroutine(0xBFBD, "advance_x_by_4",
+    title="Advance X by 8 via JSR and fall-through",
+    description="""\
+**Note:** the name is historical and misleading -- this routine
+actually advances `X` by 8, not 4.
+
+`JSR inx4` (4 INXs); the JSR's RTS lands at &BFC0 which is
+[`inx4`](address:BFC0)'s entry, so a second pass runs by fall-
+through (4 more INXs). Total: 8 INXs.""",
     on_entry={"x": "value to advance"},
     on_exit={"x": "input + 8",
-             "a, y": "preserved",
-             "n, z flags": "reflect new X (last INX)"})
-subroutine(0xBFBD, "advance_x_by_4",
-    title="Advance X by 4 via JSR and fall-through",
-    description="JSRs to inx4 for 4 INX operations, then falls\n"
-    "through to inx4 for another 4 — but when called\n"
-    "directly (not from advance_x_by_8), the caller\n"
-    "returns after the first inx4, yielding X+4.",
-    on_entry={"x": "value to advance"},
-    on_exit={"x": "input + 4 (+8 when reached via fall-through from "
-             "advance_x_by_8)",
              "a, y": "preserved"})
 subroutine(0xBFC0, "inx4",
     title="Increment X four times",
