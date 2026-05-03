@@ -141,26 +141,26 @@ label(0xFEA0, "adlc_cr1",
                 "`SR1` bits: `RDA` (b0), `S2RQ` (b1), `LOOP` (b2), "
                 "`FD` (b3), `CTS` (b4), `TUF` (b5), `TDRA` (b6), "
                 "`IRQ` (b7).",
-    length=1, group="io", access="rw")
+    length=1, group="mmio", access="rw")
 label(0xFEA1, "adlc_cr2",
     description="ADLC control register 2 / status register 2.\n"
                 "Write: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.\n\n"
                 "`SR2` bits: `AP` (b0), `FV` (b1), `RX_IDLE` (b2), "
                 "`RX_ABRT` (b3), `ERR` (b4), `DCD` (b5), `OVRN` (b6), "
                 "`RDA` (b7).",
-    length=1, group="io", access="rw")
+    length=1, group="mmio", access="rw")
 label(0xFEA2, "adlc_tx",
     description="ADLC TX FIFO continue / RX FIFO read.\n"
                 "Write: byte to TX FIFO with `LAST_DATA = 0` "
                 "(continue frame).\n"
                 "Read: next byte from RX FIFO.",
-    length=1, group="io", access="rw")
+    length=1, group="mmio", access="rw")
 label(0xFEA3, "adlc_tx2",
     description="ADLC TX FIFO terminate / RX FIFO read.\n"
                 "Write: final byte of frame (`LAST_DATA = 1`; ADLC "
                 "appends CRC + closing flag).\n"
                 "Read: next byte from RX FIFO.",
-    length=1, group="io", access="rw")
+    length=1, group="mmio", access="rw")
 
 # Econet hardware on the 1MHz bus
 label(0xFE18, "econet_station_id",
@@ -171,14 +171,14 @@ label(0xFE18, "econet_station_id",
                 "instruction of the shim, both to capture the "
                 "station ID and to stop NMIs from re-firing during "
                 "the body of the handler.",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 label(0xFE20, "econet_nmi_enable",
     description="Econet NMI-enable register / INTON latch.\n"
                 "Read: re-enables NMIs (INTON side-effect; the "
                 "value read is ignored).\n\n"
                 "Used by the NMI-exit shim before `RTI` so the next "
                 "/NMI edge re-triggers the handler.",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 
 # Tube ULA registers (&FEE0-&FEE7) — named by acorn.bbc()
 
@@ -188,31 +188,31 @@ label(0xFE20, "econet_nmi_enable",
 label(0xFF1B, "ev_filev",
     description="FILEV extended-vector dispatcher (file operations: "
                 "OSFILE, OSFIND).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF1E, "ev_argsv",
     description="ARGSV extended-vector dispatcher (file argument "
                 "operations: OSARGS).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF21, "ev_bgetv",
     description="BGETV extended-vector dispatcher (single-byte read: "
                 "OSBGET).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF24, "ev_bputv",
     description="BPUTV extended-vector dispatcher (single-byte write: "
                 "OSBPUT).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF27, "ev_gbpbv",
     description="GBPBV extended-vector dispatcher (block transfer: "
                 "OSGBPB).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF2A, "ev_findv",
     description="FINDV extended-vector dispatcher (open / close: "
                 "OSFIND).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 label(0xFF2D, "ev_fscv",
     description="FSCV extended-vector dispatcher (filing-system "
                 "control: OSFSC, *commands).",
-    length=3, group="mmio", access="r")
+    length=3, group="os_rom", access="r")
 
 # MOS vector table entries (the ROM-vector slots in &0200..&02xx).
 # Each is a 3-byte (lo, hi, rom_bank) tuple; the rom_bank slot lives
@@ -10522,12 +10522,12 @@ label(0xFE28, "master_romsel_shadow",
     description="Master 128 ROMSEL shadow register.\n"
                 "Read-only mirror of the current sideways-ROM "
                 "selection (the actual ROMSEL is at `&FE30`).",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 label(0xFE2B, "master_break_type_shadow",
     description="Master 128 last-break-type hardware shadow.\n"
                 "Reflects the value left by the last reset (cold "
                 "/ warm / power-on).",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 label(0xFE34, "acccon",
     description="Master 128 ACCCON access-control register.\n\n"
                 "Bit-by-bit (write-only):\n\n"
@@ -10543,30 +10543,30 @@ label(0xFE34, "acccon",
                 "| 0 | D   | shadow RAM for the OS display |\n\n"
                 "ANFS uses bit 7 (IRR) as a deferred-work latch via "
                 "`TRB`/`TSB`.",
-    length=1, group="io", access="rw")
+    length=1, group="mmio", access="rw")
 label(0xFE38, "master_intoff",
     description="Master 128 INTOFF mirror (NMI-disable side effect).\n"
                 "Reading any byte here disables /NMI re-entry; the "
                 "byte value itself is irrelevant.",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 label(0xFE3C, "master_inton",
     description="Master 128 INTON mirror (NMI-enable side effect).\n"
                 "Reading any byte here re-enables /NMI; the byte "
                 "value itself is irrelevant.",
-    length=1, group="io", access="r")
+    length=1, group="mmio", access="r")
 label(0xFFB0, "nmi_buf_idx_base",
     description="NMI buffer indexing-base.\n"
                 "Used by the NMI RX setup as `STA nmi_buf_idx_base,Y` "
                 "with Y values that wrap into low memory; the bytes "
                 "at `&FFB0` themselves aren't read or written.",
-    length=1, group="mmio", access="r")
+    length=1, group="os_rom", access="r")
 label(0xFFBD, "fcb_workspace_idx_base",
     description="FCB-workspace indexing-base (wraps into ZP).\n"
                 "Used by `loop_save_fcb_workspace` as the base of "
                 "`LDA &FFBD,X` with X=`&F7`..`&FF`; the effective "
                 "address wraps to `&00B4`..`&00BC` (= `fs_work_4`+"
                 "0..+8). The byte at `&FFBD` itself is never read.",
-    length=1, group="mmio", access="r")
+    length=1, group="os_rom", access="r")
 
 # 14 indexing-base aliases that py8dis emitted as `lXXXX = symbol+offset`
 # because the code uses `LDA somelabel,X/Y` with a base that lies inside

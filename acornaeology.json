@@ -10,8 +10,8 @@
                 "zero_page": "Zero page",
                 "ram_workspace": "RAM workspace",
                 "ram_buffers": "RAM buffers",
-                "io": "Memory-mapped I/O",
-                "mmio": "Memory-mapped I/O"
+                "mmio": "Memory-mapped I/O",
+                "os_rom": "OS ROM area"
             }
         },
         "bbc-master": {
@@ -20,8 +20,8 @@
                 "ram_workspace": "RAM workspace",
                 "ram_buffers": "RAM buffers",
                 "hazel": "Filing system workspace (HAZEL)",
-                "io": "Memory-mapped I/O",
-                "mmio": "Memory-mapped I/O"
+                "mmio": "Memory-mapped I/O",
+                "os_rom": "OS ROM area"
             }
         }
     },
