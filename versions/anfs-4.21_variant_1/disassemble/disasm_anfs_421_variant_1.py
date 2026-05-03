@@ -2996,14 +2996,15 @@ Entry point for the Econet line-idle detection loop.
 subroutine(0x85FC, "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
     description="""\
-Disables NMIs via two reads of
-[`econet_station_id`](address:FE18) (INTOFF), then polls
-`SR2` for the INACTIVE bit (bit 2):
+Disables NMIs via two `BIT` reads of
+[`master_intoff`](address:FE38) (the Master 128 INTOFF register;
+the Model-B equivalent reads `econet_station_id` at &FE18 for the
+same side-effect), then polls `SR2` for the INACTIVE bit (bit 2):
 
 | `SR2` INACTIVE | Action |
 |---|---|
 | set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:864A) |
-| clear | re-enable NMIs via [`econet_nmi_enable`](address:FE20) (INTON) and decrement the 3-byte timeout counter on the stack |
+| clear | re-enable NMIs via [`master_inton`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |
 
 On timeout, falls through to
 [`tx_line_jammed`](address:8630).""",

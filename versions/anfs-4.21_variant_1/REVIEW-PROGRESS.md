@@ -50,10 +50,10 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8563` `tx_done_halt` - description correct; fixed two inline comments that called the byte at &0D61 'rx_flags' instead of its actual label econet_flags
 - [x] `0x857A` `tx_done_continue` - description correct; fixed inline at &857A that said 'Load current RX flags' (correct label is econet_flags)
 - [x] `0x8582` `tx_done_exit` - description and inline comments accurate
-- [ ] `0x85F1` `inactive_poll`
-- [ ] `0x85FC` `intoff_test_inactive`
-- [ ] `0x862C` `tx_bad_ctrl_error`
-- [ ] `0x8630` `tx_line_jammed`
+- [x] `0x85F1` `inactive_poll` - description matches body; CR2 bit-naming in inline at &85F6 is loose ('RTS' isn't an ADLC bit) but bytes are right
+- [x] `0x85FC` `intoff_test_inactive` - description claimed Master 128 path uses econet_station_id (the Model B INTOFF mechanism) but body reads master_intoff at &FE38 (the dedicated Master 128 register); corrected description, including INTON path which uses master_inton
+- [x] `0x862C` `tx_bad_ctrl_error` - description and inline comments accurate
+- [x] `0x8630` `tx_line_jammed` - description correct re flow; CR2 bit-naming is sloppy (CR2=&07 is RIE|TIE|CLR_TX_ST not 'FC_TDRA|2_1_BYTE|PSE') but the byte value is right
 - [ ] `0x864A` `tx_prepare`
 - [ ] `0x867E` `tx_ctrl_dispatch_lo`
 - [ ] `0x8686` `tx_ctrl_machine_type`
