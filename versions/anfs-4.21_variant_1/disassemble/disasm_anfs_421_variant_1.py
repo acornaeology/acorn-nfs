@@ -6234,10 +6234,14 @@ Never returns -- error_inline_log triggers a BRK.""",
     on_entry={"a": "channel character (saved on stack)"})
 subroutine(0xB847, "lookup_chan_by_char",
     title="Look up channel by character code",
-    description="Converts the character to a table index via\n"
-    "attr_to_chan_index, checks the station/network\n"
-    "match via match_station_net, and returns the\n"
-    "channel flags in A.",
+    description="""\
+Subtracts `&20` from the character to produce a table index
+(inlining the same arithmetic as
+[`attr_to_chan_index`](address:B805) without the bounds check),
+loads the channel slot's `hazel_fcb_slot_attr` byte; on zero
+raises `error_chan_not_found`. Otherwise verifies station/network
+via [`match_station_net`](address:B925) and returns the slot's
+flags in `A`.""",
     on_entry={"a": "channel character"},
     on_exit={"a": "channel flags"})
 subroutine(0xB886, "store_result_check_dir",

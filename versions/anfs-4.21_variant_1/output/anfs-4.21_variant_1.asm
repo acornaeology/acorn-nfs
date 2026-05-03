@@ -14498,8 +14498,10 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Look up channel by character code
 ;
-; Converts the character to a table index via attr_to_chan_index, checks the
-; station/network match via match_station_net, and returns the channel flags in A.
+; Subtracts &20 from the character to produce a table index (inlining the same
+; arithmetic as attr_to_chan_index without the bounds check), loads the channel slot's
+; hazel_fcb_slot_attr byte; on zero raises error_chan_not_found. Otherwise verifies
+; station/network via match_station_net and returns the slot's flags in A.
 ;
 ; On Entry: A: channel character
 ;

@@ -331,16 +331,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB0F8` `cmd_lex` - description matches body (already updated for the SEC-after-ROR ordering)
 - [x] `0xB21C` `print_chars_from_buf` - description matches body
 - [x] `0xB22C` `parse_filename_arg` - description had stale '&0E30' (pre-HAZEL); body's gsread_to_buf reads into hazel_parse_buf at &C030. Rewrote, also tightened gsread_to_buf's title/description
-- [ ] `0xB310` `print_decimal_digit_no_spool`
-- [ ] `0xB39E` `init_spool_drive`
-- [ ] `0xB483` `print_file_server_is`
-- [ ] `0xB48D` `print_printer_server_is`
-- [ ] `0xB4B4` `pop_requeue_ps_scan`
-- [ ] `0xB4D6` `skip_next_ps_slot`
-- [ ] `0xB6D6` `cmd_unprot`
-- [ ] `0xB847` `lookup_chan_by_char`
-- [ ] `0xB886` `store_result_check_dir`
-- [ ] `0xB8FC` `scan_fcb_flags`
+- [x] `0xB310` `print_decimal_digit_no_spool` - description matches body
+- [x] `0xB39E` `init_spool_drive` - description matches body
+- [x] `0xB483` `print_file_server_is` - description matches body
+- [x] `0xB48D` `print_printer_server_is` - description matches body
+- [x] `0xB4B4` `pop_requeue_ps_scan` - description matches body's stack-pop and PS scan re-entry
+- [x] `0xB4D6` `skip_next_ps_slot` - description matches body
+- [x] `0xB6D6` `cmd_unprot` - description matches body
+- [x] `0xB847` `lookup_chan_by_char` - description claimed it 'converts via attr_to_chan_index' but actually inlines the SBC #&20 conversion (no JSR). Rewrote
+- [x] `0xB886` `store_result_check_dir` - description matches body
+- [x] `0xB8FC` `scan_fcb_flags` - description matches body
 - [ ] `0xBC65` `done_inc_byte_count`
 - [ ] `0xBD25` `abort_if_escape`
 - [ ] `0xBF78` `open_file_for_read`
