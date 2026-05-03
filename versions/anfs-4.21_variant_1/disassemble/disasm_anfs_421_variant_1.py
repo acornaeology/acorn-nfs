@@ -17663,6 +17663,73 @@ comment(0xBCAF, "Load saved data byte", inline=True)
 comment(0xBCB2, "Send close/wipe request to server", inline=True)
 comment(0xBCB5, "Restore catalog state after flush", inline=True)
 
+# Final bulk gap-cleanup additions (small-count remaining gaps).
+comment(0x945E, "Y=0: ensure offset starts from beginning of "
+    "TX command buffer", inline=True)
+comment(0x9460, "Send the FS command and dispatch the reply",
+    inline=True)
+comment(0x94C9, "Clear owner-only access bits before parsing",
+    inline=True)
+comment(0x94CC, "Parse the quoted source filename", inline=True)
+comment(0x94CF, "Parse access prefix on the source filename",
+    inline=True)
+comment(0x94F1, "BRA back to loop_copy_rename", inline=True)
+comment(0x9504, "PHX -- save loop index across the access parse",
+    inline=True)
+comment(0x9505, "Parse access prefix on the second filename",
+    inline=True)
+comment(0x9508, "PLX -- restore loop index", inline=True)
+comment(0x95BE, "JMP to svc_return_unclaimed (long-distance via "
+    "this 3-byte trampoline)", inline=True)
+comment(0x9A0E, "A=&C7: OSBYTE 'flush input buffer'", inline=True)
+comment(0x9A10, "Tail-call OSBYTE with X=0/Y=0", inline=True)
+comment(0xA0FE, "Write CMOS RAM byte (Y) to byte index (X)",
+    inline=True)
+comment(0xA4EC, "Update hazel_fs_lib_flags with the result", inline=True)
+comment(0xA594, "Test hazel_fs_lib_flags bits 6 / 7", inline=True)
+comment(0xA597, "Either bit set: this is an invalid command path",
+    inline=True)
+comment(0xA599, "Otherwise finalise and return", inline=True)
+comment(0xA59C, "A=&0B: FSCV reason 11 (filing-system change)",
+    inline=True)
+comment(0xA59E, "Tail-call FSCV", inline=True)
+comment(0xA5DF, "Copy parsed arg to TX buffer with X=0", inline=True)
+comment(0xA6DD, "SEC -- mark this path as 'success' for the caller",
+    inline=True)
+comment(0xA6DE, "Load TX result code from hazel_txcb_result",
+    inline=True)
+comment(0xA6E1, "Store as hazel_fs_flags", inline=True)
+comment(0xA9CC, "Ensure NFS is currently the selected FS", inline=True)
+comment(0xA9DA, "Ensure NFS is currently the selected FS", inline=True)
+comment(0xAA25, "A=2: fs_flags bit 1 mask", inline=True)
+comment(0xAA27, "Clear fs_flags bit 1", inline=True)
+comment(0xAA3F, "A=4: fs_flags bit 2 mask", inline=True)
+comment(0xAA41, "Clear fs_flags bit 2", inline=True)
+comment(0xAAC2, "Ensure NFS is currently the selected FS", inline=True)
+comment(0xAAD0, "Ensure NFS is currently the selected FS", inline=True)
+comment(0xAC26, "A=&13: OSBYTE 'wait for VSYNC'", inline=True)
+comment(0xAC2B, "PLX -- restore caller's X", inline=True)
+comment(0xAC4C, "Ensure NFS is currently the selected FS", inline=True)
+comment(0xAC4F, "Pop saved A from the stack frame", inline=True)
+comment(0xB0FE, "Set OS text pointer and FS-options transfer ptr",
+    inline=True)
+comment(0xB101, "Y=0: TX-buffer offset for the first byte", inline=True)
+comment(0xB16B, "Read hazel_txcb_type (FS reply opcode)", inline=True)
+comment(0xB16E, "Non-zero (private library): take the public-label "
+    "branch", inline=True)
+comment(0xB179, "Non-zero: branch to public_label_msg", inline=True)
+comment(0xB185, "Read hazel_fs_lib_flags", inline=True)
+comment(0xB1A5, "Read hazel_fs_flags", inline=True)
+comment(0xB1B1, "Look up option-string offset for index X", inline=True)
+comment(0xB1B4, "Look up option byte at the resolved offset",
+    inline=True)
+comment(0xBB39, "PHY -- save Y across the body", inline=True)
+comment(0xBB65, "PLY -- restore Y", inline=True)
+comment(0xBB66, "PLX -- restore X", inline=True)
+comment(0xBC8C, "PLY -- restore Y", inline=True)
+comment(0xBC8D, "PHY -- save Y again for the next iteration",
+    inline=True)
+
 # ============================================================
 # Generate disassembly
 # ============================================================

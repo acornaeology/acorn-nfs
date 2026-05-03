@@ -5816,8 +5816,8 @@ ps_template_base = load_transfer_params+1
 ; *RUN argument-handling tail at &9537.
 ; &945e referenced 2 times by &9457, &9537
 .send_fs_request
-    ldy #0                                                            ; 945e: a0 00       ..
-    jmp send_cmd_and_dispatch                                         ; 9460: 4c 3c 8e    L<.
+    ldy #0                                                            ; 945e: a0 00       ..             ; Y=0: ensure offset starts from beginning of TX command buffer
+    jmp send_cmd_and_dispatch                                         ; 9460: 4c 3c 8e    L<.            ; Send the FS command and dispatch the reply
 
 ; ***************************************************************************************
 ; Copy matched command name to TX buffer
@@ -5925,9 +5925,9 @@ ps_template_base = load_transfer_params+1
 .cmd_rename
     jsr copy_fs_cmd_name                                              ; 94c5: 20 63 94     c.            ; Copy 'Rename ' to TX buffer
     phx                                                               ; 94c8: da          .              ; PHX -- save X
-    jsr mask_owner_access                                             ; 94c9: 20 cf b2     ..
-    jsr parse_quoted_arg                                              ; 94cc: 20 83 94     ..
-    jsr parse_access_prefix                                           ; 94cf: 20 2f b2     /.
+    jsr mask_owner_access                                             ; 94c9: 20 cf b2     ..            ; Clear owner-only access bits before parsing
+    jsr parse_quoted_arg                                              ; 94cc: 20 83 94     ..            ; Parse the quoted source filename
+    jsr parse_access_prefix                                           ; 94cf: 20 2f b2     /.            ; Parse access prefix on the source filename
     plx                                                               ; 94d2: fa          .              ; PLX -- restore X
 ; &94d3 referenced 1 time by &94f1
 .loop_copy_rename
@@ -5947,7 +5947,7 @@ ps_template_base = load_transfer_params+1
     cmp #&20 ; ' '                                                    ; 94ea: c9 20       .              ; Space (name separator)?
     beq skip_rename_spaces                                            ; 94ec: f0 05       ..             ; Yes: first name complete; Initialise TX pointer and send
     jsr strip_token_prefix                                            ; 94ee: 20 51 b2     Q.            ; Strip BASIC token prefix byte
-    bra loop_copy_rename                                              ; 94f1: 80 e0       ..
+    bra loop_copy_rename                                              ; 94f1: 80 e0       ..             ; BRA back to loop_copy_rename
 ; &94f3 referenced 2 times by &94ec, &94fb
 .skip_rename_spaces
     jsr strip_token_prefix                                            ; 94f3: 20 51 b2     Q.            ; Strip token from next char
@@ -5957,9 +5957,9 @@ ps_template_base = load_transfer_params+1
     lda hazel_fs_lib_flags                                            ; 94fd: ad 71 c2    .q.            ; Save current FS options
     pha                                                               ; 9500: 48          H              ; Push them; V set: adjust reply code (+&2B)
     jsr mask_owner_access                                             ; 9501: 20 cf b2     ..            ; Reset access mask for second name
-    phx                                                               ; 9504: da          .
-    jsr parse_access_prefix                                           ; 9505: 20 2f b2     /.
-    plx                                                               ; 9508: fa          .
+    phx                                                               ; 9504: da          .              ; PHX -- save loop index across the access parse
+    jsr parse_access_prefix                                           ; 9505: 20 2f b2     /.            ; Parse access prefix on the second filename
+    plx                                                               ; 9508: fa          .              ; PLX -- restore loop index
     pla                                                               ; 9509: 68          h              ; Restore original FS options; Send disconnect reply
     cmp hazel_fs_lib_flags                                            ; 950a: cd 71 c2    .q.            ; Options changed (cross-FS)?
     bne error_bad_rename                                              ; 950d: d0 cb       ..             ; Yes: error (can't rename across FS)
@@ -6070,7 +6070,7 @@ ps_template_base = load_transfer_params+1
     nop                                                               ; 95bd: ea          .              ; NOP -- bit-7 terminator + resume opcode for the preceding inline string
 ; &95be referenced 1 time by &9617
 .bra_target_svc_return
-    jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.
+    jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.            ; JMP to svc_return_unclaimed (long-distance via this 3-byte trampoline)
 
 ; ***************************************************************************************
 ; Print station low byte with P label via print_inline.
@@ -7192,10 +7192,10 @@ bad_prefix_table = bad_str_anchor+1
 ; &9a0d referenced 1 time by &9a02
 .net_error_close_spool
     phy                                                               ; 9a0d: 5a          Z              ; PHY -- save Y
-    lda #&c7                                                          ; 9a0e: a9 c7       ..
+    lda #&c7                                                          ; 9a0e: a9 c7       ..             ; A=&C7: OSBYTE 'flush input buffer'
 ; &9a10 referenced 1 time by &9a0b
 .close_spool_exec
-    jsr osbyte_x0_y0                                                  ; 9a10: 20 d2 8e     ..
+    jsr osbyte_x0_y0                                                  ; 9a10: 20 d2 8e     ..            ; Tail-call OSBYTE with X=0/Y=0
     ply                                                               ; 9a13: 7a          z              ; PLY -- restore Y
     lda #osfind_close                                                 ; 9a14: a9 00       ..             ; A=0: close file
     jsr osfind                                                        ; 9a16: 20 ce ff     ..            ; Close the spool/exec file
@@ -8811,7 +8811,7 @@ bad_prefix_table = bad_str_anchor+1
     ldx #&11                                                          ; a0fc: a2 11       ..             ; X=&11: target CMOS byte for write-back
 .sub_ca0fe
 cmos_attr_table = sub_ca0fe+1
-    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..
+    jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Write CMOS RAM byte (Y) to byte index (X)
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Tail-branch into the OSARGS done path
 ; &a103 referenced 1 time by &a0e8
@@ -9772,7 +9772,7 @@ cmos_attr_table = sub_ca0fe+1
     jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.            ; Save text pointer (for GSREAD-driven parsing)
     jsr mask_owner_access                                             ; a4e7: 20 cf b2     ..            ; Reset fs_lib_flags low bits to 5-bit access mask
     ora #2                                                            ; a4ea: 09 02       ..             ; Set bit 1 of A (mark *RUN-style invocation)
-    sta hazel_fs_lib_flags                                            ; a4ec: 8d 71 c2    .q.
+    sta hazel_fs_lib_flags                                            ; a4ec: 8d 71 c2    .q.            ; Update hazel_fs_lib_flags with the result
     bne cmd_run_load_mask                                             ; a4ef: d0 0b       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
@@ -9886,11 +9886,11 @@ cmos_attr_table = sub_ca0fe+1
 .library_tried
     jsr mask_owner_access                                             ; a58f: 20 cf b2     ..            ; Store to parameter block
     lda #2                                                            ; a592: a9 02       ..             ; Loop for all 7 bytes
-    bit hazel_fs_lib_flags                                            ; a594: 2c 71 c2    ,q.
-    bne error_bad_command                                             ; a597: d0 08       ..
-    jsr finalise_and_return                                           ; a599: 20 b6 9f     ..
-    lda #&0b                                                          ; a59c: a9 0b       ..
-    jmp call_fscv                                                     ; a59e: 4c ff 8c    L..
+    bit hazel_fs_lib_flags                                            ; a594: 2c 71 c2    ,q.            ; Test hazel_fs_lib_flags bits 6 / 7
+    bne error_bad_command                                             ; a597: d0 08       ..             ; Either bit set: this is an invalid command path
+    jsr finalise_and_return                                           ; a599: 20 b6 9f     ..            ; Otherwise finalise and return
+    lda #&0b                                                          ; a59c: a9 0b       ..             ; A=&0B: FSCV reason 11 (filing-system change)
+    jmp call_fscv                                                     ; a59e: 4c ff 8c    L..            ; Tail-call FSCV
 
 ; ***************************************************************************************
 ; Raise 'Bad command' BRK error
@@ -9957,7 +9957,7 @@ cmos_attr_table = sub_ca0fe+1
 
 ; &a5df referenced 1 time by &a5b3
 .library_path_string
-    jsr copy_arg_to_buf_x0                                            ; a5df: 20 9f b2     ..
+    jsr copy_arg_to_buf_x0                                            ; a5df: 20 9f b2     ..            ; Copy parsed arg to TX buffer with X=0
     ldy #0                                                            ; a5e2: a0 00       ..             ; Y=0
     clc                                                               ; a5e4: 18          .              ; CLC for the loop entry
     jsr gsinit                                                        ; a5e5: 20 c2 ff     ..            ; Transfer found slot to A
@@ -10179,9 +10179,9 @@ cmos_attr_table = sub_ca0fe+1
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@             ; A=&40: protection-level marker
     tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.            ; TSB fs_flags (set bit)
-    sec                                                               ; a6dd: 38          8
-    lda hazel_txcb_result                                             ; a6de: ad 08 c1    ...
-    sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...
+    sec                                                               ; a6dd: 38          8              ; SEC -- mark this path as 'success' for the caller
+    lda hazel_txcb_result                                             ; a6de: ad 08 c1    ...            ; Load TX result code from hazel_txcb_result
+    sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...            ; Store as hazel_fs_flags
     pha                                                               ; a6e4: 48          H              ; PHA -- save state
 ; ***************************************************************************************
 ; FS reply 2: copy per-station handle table
@@ -10746,7 +10746,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; not active, ensure_fs_selected auto-selects it (raising net checksum on failure)
 ; before the body runs.
 .osword_13_read_station
-    jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.
+    jsr ensure_fs_selected                                            ; a9cc: 20 4d 8b     M.            ; Ensure NFS is currently the selected FS
 .read_station_bytes
     ldy #2                                                            ; a9cf: a0 02       ..             ; Y=2: copy 2 bytes
 ; &a9d1 referenced 1 time by &a9d7
@@ -10765,7 +10765,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; the body at osword_13_set_station_body processes all FCBs and scans the 16-entry FCB
 ; table to reassign handles matching the new station.
 .osword_13_set_station
-    jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.
+    jsr ensure_fs_selected                                            ; a9da: 20 4d 8b     M.            ; Ensure NFS is currently the selected FS
 .osword_13_set_station_body
     ldy #0                                                            ; a9dd: a0 00       ..             ; Y=0 for process_all_fcbs
     jsr process_all_fcbs                                              ; a9df: 20 38 bb     8.            ; Close all open FCBs
@@ -10806,8 +10806,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
     txa                                                               ; aa1f: 8a          .              ; FCB index
     adc #&20 ; ' '                                                    ; aa20: 69 20       i              ; Add &20 for FCB table offset
     sta hazel_fcb_slot_1                                              ; aa22: 8d 72 c2    .r.            ; Store as handle 1 FCB index
-    lda #2                                                            ; aa25: a9 02       ..
-    trb fs_flags                                                      ; aa27: 1c 6c 0d    .l.
+    lda #2                                                            ; aa25: a9 02       ..             ; A=2: fs_flags bit 1 mask
+    trb fs_flags                                                      ; aa27: 1c 6c 0d    .l.            ; Clear fs_flags bit 1
 ; &aa2a referenced 1 time by &aa13
 .check_handle_2
     tya                                                               ; aa2a: 98          .
@@ -10821,8 +10821,8 @@ osword_subcode_dispatch = extract_osword_subcode+1
     txa                                                               ; aa39: 8a          .              ; FCB index
     adc #&20 ; ' '                                                    ; aa3a: 69 20       i              ; Add &20 for FCB table offset
     sta hazel_fcb_slot_2                                              ; aa3c: 8d 73 c2    .s.            ; Store as handle 2 FCB index
-    lda #4                                                            ; aa3f: a9 04       ..
-    trb fs_flags                                                      ; aa41: 1c 6c 0d    .l.
+    lda #4                                                            ; aa3f: a9 04       ..             ; A=4: fs_flags bit 2 mask
+    trb fs_flags                                                      ; aa41: 1c 6c 0d    .l.            ; Clear fs_flags bit 2
 ; &aa44 referenced 1 time by &aa2d
 .check_handle_3
     tya                                                               ; aa44: 98          .
@@ -10975,7 +10975,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; PB[1..3]. If ANFS is not active, ensure_fs_selected auto-selects it before the body
 ; runs.
 .osword_13_read_handles
-    jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.
+    jsr ensure_fs_selected                                            ; aac2: 20 4d 8b     M.            ; Ensure NFS is currently the selected FS
     ldy #3                                                            ; aac5: a0 03       ..             ; Y=3: copy 3 bytes
 ; &aac7 referenced 1 time by &aacd
 .loop_copy_handles
@@ -10993,7 +10993,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; the station and FCB index, then updates flag bits across all FCB entries via
 ; update_fcb_flag_bits.
 .osword_13_set_handles
-    jsr ensure_fs_selected                                            ; aad0: 20 4d 8b     M.
+    jsr ensure_fs_selected                                            ; aad0: 20 4d 8b     M.            ; Ensure NFS is currently the selected FS
 .start_set_handles
     ldy #1                                                            ; aad3: a0 01       ..             ; Y=1: first handle in PB
 ; &aad5 referenced 1 time by &ab15
@@ -11303,9 +11303,9 @@ bridge_err_table = compare_bridge_status+1
     bit txcb_ctrl                                                     ; ac21: 24 c0       $.             ; BIT TXCB control byte (poll); Test TX control block bit 7
     bmi loop_wait_tx_done                                             ; ac23: 30 fc       0.             ; Negative: TX still in progress
     phx                                                               ; ac25: da          .              ; Push X (saved across delay)
-    lda #osbyte_vsync                                                 ; ac26: a9 13       ..
+    lda #osbyte_vsync                                                 ; ac26: a9 13       ..             ; A=&13: OSBYTE 'wait for VSYNC'
     jsr osbyte                                                        ; ac28: 20 f4 ff     ..            ; Wait for vertical sync
-    plx                                                               ; ac2b: fa          .
+    plx                                                               ; ac2b: fa          .              ; PLX -- restore caller's X
     ldy #&18                                                          ; ac2c: a0 18       ..             ; Y=&18: status-byte offset
     lda (nfs_workspace),y                                             ; ac2e: b1 9e       ..             ; Load bridge response
     bmi bridge_responded                                              ; ac30: 30 05       0.             ; Negative: bridge responded
@@ -11340,8 +11340,8 @@ bridge_err_table = compare_bridge_status+1
     cmp #1                                                            ; ac47: c9 01       ..             ; Compare sub-code with 1
     bcs handle_tx_request                                             ; ac49: b0 6c       .l             ; Sub-code >= 1: handle TX request
     pha                                                               ; ac4b: 48          H              ; PHA -- save state
-    jsr ensure_fs_selected                                            ; ac4c: 20 4d 8b     M.
-    pla                                                               ; ac4f: 68          h
+    jsr ensure_fs_selected                                            ; ac4c: 20 4d 8b     M.            ; Ensure NFS is currently the selected FS
+    pla                                                               ; ac4f: 68          h              ; Pop saved A from the stack frame
     ldy #&23 ; '#'                                                    ; ac50: a0 23       .#             ; Y=&23: workspace offset for params
     jsr mask_owner_access                                             ; ac52: 20 cf b2     ..            ; Set owner access mask
 ; &ac55 referenced 1 time by &ac62
@@ -12522,8 +12522,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
     bcs ex_set_lib_flag                                               ; b0fc: b0 09       ..             ; Push 0 as end-of-list marker
 
 .ps_scan_resume
-    jsr set_text_and_xfer_ptr                                         ; b0fe: 20 d3 93     ..
-    ldy #0                                                            ; b101: a0 00       ..
+    jsr set_text_and_xfer_ptr                                         ; b0fe: 20 d3 93     ..            ; Set OS text pointer and FS-options transfer ptr
+    ldy #0                                                            ; b101: a0 00       ..             ; Y=0: TX-buffer offset for the first byte
 ; ***************************************************************************************
 ; *Ex command handler
 ;
@@ -12599,12 +12599,12 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..
     equs ")     "                                                     ; b165: 29 20 20... )              ; Advance Y
 
-    ldy hazel_txcb_type                                               ; b16b: ac 12 c1    ...
-    bne print_public_label                                            ; b16e: d0 0b       ..
+    ldy hazel_txcb_type                                               ; b16b: ac 12 c1    ...            ; Read hazel_txcb_type (FS reply opcode)
+    bne print_public_label                                            ; b16e: d0 0b       ..             ; Non-zero (private library): take the public-label branch
     jsr print_inline_no_spool                                         ; b170: 20 8a 92     ..            ; Print 'Owner' + CR
     equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own            ; End of PS name field (&20)?; No: continue pushing
 
-    bne public_label_msg                                              ; b179: d0 0a       ..
+    bne public_label_msg                                              ; b179: d0 0a       ..             ; Non-zero: branch to public_label_msg
 ; &b17b referenced 1 time by &b16e
 .print_public_label
     jsr print_inline_no_spool                                         ; b17b: 20 8a 92     ..            ; Print 'Public' + CR
@@ -12612,7 +12612,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 
 ; &b185 referenced 1 time by &b179
 .public_label_msg
-    lda hazel_fs_lib_flags                                            ; b185: ad 71 c2    .q.
+    lda hazel_fs_lib_flags                                            ; b185: ad 71 c2    .q.            ; Read hazel_fs_lib_flags
     pha                                                               ; b188: 48          H              ; Push for stack-based saves
     jsr mask_owner_access                                             ; b189: 20 cf b2     ..            ; Mask owner access bits; Copy 4 header bytes
     ldy #&15                                                          ; b18c: a0 15       ..             ; Y=&15: FS command for dir info
@@ -12627,16 +12627,16 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b197: 20 8a 92     ..            ; Print ' Option '; Network &FF (any)
     equs "    Option "                                                ; b19a: 20 20 20...                ; Print network as 3 digits; '.' separator
 
-    lda hazel_fs_flags                                                ; b1a5: ad 05 c0    ...
+    lda hazel_fs_flags                                                ; b1a5: ad 05 c0    ...            ; Read hazel_fs_flags
     tax                                                               ; b1a8: aa          .              ; Transfer to X for table lookup; V set: skip padding spaces
     jsr print_hex_byte_no_spool                                       ; b1a9: 20 4c 92     L.            ; Print option as hex
     jsr print_inline_no_spool                                         ; b1ac: 20 8a 92     ..            ; Print ' ('
     equs " ("                                                         ; b1af: 20 28        (
 
-    ldy option_str_offset_data,x                                      ; b1b1: bc 98 b2    ...
+    ldy option_str_offset_data,x                                      ; b1b1: bc 98 b2    ...            ; Look up option-string offset for index X
 ; &b1b4 referenced 1 time by &b1bd
 .loop_print_dir_format
-    lda option_offset_table,y                                         ; b1b4: b9 9c b2    ...
+    lda option_offset_table,y                                         ; b1b4: b9 9c b2    ...            ; Look up option byte at the resolved offset
     bmi print_dir_header                                              ; b1b7: 30 06       0.             ; Bit 7 of A set (negative): print directory header
     jsr print_char_no_spool                                           ; b1b9: 20 fb 91     ..            ; Print char (no spool)
     iny                                                               ; b1bc: c8          .              ; Advance Y
@@ -14824,7 +14824,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; &bb38 referenced 9 times by &8d9d, &9078, &9778, &9ec9, &9f0e, &9fb1, &a06b, &a175, &a9df
 .process_all_fcbs
     phx                                                               ; bb38: da          .              ; PHX -- save X on entry
-    phy                                                               ; bb39: 5a          Z
+    phy                                                               ; bb39: 5a          Z              ; PHY -- save Y across the body
     ldx #&f7                                                          ; bb3a: a2 f7       ..             ; X=&F7: save 9 workspace bytes (&F7..&FF)
 ; &bb3c referenced 1 time by &bb41
 .loop_save_fcb_workspace
@@ -14857,8 +14857,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     sta fs_work_4,x                                                   ; bb60: 95 b4       ..             ; Restore workspace byte
     dex                                                               ; bb62: ca          .              ; Next byte down
     bpl loop_restore_fcb_workspace                                    ; bb63: 10 fa       ..             ; More bytes: continue restoring
-    ply                                                               ; bb65: 7a          z
-    plx                                                               ; bb66: fa          .
+    ply                                                               ; bb65: 7a          z              ; PLY -- restore Y
+    plx                                                               ; bb66: fa          .              ; PLX -- restore X
     rts                                                               ; bb67: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -15070,8 +15070,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; &bc89 referenced 1 time by &bc7a
 .store_station_and_flush
     sta hazel_txcb_data                                               ; bc89: 8d 05 c1    ...            ; Store station in command buffer
-    ply                                                               ; bc8c: 7a          z
-    phy                                                               ; bc8d: 5a          Z
+    ply                                                               ; bc8c: 7a          z              ; PLY -- restore Y
+    phy                                                               ; bc8d: 5a          Z              ; PHY -- save Y again for the next iteration
     pha                                                               ; bc8e: 48          H              ; Save station for later restore
     ldx #0                                                            ; bc8f: a2 00       ..             ; X=0
     stx hazel_txcb_flag                                               ; bc91: 8e 06 c1    ...            ; Clear function code
