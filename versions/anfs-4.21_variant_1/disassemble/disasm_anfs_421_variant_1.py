@@ -2700,11 +2700,13 @@ Two inbound `JSR`s plus one fall-through (from
 subroutine(0x83EB, "set_nmi_rx_scout",
     title="Install nmi_rx_scout as NMI handler",
     description="""\
-Sets `A=&9B`, `Y=&80` (the [`nmi_rx_scout`](address:809B)
-address `&809B-1`, since [`set_nmi_vector`](address:0D0E)
-adds 1) and `JMP`s to [`set_nmi_vector`](address:0D0E). Tail
-of the [`discard_reset_rx`](address:83E5) /
-[`reset_adlc_rx_listen`](address:83E8) chain.
+Loads `(A=&9B, Y=&80)` -- the address of
+[`nmi_rx_scout`](address:809B) -- and `JMP`s to
+[`set_nmi_vector`](address:0D0E), which writes both bytes into
+the NMI JMP-target slot at `nmi_jmp_lo`/`nmi_jmp_hi`. Tail of
+the [`discard_reset_rx`](address:83E5) /
+[`reset_adlc_rx_listen`](address:83E8) chain, used to put the
+NMI vector back to scout-handling after a discard or reset.
 
 Two callers: `&80CB` (after init) and `&80E2` (after error).""")
 subroutine(0x83F2, "discard_reset_listen",
@@ -2719,31 +2721,37 @@ returning.
 Used as the clean-up path after RXCB completion and after ADLC
 reset to ensure no stale Tube claims persist.""")
 subroutine(0x8400, "copy_scout_to_buffer",
-    title="Copy scout data to port buffer",
+    title="Copy scout data to port buffer (entry point)",
     description="""\
-Copies scout data bytes (offsets 4–11) from the RX scout buffer
-at [`rx_src_stn`](address:0D3D) into the open port buffer.
+Five-instruction prologue that prepares to copy scout-payload
+bytes (offsets `4..&0B`) from [`scout_buf`](address:0D2E) into the
+open port buffer. Saves `X` on the stack, loads `X=4` (the first
+scout-data offset) and `A=&02` (Tube-flag mask), then `BIT`s
+[`rx_src_net`](address:0D3E) (`tx_flags`) so the immediately
+following `BNE` in
+[`save_acccon_for_shadow_ram`](address:8409) can dispatch:
 
-Selects the write path on bit 1 of
-[`rx_src_net`](address:0D3E) (`tx_flags`):
-
-| Bit 1 | Write path |
+| Bit 1 | Path |
 |---|---|
-| clear | direct memory store via `(open_port_buf),Y` |
-| set   | Tube data register 3 write |
+| clear | fall through into `save_acccon_for_shadow_ram` (direct memory store via `(open_port_buf),Y`, with ACCCON saved/restored on Master 128) |
+| set   | branch to [`copy_scout_via_tube`](address:8436) (Tube R3 write) |
 
-Calls `advance_buffer_ptr` after each byte. Falls through to
-[`release_tube`](address:8448) on completion. Handles page
-overflow (Y wrap) by branching to `scout_page_overflow`.""")
+Both paths walk the four-byte buffer pointer and end via
+[`scout_copy_done`](address:842B) which restores `X` and returns.
+Single caller: [`port_match_found`](address:8195) at `&81A4`.""")
 subroutine(0x8448, "release_tube",
     title="Release Tube co-processor claim",
     description="""\
-Tests `need_release_tube` (`&98`) bit 7:
+Tests bit 7 of [`prot_flags`](address:0099) -- the bit ANFS uses
+to track whether the Tube is currently still claimed:
 
 | Bit 7 | State | Action |
 |---|---|---|
-| set | already released | clear the flag and return |
-| clear | claim held | call `tube_addr_data_dispatch` with `A=&82` to release the claim, then clear the release flag via `LSR` (shifting bit 7 to 0) |
+| set | already released | branch to `clear_release_flag` (skips the release call) |
+| clear | claim held | `JSR tube_addr_data_dispatch` with `A=&82` to release the claim, then fall through |
+
+Both paths end at `clear_release_flag` which `LSR`s `prot_flags`
+(shifting bit 7 to 0) before returning.
 
 Called after completed RX transfers and during discard paths to
 ensure no stale Tube claims persist.
@@ -6845,7 +6853,7 @@ comment(0x8341, "Check tx_flags data-transfer bit", inline=True)
 comment(0x8344, "Bit1 clear: no transfer -- return", inline=True)
 comment(0x8346, "Init carry for 4-byte add", inline=True)
 comment(0x8347, "Save carry on stack for loop", inline=True)
-comment(0x8348, "Y=8: RXCB high pointer offset", inline=True)
+comment(0x8348, "Y=8: start at byte 0 of the 4-byte RXCB pointer", inline=True)
 comment(0x834A, "Load RXCB[Y] (buffer pointer byte)", inline=True)
 comment(0x834C, "Restore carry from stack", inline=True)
 comment(0x834D, "Add transfer count byte", inline=True)
@@ -6870,7 +6878,7 @@ comment(0x836C, "Claim Tube address for transfer", inline=True)
 comment(0x836F, "Load extra RX data byte", inline=True)
 comment(0x8372, "Send to Tube via R3", inline=True)
 comment(0x8375, "Init carry for increment", inline=True)
-comment(0x8376, "Y=8: start at high pointer", inline=True)
+comment(0x8376, "Y=8: start at byte 0 of the 4-byte RXCB pointer", inline=True)
 comment(0x8378, "A=0: add carry only (increment)", inline=True)
 comment(0x837A, "Add carry to pointer byte", inline=True)
 comment(0x837C, "Store back to RXCB", inline=True)

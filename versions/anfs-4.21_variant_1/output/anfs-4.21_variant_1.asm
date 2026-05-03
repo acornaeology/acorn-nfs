@@ -1150,18 +1150,19 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; ACK TX continuation
 ;
-; Continuation of ACK frame transmission. Reads our station ID from econet_station_id
-; (INTOFF side effect), tests TDRA via SR1, and writes (station, network=0) to the TX
-; FIFO, completing the 4-byte ACK address header.
+; Continuation of ACK frame transmission, reached via NMI after ack_tx_write_dest
+; installed it as the next handler. Reads our station ID from the workspace copy
+; tx_src_stn, tests TDRA via SR1, and writes (station, network=0) to the TX FIFO --
+; completing the 4-byte ACK address header.
 ;
-; Then dispatches on rx_src_net bit 7:
+; Then dispatches on rx_src_net bit 7 (which the caller uses as a TX-flags byte):
 ;
 ; | Bit 7 | Action                                                          |
 ; |-------|-----------------------------------------------------------------|
 ; | set   | branch to start_data_tx to begin the data phase                 |
 ; | clear | write CR2=&3F (TX_LAST_DATA) and fall through to post_ack_scout |
 .nmi_ack_tx_src
-    lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID (also INTOFF)
+    lda tx_src_stn                                                    ; 8316: ad 22 0d    .".            ; Load our station ID from workspace copy
     bit adlc_cr1                                                      ; 8319: 2c a0 fe    ,..            ; Test SR1 TDRA
     bvc dispatch_nmi_error                                            ; 831c: 50 1e       P.             ; TDRA not ready -- error
     sta adlc_tx                                                       ; 831e: 8d a2 fe    ...            ; Write our station to TX FIFO
@@ -1218,7 +1219,7 @@ rom_header_byte2 = rom_header+2
     beq return_rx_complete                                            ; 8344: f0 3f       .?             ; Bit1 clear: no transfer -- return
     clc                                                               ; 8346: 18          .              ; Init carry for 4-byte add
     php                                                               ; 8347: 08          .              ; Save carry on stack for loop
-    ldy #8                                                            ; 8348: a0 08       ..             ; Y=8: RXCB high pointer offset
+    ldy #8                                                            ; 8348: a0 08       ..             ; Y=8: start at byte 0 of the 4-byte RXCB pointer
 ; &834a referenced 1 time by &8356
 .add_rxcb_ptr
     lda (port_ws_offset),y                                            ; 834a: b1 a6       ..             ; Load RXCB[Y] (buffer pointer byte)
@@ -1245,7 +1246,7 @@ rom_header_byte2 = rom_header+2
     lda rx_extra_byte                                                 ; 836f: ad 42 0d    .B.            ; Load extra RX data byte
     sta tube_data_register_3                                          ; 8372: 8d e5 fe    ...            ; Send to Tube via R3
     sec                                                               ; 8375: 38          8              ; Init carry for increment
-    ldy #8                                                            ; 8376: a0 08       ..             ; Y=8: start at high pointer
+    ldy #8                                                            ; 8376: a0 08       ..             ; Y=8: start at byte 0 of the 4-byte RXCB pointer
 ; &8378 referenced 1 time by &837f
 .inc_rxcb_ptr
     lda #0                                                            ; 8378: a9 00       ..             ; A=0: add carry only (increment)
@@ -1378,8 +1379,10 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; Install nmi_rx_scout as NMI handler
 ;
-; Sets A=&9B, Y=&80 (the nmi_rx_scout address &809B-1, since set_nmi_vector adds 1) and
-; JMPs to set_nmi_vector. Tail of the discard_reset_rx / reset_adlc_rx_listen chain.
+; Loads (A=&9B, Y=&80) -- the address of nmi_rx_scout -- and JMPs to set_nmi_vector,
+; which writes both bytes into the NMI JMP-target slot at nmi_jmp_lo/nmi_jmp_hi. Tail
+; of the discard_reset_rx / reset_adlc_rx_listen chain, used to put the NMI vector back
+; to scout-handling after a discard or reset.
 ;
 ; Two callers: &80CB (after init) and &80E2 (after error).
 ; &83eb referenced 2 times by &80cb, &80e2
@@ -1409,20 +1412,20 @@ rom_header_byte2 = rom_header+2
     rts                                                               ; 83ff: 60          `              ; Return
 
 ; ***************************************************************************************
-; Copy scout data to port buffer
+; Copy scout data to port buffer (entry point)
 ;
-; Copies scout data bytes (offsets 4–11) from the RX scout buffer at rx_src_stn into
-; the open port buffer.
+; Five-instruction prologue that prepares to copy scout-payload bytes (offsets 4..&0B)
+; from scout_buf into the open port buffer. Saves X on the stack, loads X=4 (the first
+; scout-data offset) and A=&02 (Tube-flag mask), then BITs rx_src_net (tx_flags) so the
+; immediately following BNE in save_acccon_for_shadow_ram can dispatch:
 ;
-; Selects the write path on bit 1 of rx_src_net (tx_flags):
+; | Bit 1 | Path                                                                                                                               |
+; |-------|------------------------------------------------------------------------------------------------------------------------------------|
+; | clear | fall through into save_acccon_for_shadow_ram (direct memory store via (open_port_buf),Y, with ACCCON saved/restored on Master 128) |
+; | set   | branch to copy_scout_via_tube (Tube R3 write)                                                                                      |
 ;
-; | Bit 1 | Write path                                |
-; |-------|-------------------------------------------|
-; | clear | direct memory store via (open_port_buf),Y |
-; | set   | Tube data register 3 write                |
-;
-; Calls advance_buffer_ptr after each byte. Falls through to release_tube on
-; completion. Handles page overflow (Y wrap) by branching to scout_page_overflow.
+; Both paths walk the four-byte buffer pointer and end via scout_copy_done which
+; restores X and returns. Single caller: port_match_found at &81A4.
 ; &8400 referenced 1 time by &81a4
 .copy_scout_to_buffer
     txa                                                               ; 8400: 8a          .              ; Save X on stack
@@ -1493,12 +1496,16 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Release Tube co-processor claim
 ;
-; Tests need_release_tube (&98) bit 7:
+; Tests bit 7 of prot_flags -- the bit ANFS uses to track whether the Tube is currently
+; still claimed:
 ;
-; | Bit 7 | State            | Action                                                                                                                  |
-; |-------|------------------|-------------------------------------------------------------------------------------------------------------------------|
-; | set   | already released | clear the flag and return                                                                                               |
-; | clear | claim held       | call tube_addr_data_dispatch with A=&82 to release the claim, then clear the release flag via LSR (shifting bit 7 to 0) |
+; | Bit 7 | State            | Action                                                                         |
+; |-------|------------------|--------------------------------------------------------------------------------|
+; | set   | already released | branch to clear_release_flag (skips the release call)                          |
+; | clear | claim held       | JSR tube_addr_data_dispatch with A=&82 to release the claim, then fall through |
+;
+; Both paths end at clear_release_flag which LSRs prot_flags (shifting bit 7 to 0)
+; before returning.
 ;
 ; Called after completed RX transfers and during discard paths to ensure no stale Tube
 ; claims persist.

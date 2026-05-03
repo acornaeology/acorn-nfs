@@ -37,10 +37,10 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8223` `nmi_data_rx_bulk` - description matches body; inline comments accurate
 - [x] `0x82F8` `ack_tx_write_dest` - description was incomplete (stopped at TDRA error path); rewrote to cover success path; fixed inline comment claiming &8326 when target is &8316
 - [x] `0x8316` `nmi_ack_tx_src` - description claimed reads econet_station_id with INTOFF but body reads tx_src_stn workspace copy; corrected
-- [ ] `0x833F` `advance_rx_buffer_ptr`
-- [ ] `0x83EB` `set_nmi_rx_scout`
-- [ ] `0x8400` `copy_scout_to_buffer`
-- [ ] `0x8448` `release_tube`
+- [x] `0x833F` `advance_rx_buffer_ptr` - description matches body, but two inline comments at &8348 and &8376 said 'Y=8: high pointer' when Y=8 is the LOW byte of the 4-byte RXCB pointer; corrected
+- [x] `0x83EB` `set_nmi_rx_scout` - description claimed 'set_nmi_vector adds 1' (false: it stores A,Y as-is); rewrote to remove the mythical -1 adjustment
+- [x] `0x8400` `copy_scout_to_buffer` - description conflated this 5-instruction prologue with save_acccon_for_shadow_ram and copy_scout_via_tube which it falls into; rewrote to describe just the dispatch role
+- [x] `0x8448` `release_tube` - description claimed it tests need_release_tube (&98) but body reads prot_flags (&99) -- different addresses; corrected
 - [ ] `0x848B` `imm_op_dispatch_lo`
 - [ ] `0x84BC` `rx_imm_machine_type`
 - [ ] `0x84F9` `imm_op_build_reply`
