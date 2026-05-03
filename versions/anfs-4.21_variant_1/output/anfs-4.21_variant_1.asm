@@ -511,8 +511,9 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; ADLC initialisation
 ;
-; Initialise ADLC hardware and Econet workspace. Reads the station ID via
-; econet_station_id (INTOFF side effect), performs a full ADLC reset via
+; Initialise ADLC hardware and Econet workspace. Disables NMIs via BIT master_intoff
+; (the Master 128 INTOFF register at &FE38; the Model-B equivalent reads
+; econet_station_id at &FE18 for the same side effect). Performs a full ADLC reset via
 ; adlc_full_reset, then probes for a Tube co-processor via OSBYTE &EA and stores the
 ; result in tube_present. Issues an NMI-claim service request (OSBYTE &8F, X=&0C).
 ; Falls through to init_nmi_workspace to copy the NMI shim to RAM.
@@ -812,13 +813,14 @@ rom_header_byte2 = rom_header+2
 ;
 ; Switches the ADLC to TX mode for the scout ACK frame: writes CR1=&44 (RX_RESET |
 ; TIE), CR2=&A7 (RTS | CLR_TX_ST | FC_TDRA | PSE), then loads (A,Y) = (&B8, &81) – the
-; address of data_rx_setup minus 1 – and JMPs to ack_tx_write_dest which actually emits
-; the TX frame and installs the new NMI handler.
+; address of data_rx_setup – and JMPs to ack_tx_write_dest which saves the pair into
+; saved_nmi_lo/saved_nmi_hi (so the NMI handler will install it later) and writes the
+; ACK destination address bytes to the TX FIFO.
 ;
 ; Two callers: the dispatch in scout_complete at &81A2 and the immediate-op POKE path
 ; at &84AE (jmp_send_data_rx_ack).
 ;
-; On Exit: A: &B8 (low byte of data_rx_setup-1) Y: &81 (high byte of data_rx_setup-1)
+; On Exit: A: &B8 (low byte of data_rx_setup) Y: &81 (high byte of data_rx_setup)
 ; &81a7 referenced 2 times by &81a2, &84ae
 .send_data_rx_ack
     lda #&44 ; 'D'                                                    ; 81a7: a9 44       .D             ; CR1=&44: RX_RESET | TIE
@@ -1093,15 +1095,16 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; ACK transmission
 ;
-; Sends a scout ACK or final ACK frame as part of the four-way handshake. If bit 7 of
-; tx_flags (&0D4A) is set, this is a final ACK and completion runs through
-; tx_result_ok. Otherwise configures for TX (CR1=&44, CR2=&A7) and sends the ACK frame
-; (dst_stn, dst_net from &0D3D, src_stn from &FE18, src_net=0). The ACK frame has no
-; data payload -- just address bytes.
+; Sends a scout ACK or final ACK frame as part of the four-way handshake. Tests bit 7
+; of rx_src_net (used as TX-flags here): if set this is a final ACK and completion runs
+; through tx_result_ok. Otherwise configures for TX (CR1=&44, CR2=&A7) and writes the
+; ACK address frame: destination station from scout_buf, destination network from
+; scout_src_net, source station from the workspace copy tx_src_stn, and src_net=0. The
+; ACK frame has no data payload -- just address bytes.
 ;
 ; After writing the address bytes to the TX FIFO, installs the next NMI handler from
-; nmi_next_lo / nmi_next_hi (&0D4B / &0D4C, saved by the scout/data RX handler) and
-; sends TX_LAST_DATA (CR2=&3F) to close the frame.
+; saved_nmi_lo/saved_nmi_hi (saved by the scout/data RX handler via ack_tx_write_dest)
+; and sends TX_LAST_DATA (CR2=&3F) to close the frame.
 ; &82df referenced 2 times by &828e, &82c5
 .ack_tx
     lda rx_src_net                                                    ; 82df: ad 3e 0d    .>.            ; Load TX flags to check ACK type

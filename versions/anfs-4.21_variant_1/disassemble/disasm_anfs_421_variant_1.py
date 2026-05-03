@@ -2341,13 +2341,14 @@ ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
 subroutine(0x8050, "adlc_init",
     title="ADLC initialisation",
     description="""\
-Initialise ADLC hardware and Econet workspace. Reads the station ID
-via [`econet_station_id`](address:FE18) (INTOFF side effect),
-performs a full ADLC reset via
+Initialise ADLC hardware and Econet workspace. Disables NMIs via
+`BIT master_intoff` (the Master 128 INTOFF register at &FE38;
+the Model-B equivalent reads econet_station_id at &FE18 for the
+same side effect). Performs a full ADLC reset via
 [`adlc_full_reset`](address:898C), then probes for a Tube
 co-processor via OSBYTE `&EA` and stores the result in
-`tube_present`. Issues an NMI-claim service request (OSBYTE `&8F`,
-`X=&0C`). Falls through to
+[`tube_present`](address:0D63). Issues an NMI-claim service
+request (OSBYTE `&8F`, `X=&0C`). Falls through to
 [`init_nmi_workspace`](address:8070) to copy the NMI shim to
 RAM.""")
 subroutine(0x8070, "init_nmi_workspace",
@@ -2449,16 +2450,18 @@ subroutine(0x81A7, "send_data_rx_ack",
     description="""\
 Switches the ADLC to TX mode for the scout ACK frame: writes
 `CR1=&44` (`RX_RESET | TIE`), `CR2=&A7` (`RTS | CLR_TX_ST |
-FC_TDRA | PSE`), then loads `(A,Y) = (&B8, &81)` – the address of
-[`data_rx_setup`](address:81B8) minus 1 – and `JMP`s to
-[`ack_tx_write_dest`](address:82F8) which actually emits the
-TX frame and installs the new NMI handler.
+FC_TDRA | PSE`), then loads `(A,Y) = (&B8, &81)` – the address
+of [`data_rx_setup`](address:81B8) – and `JMP`s to
+[`ack_tx_write_dest`](address:82F8) which saves the pair into
+`saved_nmi_lo`/`saved_nmi_hi` (so the NMI handler will install it
+later) and writes the ACK destination address bytes to the TX
+FIFO.
 
 Two callers: the dispatch in [`scout_complete`](address:8112)
 at `&81A2` and the immediate-op POKE path at `&84AE`
 (`jmp_send_data_rx_ack`).""",
-    on_exit={"a": "&B8 (low byte of data_rx_setup-1)",
-             "y": "&81 (high byte of data_rx_setup-1)"})
+    on_exit={"a": "&B8 (low byte of data_rx_setup)",
+             "y": "&81 (high byte of data_rx_setup)"})
 subroutine(0x81B8, "data_rx_setup",
     title="NMI handler: switch ADLC to RX for the data frame",
     description="""\
@@ -2560,17 +2563,20 @@ subroutine(0x82DF, "ack_tx",
     title="ACK transmission",
     description="""\
 Sends a scout ACK or final ACK frame as part of the four-way
-handshake. If bit 7 of `tx_flags` (`&0D4A`) is set, this is a final
-ACK and completion runs through
-[`tx_result_ok`](address:88E2). Otherwise configures for TX
-(`CR1=&44`, `CR2=&A7`) and sends the ACK frame (`dst_stn`,
-`dst_net` from `&0D3D`, `src_stn` from `&FE18`, `src_net=0`). The
-ACK frame has no data payload -- just address bytes.
+handshake. Tests bit 7 of [`rx_src_net`](address:0D3E) (used as
+TX-flags here): if set this is a final ACK and completion runs
+through [`tx_result_ok`](address:88DE). Otherwise configures
+for TX (`CR1=&44`, `CR2=&A7`) and writes the ACK address frame:
+destination station from [`scout_buf`](address:0D2E), destination
+network from [`scout_src_net`](address:0D2F), source station
+from the workspace copy [`tx_src_stn`](address:0D22), and
+`src_net=0`. The ACK frame has no data payload -- just address
+bytes.
 
 After writing the address bytes to the TX FIFO, installs the next
-NMI handler from `nmi_next_lo` / `nmi_next_hi` (`&0D4B` / `&0D4C`,
-saved by the scout/data RX handler) and sends TX_LAST_DATA
-(`CR2=&3F`) to close the frame.""")
+NMI handler from `saved_nmi_lo`/`saved_nmi_hi` (saved by the
+scout/data RX handler via [`ack_tx_write_dest`](address:82F8))
+and sends `TX_LAST_DATA` (`CR2=&3F`) to close the frame.""")
 subroutine(0x82F8, "ack_tx_write_dest",
     title="Begin ACK transmit: write destination address to ADLC",
     description="""\

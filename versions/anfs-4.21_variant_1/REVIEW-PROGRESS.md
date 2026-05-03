@@ -255,16 +255,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 1 (90 routines)
 
-- [ ] `0x8028` `svc5_irq_check`
-- [ ] `0x8050` `adlc_init`
-- [ ] `0x80B8` `nmi_rx_scout_net`
-- [ ] `0x81A7` `send_data_rx_ack`
-- [ ] `0x8291` `nmi_data_rx_tube`
-- [ ] `0x82DF` `ack_tx`
-- [ ] `0x8386` `nmi_post_ack_dispatch`
-- [ ] `0x83E8` `reset_adlc_rx_listen`
-- [ ] `0x83F2` `discard_reset_listen`
-- [ ] `0x8549` `tx_done_econet_event`
+- [x] `0x8028` `svc5_irq_check` - description matches body
+- [x] `0x8050` `adlc_init` - description claimed station-ID read via econet_station_id (Model B INTOFF) but body uses BIT master_intoff (Master 128 dedicated INTOFF register at &FE38). Same pattern as earlier NMI handlers
+- [x] `0x80B8` `nmi_rx_scout_net` - description matches body
+- [x] `0x81A7` `send_data_rx_ack` - description claimed (A,Y)=&81B8 was 'data_rx_setup minus 1' but set_nmi_vector stores (A,Y) as-is, so &81B8 IS data_rx_setup directly. Rewrote
+- [x] `0x8291` `nmi_data_rx_tube` - description matches body
+- [x] `0x82DF` `ack_tx` - description had stale '&0D4A' tx_flags ref (the actual byte tested is rx_src_net at &0D3E used as TX-flags here), and claimed src_stn from &FE18 (Model B INTOFF) but body reads tx_src_stn workspace copy. Rewrote
+- [x] `0x8386` `nmi_post_ack_dispatch` - description matches body
+- [x] `0x83E8` `reset_adlc_rx_listen` - description matches body
+- [x] `0x83F2` `discard_reset_listen` - description matches body
+- [x] `0x8549` `tx_done_econet_event` - description matches body
 - [ ] `0x8557` `tx_done_os_proc`
 - [ ] `0x8589` `tx_begin`
 - [ ] `0x872F` `nmi_tx_complete`
