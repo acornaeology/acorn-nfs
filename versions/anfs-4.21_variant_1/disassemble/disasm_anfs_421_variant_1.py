@@ -11890,7 +11890,8 @@ indices 1..50 cover:
 - FS reply handlers
 - net-handle / OSWORD `&13` trampolines
 
-Per-entry inline comments name each target.""")
+Per-entry inline comments give the index and the call/reply each
+slot dispatches.""")
 for addr in range(0x89ED, 0x8A20):
     byte(addr)
 
@@ -11908,41 +11909,41 @@ for addr in range(0x8A20, 0x8A54):
 
 # Per-entry symbolic addresses (target-1, RTS-relative).
 _svc_dispatch_entries = [
-    # (idx,    target,   role)
+    # (idx,    target,   name,                            description)
     (0x00,  0xE905,  None,                            "placeholder (never reached)"),
     (0x01,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
     (0x02,  0x8D09,  "svc_dispatch_idx_2",            "workspace claim helper (CMOS bit 0)"),
-    (0x03,  0x8F10,  "svc_2_private_workspace_pages", "svc 2 prologue"),
-    (0x04,  0x8CC7,  "svc_3_autoboot",                "svc 3 auto-boot"),
-    (0x05,  0x8C42,  "svc_4_star_command",            "svc 4 unrecognised *cmd"),
-    (0x06,  0x8028,  "svc5_irq_check",                "svc 5 IRQ check"),
+    (0x03,  0x8F10,  "svc_2_private_workspace_pages", "svc &02: private workspace pages"),
+    (0x04,  0x8CC7,  "svc_3_autoboot",                "svc &03: auto-boot"),
+    (0x05,  0x8C42,  "svc_4_star_command",            "svc &04: unrecognised *command"),
+    (0x06,  0x8028,  "svc5_irq_check",                "svc &05: IRQ check"),
     (0x07,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
-    (0x08,  0x8ED8,  "svc_7_osbyte",                  "svc 7 unrecognised OSBYTE"),
-    (0x09,  0xA83C,  "svc_8_osword_disp",             "svc 8 dispatched entry"),
-    (0x0A,  0x8C51,  "svc_9_help",                    "svc 9 *HELP"),
+    (0x08,  0x8ED8,  "svc_7_osbyte",                  "svc &07: unrecognised OSBYTE"),
+    (0x09,  0xA83C,  "svc_8_osword_disp",             "svc &08: OSWORD dispatch"),
+    (0x0A,  0x8C51,  "svc_9_help",                    "svc &09: *HELP"),
     (0x0B,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
-    (0x0C,  0x806C,  "econet_restore",                "svc 11 NMI release"),
-    (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc 13 wait+reset"),
-    (0x0E,  0x8B45,  "svc_18_fs_select",              "svc 18 FS select"),
-    (0x0F,  0x969A,  "match_on_suffix",               "svc &18: Interactive HELP -- 'ON ' keyword matcher"),
-    (0x10,  0x8EE9,  "raise_y_to_c8",                 "svc &21: static workspace claim, raise Y to &C8"),
-    (0x11,  0x8EFE,  "set_rom_ws_page",               "svc &22: dynamic workspace offer (stores page for this slot)"),
-    (0x12,  0x8EF0,  "store_ws_page_count",           "svc &23: top-of-static-workspace -- record incoming Y"),
-    (0x13,  0x8E71,  "noop_dey_rts",                  "svc &24: dynamic workspace claim (DEY = claim 1 page)"),
-    (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply (copy template to caller WS)"),
-    (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files (FILEV via Y=0)"),
+    (0x0C,  0x806C,  "econet_restore",                "svc &0B: NMI release"),
+    (0x0D,  0x89A6,  "wait_idle_and_reset",           "svc &0D: wait idle and reset"),
+    (0x0E,  0x8B45,  "svc_18_fs_select",              "svc &12: FS select"),
+    (0x0F,  0x969A,  "match_on_suffix",               "svc &18: interactive HELP 'ON ' matcher"),
+    (0x10,  0x8EE9,  "raise_y_to_c8",                 "svc &21: static workspace claim"),
+    (0x11,  0x8EFE,  "set_rom_ws_page",               "svc &22: dynamic workspace offer"),
+    (0x12,  0x8EF0,  "store_ws_page_count",           "svc &23: top-of-static-workspace"),
+    (0x13,  0x8E71,  "noop_dey_rts",                  "svc &24: dynamic workspace claim"),
+    (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply"),
+    (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files"),
     (0x16,  0x8F38,  "nfs_init_body",                 "svc &27: post-hard-reset re-init"),
     (0x17,  0x959A,  "print_fs_ps_no_arg_help",       "svc &28: print *FS/*PS no-arg syntax help"),
-    (0x18,  0x9630,  "svc_29_status_handler",         "svc &29: *STATUS handler (print FS/PS addresses or parse arg)"),
-    (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0"),
-    (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1"),
-    (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2"),
-    (0x1C,  0x987E,  "lang_3_execute_at_0100",        "language reply 3"),
-    (0x1D,  0x989F,  "lang_4_remote_validated",       "language reply 4"),
+    (0x18,  0x9630,  "svc_29_status_handler",         "svc &29: *STATUS handler"),
+    (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0: insert remote key"),
+    (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1: remote boot"),
+    (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2: save palette/VDU"),
+    (0x1C,  0x987E,  "lang_3_execute_at_0100",        "language reply 3: execute at &0100"),
+    (0x1D,  0x989F,  "lang_4_remote_validated",       "language reply 4: remote validated"),
     (0x1E,  0xA0A9,  "fscv_0_opt_entry",              "FSCV 0: *OPT"),
     (0x1F,  0xA10B,  "fscv_1_eof",                    "FSCV 1: EOF"),
     (0x20,  0xA4F1,  "cmd_run_via_urd",               "FSCV 2: *RUN"),
-    (0x21,  0xA42F,  "fscv_3_star_cmd",               "FSCV 3: *cmd"),
+    (0x21,  0xA42F,  "fscv_3_star_cmd",               "FSCV 3: *command"),
     (0x22,  0xA4F1,  "cmd_run_via_urd",               "FSCV 4: *RUN (alias)"),
     (0x23,  0xB118,  "fscv_5_cat",                    "FSCV 5: *CAT"),
     (0x24,  0x9071,  "fscv_6_shutdown",               "FSCV 6: shutdown"),
@@ -11952,25 +11953,21 @@ _svc_dispatch_entries = [
     (0x28,  0xB357,  "cmd_info_dispatch",             "*Info dispatch"),
     (0x29,  0xA4DC,  "check_urd_present",             "URD-present check"),
     (0x2A,  0xB2DB,  "ex_init_scan_x0",               "*Ex scan init"),
-    (0x2B,  0xA6D5,  "fsreply_1_copy_handles_boot",   "FS reply 1"),
-    (0x2C,  0xA6E5,  "fsreply_2_copy_handles",        "FS reply 2"),
-    (0x2D,  0xA638,  "fsreply_3_set_csd",             "FS reply 3"),
-    (0x2E,  0xA4F1,  "cmd_run_via_urd",               "FS reply 4 (*RUN alias)"),
-    (0x2F,  0xA63E,  "fsreply_5_set_lib",             "FS reply 5"),
-    (0x30,  0xA3FF,  "net_1_read_handle",             "net handle 1"),
-    (0x31,  0xA405,  "net_2_read_handle_entry",       "net handle 2"),
-    (0x32,  0xA415,  "net_3_close_handle",            "net handle 3"),
+    (0x2B,  0xA6D5,  "fsreply_1_copy_handles_boot",   "FS reply 1: copy handles + boot"),
+    (0x2C,  0xA6E5,  "fsreply_2_copy_handles",        "FS reply 2: copy handles"),
+    (0x2D,  0xA638,  "fsreply_3_set_csd",             "FS reply 3: set CSD"),
+    (0x2E,  0xA4F1,  "cmd_run_via_urd",               "FS reply 4: *RUN (alias)"),
+    (0x2F,  0xA63E,  "fsreply_5_set_lib",             "FS reply 5: set library"),
+    (0x30,  0xA3FF,  "net_1_read_handle",             "net handle 1: read handle"),
+    (0x31,  0xA405,  "net_2_read_handle_entry",       "net handle 2: read handle entry"),
+    (0x32,  0xA415,  "net_3_close_handle",            "net handle 3: close handle"),
 ]
-for idx, target, name, role in _svc_dispatch_entries:
+for idx, target, name, desc in _svc_dispatch_entries:
     if name is not None:
         expr(0x89ED + idx, "<(%s-1)" % name)
         expr(0x8A20 + idx, ">(%s-1)" % name)
-        comment(0x89ED + idx, "idx &%02X: %s (%s)" % (idx, name, role), inline=True)
-        comment(0x8A20 + idx, "idx &%02X: %s" % (idx, name), inline=True)
-    else:
-        # Index 0 placeholder (target &E905 has no symbol).
-        comment(0x89ED + idx, "idx &%02X: placeholder (target &%04X, never reached)" % (idx, target), inline=True)
-        comment(0x8A20 + idx, "idx &%02X: placeholder" % idx, inline=True)
+    comment(0x89ED + idx, "&%02X: %s" % (idx, desc), inline=True)
+    comment(0x8A20 + idx, "&%02X: %s" % (idx, desc), inline=True)
 comment(0x8A53, "padding (table has only 51 entries)", inline=True)
 
 subroutine(0x8EE9, "raise_y_to_c8",
