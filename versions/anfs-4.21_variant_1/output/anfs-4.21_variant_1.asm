@@ -1755,11 +1755,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; and are not valid operation types. Per-entry inline comments identify each TX
 ; operation type's handler.
 .tx_done_dispatch_lo
-    equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?
-    equb <(tx_done_econet_event-1)                                    ; 853c: 48          H
-    equb <(tx_done_os_proc-1)                                         ; 853d: 56          V
-    equb <(tx_done_halt-1)                                            ; 853e: 62          b
-    equb <(tx_done_continue-1)                                        ; 853f: 79          y
+    equb <(tx_done_jsr-1)                                             ; 853b: 3f          ?              ; op &83: remote JSR
+    equb <(tx_done_econet_event-1)                                    ; 853c: 48          H              ; op &84: fire Econet event
+    equb <(tx_done_os_proc-1)                                         ; 853d: 56          V              ; op &85: OSProc call
+    equb <(tx_done_halt-1)                                            ; 853e: 62          b              ; op &86: HALT
+    equb <(tx_done_continue-1)                                        ; 853f: 79          y              ; op &87: CONTINUE
 
 ; ***************************************************************************************
 ; TX done: remote JSR execution
@@ -8848,7 +8848,14 @@ cmos_attr_table = sub_ca0fe+1
     bra done_close                                                    ; a101: 80 99       ..             ; Tail-branch into the OSARGS done path
 ; &a103 referenced 1 time by &a0e8
 .osargs_close_jump
-    equb 1, 2, 4, 6, &fd, &f3, &cf, &3f                               ; a103: 01 02 04... ...
+    equb 1                                                            ; a103: 01          .              ; Idx 0: AND mask = &01 (extract CMOS &11 bit 0)
+    equb 2                                                            ; a104: 02          .              ; Idx 1: AND mask = &02 (extract CMOS &11 bit 1)
+    equb 4                                                            ; a105: 04          .              ; Idx 2: AND mask = &04 (extract CMOS &11 bit 2)
+    equb 6                                                            ; a106: 06          .              ; Idx 3: AND mask = &06 (extract CMOS &11 bits 1,2)
+    equb &fd                                                          ; a107: fd          .              ; Idx 4: AND mask = &FD (clear CMOS &11 bit 1)
+    equb &f3                                                          ; a108: f3          .              ; Idx 5: AND mask = &F3 (clear CMOS &11 bits 2,3)
+    equb &cf                                                          ; a109: cf          .              ; Idx 6: AND mask = &CF (clear CMOS &11 bits 4,5)
+    equb &3f                                                          ; a10a: 3f          ?              ; Idx 7: AND mask = &3F (clear CMOS &11 bits 6,7)
 
 ; ***************************************************************************************
 ; FSCV reason 1: EOF check
@@ -12536,9 +12543,10 @@ cdir_size_thresholds = cdir_dispatch_col+2
     equb &ec                                                          ; b0ed: ec          .              ; Index 25: threshold 236
 ; &b0ee referenced 1 time by &8f84
 .cdir_size_done
-    equb &f6                                                          ; b0ee: f6          .
-    equb &ff                                                          ; b0ef: ff          .
-    equb &28, &0a                                                     ; b0f0: 28 0a       (.
+    equb &f6                                                          ; b0ee: f6          .              ; Index 26: threshold &F6 (246) -- last cdir-size threshold; doubles as cdir_size_done[0] (unread by init loop)
+    equb &ff                                                          ; b0ef: ff          .              ; cdir_size_done[1] = &FF -> tx_retry_count (retry counter init)
+    equb &28                                                          ; b0f0: 28          (              ; cdir_size_done[2] = &28 -> rx_wait_timeout (40 retries)
+    equb &0a                                                          ; b0f1: 0a          .              ; cdir_size_done[3] = &0A -> peek_retry_count (10 retries)
 
 ; ***************************************************************************************
 ; *LCat command handler

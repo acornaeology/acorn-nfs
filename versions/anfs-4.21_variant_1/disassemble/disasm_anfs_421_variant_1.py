@@ -10175,6 +10175,26 @@ label(0x9A0D, "net_error_close_spool")
 label(0xA0CF, "osargs_store_ptr_lo")
 label(0xA0DB, "osargs_check_length")
 label(0xA103, "osargs_close_jump")
+# Force per-byte rendering so each AND mask carries an inline comment.
+for _i in range(8):
+    byte(0xA103 + _i)
+del _i
+comment(0xA103, "Idx 0: AND mask = &01 (extract CMOS &11 bit 0)",
+    inline=True)
+comment(0xA104, "Idx 1: AND mask = &02 (extract CMOS &11 bit 1)",
+    inline=True)
+comment(0xA105, "Idx 2: AND mask = &04 (extract CMOS &11 bit 2)",
+    inline=True)
+comment(0xA106, "Idx 3: AND mask = &06 (extract CMOS &11 bits 1,2)",
+    inline=True)
+comment(0xA107, "Idx 4: AND mask = &FD (clear CMOS &11 bit 1)",
+    inline=True)
+comment(0xA108, "Idx 5: AND mask = &F3 (clear CMOS &11 bits 2,3)",
+    inline=True)
+comment(0xA109, "Idx 6: AND mask = &CF (clear CMOS &11 bits 4,5)",
+    inline=True)
+comment(0xA10A, "Idx 7: AND mask = &3F (clear CMOS &11 bits 6,7)",
+    inline=True)
 label(0xA3E5, "no_station_loop")
 label(0xA4A0, "separator_char_table")
 label(0xA4FC, "cmd_run_load_mask")
@@ -10191,6 +10211,20 @@ label(0xAF92, "printer_busy_msg")
 label(0xB097, "read_osbyte_return")
 label(0xB099, "read_osbyte_table")
 label(0xB0EE, "cdir_size_done")
+# &B0F0 and &B0F1 weren't part of the 27-byte threshold table
+# loop above; declare them so the init-data tail also gets rendered
+# byte-by-byte with comments. (&B0EE and &B0EF are already covered.)
+byte(0xB0F0)
+byte(0xB0F1)
+comment(0xB0EE, "Index 26: threshold &F6 (246) -- last cdir-size "
+    "threshold; doubles as cdir_size_done[0] (unread by init loop)",
+    inline=True)
+comment(0xB0EF, "cdir_size_done[1] = &FF -> tx_retry_count "
+    "(retry counter init)", inline=True)
+comment(0xB0F0, "cdir_size_done[2] = &28 -> rx_wait_timeout "
+    "(40 retries)", inline=True)
+comment(0xB0F1, "cdir_size_done[3] = &0A -> peek_retry_count "
+    "(10 retries)", inline=True)
 label(0xB185, "public_label_msg")
 label(0xB29C, "option_offset_table")
 label(0xB2F7, "col_sep_eol_check")
@@ -12751,11 +12785,16 @@ for i in range(5):
     byte(0x853B + i)
 
 # Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
-expr(0x853B, "<(tx_done_jsr-1)")          # op &83: remote JSR
-expr(0x853C, "<(tx_done_econet_event-1)") # op &84: fire Econet event
-expr(0x853D, "<(tx_done_os_proc-1)")      # op &85: OSProc call
-expr(0x853E, "<(tx_done_halt-1)")         # op &86: HALT
-expr(0x853F, "<(tx_done_continue-1)")     # op &87: CONTINUE
+expr(0x853B, "<(tx_done_jsr-1)")
+expr(0x853C, "<(tx_done_econet_event-1)")
+expr(0x853D, "<(tx_done_os_proc-1)")
+expr(0x853E, "<(tx_done_halt-1)")
+expr(0x853F, "<(tx_done_continue-1)")
+comment(0x853B, "op &83: remote JSR", inline=True)
+comment(0x853C, "op &84: fire Econet event", inline=True)
+comment(0x853D, "op &85: OSProc call", inline=True)
+comment(0x853E, "op &86: HALT", inline=True)
+comment(0x853F, "op &87: CONTINUE", inline=True)
 
 # TX ctrl dispatch table (8 bytes at &867E) and machine type handler
 # (4 bytes at &8686).
