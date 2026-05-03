@@ -298,14 +298,26 @@ constant(168, "osbyte_read_rom_ptr_table_low")
 
 label(0x0097, "escapable")           # b7=respond to Escape flag
 label(0x0098, "need_release_tube")   # b7=need to release Tube
-label(0x0099, "prot_flags")          # PFLAGS: printer/protocol status flags
+label(0x0099, "prot_flags",
+    description="PFLAGS: printer / protocol status flags.",
+    length=1, group="ram_workspace", access="rw")
 label(0x009A, "net_tx_ptr")          # NetTx control block pointer (low)
 label(0x009B, "net_tx_ptr_hi")       # NetTx control block pointer (high)
-label(0x009C, "net_rx_ptr")          # NetRx control blocks pointer (low)
-label(0x009D, "net_rx_ptr_hi")       # NetRx control blocks pointer (high)
+label(0x009C, "net_rx_ptr",
+    description="NetRx control blocks pointer (low byte). Pairs "
+                "with [`net_rx_ptr_hi`](address:009D).",
+    length=1, group="ram_workspace", access="rw")
+label(0x009D, "net_rx_ptr_hi",
+    description="NetRx control blocks pointer (high byte). Pairs "
+                "with [`net_rx_ptr`](address:009C) (low).",
+    length=1, group="ram_workspace", access="rw")
 label(0x009E, "nfs_workspace")       # General NFS workspace pointer (low)
 label(0x009F, "nfs_workspace_hi")    # General NFS workspace pointer (high)
-label(0x00A0, "nmi_tx_block")        # Block to be transmitted (low)
+label(0x00A0, "nmi_tx_block",
+    description="NMI TX block pointer (low byte). Address of the "
+                "TX control block currently being transmitted by "
+                "the NMI handler.",
+    length=1, group="ram_workspace", access="rw")
 label(0x00A1, "nmi_tx_block_hi")     # Block to be transmitted (high)
 label(0x00A2, "port_buf_len")        # Open port buffer length (low)
 label(0x00A3, "port_buf_len_hi")     # Open port buffer length (high)
@@ -331,8 +343,16 @@ label(0x00B1, "fs_load_addr_hi")
 label(0x00B2, "fs_load_addr_2")
 label(0x00B3, "fs_load_addr_3")
 label(0x00B4, "fs_work_4")
-label(0x00B5, "fs_work_5")
-label(0x00B6, "fs_work_6")
+label(0x00B5, "fs_work_5",
+    description="FS scratch byte 5. Multi-purpose: "
+                "*Wipe iteration counter, parsed FS station number, "
+                "spool drive number, etc.",
+    length=1, group="ram_workspace", access="rw")
+label(0x00B6, "fs_work_6",
+    description="FS scratch byte 6. Multi-purpose: "
+                "*Wipe end-of-buffer offset, parsed FS network "
+                "number, etc.",
+    length=1, group="ram_workspace", access="rw")
 label(0x00B7, "fs_work_7")
 label(0x00B8, "fs_error_ptr")
 label(0x00B9, "fs_crflag")
@@ -471,7 +491,10 @@ label(0x0D26, "tx_data_start",
     length=1, group="ram_workspace", access="rw")
 
 # TX control
-label(0x0D2A, "tx_data_len")
+label(0x0D2A, "tx_data_len",
+    description="Length of the TX data buffer payload, used "
+                "during scout/data frame construction.",
+    length=1, group="ram_workspace", access="rw")
 
 # RX scout buffer (&0D2E-&0D39)
 label(0x0D2E, "scout_buf",
@@ -641,7 +664,12 @@ label(0x0D72, "bridge_status",
 
 # Page &0D — workspace pointers
 label(0x0DE6, "txcb_default_base")    # Base for indexed read of default TXCB values
-label(0x0DF0, "rom_ws_pages")         # MOS per-ROM workspace page table (16 bytes)
+label(0x0DF0, "rom_ws_pages",
+    description="MOS per-ROM workspace page table (16 bytes, one "
+                "per sideways-ROM slot). Each entry is the high "
+                "byte of the page allocated to that ROM's "
+                "absolute workspace.",
+    length=16, group="ram_workspace", access="r")
 label(0x0DFA, "fs_context_save")      # Saved FS context block (station, handles)
 label(0x0DFE, "osword_ws_base")       # Base for OSWORD &14 workspace-to-PB copy
 label(0x0DFF, "fs_server_base")       # Base for Y-indexed file server stn/net
@@ -677,9 +705,17 @@ label(0x0EF7, "fs_reply_data")        # File info reply data
 label(0x0F00, "txcb_reply_port")      # TXCB reply port / command type
 label(0x0F01, "fs_cmd_y_param")       # TXCB function code / Y parameter
 label(0x0F02, "fs_cmd_urd")           # TXCB station byte / URD / port number
-label(0x0F03, "fs_cmd_csd")           # TXCB port byte / CSD handle
+label(0x0F03, "fs_cmd_csd",
+    description="TXCB port byte / CSD (current selected directory) "
+                "handle. Pre-HAZEL counterpart of "
+                "[`hazel_txcb_network`](address:C103).",
+    length=1, group="ram_workspace", access="rw")
 label(0x0F04, "fs_cmd_lib")           # TXCB lib handle / terminator byte
-label(0x0F05, "fs_cmd_data")          # TX buffer data start / FS reply data
+label(0x0F05, "fs_cmd_data",
+    description="TX buffer data start / FS reply data. "
+                "Pre-HAZEL counterpart of "
+                "[`hazel_txcb_data`](address:C105).",
+    length=1, group="ram_workspace", access="rw")
 label(0x0F06, "fs_func_code")         # Function code / direction flag / offset
 label(0x0F07, "fs_data_count")        # Data count / lock flag / position byte
 label(0x0F08, "fs_reply_cmd")         # Transfer size lo / result byte
@@ -754,7 +790,10 @@ label(0x10D8, "quote_mode")           # Quote mode tracking flag
 label(0x10D9, "fcb_ctx_save")         # FCB context save buffer (13 bytes)
 
 # Display buffer
-label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
+label(0x10F3, "filename_buf",
+    description="Filename display buffer (12 bytes). Used by "
+                "directory listing and *Info to format filenames.",
+    length=12, group="ram_workspace", access="rw")
 
 # Other
 
@@ -5378,9 +5417,8 @@ the calls: when Carry is clear on entry the routine returns via
 [`return_with_last_flag`](address:9FB4); when Carry is set it
 continues into the boot path at
 [`fsreply_2_handle_loop`](address:A70B), which OSCLIs
-`-NET-FindLib`, optionally calls
-[`osbyte_make_temporary_filing_system_permanent`](address:FFF4),
-clears the auto-boot flag in
+`-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing
+system permanent, clears the auto-boot flag in
 [`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
 falls through to [`boot_suffix_string`](address:A75F) to execute
 the !Boot command. Reached only via the FS reply dispatch
@@ -5506,9 +5544,8 @@ handler stores Y back through the parameter-block pointer at
 `(ws_ptr_hi),Y` and RTS, leaving the caller a status byte. When
 it was set (`C=1`, TX idle) execution falls through to the start
 path at [`setup_ws_rx_ptrs`](address:A919), which seeds the
-workspace pointers from
-[`net_rx_ptr_hi`](address:009D)/`#&6F`, copies 16 bytes of the
-parameter block into the workspace via
+workspace pointers from [`net_rx_ptr_hi`](address:009D)/`#&6F`,
+copies 16 bytes of the parameter block into the workspace via
 [`copy_pb_byte_to_ws`](address:AA82) and JMPs to
 [`tx_begin`](address:8589) to launch the transmission.""",
     on_entry={"x, y": "OSWORD parameter block pointer (low, high)"})
@@ -10591,7 +10628,14 @@ label(0x0355, "vdu_mode",
     length=1, group="ram_workspace", access="r")
 label(0x0406, "tube_addr_data_dispatch")
 label(0x0CFF, "nmi_code_base")
-label(0x0D71, "spool_control_flag")
+label(0x0D71, "spool_control_flag",
+    description="Multi-purpose: spool-buffer control flag (printer "
+                "spooling); also doubles as the bridge-routing-table "
+                "status byte read by "
+                "[`init_bridge_poll`](address:ABE9) (`&FF` = "
+                "uninitialised, anything else = bridge already "
+                "polled).",
+    length=1, group="ram_workspace", access="rw")
 label(0x2048, "ws_template_source")
 label(0x2322, "separator_parse_dispatch")
 label(0x4898, "cdir_unused_dispatch_table")
@@ -10607,15 +10651,29 @@ label(0xC000, "hazel_fs_station",
                 "(`hazel_fs_station`, `hazel_fs_network`) are the FS "
                 "address used for every TX scout.",
     length=11, group="hazel", access="rw")
-label(0xC001, "hazel_fs_network")
+label(0xC001, "hazel_fs_network",
+    description="FS network number (sub-byte of the &C000 FS "
+                "context block).",
+    length=1, group="hazel", access="rw")
 label(0xC002, "hazel_fs_saved_station")
-label(0xC003, "hazel_fs_context_copy")  # multi-purpose: CSD handle / matched-entry index / Y-indexed base into FS context block
-label(0xC004, "hazel_fs_prefix_stn")  # multi-purpose: saved-prefix station / library handle / boot type
+label(0xC003, "hazel_fs_context_copy",
+    description="Multi-purpose sub-byte of the &C000 block: CSD "
+                "handle / matched-entry index / Y-indexed base "
+                "into FS context block.",
+    length=1, group="hazel", access="rw")
+label(0xC004, "hazel_fs_prefix_stn",
+    description="Multi-purpose sub-byte of the &C000 block: "
+                "saved-prefix station / library handle / boot type.",
+    length=1, group="hazel", access="rw")
 label(0xC005, "hazel_fs_flags")
 label(0xC006, "hazel_fs_messages_flag")
 label(0xC007, "hazel_fs_pending_state")
-label(0xC008, "hazel_fs_error_code")
-label(0xC009, "hazel_fs_last_error")
+label(0xC008, "hazel_fs_error_code",
+    description="FS error code (sub-byte of the &C000 block).",
+    length=1, group="hazel", access="rw")
+label(0xC009, "hazel_fs_last_error",
+    description="Last FS error byte (sub-byte of the &C000 block).",
+    length=1, group="hazel", access="rw")
 label(0xC00A, "hazel_fs_opts_addend")
 label(0xC014, "hazel_retry_counter",
     description="Retry counter for the current Econet TX/RX cycle.",
@@ -10715,7 +10773,11 @@ label(0xC260, "hazel_fcb_status",
                 "(`set_conn_active` / `clear_conn_active` toggle).",
     length=16, group="hazel", access="rw")
 label(0xC270, "hazel_cur_dir_handle")
-label(0xC271, "hazel_fs_lib_flags")
+label(0xC271, "hazel_fs_lib_flags",
+    description="FS library / option flags. Bit 2 = auto-boot, "
+                "bit 7 = library-directory pending. Cleared / "
+                "tested by *Cat / *Lcat / *Ex / *Lex paths.",
+    length=1, group="hazel", access="rw")
 label(0xC272, "hazel_fcb_slot_1")
 label(0xC273, "hazel_fcb_slot_2")
 label(0xC274, "hazel_fcb_slot_3")
@@ -10735,8 +10797,16 @@ label(0xC2C9, "hazel_chan_attr")
 label(0xC2CA, "hazel_chan_ref")
 label(0xC2CB, "hazel_byte_counter_lo")
 label(0xC2CC, "hazel_buf_addr_hi")
-label(0xC2CD, "hazel_sentinel_cd")
-label(0xC2CE, "hazel_sentinel_ce")
+label(0xC2CD, "hazel_sentinel_cd",
+    description="Sentinel/scratch byte at HAZEL+&CD, used by the "
+                "FCB-scan loop in "
+                "[`process_all_fcbs`](address:BB38).",
+    length=1, group="hazel", access="rw")
+label(0xC2CE, "hazel_sentinel_ce",
+    description="Sentinel/scratch byte at HAZEL+&CE, used by the "
+                "FCB-scan loop in "
+                "[`process_all_fcbs`](address:BB38).",
+    length=1, group="hazel", access="rw")
 label(0xC2CF, "hazel_offset_counter")
 label(0xC2D0, "hazel_pass_counter")
 label(0xC2D1, "hazel_xfer_init_zeros")
@@ -10745,7 +10815,10 @@ label(0xC2D5, "hazel_station_hi")
 label(0xC2D6, "hazel_transfer_flag")
 label(0xC2D7, "hazel_saved_byte")
 label(0xC2D8, "hazel_quote_mode")
-label(0xC2D9, "hazel_ctx_buffer")
+label(0xC2D9, "hazel_ctx_buffer",
+    description="HAZEL context buffer (saved register / state "
+                "block used during FCB processing).",
+    length=1, group="hazel", access="rw")
 label(0xC2F3, "hazel_display_buf")
 label(0xFE28, "master_romsel_shadow",
     description="Master 128 ROMSEL shadow register.\n"

@@ -63,14 +63,14 @@ zp_0063                     = &0063
 zp_0078                     = &0078
 escapable                   = &0097
 need_release_tube           = &0098
-prot_flags                  = &0099
+prot_flags                  = &0099  ; PFLAGS: printer / protocol status flags.
 net_tx_ptr                  = &009a
 net_tx_ptr_hi               = &009b
-net_rx_ptr                  = &009c
-net_rx_ptr_hi               = &009d
+net_rx_ptr                  = &009c  ; NetRx control blocks pointer (low byte). Pairs with net_rx_ptr_hi.
+net_rx_ptr_hi               = &009d  ; NetRx control blocks pointer (high byte). Pairs with net_rx_ptr (low).
 nfs_workspace               = &009e
 nfs_workspace_hi            = &009f
-nmi_tx_block                = &00a0
+nmi_tx_block                = &00a0  ; NMI TX block pointer (low byte). Address of the TX control block currently being transmitted by the NMI handler.
 nmi_tx_block_hi             = &00a1
 port_buf_len                = &00a2
 port_buf_len_hi             = &00a3
@@ -91,8 +91,8 @@ fs_load_addr_hi             = &00b1
 fs_load_addr_2              = &00b2
 fs_load_addr_3              = &00b3
 fs_work_4                   = &00b4
-fs_work_5                   = &00b5
-fs_work_6                   = &00b6
+fs_work_5                   = &00b5  ; FS scratch byte 5. Multi-purpose: *Wipe iteration counter, parsed FS station number, spool drive number, etc.
+fs_work_6                   = &00b6  ; FS scratch byte 6. Multi-purpose: *Wipe end-of-buffer offset, parsed FS network number, etc.
 fs_work_7                   = &00b7
 fs_error_ptr                = &00b8
 fs_crflag                   = &00b9
@@ -160,7 +160,7 @@ tx_src_net                  = &0d23  ; Source-network byte for outgoing scout/AC
 tx_ctrl_byte                = &0d24  ; Control byte for next TX scout frame.
 tx_port                     = &0d25  ; Destination port for next TX scout frame.
 tx_data_start               = &0d26  ; Start of TX data buffer (used by scout/data frame construction).
-tx_data_len                 = &0d2a
+tx_data_len                 = &0d2a  ; Length of the TX data buffer payload, used during scout/data frame construction.
 scout_buf                   = &0d2e  ; Base of the 12-byte RX scout data buffer.
 scout_src_net               = &0d2f  ; Scout source network byte (scout_buf+1).
 scout_ctrl                  = &0d30  ; Scout control byte (scout_buf+2).
@@ -195,10 +195,10 @@ fs_flags                    = &0d6c  ; Filing-system status flags.
 tx_retry_count              = &0d6d  ; Transmit retry count (default &FF = 255).
 rx_wait_timeout             = &0d6e  ; Receive wait timeout (default &28 = 40).
 peek_retry_count            = &0d6f  ; Machine peek retry count (default &0A = 10).
-spool_control_flag          = &0d71
+spool_control_flag          = &0d71  ; Multi-purpose: spool-buffer control flag (printer spooling); also doubles as the bridge-routing-table status byte read by init_bridge_poll (&FF = uninitialised, anything else = bridge already polled).
 bridge_status               = &0d72  ; Bridge station number (&FF = no bridge).
 txcb_default_base           = &0de6
-rom_ws_pages                = &0df0
+rom_ws_pages                = &0df0  ; MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace.
 fs_context_save             = &0dfa
 osword_ws_base              = &0dfe
 fs_server_base              = &0dff
@@ -223,9 +223,9 @@ fs_reply_data               = &0ef7
 txcb_reply_port             = &0f00
 fs_cmd_y_param              = &0f01
 fs_cmd_urd                  = &0f02
-fs_cmd_csd                  = &0f03
+fs_cmd_csd                  = &0f03  ; TXCB port byte / CSD (current selected directory) handle. Pre-HAZEL counterpart of hazel_txcb_network.
 fs_cmd_lib                  = &0f04
-fs_cmd_data                 = &0f05
+fs_cmd_data                 = &0f05  ; TX buffer data start / FS reply data. Pre-HAZEL counterpart of hazel_txcb_data.
 fs_func_code                = &0f06
 fs_data_count               = &0f07
 fs_reply_cmd                = &0f08
@@ -282,21 +282,21 @@ xfer_flag                   = &10d6
 osbput_saved_byte           = &10d7
 quote_mode                  = &10d8
 fcb_ctx_save                = &10d9
-filename_buf                = &10f3
+filename_buf                = &10f3  ; Filename display buffer (12 bytes). Used by directory listing and *Info to format filenames.
 ws_template_source          = &2048
 separator_parse_dispatch    = &2322
 cdir_unused_dispatch_table  = &4898
 ws_precomputed_value        = &688b
 false_ref_6f6e              = &6f6e
-hazel_fs_network            = &c001
+hazel_fs_network            = &c001  ; FS network number (sub-byte of the &C000 FS context block).
 hazel_fs_saved_station      = &c002
-hazel_fs_context_copy       = &c003
-hazel_fs_prefix_stn         = &c004
+hazel_fs_context_copy       = &c003  ; Multi-purpose sub-byte of the &C000 block: CSD handle / matched-entry index / Y-indexed base into FS context block.
+hazel_fs_prefix_stn         = &c004  ; Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type.
 hazel_fs_flags              = &c005
 hazel_fs_messages_flag      = &c006
 hazel_fs_pending_state      = &c007
-hazel_fs_error_code         = &c008
-hazel_fs_last_error         = &c009
+hazel_fs_error_code         = &c008  ; FS error code (sub-byte of the &C000 block).
+hazel_fs_last_error         = &c009  ; Last FS error byte (sub-byte of the &C000 block).
 hazel_fs_opts_addend        = &c00a
 hazel_retry_counter         = &c014  ; Retry counter for the current Econet TX/RX cycle.
 hazel_parse_buf_m1          = &c02f
@@ -344,7 +344,7 @@ hazel_fcb_state_byte        = &c240  ; FCB parallel array (16 entries): multi-pu
 hazel_fcb_network           = &c250  ; FCB parallel array (16 entries): network number per channel.
 hazel_fcb_status            = &c260  ; FCB parallel array (16 entries): per-channel status flags.
 hazel_cur_dir_handle        = &c270
-hazel_fs_lib_flags          = &c271
+hazel_fs_lib_flags          = &c271  ; FS library / option flags. Bit 2 = auto-boot, bit 7 = library-directory pending. Cleared / tested by *Cat / *Lcat / *Ex / *Lex paths.
 hazel_fcb_slot_1            = &c272
 hazel_fcb_slot_2            = &c273
 hazel_fcb_slot_3            = &c274
@@ -358,8 +358,8 @@ hazel_chan_attr             = &c2c9
 hazel_chan_ref              = &c2ca
 hazel_byte_counter_lo       = &c2cb
 hazel_buf_addr_hi           = &c2cc
-hazel_sentinel_cd           = &c2cd
-hazel_sentinel_ce           = &c2ce
+hazel_sentinel_cd           = &c2cd  ; Sentinel/scratch byte at HAZEL+&CD, used by the FCB-scan loop in process_all_fcbs.
+hazel_sentinel_ce           = &c2ce  ; Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in process_all_fcbs.
 hazel_offset_counter        = &c2cf
 hazel_pass_counter          = &c2d0
 hazel_xfer_init_zeros       = &c2d1
@@ -368,7 +368,7 @@ hazel_station_hi            = &c2d5
 hazel_transfer_flag         = &c2d6
 hazel_saved_byte            = &c2d7
 hazel_quote_mode            = &c2d8
-hazel_ctx_buffer            = &c2d9
+hazel_ctx_buffer            = &c2d9  ; HAZEL context buffer (saved register / state block used during FCB processing).
 hazel_display_buf           = &c2f3
 econet_station_id           = &fe18  ; Econet station ID register / INTOFF latch.
 econet_nmi_enable           = &fe20  ; Econet NMI-enable register / INTON latch.
@@ -10406,7 +10406,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; (hazel_txcb_data, hazel_txcb_flag, hazel_txcb_count). PHP/PLP carry a flag across the
 ; calls: when Carry is clear on entry the routine returns via return_with_last_flag;
 ; when Carry is set it continues into the boot path at fsreply_2_handle_loop, which
-; OSCLIs -NET-FindLib, optionally calls osbyte_make_temporary_filing_system_permanent,
+; OSCLIs -NET-FindLib, optionally calls OSBYTE &6D to make the filing system permanent,
 ; clears the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls
 ; through to boot_suffix_string to execute the !Boot command. Reached only via the FS
 ; reply dispatch table.
