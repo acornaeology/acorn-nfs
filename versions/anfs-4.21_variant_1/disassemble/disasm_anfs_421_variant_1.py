@@ -10368,7 +10368,16 @@ label(0x2322, "separator_parse_dispatch")
 label(0x4898, "cdir_unused_dispatch_table")
 label(0x688B, "ws_precomputed_value")
 label(0x6F6E, "false_ref_6f6e")
-label(0xC000, "hazel_fs_station")  # written via STA pydis_end -- HAZEL +0
+label(0xC000, "hazel_fs_station",
+    description="Filing-system state block (`&C000`–`&C00A`).\n\n"
+                "Eleven bytes of currently-selected-FS context kept "
+                "in HAZEL: station / network of the FS, saved prefix "
+                "station, multi-purpose CSD/library/boot-type slots, "
+                "FS flags, messages flag, pending-state, error code, "
+                "last-error, and `*OPT` addend. The first two bytes "
+                "(`hazel_fs_station`, `hazel_fs_network`) are the FS "
+                "address used for every TX scout.",
+    length=11, group="hazel", access="rw")
 label(0xC001, "hazel_fs_network")
 label(0xC002, "hazel_fs_saved_station")
 label(0xC003, "hazel_fs_context_copy")  # multi-purpose: CSD handle / matched-entry index / Y-indexed base into FS context block
@@ -10379,44 +10388,53 @@ label(0xC007, "hazel_fs_pending_state")
 label(0xC008, "hazel_fs_error_code")
 label(0xC009, "hazel_fs_last_error")
 label(0xC00A, "hazel_fs_opts_addend")
-label(0xC014, "hazel_retry_counter")
+label(0xC014, "hazel_retry_counter",
+    description="Retry counter for the current Econet TX/RX cycle.",
+    length=1, group="hazel", access="rw")
 label(0xC02F, "hazel_parse_buf_m1")
-label(0xC030, "hazel_parse_buf")
+label(0xC030, "hazel_parse_buf",
+    description="Three-byte parse-buffer used for command-line "
+                "matching (e.g. `*OPT`, `*FS`).",
+    length=3, group="hazel", access="rw")
 label(0xC031, "hazel_parse_buf_1")
 label(0xC032, "hazel_parse_buf_2")
-label(0xC038, "hazel_rtc_buffer")
-label(0xC0F7, "hazel_fs_reply_byte")
+label(0xC038, "hazel_rtc_buffer",
+    description="OSWORD `&0E` real-time-clock result buffer.",
+    length=25, group="hazel", access="rw")
+label(0xC0F7, "hazel_fs_reply_byte",
+    description="Latched first byte of the most recent FS reply.",
+    length=1, group="hazel", access="rw")
 label(0xC100, "hazel_txcb_port",
     description="TXCB byte 0: port number for the next TX scout.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC101, "hazel_txcb_func_code",
     description="TXCB byte 1: function code (FS command number).",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC102, "hazel_txcb_station",
     description="TXCB byte 2: destination station.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC103, "hazel_txcb_network",
     description="TXCB byte 3: multi-purpose.\n"
                 "TXCB destination network (TX setup) / reply "
                 "function code (RX context) / `fs_cmd_csd` buffer "
                 "base (other paths).",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC104, "hazel_txcb_lib",
     description="TXCB byte 4: library handle terminator / "
                 "transfer-length param 1.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC105, "hazel_txcb_data",
     description="TXCB byte 5: first reply-data byte / data start.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC106, "hazel_txcb_flag",
     description="TXCB byte 6: direction flag.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC107, "hazel_txcb_count",
     description="TXCB byte 7: data count / lock flag.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC108, "hazel_txcb_result",
     description="TXCB byte 8: result / transfer-size lo.",
-    length=1, group="ram_workspace", access="rw")
+    length=1, group="hazel", access="rw")
 label(0xC10A, "hazel_txcb_size_hi")
 label(0xC10B, "hazel_txcb_tx_status")
 label(0xC10C, "hazel_txcb_osword_flag")
@@ -10442,31 +10460,31 @@ label(0xC200, "hazel_fcb_addr_lo",
     description="FCB parallel array (16 entries): file position byte 0 (low).\n"
                 "Indexed by channel `0..15`; cleared by "
                 "[`alloc_fcb_slot`](address:B8A8) on FCB allocation.",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC210, "hazel_fcb_addr_mid",
     description="FCB parallel array (16 entries): file position byte 1 (mid).",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC220, "hazel_fcb_addr_hi",
     description="FCB parallel array (16 entries): file position byte 2 (high).",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC230, "hazel_fcb_slot_attr",
     description="FCB parallel array (16 entries): slot occupancy + channel attribute.\n"
                 "Tested for zero by [`alloc_fcb_slot`](address:B8A8) "
                 "as the slot-free check; set non-zero on allocation.",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC240, "hazel_fcb_state_byte",
     description="FCB parallel array (16 entries): multi-purpose state byte.\n"
                 "Holds station number for non-OSFIND channels, or "
                 "open-mode flags for channels created by OSFIND.",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC250, "hazel_fcb_network",
     description="FCB parallel array (16 entries): network number per channel.",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC260, "hazel_fcb_status",
     description="FCB parallel array (16 entries): per-channel status flags.\n"
                 "Heavily used: bit 6 = connection active "
                 "(`set_conn_active` / `clear_conn_active` toggle).",
-    length=16, group="ram_workspace", access="rw")
+    length=16, group="hazel", access="rw")
 label(0xC270, "hazel_cur_dir_handle")
 label(0xC271, "hazel_fs_lib_flags")
 label(0xC272, "hazel_fcb_slot_1")
@@ -10477,7 +10495,13 @@ label(0xC288, "hazel_fcb_station_hi")
 label(0xC298, "hazel_fcb_offset_save")
 label(0xC2A8, "hazel_fcb_attr_ref")
 label(0xC2B8, "hazel_fcb_flags")
-label(0xC2C8, "hazel_cur_fcb_index")
+label(0xC2C8, "hazel_cur_fcb_index",
+    description="Current FCB index used by the FCB-scan loop in "
+                "[`process_all_fcbs`](address:BB38). Followed by the "
+                "channel attribute / reference, byte-counter, "
+                "buffer pointer and a small block of transfer-state "
+                "scratch bytes used during file I/O.",
+    length=1, group="hazel", access="rw")
 label(0xC2C9, "hazel_chan_attr")
 label(0xC2CA, "hazel_chan_ref")
 label(0xC2CB, "hazel_byte_counter_lo")
