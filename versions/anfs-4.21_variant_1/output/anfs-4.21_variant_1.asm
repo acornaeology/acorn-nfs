@@ -1731,17 +1731,19 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta (net_rx_ptr),y                                                ; 850d: 91 9c       ..             ; Store source network in reply header
     lda scout_ctrl                                                    ; 850f: ad 30 0d    .0.            ; Load control byte from received frame
 ; ***************************************************************************************
-; Save TX op type and configure shift-register mode
+; Save TX op type and update workspace ACR-format byte
 ;
 ; Stores the TX operation type in tx_op_type.
 ;
-; | Op code                                | Path                                                                                                                                     |
-; |----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched                                                                           |
-; | < &86                                  | load the workspace shadow at ws_0d68, copy it to ws_0d69 (preserved for later restore), ORA in the SR-mode-2 bits, write back to ws_0d68 |
+; | Op code                                | Path                                                                                                                                                                    |
+; |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the workspace byte is left untouched                                                                                              |
+; | < &86                                  | load ws_0d68, copy it to ws_0d69 (preserved for later restore), ORA in bits 2-4 (the SR-mode-2 mask in System-VIA ACR layout), write the modified value back to ws_0d68 |
 ;
-; The shadow is flushed to the real VIA ACR/SR registers later in the Master IRQ path.
-; Single caller (&83E2 in scout_complete).
+; The byte at ws_0d68 carries an ACR-format flag layout left over from 4.18, which used
+; the same op-code dispatch to update the live System VIA ACR. In 4.21 the byte stays
+; in workspace -- nothing in this ROM flushes it to the live VIA. Single caller (&83E2
+; in scout_complete).
 ;
 ; On Entry: A: TX operation type
 ; &8512 referenced 1 time by &83e2
@@ -1749,10 +1751,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta tx_op_type                                                    ; 8512: 8d 65 0d    .e.            ; Save TX operation type for SR dispatch
     cmp #&86                                                          ; 8515: c9 86       ..             ; Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup
     bcs enable_irq_pending                                            ; 8517: b0 0b       ..             ; Skip ahead to the ACCCON IRR set
-    lda ws_0d68                                                       ; 8519: ad 68 0d    .h.            ; Load shadow ACR/IER state
+    lda ws_0d68                                                       ; 8519: ad 68 0d    .h.            ; Load workspace ACR-format byte
     sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.            ; Stash a copy in ws_0d69 for later restore
     ora #&1c                                                          ; 851f: 09 1c       ..             ; In shift-register mode-2 control bits
-    sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.            ; Write updated VIA ACR shadow back to ws_0d68
+    sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.            ; Write updated workspace byte back to ws_0d68
 ; &8524 referenced 1 time by &8517
 .enable_irq_pending
     lda #&80                                                          ; 8524: a9 80       ..             ; A=&80: ACCCON bit 7 (IRR -- raise interrupt)
@@ -4808,7 +4810,7 @@ ps_template_base = load_transfer_params+1
     lda #&ff                                                          ; 8fa4: a9 ff       ..             ; A=&FF -- enable protection
 ; &8fa6 referenced 1 time by &8fa2
 .init_copy_skip_cmos
-    jsr set_via_shadow_pair                                           ; 8fa6: 20 bb aa     ..            ; Set shadow ACR/IER pair
+    jsr set_ws_pair_0d68_0d69                                         ; 8fa6: 20 bb aa     ..            ; Set ws_0d68/ws_0d69 pair
 ; &8fa9 referenced 1 time by &8fb6
 .loop_alloc_handles
     lda ws_page                                                       ; 8fa9: a5 a8       ..             ; Get current workspace page
@@ -11211,24 +11213,26 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 5: write protection mask
 ;
-; Loads the new protection mask from PB[1] and falls through into set_via_shadow_pair
-; which mirrors it into both shadow ACR (ws_0d68) and shadow IER (ws_0d69).
+; Loads the new protection mask from PB[1] and falls through into set_ws_pair_0d68_0d69
+; which mirrors it into the ACR/SR-format byte pair at &0D68 / &0D69 that ANFS uses for
+; its own state tracking.
 .osword_13_write_prot
     iny                                                               ; aab8: c8          .              ; Y=1: PB data offset
     lda (ws_ptr_hi),y                                                 ; aab9: b1 ac       ..             ; Load new mask from PB[1]
 ; ***************************************************************************************
-; Store A in both shadow ACR/IER bytes
+; Store A in both ws_0d68 and ws_0d69
 ;
-; Copies A to both ws_0d68 (shadow ACR) and ws_0d69 (shadow IER), then RTS. Two
-; callers: nfs_init_body at &8FA6 (where A is 0 or &FF based on FS-options bit 6) and
-; cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return convenience to keep both
-; call sites flat.
+; Copies A to both ws_0d68 and ws_0d69, then RTS. The bytes carry ACR/SR-style flag
+; layouts that ANFS uses internally; nothing in this ROM flushes them to the live
+; System VIA. Two callers: nfs_init_body at &8FA6 (where A is 0 or &FF based on
+; FS-options bit 6) and cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return
+; convenience to keep both call sites flat.
 ;
-; On Entry: A: value to mirror into both shadow VIA bytes
+; On Entry: A: value to mirror into both workspace bytes
 ; &aabb referenced 2 times by &8fa6, &b6d9
-.set_via_shadow_pair
-    sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.            ; Mirror A into ws_0d68 (shadow ACR)
-    sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.            ; Mirror A into ws_0d69 (shadow IER)
+.set_ws_pair_0d68_0d69
+    sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.            ; Mirror A into ws_0d68 (ACR-format byte)
+    sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.            ; Mirror A into ws_0d69 (IER-format byte)
     rts                                                               ; aac1: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -12638,8 +12642,8 @@ bridge_err_table = compare_bridge_status+1
 ; On Exit: A: = the committed value
 ; &b05f referenced 4 times by &9856, &987e, &98b6, &a997
 .commit_state_byte
-    lda ws_0d69                                                       ; b05f: ad 69 0d    .i.            ; Read shadow ACR copy from ws_0d69
-    sta ws_0d68                                                       ; b062: 8d 68 0d    .h.            ; Store as live ACR shadow at ws_0d68
+    lda ws_0d69                                                       ; b05f: ad 69 0d    .i.            ; Read saved copy of ws_0d68 from ws_0d69
+    sta ws_0d68                                                       ; b062: 8d 68 0d    .h.            ; Store back to ws_0d68
     rts                                                               ; b065: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -14232,7 +14236,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b6d8 referenced 1 time by &b6d4
 .unprot_clear
     php                                                               ; b6d8: 08          .              ; Save Z flag (1 = unprot, 0 = prot) for later
-    jsr set_via_shadow_pair                                           ; b6d9: 20 bb aa     ..            ; Mirror A into shadow ACR / shadow IER
+    jsr set_ws_pair_0d68_0d69                                         ; b6d9: 20 bb aa     ..            ; Mirror A into ws_0d68 / ws_0d69 pair
     ldx #&11                                                          ; b6dc: a2 11       ..             ; X=&11: CMOS offset for Econet flags
     jsr osbyte_a1                                                     ; b6de: 20 9a 8e     ..            ; OSBYTE &A1 reads CMOS byte &11 -> Y
     tya                                                               ; b6e1: 98          .              ; A = current CMOS byte
@@ -16887,7 +16891,7 @@ save pydis_start, pydis_end
 ;     set_nmi_rx_scout:                2
 ;     set_options_ptr:                 2
 ;     set_text_and_xfer_ptr:           2
-;     set_via_shadow_pair:             2
+;     set_ws_pair_0d68_0d69:           2
 ;     setup_dir_display:               2
 ;     setup_transfer_workspace:        2
 ;     setup_ws_ptr:                    2

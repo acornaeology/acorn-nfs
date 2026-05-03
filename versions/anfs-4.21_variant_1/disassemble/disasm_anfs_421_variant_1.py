@@ -2998,18 +2998,20 @@ Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets
 [`tx_calc_transfer`](address:8900) to send the PEEK response
 data back to the requesting station.""")
 subroutine(0x8512, "setup_sr_tx",
-    title="Save TX op type and configure shift-register mode",
+    title="Save TX op type and update workspace ACR-format byte",
     description="""\
 Stores the TX operation type in [`tx_op_type`](address:0D65).
 
 | Op code | Path |
 |---|---|
-| `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; shift register untouched |
-| `< &86` | load the workspace shadow at [`ws_0d68`](address:0D68), copy it to [`ws_0d69`](address:0D69) (preserved for later restore), `ORA` in the SR-mode-2 bits, write back to [`ws_0d68`](address:0D68) |
+| `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the workspace byte is left untouched |
+| `< &86` | load [`ws_0d68`](address:0D68), copy it to [`ws_0d69`](address:0D69) (preserved for later restore), `ORA` in bits 2-4 (the SR-mode-2 mask in System-VIA ACR layout), write the modified value back to `ws_0d68` |
 
-The shadow is flushed to the real VIA `ACR`/`SR` registers later
-in the Master IRQ path. Single caller (`&83E2` in
-[`scout_complete`](address:8112)).""",
+The byte at `ws_0d68` carries an ACR-format flag layout left over
+from 4.18, which used the same op-code dispatch to update the
+*live* System VIA ACR. In 4.21 the byte stays in workspace --
+nothing in this ROM flushes it to the live VIA. Single caller
+(`&83E2` in [`scout_complete`](address:8112)).""",
     on_entry={"a": "TX operation type"})
 subroutine(0x852C, "advance_buffer_ptr",
     title="Increment 4-byte receive-buffer pointer",
@@ -5750,18 +5752,21 @@ subroutine(0xAAB8, "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="""\
 Loads the new protection mask from `PB[1]` and falls through into
-[`set_via_shadow_pair`](address:AABB) which mirrors it into both
-shadow ACR (`ws_0d68`) and shadow IER (`ws_0d69`).""")
-subroutine(0xAABB, "set_via_shadow_pair",
-    title="Store A in both shadow ACR/IER bytes",
+[`set_ws_pair_0d68_0d69`](address:AABB) which mirrors it into the
+ACR/SR-format byte pair at `&0D68` / `&0D69` that ANFS uses for its
+own state tracking.""")
+subroutine(0xAABB, "set_ws_pair_0d68_0d69",
+    title="Store A in both ws_0d68 and ws_0d69",
     description="""\
-Copies `A` to both `ws_0d68` (shadow ACR) and `ws_0d69` (shadow
-IER), then `RTS`. Two callers:
+Copies `A` to both [`ws_0d68`](address:0D68) and
+[`ws_0d69`](address:0D69), then `RTS`. The bytes carry ACR/SR-style
+flag layouts that ANFS uses internally; nothing in this ROM flushes
+them to the live System VIA. Two callers:
 [`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or
 `&FF` based on FS-options bit 6) and
 [`cmd_prot`](address:B6D2) at `&B6D9` (the *Prot path).
 A 2-store-and-return convenience to keep both call sites flat.""",
-    on_entry={"a": "value to mirror into both shadow VIA bytes"})
+    on_entry={"a": "value to mirror into both workspace bytes"})
 entry(0xAAC2)
 subroutine(0xAAC2, "osword_13_read_handles",
     title="OSWORD &13 sub 6: read FCB handle info",
@@ -7354,10 +7359,10 @@ comment(0x8512, "Save TX operation type for SR dispatch", inline=True)
 comment(0x8515, "Op codes >= &86 (HALT/CONTINUE/machine-type) skip "
                 "the SR setup", inline=True)
 comment(0x8517, "Skip ahead to the ACCCON IRR set", inline=True)
-comment(0x8519, "Load shadow ACR/IER state", inline=True)
+comment(0x8519, "Load workspace ACR-format byte", inline=True)
 comment(0x851C, "Stash a copy in ws_0d69 for later restore", inline=True)
 comment(0x851F, "In shift-register mode-2 control bits", inline=True)
-comment(0x8521, "Write updated VIA ACR shadow back to ws_0d68",
+comment(0x8521, "Write updated workspace byte back to ws_0d68",
     inline=True)
 comment(0x8524, "A=&80: ACCCON bit 7 (IRR -- raise interrupt)", inline=True)
 comment(0x8526, "Set ACCCON IRR to flag a pending interrupt to MOS",
@@ -9248,8 +9253,8 @@ comment(0xA9F9, "X=&0F: scan all 16 FCB slots (X = 15 down to 0)",
     inline=True)
 
 # &AABB..&AAC1: set_via_shadow_pair body.
-comment(0xAABB, "Mirror A into ws_0d68 (shadow ACR)", inline=True)
-comment(0xAABE, "Mirror A into ws_0d69 (shadow IER)", inline=True)
+comment(0xAABB, "Mirror A into ws_0d68 (ACR-format byte)", inline=True)
+comment(0xAABE, "Mirror A into ws_0d69 (IER-format byte)", inline=True)
 comment(0xAAC1, "Return", inline=True)
 
 # cmd_pollps gap-fill (8 items).
@@ -10303,7 +10308,7 @@ comment(0x8F9F, "A = settings byte", inline=True)
 comment(0x8FA0, "Mask bit 6 (CMOS protection-state flag)", inline=True)
 comment(0x8FA2, "Bit clear: skip the &FF substitution", inline=True)
 comment(0x8FA4, "A=&FF -- enable protection", inline=True)
-comment(0x8FA6, "Set shadow ACR/IER pair", inline=True)
+comment(0x8FA6, "Set ws_0d68/ws_0d69 pair", inline=True)
 comment(0x8FBB, "Read CMOS &00 (= station ID byte)", inline=True)
 comment(0x8FBE, "Y (CMOS value) into A", inline=True)
 comment(0x8FBF, "Non-zero: station ID valid -> alloc_common_entry",
@@ -10391,8 +10396,8 @@ comment(0xAC8F, "Read nfs_workspace_hi", inline=True)
 comment(0xACF8, "Re-enable IRQs", inline=True)
 comment(0xAE5A, "Step counter", inline=True)
 comment(0xAE61, "Shift bit 0 into C", inline=True)
-comment(0xB05F, "Read shadow ACR copy from ws_0d69", inline=True)
-comment(0xB062, "Store as live ACR shadow at ws_0d68", inline=True)
+comment(0xB05F, "Read saved copy of ws_0d68 from ws_0d69", inline=True)
+comment(0xB062, "Store back to ws_0d68", inline=True)
 comment(0xB065, "Return", inline=True)
 comment(0xB081, "X=0: zero-arg helper entry", inline=True)
 comment(0xB357, "Clear owner-only access bits before "
@@ -13753,7 +13758,7 @@ comment(0xB6D2, "Load &FF (protect)", inline=True)
 comment(0xB6D6, "Load &00 (unprotect)", inline=True)
 comment(0xB6D8, "Save Z flag (1 = unprot, 0 = prot) for later",
         inline=True)
-comment(0xB6D9, "Mirror A into shadow ACR / shadow IER", inline=True)
+comment(0xB6D9, "Mirror A into ws_0d68 / ws_0d69 pair", inline=True)
 comment(0xB6DC, "X=&11: CMOS offset for Econet flags", inline=True)
 comment(0xB6DE, "OSBYTE &A1 reads CMOS byte &11 -> Y", inline=True)
 comment(0xB6E1, "A = current CMOS byte", inline=True)

@@ -133,21 +133,34 @@ The savings aren't dramatic per call site, but they accumulate. The
 implementing strictly more functionality – because the new
 instructions paid for the new code.
 
-## Interrupts, deferred work, and the shadow VIA
+## Interrupts, deferred work, and the System VIA
 
-Master MOS owns the System VIA. Its auxiliary control register
-(ACR) and shift register (SR) are touched by the OS during VDU
-work, sound, and keyboard polling. A filing system that needed
-shift-register-driven I/O on the Model B could write the VIA
-directly; on the Master it can't, because MOS will overwrite its
-settings.
+NFS 3.65 and ANFS 4.18 both poked the System VIA directly to
+drive the ADLC clock. 3.65's
+[`imm_op_setup`](address:9B22@3.65) is the textbook example –
+it writes IER bit 2 to mask the SR interrupt, reads-modifies-
+writes ACR to set shift-register mode 2, then reads SR to clear
+the pending interrupt – and 4.18 carries an analogous sequence
+at [`&8036`–`&8049`](address:8036@4.18) and a second one in
+[`setup_sr_tx`](address:8514@4.18). Eleven direct System-VIA
+accesses in 4.18 in total.
 
-ANFS 4.21 introduces a **shadow VIA pair**: two workspace bytes
-that ANFS treats as the canonical state of ACR (mirrored at
-`&0D68`) and SR (`&0D69`). [`setup_sr_tx`](address:8512) updates
-the shadow; the live VIA gets reconciled inside the Master's IRQ
-dispatch path. 4.18 wrote ACR and SR directly; in 4.21 those
-direct writes are simply gone.
+In ANFS 4.21 these are *all* gone. A bytewise scan finds zero
+direct accesses to `&FE40`–`&FE4F` anywhere in the 16 KB ROM.
+[`setup_sr_tx`](address:8512) survives in name and updates a
+pair of ACR/SR-format bytes at `&0D68` / `&0D69`, but those
+bytes are read and written only by ANFS itself – nothing in
+this ROM ever flushes them to the live VIA registers.
+
+Why this works on a Master without the per-packet SR setup
+4.18 needed is a deeper question than this article can answer.
+The plausible explanation is that the Master's NMI claim path
+uses different facilities entirely (the `master_intoff` register
+at `&FE38` rather than the Model B's `&FE18` station-ID read),
+and that the ADLC clocking the SR-mode-2 setup arranged is
+either configured once at NMI claim time or supplied by Master
+MOS without ANFS having to reach for it. The factual delta from
+4.18 is the easier claim: eleven VIA writes became zero.
 
 The IRQ entry [`svc5_irq_check`](address:8028) lives at the same
 address `&8028` in both ROMs, but the body is unrecognisable:
@@ -213,8 +226,8 @@ lost on `BREAK`.
 4.21 take **no arguments**. They're each a four-instruction toggle
 of bit 6 of CMOS RAM byte `&11` (the Master's Econet station-flags
 byte) via OSBYTE `&A1` (read CMOS) and OSBYTE `&A2` (write CMOS),
-with the new value mirrored into the shadow ACR/SR pair through
-`set_via_shadow_pair`:
+with the new value also mirrored into a workspace byte pair at
+`&0D68` / `&0D69`:
 
 ```6502
 cmd_prot:
@@ -223,7 +236,7 @@ cmd_prot:
     TYA
     ORA #&40                ; set bit 6
     JSR osbyte_a2           ; write back
-    JMP set_via_shadow_pair
+    JMP set_ws_pair_0d68_0d69
 ```
 
 Storing the state in CMOS rather than volatile RAM means it
