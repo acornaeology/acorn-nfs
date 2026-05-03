@@ -12459,6 +12459,13 @@ bridge_err_table = compare_bridge_status+1
     equb &8e                                                          ; b00b: 8e          .              ; buf end hi (&8E); end = &8EA7
     equb &ff                                                          ; b00c: ff          .              ; buf end ext lo=&FF
     equb &ff                                                          ; b00d: ff          .              ; buf end ext hi=&FF
+; ***************************************************************************************
+; Palette-RX control-block template (12 bytes)
+;
+; 12-byte template used by the *PS / palette-RX paths. Copied with marker processing:
+; &FD skips the destination byte (preserving the existing field), &FC substitutes
+; net_rx_ptr_hi (the caller's RX-buffer page). Filled in over the workspace TXCB by the
+; broadcast-RX setup before the request is dispatched.
 ; &b00e referenced 1 time by &af2a
 .rx_palette_txcb_template
     equb &7f                                                          ; b00e: 7f          .              ; ctrl=&7F (RX listen)
@@ -13767,6 +13774,13 @@ ps_print_template = write_ps_slot_hi_link+1
     bpl loop_copy_tx_hdr                                              ; b54f: 10 f8       ..             ; Loop while Y >= 0; Loop until all 4 copied
     rts                                                               ; b551: 60          `              ; Return
 
+; ***************************************************************************************
+; Printer-server TX header template (4 bytes)
+;
+; Four bytes copied to the head of the printer-server transmit buffer by
+; reverse_ps_name_to_tx: control byte &80 (immediate-TX request), port &D1 (printer
+; block port), function-code stub, and reply-port byte. Filled-in destination fields
+; follow from the caller's PS slot.
 ; &b552 referenced 1 time by &b549
 .ps_tx_header_template
     equb &80                                                          ; b552: 80          .              ; Control byte &80 (immediate TX)

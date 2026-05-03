@@ -1610,10 +1610,14 @@ identify each TXCB field.""")
 for i in range(12):
     byte(0xB002 + i)
 
-label(0xB00E, "rx_palette_txcb_template")
-
-# Split the 12-byte spool RX control block template into individual bytes.
-# Copied with marker processing: &FD=skip, &FC=substitute net_rx_ptr_hi.
+data_banner(0xB00E, "rx_palette_txcb_template",
+    title="Palette-RX control-block template (12 bytes)",
+    description="""\
+12-byte template used by the *PS / palette-RX paths. Copied with
+marker processing: `&FD` skips the destination byte (preserving
+the existing field), `&FC` substitutes `net_rx_ptr_hi` (the
+caller's RX-buffer page). Filled in over the workspace TXCB by
+the broadcast-RX setup before the request is dispatched.""")
 for i in range(12):
     byte(0xB00E + i)
 label(0xB01A, "lang_2_save_palette_vdu")
@@ -1683,9 +1687,14 @@ label(0xB511, "loop_ps_delay")
 label(0xB52D, "loop_push_ps_name")
 label(0xB537, "loop_pop_ps_name")
 label(0xB549, "loop_copy_tx_hdr")
-label(0xB552, "ps_tx_header_template")
-
-# Split the 4-byte PS TX header template into individual bytes.
+data_banner(0xB552, "ps_tx_header_template",
+    title="Printer-server TX header template (4 bytes)",
+    description="""\
+Four bytes copied to the head of the printer-server transmit
+buffer by [`reverse_ps_name_to_tx`](address:B52B): control byte
+`&80` (immediate-TX request), port `&D1` (printer block port),
+function-code stub, and reply-port byte. Filled-in destination
+fields follow from the caller's PS slot.""")
 for i in range(4):
     byte(0xB552 + i)
 
