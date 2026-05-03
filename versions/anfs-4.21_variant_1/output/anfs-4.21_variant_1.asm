@@ -989,9 +989,9 @@ rom_header_byte2 = rom_header+2
     pla                                                               ; 8258: 68          h              ; Pull saved ACCCON from stack
     sta acccon                                                        ; 8259: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_sr2_loop_again
-    lda adlc_cr2                                                      ; 825c: ad a1 fe    ...
-    bne data_rx_loop                                                  ; 825f: d0 c7       ..
-    jmp nmi_rti                                                       ; 8261: 4c 14 0d    L..
+    lda adlc_cr2                                                      ; 825c: ad a1 fe    ...            ; Re-poll ADLC SR2 for next byte pair
+    bne data_rx_loop                                                  ; 825f: d0 c7       ..             ; More data: loop back to data_rx_loop
+    jmp nmi_rti                                                       ; 8261: 4c 14 0d    L..            ; No more data: return from NMI
 
 ; &8264 referenced 2 times by &8246, &8256
 .frame_complete_restore
@@ -1454,8 +1454,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &842f referenced 2 times by &8446, &8484
 .scout_done_restore_x
     pla                                                               ; 842f: 68          h              ; Pull saved X from stack
-    tax                                                               ; 8430: aa          .
-    jmp rx_complete_update_rxcb                                       ; 8431: 4c 95 83    L..
+    tax                                                               ; 8430: aa          .              ; TAX -- restore X register
+    jmp rx_complete_update_rxcb                                       ; 8431: 4c 95 83    L..            ; Tail-jump to rx_complete_update_rxcb
 
 ; &8434 referenced 1 time by &846f
 .dispatch_imm_op_fail
@@ -2567,9 +2567,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     pla                                                               ; 881b: 68          h              ; Pull saved ACCCON from stack
     sta acccon                                                        ; 881c: 8d 34 fe    .4.            ; Restore caller's ACCCON between byte pairs
 .check_irq_loop
-    bit adlc_cr1                                                      ; 881f: 2c a0 fe    ,..
-    bmi data_tx_check_fifo                                            ; 8822: 30 ce       0.
-    jmp nmi_rti                                                       ; 8824: 4c 14 0d    L..
+    bit adlc_cr1                                                      ; 881f: 2c a0 fe    ,..            ; Test ADLC SR1 IRQ flag for next byte pair
+    bmi data_tx_check_fifo                                            ; 8822: 30 ce       0.             ; IRQ still set: more bytes to send
+    jmp nmi_rti                                                       ; 8824: 4c 14 0d    L..            ; IRQ cleared: return from NMI
 
 ; &8827 referenced 2 times by &8807, &8817
 .frame_end_restore
@@ -5004,17 +5004,17 @@ ps_template_base = load_transfer_params+1
 ; before the first character.
 ; &91ed referenced 1 time by &8c02
 .cmd_syntax_table
-    equb syn_iam - cmd_syntax_strings - 2                             ; 91ed: 06          .
-    equb &ff                                                          ; 91ee: ff          .
+    equb syn_iam - cmd_syntax_strings - 2                             ; 91ed: 06          .              ; Idx 0: 'opt_dir' (offset -2 variant for *Dir's INY-twice walker)
+    equb &ff                                                          ; 91ee: ff          .              ; Idx 1: &FF = no syntax string for this index
     equb syn_iam - cmd_syntax_strings - 1                             ; 91ef: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."
     equb syn_object - cmd_syntax_strings - 1                          ; 91f0: 34          4              ; Idx 3: "<object>"
     equb &3d                                                          ; 91f1: 3d          =              ; Idx 4: "<filename> (<offset>...)"
-    equb &60                                                          ; 91f2: 60          `
-    equb &66                                                          ; 91f3: 66          f
+    equb &60                                                          ; 91f2: 60          `              ; Idx 5: '<dir>' (offset 0x60 = syn_dir)
+    equb &66                                                          ; 91f3: 66          f              ; Idx 6: continued <dir> string region
     equb &77                                                          ; 91f4: 77          w              ; Idx 7: "(:<CR>) <password>..."
     equb &9a                                                          ; 91f5: 9a          .              ; Idx 8: "(<stn.id.>|<ps type>)"
     equb syn_access - cmd_syntax_strings - 1                          ; 91f6: b1          .              ; Idx 9: "<object> (L)(W)(R)..."
-    equb &cd                                                          ; 91f7: cd          .
+    equb &cd                                                          ; 91f7: cd          .              ; Idx 10: '<filename> <new filename>' (syn_rename)
     equb syn_opt_stn - cmd_syntax_strings - 1                         ; 91f8: e7          .              ; Idx 11: "(<stn. id.>)"
 
 ; ***************************************************************************************
@@ -15043,10 +15043,10 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; &bc74 referenced 1 time by &ba62
 .flush_fcb_if_station_known
     pha                                                               ; bc74: 48          H              ; Save A
-    phx                                                               ; bc75: da          .
+    phx                                                               ; bc75: da          .              ; Save X
     phy                                                               ; bc76: 5a          Z              ; PHY -- save Y
-    lda hazel_fcb_slot_attr,y                                         ; bc77: b9 30 c2    .0.
-    bne store_station_and_flush                                       ; bc7a: d0 0d       ..
+    lda hazel_fcb_slot_attr,y                                         ; bc77: b9 30 c2    .0.            ; Read FCB slot attribute byte
+    bne store_station_and_flush                                       ; bc7a: d0 0d       ..             ; Non-zero: station known -> store_station_and_flush
 ; ***************************************************************************************
 ; Save FCB context and flush byte count to server
 ;
@@ -15059,9 +15059,9 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; On Exit: A: preserved X: preserved Y: preserved
 ; &bc7c referenced 1 time by &bc2f
 .flush_fcb_with_init
-    pha                                                               ; bc7c: 48          H
-    phx                                                               ; bc7d: da          .
-    phy                                                               ; bc7e: 5a          Z
+    pha                                                               ; bc7c: 48          H              ; Save attribute byte (saved-station-test path)
+    phx                                                               ; bc7d: da          .              ; Save X again
+    phy                                                               ; bc7e: 5a          Z              ; Save Y
     lda hazel_fcb_slot_attr,y                                         ; bc7f: b9 30 c2    .0.            ; Load station for this channel
     pha                                                               ; bc82: 48          H              ; Save station on stack
     ldy #0                                                            ; bc83: a0 00       ..             ; Y=0: reset index
