@@ -5252,14 +5252,42 @@ subroutine(0xA901, "bin_to_bcd",
 subroutine(0xAC47, "osword_14_handler",
     title="OSWORD &14 handler: bridge poll / station status",
     description="""\
-Triages by `A`: `A < 1` (`CMP #1` / `BCC`) saves `A`, calls
+Triages by `A`: `A < 1` (sub-code 0) branches to
+[`handle_tx_request`](address:ACB7) which reads the station and
+network from `PB[1]`/`PB[2]` into the RX-block destination slots
+and falls through to the burst-transfer body. `A >= 1` falls
+through here: pushes `A`, calls
 [`ensure_fs_selected`](address:8B4D) to bring ANFS up if needed,
-restores `A`, then sets `Y=&23` and calls
-[`mask_owner_access`](address:B2CF) to clear FS-selection bits
-before the bridge-poll body runs. `A >= 1` routes to
-`handle_tx_request` for an alternative TX path.""",
+pulls `A` back, sets `Y=&23` and calls
+[`mask_owner_access`](address:B2CF) to clear FS-selection bits,
+then runs the bridge-poll body.""",
     on_entry={"a": "OSWORD &14 sub-function code",
               "x, y": "OSWORD parameter block pointer (low, high)"})
+
+subroutine(0xACB7, "handle_tx_request",
+    title="Sub-code 0: copy PB station/network into RX block, "
+          "dispatch burst",
+    description="""\
+Sub-code-0 path of [`osword_14_handler`](address:AC47), reached
+via the `BCC handle_tx_request` at `&AC49` when the caller's `A`
+is 0. Reads two bytes from the OSWORD parameter block:
+
+| Reg setup | Source     | Stored at        |
+| --------- | ---------- | ---------------- |
+| `Y=1`     | `PB[1]`    | (parked in `X`)  |
+| `Y=2`     | `PB[2]`    | `(net_rx_ptr)+&72` (dest network) |
+| `Y=3`     | (saved as `osword_flag` for the next byte read) | |
+| `Y=&71`   | `X` (PB[1])| `(net_rx_ptr)+&71` (dest station) |
+
+Wraps the body in `PHP`/`PLP` so the entry flags (carry clear from
+the `BCC`) survive the workspace stores; the `BNE` after `PLP`
+then dispatches to [`handle_burst_xfer`](address:ACED) when the
+caller's `A` was non-zero (a defensive branch -- the `BCC` entry
+guarantees `A=0` in 4.21, but the same body is the entry point
+the burst path piggy-backs on).""",
+    on_entry={"a": "OSWORD &14 sub-function code (caller's A; 0 via "
+              "the BCC entry from osword_14_handler)",
+              "ws_ptr_hi": "OSWORD parameter-block high byte"})
 subroutine(0xAC67, "store_osword_pb_ptr",
     title="Store workspace pointer+1 to NFS workspace",
     description="Computes ws_ptr_hi + 1 and stores the resulting\n"
