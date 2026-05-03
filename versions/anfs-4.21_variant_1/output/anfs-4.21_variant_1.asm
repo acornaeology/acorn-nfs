@@ -1660,9 +1660,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta port_buf_len_hi                                               ; 84be: 85 a3       ..             ; Set buffer length hi
     lda #&fc                                                          ; 84c0: a9 fc       ..             ; Buffer length lo = &FC
     sta port_buf_len                                                  ; 84c2: 85 a2       ..             ; Set buffer length lo
-    lda #&ee                                                          ; 84c4: a9 ee       ..             ; Buffer start lo = &25
+    lda #&ee                                                          ; 84c4: a9 ee       ..             ; Buffer start lo = &EE
     sta open_port_buf                                                 ; 84c6: 85 a4       ..             ; Set port buffer lo
-    lda #&88                                                          ; 84c8: a9 88       ..             ; Buffer hi = &7F (below screen)
+    lda #&88                                                          ; 84c8: a9 88       ..             ; Buffer hi = &88 (response goes to &88EE area)
     sta open_port_buf_hi                                              ; 84ca: 85 a5       ..             ; Set port buffer hi
     bne set_tx_reply_flag                                             ; 84cc: d0 12       ..             ; ALWAYS branch
 
@@ -1699,9 +1699,18 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Build immediate-operation reply header
 ;
-; Stores the data length, source station / network, and control byte into the RX buffer
-; header area for port-0 immediate operations. Then disables SR interrupts and
-; configures the VIA shift register for shift-in mode before returning to idle listen.
+; Writes the reply-frame header for a port-0 immediate operation into the RX buffer at
+; offsets &7F..&81:
+;
+; | RX offset | Source             | Meaning                                       |
+; |-----------|--------------------|-----------------------------------------------|
+; | &7F       | port_buf_len + &80 | reply data length (raw count + header offset) |
+; | &80       | scout_buf          | requesting station                            |
+; | &81       | scout_src_net      | requesting network                            |
+;
+; Then loads the control byte from scout_ctrl into A and falls through into
+; setup_sr_tx, which stores A as tx_op_type and configures the ADLC for the SR phase of
+; the reply. Reached via the immediate-op dispatch path.
 ; &84f9 referenced 1 time by &8392
 .imm_op_build_reply
     lda port_buf_len                                                  ; 84f9: a5 a2       ..             ; Get buffer position for reply header

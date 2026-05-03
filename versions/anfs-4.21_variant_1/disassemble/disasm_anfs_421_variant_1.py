@@ -2868,10 +2868,20 @@ Preserves `A`, `X`, `Y` (uses `INC zp` throughout).""",
 subroutine(0x84F9, "imm_op_build_reply",
     title="Build immediate-operation reply header",
     description="""\
-Stores the data length, source station / network, and control byte
-into the RX buffer header area for port-0 immediate operations.
-Then disables `SR` interrupts and configures the VIA shift
-register for shift-in mode before returning to idle listen.""")
+Writes the reply-frame header for a port-0 immediate operation
+into the RX buffer at offsets `&7F..&81`:
+
+| RX offset | Source | Meaning |
+|---|---|---|
+| `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |
+| `&80` | [`scout_buf`](address:0D2E) | requesting station |
+| `&81` | [`scout_src_net`](address:0D2F) | requesting network |
+
+Then loads the control byte from
+[`scout_ctrl`](address:0D30) into `A` and falls through into
+[`setup_sr_tx`](address:8512), which stores `A` as
+[`tx_op_type`](address:0D65) and configures the ADLC for the SR
+phase of the reply. Reached via the immediate-op dispatch path.""")
 # Reached only via PHA/PHA/RTS dispatch from the tx_done_dispatch
 # table; needs an explicit entry().
 entry(0x8540)
@@ -7047,9 +7057,9 @@ comment(0x84BC, "Buffer length hi = 1", inline=True)
 comment(0x84BE, "Set buffer length hi", inline=True)
 comment(0x84C0, "Buffer length lo = &FC", inline=True)
 comment(0x84C2, "Set buffer length lo", inline=True)
-comment(0x84C4, "Buffer start lo = &25", inline=True)
+comment(0x84C4, "Buffer start lo = &EE", inline=True)
 comment(0x84C6, "Set port buffer lo", inline=True)
-comment(0x84C8, "Buffer hi = &7F (below screen)", inline=True)
+comment(0x84C8, "Buffer hi = &88 (response goes to &88EE area)", inline=True)
 comment(0x84CA, "Set port buffer hi", inline=True)
 comment(0x84CE, "Port workspace offset = &3D", inline=True)
 comment(0x84D0, "Store workspace offset lo", inline=True)

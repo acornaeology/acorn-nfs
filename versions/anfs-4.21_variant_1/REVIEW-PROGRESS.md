@@ -41,11 +41,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x83EB` `set_nmi_rx_scout` - description claimed 'set_nmi_vector adds 1' (false: it stores A,Y as-is); rewrote to remove the mythical -1 adjustment
 - [x] `0x8400` `copy_scout_to_buffer` - description conflated this 5-instruction prologue with save_acccon_for_shadow_ram and copy_scout_via_tube which it falls into; rewrote to describe just the dispatch role
 - [x] `0x8448` `release_tube` - description claimed it tests need_release_tube (&98) but body reads prot_flags (&99) -- different addresses; corrected
-- [ ] `0x848B` `imm_op_dispatch_lo`
-- [ ] `0x84BC` `rx_imm_machine_type`
-- [ ] `0x84F9` `imm_op_build_reply`
-- [ ] `0x852C` `advance_buffer_ptr`
-- [ ] `0x853B` `tx_done_dispatch_lo`
+- [x] `0x848B` `imm_op_dispatch_lo` - table description matches contents; per-entry comments accurate
+- [x] `0x84BC` `rx_imm_machine_type` - description matches body; fixed two inline comments at &84C4 and &84C8 that gave wrong byte values (&25/&7F when actual bytes are &EE/&88)
+- [x] `0x84F9` `imm_op_build_reply` - description claimed control byte goes into RX buffer header, but body only LOADS scout_ctrl and falls through into setup_sr_tx which stores it as tx_op_type; rewrote to be precise about what THIS routine does
+- [x] `0x852C` `advance_buffer_ptr` - 4-byte cascade increment correctly described; inline comments accurate
+- [x] `0x853B` `tx_done_dispatch_lo` - 5-entry table description matches; targets verified (&8540/8549/8557/8563/857A); indexing-base trick documented correctly
 - [ ] `0x8540` `tx_done_jsr`
 - [ ] `0x8563` `tx_done_halt`
 - [ ] `0x857A` `tx_done_continue`
