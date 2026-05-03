@@ -6133,9 +6133,12 @@ subroutine(0xB523, "write_two_bytes_inc_y",
     on_entry={"a": "byte to store", "y": "workspace offset"})
 subroutine(0xB52B, "reverse_ps_name_to_tx",
     title="Reverse-copy printer server name to TX buffer",
-    description="Copies 8 bytes from the RX buffer (offsets &1C-&23)\n"
-    "to the TX buffer (offsets &13-&1B) in reversed byte\n"
-    "order, pushing onto the stack then popping back.",
+    description="""\
+Copies 8 bytes from the RX buffer at offsets `&18..&1F`
+(`(net_rx_ptr)+&18..+&1F`) to the TX buffer at offsets
+`&10..&17` (`(net_rx_ptr)+&10..+&17`) in reversed byte order.
+Implementation: pushes the 8 RX bytes onto the stack, then pops
+them back to the TX area; the LIFO order achieves the reversal.""",
     on_exit={"a, x, y": "clobbered"})
 subroutine(0xB556, "print_station_addr",
     title="Print station address as decimal net.station",

@@ -226,16 +226,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB3D5` `copy_ps_data_y1c` - description correct (Y=&18); fixed inline that said 'Start at offset &1C' (actual byte loaded is &18)
 - [x] `0xB477` `store_ps_station` - description matches body; fixed inline at &B480 that said 'Store at (nfs_workspace)+2 -- bug? overwrites stn' but Y has been INY'd to 3 by that point so it stores at +3 (the network slot, not a bug)
 - [x] `0xB4A8` `load_ps_server_addr` - description matches body
-- [ ] `0xB51C` `write_ps_slot_byte_ff`
-- [ ] `0xB523` `write_two_bytes_inc_y`
-- [ ] `0xB52B` `reverse_ps_name_to_tx`
-- [ ] `0xB575` `ps_slot_txcb_template`
-- [ ] `0xB6A6` `init_ps_slot_from_rx`
-- [ ] `0xB6BD` `store_char_uppercase`
-- [ ] `0xB6D2` `cmd_prot`
-- [ ] `0xB7E3` `init_channel_table`
-- [ ] `0xB805` `attr_to_chan_index`
-- [ ] `0xB814` `check_chan_char`
+- [x] `0xB51C` `write_ps_slot_byte_ff` - description matches body
+- [x] `0xB523` `write_two_bytes_inc_y` - description claims 'advancing Y after each write' but body INYs BEFORE each write -- minor wording issue, net effect identical
+- [x] `0xB52B` `reverse_ps_name_to_tx` - description claimed RX offsets &1C-&23 and TX offsets &13-&1B but body uses RX &18-&1F and TX &10-&17 (off by 4 in source, off by 3 in destination); rewrote
+- [x] `0xB575` `ps_slot_txcb_template` - table description matches
+- [x] `0xB6A6` `init_ps_slot_from_rx` - description matches body
+- [x] `0xB6BD` `store_char_uppercase` - description matches body
+- [x] `0xB6D2` `cmd_prot` - description matches body's *Prot CMOS-bit-6 manipulation
+- [x] `0xB7E3` `init_channel_table` - description matches body's 256-byte clear (via Y wrap-around BNE)
+- [x] `0xB805` `attr_to_chan_index` - description matches body
+- [x] `0xB814` `check_chan_char` - description matches body
 - [ ] `0xB8A8` `alloc_fcb_slot`
 - [ ] `0xB8F8` `close_all_net_chans`
 - [ ] `0xB925` `match_station_net`
