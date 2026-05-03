@@ -10222,15 +10222,39 @@ land in the caller's address space rather than the FS-private
 HAZEL window.""")
 label(0x8BEA, "loop_print_cmd_name")
 subroutine(0x8DA6, "load_transfer_params",
-    description="Load and initialize file server transfer parameters.")
+    title="Set FS transfer parameters via set_xfer_params",
+    description="""\
+3-byte trampoline that calls
+[`set_xfer_params`](address:93D7) and falls through into
+[`cmd_pass`](address:8DD5)'s argument-parse prologue. Reached
+from `init_txcb_and_load_xfer` at `&B3D9` to install the FS
+transfer context (byte count + source pointer in `fs_last_byte_flag`
+/ `fs_crc_lo`/`hi`) before continuing into the *I am / *Pass
+station-and-credential parser.""")
 label(0x8E75, "loop_copy_return_template")
 label(0x9292, "loop_print_inline_string")
 subroutine(0x95C1, "print_station_low",
-    description="Print station low byte with P label via print_inline.")
+    title="Print 'PS       ' 9-column header",
+    description="""\
+Calls [`print_inline`](address:9261) with `'P'` then falls
+through (via the 1-byte CLV terminator and BVC) into
+[`print_field_tail_s`](address:95CD), so the combined output is
+`'PS       '` -- the 9-column 'PS' field used in the `*FS`/`*PS`
+no-arg help and `*STATUS` displays.""")
 subroutine(0x95C8, "print_fs_station",
-    description="Print file server station via print_inline.")
+    title="Print 'FS       ' 9-column header",
+    description="""\
+Calls [`print_inline`](address:9261) with `'F'` then falls
+through (via the 1-byte NOP terminator) into
+[`print_field_tail_s`](address:95CD), so the combined output is
+`'FS       '` -- the 9-column 'FS' field used in the `*FS`/`*PS`
+no-arg help and `*STATUS` displays.""")
 subroutine(0x95DA, "print_dir_syntax",
-    description="Print *Dir command syntax help via print_inline.")
+    title="Print '[<D>.]<D>\\\\r' directory-name syntax fragment",
+    description="""\
+3-byte JSR + inline `'[<D>.]<D>'` + CR + NOP terminator. Used as
+a shared fragment by both `*Dir`'s syntax help and the `*FS`/`*PS`
+no-argument help via [`print_fs_ps_no_arg_help`](address:959A).""")
 subroutine(0x965F, "print_ps_address",
     title="Print printer-server address from CMOS",
     description="""\
@@ -10250,7 +10274,15 @@ separator, then sets `X=1` and falls into
 print the file-server station with a trailing newline. Returns
 via the [`print_cmos_done`](address:9689) trampoline.""")
 subroutine(0x968E, "dispatch_help_command",
-    description="Dispatch help command via parser lookup table.")
+    title="Dispatch *HELP-style argument via svc4_dispatch_lookup",
+    description="""\
+3-byte trampoline: `JMP svc4_dispatch_lookup` with `X = &BD` from
+the caller. Used by [`svc_29_status_handler`](address:9630)'s
+non-CR path so an argument after `*STATUS` (or similar *HELP-like
+cmd) gets parsed and dispatched through the same shared parser as
+the regular cmd-table dispatch. Note the `'!Help.'` bytes
+immediately following are an unrelated inline string used by the
+filename walker, not part of this routine's body.""")
 label(0x96A7, "loop_match_on_suffix")
 label(0x96BD, "loop_skip_non_spaces")
 label(0x96C8, "loop_help_skip_spaces")
@@ -10263,7 +10295,22 @@ label(0xA0F2, "loop_extract_attribute_bits")
 label(0xA84A, "loop_save_osword_workspace")
 label(0xA85C, "loop_restore_osword_workspace")
 subroutine(0xA877, "extract_osword_subcode",
-    description="Extract and dispatch OSWORD sub-code from parameter byte.")
+    title="Decode OSWORD &0E parameter byte and branch to handler",
+    description="""\
+Right-shifts `ws_page` (PB[0]) into `A`, transfers it to `Y` for
+the dispatcher, then runs an EOR/CMP chain against
+`ws_precomputed_value` to classify the requested sub-code:
+
+| Test          | Path                              |
+| ------------- | --------------------------------- |
+| `CMP #4` =    | `save_txcb_and_convert` (clock)   |
+| `CMP #3` =    | `save_txcb_done` (write back)     |
+| anything else | set `svc_state = 8` and `RTS`     |
+
+The two `LDA #&A9` filler bytes preceding the EOR are a 4-byte
+BIT-trick skip used when the alternate entry [`osword_0e_handler`
+](address:A874) is taken via the `BIT $abs` at `&A874`. Reached
+only via the OSWORD `&0E` (CMOS clock read) handler chain.""")
 label(0xA8EC, "loop_copy_pbytes_to_workspace")
 # &B0A0 is the dead JMP (cdir_unused_dispatch_table,X) at the cmd_cdir dispatch boundary;
 # never executed but py8dis follows the entry() declaration so it

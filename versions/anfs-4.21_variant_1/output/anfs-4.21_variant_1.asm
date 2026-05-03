@@ -4101,7 +4101,12 @@ nmi_shim_source = reset_enter_listen+2
     plx                                                               ; 8da4: fa          .              ; PLX -- restore X
     pla                                                               ; 8da5: 68          h              ; Pop and discard saved fs_last_byte_flag
 ; ***************************************************************************************
-; Load and initialize file server transfer parameters.
+; Set FS transfer parameters via set_xfer_params
+;
+; 3-byte trampoline that calls set_xfer_params and falls through into cmd_pass's
+; argument-parse prologue. Reached from init_txcb_and_load_xfer at &B3D9 to install the
+; FS transfer context (byte count + source pointer in fs_last_byte_flag / fs_crc_lo/hi)
+; before continuing into the *I am / *Pass station-and-credential parser.
 .load_transfer_params
 ps_template_base = load_transfer_params+1
     jsr set_xfer_params                                               ; 8da6: 20 d7 93     ..            ; Set up transfer parameters
@@ -6073,7 +6078,11 @@ ps_template_base = load_transfer_params+1
     jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.            ; JMP to svc_return_unclaimed (long-distance via this 3-byte trampoline)
 
 ; ***************************************************************************************
-; Print station low byte with P label via print_inline.
+; Print 'PS       ' 9-column header
+;
+; Calls print_inline with 'P' then falls through (via the 1-byte CLV terminator and
+; BVC) into print_field_tail_s, so the combined output is 'PS       ' -- the 9-column
+; 'PS' field used in the *FS/*PS no-arg help and *STATUS displays.
 ; &95c1 referenced 2 times by &95a6, &963c
 .print_station_low
     jsr print_inline                                                  ; 95c1: 20 61 92     a.            ; Print 'P' prefix
@@ -6083,7 +6092,11 @@ ps_template_base = load_transfer_params+1
     bvc print_field_tail_s                                            ; 95c6: 50 05       P.             ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
 
 ; ***************************************************************************************
-; Print file server station via print_inline.
+; Print 'FS       ' 9-column header
+;
+; Calls print_inline with 'F' then falls through (via the 1-byte NOP terminator) into
+; print_field_tail_s, so the combined output is 'FS       ' -- the 9-column 'FS' field
+; used in the *FS/*PS no-arg help and *STATUS displays.
 ; &95c8 referenced 2 times by &95a0, &9636
 .print_fs_station
     jsr print_inline                                                  ; 95c8: 20 61 92     a.            ; Print 'F' prefix
@@ -6099,7 +6112,10 @@ ps_template_base = load_transfer_params+1
     rts                                                               ; 95d9: 60          `              ; Return
 
 ; ***************************************************************************************
-; Print *Dir command syntax help via print_inline.
+; Print '[<D>.]<D>\r' directory-name syntax fragment
+;
+; 3-byte JSR + inline '[<D>.]<D>' + CR + NOP terminator. Used as a shared fragment by
+; both *Dir's syntax help and the *FS/*PS no-argument help via print_fs_ps_no_arg_help.
 ; &95da referenced 2 times by &95a3, &95a9
 .print_dir_syntax
     jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (file-name syntax fragment, shared between *FS/*PS no-arg help and *Dir)
@@ -6266,7 +6282,13 @@ ps_template_base = load_transfer_params+1
 .help_dispatch_setup
     ldx #&bd                                                          ; 968c: a2 bd       ..             ; X=&BD: setup index for the dispatch chain
 ; ***************************************************************************************
-; Dispatch help command via parser lookup table.
+; Dispatch *HELP-style argument via svc4_dispatch_lookup
+;
+; 3-byte trampoline: JMP svc4_dispatch_lookup with X = &BD from the caller. Used by
+; svc_29_status_handler's non-CR path so an argument after *STATUS (or similar
+; *HELP-like cmd) gets parsed and dispatched through the same shared parser as the
+; regular cmd-table dispatch. Note the '!Help.' bytes immediately following are an
+; unrelated inline string used by the filename walker, not part of this routine's body.
 .dispatch_help_command
 help_topic_template = dispatch_help_command+1
     jmp svc4_dispatch_lookup                                          ; 968e: 4c 46 8c    LF.            ; JMP svc4_dispatch_lookup -- shared parser dispatch
@@ -10457,7 +10479,20 @@ svc_8_osword_disp = svc_8_osword+1
 .osword_0e_handler
     bit suffix_copy_loop                                              ; a874: 2c 84 99    ,..            ; BIT $abs -- 3-byte skip-trick that jumps over the extract_osword_subcode prologue when called via &A874
 ; ***************************************************************************************
-; Extract and dispatch OSWORD sub-code from parameter byte.
+; Decode OSWORD &0E parameter byte and branch to handler
+;
+; Right-shifts ws_page (PB[0]) into A, transfers it to Y for the dispatcher, then runs
+; an EOR/CMP chain against ws_precomputed_value to classify the requested sub-code:
+;
+; | Test          | Path                          |
+; |---------------|-------------------------------|
+; | CMP #4 =      | save_txcb_and_convert (clock) |
+; | CMP #3 =      | save_txcb_done (write back)   |
+; | anything else | set svc_state = 8 and RTS     |
+;
+; The two LDA #&A9 filler bytes preceding the EOR are a 4-byte BIT-trick skip used when
+; the alternate entry osword_0e_handler  is taken via the BIT $abs at &A874. Reached
+; only via the OSWORD &0E (CMOS clock read) handler chain.
 .extract_osword_subcode
 osword_subcode_dispatch = extract_osword_subcode+1
     lsr ws_page                                                       ; a877: 46 a8       F.             ; Shift ws_page right -- splits parameter byte into upper / lower nibbles
