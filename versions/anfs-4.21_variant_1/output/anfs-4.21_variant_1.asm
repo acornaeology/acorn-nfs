@@ -4644,7 +4644,7 @@ ps_template_base = load_transfer_params+1
     ldy #0                                                            ; 8f3f: a0 00       ..             ; Offset 0 in receive block
     sta (net_rx_ptr),y                                                ; 8f41: 91 9c       ..             ; Clear remote operation flag
     lda last_break_type                                               ; 8f43: ad 8d 02    ...            ; Read l028D (current ROM number)
-    bne nfs_init_check_fs_flags                                       ; 8f46: d0 07       ..             ; Non-zero (re-init): take c8f4f path
+    bne nfs_init_check_fs_flags                                       ; 8f46: d0 07       ..             ; Non-zero (re-init): take nfs_init_check_fs_flags path
     lda #&10                                                          ; 8f48: a9 10       ..             ; OSBYTE &8F: issue service request
     bit fs_flags                                                      ; 8f4a: 2c 6c 0d    ,l.            ; BIT fs_flags
     beq alloc_post_restore_check                                      ; 8f4d: f0 6c       .l             ; Zero: first ROM init, skip FS setup
@@ -4720,12 +4720,12 @@ ps_template_base = load_transfer_params+1
     equs "ead!", 7, &0d, &0d                                          ; 8ff4: 65 61 64... ead
 
     lda #1                                                            ; 8ffb: a9 01       ..             ; A=1: default station ID
-    bra alloc_store_station_id                                        ; 8ffd: 80 05       ..             ; BRA to c9004 with default
+    bra alloc_store_station_id                                        ; 8ffd: 80 05       ..             ; BRA to alloc_store_station_id with default
 ; &8fff referenced 1 time by &8fbf
 .alloc_common_entry
     iny                                                               ; 8fff: c8          .              ; INY -- check next byte (CMOS station ID hi?)
     beq alloc_error_overflow                                          ; 9000: f0 bf       ..             ; Overflow to 0: report error
-    bra alloc_store_station_id                                        ; 9002: 80 00       ..             ; BRA to c9004 (always)
+    bra alloc_store_station_id                                        ; 9002: 80 00       ..             ; BRA to alloc_store_station_id (always)
 ; &9004 referenced 2 times by &8ffd, &9002
 .alloc_store_station_id
     ldy #1                                                            ; 9004: a0 01       ..             ; Offset 1: station ID in recv block
@@ -4745,7 +4745,7 @@ ps_template_base = load_transfer_params+1
     jsr init_bridge_poll                                              ; 9022: 20 e9 ab     ..            ; Send a bridge-discovery packet and poll
     pha                                                               ; 9025: 48          H              ; PHA -- save current bridge byte
     eor hazel_fs_network                                              ; 9026: 4d 01 c0    M..            ; EOR with stored hazel_fs_network (network number)
-    bne verify_copy_station_id                                        ; 9029: d0 07       ..             ; Different: take c9032 path
+    bne verify_copy_station_id                                        ; 9029: d0 07       ..             ; Different: take verify_copy_station_id path
     sta hazel_fs_network                                              ; 902b: 8d 01 c0    ...            ; Same: store as new hazel_fs_network
     ldy #3                                                            ; 902e: a0 03       ..             ; Y=3: net_rx_ptr offset 3
     sta (net_rx_ptr),y                                                ; 9030: 91 9c       ..             ; Store at (net_rx_ptr)+3
@@ -6069,7 +6069,7 @@ ps_template_base = load_transfer_params+1
 
     nop                                                               ; 95bd: ea          .              ; NOP -- bit-7 terminator + resume opcode for the preceding stringhi
 ; &95be referenced 1 time by &9617
-.parse_filename_padding
+.bra_target_svc_return
     jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.            ; Offset 0: remote state byte; Load remote state
 
 ; ***************************************************************************************
@@ -6163,22 +6163,26 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
 ;
-; Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / BRA c95be. Writes the Master 128
-; CMOS RAM byte indexed by X with the value in Y. Called from set_fs_or_ps_cmos_station
-; (twice: once via JSR, once via fall-through) and store_carry_to_workspace.
-; Counterpart of osbyte_a1 at &8E9A (read).
+; Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / BRA &95BE. Writes the Master 128
+; CMOS RAM byte indexed by X with the value in Y. The trailing BRA lands on
+; bra_target_svc_return (a 3-byte JMP trampoline to svc_return_unclaimed, needed
+; because BRA's 8-bit displacement can't reach &8C64 from here).
+;
+; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), an inline
+; BRA shortcut at &962E, and an OSARGS-related read-modify-write of CMOS byte &11
+; ending at &A0FE. Counterpart of osbyte_a1 (read).
 ;
 ; On Entry: X: CMOS RAM byte index Y: value to write
 ; &9612 referenced 3 times by &960b, &962e, &a0fe
 .osbyte_a2
     lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..             ; A=&A2: write CMOS RAM byte via OSBYTE
     jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y
-    bra parse_filename_padding                                        ; 9617: 80 a5       ..             ; BRA -91 -> c95be (return-via-shared-tail)
+    bra bra_target_svc_return                                         ; 9617: 80 a5       ..             ; BRA -91 -> bra_target_svc_return
     ldx #&11                                                          ; 9619: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 961b: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
     tya                                                               ; 961e: 98          .              ; TYA -- A = current CMOS &11 value
     ora #1                                                            ; 961f: 09 01       ..             ; Set bit 0 in A
-    bra osbyte_a2_value_tya                                           ; 9621: 80 08       ..             ; BRA c962b: shared write-back tail
+    bra osbyte_a2_value_tya                                           ; 9621: 80 08       ..             ; BRA osbyte_a2_value_tya: shared write-back tail
     ldx #&11                                                          ; 9623: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 9625: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
     tya                                                               ; 9628: 98          .              ; TYA -- A = current CMOS &11 value
@@ -6191,7 +6195,7 @@ ps_template_base = load_transfer_params+1
 .parse_object_argument
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?
-    bne help_dispatch_setup                                           ; 9634: d0 56       .V             ; Non-CR: parse the argument at c968c
+    bne help_dispatch_setup                                           ; 9634: d0 56       .V             ; Non-CR: parse the argument at help_dispatch_setup
     jsr print_fs_station                                              ; 9636: 20 c8 95     ..            ; Print 'F' (port-number prefix)
     jsr print_fs_network                                              ; 9639: 20 70 96     p.            ; Print port number from CMOS
     jsr print_station_low                                             ; 963c: 20 c1 95     ..            ; Print 'P' (station prefix)
@@ -6225,7 +6229,7 @@ ps_template_base = load_transfer_params+1
     equs "."                                                          ; 966b: 2e          .
 
     ldx #3                                                            ; 966c: a2 03       ..             ; X=3: CMOS &03 (FS station)
-    bra cmos_read_network_number                                      ; 966e: 80 0f       ..             ; BRA c967f: shared print-and-trail
+    bra cmos_read_network_number                                      ; 966e: 80 0f       ..             ; BRA cmos_read_network_number: shared print-and-trail
 ; ***************************************************************************************
 ; Read CMOS FS network and print with dot separator.
 ; &9670 referenced 1 time by &9639
@@ -6255,7 +6259,7 @@ ps_template_base = load_transfer_params+1
 ; Dispatch help command via parser lookup table.
 .dispatch_help_command
 help_topic_template = dispatch_help_command+1
-    jmp svc4_dispatch_lookup                                          ; 968e: 4c 46 8c    LF.            ; JMP c8c46 -- shared parser dispatch
+    jmp svc4_dispatch_lookup                                          ; 968e: 4c 46 8c    LF.            ; JMP svc4_dispatch_lookup -- shared parser dispatch
 
 ; &968f referenced 1 time by &96dc
     equs "!Help."                                                     ; 9691: 21 48 65... !He            ; '!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)
@@ -6330,7 +6334,7 @@ help_topic_template = dispatch_help_command+1
 .loop_store_topic_char
     sta hazel_txcb_data,x                                             ; 96eb: 9d 05 c1    ...            ; Store at hazel_txcb_data+X
     cmp #&0d                                                          ; 96ee: c9 0d       ..             ; CR? (end of name)
-    beq start_help_file_load                                          ; 96f0: f0 08       ..             ; Yes: take c96fa path (open file)
+    beq start_help_file_load                                          ; 96f0: f0 08       ..             ; Yes: take start_help_file_load path (open file)
     cmp #&20 ; ' '                                                    ; 96f2: c9 20       .              ; Space? (terminator)
     bne loop_copy_topic_name                                          ; 96f4: d0 f1       ..             ; No: continue copying
     lda #&0d                                                          ; 96f6: a9 0d       ..             ; A=&0D: replace space with CR
@@ -6354,12 +6358,12 @@ help_topic_template = dispatch_help_command+1
     lda #osfind_close                                                 ; 9714: a9 00       ..             ; A=0: OSFIND close mode
     jsr osfind                                                        ; 9716: 20 ce ff     ..            ; Close one or all files
     jsr osnewl                                                        ; 9719: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-    bra match_char_process                                            ; 971c: 80 9e       ..             ; BRA back to c96bc (return)
+    bra match_char_process                                            ; 971c: 80 9e       ..             ; BRA back to match_char_process (return)
 ; &971e referenced 2 times by &9712, &9736
 .help_print_start
     bit escape_flag                                                   ; 971e: 24 ff       $.             ; BIT escape_flag
     bpl help_print_char_check                                         ; 9720: 10 03       ..             ; Bit 7 clear: not escaping, continue
-    jmp escape_error_close                                            ; 9722: 4c 2d bd    L-.            ; Escape: jump to error path cbd2d
+    jmp escape_error_close                                            ; 9722: 4c 2d bd    L-.            ; Escape: jump to error path escape_error_close
 
 ; &9725 referenced 1 time by &9720
 .help_print_char_check
@@ -8804,10 +8808,8 @@ bad_prefix_table = bad_str_anchor+1
     ora fs_load_addr                                                  ; a0f9: 05 b0       ..             ; Return; Get index from PB pointer
     tay                                                               ; a0fb: a8          .              ; TAY -- back to Y
     ldx #&11                                                          ; a0fc: a2 11       ..             ; C clear: store to workspace
-; ***************************************************************************************
-; Store carry flag to workspace via OSBYTE A2.
-.store_carry_to_workspace
-cmos_attr_table = store_carry_to_workspace+1
+.sub_ca0fe
+cmos_attr_table = sub_ca0fe+1
     jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Save carry to fs_flags bit 7
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Load PB pointer value
@@ -9778,9 +9780,9 @@ cmos_attr_table = store_carry_to_workspace+1
 ; Reached from cmd_fs_operation at &8E35 when the first character of the *RUN argument
 ; is '&' (the URD = User Root Directory prefix). Saves the OS text pointer via
 ; save_ptr_to_os_text, masks the access bits via mask_owner_access, clears bit 1 of the
-; result, and stores into fs_lib_flags (hazel_fs_lib_flags). Falls through to ca4fc
-; which calls parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument. Single
-; caller; never returns directly (continues into the run flow).
+; result, and stores into fs_lib_flags (hazel_fs_lib_flags). Falls through to
+; cmd_run_load_mask which calls parse_cmd_arg_y0 to begin parsing the rest of the *RUN
+; argument. Single caller; never returns directly (continues into the run flow).
 ; &a4f1 referenced 1 time by &8e35
 .cmd_run_via_urd
     jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; Save current OS text pointer
@@ -9906,10 +9908,10 @@ cmos_attr_table = store_carry_to_workspace+1
 ;
 ; Iterates X = 3..0 over the 4-byte exec-address copy at
 ; hazel_txcb_flag..hazel_exec_addr, incrementing each byte. If any byte becomes
-; non-zero (BNE), branches forward to ca5df (the OSCLI dispatch path). When all four
-; INC operations leave a zero result the address was &FFFFFFFF + 1 = 0 -- not a valid
-; exec address -- and the routine falls through to the no-exec-address handler. Single
-; caller (&A51C in the *RUN handler).
+; non-zero (BNE), branches forward to library_path_string (the OSCLI dispatch path).
+; When all four INC operations leave a zero result the address was &FFFFFFFF + 1 = 0 --
+; not a valid exec address -- and the routine falls through to the no-exec-address
+; handler. Single caller (&A51C in the *RUN handler).
 ;
 ; On Entry: A: exec address bytes already in hazel_txcb_flag..hazel_exec_addr
 ;
@@ -10421,7 +10423,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
 ; dispatch
 .svc_8_osword
 svc_8_osword_disp = svc_8_osword+1
-    bra osword_store_svc_state                                        ; a83b: 80 18       ..             ; BRA ca855 -- skip past 22-byte caller-cleanup frame
+    bra osword_store_svc_state                                        ; a83b: 80 18       ..             ; BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame
     equb &a5, &ef, &e9, &0d, &30, &2d, &c9, 7, &b0, &29, &aa, &a0, 6  ; a83d: a5 ef e9... ...            ; OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)
 
 ; &a84a referenced 1 time by &a855
@@ -10494,7 +10496,7 @@ osword_subcode_dispatch = extract_osword_subcode+1
     cmp #4                                                            ; a884: c9 04       ..             ; Compare with &04
     beq save_txcb_and_convert                                         ; a886: f0 09       ..             ; Restore econet_flags flag
     cmp #3                                                            ; a888: c9 03       ..             ; Shift ws_0d60 left (check status)
-    beq save_txcb_done                                                ; a88a: f0 5b       .[             ; Equal: take ca8e7 path
+    beq save_txcb_done                                                ; a88a: f0 5b       .[             ; Equal: take save_txcb_done path
     lda #8                                                            ; a88c: a9 08       ..             ; C=0: status clear, retry
     sta svc_state                                                     ; a88e: 85 a9       ..             ; Control byte &82 for TX
 .return_from_osword_0e
@@ -12205,7 +12207,7 @@ bridge_err_table = compare_bridge_status+1
     sbc #1                                                            ; af78: e9 01       ..             ; SBC #1 -- decrement retry
     bne start_spool_retry                                             ; af7a: d0 8a       ..             ; Non-zero: retry from start_spool_retry
     cpx #1                                                            ; af7c: e0 01       ..             ; CPX #1 -- check the saved retry counter
-    bne printer_busy_msg                                              ; af7e: d0 12       ..             ; Not 1: take caf92 path
+    bne printer_busy_msg                                              ; af7e: d0 12       ..             ; Not 1: take printer_busy_msg path
 ; ***************************************************************************************
 ; Raise 'Printer busy' error
 ;
@@ -12988,7 +12990,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .loop_scan_entries
     lda hazel_txcb_data,x                                             ; b2dd: bd 05 c1    ...            ; Read entry byte at hazel_txcb_data+X
     bmi return_from_copy_arg                                          ; b2e0: 30 e8       0.             ; Bit 7 set: end-of-entries -> return
-    bne col_sep_print_cr                                              ; b2e2: d0 15       ..             ; Non-printable: take CR-newline path at cb2f9
+    bne col_sep_print_cr                                              ; b2e2: d0 15       ..             ; Non-printable: take CR-newline path at col_sep_print_cr
 ; ***************************************************************************************
 ; Print column separator or newline for *Ex/*Cat
 ;
@@ -13008,7 +13010,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..            ; Mid-row: print 2-space column separator via inline
     equs "  "                                                         ; b2f3: 20 20
 
-    bne col_sep_print_char                                            ; b2f5: d0 05       ..             ; Non-zero: take cb2fc tail
+    bne col_sep_print_char                                            ; b2f5: d0 05       ..             ; Non-zero: take col_sep_print_char tail
 ; &b2f7 referenced 2 times by &b2e6, &b2ee
 .col_sep_eol_check
     lda #&0d                                                          ; b2f7: a9 0d       ..             ; A=&0D: CR character
@@ -16686,6 +16688,7 @@ save pydis_start, pydis_end
 ;     boot_cmd_oscli:                  1
 ;     boot_load_cmd:                   1
 ;     boot_prefix_string:              1
+;     bra_target_svc_return:           1
 ;     bridge_err_table:                1
 ;     bridge_found:                    1
 ;     bridge_responded:                1
@@ -17216,7 +17219,6 @@ save pydis_start, pydis_end
 ;     osword_subcode_dispatch:         1
 ;     page_boundary_restore:           1
 ;     parse_cdir_size:                 1
-;     parse_filename_padding:          1
 ;     parse_filename_sub_exit:         1
 ;     parse_filename_sub_padding:      1
 ;     parse_fs_dot_dir:                1
@@ -17540,6 +17542,7 @@ save pydis_start, pydis_end
 ;     return_6
 ;     return_7
 ;     return_8
+;     sub_ca0fe
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes

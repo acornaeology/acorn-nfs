@@ -5067,7 +5067,7 @@ Reached from cmd_fs_operation at &8E35 when the first character of
 the *RUN argument is '&' (the URD = User Root Directory prefix).
 Saves the OS text pointer via save_ptr_to_os_text, masks the access
 bits via mask_owner_access, clears bit 1 of the result, and stores
-into fs_lib_flags (hazel_fs_lib_flags). Falls through to ca4fc which calls
+into fs_lib_flags (hazel_fs_lib_flags). Falls through to cmd_run_load_mask which calls
 parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument.
 Single caller; never returns directly (continues into the run
 flow).""")
@@ -5083,7 +5083,7 @@ subroutine(0xA5AE, "check_exec_addr",
     description="""\
 Iterates X = 3..0 over the 4-byte exec-address copy at hazel_txcb_flag..hazel_exec_addr,
 incrementing each byte. If any byte becomes non-zero (BNE),
-branches forward to ca5df (the OSCLI dispatch path). When all four
+branches forward to library_path_string (the OSCLI dispatch path). When all four
 INC operations leave a zero result the address was &FFFFFFFF + 1 =
 0 -- not a valid exec address -- and the routine falls through to
 the no-exec-address handler. Single caller (&A51C in the *RUN
@@ -7957,7 +7957,7 @@ comment(0x9408, "Write back the updated status", inline=True)
 comment(0x940B, "Always taken (A is non-zero after the OR with &40); "
         "join shared exit", inline=True)
 
-# clear_conn_active inline comments (8 body items, shares c9421 exit)
+# clear_conn_active inline comments (8 body items, shares clear_channel_flag exit)
 comment(0x940D, "Save flags", inline=True)
 comment(0x940E, "Save A", inline=True)
 comment(0x940F, "Save X", inline=True)
@@ -7969,7 +7969,7 @@ comment(0x9419, "A=&BF: bit 6 clear mask", inline=True)
 comment(0x941B, "AND with current status byte", inline=True)
 comment(0x941E, "Write back the updated status", inline=True)
 
-# Shared exit at &9421 (4 items)
+# Shared exit at clear_channel_flag (4 items)
 comment(0x9421, "Restore X (saved at PHX)", inline=True)
 comment(0x9422, "Restore A", inline=True)
 comment(0x9423, "Restore flags", inline=True)
@@ -9021,7 +9021,7 @@ comment(0xA867, "Push for stack frame manipulation", inline=True)
 comment(0xA86B, "Push again", inline=True)
 comment(0xA879, "TAY -- A = sub-code", inline=True)
 comment(0xA884, "Compare with &04", inline=True)
-comment(0xA88A, "Equal: take ca8e7 path", inline=True)
+comment(0xA88A, "Equal: take save_txcb_done path", inline=True)
 comment(0xA8C6, "Push current A", inline=True)
 comment(0xA8CF, "Pop saved value", inline=True)
 comment(0xA8D1, "LSR / LSR -- divide by 4", inline=True)
@@ -9289,7 +9289,7 @@ comment(0x8F0E, "Increment for next page", inline=True)
 comment(0x8F0F, "Return", inline=True)
 
 # ex_print_col_sep gap-fill.
-comment(0xB2F5, "Non-zero: take cb2fc tail", inline=True)
+comment(0xB2F5, "Non-zero: take col_sep_print_char tail", inline=True)
 comment(0xB2F7, "A=&0D: CR character", inline=True)
 comment(0xB2F9, "Print CR (no spool)", inline=True)
 comment(0xB2FC, "INX -- next entry", inline=True)
@@ -9330,29 +9330,29 @@ comment(0x8B42, "Raise via build_simple_error (never returns)", inline=True)
 #   &9630: parse_object_argument (svc_dispatch idx &18)
 #   &965F/&9670: print_num_no_leading siblings -- helpers shared with
 #               parse_object_argument
-#   &968C: dispatch tail
+#   help_dispatch_setup: dispatch tail
 #   &969A: match_on_suffix (svc_dispatch idx &0F)
 #   &96BB..&973C: filename-walker + *TYPE-style file-print loop reached
 #                 via match_on_suffix's tail
 comment(0x9612, "A=&A2: write CMOS RAM byte via OSBYTE", inline=True)
-comment(0x9617, "BRA -91 -> c95be (return-via-shared-tail)", inline=True)
+comment(0x9617, "BRA -91 -> bra_target_svc_return", inline=True)
 
 # CMOS bit-0 SET helper (&9619). Reads CMOS &11, sets bit 0, falls
-# into the c962b shared tail to write back.
+# into the osbyte_a2_value_tya shared tail to write back.
 comment(0x9619, "X=&11: CMOS RAM byte index", inline=True)
 comment(0x961B, "Read CMOS &11 via osbyte_a1", inline=True)
 comment(0x961E, "TYA -- A = current CMOS &11 value", inline=True)
 comment(0x961F, "Set bit 0 in A", inline=True)
-comment(0x9621, "BRA c962b: shared write-back tail", inline=True)
+comment(0x9621, "BRA osbyte_a2_value_tya: shared write-back tail", inline=True)
 
 # CMOS bit-0 CLEAR helper (&9623). Reads CMOS &11, clears bit 0,
-# falls through to c962b.
+# falls through to osbyte_a2_value_tya.
 comment(0x9623, "X=&11: CMOS RAM byte index", inline=True)
 comment(0x9625, "Read CMOS &11 via osbyte_a1", inline=True)
 comment(0x9628, "TYA -- A = current CMOS &11 value", inline=True)
 comment(0x9629, "Clear bit 0 in A", inline=True)
 
-# Shared CMOS write-back tail (&962B).
+# Shared CMOS write-back tail (osbyte_a2_value_tya).
 comment(0x962B, "TAY -- new CMOS value to Y", inline=True)
 comment(0x962C, "X=&11: CMOS RAM byte index", inline=True)
 comment(0x962E, "BRA osbyte_a2: write CMOS &11 = Y", inline=True)
@@ -9360,10 +9360,10 @@ comment(0x962E, "BRA osbyte_a2: write CMOS &11 = Y", inline=True)
 # parse_object_argument (&9630): scans (os_text_ptr),Y for CR; if
 # at end-of-line, prints all CMOS settings (port number / station
 # / network / FS-state) and returns; otherwise jumps to the
-# argument-parser at c968c.
+# argument-parser at help_dispatch_setup.
 comment(0x9630, "Read first command-line char", inline=True)
 comment(0x9632, "Is it CR (no argument)?", inline=True)
-comment(0x9634, "Non-CR: parse the argument at c968c", inline=True)
+comment(0x9634, "Non-CR: parse the argument at help_dispatch_setup", inline=True)
 comment(0x9636, "Print 'F' (port-number prefix)", inline=True)
 comment(0x9639, "Print port number from CMOS", inline=True)
 comment(0x963C, "Print 'P' (station prefix)", inline=True)
@@ -9387,7 +9387,7 @@ comment(0x9664, "TYA -- A = CMOS &04 value", inline=True)
 comment(0x9665, "Print as decimal (no leading zeros)", inline=True)
 comment(0x9668, "Print '.' separator via inline", inline=True)
 comment(0x966C, "X=3: CMOS &03 (FS station)", inline=True)
-comment(0x966E, "BRA c967f: shared print-and-trail", inline=True)
+comment(0x966E, "BRA cmos_read_network_number: shared print-and-trail", inline=True)
 
 comment(0x9670, "X=2: CMOS &02 (FS network)", inline=True)
 comment(0x9672, "Read CMOS &02 via osbyte_a1", inline=True)
@@ -9400,16 +9400,16 @@ comment(0x9682, "TYA -- A = CMOS value", inline=True)
 comment(0x9683, "Print as decimal", inline=True)
 comment(0x9689, "JMP svc_return_unclaimed (release service call)", inline=True)
 
-# Argument-parsing dispatcher (&968C). When the user supplied
+# Argument-parsing dispatcher (help_dispatch_setup). When the user supplied
 # arg(s) past the leading CR, X=&BD selects the first action.
 comment(0x968C, "X=&BD: setup index for the dispatch chain", inline=True)
-comment(0x968E, "JMP c8c46 -- shared parser dispatch", inline=True)
+comment(0x968E, "JMP svc4_dispatch_lookup -- shared parser dispatch", inline=True)
 
 # match_on_suffix (&969A): copies os_text_ptr to (work_ae), then
 # walks the 3-byte 'ON ' pattern at on_suffix_pattern, EOR-comparing each byte
 # (with bit-5 mask = case-insensitive) against the next chars in
-# the user's text. Returns to c96bc on match (= execute help
-# topic), to c96b0 on no-match (= return without help).
+# the user's text. Returns to match_char_process on match (= execute help
+# topic), to match_char_loop_cmp on no-match (= return without help).
 comment(0x969A, "PHY -- save Y", inline=True)
 comment(0x969B, "Copy os_text_ptr lo to work_ae", inline=True)
 comment(0x969D, "Store -> work_ae", inline=True)
@@ -9465,13 +9465,13 @@ comment(0x96E8, "Read topic char at (work_ae),Y", inline=True)
 comment(0x96EA, "INY: advance source", inline=True)
 comment(0x96EB, "Store at hazel_txcb_data+X", inline=True)
 comment(0x96EE, "CR? (end of name)", inline=True)
-comment(0x96F0, "Yes: take c96fa path (open file)", inline=True)
+comment(0x96F0, "Yes: take start_help_file_load path (open file)", inline=True)
 comment(0x96F2, "Space? (terminator)", inline=True)
 comment(0x96F4, "No: continue copying", inline=True)
 comment(0x96F6, "A=&0D: replace space with CR", inline=True)
 comment(0x96F8, "BRA back to store the CR", inline=True)
 
-# Open-and-print-file path (&96FA..&973C). Set up CMOS-bit flag,
+# Open-and-print-file path (start_help_file_load..&973C). Set up CMOS-bit flag,
 # call sub_c9fee (probably open_file), read bytes via OSBGET, write
 # via OSWRCH; close on EOF; respect Escape.
 comment(0x96FA, "INX: account for last char", inline=True)
@@ -9485,10 +9485,10 @@ comment(0x9709, "Open the help-topic file", inline=True)
 comment(0x970D, "Y=0: open failed -> return", inline=True)
 comment(0x9712, "C clear: byte read OK -> print it", inline=True)
 comment(0x9714, "A=0: OSFIND close mode", inline=True)
-comment(0x971C, "BRA back to c96bc (return)", inline=True)
+comment(0x971C, "BRA back to match_char_process (return)", inline=True)
 comment(0x971E, "BIT escape_flag", inline=True)
 comment(0x9720, "Bit 7 clear: not escaping, continue", inline=True)
-comment(0x9722, "Escape: jump to error path cbd2d", inline=True)
+comment(0x9722, "Escape: jump to error path escape_error_close", inline=True)
 comment(0x9725, "Compare with CR", inline=True)
 comment(0x9727, "Z: CR -- handle line-end (newline)", inline=True)
 comment(0x972C, "BRA back to read next byte", inline=True)
@@ -9646,7 +9646,7 @@ comment(0xAF77, "Set carry for SBC", inline=True)
 comment(0xAF78, "SBC #1 -- decrement retry", inline=True)
 comment(0xAF7A, "Non-zero: retry from start_spool_retry", inline=True)
 comment(0xAF7C, "CPX #1 -- check the saved retry counter", inline=True)
-comment(0xAF7E, "Not 1: take caf92 path", inline=True)
+comment(0xAF7E, "Not 1: take printer_busy_msg path", inline=True)
 
 # handle_spool_ctrl_byte (&AE9D): branch on RX cmd byte (cb_fill /
 # cb_skip / cb_stop) deciding what to do with the next spool entry.
@@ -9730,7 +9730,7 @@ comment(0xB0A0, "JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_c
 
 # Final small-routine sweep: the long tail of 1-4 uncommented items
 # spread across mid-tier helpers.
-comment(0xA83B, "BRA ca855 -- skip past 22-byte caller-cleanup frame", inline=True)
+comment(0xA83B, "BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame", inline=True)
 comment(0xA84A, "Read svc_state[Y] (frame slot)", inline=True)
 comment(0xA854, "DEY -- next slot", inline=True)
 comment(0xA855, "Loop until Y wraps", inline=True)
@@ -9748,7 +9748,7 @@ comment(0x8BCE, "PLX -- restore X", inline=True)
 comment(0xB2DB, "X=0: scan from start of TX entry", inline=True)
 comment(0xB2DD, "Read entry byte at hazel_txcb_data+X", inline=True)
 comment(0xB2E0, "Bit 7 set: end-of-entries -> return", inline=True)
-comment(0xB2E2, "Non-printable: take CR-newline path at cb2f9", inline=True)
+comment(0xB2E2, "Non-printable: take CR-newline path at col_sep_print_cr", inline=True)
 
 comment(0xAF80, "A=&A6: 'Printer busy' error code", inline=True)
 comment(0xAF82, "Raise via error_inline_log (never returns)", inline=True)
@@ -9799,7 +9799,7 @@ comment(0x808C, "Store as tx_src_stn", inline=True)
 # the dispatch table entry is real and the body is genuine init code.
 comment(0x8F38, "A=0", inline=True)
 comment(0x8F43, "Read l028D (current ROM number)", inline=True)
-comment(0x8F46, "Non-zero (re-init): take c8f4f path", inline=True)
+comment(0x8F46, "Non-zero (re-init): take nfs_init_check_fs_flags path", inline=True)
 comment(0x8F4A, "BIT fs_flags", inline=True)
 comment(0x8F5B, "Copy initial PS template (1C bytes) into ws", inline=True)
 comment(0x8F5E, "X=1: CMOS &01 = port number", inline=True)
@@ -9823,9 +9823,9 @@ comment(0x8FA6, "Set shadow ACR/IER pair", inline=True)
 comment(0x8FBB, "Read CMOS &00 (= station ID byte)", inline=True)
 comment(0x8FC1, "Print 'Station number in CMOS RAM invalid...' warning", inline=True)
 comment(0x8FFB, "A=1: default station ID", inline=True)
-comment(0x8FFD, "BRA to c9004 with default", inline=True)
+comment(0x8FFD, "BRA to alloc_store_station_id with default", inline=True)
 comment(0x8FFF, "INY -- check next byte (CMOS station ID hi?)", inline=True)
-comment(0x9002, "BRA to c9004 (always)", inline=True)
+comment(0x9002, "BRA to alloc_store_station_id (always)", inline=True)
 comment(0x900D, "Call cmd_net_fs to select NFS", inline=True)
 comment(0x9010, "Z: selection succeeded", inline=True)
 comment(0x9012, "A=&10: bit 4 marker for fs_flags", inline=True)
@@ -9835,7 +9835,7 @@ comment(0x901A, "Initialise ADLC and FILEV/ARGSV/...vectors", inline=True)
 comment(0x9022, "Send a bridge-discovery packet and poll", inline=True)
 comment(0x9025, "PHA -- save current bridge byte", inline=True)
 comment(0x9026, "EOR with stored hazel_fs_network (network number)", inline=True)
-comment(0x9029, "Different: take c9032 path", inline=True)
+comment(0x9029, "Different: take verify_copy_station_id path", inline=True)
 comment(0x902B, "Same: store as new hazel_fs_network", inline=True)
 comment(0x902E, "Y=3: net_rx_ptr offset 3", inline=True)
 comment(0x9030, "Store at (net_rx_ptr)+3", inline=True)
@@ -9980,7 +9980,7 @@ label(0x925D, "print_nybble_leading_zero")
 label(0x9298, "print_next_string_char")
 label(0x92AF, "print_char_terminator")
 label(0x9421, "clear_channel_flag")
-label(0x95BE, "parse_filename_padding")
+label(0x95BE, "bra_target_svc_return")
 label(0x95CD, "parse_filename_sub_padding")
 label(0x95E9, "parse_filename_sub_exit")
 label(0x962B, "osbyte_a2_value_tya")
@@ -10072,8 +10072,6 @@ label(0x96EB, "loop_store_topic_char")
 subroutine(0x9FEE, "send_open_file_request",
     description="Send file open request with V flag set for directory check.")
 label(0xA0F2, "loop_extract_attribute_bits")
-subroutine(0xA0FE, "store_carry_to_workspace",
-    description="Store carry flag to workspace via OSBYTE A2.")
 label(0xA84A, "loop_save_osword_workspace")
 label(0xA85C, "loop_restore_osword_workspace")
 subroutine(0xA877, "extract_osword_subcode",
@@ -11920,13 +11918,19 @@ CMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via
 
 subroutine(0x9612, "osbyte_a2",
     title="OSBYTE &A2 (write Master CMOS RAM byte)",
-    description="Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / "
-    "BRA c95be. Writes the Master 128 CMOS RAM byte indexed by X "
-    "with the value in Y. Called from "
-    "[`set_fs_or_ps_cmos_station`](address:95EE) (twice: once "
-    "via JSR, once via fall-through) and "
-    "[`store_carry_to_workspace`](address:A0FE). "
-    "Counterpart of osbyte_a1 at &8E9A (read).",
+    description="""\
+Three-instruction wrapper: `LDA #&A2 / JSR OSBYTE / BRA &95BE`.
+Writes the Master 128 CMOS RAM byte indexed by `X` with the value
+in `Y`. The trailing `BRA` lands on
+[`bra_target_svc_return`](address:95BE) (a 3-byte JMP trampoline
+to [`svc_return_unclaimed`](address:8C64), needed because BRA's
+8-bit displacement can't reach &8C64 from here).
+
+Callers: [`set_fs_or_ps_cmos_station`](address:95EE) (once via
+`JSR`, once via fall-through), an inline `BRA` shortcut at
+[`&962E`](address:962C), and an `OSARGS`-related read-modify-write
+of CMOS byte &11 ending at [`&A0FE`](address:A0FE). Counterpart of
+[`osbyte_a1`](address:8E9A) (read).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"})
 
 subroutine(0x8B45, "svc_18_fs_select",
@@ -11943,7 +11947,7 @@ Service-18 entry point.
 
 # Extended dispatch table entries (indices 15-36).
 # These may be reached via FS command dispatch or OSWORD dispatch
-# with non-zero Y offsets through c8e33.
+# with non-zero Y offsets through &8E33.
 entry(0x98AF)
 entry(0x9850)
 entry(0xB01A)
@@ -12658,7 +12662,7 @@ for i, ev in enumerate(_ev_dispatch):
     comment(addr, "%s dispatch" % ev[3:].upper(), inline=True)
 
 # Part 2: handler address entries (7 x {lo, hi, pad}).
-# write_vector_entry (&904F) reads bytes from c8e9a+Y starting at
+# write_vector_entry (&904F) reads bytes from &8E9A+Y starting at
 # Y=&1B, so the table starts at &8E9A+&1B = &8EB5.
 handler_names = [
     ("FILEV",  "filev_handler"),
@@ -15103,7 +15107,7 @@ comment(0xAB2D, "Add to RX buffer", inline=True)
 comment(0xAB30, "Send current buffer", inline=True)
 comment(0xAB33, "Reset spool buffer state", inline=True)
 
-# cab24: prepare and send spool buffer packet
+# &AB24: prepare and send spool buffer packet
 comment(0xAB36, "Y=8: workspace offset for length", inline=True)
 comment(0xAB38, "Load buffer index (=length)", inline=True)
 comment(0xAB3B, "Store length to workspace", inline=True)
@@ -15136,7 +15140,7 @@ comment(0xAB71, "Restore exec flag", inline=True)
 comment(0xAB72, "Store original exec flag", inline=True)
 comment(0xAB74, "Return", inline=True)
 
-# cab63: spool not-active path
+# &AB63: spool not-active path
 comment(0xAB75, "Load spool control state", inline=True)
 comment(0xAB78, "Rotate bit 0 to carry", inline=True)
 comment(0xAB79, "C=0: send current buffer", inline=True)
@@ -15146,7 +15150,7 @@ comment(0xAB7E, "Clear bit 0", inline=True)
 comment(0xAB80, "Store modified flag", inline=True)
 comment(0xAB82, "Control byte &14 (repeat count)", inline=True)
 
-# cab72: transmit spool data with retry
+# &AB72: transmit spool data with retry
 comment(0xAB84, "Save retry count", inline=True)
 comment(0xAB85, "X=&0B: 12 bytes of template", inline=True)
 comment(0xAB87, "Y=&2C: workspace offset for TXCB", inline=True)
@@ -16902,7 +16906,7 @@ comment(0x9BAF, "Non-zero (not fatal): retry", inline=True)
 comment(0x9BB1, "X=0: clear error status", inline=True)
 comment(0x9BB3, "Jump to fix up reply status", inline=True)
 
-# c98b4: poll ADLC status register (&98B4-&98C8)
+# &98B4: poll ADLC status register (&98B4-&98C8)
 comment(0x9BB6, "Shift ws_0d60 left to poll ADLC", inline=True)
 comment(0x9BB9, "Bit not set: keep polling", inline=True)
 comment(0x9BBB, "Copy TX pointer low to NMI TX block", inline=True)
@@ -16914,7 +16918,7 @@ comment(0x9BC6, "Read TX status byte", inline=True)
 comment(0x9BC8, "Bit 7 set: still transmitting", inline=True)
 comment(0x9BCA, "Return with result in A", inline=True)
 
-# c98c9: pass-through retry loop (&98C9-&98DC)
+# &98C9: pass-through retry loop (&98C9-&98DC)
 comment(0x9BCB, "Pull control byte", inline=True)
 comment(0x9BCC, "Restore to X", inline=True)
 comment(0x9BCD, "Pull timeout", inline=True)
@@ -16932,7 +16936,7 @@ comment(0x9BDB, "Decrement outer counter Y", inline=True)
 comment(0x9BDC, "Loop until Y=0", inline=True)
 comment(0x9BDE, "ALWAYS branch: retry transmission", inline=True)
 
-# c98de: pass-through restore TX buffer (&98DE-&98F2)
+# &98DE: pass-through restore TX buffer (&98DE-&98F2)
 comment(0x9BE0, "Pull control byte (discard)", inline=True)
 comment(0x9BE1, "Pull timeout (discard)", inline=True)
 comment(0x9BE2, "Pull retry count (discard)", inline=True)
@@ -17157,7 +17161,7 @@ comment(0x9D80, "(continued)", inline=True)
 comment(0x9D81, "(continued)", inline=True)
 comment(0x9D82, "Return", inline=True)
 
-# c9a84: discard stacked value and return (&9A84-&9A87)
+# &9A84: discard stacked value and return (&9A84-&9A87)
 comment(0x9D83, "Discard stacked value", inline=True)
 comment(0x9D84, "Restore Y from fs_block_offset", inline=True)
 comment(0x9D86, "Return (handle already matches)", inline=True)
@@ -17208,7 +17212,7 @@ comment(0x9DD5, "Set TXCB port for reply", inline=True)
 comment(0x9DD7, "Wait for TX acknowledgement", inline=True)
 comment(0x9DDA, "Non-zero (not done): retry send", inline=True)
 
-# c9add: OSWORD sub-operation dispatch (&9ADD-&9B85)
+# &9ADD: OSWORD sub-operation dispatch (&9ADD-&9B85)
 comment(0x9DDC, "Store sub-operation code", inline=True)
 comment(0x9DDF, "Compare with 7", inline=True)
 comment(0x9DE1, "Below 7: handle operations 1-6", inline=True)
@@ -17408,7 +17412,7 @@ comment(0x9F51, "Loop until all bytes copied", inline=True)
 comment(0x9F53, "Pull saved offset", inline=True)
 comment(0x9F54, "Return with last flag", inline=True)
 
-# c9c5c: OSARGS read/write file pointer (&9C5C-&9CB8)
+# setup_txcb_addrs: OSARGS read/write file pointer (setup_txcb_addrs-&9CB8)
 comment(0x9F57, "Carry set: write file pointer", inline=True)
 comment(0x9F59, "Load block offset", inline=True)
 comment(0x9F5B, "Convert attribute to channel index", inline=True)
@@ -17459,7 +17463,7 @@ comment(0x9FBD, "Restore X from FS options pointer", inline=True)
 comment(0x9FBF, "Restore Y from block offset", inline=True)
 comment(0x9FC1, "Return to caller", inline=True)
 
-# c9cc8: OSFIND open file dispatch (&9CC8-&9D7D)
+# &9CC8: OSFIND open file dispatch (&9CC8-&9D7D)
 comment(0x9FC2, "Compare with 2 (open for output)", inline=True)
 comment(0x9FC4, "2 or above: handle file open", inline=True)
 comment(0x9FC6, "Transfer to Y (Y=0 or 1)", inline=True)
@@ -17543,7 +17547,7 @@ comment(0xA064, "Store flags in FCB table hazel_fcb_state_byte", inline=True)
 comment(0xA067, "Transfer X back to A (handle)", inline=True)
 comment(0xA068, "Jump to finalise and return", inline=True)
 
-# c9d7e: close file and handle spool/exec (&9D7E-&9DBB)
+# retreat_y_by_4: close file and handle spool/exec (retreat_y_by_4-&9DBB)
 comment(0xA06B, "Process all matching FCBs", inline=True)
 comment(0xA06E, "Transfer Y to A", inline=True)
 comment(0xA06F, "Non-zero channel: close specific", inline=True)
@@ -17646,7 +17650,7 @@ comment(0xA166, "Compare with 4 (write operations)", inline=True)
 comment(0xA168, "Below 4: read operation", inline=True)
 comment(0xA16A, "4 or above: write data block", inline=True)
 
-# c9e44: OSBGET read byte from file (&9E44-&9EBD)
+# &9E44: OSBGET read byte from file (&9E44-&9EBD)
 comment(0xA16D, "Load channel handle from FS options", inline=True)
 comment(0xA16F, "Push handle", inline=True)
 comment(0xA170, "Check file is not a directory", inline=True)
@@ -17783,7 +17787,7 @@ comment(0xA289, "Return", inline=True)
 comment(0xA284, "Save flags before reply processing", inline=True)
 
 comment(0xA285, "Process server reply", inline=True)
-# c9f55: send OSBPUT data to server (&9F55-&9F68)
+# &9F55: send OSBPUT data to server (&9F55-&9F68)
 comment(0xA288, "Restore flags after reply processing", inline=True)
 comment(0xA28A, "Y=&15: TX buffer size for OSBPUT data", inline=True)
 comment(0xA28C, "Send TX control block", inline=True)
@@ -17795,7 +17799,7 @@ comment(0xA299, "A=&12: byte count for data block", inline=True)
 comment(0xA29B, "Store in fs_load_addr_2", inline=True)
 comment(0xA29D, "ALWAYS branch to write data block", inline=True)
 
-# c9f6a: OSBPUT write byte to file (&9F6A-&9FB6)
+# &9F6A: OSBPUT write byte to file (&9F6A-&9FB6)
 comment(0xA29F, "Y=4: offset for station comparison", inline=True)
 comment(0xA2A1, "Load stored station from tube_present", inline=True)
 comment(0xA2A4, "Zero: skip station check", inline=True)
@@ -17867,13 +17871,13 @@ comment(0xA324, "A=&83: release tube claim", inline=True)
 comment(0xA326, "Release tube", inline=True)
 comment(0xA329, "Jump to clear A and finalise return", inline=True)
 
-# c9ff7: catalogue update command (&9FF7-&9FFE)
+# &9FF7: catalogue update command (&9FF7-&9FFE)
 comment(0xA32C, "Y=9: offset for position byte", inline=True)
 comment(0xA32E, "Load position from FS options", inline=True)
 comment(0xA330, "Store in fs_func_code", inline=True)
 comment(0xA333, "Y=5: offset for extent byte", inline=True)
 
-# c9ff7 continued: catalogue update data transfer (&A000-&A058)
+# &9FF7 continued: catalogue update data transfer (&A000-&A058)
 comment(0xA335, "Load extent byte from FS options", inline=True)
 comment(0xA337, "Store in fs_data_count", inline=True)
 comment(0xA33A, "X=&0D: byte count", inline=True)
