@@ -6057,17 +6057,17 @@ ps_template_base = load_transfer_params+1
     jmp check_urd_prefix                                              ; 9597: 4c 2d 8e    L-.            ; Simple: pass command to FS; Workspace offset &0F
 
 .parse_filename_validate
-    lda (os_text_ptr),y                                               ; 959a: b1 f2       ..
-    cmp #&0d                                                          ; 959c: c9 0d       ..
-    bne parse_filename_sub_exit                                       ; 959e: d0 49       .I
-    jsr print_fs_station                                              ; 95a0: 20 c8 95     ..
-    jsr print_dir_syntax                                              ; 95a3: 20 da 95     ..
-    jsr print_station_low                                             ; 95a6: 20 c1 95     ..
-    jsr print_dir_syntax                                              ; 95a9: 20 da 95     ..
-    jsr print_inline                                                  ; 95ac: 20 61 92     a.
+    lda (os_text_ptr),y                                               ; 959a: b1 f2       ..             ; Read first command-line char at (os_text_ptr),Y
+    cmp #&0d                                                          ; 959c: c9 0d       ..             ; Is it CR (no argument supplied)?
+    bne parse_filename_sub_exit                                       ; 959e: d0 49       .I             ; Non-CR: argument present -- exit via parse_filename_sub_exit (X=&A0 dispatch)
+    jsr print_fs_station                                              ; 95a0: 20 c8 95     ..            ; CR: print 'FS ' header
+    jsr print_dir_syntax                                              ; 95a3: 20 da 95     ..            ; Print '[<D>.]<D>\r'
+    jsr print_station_low                                             ; 95a6: 20 c1 95     ..            ; Print 'PS ' header
+    jsr print_dir_syntax                                              ; 95a9: 20 da 95     ..            ; Print '[<D>.]<D>\r' again
+    jsr print_inline                                                  ; 95ac: 20 61 92     a.            ; Print final 'Space\rNoSpace\r' lines
     equs "Space", &0d, "NoSpace", &0d                                 ; 95af: 53 70 61... Spa
 
-    nop                                                               ; 95bd: ea          .              ; NOP -- bit-7 terminator + resume opcode for the preceding stringhi
+    nop                                                               ; 95bd: ea          .              ; NOP -- bit-7 terminator + resume opcode for the preceding inline string
 ; &95be referenced 1 time by &9617
 .bra_target_svc_return
     jmp svc_return_unclaimed                                          ; 95be: 4c 64 8c    Ld.
@@ -6076,42 +6076,42 @@ ps_template_base = load_transfer_params+1
 ; Print station low byte with P label via print_inline.
 ; &95c1 referenced 2 times by &95a6, &963c
 .print_station_low
-    jsr print_inline                                                  ; 95c1: 20 61 92     a.
+    jsr print_inline                                                  ; 95c1: 20 61 92     a.            ; Print 'P' prefix
     equs "P"                                                          ; 95c4: 50          P
 
     clv                                                               ; 95c5: b8          .              ; CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)
-    bvc parse_filename_sub_padding                                    ; 95c6: 50 05       P.             ; ALWAYS branch
+    bvc parse_filename_sub_padding                                    ; 95c6: 50 05       P.             ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
 
 ; ***************************************************************************************
 ; Print file server station via print_inline.
 ; &95c8 referenced 2 times by &95a0, &9636
 .print_fs_station
-    jsr print_inline                                                  ; 95c8: 20 61 92     a.
+    jsr print_inline                                                  ; 95c8: 20 61 92     a.            ; Print 'F' prefix
     equs "F"                                                          ; 95cb: 46          F
 
-    nop                                                               ; 95cc: ea          .
+    nop                                                               ; 95cc: ea          .              ; NOP -- bit-7 terminator; falls through into the shared 'S ' tail at &95CD
 ; &95cd referenced 1 time by &95c6
 .parse_filename_sub_padding
-    jsr print_inline                                                  ; 95cd: 20 61 92     a.
+    jsr print_inline                                                  ; 95cd: 20 61 92     a.            ; Print 'S ' (S + 7 spaces) -- the shared 8-char field used by both 'FS' and 'PS' callers
     equs "S       "                                                   ; 95d0: 53 20 20... S
 
-    nop                                                               ; 95d8: ea          .
+    nop                                                               ; 95d8: ea          .              ; NOP -- bit-7 terminator
     rts                                                               ; 95d9: 60          `              ; Return
 
 ; ***************************************************************************************
 ; Print *Dir command syntax help via print_inline.
 ; &95da referenced 2 times by &95a3, &95a9
 .print_dir_syntax
-    jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (syntax help for *Dir)
+    jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (file-name syntax fragment, shared between *FS/*PS no-arg help and *Dir)
     equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D
 
-    nop                                                               ; 95e7: ea          .
+    nop                                                               ; 95e7: ea          .              ; NOP -- bit-7 terminator
     rts                                                               ; 95e8: 60          `              ; Return
 
 ; &95e9 referenced 1 time by &959e
 .parse_filename_sub_exit
-    ldx #&a0                                                          ; 95e9: a2 a0       ..
-    jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.
+    ldx #&a0                                                          ; 95e9: a2 a0       ..             ; X=&A0: index into svc4 dispatch table (no-arg path)
+    jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.            ; Tail-jump to svc4_dispatch_lookup with X=&A0
 
 ; ***************************************************************************************
 ; Write FS/PS station+network to Master 128 CMOS RAM

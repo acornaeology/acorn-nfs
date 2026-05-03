@@ -8756,16 +8756,45 @@ comment(0xB7C2, "Store into TX[5+X] (delete-command buffer)", inline=True)
 comment(0xB7C5, "Reached space (end-of-leaf)?", inline=True)
 comment(0xB7C7, "No: continue copying", inline=True)
 
-# cmd_dir output-formatter helpers (&95BD..&95E8). Three small
-# stubs that each print_inline a fixed string and RTS. Used by the
-# *Dir / *Cat / *FS prompt+banner code path.
+# &959A..&95E8: *FS/*PS no-argument syntax-help printer + shared
+# print-inline tails. parse_filename_validate (&959A) checks for an
+# argument after the command; if absent (CR), it prints a four-line
+# syntax block by chaining print_fs_station / print_dir_syntax /
+# print_station_low / print_dir_syntax / inline 'Space\rNoSpace\r'.
+# print_fs_station and print_station_low both fall into a shared
+# 'S       ' tail at &95CD, so they emit 'FS       ' and 'PS       '
+# respectively. The NOP/CLV bytes are bit-7 terminators for the
+# preceding inline strings and double as resume opcodes.
+comment(0x959A, "Read first command-line char at (os_text_ptr),Y", inline=True)
+comment(0x959C, "Is it CR (no argument supplied)?", inline=True)
+comment(0x959E, "Non-CR: argument present -- exit via "
+    "parse_filename_sub_exit (X=&A0 dispatch)", inline=True)
+comment(0x95A0, "CR: print 'FS       ' header", inline=True)
+comment(0x95A3, "Print '[<D>.]<D>\\r'", inline=True)
+comment(0x95A6, "Print 'PS       ' header", inline=True)
+comment(0x95A9, "Print '[<D>.]<D>\\r' again", inline=True)
+comment(0x95AC, "Print final 'Space\\rNoSpace\\r' lines", inline=True)
 comment(0x95BD, "NOP -- bit-7 terminator + resume opcode for the "
-    "preceding stringhi", inline=True)
+    "preceding inline string", inline=True)
+comment(0x95C1, "Print 'P' prefix", inline=True)
 comment(0x95C5, "CLV -- bit-7 terminator + resume (V flag is "
     "irrelevant here, used as 1-byte resume opcode)", inline=True)
+comment(0x95C6, "BVC: V was just cleared -> always taken; falls "
+    "into the shared 'S       ' tail at &95CD", inline=True)
+comment(0x95C8, "Print 'F' prefix", inline=True)
+comment(0x95CC, "NOP -- bit-7 terminator; falls through into the "
+    "shared 'S       ' tail at &95CD", inline=True)
+comment(0x95CD, "Print 'S       ' (S + 7 spaces) -- the shared "
+    "8-char field used by both 'FS' and 'PS' callers", inline=True)
+comment(0x95D8, "NOP -- bit-7 terminator", inline=True)
 comment(0x95D9, "Return", inline=True)
-comment(0x95DA, "Print '[<D>.]<D>\\r' (syntax help for *Dir)", inline=True)
+comment(0x95DA, "Print '[<D>.]<D>\\r' (file-name syntax fragment, "
+    "shared between *FS/*PS no-arg help and *Dir)", inline=True)
+comment(0x95E7, "NOP -- bit-7 terminator", inline=True)
 comment(0x95E8, "Return", inline=True)
+comment(0x95E9, "X=&A0: index into svc4 dispatch table (no-arg path)",
+    inline=True)
+comment(0x95EB, "Tail-jump to svc4_dispatch_lookup with X=&A0", inline=True)
 
 # cmd_pollps gap-fill (8 items).
 comment(0xB60F, "Y=&18: name field offset in RX buffer", inline=True)
