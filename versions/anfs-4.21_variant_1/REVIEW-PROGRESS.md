@@ -215,17 +215,17 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB103` `cmd_ex` - description matches body's column-format setup and pagination
 - [x] `0xB21A` `print_10_chars` - description matches body
 - [x] `0xB22A` `parse_cmd_arg_y0` - description matches body
-- [ ] `0xB29F` `copy_arg_to_buf_x0`
-- [ ] `0xB2A1` `copy_arg_to_buf`
-- [ ] `0xB2A3` `copy_arg_validated`
+- [x] `0xB29F` `copy_arg_to_buf_x0` - description matches body
+- [x] `0xB2A1` `copy_arg_to_buf` - description matches body (the SEC for '&' validation actually happens in copy_arg_validated, not here)
+- [x] `0xB2A3` `copy_arg_validated` - description matches body
 - [x] `0xB2CF` `mask_owner_access` - description compared against body, accurate
-- [ ] `0xB327` `print_num_no_leading`
-- [ ] `0xB373` `save_ptr_to_os_text`
-- [ ] `0xB37F` `skip_to_next_arg`
-- [ ] `0xB393` `save_ptr_to_spool_buf`
-- [ ] `0xB3D5` `copy_ps_data_y1c`
-- [ ] `0xB477` `store_ps_station`
-- [ ] `0xB4A8` `load_ps_server_addr`
+- [x] `0xB327` `print_num_no_leading` - description's reference to 'BIT bit_test_ff' was wrong; actual instruction is BIT always_set_v_byte (&9769); both labels happen to point at &FF bytes but they're at different addresses (&9769 vs &976A). Rewrote
+- [x] `0xB373` `save_ptr_to_os_text` - description matches body
+- [x] `0xB37F` `skip_to_next_arg` - description matches body
+- [x] `0xB393` `save_ptr_to_spool_buf` - description matches body
+- [x] `0xB3D5` `copy_ps_data_y1c` - description correct (Y=&18); fixed inline that said 'Start at offset &1C' (actual byte loaded is &18)
+- [x] `0xB477` `store_ps_station` - description matches body; fixed inline at &B480 that said 'Store at (nfs_workspace)+2 -- bug? overwrites stn' but Y has been INY'd to 3 by that point so it stores at +3 (the network slot, not a bug)
+- [x] `0xB4A8` `load_ps_server_addr` - description matches body
 - [ ] `0xB51C` `write_ps_slot_byte_ff`
 - [ ] `0xB523` `write_two_bytes_inc_y`
 - [ ] `0xB52B` `reverse_ps_name_to_tx`

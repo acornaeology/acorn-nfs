@@ -5992,10 +5992,12 @@ subroutine(0xB2E4, "ex_print_col_sep",
 
 subroutine(0xB327, "print_num_no_leading",
     title="Print decimal number with leading zero suppression",
-    description="Sets V via BIT bit_test_ff to enable leading\n"
-    "zero suppression, then falls through to\n"
-    "print_decimal_3dig. Used by print_station_id\n"
-    "for compact station number display.",
+    description="""\
+Sets `V=1` via `BIT always_set_v_byte` (the `&FF` constant at
+&9769, whose bit 6 sets V) to enable leading-zero suppression
+in [`print_decimal_3dig`](address:B32A), then falls through to
+that routine. Used by [`print_station_id`](address:90C7) for
+compact station number display.""",
     on_entry={"a": "number to print (0-255)"})
 subroutine(0xB32A, "print_decimal_3dig",
     title="Print byte as 3-digit decimal via OSASCI",
@@ -9185,7 +9187,7 @@ comment(0xB477, "Y=2: workspace offset for stored station", inline=True)
 comment(0xB479, "Load station number", inline=True)
 comment(0xB47B, "Store at (nfs_workspace)+2", inline=True)
 comment(0xB47E, "Load network number", inline=True)
-comment(0xB480, "Store at (nfs_workspace)+2 -- bug? overwrites stn", inline=True)
+comment(0xB480, "Store at (nfs_workspace)+3", inline=True)
 comment(0xB482, "Return", inline=True)
 
 # err_bad_hex group (&934A..&9388): error-raising stubs that each
@@ -12841,10 +12843,14 @@ with three entries per column.""",
               "c": "1 (set by the cmd_table_fs dispatch path)"})
 subroutine(0xB0F8, "cmd_lex",
     title="*LEx command handler",
-    description="Sets the library flag by rotating SEC into bit 7 of\n"
-    "hazel_fs_lib_flags, then branches to ex_set_lib_flag inside cmd_ex\n"
-    "to examine the library directory with one entry per line.",
-    on_entry={"y": "command line offset in text pointer"})
+    description="""\
+Rotates the caller's carry into bit 7 of
+[`hazel_fs_lib_flags`](address:C271) (the dispatch path enters
+with C=1 so this sets the 'library' flag), then jumps to
+`ex_set_lib_flag` inside [`cmd_ex`](address:B103) to examine
+the library directory with one entry per line.""",
+    on_entry={"y": "command line offset in text pointer",
+              "c": "1 (set by the cmd_table_fs dispatch path)"})
 subroutine(0x8D02, "issue_svc_15",
     title="Issue OSBYTE 143 service 15 (vectors-claimed) request",
     description="Tail-call wrapper that loads X=&0F (service number 15) "
@@ -15523,7 +15529,7 @@ comment(0xB3CD, "Restore Y", inline=True)
 comment(0xB3CE, "Back to Y register", inline=True)
 comment(0xB3CF, "Parse FS/PS arguments", inline=True)
 comment(0xB3D2, "Jump to store station address", inline=True)
-comment(0xB3D5, "Start at offset &1C", inline=True)
+comment(0xB3D5, "Start at offset &18", inline=True)
 comment(0xB3D7, "X=&F8: offset into template", inline=True)
 comment(0xB3D9, "Get template byte", inline=True)
 comment(0xB3DC, "Store in RX buffer", inline=True)

@@ -12781,11 +12781,12 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; *LEx command handler
 ;
-; Sets the library flag by rotating SEC into bit 7 of hazel_fs_lib_flags, then branches
-; to ex_set_lib_flag inside cmd_ex to examine the library directory with one entry per
-; line.
+; Rotates the caller's carry into bit 7 of hazel_fs_lib_flags (the dispatch path enters
+; with C=1 so this sets the 'library' flag), then jumps to ex_set_lib_flag inside
+; cmd_ex to examine the library directory with one entry per line.
 ;
-; On Entry: Y: command line offset in text pointer
+; On Entry: Y: command line offset in text pointer C: 1 (set by the cmd_table_fs
+; dispatch path)
 .cmd_lex
     ror hazel_fs_lib_flags                                            ; b0f8: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7
     sec                                                               ; b0fb: 38          8              ; Set carry (= library directory)
@@ -13279,8 +13280,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Print decimal number with leading zero suppression
 ;
-; Sets V via BIT bit_test_ff to enable leading zero suppression, then falls through to
-; print_decimal_3dig. Used by print_station_id for compact station number display.
+; Sets V=1 via BIT always_set_v_byte (the &FF constant at &9769, whose bit 6 sets V) to
+; enable leading-zero suppression in print_decimal_3dig, then falls through to that
+; routine. Used by print_station_id for compact station number display.
 ;
 ; On Entry: A: number to print (0-255)
 ; &b327 referenced 5 times by &8a79, &90dd, &9665, &9676, &9683
@@ -13487,7 +13489,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; On Exit: Y: &20 (advanced past the copied 8 bytes)
 ; &b3d5 referenced 1 time by &8f5b
 .copy_ps_data_y1c
-    ldy #&18                                                          ; b3d5: a0 18       ..             ; Y=&18: standard offset for the PS template; fall into copy_ps_data; Start at offset &1C
+    ldy #&18                                                          ; b3d5: a0 18       ..             ; Y=&18: standard offset for the PS template; fall into copy_ps_data; Start at offset &18
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
 ;
@@ -13622,7 +13624,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     sta (nfs_workspace),y                                             ; b47b: 91 9e       ..             ; Store at (nfs_workspace)+2; Store in workspace
     iny                                                               ; b47d: c8          .              ; Y=&03
     lda fs_work_6                                                     ; b47e: a5 b6       ..             ; Load network number; Get network number
-    sta (nfs_workspace),y                                             ; b480: 91 9e       ..             ; Store at (nfs_workspace)+2 -- bug? overwrites stn; Store in workspace
+    sta (nfs_workspace),y                                             ; b480: 91 9e       ..             ; Store at (nfs_workspace)+3; Store in workspace
     rts                                                               ; b482: 60          `              ; Return
 
 ; ***************************************************************************************
