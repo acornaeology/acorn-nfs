@@ -7439,16 +7439,8 @@ comment(0x88E6, "Store result/error code at (nmi_tx_block),0", inline=True)
 comment(0x88E8, "A=&80: TX-complete signal for tx_complete_flag", inline=True)
 comment(0x88EA, "Signal TX complete", inline=True)
 comment(0x88ED, "Full ADLC reset and return to idle listen", inline=True)
-data_banner(0x88F0, "rom_gap_88f0",
-    title="Unreferenced 16-byte gap between TX-error path and tx_calc_transfer",
-    description="""\
-16 dead bytes between the `JMP` to
-[`discard_reset_rx`](address:83E5) at `&88ED` and
-[`tx_calc_transfer`](address:8900). Unreachable as code (it
-sits past an unconditional `JMP`) and unreferenced as data – no
-label, index, or indirect pointer targets any address in the
-`&88F0..&88FF` range. Likely an unused remnant from development.""")
-comment(0x88F0, "Purpose unknown", inline=True)
+label(0x88F0, "rom_gap_88f0")
+comment(0x88F0, "Purpose unknown. Unreferenced, unreachable.", inline=True)
 comment(0x8909, "Read RXCB[7] (buffer addr high byte)", inline=True)
 comment(0x890B, "Compare to &FF", inline=True)
 comment(0x890D, "Not &FF: normal buffer, skip Tube check", inline=True)
@@ -16322,16 +16314,6 @@ comment(0xBFC7, "Padding; next byte is reloc_p5_src", inline=True)
 
 # === Backfilled from 4.18 via fantasm backfill (threshold 5, post-issue-10 anchored-only map) ===
 # 1386 comments propagated
-comment(0x88F3, "Dead data: &0A", inline=True)
-comment(0x88F4, "Dead data: &0A", inline=True)
-comment(0x88F5, "Dead data: &06", inline=True)
-comment(0x88F7, "Dead data: &0A", inline=True)
-comment(0x88F8, "Dead data: &81", inline=True)
-comment(0x88FA, "Dead data: &00", inline=True)
-comment(0x88FB, "Dead data: &00", inline=True)
-comment(0x88FC, "Dead data: &00", inline=True)
-comment(0x88FD, "Dead data: &01", inline=True)
-comment(0x88FF, "Dead data: &81", inline=True)
 comment(0x9100, "Syn 2: *I Am (login)", inline=True)
 comment(0x912D, "Syn 3: *Delete, *FS, *Remove", inline=True)
 comment(0x9184, "Syn 7 continued: new password", inline=True)

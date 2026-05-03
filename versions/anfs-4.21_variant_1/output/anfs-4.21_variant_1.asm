@@ -2774,14 +2774,8 @@ tx_flags_table = check_tube_irq_loop+1
     sta tx_complete_flag                                              ; 88ea: 8d 60 0d    .`.            ; Signal TX complete
     jmp discard_reset_rx                                              ; 88ed: 4c e5 83    L..            ; Full ADLC reset and return to idle listen
 
-; ***************************************************************************************
-; Unreferenced 16-byte gap between TX-error path and tx_calc_transfer
-;
-; 16 dead bytes between the JMP to discard_reset_rx at &88ED and tx_calc_transfer.
-; Unreachable as code (it sits past an unconditional JMP) and unreferenced as data – no
-; label, index, or indirect pointer targets any address in the &88F0..&88FF range.
-; Likely an unused remnant from development.
-    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...            ; Purpose unknown; Dead data: &0A; Dead data: &0A; Dead data: &06; Dead data: &0A; Dead data: &81; Dead data: &00; Dead data: &00; Dead data: &00; Dead data: &01; Dead data: &81
+.rom_gap_88f0
+    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...            ; Purpose unknown. Unreferenced, unreachable.
 
 ; ***************************************************************************************
 ; Calculate transfer size and reclaim Tube buffer
