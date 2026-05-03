@@ -6,11 +6,6 @@ structure but the 4.21 variant 1 build is 65C02-aware, drops the
 page 4-6 relocated workspace in favour of HAZEL hidden RAM at &C000-&C2FF, and gates
 the service-call handler with a Master-only OS-version check.
 
-The "variant 1" suffix reflects that this build refuses to install on
-anything other than a Master 128 (or Master Econet Terminal): a later
-variant 2 build, byte-identical except for an extra OS-version branch
-in the gate, exists for the Compact.
-
 ## Summary statistics
 
 | Metric                          | Value         |
