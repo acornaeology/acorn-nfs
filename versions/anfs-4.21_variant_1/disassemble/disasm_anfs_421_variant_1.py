@@ -3107,12 +3107,18 @@ Shared path for PEEK (`A=3`) and POKE (`A=2`):
    [`tx_calc_transfer`](address:8900) and `tx_ctrl_exit`.""",
     on_entry={"a": "scout status (3=PEEK, 2=POKE)"})
 subroutine(0x86A2, "tx_ctrl_proc",
-    title="TX ctrl: JSR / UserProc / OSProc setup",
+    title="TX ctrl: tail of address-add loop + setup_data_xfer entry",
     description="""\
-Sets `scout_status = 2` and calls
-[`tx_calc_transfer`](address:8900) directly (no 4-byte
-address addition needed for procedure calls). Shared by operation
-types `&83`..`&85` (JSR, UserProc, OSProc).""")
+Tail of the 4-byte transfer-address addition loop that started in
+[`tx_ctrl_store_and_add`](address:8690): `CPY #&10` ends the
+loop when Y reaches `&10`, `PLP` restores the saved carry, and
+`BNE` skips the buffer-setup code if the transfer size is zero.
+
+Falls through (or is reached via the dispatch from
+[`tx_prepare`](address:864A) when port != 0) to
+`setup_data_xfer` at `&86A9`, which dispatches between broadcast
+and unicast based on whether `tx_dst_stn` and `tx_dst_net` are
+both `&FF`.""")
 subroutine(0x86E7, "nmi_tx_data",
     title="NMI TX data handler",
     description="""\
@@ -6842,10 +6848,10 @@ comment(0x8258, "Pull saved ACCCON from stack", inline=True)
 comment(0x8259, "Restore caller's ACCCON between byte pairs", inline=True)
 comment(0x8264, "Pull saved ACCCON (frame-complete path)", inline=True)
 comment(0x8265, "Restore caller's ACCCON before completion", inline=True)
-comment(0x8268, "CR1=&00: disable all interrupts", inline=True)
-comment(0x826A, "Write CR2: disable PSE for bit testing", inline=True)
-comment(0x826D, "CR2=&84: disable PSE for individual bit testing", inline=True)
-comment(0x826F, "Write CR1: disable all interrupts", inline=True)
+comment(0x8268, "A=&84: CR2 value (disable PSE)", inline=True)
+comment(0x826A, "Write CR2 = &84 to disable PSE for bit testing", inline=True)
+comment(0x826D, "A=0: CR1 value (disable all interrupts)", inline=True)
+comment(0x826F, "Write CR1 = 0 to disable all interrupts", inline=True)
 comment(0x8272, "Save Y (byte count from data RX loop)", inline=True)
 comment(0x8274, "A=&02: FV mask", inline=True)
 comment(0x8276, "Test SR2 FV (Z) and RDA (N)", inline=True)

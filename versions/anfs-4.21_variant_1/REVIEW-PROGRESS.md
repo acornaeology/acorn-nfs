@@ -348,16 +348,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 2 (34 routines)
 
-- [ ] `0x80D8` `scout_error`
-- [ ] `0x8195` `port_match_found`
-- [ ] `0x8268` `data_rx_complete`
-- [ ] `0x83E5` `discard_reset_rx`
-- [ ] `0x8493` `rx_imm_exec`
-- [ ] `0x84CE` `rx_imm_peek`
-- [ ] `0x8512` `setup_sr_tx`
-- [ ] `0x86A2` `tx_ctrl_proc`
-- [ ] `0x8C06` `loop_print_syntax`
-- [ ] `0x8C42` `svc_4_star_command`
+- [x] `0x80D8` `scout_error` - description matches body
+- [x] `0x8195` `port_match_found` - description matches body
+- [x] `0x8268` `data_rx_complete` - inline comments at &8268 and &826D were swapped/wrong (claimed 'CR1=&00' for the byte &84 going into CR2, and 'CR2=&84' for the byte 0 going into CR1). Fixed all four inlines
+- [x] `0x83E5` `discard_reset_rx` - description matches body
+- [x] `0x8493` `rx_imm_exec` - description matches body
+- [x] `0x84CE` `rx_imm_peek` - description matches body
+- [x] `0x8512` `setup_sr_tx` - description matches body's CMP #&86 dispatch
+- [x] `0x86A2` `tx_ctrl_proc` - description claimed routine 'sets scout_status=2 and calls tx_calc_transfer' but body is the TAIL of the address-add loop from tx_ctrl_store_and_add. The 'JSR/UserProc/OSProc setup' description was for a different (earlier) routine. Rewrote
+- [x] `0x8C06` `loop_print_syntax` - description matches body
+- [x] `0x8C42` `svc_4_star_command` - description matches body
 - [ ] `0x8C93` `print_version_header`
 - [ ] `0x903C` `init_adlc_and_vectors`
 - [ ] `0x945E` `send_fs_request`

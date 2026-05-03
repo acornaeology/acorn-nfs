@@ -1023,10 +1023,10 @@ rom_header_byte2 = rom_header+2
 ; Proceeds to send the final ACK via ack_tx.
 ; &8268 referenced 1 time by &8228
 .data_rx_complete
-    lda #&84                                                          ; 8268: a9 84       ..             ; CR1=&00: disable all interrupts
-    sta adlc_cr2                                                      ; 826a: 8d a1 fe    ...            ; Write CR2: disable PSE for bit testing
-    lda #0                                                            ; 826d: a9 00       ..             ; CR2=&84: disable PSE for individual bit testing
-    sta adlc_cr1                                                      ; 826f: 8d a0 fe    ...            ; Write CR1: disable all interrupts
+    lda #&84                                                          ; 8268: a9 84       ..             ; A=&84: CR2 value (disable PSE)
+    sta adlc_cr2                                                      ; 826a: 8d a1 fe    ...            ; Write CR2 = &84 to disable PSE for bit testing
+    lda #0                                                            ; 826d: a9 00       ..             ; A=0: CR1 value (disable all interrupts)
+    sta adlc_cr1                                                      ; 826f: 8d a0 fe    ...            ; Write CR1 = 0 to disable all interrupts
     sty port_buf_len                                                  ; 8272: 84 a2       ..             ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 8274: a9 02       ..             ; A=&02: FV mask
     bit adlc_cr2                                                      ; 8276: 2c a1 fe    ,..            ; Test SR2 FV (Z) and RDA (N)
@@ -2235,11 +2235,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     iny                                                               ; 86a0: c8          .              ; Next byte
     php                                                               ; 86a1: 08          .              ; Save carry for next addition
 ; ***************************************************************************************
-; TX ctrl: JSR / UserProc / OSProc setup
+; TX ctrl: tail of address-add loop + setup_data_xfer entry
 ;
-; Sets scout_status = 2 and calls tx_calc_transfer directly (no 4-byte address addition
-; needed for procedure calls). Shared by operation types &83..&85 (JSR, UserProc,
-; OSProc).
+; Tail of the 4-byte transfer-address addition loop that started in
+; tx_ctrl_store_and_add: CPY #&10 ends the loop when Y reaches &10, PLP restores the
+; saved carry, and BNE skips the buffer-setup code if the transfer size is zero.
+;
+; Falls through (or is reached via the dispatch from tx_prepare when port != 0) to
+; setup_data_xfer at &86A9, which dispatches between broadcast and unicast based on
+; whether tx_dst_stn and tx_dst_net are both &FF.
 .tx_ctrl_proc
     cpy #&10                                                          ; 86a2: c0 10       ..             ; Compare Y with 16-byte boundary
     bcc add_bytes_loop                                                ; 86a4: 90 f1       ..             ; Below boundary: continue addition
