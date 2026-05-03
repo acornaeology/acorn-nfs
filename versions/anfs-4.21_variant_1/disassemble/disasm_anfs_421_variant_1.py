@@ -9028,6 +9028,9 @@ comment(0x8F23, "Push raised Y", inline=True)
 comment(0x8F24, "Store final page count high to net_rx_ptr_hi", inline=True)
 comment(0x8F26, "Increment for nfs_workspace_hi", inline=True)
 comment(0x8F27, "Store workspace high page", inline=True)
+comment(0x8F29, "A=0: clear-byte for the lo halves below", inline=True)
+comment(0x8F2B, "Clear net_rx_ptr_lo (page-aligned)", inline=True)
+comment(0x8F2D, "Clear nfs_workspace_lo (page-aligned)", inline=True)
 comment(0x8F2F, "Compute workspace start page via get_ws_page", inline=True)
 comment(0x8F32, "Y >= &DC?", inline=True)
 comment(0x8F34, "Restore Y from stack", inline=True)
@@ -9096,6 +9099,21 @@ comment(0xA867, "Push for stack frame manipulation", inline=True)
 comment(0xA86B, "Push again", inline=True)
 comment(0xA879, "TAY -- A = sub-code", inline=True)
 comment(0xA884, "Compare with &04", inline=True)
+comment(0xA871, "PB-ready / parameter table (3 bytes) read by "
+    "osword_setup_handler at &A868 via LDA osword_pb_ready,X",
+    inline=True)
+comment(0xA874, "BIT $abs -- 3-byte skip-trick that jumps over the "
+    "extract_osword_subcode prologue when called via &A874",
+    inline=True)
+comment(0xA877, "Shift ws_page right -- splits parameter byte "
+    "into upper / lower nibbles", inline=True)
+comment(0xA879, "TAY -- preserve sub-code in Y", inline=True)
+comment(0xA87A, "LDA #&A9 -- 2-byte BIT-trick filler "
+    "(skipped when entered at &A87E)", inline=True)
+comment(0xA87C, "LDA #&A9 -- 2-byte BIT-trick filler", inline=True)
+comment(0xA87E, "Load template source pointer", inline=True)
+comment(0xA881, "EOR with workspace-precomputed value", inline=True)
+comment(0xA886, "Equal: take save_txcb_and_convert path", inline=True)
 comment(0xA88A, "Equal: take save_txcb_done path", inline=True)
 comment(0xA8C6, "Push current A", inline=True)
 comment(0xA8CF, "Pop saved value", inline=True)
@@ -9318,7 +9336,16 @@ comment(0xAA2F, "TYA -- save Y", inline=True)
 comment(0xAA32, "TAY -- restore Y", inline=True)
 comment(0xAA5E, "TYA -- A = Y for store", inline=True)
 comment(0xAA62, "Decrement entry counter", inline=True)
+comment(0xAA59, "A=8: fs_flags bit 3 (FS-error pending)", inline=True)
+comment(0xAA5B, "Clear FS-error-pending flag", inline=True)
+comment(0xAA5F, "Store updated status into hazel_fcb_status[X]",
+    inline=True)
+comment(0xAA63, "Loop while X >= 0 (scan all FCBs)", inline=True)
 comment(0xAA65, "A=&0E: status flag value", inline=True)
+comment(0xAA67, "Test fs_flags bits 1..3", inline=True)
+comment(0xAA6A, "Non-zero: skip the FS-active set", inline=True)
+comment(0xAA6C, "A=&40: FS-active flag bit", inline=True)
+comment(0xAA6E, "Set FS-active flag (bit 6 of fs_flags)", inline=True)
 
 # match_fs_cmd gap-fill.
 comment(0xA45C, "Push for save/restore", inline=True)
@@ -9884,7 +9911,14 @@ comment(0x808C, "Store as tx_src_stn", inline=True)
 # PHA/PHA/RTS dispatch (svc_dispatch_lo[&16] / hi[&16]). The static
 # trigger is OPEN-ISSUES O-1 -- no caller has been identified, but
 # the dispatch table entry is real and the body is genuine init code.
-comment(0x8F38, "A=0", inline=True)
+comment(0x8F38, "A=0: clear-byte for the next four stores", inline=True)
+comment(0x8F3A, "Clear ws_page (workspace page count)", inline=True)
+comment(0x8F3C, "Clear tx_complete_flag", inline=True)
+comment(0x8F3F, "Y=0: receive-block offset 0 (remote-op flag)",
+    inline=True)
+comment(0x8F41, "Clear remote-op flag at (net_rx_ptr)+0", inline=True)
+comment(0x8F48, "A=&10: fs_flags bit 4 mask "
+    "(checks 'workspace already set up')", inline=True)
 comment(0x8F43, "Read l028D (current ROM number)", inline=True)
 comment(0x8F46, "Non-zero (re-init): take nfs_init_check_fs_flags path", inline=True)
 comment(0x8F4A, "BIT fs_flags", inline=True)
@@ -10015,7 +10049,23 @@ comment(0xB062, "Store as live ACR shadow at ws_0d68", inline=True)
 comment(0xB065, "Return", inline=True)
 comment(0xB081, "X=0: zero-arg helper entry", inline=True)
 comment(0xB227, "JMP print_newline_no_spool", inline=True)
+comment(0xB357, "Clear owner-only access bits before "
+    "checking the URD", inline=True)
 comment(0xB35A, "A=&69: 'i' character (info prefix)", inline=True)
+comment(0xB35C, "Store 'i' as start of FS command name "
+    "in the TX buffer", inline=True)
+comment(0xB35F, "A='.': abbreviation terminator", inline=True)
+comment(0xB361, "Store '.' as command-name terminator", inline=True)
+comment(0xB364, "Save the command-line pointer for the dispatcher",
+    inline=True)
+comment(0xB367, "Parse the *Info argument from the command line",
+    inline=True)
+comment(0xB36A, "X=2: TX-buffer offset to copy the arg into "
+    "(after 'i.')", inline=True)
+comment(0xB36C, "Append parsed argument to the TX command buffer",
+    inline=True)
+comment(0xB370, "Send the FS command and dispatch the reply",
+    inline=True)
 comment(0xB36F, "TAY -- A = next index", inline=True)
 comment(0xB4B3, "Return", inline=True)
 comment(0xB52A, "Return", inline=True)
@@ -11527,6 +11577,12 @@ comment(0x8EF4, "No: use Y as-is", inline=True)
 comment(0x8EF6, "Cap at &21", inline=True)
 comment(0x8EF8, "Offset &0B in receive block", inline=True)
 comment(0x8EFA, "Store workspace page count", inline=True)
+comment(0x8EFD, "Return -- ws_page count saved", inline=True)
+comment(0x8EFE, "TYA -- caller's page (in Y) into A", inline=True)
+comment(0x8EFF, "Y = current ROM slot from romsel_copy", inline=True)
+comment(0x8F04, "Publish page into rom_ws_pages[slot] "
+    "(bit 7 cleared = workspace claimed)", inline=True)
+comment(0x8F07, "Read Master break-type shadow (&FE2B)", inline=True)
 comment(0x8F4D, "Zero: first ROM init, skip FS setup", inline=True)
 comment(0x8F4F, "Set up workspace pointers", inline=True)
 comment(0x8F52, "Clear FS flags", inline=True)
@@ -12609,14 +12665,22 @@ for i in range(8):
     byte(0x867E + i)
 
 # Use symbolic label expressions for PHA/PHA/RTS dispatch lo bytes.
-expr(0x867E, "<(tx_ctrl_peek-1)")          # ctrl &81: PEEK
-expr(0x867F, "<(tx_ctrl_poke-1)")          # ctrl &82: POKE
-expr(0x8680, "<(proc_op_status2-1)")       # ctrl &83: JSR
-expr(0x8681, "<(proc_op_status2-1)")       # ctrl &84: UserProc
-expr(0x8682, "<(proc_op_status2-1)")       # ctrl &85: OSProc
-expr(0x8683, "<(tx_ctrl_exit-1)")          # ctrl &86: HALT
-expr(0x8684, "<(tx_ctrl_exit-1)")          # ctrl &87: CONTINUE
-expr(0x8685, "<(tx_ctrl_machine_type-1)")  # ctrl &88: machine type
+expr(0x867E, "<(tx_ctrl_peek-1)")
+expr(0x867F, "<(tx_ctrl_poke-1)")
+expr(0x8680, "<(proc_op_status2-1)")
+expr(0x8681, "<(proc_op_status2-1)")
+expr(0x8682, "<(proc_op_status2-1)")
+expr(0x8683, "<(tx_ctrl_exit-1)")
+expr(0x8684, "<(tx_ctrl_exit-1)")
+expr(0x8685, "<(tx_ctrl_machine_type-1)")
+comment(0x867E, "ctrl &81: PEEK", inline=True)
+comment(0x867F, "ctrl &82: POKE", inline=True)
+comment(0x8680, "ctrl &83: JSR", inline=True)
+comment(0x8681, "ctrl &84: UserProc", inline=True)
+comment(0x8682, "ctrl &85: OSProc", inline=True)
+comment(0x8683, "ctrl &86: HALT", inline=True)
+comment(0x8684, "ctrl &87: CONTINUE", inline=True)
+comment(0x8685, "ctrl &88: machine type", inline=True)
 
 # Dead data between tx_store_result and tx_calc_transfer (16 bytes).
 # Unreferenced and unreachable; collapsed to a single EQUB block
@@ -14953,6 +15017,14 @@ comment(0xB002, "ctrl=&80 (standard TX)", inline=True)
 comment(0xB003, "port=&9F", inline=True)
 comment(0xB004, "dest station=&00 (filled later)", inline=True)
 comment(0xB005, "dest network=&00 (filled later)", inline=True)
+comment(0xB006, "buf start lo (&9F)", inline=True)
+comment(0xB007, "buf start hi (&8E); start = &8E9F", inline=True)
+comment(0xB008, "buf start ext lo=&FF", inline=True)
+comment(0xB009, "buf start ext hi=&FF", inline=True)
+comment(0xB00A, "buf end lo (&A7)", inline=True)
+comment(0xB00B, "buf end hi (&8E); end = &8EA7", inline=True)
+comment(0xB00C, "buf end ext lo=&FF", inline=True)
+comment(0xB00D, "buf end ext hi=&FF", inline=True)
 comment(0xB00E, "ctrl=&7F (RX listen)", inline=True)
 comment(0xB00F, "port=&9E", inline=True)
 comment(0xB010, "skip: preserve dest station", inline=True)

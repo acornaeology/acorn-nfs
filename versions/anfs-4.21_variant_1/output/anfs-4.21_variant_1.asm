@@ -2117,14 +2117,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; always &86, so targets are &86xx+1. Last entry (&88) dispatches to
 ; tx_ctrl_machine_type, the 4 bytes immediately after the table.
 .tx_ctrl_dispatch_lo
-    equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .
-    equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .
-    equb <(proc_op_status2-1)                                         ; 8680: cf          .
-    equb <(proc_op_status2-1)                                         ; 8681: cf          .
-    equb <(proc_op_status2-1)                                         ; 8682: cf          .
-    equb <(tx_ctrl_exit-1)                                            ; 8683: df          .
-    equb <(tx_ctrl_exit-1)                                            ; 8684: df          .
-    equb <(tx_ctrl_machine_type-1)                                    ; 8685: 85          .
+    equb <(tx_ctrl_peek-1)                                            ; 867e: 89          .              ; ctrl &81: PEEK
+    equb <(tx_ctrl_poke-1)                                            ; 867f: 8d          .              ; ctrl &82: POKE
+    equb <(proc_op_status2-1)                                         ; 8680: cf          .              ; ctrl &83: JSR
+    equb <(proc_op_status2-1)                                         ; 8681: cf          .              ; ctrl &84: UserProc
+    equb <(proc_op_status2-1)                                         ; 8682: cf          .              ; ctrl &85: OSProc
+    equb <(tx_ctrl_exit-1)                                            ; 8683: df          .              ; ctrl &86: HALT
+    equb <(tx_ctrl_exit-1)                                            ; 8684: df          .              ; ctrl &87: CONTINUE
+    equb <(tx_ctrl_machine_type-1)                                    ; 8685: 85          .              ; ctrl &88: machine type
 
 ; ***************************************************************************************
 ; TX ctrl: machine-type query setup
@@ -4528,16 +4528,16 @@ ps_template_base = load_transfer_params+1
     ldy #&0b                                                          ; 8ef8: a0 0b       ..             ; Offset &0B in receive block
     sta (net_rx_ptr),y                                                ; 8efa: 91 9c       ..             ; Store workspace page count
     ply                                                               ; 8efc: 7a          z              ; Pop -- save Y temporarily
-    rts                                                               ; 8efd: 60          `
+    rts                                                               ; 8efd: 60          `              ; Return -- ws_page count saved
 
 ; &8efe referenced 1 time by &8f35
 .set_rom_ws_page
-    tya                                                               ; 8efe: 98          .
-    ldy romsel_copy                                                   ; 8eff: a4 f4       ..
+    tya                                                               ; 8efe: 98          .              ; TYA -- caller's page (in Y) into A
+    ldy romsel_copy                                                   ; 8eff: a4 f4       ..             ; Y = current ROM slot from romsel_copy
     pha                                                               ; 8f01: 48          H              ; Push restored value
     and #&7f                                                          ; 8f02: 29 7f       ).             ; Mask bit 7 (workspace flag)
-    sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...
-    ldy master_break_type_shadow                                      ; 8f07: ac 2b fe    .+.
+    sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...            ; Publish page into rom_ws_pages[slot] (bit 7 cleared = workspace claimed)
+    ldy master_break_type_shadow                                      ; 8f07: ac 2b fe    .+.            ; Read Master break-type shadow (&FE2B)
     ldy master_romsel_shadow                                          ; 8f0a: ac 28 fe    .(.            ; Read &FE28 (Master ROMSEL shadow)
     ply                                                               ; 8f0d: 7a          z              ; Pop saved Y
     iny                                                               ; 8f0e: c8          .              ; Increment for next page
@@ -4579,9 +4579,9 @@ ps_template_base = load_transfer_params+1
     sta net_rx_ptr_hi                                                 ; 8f24: 85 9d       ..             ; Store final page count high to net_rx_ptr_hi
     inc a                                                             ; 8f26: 1a          .              ; Increment for nfs_workspace_hi
     sta nfs_workspace_hi                                              ; 8f27: 85 9f       ..             ; Store workspace high page
-    lda #0                                                            ; 8f29: a9 00       ..
-    sta net_rx_ptr                                                    ; 8f2b: 85 9c       ..
-    sta nfs_workspace                                                 ; 8f2d: 85 9e       ..
+    lda #0                                                            ; 8f29: a9 00       ..             ; A=0: clear-byte for the lo halves below
+    sta net_rx_ptr                                                    ; 8f2b: 85 9c       ..             ; Clear net_rx_ptr_lo (page-aligned)
+    sta nfs_workspace                                                 ; 8f2d: 85 9e       ..             ; Clear nfs_workspace_lo (page-aligned)
     jsr get_ws_page                                                   ; 8f2f: 20 ad 8c     ..            ; Compute workspace start page via get_ws_page
     cpy #&dc                                                          ; 8f32: c0 dc       ..             ; Y >= &DC?
     ply                                                               ; 8f34: 7a          z              ; Restore Y from stack
@@ -4638,14 +4638,14 @@ ps_template_base = load_transfer_params+1
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
 ; deliberately ignoring svc &15 (100 Hz poll), svc &2A (language ROM startup), etc.
 .nfs_init_body
-    lda #0                                                            ; 8f38: a9 00       ..             ; A=0
-    sta ws_page                                                       ; 8f3a: 85 a8       ..
-    sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.
-    ldy #0                                                            ; 8f3f: a0 00       ..
-    sta (net_rx_ptr),y                                                ; 8f41: 91 9c       ..
+    lda #0                                                            ; 8f38: a9 00       ..             ; A=0: clear-byte for the next four stores
+    sta ws_page                                                       ; 8f3a: 85 a8       ..             ; Clear ws_page (workspace page count)
+    sta tx_complete_flag                                              ; 8f3c: 8d 60 0d    .`.            ; Clear tx_complete_flag
+    ldy #0                                                            ; 8f3f: a0 00       ..             ; Y=0: receive-block offset 0 (remote-op flag)
+    sta (net_rx_ptr),y                                                ; 8f41: 91 9c       ..             ; Clear remote-op flag at (net_rx_ptr)+0
     lda last_break_type                                               ; 8f43: ad 8d 02    ...            ; Read l028D (current ROM number)
     bne nfs_init_check_fs_flags                                       ; 8f46: d0 07       ..             ; Non-zero (re-init): take nfs_init_check_fs_flags path
-    lda #&10                                                          ; 8f48: a9 10       ..
+    lda #&10                                                          ; 8f48: a9 10       ..             ; A=&10: fs_flags bit 4 mask (checks 'workspace already set up')
     bit fs_flags                                                      ; 8f4a: 2c 6c 0d    ,l.            ; BIT fs_flags
     beq alloc_post_restore_check                                      ; 8f4d: f0 6c       .l             ; Zero: first ROM init, skip FS setup
 ; &8f4f referenced 1 time by &8f46
@@ -10442,23 +10442,23 @@ svc_8_osword_disp = svc_8_osword+1
 
 ; &a871 referenced 1 time by &a868
 .osword_pb_ready
-    equb &7e, &6f, &0f                                                ; a871: 7e 6f 0f    ~o.
+    equb &7e, &6f, &0f                                                ; a871: 7e 6f 0f    ~o.            ; PB-ready / parameter table (3 bytes) read by osword_setup_handler at &A868 via LDA osword_pb_ready,X
 
 .osword_0e_handler
-    bit suffix_copy_loop                                              ; a874: 2c 84 99    ,..
+    bit suffix_copy_loop                                              ; a874: 2c 84 99    ,..            ; BIT $abs -- 3-byte skip-trick that jumps over the extract_osword_subcode prologue when called via &A874
 ; ***************************************************************************************
 ; Extract and dispatch OSWORD sub-code from parameter byte.
 .extract_osword_subcode
 osword_subcode_dispatch = extract_osword_subcode+1
-    lsr ws_page                                                       ; a877: 46 a8       F.
+    lsr ws_page                                                       ; a877: 46 a8       F.             ; Shift ws_page right -- splits parameter byte into upper / lower nibbles
 ; &a878 referenced 1 time by &a864
-    tay                                                               ; a879: a8          .              ; TAY -- A = sub-code
-    lda #&a9                                                          ; a87a: a9 a9       ..
-    lda #&a9                                                          ; a87c: a9 a9       ..
-    ldy ws_template_source                                            ; a87e: ac 48 20    .H
-    eor ws_precomputed_value                                          ; a881: 4d 8b 68    M.h
+    tay                                                               ; a879: a8          .              ; TAY -- A = sub-code; TAY -- preserve sub-code in Y
+    lda #&a9                                                          ; a87a: a9 a9       ..             ; LDA #&A9 -- 2-byte BIT-trick filler (skipped when entered at &A87E)
+    lda #&a9                                                          ; a87c: a9 a9       ..             ; LDA #&A9 -- 2-byte BIT-trick filler
+    ldy ws_template_source                                            ; a87e: ac 48 20    .H             ; Load template source pointer
+    eor ws_precomputed_value                                          ; a881: 4d 8b 68    M.h            ; EOR with workspace-precomputed value
     cmp #4                                                            ; a884: c9 04       ..             ; Compare with &04
-    beq save_txcb_and_convert                                         ; a886: f0 09       ..
+    beq save_txcb_and_convert                                         ; a886: f0 09       ..             ; Equal: take save_txcb_and_convert path
     cmp #3                                                            ; a888: c9 03       ..             ; Restore A (OSWORD sub-code)
     beq save_txcb_done                                                ; a88a: f0 5b       .[             ; Equal: take save_txcb_done path
     lda #8                                                            ; a88c: a9 08       ..             ; Other sub-codes: set state = 8
@@ -10836,21 +10836,21 @@ osword_subcode_dispatch = extract_osword_subcode+1
     txa                                                               ; aa53: 8a          .              ; FCB index
     adc #&20 ; ' '                                                    ; aa54: 69 20       i              ; Add &20 for FCB table offset
     sta hazel_fcb_slot_3                                              ; aa56: 8d 74 c2    .t.            ; Store as handle 3 FCB index
-    lda #8                                                            ; aa59: a9 08       ..
-    trb fs_flags                                                      ; aa5b: 1c 6c 0d    .l.
+    lda #8                                                            ; aa59: a9 08       ..             ; A=8: fs_flags bit 3 (FS-error pending)
+    trb fs_flags                                                      ; aa5b: 1c 6c 0d    .l.            ; Clear FS-error-pending flag
 ; &aa5e referenced 1 time by &aa47
 .store_updated_status
     tya                                                               ; aa5e: 98          .              ; TYA -- A = Y for store
-    sta hazel_fcb_status,x                                            ; aa5f: 9d 60 c2    .`.
+    sta hazel_fcb_status,x                                            ; aa5f: 9d 60 c2    .`.            ; Store updated status into hazel_fcb_status[X]
 ; &aa62 referenced 2 times by &aa01, &aa0d
 .next_fcb_entry
     dex                                                               ; aa62: ca          .              ; Decrement entry counter
-    bpl scan_fcb_entry                                                ; aa63: 10 96       ..
+    bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Loop while X >= 0 (scan all FCBs)
     lda #&0e                                                          ; aa65: a9 0e       ..             ; A=&0E: status flag value
-    bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.
-    bne return_5                                                      ; aa6a: d0 05       ..
-    lda #&40 ; '@'                                                    ; aa6c: a9 40       .@
-    tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.
+    bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Test fs_flags bits 1..3
+    bne return_5                                                      ; aa6a: d0 05       ..             ; Non-zero: skip the FS-active set
+    lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; A=&40: FS-active flag bit
+    tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Set FS-active flag (bit 6 of fs_flags)
 ; &aa71 referenced 1 time by &aa6a
 .return_5
     rts                                                               ; aa71: 60          `
@@ -12253,14 +12253,14 @@ bridge_err_table = compare_bridge_status+1
     equb &9f                                                          ; b003: 9f          .              ; port=&9F
     equb 0                                                            ; b004: 00          .              ; dest station=&00 (filled later)
     equb 0                                                            ; b005: 00          .              ; dest network=&00 (filled later)
-    equb &9f                                                          ; b006: 9f          .
-    equb &8e                                                          ; b007: 8e          .
-    equb &ff                                                          ; b008: ff          .
-    equb &ff                                                          ; b009: ff          .
-    equb &a7                                                          ; b00a: a7          .
-    equb &8e                                                          ; b00b: 8e          .
-    equb &ff                                                          ; b00c: ff          .
-    equb &ff                                                          ; b00d: ff          .
+    equb &9f                                                          ; b006: 9f          .              ; buf start lo (&9F)
+    equb &8e                                                          ; b007: 8e          .              ; buf start hi (&8E); start = &8E9F
+    equb &ff                                                          ; b008: ff          .              ; buf start ext lo=&FF
+    equb &ff                                                          ; b009: ff          .              ; buf start ext hi=&FF
+    equb &a7                                                          ; b00a: a7          .              ; buf end lo (&A7)
+    equb &8e                                                          ; b00b: 8e          .              ; buf end hi (&8E); end = &8EA7
+    equb &ff                                                          ; b00c: ff          .              ; buf end ext lo=&FF
+    equb &ff                                                          ; b00d: ff          .              ; buf end ext hi=&FF
 ; &b00e referenced 1 time by &af2a
 .rx_palette_txcb_template
     equb &7f                                                          ; b00e: 7f          .              ; ctrl=&7F (RX listen)
@@ -13073,17 +13073,17 @@ cdir_size_thresholds = cdir_dispatch_col+2
     rts                                                               ; b356: 60          `              ; Return
 
 .cmd_info_dispatch
-    jsr mask_owner_access                                             ; b357: 20 cf b2     ..
+    jsr mask_owner_access                                             ; b357: 20 cf b2     ..            ; Clear owner-only access bits before checking the URD
     lda #&69 ; 'i'                                                    ; b35a: a9 69       .i             ; A=&69: 'i' character (info prefix)
-    sta hazel_txcb_data                                               ; b35c: 8d 05 c1    ...
-    lda #&2e ; '.'                                                    ; b35f: a9 2e       ..
-    sta hazel_txcb_flag                                               ; b361: 8d 06 c1    ...
-    jsr save_ptr_to_os_text                                           ; b364: 20 73 b3     s.
-    jsr parse_cmd_arg_y0                                              ; b367: 20 2a b2     *.
-    ldx #2                                                            ; b36a: a2 02       ..
-    jsr copy_arg_to_buf                                               ; b36c: 20 a1 b2     ..
+    sta hazel_txcb_data                                               ; b35c: 8d 05 c1    ...            ; Store 'i' as start of FS command name in the TX buffer
+    lda #&2e ; '.'                                                    ; b35f: a9 2e       ..             ; A='.': abbreviation terminator
+    sta hazel_txcb_flag                                               ; b361: 8d 06 c1    ...            ; Store '.' as command-name terminator
+    jsr save_ptr_to_os_text                                           ; b364: 20 73 b3     s.            ; Save the command-line pointer for the dispatcher
+    jsr parse_cmd_arg_y0                                              ; b367: 20 2a b2     *.            ; Parse the *Info argument from the command line
+    ldx #2                                                            ; b36a: a2 02       ..             ; X=2: TX-buffer offset to copy the arg into (after 'i.')
+    jsr copy_arg_to_buf                                               ; b36c: 20 a1 b2     ..            ; Append parsed argument to the TX command buffer
     tay                                                               ; b36f: a8          .              ; TAY -- A = next index
-    jmp send_cmd_and_dispatch                                         ; b370: 4c 3c 8e    L<.
+    jmp send_cmd_and_dispatch                                         ; b370: 4c 3c 8e    L<.            ; Send the FS command and dispatch the reply
 
 ; ***************************************************************************************
 ; Copy text pointer to OS text pointer workspace
