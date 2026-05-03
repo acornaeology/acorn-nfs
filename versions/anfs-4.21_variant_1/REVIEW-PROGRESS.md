@@ -65,11 +65,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x875F` `nmi_reply_cont` - description had two refs to '&8779' for the next handler installation, but actual install target is &8776 (nmi_reply_validate); corrected, plus inline at &8769
 - [x] `0x8776` `nmi_reply_validate` - no changes needed - description was accurate
 - [x] `0x87BE` `nmi_scout_ack_src` - same pattern: description claimed econet_station_id (INTOFF) but body reads tx_src_stn workspace copy; corrected, plus inline
-- [ ] `0x87CE` `data_tx_begin`
-- [ ] `0x87E3` `nmi_data_tx`
-- [ ] `0x8886` `handshake_await_ack`
-- [ ] `0x8892` `nmi_final_ack`
-- [ ] `0x88A6` `nmi_final_ack_net`
+- [x] `0x87CE` `data_tx_begin` - description and inline comments said handler installed at &87E3, but the actual bytes loaded (&EB,&87) target the alt-entry at &87EB; corrected. Inline at &87D5 said '&86E7' (wrong page entirely)
+- [x] `0x87E3` `nmi_data_tx` - description's table said BEQ branches to tx_last_data (&8723) but it actually branches to internal label data_tx_last; clarified, plus added note about the alt-entry at &87EB
+- [x] `0x8886` `handshake_await_ack` - description matches body (CR1=&82, install nmi_final_ack at &8892)
+- [x] `0x8892` `nmi_final_ack` - inline at &889C claimed station-ID compare was via INTOFF side effect of econet_station_id; body uses tx_src_stn workspace copy
+- [x] `0x88A6` `nmi_final_ack_net` - description matches body
 - [ ] `0x88DE` `tx_result_ok`
 - [ ] `0x88E2` `tx_result_fail`
 - [ ] `0x88F0` `rom_gap_88f0`

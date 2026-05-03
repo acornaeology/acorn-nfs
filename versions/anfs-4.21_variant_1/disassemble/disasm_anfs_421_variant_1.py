@@ -3259,23 +3259,27 @@ Tests bit 1 of [`rx_src_net`](address:0D3E)
 | Bit 1 | Path |
 |---|---|
 | set (immediate-op) | branch to `install_imm_data_nmi` to use the alternative handler |
-| clear | install the normal [`nmi_data_tx`](address:87E3) handler at `&87E3` (lo=`&EB`, hi=`&87`) into the NMI vector |
+| clear | install the [`nmi_data_tx`](address:87E3) alt-entry at `&87EB` (lo=`&EB`, hi=`&87`) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |
 
-Then continues into the TX setup. Single caller (`&8339` inside
-[`ack_tx`](address:82DF)).""")
+Single caller (`&8339` inside [`ack_tx`](address:82DF)).""")
 subroutine(0x87E3, "nmi_data_tx",
     title="TX data phase: send payload",
     description="""\
-Transmits the data payload of a four-way handshake. Loads bytes
-from `(open_port_buf),Y` or from Tube R3 depending on the
-transfer mode, writing pairs to the TX FIFO. After each pair,
-decrements the byte count (`port_buf_len`):
+NMI handler that transmits the data payload of a four-way
+handshake. Loads bytes from `(open_port_buf),Y` (or from Tube
+R3 in the immediate-op variant), writing pairs to the TX FIFO.
+After each pair, decrements the byte counters
+(`port_buf_len`/`port_buf_len_hi`):
 
 | Condition | Action |
 |---|---|
-| count = 0 | branch to [`tx_last_data`](address:8723) to signal end of frame |
+| `port_buf_len_hi = 0` (final partial page) | branch to `data_tx_last` (internal label) to send the remaining bytes and tail-call [`tx_last_data`](address:8723) |
 | count > 0, `SR1` IRQ still set | tight loop: write another pair without returning from NMI |
-| count > 0, `SR1` IRQ clear | return via `RTI` and wait for next NMI |""")
+| count > 0, `SR1` IRQ clear | return via `RTI` and wait for next NMI |
+
+The alt-entry at `&87EB` (used by
+[`data_tx_begin`](address:87CE)) skips the page-counter check
+and starts at the byte-count load.""")
 subroutine(0x8845, "nmi_data_tx_tube",
     title="NMI handler: TX FIFO write from Tube buffer",
     description="""\
@@ -7447,8 +7451,8 @@ comment(0x87CB, "Write network byte to TX FIFO", inline=True)
 comment(0x87CE, "Test bit 1 of tx_flags", inline=True)
 comment(0x87D0, "Check if immediate-op or data-transfer", inline=True)
 comment(0x87D3, "Bit 1 set: immediate op, use alt handler", inline=True)
-comment(0x87D5, "Install nmi_data_tx at &86E7", inline=True)
-comment(0x87D7, "High byte of handler address", inline=True)
+comment(0x87D5, "A=&EB: low byte of nmi_data_tx alt-entry (&87EB)", inline=True)
+comment(0x87D7, "Y=&87: high byte of nmi_data_tx", inline=True)
 comment(0x87D9, "Install and return via set_nmi_vector", inline=True)
 comment(0x87DC, "Install nmi_imm_data at &8837", inline=True)
 comment(0x87DE, "High byte of handler address", inline=True)
@@ -7538,9 +7542,9 @@ comment(0x8892, "A=&01: AP mask", inline=True)
 comment(0x8894, "Test SR2 AP", inline=True)
 comment(0x8897, "No AP -- error", inline=True)
 comment(0x8899, "Read dest station", inline=True)
-comment(0x889C, "Compare to our station (INTOFF side effect)", inline=True)
+comment(0x889C, "Compare to our station (workspace copy)", inline=True)
 comment(0x889F, "Not our station -- error", inline=True)
-comment(0x88A1, "Install nmi_final_ack_net handler", inline=True)
+comment(0x88A1, "A=&A6: low byte of nmi_final_ack_net (&88A6)", inline=True)
 comment(0x88A3, "Install continuation handler", inline=True)
 comment(0x88A6, "Test SR2 RDA", inline=True)
 comment(0x88A9, "No RDA -- error", inline=True)

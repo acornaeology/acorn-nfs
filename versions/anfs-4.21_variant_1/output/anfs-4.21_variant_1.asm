@@ -2541,19 +2541,19 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Tests bit 1 of rx_src_net (tx_flags):
 ;
-; | Bit 1              | Path                                                                                 |
-; |--------------------|--------------------------------------------------------------------------------------|
-; | set (immediate-op) | branch to install_imm_data_nmi to use the alternative handler                        |
-; | clear              | install the normal nmi_data_tx handler at &87E3 (lo=&EB, hi=&87) into the NMI vector |
+; | Bit 1              | Path                                                                                                                                                                 |
+; |--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | set (immediate-op) | branch to install_imm_data_nmi to use the alternative handler                                                                                                        |
+; | clear              | install the nmi_data_tx alt-entry at &87EB (lo=&EB, hi=&87) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |
 ;
-; Then continues into the TX setup. Single caller (&8339 inside ack_tx).
+; Single caller (&8339 inside ack_tx).
 ; &87ce referenced 1 time by &8339
 .data_tx_begin
     lda #2                                                            ; 87ce: a9 02       ..             ; Test bit 1 of tx_flags
     bit rx_src_net                                                    ; 87d0: 2c 3e 0d    ,>.            ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 87d3: d0 07       ..             ; Bit 1 set: immediate op, use alt handler
-    lda #&eb                                                          ; 87d5: a9 eb       ..             ; Install nmi_data_tx at &86E7
-    ldy #&87                                                          ; 87d7: a0 87       ..             ; High byte of handler address
+    lda #&eb                                                          ; 87d5: a9 eb       ..             ; A=&EB: low byte of nmi_data_tx alt-entry (&87EB)
+    ldy #&87                                                          ; 87d7: a0 87       ..             ; Y=&87: high byte of nmi_data_tx
     jmp set_nmi_vector                                                ; 87d9: 4c 0e 0d    L..            ; Install and return via set_nmi_vector
 
 ; &87dc referenced 1 time by &87d3
@@ -2565,15 +2565,19 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; TX data phase: send payload
 ;
-; Transmits the data payload of a four-way handshake. Loads bytes from
-; (open_port_buf),Y or from Tube R3 depending on the transfer mode, writing pairs to
-; the TX FIFO. After each pair, decrements the byte count (port_buf_len):
+; NMI handler that transmits the data payload of a four-way handshake. Loads bytes from
+; (open_port_buf),Y (or from Tube R3 in the immediate-op variant), writing pairs to the
+; TX FIFO. After each pair, decrements the byte counters
+; (port_buf_len/port_buf_len_hi):
 ;
-; | Condition                    | Action                                                    |
-; |------------------------------|-----------------------------------------------------------|
-; | count = 0                    | branch to tx_last_data to signal end of frame             |
-; | count > 0, SR1 IRQ still set | tight loop: write another pair without returning from NMI |
-; | count > 0, SR1 IRQ clear     | return via RTI and wait for next NMI                      |
+; | Condition                                | Action                                                                                         |
+; |------------------------------------------|------------------------------------------------------------------------------------------------|
+; | port_buf_len_hi = 0 (final partial page) | branch to data_tx_last (internal label) to send the remaining bytes and tail-call tx_last_data |
+; | count > 0, SR1 IRQ still set             | tight loop: write another pair without returning from NMI                                      |
+; | count > 0, SR1 IRQ clear                 | return via RTI and wait for next NMI                                                           |
+;
+; The alt-entry at &87EB (used by data_tx_begin) skips the page-counter check and
+; starts at the byte-count load.
 ; &87e3 referenced 1 time by &87ed
 .nmi_data_tx
     ldy port_buf_len_hi                                               ; 87e3: a4 a3       ..             ; Y = buffer offset, resume from last position
@@ -2727,9 +2731,9 @@ tx_flags_table = check_tube_irq_loop+1
     bit adlc_cr2                                                      ; 8894: 2c a1 fe    ,..            ; Test SR2 AP
     beq tx_result_fail                                                ; 8897: f0 49       .I             ; No AP -- error
     lda adlc_tx                                                       ; 8899: ad a2 fe    ...            ; Read dest station
-    cmp tx_src_stn                                                    ; 889c: cd 22 0d    .".            ; Compare to our station (INTOFF side effect)
+    cmp tx_src_stn                                                    ; 889c: cd 22 0d    .".            ; Compare to our station (workspace copy)
     bne tx_result_fail                                                ; 889f: d0 41       .A             ; Not our station -- error
-    lda #&a6                                                          ; 88a1: a9 a6       ..             ; Install nmi_final_ack_net handler
+    lda #&a6                                                          ; 88a1: a9 a6       ..             ; A=&A6: low byte of nmi_final_ack_net (&88A6)
     jmp install_nmi_handler                                           ; 88a3: 4c 11 0d    L..            ; Install continuation handler
 
 ; ***************************************************************************************
