@@ -2792,22 +2792,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; tx_calc_transfer (&8900). Unreachable as code (it sits past an unconditional JMP) and
 ; unreferenced as data – no label, index, or indirect pointer targets any address in
 ; the &88F0..&88FF range. Likely an unused remnant from development.
-    equb &0e                                                          ; 88f0: 0e          .              ; Dead data: &0E
-    equb &0e                                                          ; 88f1: 0e          .
-    equb &0a                                                          ; 88f2: 0a          .
-    equb &0a                                                          ; 88f3: 0a          .              ; Dead data: &0A
-    equb &0a                                                          ; 88f4: 0a          .              ; Dead data: &0A
-    equb 6                                                            ; 88f5: 06          .              ; Dead data: &06
-    equb 6                                                            ; 88f6: 06          .
-    equb &0a                                                          ; 88f7: 0a          .              ; Dead data: &0A
-    equb &81                                                          ; 88f8: 81          .              ; Dead data: &81
-    equb 0                                                            ; 88f9: 00          .
-    equb 0                                                            ; 88fa: 00          .              ; Dead data: &00
-    equb 0                                                            ; 88fb: 00          .              ; Dead data: &00
-    equb 0                                                            ; 88fc: 00          .              ; Dead data: &00
-    equb 1                                                            ; 88fd: 01          .              ; Dead data: &01
-    equb 1                                                            ; 88fe: 01          .
-    equb &81                                                          ; 88ff: 81          .              ; Dead data: &81
+    equb &0e, &0e, &0a, &0a, &0a, 6, 6, &0a, &81, 0, 0, 0, 0, 1, 1, &81; 88f0: 0e 0e 0a... ...            ; Purpose unknown
 
 ; ***************************************************************************************
 ; Calculate transfer size and reclaim Tube buffer

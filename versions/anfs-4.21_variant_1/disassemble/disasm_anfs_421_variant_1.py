@@ -7340,17 +7340,7 @@ data_banner(0x88F0, "rom_gap_88f0",
 sits past an unconditional `JMP`) and unreferenced as data – no
 label, index, or indirect pointer targets any address in the
 `&88F0..&88FF` range. Likely an unused remnant from development.""")
-comment(0x88F0, "Dead data: &0E", inline=True)
-comment(0x88F3, "Dead data: &0A", inline=True)
-comment(0x88F4, "Dead data: &0A", inline=True)
-comment(0x88F5, "Dead data: &06", inline=True)
-comment(0x88F7, "Dead data: &0A", inline=True)
-comment(0x88F8, "Dead data: &81", inline=True)
-comment(0x88FA, "Dead data: &00", inline=True)
-comment(0x88FB, "Dead data: &00", inline=True)
-comment(0x88FC, "Dead data: &00", inline=True)
-comment(0x88FD, "Dead data: &01", inline=True)
-comment(0x88FF, "Dead data: &81", inline=True)
+comment(0x88F0, "Purpose unknown", inline=True)
 comment(0x8909, "Read RXCB[7] (buffer addr high byte)", inline=True)
 comment(0x890B, "Compare to &FF", inline=True)
 comment(0x890D, "Not &FF: normal buffer, skip Tube check", inline=True)
@@ -12531,10 +12521,10 @@ expr(0x8683, "<(tx_ctrl_exit-1)")          # ctrl &86: HALT
 expr(0x8684, "<(tx_ctrl_exit-1)")          # ctrl &87: CONTINUE
 expr(0x8685, "<(tx_ctrl_machine_type-1)")  # ctrl &88: machine type
 
-# Dead data between tx_store_result and tx_calc_transfer (16 bytes)
-# Unreferenced and unreachable — force to individual data bytes.
-for i in range(16):
-    byte(0x88F0 + i)
+# Dead data between tx_store_result and tx_calc_transfer (16 bytes).
+# Unreferenced and unreachable; collapsed to a single EQUB block
+# since the byte values have no documented meaning.
+byte(0x88F0, 16, cols=16)
 
 # Dead data between rom_set_nmi_vector RTI and svc_dispatch_lo (3 bytes)
 
