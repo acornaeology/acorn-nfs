@@ -2277,8 +2277,8 @@ entry(0x89D8)
 
 
 comment(0x8000, """\
-ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
-===================================================================""")
+ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
+============================================================================""")
 
 subroutine(0x8050, "adlc_init",
     title="ADLC initialisation",

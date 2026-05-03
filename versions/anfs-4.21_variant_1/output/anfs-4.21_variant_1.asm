@@ -410,7 +410,7 @@ oscli                       = &fff7
     org &8000
 
 ; Sideways ROM header
-; ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
+; ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
 .pydis_start
 .rom_header
 .language_entry
