@@ -14,12 +14,19 @@ Status legend:
 - `[x]` reviewed (with brief notes)
 - `[s]` skipped (trivial wrapper, no comments to fix)
 
+## Pre-pass: stale-name sweep (done)
+
+Mass-replace 125 stale `lXXXX` auto-name references in inline
+comments with the user-given labels at their target addresses
+(e.g. `l0f05` -> `fs_cmd_data`, `l1040` -> `fcb_flags`,
+`l0f03` -> `fs_cmd_csd`). Commit `48d722b`.
+
 Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 2=34, 3=17, 4=18, 5=30, 6=14, 7=9, 8=5, 9=2, 10=3, 11=10, 12=3, 13=3.
 
 ## Depth 0 (226 routines)
 
-- [ ] `0x8045` `generate_event` (in=1, out=0)
+- [x] `0x8045` `generate_event` (in=1, out=0) — split out dispatch_svc5 (&8048) and svc_5_unknown_irq (&804F) as their own subroutines; tightened generate_event description
 - [ ] `0x8070` `init_nmi_workspace` (in=0, out=0)
 - [ ] `0x809B` `nmi_rx_scout` (in=1, out=0)
 - [ ] `0x81B8` `data_rx_setup` (in=0, out=0)

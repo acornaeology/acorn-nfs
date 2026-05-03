@@ -471,10 +471,11 @@ rom_header_byte2 = rom_header+2
     jmp tx_done_exit                                                  ; 8042: 4c 82 85    L..            ; Fire event (enable: *FX52,150); Tail-jump to tx_done_exit which restores X/Y and claims the service
 
 ; ***************************************************************************************
-; Generate event via event vector
+; Generate event via EVNTV
 ;
-; Dispatches through the event vector (EVNTV) to notify event handlers. Called with the
-; event number in A.
+; Single-instruction JMP (evntv) that hands control to whatever handler is hooked into
+; the MOS event vector. Called via service call &05 (svc5_irq_check) on a 'transmit
+; complete' or 'receive complete' edge so user/MOS code can react to network events.
 ;
 ; On Entry: A: event number
 ;
@@ -483,12 +484,27 @@ rom_header_byte2 = rom_header+2
 .generate_event
     jmp (evntv)                                                       ; 8045: 6c 20 02    l .            ; Dispatch through event vector
 
+; ***************************************************************************************
+; Service-5 PHA/PHA/RTS dispatch tail
+;
+; Builds an RTS-target on the stack from the tx_done_dispatch_lo low-byte table and a
+; hard- coded high byte of &85, then falls through into the shared svc_5_unknown_irq
+; RTS to land on the matching tx_done_dispatch_lo+Y page-&85 handler.
+;
+; On Entry: Y: tx_done_dispatch_lo offset (post-&83 base bias)
 ; &8048 referenced 1 time by &803b
 .dispatch_svc5
     lda #&85                                                          ; 8048: a9 85       ..             ; Push return addr high (&85)
     pha                                                               ; 804a: 48          H              ; High byte on stack for RTS
     lda tx_done_dispatch_lo-&83,y                                     ; 804b: b9 b8 84    ...            ; Load dispatch target low byte
     pha                                                               ; 804e: 48          H              ; Low byte on stack for RTS
+; ***************************************************************************************
+; Service-5 unknown-IRQ tail (PHA/PHA/RTS landing)
+;
+; Bare RTS reused as the final step of every dispatch_svc5 entry. With the target's
+; high/low bytes already pushed by the caller, RTS jumps to the selected handler. Also
+; reached as the unclaimed-IRQ tail of the service-5 prologue when no ANFS handler
+; matches.
 .svc_5_unknown_irq
     rts                                                               ; 804f: 60          `              ; RTS = dispatch to PHA'd address
 

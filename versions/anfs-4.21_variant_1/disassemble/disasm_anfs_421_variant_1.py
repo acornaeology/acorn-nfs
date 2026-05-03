@@ -2045,12 +2045,33 @@ two ways depending on bit 7 of the saved `Y`:
               "x": "ROM slot",
               "y": "parameter (high bit selects dispatch path)"})
 subroutine(0x8045, "generate_event",
-    title="Generate event via event vector",
-    description="Dispatches through the event vector (EVNTV)\n"
-    "to notify event handlers. Called with the event\n"
-    "number in A.",
+    title="Generate event via EVNTV",
+    description="""\
+Single-instruction `JMP (evntv)` that hands control to whatever
+handler is hooked into the MOS event vector. Called via service
+call &05 (`svc5_irq_check`) on a 'transmit complete' or 'receive
+complete' edge so user/MOS code can react to network events.""",
     on_entry={"A": "event number"},
     on_exit={"A": "preserved", "X": "preserved", "Y": "preserved"})
+
+subroutine(0x8048, "dispatch_svc5",
+    title="Service-5 PHA/PHA/RTS dispatch tail",
+    description="""\
+Builds an `RTS`-target on the stack from the
+[`tx_done_dispatch_lo`](address:84B8) low-byte table and a hard-
+coded high byte of `&85`, then falls through into the shared
+[`svc_5_unknown_irq`](address:804F) `RTS` to land on the matching
+[`tx_done_dispatch_lo`](address:84B8)+`Y` page-`&85` handler.""",
+    on_entry={"y": "tx_done_dispatch_lo offset (post-&83 base bias)"})
+
+subroutine(0x804F, "svc_5_unknown_irq",
+    title="Service-5 unknown-IRQ tail (PHA/PHA/RTS landing)",
+    description="""\
+Bare `RTS` reused as the final step of every
+[`dispatch_svc5`](address:8048) entry. With the target's
+high/low bytes already pushed by the caller, `RTS` jumps to the
+selected handler. Also reached as the unclaimed-IRQ tail of the
+service-5 prologue when no ANFS handler matches.""")
 
 subroutine(0x8A54, "service_handler",
     title="Service call dispatch (Master 128)",
@@ -2110,8 +2131,6 @@ no_automatic_comment(0x8A61)
 # About 27% of NFS 3.65 main ROM opcodes match in ANFS.
 
 label(0x801A, "copyright_string")
-label(0x8048, "dispatch_svc5")
-label(0x804F, "svc_5_unknown_irq")
 label(0x8070, "init_nmi_workspace")
 label(0x8072, "copy_nmi_shim")
 label(0x80B3, "accept_frame")
