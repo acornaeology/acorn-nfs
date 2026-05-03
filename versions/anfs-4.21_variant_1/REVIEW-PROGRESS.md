@@ -236,16 +236,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB7E3` `init_channel_table` - description matches body's 256-byte clear (via Y wrap-around BNE)
 - [x] `0xB805` `attr_to_chan_index` - description matches body
 - [x] `0xB814` `check_chan_char` - description matches body
-- [ ] `0xB8A8` `alloc_fcb_slot`
-- [ ] `0xB8F8` `close_all_net_chans`
-- [ ] `0xB925` `match_station_net`
-- [ ] `0xB934` `find_open_fcb`
-- [ ] `0xB977` `init_wipe_counters`
-- [ ] `0xBAB7` `loop_restore_workspace`
-- [ ] `0xBAC0` `restore_catalog_entry`
-- [ ] `0xBB2A` `inc_fcb_byte_count`
-- [ ] `0xBC74` `flush_fcb_if_station_known`
-- [ ] `0xBD1B` `read_rx_attribute`
+- [x] `0xB8A8` `alloc_fcb_slot` - description matches body
+- [x] `0xB8F8` `close_all_net_chans` - description matches body
+- [x] `0xB925` `match_station_net` - description matches body's EOR-based station/network compare
+- [x] `0xB934` `find_open_fcb` - description matches body
+- [x] `0xB977` `init_wipe_counters` - description had stale '&10CA' workspace offset (pre-HAZEL); 4.21 uses HAZEL at &C2xx. Rewrote
+- [x] `0xBAB7` `loop_restore_workspace` - description matches body's 13-byte stack-pop loop
+- [x] `0xBAC0` `restore_catalog_entry` - description had stale pre-HAZEL addresses (&10D9 source, &0F00 dest); 4.21 uses HAZEL hazel_ctx_buffer (&C2D9) and hazel_txcb_port (&C100). Rewrote
+- [x] `0xBB2A` `inc_fcb_byte_count` - description matches body's 3-byte cascade increment
+- [x] `0xBC74` `flush_fcb_if_station_known` - description matches body
+- [x] `0xBD1B` `read_rx_attribute` - description matches body
 - [ ] `0xBD20` `store_rx_attribute`
 - [ ] `0xBE42` `parse_dump_range`
 - [ ] `0xBF71` `close_ws_file`

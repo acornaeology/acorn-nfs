@@ -14777,11 +14777,11 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Initialise byte counters for wipe/transfer
 ;
-; Clears the pass counter, byte counter, offset counter, and transfer flag. Stores &FF
-; sentinels in hazel_sentinel_cd/hazel_sentinel_ce. Returns with X/Y pointing at
-; workspace offset &10CA.
+; Sets hazel_pass_counter to 1 and clears hazel_byte_counter_lo, hazel_offset_counter
+; and hazel_transfer_flag. Then stores &FF sentinels in hazel_sentinel_cd /
+; hazel_sentinel_ce. The HAZEL FS-state region is at &C2xx in the 4.21 build.
 ;
-; On Exit: X: &CA (workspace offset low) Y: &10 (workspace page)
+; On Exit: X: small loop counter (last DEX value) Y: 0 (cleared by the TYA path)
 ; &b977 referenced 2 times by &b9ba, &ba65
 .init_wipe_counters
     ldy #1                                                            ; b977: a0 01       ..             ; Initial pass count = 1
@@ -14989,8 +14989,9 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Restore saved catalog entry to TX buffer
 ;
-; Copies 13 bytes from the context buffer at &10D9 back to the TX buffer at &0F00.
-; Falls through to find_matching_fcb.
+; Copies 13 bytes (Y=&0C..0) from hazel_ctx_buffer back to the TX buffer starting at
+; hazel_txcb_port. Falls through to find_matching_fcb. (Pre-HAZEL ROMs read from &10D9
+; and wrote to &0F00; the 4.21 build relocates both to HAZEL.)
 ; &bac0 referenced 1 time by &bcb5
 .restore_catalog_entry
     ldy #&0c                                                          ; bac0: a0 0c       ..             ; Copy 13 bytes (indices 0 to &0C)

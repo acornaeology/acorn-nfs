@@ -6291,13 +6291,16 @@ subroutine(0xB934, "find_open_fcb",
              "z flag": "match status (set when an entry was found)"})
 subroutine(0xB977, "init_wipe_counters",
     title="Initialise byte counters for wipe/transfer",
-    description="Clears the pass counter, byte counter, offset\n"
-    "counter, and transfer flag. Stores &FF sentinels\n"
-    "in hazel_sentinel_cd/hazel_sentinel_ce. Returns with X/Y pointing at\n"
-    "workspace offset &10CA.",
+    description="""\
+Sets `hazel_pass_counter` to 1 and clears
+`hazel_byte_counter_lo`, `hazel_offset_counter` and
+`hazel_transfer_flag`. Then stores `&FF` sentinels in
+[`hazel_sentinel_cd`](address:C2CD) /
+[`hazel_sentinel_ce`](address:C2CE). The HAZEL FS-state region
+is at &C2xx in the 4.21 build.""",
     on_entry={},
-    on_exit={"x": "&CA (workspace offset low)",
-             "y": "&10 (workspace page)"})
+    on_exit={"x": "small loop counter (last DEX value)",
+             "y": "0 (cleared by the TYA path)"})
 subroutine(0xB99A, "start_wipe_pass",
     title="Start wipe pass for current FCB",
     description="Verifies the workspace checksum, saves the station\n"
@@ -6326,9 +6329,12 @@ place. Two callers: the JMP at &BA1B (close-and-restore exit) and
 the BNE retry at &BABE.""")
 subroutine(0xBAC0, "restore_catalog_entry",
     title="Restore saved catalog entry to TX buffer",
-    description="Copies 13 bytes from the context buffer at &10D9\n"
-    "back to the TX buffer at &0F00. Falls through to\n"
-    "find_matching_fcb.")
+    description="""\
+Copies 13 bytes (Y=&0C..0) from
+[`hazel_ctx_buffer`](address:C2D9) back to the TX buffer
+starting at [`hazel_txcb_port`](address:C100). Falls through to
+`find_matching_fcb`. (Pre-HAZEL ROMs read from `&10D9` and wrote
+to `&0F00`; the 4.21 build relocates both to HAZEL.)""")
 subroutine(0xBACC, "loop_save_before_match",
     title="Save FCB context, fall into find_matching_fcb",
     description="""\
