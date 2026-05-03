@@ -19,20 +19,34 @@ they do rather than inheriting the existing fiction.
 3. Search for stale references in descriptions / comments and update.
 4. `fantasm verify` + `fantasm lint` after each rename.
 
-## Candidates
+## Done
+
+| Address | Old name | New name | Commit |
+|---|---|---|---|
+| `&959A` | `parse_filename_validate` | `print_fs_ps_no_arg_help` | (this pass) |
+| `&95CD` | `parse_filename_sub_padding` | `print_field_tail_s` | (this pass) |
+| `&95E9` | `parse_filename_sub_exit` | `dispatch_fs_ps_with_arg` | (this pass) |
+| `&9630` | `parse_object_argument` | `svc_29_status_handler` | (this pass) |
+| `&965F` | `print_network_from_cmos` | `print_ps_address` | (this pass) |
+| `&9670` | `print_fs_network` | `print_fs_address` | (this pass) |
+| `&967F` | `cmos_read_network_number` | `print_cmos_decimal_nl` | (this pass) |
+| `&9689` | `cmos_print_value` | `print_cmos_done` | (this pass) |
+
+`subroutine()` declarations for &965F (`print_ps_address`) and &9670
+(`print_fs_address`) were also rewritten with proper titles and
+descriptions during the rename so the rendered banners match the new
+names.
+
+## Skipped (kept as-is after audit)
+
+| Address | Name | Reason |
+|---|---|---|
+| `&95DA` | `print_dir_syntax` | The name accurately describes the routine -- it prints `'[<D>.]<D>\r'` which IS dir-name syntax. It happens to be shared between `*Dir` and the `*FS`/`*PS` no-arg help, but the name fits the content rather than the callers. |
+
+## Open
 
 | Address | Current name | Proposed | Why current is wrong | Source |
 |---|---|---|---|---|
-| `&959A` | `parse_filename_validate` | `print_fs_ps_no_arg_help` (or similar) | Doesn't validate filenames at all. It's the no-argument syntax-help printer for `*FS` / `*PS`: checks for an argument byte, dispatches to the `X=&A0` parse-error handler if one is present, otherwise prints a four-line syntax block. | Gap cleanup &959A..&95EB |
-| `&95CD` | `parse_filename_sub_padding` | `print_padding_8` (or similar) | Not parse-related, not specifically padding. It's the shared `'S       '` (S + 7 spaces) 8-char-field tail used by both `print_fs_station` and `print_station_low`, producing `'FS       '` and `'PS       '` respectively. | Gap cleanup &959A..&95EB |
-| `&95DA` | `print_dir_syntax` | `print_dir_syntax_fragment` (or rename pending wider audit) | Name is too narrow. Used by the `*FS`/`*PS` no-arg help path as well as `*Dir`. | Gap cleanup &959A..&95EB |
-| `&95E9` | `parse_filename_sub_exit` | `dispatch_no_arg_path` (or similar) | Not an "exit" of any parse routine. It's a 2-instruction trampoline: `LDX #&A0 / JMP svc4_dispatch_lookup`, used to dispatch the no-argument-error path from the `*FS`/`*PS` syntax-help entry. | Gap cleanup &959A..&95EB |
-| `&9630` | `parse_object_argument` | `print_fs_ps_addresses` | Doesn't parse anything when invoked with no argument. Mirror of `parse_filename_validate` (&959A) but for the address-display path: prints `'FS       <fs-net>.<fs-stn>\rPS       <ps-net>.<ps-stn>\r'` from CMOS, then optionally a `'No '` prefix depending on FS-active flag. Only branches to the parser when an arg is present. | Gap cleanup &9619..&9651 |
-| `&965F` | `print_network_from_cmos` | `print_ps_address` | Misleading: it prints the **printer-server** address (network.station from CMOS &04/&03), not just a network number. Always emits two bytes joined by `.`. | Gap cleanup &9619..&9651 |
-| `&9670` | `print_fs_network` | `print_fs_address` | Same misleading pattern: it prints the **file-server** address (network.station from CMOS &02/&01), not just the network number. | Gap cleanup &9619..&9651 |
-| `&967F` | `cmos_read_network_number` | `print_cmos_byte_decimal_newline` (shared tail) | Not specific to network numbers. Shared tail used by both `print_ps_address` and `print_fs_address`: read CMOS[X], print decimal, OSNEWL, fall into the JMP svc_return trampoline at &9689. | Gap cleanup &9619..&9651 |
-| `&9689` | `cmos_print_value` | (delete or rename to a generic name) | Just `JMP svc_return_unclaimed` -- a 3-byte trampoline. Doesn't print anything. Either rename to reflect that it's the shared no-arg-path return, or drop the label entirely if no caller really needs it (only one entry-point call from &9686 fall-through). | Gap cleanup &9619..&9651 |
-
 | `&A0FE` | `sub_ca0fe` (auto-name) + `cmos_attr_table = sub_ca0fe+1` overlap | (refactor) | The `cmos_attr_table` label deliberately overlaps the JSR osbyte_a2 instruction (cmos_attr_table = &A0FE+1 = &A0FF, which is the operand byte of the JSR). The `lda cmos_attr_table,x` at &A0ED reads through that overlap. Either we resolve this with an explicit table at the read addresses, or rename `sub_ca0fe` to something descriptive (it's just an internal entry point during the OSARGS chain). | Gap cleanup &A0CF..&A103 |
 
 ## Notes

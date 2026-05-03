@@ -3088,8 +3088,8 @@ nmi_shim_source = reset_enter_listen+2
     equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; idx &14: copy_template_to_zp (svc &25: FS name + info reply (copy template to caller WS))
     equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; idx &15: check_help_continuation (svc &26: close all files (FILEV via Y=0))
     equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; idx &16: nfs_init_body (svc &27: post-hard-reset re-init)
-    equb <(parse_filename_validate-1)                                 ; 8a04: 99          .              ; idx &17: parse_filename_validate (svc &28: *CONFIGURE option handler)
-    equb <(parse_object_argument-1)                                   ; 8a05: 2f          /              ; idx &18: parse_object_argument (svc &29: *STATUS option handler)
+    equb <(print_fs_ps_no_arg_help-1)                                 ; 8a04: 99          .              ; idx &17: print_fs_ps_no_arg_help (svc &28: print *FS/*PS no-arg syntax help)
+    equb <(svc_29_status_handler-1)                                   ; 8a05: 2f          /              ; idx &18: svc_29_status_handler (svc &29: *STATUS handler (print FS/PS addresses or parse arg))
     equb <(lang_0_insert_remote_key-1)                                ; 8a06: ae          .              ; idx &19: lang_0_insert_remote_key (language reply 0)
     equb <(lang_1_remote_boot-1)                                      ; 8a07: 4f          O              ; idx &1A: lang_1_remote_boot (language reply 1)
     equb <(lang_2_save_palette_vdu-1)                                 ; 8a08: 19          .              ; idx &1B: lang_2_save_palette_vdu (language reply 2)
@@ -3148,8 +3148,8 @@ nmi_shim_source = reset_enter_listen+2
     equb >(copy_template_to_zp-1)                                     ; 8a34: 8e          .              ; idx &14: copy_template_to_zp
     equb >(check_help_continuation-1)                                 ; 8a35: 8e          .              ; idx &15: check_help_continuation
     equb >(nfs_init_body-1)                                           ; 8a36: 8f          .              ; idx &16: nfs_init_body
-    equb >(parse_filename_validate-1)                                 ; 8a37: 95          .              ; idx &17: parse_filename_validate
-    equb >(parse_object_argument-1)                                   ; 8a38: 96          .              ; idx &18: parse_object_argument
+    equb >(print_fs_ps_no_arg_help-1)                                 ; 8a37: 95          .              ; idx &17: print_fs_ps_no_arg_help
+    equb >(svc_29_status_handler-1)                                   ; 8a38: 96          .              ; idx &18: svc_29_status_handler
     equb >(lang_0_insert_remote_key-1)                                ; 8a39: 98          .              ; idx &19: lang_0_insert_remote_key
     equb >(lang_1_remote_boot-1)                                      ; 8a3a: 98          .              ; idx &1A: lang_1_remote_boot
     equb >(lang_2_save_palette_vdu-1)                                 ; 8a3b: b0          .              ; idx &1B: lang_2_save_palette_vdu
@@ -4631,8 +4631,8 @@ ps_template_base = load_transfer_params+1
 ; | &25      | 20    | copy_template_to_zp     | FS name + info reply    |
 ; | &26      | 21    | check_help_continuation | close all files         |
 ; | &27      | 22    | nfs_init_body (this)    | reset re-init           |
-; | &28      | 23    | parse_filename_validate | *CONFIGURE option       |
-; | &29      | 24    | parse_object_argument   | *STATUS option          |
+; | &28      | 23    | print_fs_ps_no_arg_help | *CONFIGURE option       |
+; | &29      | 24    | svc_29_status_handler   | *STATUS option          |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
@@ -6056,10 +6056,10 @@ ps_template_base = load_transfer_params+1
 .dir_pass_simple
     jmp check_urd_prefix                                              ; 9597: 4c 2d 8e    L-.            ; Simple: pass command to FS; Workspace offset &0F
 
-.parse_filename_validate
+.print_fs_ps_no_arg_help
     lda (os_text_ptr),y                                               ; 959a: b1 f2       ..             ; Read first command-line char at (os_text_ptr),Y
     cmp #&0d                                                          ; 959c: c9 0d       ..             ; Is it CR (no argument supplied)?
-    bne parse_filename_sub_exit                                       ; 959e: d0 49       .I             ; Non-CR: argument present -- exit via parse_filename_sub_exit (X=&A0 dispatch)
+    bne dispatch_fs_ps_with_arg                                       ; 959e: d0 49       .I             ; Non-CR: argument present -- exit via dispatch_fs_ps_with_arg (X=&A0)
     jsr print_fs_station                                              ; 95a0: 20 c8 95     ..            ; CR: print 'FS ' header
     jsr print_dir_syntax                                              ; 95a3: 20 da 95     ..            ; Print '[<D>.]<D>\r'
     jsr print_station_low                                             ; 95a6: 20 c1 95     ..            ; Print 'PS ' header
@@ -6080,7 +6080,7 @@ ps_template_base = load_transfer_params+1
     equs "P"                                                          ; 95c4: 50          P
 
     clv                                                               ; 95c5: b8          .              ; CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)
-    bvc parse_filename_sub_padding                                    ; 95c6: 50 05       P.             ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
+    bvc print_field_tail_s                                            ; 95c6: 50 05       P.             ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
 
 ; ***************************************************************************************
 ; Print file server station via print_inline.
@@ -6091,7 +6091,7 @@ ps_template_base = load_transfer_params+1
 
     nop                                                               ; 95cc: ea          .              ; NOP -- bit-7 terminator; falls through into the shared 'S ' tail at &95CD
 ; &95cd referenced 1 time by &95c6
-.parse_filename_sub_padding
+.print_field_tail_s
     jsr print_inline                                                  ; 95cd: 20 61 92     a.            ; Print 'S ' (S + 7 spaces) -- the shared 8-char field used by both 'FS' and 'PS' callers
     equs "S       "                                                   ; 95d0: 53 20 20... S
 
@@ -6109,7 +6109,7 @@ ps_template_base = load_transfer_params+1
     rts                                                               ; 95e8: 60          `              ; Return
 
 ; &95e9 referenced 1 time by &959e
-.parse_filename_sub_exit
+.dispatch_fs_ps_with_arg
     ldx #&a0                                                          ; 95e9: a2 a0       ..             ; X=&A0: index into svc4 dispatch table (no-arg path)
     jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.            ; Tail-jump to svc4_dispatch_lookup with X=&A0
 
@@ -6192,14 +6192,14 @@ ps_template_base = load_transfer_params+1
     tay                                                               ; 962b: a8          .              ; TAY -- new CMOS value to Y
     ldx #&11                                                          ; 962c: a2 11       ..             ; X=&11: CMOS RAM byte index
     bra osbyte_a2                                                     ; 962e: 80 e2       ..             ; BRA osbyte_a2: write CMOS &11 = Y
-.parse_object_argument
+.svc_29_status_handler
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?
     bne help_dispatch_setup                                           ; 9634: d0 56       .V             ; Non-CR: parse the argument at help_dispatch_setup
     jsr print_fs_station                                              ; 9636: 20 c8 95     ..            ; Print 'FS ' header
-    jsr print_fs_network                                              ; 9639: 20 70 96     p.            ; Print FS network.station from CMOS &02/&01
+    jsr print_fs_address                                              ; 9639: 20 70 96     p.            ; Print FS network.station from CMOS &02/&01
     jsr print_station_low                                             ; 963c: 20 c1 95     ..            ; Print 'PS ' header
-    jsr print_network_from_cmos                                       ; 963f: 20 5f 96     _.            ; Print PS network.station from CMOS &04/&03
+    jsr print_ps_address                                              ; 963f: 20 5f 96     _.            ; Print PS network.station from CMOS &04/&03
     ldx #&11                                                          ; 9642: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..            ; Read CMOS &11 (FS state)
     tya                                                               ; 9647: 98          .              ; TYA -- A = CMOS &11
@@ -6215,12 +6215,17 @@ ps_template_base = load_transfer_params+1
     equs "Space", &0d                                                 ; 9656: 53 70 61... Spa
 
     clv                                                               ; 965c: b8          .              ; CLV -- bit-7 terminator + resume opcode
-    bvc cmos_print_value                                              ; 965d: 50 2a       P*             ; ALWAYS branch
+    bvc print_cmos_done                                               ; 965d: 50 2a       P*             ; ALWAYS branch
 
 ; ***************************************************************************************
-; Read CMOS network and print with dot separator.
+; Print printer-server address from CMOS
+;
+; Reads the printer-server's saved network number from CMOS byte &04, prints it as
+; decimal (no leading zeros), prints a . separator, then sets X=3 and falls into
+; print_cmos_decimal_nl to read CMOS &03 and print the printer-server station with a
+; trailing newline. Returns via the print_cmos_done trampoline.
 ; &965f referenced 1 time by &963f
-.print_network_from_cmos
+.print_ps_address
     ldx #4                                                            ; 965f: a2 04       ..             ; X=4: CMOS RAM byte 4 (network number)
     jsr osbyte_a1                                                     ; 9661: 20 9a 8e     ..            ; Read CMOS &04 via osbyte_a1
     tya                                                               ; 9664: 98          .              ; TYA -- A = CMOS &04 value
@@ -6229,11 +6234,16 @@ ps_template_base = load_transfer_params+1
     equs "."                                                          ; 966b: 2e          .
 
     ldx #3                                                            ; 966c: a2 03       ..             ; X=3: CMOS &03 (FS station)
-    bra cmos_read_network_number                                      ; 966e: 80 0f       ..             ; BRA cmos_read_network_number: shared print-and-trail
+    bra print_cmos_decimal_nl                                         ; 966e: 80 0f       ..             ; BRA print_cmos_decimal_nl: shared print-and-trail
 ; ***************************************************************************************
-; Read CMOS FS network and print with dot separator.
+; Print file-server address from CMOS
+;
+; Reads the file-server's saved network number from CMOS byte &02, prints it as decimal
+; (no leading zeros), prints a . separator, then sets X=1 and falls into
+; print_cmos_decimal_nl to read CMOS &01 and print the file-server station with a
+; trailing newline. Returns via the print_cmos_done trampoline.
 ; &9670 referenced 1 time by &9639
-.print_fs_network
+.print_fs_address
     ldx #2                                                            ; 9670: a2 02       ..             ; X=2: CMOS &02 (FS network)
     jsr osbyte_a1                                                     ; 9672: 20 9a 8e     ..            ; Read CMOS &02 via osbyte_a1
     tya                                                               ; 9675: 98          .              ; TYA -- A = CMOS &02
@@ -6243,13 +6253,13 @@ ps_template_base = load_transfer_params+1
 
     ldx #1                                                            ; 967d: a2 01       ..             ; X=1: CMOS &01 (port)
 ; &967f referenced 1 time by &966e
-.cmos_read_network_number
+.print_cmos_decimal_nl
     jsr osbyte_a1                                                     ; 967f: 20 9a 8e     ..            ; Read CMOS X via osbyte_a1
     tya                                                               ; 9682: 98          .              ; TYA -- A = CMOS value
     jsr print_num_no_leading                                          ; 9683: 20 27 b3     '.            ; Print as decimal
     jsr osnewl                                                        ; 9686: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
 ; &9689 referenced 1 time by &965d
-.cmos_print_value
+.print_cmos_done
     jmp svc_return_unclaimed                                          ; 9689: 4c 64 8c    Ld.            ; JMP svc_return_unclaimed (release service call)
 
 ; &968c referenced 1 time by &9634
@@ -10377,10 +10387,10 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equb &80                                                          ; a828: 80          .              ; Sub-tables 4/5 separator
     equs "FS"                                                         ; a829: 46 53       FS             ; caller &9670
     equb &81                                                          ; a82b: 81          .              ; syn &1
-    equw print_fs_network-1                                           ; a82c: 6f 96       o.
+    equw print_fs_address-1                                           ; a82c: 6f 96       o.
     equs "PS"                                                         ; a82e: 50 53       PS             ; caller &965F
     equb &83                                                          ; a830: 83          .              ; syn &3
-    equw print_network_from_cmos-1                                    ; a831: 5e 96       ^.
+    equw print_ps_address-1                                           ; a831: 5e 96       ^.
     equs "Space"                                                      ; a833: 53 70 61... Spa            ; caller &9641
     equb &80                                                          ; a838: 80          .              ; no syn
     equw &9641                                                        ; a839: 41 96       A.
@@ -15907,8 +15917,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(osword_13_write_ws_pair-1) == &9c
     assert <(osword_4_handler-1) == &31
     assert <(osword_8_handler-1) == &d2
-    assert <(parse_filename_validate-1) == &99
-    assert <(parse_object_argument-1) == &2f
+    assert <(print_fs_ps_no_arg_help-1) == &99
     assert <(proc_op_status2-1) == &cf
     assert <(ps_scan_resume-1) == &fd
     assert <(raise_y_to_c8-1) == &e8
@@ -15921,6 +15930,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(store_ws_page_count-1) == &ef
     assert <(svc5_irq_check-1) == &27
     assert <(svc_18_fs_select-1) == &44
+    assert <(svc_29_status_handler-1) == &2f
     assert <(svc_2_private_workspace_pages-1) == &0f
     assert <(svc_3_autoboot-1) == &c6
     assert <(svc_4_star_command-1) == &41
@@ -15992,14 +16002,14 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert >(osword_13_write_ws_pair-1) == &aa
     assert >(osword_4_handler-1) == &ad
     assert >(osword_8_handler-1) == &ad
-    assert >(parse_filename_validate-1) == &95
-    assert >(parse_object_argument-1) == &96
+    assert >(print_fs_ps_no_arg_help-1) == &95
     assert >(ps_scan_resume-1) == &b0
     assert >(raise_y_to_c8-1) == &8e
     assert >(set_rom_ws_page-1) == &8e
     assert >(store_ws_page_count-1) == &8e
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
+    assert >(svc_29_status_handler-1) == &96
     assert >(svc_2_private_workspace_pages-1) == &8f
     assert >(svc_3_autoboot-1) == &8c
     assert >(svc_4_star_command-1) == &8c
@@ -16044,8 +16054,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert gbpbv_handler == &a14c
     assert help_net-1 == &8bc3
     assert help_utils-1 == &8bbf
-    assert print_fs_network-1 == &966f
-    assert print_network_from_cmos-1 == &965e
+    assert print_fs_address-1 == &966f
+    assert print_ps_address-1 == &965e
     assert set_fs_or_ps_cmos_station-1 == &95ed
     assert syn_access - cmd_syntax_strings - 1 == &b1
     assert syn_iam - cmd_syntax_strings - 1 == &07
@@ -16678,8 +16688,6 @@ save pydis_start, pydis_end
 ;     cmd_syntax_table:                1
 ;     cmd_table_nfs_iam:               1
 ;     cmos_attr_table:                 1
-;     cmos_print_value:                1
-;     cmos_read_network_number:        1
 ;     col_sep_print_char:              1
 ;     col_sep_print_cr:                1
 ;     commit_workspace_pages:          1
@@ -16705,6 +16713,7 @@ save pydis_start, pydis_end
 ;     dir_found_send:                  1
 ;     dir_op_dispatch:                 1
 ;     dir_pass_simple:                 1
+;     dispatch_fs_ps_with_arg:         1
 ;     dispatch_imm_op:                 1
 ;     dispatch_imm_op_fail:            1
 ;     dispatch_ops_1_to_6:             1
@@ -17140,8 +17149,6 @@ save pydis_start, pydis_end
 ;     osword_subcode_dispatch:         1
 ;     page_boundary_restore:           1
 ;     parse_cdir_size:                 1
-;     parse_filename_sub_exit:         1
-;     parse_filename_sub_padding:      1
 ;     parse_fs_dot_dir:                1
 ;     parse_object_space_print:        1
 ;     parse_separator_flag:            1
@@ -17150,21 +17157,24 @@ save pydis_start, pydis_end
 ;     peek_retry_count:                1
 ;     prep_send_tx_cb:                 1
 ;     print_char_terminator:           1
+;     print_cmos_decimal_nl:           1
+;     print_cmos_done:                 1
 ;     print_current_fs:                1
 ;     print_decimal_3dig_no_spool:     1
 ;     print_dir_header:                1
+;     print_field_tail_s:              1
 ;     print_file_server_is:            1
+;     print_fs_address:                1
 ;     print_fs_info_newline:           1
-;     print_fs_network:                1
 ;     print_hex_nybble:                1
 ;     print_hex_nybble_no_spool:       1
 ;     print_indent:                    1
 ;     print_load_exec_addrs:           1
-;     print_network_from_cmos:         1
 ;     print_next_string_char:          1
 ;     print_nonzero_digit:             1
 ;     print_nybble_leading_zero:       1
 ;     print_poll_jammed:               1
+;     print_ps_address:                1
 ;     print_ps_now:                    1
 ;     print_ps_padding:                1
 ;     print_public_label:              1

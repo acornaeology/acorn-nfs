@@ -783,6 +783,14 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 
 # ============================================================
 # Code label renames (Phase 3)
+label(0x959A, "print_fs_ps_no_arg_help")
+label(0x95CD, "print_field_tail_s")
+label(0x95E9, "dispatch_fs_ps_with_arg")
+label(0x9630, "svc_29_status_handler")
+label(0x965F, "print_ps_address")
+label(0x9670, "print_fs_address")
+label(0x967F, "print_cmos_decimal_nl")
+label(0x9689, "print_cmos_done")
 # ============================================================
 
 # Data and shared-tail label renames (Phase 3b)
@@ -3771,8 +3779,8 @@ via the CMP/SBC normalisation chain in
 | `&25`      | 20    | `copy_template_to_zp`     | FS name + info reply   |
 | `&26`      | 21    | `check_help_continuation` | close all files        |
 | `&27`      | 22    | `nfs_init_body` (this)    | reset re-init          |
-| `&28`      | 23    | `parse_filename_validate` | *CONFIGURE option      |
-| `&29`      | 24    | `parse_object_argument`   | *STATUS option         |
+| `&28`      | 23    | `print_fs_ps_no_arg_help` | *CONFIGURE option      |
+| `&29`      | 24    | `svc_29_status_handler`   | *STATUS option         |
 
 Everything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)
 falls through to
@@ -8784,7 +8792,7 @@ comment(0xB7C5, "Reached space (end-of-leaf)?", inline=True)
 comment(0xB7C7, "No: continue copying", inline=True)
 
 # &959A..&95E8: *FS/*PS no-argument syntax-help printer + shared
-# print-inline tails. parse_filename_validate (&959A) checks for an
+# print-inline tails. print_fs_ps_no_arg_help (&959A) checks for an
 # argument after the command; if absent (CR), it prints a four-line
 # syntax block by chaining print_fs_station / print_dir_syntax /
 # print_station_low / print_dir_syntax / inline 'Space\rNoSpace\r'.
@@ -8795,7 +8803,7 @@ comment(0xB7C7, "No: continue copying", inline=True)
 comment(0x959A, "Read first command-line char at (os_text_ptr),Y", inline=True)
 comment(0x959C, "Is it CR (no argument supplied)?", inline=True)
 comment(0x959E, "Non-CR: argument present -- exit via "
-    "parse_filename_sub_exit (X=&A0 dispatch)", inline=True)
+    "dispatch_fs_ps_with_arg (X=&A0)", inline=True)
 comment(0x95A0, "CR: print 'FS       ' header", inline=True)
 comment(0x95A3, "Print '[<D>.]<D>\\r'", inline=True)
 comment(0x95A6, "Print 'PS       ' header", inline=True)
@@ -9462,9 +9470,9 @@ comment(0x8B42, "Raise via build_simple_error (never returns)", inline=True)
 #   &9619: bit-0 SET helper (no static callers found -- likely 4.18
 #                            carry-over from before CMOS protection moved)
 #   &9623: bit-0 CLEAR helper (ditto)
-#   &9630: parse_object_argument (svc_dispatch idx &18)
-#   &965F/&9670: print_num_no_leading siblings -- helpers shared with
-#               parse_object_argument
+#   &9630: svc_29_status_handler (svc_dispatch idx &18)
+#   &965F/&9670: print_ps_address / print_fs_address -- helpers shared
+#               with svc_29_status_handler
 #   help_dispatch_setup: dispatch tail
 #   &969A: match_on_suffix (svc_dispatch idx &0F)
 #   &96BB..&973C: filename-walker + *TYPE-style file-print loop reached
@@ -9492,7 +9500,7 @@ comment(0x962B, "TAY -- new CMOS value to Y", inline=True)
 comment(0x962C, "X=&11: CMOS RAM byte index", inline=True)
 comment(0x962E, "BRA osbyte_a2: write CMOS &11 = Y", inline=True)
 
-# parse_object_argument (&9630): scans (os_text_ptr),Y for CR; if
+# svc_29_status_handler (&9630): scans (os_text_ptr),Y for CR; if
 # at end-of-line, prints all CMOS settings (port number / station
 # / network / FS-state) and returns; otherwise jumps to the
 # argument-parser at help_dispatch_setup.
@@ -9522,7 +9530,7 @@ comment(0x9664, "TYA -- A = CMOS &04 value", inline=True)
 comment(0x9665, "Print as decimal (no leading zeros)", inline=True)
 comment(0x9668, "Print '.' separator via inline", inline=True)
 comment(0x966C, "X=3: CMOS &03 (FS station)", inline=True)
-comment(0x966E, "BRA cmos_read_network_number: shared print-and-trail", inline=True)
+comment(0x966E, "BRA print_cmos_decimal_nl: shared print-and-trail", inline=True)
 
 comment(0x9670, "X=2: CMOS &02 (FS network)", inline=True)
 comment(0x9672, "Read CMOS &02 via osbyte_a1", inline=True)
@@ -10152,12 +10160,8 @@ label(0x9298, "print_next_string_char")
 label(0x92AF, "print_char_terminator")
 label(0x9421, "clear_channel_flag")
 label(0x95BE, "bra_target_svc_return")
-label(0x95CD, "parse_filename_sub_padding")
-label(0x95E9, "parse_filename_sub_exit")
 label(0x962B, "osbyte_a2_value_tya")
 label(0x9653, "parse_object_space_print")
-label(0x967F, "cmos_read_network_number")
-label(0x9689, "cmos_print_value")
 label(0x968C, "help_dispatch_setup")
 label(0x9697, "on_suffix_pattern")
 label(0x96B0, "match_char_loop_cmp")
@@ -10227,10 +10231,24 @@ subroutine(0x95C8, "print_fs_station",
     description="Print file server station via print_inline.")
 subroutine(0x95DA, "print_dir_syntax",
     description="Print *Dir command syntax help via print_inline.")
-subroutine(0x965F, "print_network_from_cmos",
-    description="Read CMOS network and print with dot separator.")
-subroutine(0x9670, "print_fs_network",
-    description="Read CMOS FS network and print with dot separator.")
+subroutine(0x965F, "print_ps_address",
+    title="Print printer-server address from CMOS",
+    description="""\
+Reads the printer-server's saved network number from CMOS byte
+&04, prints it as decimal (no leading zeros), prints a `.`
+separator, then sets `X=3` and falls into
+[`print_cmos_decimal_nl`](address:967F) to read CMOS &03 and
+print the printer-server station with a trailing newline.
+Returns via the [`print_cmos_done`](address:9689) trampoline.""")
+subroutine(0x9670, "print_fs_address",
+    title="Print file-server address from CMOS",
+    description="""\
+Reads the file-server's saved network number from CMOS byte
+&02, prints it as decimal (no leading zeros), prints a `.`
+separator, then sets `X=1` and falls into
+[`print_cmos_decimal_nl`](address:967F) to read CMOS &01 and
+print the file-server station with a trailing newline. Returns
+via the [`print_cmos_done`](address:9689) trampoline.""")
 subroutine(0x968E, "dispatch_help_command",
     description="Dispatch help command via parser lookup table.")
 label(0x96A7, "loop_match_on_suffix")
@@ -11811,8 +11829,6 @@ label(0x969A, "match_on_suffix")      # idx 15 = Master svc &18 (Interactive HEL
 label(0x8E71, "noop_dey_rts")         # idx 19: DEY / RTS 2-byte stub
 label(0x8E73, "copy_template_to_zp")  # idx 20: copy 11 bytes &8E7F.. to (&F2),Y
 label(0x8E8A, "check_help_continuation")  # idx 21: BIT &0D6C / BVC &8E80 / ...
-label(0x959A, "parse_filename_validate")  # idx 23 (Master svc &28: *CONFIGURE option)
-label(0x9630, "parse_object_argument")    # idx 24 (Master svc &29: *STATUS option)
 label(0xB0FE, "ps_scan_resume")           # idx 39: tail of pop_requeue_ps_scan
 label(0xB357, "cmd_info_dispatch")        # idx 40: builds 'i.' prefix, JMPs &8E3C
 label(0xA4DC, "check_urd_present")        # idx 41: BIT &0D6C / BVC ... / JMP &A5A1
@@ -11883,8 +11899,8 @@ _svc_dispatch_entries = [
     (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply (copy template to caller WS)"),
     (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files (FILEV via Y=0)"),
     (0x16,  0x8F38,  "nfs_init_body",                 "svc &27: post-hard-reset re-init"),
-    (0x17,  0x959A,  "parse_filename_validate",       "svc &28: *CONFIGURE option handler"),
-    (0x18,  0x9630,  "parse_object_argument",         "svc &29: *STATUS option handler"),
+    (0x17,  0x959A,  "print_fs_ps_no_arg_help",       "svc &28: print *FS/*PS no-arg syntax help"),
+    (0x18,  0x9630,  "svc_29_status_handler",         "svc &29: *STATUS handler (print FS/PS addresses or parse arg)"),
     (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0"),
     (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1"),
     (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2"),
@@ -12223,8 +12239,8 @@ _cmd_table_fs_entries = [
     (0xA816, "NoSpace", 0xA81D, 0x80, 0xA81E, None,               "caller &9623"),
     (0xA820, "Space",   0xA825, 0x80, 0xA826, None,               "caller &9619"),
     # sentinel at &A828
-    (0xA829, "FS",      0xA82B, 0x81, 0xA82C, "print_fs_network",          "caller &9670"),
-    (0xA82E, "PS",      0xA830, 0x83, 0xA831, "print_network_from_cmos",   "caller &965F"),
+    (0xA829, "FS",      0xA82B, 0x81, 0xA82C, "print_fs_address",          "caller &9670"),
+    (0xA82E, "PS",      0xA830, 0x83, 0xA831, "print_ps_address",          "caller &965F"),
     # sub-tables 4/5 final entry
     (0xA833, "Space",   0xA838, 0x80, 0xA839, None,               "caller &9641"),
 ]
