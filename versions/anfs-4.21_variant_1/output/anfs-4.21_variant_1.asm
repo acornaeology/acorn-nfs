@@ -11533,6 +11533,17 @@ bridge_err_table = compare_bridge_status+1
 .return_6
     rts                                                               ; acec: 60          `              ; CR sent: return
 
+; ***************************************************************************************
+; OSWORD &14 burst-transfer path: extend buffer end and TX
+;
+; Reached from handle_tx_request's BNE at &ACCC. Calls init_ws_copy_wide to copy the
+; workspace TXCB template into the wide-mode workspace slot, then extends the buffer
+; end-byte at (net_rx_ptr)+&7B by 3 to account for the 3-byte burst header before
+; falling through into enable_irq_and_poll, which re-enables IRQs and tail-jumps to
+; send_net_packet.
+;
+; On Entry: NET_RX_PTR: set up by handle_tx_request (dest station/network already
+; stored at +&71/&72)
 ; &aced referenced 1 time by &accc
 .handle_burst_xfer
     jsr init_ws_copy_wide                                             ; aced: 20 fe ad     ..            ; Init workspace for wide copy

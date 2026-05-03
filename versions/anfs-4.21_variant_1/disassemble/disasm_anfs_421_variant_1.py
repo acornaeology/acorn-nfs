@@ -5264,6 +5264,19 @@ then runs the bridge-poll body.""",
     on_entry={"a": "OSWORD &14 sub-function code",
               "x, y": "OSWORD parameter block pointer (low, high)"})
 
+subroutine(0xACED, "handle_burst_xfer",
+    title="OSWORD &14 burst-transfer path: extend buffer end and TX",
+    description="""\
+Reached from [`handle_tx_request`](address:ACB7)'s `BNE` at
+`&ACCC`. Calls [`init_ws_copy_wide`](address:ADFE) to copy the
+workspace TXCB template into the wide-mode workspace slot, then
+extends the buffer end-byte at `(net_rx_ptr)+&7B` by `3` to
+account for the 3-byte burst header before falling through into
+[`enable_irq_and_poll`](address:ACF8), which re-enables IRQs and
+tail-jumps to [`send_net_packet`](address:9B2C).""",
+    on_entry={"net_rx_ptr": "set up by handle_tx_request "
+              "(dest station/network already stored at +&71/&72)"})
+
 subroutine(0xACB7, "handle_tx_request",
     title="Sub-code 0: copy PB station/network into RX block, "
           "dispatch burst",
