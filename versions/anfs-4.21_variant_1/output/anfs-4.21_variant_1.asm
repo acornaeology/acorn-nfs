@@ -939,12 +939,14 @@ rom_header_byte2 = rom_header+2
 ; ***************************************************************************************
 ; NMI error handler dispatch
 ;
-; Common error/abort entry used by 12 call sites.
+; Common error/abort entry used by 11 call sites. The dispatch byte at rx_src_net
+; doubles as a TX-state flag here: bit 7 distinguishes whether the NMI handler reached
+; this point on an RX-error path or a TX not-listening path.
 ;
-; | tx_flags bit 7 | Path                                              |
-; |----------------|---------------------------------------------------|
-; | clear          | RX error – full ADLC reset; return to idle listen |
-; | set            | TX not-listening – JMP tx_result_fail             |
+; | rx_src_net bit 7 | Path                                              |
+; |------------------|---------------------------------------------------|
+; | clear            | RX error – full ADLC reset; return to idle listen |
+; | set              | TX not-listening – JMP tx_result_fail             |
 ; &8215 referenced 11 times by &8187, &819d, &81c7, &81cf, &81d9, &81de, &81ef, &8279, &827f, &833c, &8488
 .nmi_error_dispatch
     lda rx_src_net                                                    ; 8215: ad 3e 0d    .>.            ; Check tx_flags for error path
@@ -1341,7 +1343,7 @@ rom_header_byte2 = rom_header+2
     lda fs_flags                                                      ; 83cc: ad 6c 0d    .l.            ; Load callback event flags
     ror a                                                             ; 83cf: 6a          j              ; Shift bit 0 into carry
     bcc discard_reset_rx                                              ; 83d0: 90 13       ..             ; Bit 0 clear: no callback, skip to reset
-    lda port_ws_offset                                                ; 83d2: a5 a6       ..             ; Set carry for subtraction; Load RXCB workspace pointer low byte
+    lda port_ws_offset                                                ; 83d2: a5 a6       ..             ; Load RXCB workspace pointer low byte (carry set on entry)
 ; &83d4 referenced 1 time by &83d7
 .loop_count_rxcb_slot
     iny                                                               ; 83d4: c8          .              ; Count slots
@@ -1644,10 +1646,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; rx_buf_offset = &0D. Jumps to the common data-receive path at &81AF.
 .svc5_dispatch_lo
 .rx_imm_poke
-    lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..             ; Port workspace offset = &3D
-    sta port_ws_offset                                                ; 84b3: 85 a6       ..             ; Store workspace offset lo
+    lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..             ; Port workspace offset = &2E
+    sta port_ws_offset                                                ; 84b3: 85 a6       ..             ; Store as port_ws_offset
     lda #&0d                                                          ; 84b5: a9 0d       ..             ; RX buffer page = &0D
-    sta rx_buf_offset                                                 ; 84b7: 85 a7       ..             ; Store workspace offset hi
+    sta rx_buf_offset                                                 ; 84b7: 85 a7       ..             ; Store as rx_buf_offset
 ; &84b8 referenced 1 time by &804b
     jmp port_match_found                                              ; 84b9: 4c 95 81    L..            ; Enter POKE data-receive path
 
@@ -11518,7 +11520,7 @@ bridge_err_table = compare_bridge_status+1
     cmp #&ff                                                          ; abec: c9 ff       ..             ; Is it &FF (uninitialised)?
     bne return_from_bridge_poll                                       ; abee: d0 56       .V             ; No: bridge already active, return
     tya                                                               ; abf0: 98          .              ; Save Y
-    pha                                                               ; abf1: 48          H              ; Push it; Preserve Y on stack
+    pha                                                               ; abf1: 48          H              ; Preserve Y on stack
     ldy #&18                                                          ; abf2: a0 18       ..             ; Y=&18: workspace offset for init
     ldx #&0b                                                          ; abf4: a2 0b       ..             ; X=&0B: 12 bytes to copy
     ror econet_flags                                                  ; abf6: 6e 61 0d    na.            ; Rotate econet_flags right (save flag)
@@ -11527,26 +11529,26 @@ bridge_err_table = compare_bridge_status+1
     lda bridge_err_table,y                                            ; abf9: b9 c5 ab    ...            ; Load init data byte
     sta (nfs_workspace),y                                             ; abfc: 91 9e       ..             ; Store to workspace
     lda bridge_txcb_init_table,x                                      ; abfe: bd d1 ab    ...            ; Load TXCB template byte
-    sta txcb_ctrl,x                                                   ; ac01: 95 c0       ..             ; Store byte X into TXCB at offset txcb_ctrl+X; Store to TX control block
-    iny                                                               ; ac03: c8          .              ; Y advances destination index; Next workspace byte
-    dex                                                               ; ac04: ca          .              ; Decrement source index; Next template byte
-    bpl loop_copy_bridge_init                                         ; ac05: 10 f2       ..             ; Loop until X wraps below 0; Loop for all 12 bytes
-    stx spool_control_flag                                            ; ac07: 8e 71 0d    .q.            ; Save final X to spool_control_flag; Store X (-1) as bridge counter
-    rol econet_flags                                                  ; ac0a: 2e 61 0d    .a.            ; Rotate econet_flags to update; Restore econet_flags flag
+    sta txcb_ctrl,x                                                   ; ac01: 95 c0       ..             ; Store to TX control block
+    iny                                                               ; ac03: c8          .              ; Next workspace byte
+    dex                                                               ; ac04: ca          .              ; Next template byte
+    bpl loop_copy_bridge_init                                         ; ac05: 10 f2       ..             ; Loop for all 12 bytes
+    stx spool_control_flag                                            ; ac07: 8e 71 0d    .q.            ; Store X (-1) as bridge counter
+    rol econet_flags                                                  ; ac0a: 2e 61 0d    .a.            ; Restore econet_flags flag
 ; &ac0d referenced 2 times by &ac10, &ac35
 .loop_wait_ws_status
-    asl tx_complete_flag                                              ; ac0d: 0e 60 0d    .`.            ; Clear tx_complete_flag bit 7; Shift ws_0d60 left (check status)
+    asl tx_complete_flag                                              ; ac0d: 0e 60 0d    .`.            ; Shift ws_0d60 left (check status)
     bcc loop_wait_ws_status                                           ; ac10: 90 fb       ..             ; C=0: status clear, retry
     lda #&82                                                          ; ac12: a9 82       ..             ; Control byte &82 for TX
-    sta txcb_ctrl                                                     ; ac14: 85 c0       ..             ; Store TXCB control byte; Set in TX control block
-    lda #&c0                                                          ; ac16: a9 c0       ..             ; A=&C0: TX block hi byte (workspace); Data block at &00C0
-    sta nmi_tx_block                                                  ; ac18: 85 a0       ..             ; Store as nmi_tx_block hi; Set NMI TX block low
-    lda #0                                                            ; ac1a: a9 00       ..             ; A=0; High byte = 0 (page 0)
-    sta nmi_tx_block_hi                                               ; ac1c: 85 a1       ..             ; Clear nmi_tx_block lo; Set NMI TX block high
-    jsr tx_begin                                                      ; ac1e: 20 89 85     ..            ; Begin TX of bridge-discovery packet; Begin Econet transmission
+    sta txcb_ctrl                                                     ; ac14: 85 c0       ..             ; Set in TX control block
+    lda #&c0                                                          ; ac16: a9 c0       ..             ; Data block at &00C0
+    sta nmi_tx_block                                                  ; ac18: 85 a0       ..             ; Set NMI TX block low
+    lda #0                                                            ; ac1a: a9 00       ..             ; High byte = 0 (page 0)
+    sta nmi_tx_block_hi                                               ; ac1c: 85 a1       ..             ; Set NMI TX block high
+    jsr tx_begin                                                      ; ac1e: 20 89 85     ..            ; Begin Econet transmission
 ; &ac21 referenced 1 time by &ac23
 .loop_wait_tx_done
-    bit txcb_ctrl                                                     ; ac21: 24 c0       $.             ; Poll TXCB control byte; Test TX control block bit 7
+    bit txcb_ctrl                                                     ; ac21: 24 c0       $.             ; Test TX control block bit 7
     bmi loop_wait_tx_done                                             ; ac23: 30 fc       0.             ; Negative: TX still in progress
     phx                                                               ; ac25: da          .              ; Push X (saved across delay)
     lda #osbyte_vsync                                                 ; ac26: a9 13       ..             ; A=&13: OSBYTE 'wait for VSYNC'
@@ -14259,129 +14261,129 @@ ps_print_template = write_ps_slot_hi_link+1
 ; (the BNE retry at &B73F that loops cmd_wipe over each match).
 ; &b703 referenced 1 time by &b73f
 .request_next_wipe
-    lda #1                                                            ; b703: a9 01       ..             ; FS function code byte 0 = 1 (examine); Command code 1 = examine directory
-    sta hazel_txcb_data                                               ; b705: 8d 05 c1    ...            ; TXCB[5] = 1: 'examine directory entry'; Store command in TX buffer byte 0
-    sta hazel_txcb_count                                              ; b708: 8d 07 c1    ...            ; TXCB[7] = 1: ditto for the second buffer slot; Store flag in TX buffer byte 2
-    ldx fs_work_5                                                     ; b70b: a6 b5       ..             ; Load current iteration index; Load current file index
-    stx hazel_txcb_flag                                               ; b70d: 8e 06 c1    ...            ; TXCB[6] = iteration index (which directory entry); Store file index in TX buffer byte 1
-    ldx #3                                                            ; b710: a2 03       ..             ; X=3: copy starting at TX[3] (after the FS header bytes); X=3: copy from TX buffer offset 3
-    jsr copy_arg_to_buf                                               ; b712: 20 a1 b2     ..            ; Copy the parsed filename into the TX buffer; Copy filename argument to TX buffer
-    ldy #3                                                            ; b715: a0 03       ..             ; Y=3: FS function code 'Examine'; Function code 3 = examine
-    lda #&80                                                          ; b717: a9 80       ..             ; A=&80: set bit 7 of need_release_tube to flag long-lived TX; Flag &80 = escapable
-    sta need_release_tube                                             ; b719: 85 98       ..             ; Store flag; Mark operation as escapable
-    jsr save_net_tx_cb                                                ; b71b: 20 8a 97     ..            ; Send the examine request and wait for reply; Send examine request to file server
-    lda hazel_txcb_data                                               ; b71e: ad 05 c1    ...            ; Read FS reply byte 0 (status code); Get server response status
-    bne check_wipe_attr                                               ; b721: d0 13       ..             ; Non-zero status: process the response; Non-zero: file found, process it
-    lda #osbyte_flush_buffer_class                                    ; b723: a9 0f       ..             ; OSBYTE &0F: flush input buffer class; OSBYTE &0F: flush buffer class
-    ldx #1                                                            ; b725: a2 01       ..             ; X=1: flush keyboard buffer; X=1: flush input buffers
-    jsr osbyte                                                        ; b727: 20 f4 ff     ..            ; Flush keyboard buffer (clear pending Y/N keypress); Flush keyboard buffer
-    lda #osbyte_scan_keyboard_from_16                                 ; b72a: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16 (clear keypress queue); OSBYTE &7A: keyboard scan from 16
-    jsr osbyte                                                        ; b72c: 20 f4 ff     ..            ; Run the scan; Scan keyboard to clear state
-    ldy #0                                                            ; b72f: a0 00       ..             ; Y=0: no key; Y=0: no key pressed
-    lda #osbyte_write_keys_pressed                                    ; b731: a9 78       .x             ; OSBYTE &78: write keys-pressed state; OSBYTE &78: write keys pressed
-    jmp osbyte                                                        ; b733: 4c f4 ff    L..            ; Tail-call OSBYTE: clean up and return; Clear keyboard state and return
+    lda #1                                                            ; b703: a9 01       ..             ; FS function code byte 0 = 1 (examine)
+    sta hazel_txcb_data                                               ; b705: 8d 05 c1    ...            ; TXCB[5] = 1: 'examine directory entry'
+    sta hazel_txcb_count                                              ; b708: 8d 07 c1    ...            ; TXCB[7] = 1: ditto for the second buffer slot
+    ldx fs_work_5                                                     ; b70b: a6 b5       ..             ; Load current iteration index
+    stx hazel_txcb_flag                                               ; b70d: 8e 06 c1    ...            ; TXCB[6] = iteration index (which directory entry)
+    ldx #3                                                            ; b710: a2 03       ..             ; X=3: copy starting at TX[3] (after the FS header bytes)
+    jsr copy_arg_to_buf                                               ; b712: 20 a1 b2     ..            ; Copy the parsed filename into the TX buffer
+    ldy #3                                                            ; b715: a0 03       ..             ; Y=3: FS function code 'Examine'
+    lda #&80                                                          ; b717: a9 80       ..             ; A=&80: set bit 7 of need_release_tube to flag long-lived TX
+    sta need_release_tube                                             ; b719: 85 98       ..             ; Store flag
+    jsr save_net_tx_cb                                                ; b71b: 20 8a 97     ..            ; Send the examine request and wait for reply
+    lda hazel_txcb_data                                               ; b71e: ad 05 c1    ...            ; Read FS reply byte 0 (status code)
+    bne check_wipe_attr                                               ; b721: d0 13       ..             ; Non-zero status: process the response
+    lda #osbyte_flush_buffer_class                                    ; b723: a9 0f       ..             ; OSBYTE &0F: flush input buffer class
+    ldx #1                                                            ; b725: a2 01       ..             ; X=1: flush keyboard buffer
+    jsr osbyte                                                        ; b727: 20 f4 ff     ..            ; Flush keyboard buffer (clear pending Y/N keypress)
+    lda #osbyte_scan_keyboard_from_16                                 ; b72a: a9 7a       .z             ; OSBYTE &7A: scan keyboard from key 16 (clear keypress queue)
+    jsr osbyte                                                        ; b72c: 20 f4 ff     ..            ; Run the scan
+    ldy #0                                                            ; b72f: a0 00       ..             ; Y=0: no key
+    lda #osbyte_write_keys_pressed                                    ; b731: a9 78       .x             ; OSBYTE &78: write keys-pressed state
+    jmp osbyte                                                        ; b733: 4c f4 ff    L..            ; Tail-call OSBYTE: clean up and return
 
 ; &b736 referenced 1 time by &b721
 .check_wipe_attr
-    lda hazel_txcb_end                                                ; b736: ad 2f c1    ./.            ; Read attribute byte from FS reply (TXCB[&2F]); Load first attribute char of response
+    lda hazel_txcb_end                                                ; b736: ad 2f c1    ./.            ; Read attribute byte from FS reply (TXCB[&2F])
 ; &b739 referenced 1 time by &b749
 .loop_check_if_locked
-    cmp #&4c ; 'L'                                                    ; b739: c9 4c       .L             ; Is it 'L' (locked)?; Is file locked?
-    bne check_wipe_dir                                                ; b73b: d0 05       ..             ; Not locked: check for directory; No: check if directory
+    cmp #&4c ; 'L'                                                    ; b739: c9 4c       .L             ; Is it 'L' (locked)?
+    bne check_wipe_dir                                                ; b73b: d0 05       ..             ; Not locked: check for directory
 ; &b73d referenced 1 time by &b7ba
 .skip_wipe_locked
-    inc fs_work_5                                                     ; b73d: e6 b5       ..             ; Locked: skip this file, advance to next; Skip locked file, advance index
-    jmp request_next_wipe                                             ; b73f: 4c 03 b7    L..            ; Loop back to request the next directory entry; Request next file from server
+    inc fs_work_5                                                     ; b73d: e6 b5       ..             ; Locked: skip this file, advance to next
+    jmp request_next_wipe                                             ; b73f: 4c 03 b7    L..            ; Loop back to request the next directory entry
 
 ; &b742 referenced 1 time by &b73b
 .check_wipe_dir
-    cmp #&44 ; 'D'                                                    ; b742: c9 44       .D             ; Is it 'D' (directory)?; Is it a directory entry?
-    bne show_wipe_prompt                                              ; b744: d0 05       ..             ; Not a directory: prompt the user; No: regular file, show prompt
-    lda hazel_examine_attr                                            ; b746: ad 30 c1    .0.            ; Directory: check second attribute byte (size); Check directory contents flag
-    bne loop_check_if_locked                                          ; b749: d0 ee       ..             ; Loop back to attribute test (re-checks if non-empty); Non-empty dir: treat as locked, skip
+    cmp #&44 ; 'D'                                                    ; b742: c9 44       .D             ; Is it 'D' (directory)?
+    bne show_wipe_prompt                                              ; b744: d0 05       ..             ; Not a directory: prompt the user
+    lda hazel_examine_attr                                            ; b746: ad 30 c1    .0.            ; Directory: check second attribute byte (size)
+    bne loop_check_if_locked                                          ; b749: d0 ee       ..             ; Loop back to attribute test (re-checks if non-empty)
 ; &b74b referenced 1 time by &b744
 .show_wipe_prompt
-    ldx #1                                                            ; b74b: a2 01       ..             ; X=1: scan name starting at TX[1]; X=1: start from response byte 1
-    ldy fs_work_6                                                     ; b74d: a4 b6       ..             ; Y = end-of-buffer offset (saved earlier in fs_work_6); Y = destination index in delete buffer
+    ldx #1                                                            ; b74b: a2 01       ..             ; X=1: scan name starting at TX[1]
+    ldy fs_work_6                                                     ; b74d: a4 b6       ..             ; Y = end-of-buffer offset (saved earlier in fs_work_6)
 ; &b74f referenced 1 time by &b75c
 .loop_copy_wipe_name
-    lda hazel_txcb_flag,x                                             ; b74f: bd 06 c1    ...            ; Read filename byte from TX[6+X]; Load filename char from response
-    jsr print_char_no_spool                                           ; b752: 20 fb 91     ..            ; Print via *SPOOL-bypassing OSASCI; Print filename character to screen
-    sta hazel_parse_buf,y                                             ; b755: 99 30 c0    .0.            ; Also store into the parse buffer for later use; Store in delete command buffer too
-    iny                                                               ; b758: c8          .              ; Step parse-buffer offset; Advance destination index
-    inx                                                               ; b759: e8          .              ; Step TX-buffer offset; Advance source index
-    cpx #&0c                                                          ; b75a: e0 0c       ..             ; Reached &0C (12 chars)?; Copied all 11 filename characters?
+    lda hazel_txcb_flag,x                                             ; b74f: bd 06 c1    ...            ; Read filename byte from TX[6+X]
+    jsr print_char_no_spool                                           ; b752: 20 fb 91     ..            ; Print via *SPOOL-bypassing OSASCI
+    sta hazel_parse_buf,y                                             ; b755: 99 30 c0    .0.            ; Also store into the parse buffer for later use
+    iny                                                               ; b758: c8          .              ; Step parse-buffer offset
+    inx                                                               ; b759: e8          .              ; Step TX-buffer offset
+    cpx #&0c                                                          ; b75a: e0 0c       ..             ; Reached &0C (12 chars)?
     bne loop_copy_wipe_name                                           ; b75c: d0 f1       ..             ; No: continue copying
-    jsr print_inline_no_spool                                         ; b75e: 20 8a 92     ..            ; Print '(?/' prompt prefix and read response; Print '(Y/N/?) ' prompt
+    jsr print_inline_no_spool                                         ; b75e: 20 8a 92     ..            ; Print '(?/' prompt prefix and read response
     equs "(?/"                                                        ; b761: 28 3f 2f    (?/            ; Inline string '(?/' is read by the hook above
 
-    nop                                                               ; b764: ea          .              ; NOP -- bit-7 terminator + resume opcode for the '(?/' stringhi; Inline string terminator
-    jsr prompt_yn                                                     ; b765: 20 cb b7     ..            ; Print 'Y/N) ' via prompt_yn (reads keypress); Read user response character
-    cmp #&3f ; '?'                                                    ; b768: c9 3f       .?             ; Was the keypress '?' (help)?; User pressed '?'?
-    bne check_wipe_response                                           ; b76a: d0 1b       ..             ; Not '?': process Y/N response; No: check for Y/N response
-    lda #&0d                                                          ; b76c: a9 0d       ..             ; '?': print CR before help text; Carriage return before full info
-    jsr print_byte_no_spool                                           ; b76e: 20 01 92     ..            ; Print CR character; Print CR
-    ldx #2                                                            ; b771: a2 02       ..             ; X=2: start of name in TX[2]; X=2: start from response byte 2
+    nop                                                               ; b764: ea          .              ; NOP -- bit-7 terminator + resume opcode for the '(?/' stringhi
+    jsr prompt_yn                                                     ; b765: 20 cb b7     ..            ; Print 'Y/N) ' via prompt_yn (reads keypress)
+    cmp #&3f ; '?'                                                    ; b768: c9 3f       .?             ; Was the keypress '?' (help)?
+    bne check_wipe_response                                           ; b76a: d0 1b       ..             ; Not '?': process Y/N response
+    lda #&0d                                                          ; b76c: a9 0d       ..             ; '?': print CR before help text
+    jsr print_byte_no_spool                                           ; b76e: 20 01 92     ..            ; Print CR character
+    ldx #2                                                            ; b771: a2 02       ..             ; X=2: start of name in TX[2]
 ; &b773 referenced 1 time by &b77c
 .loop_print_wipe_info
-    lda hazel_txcb_data,x                                             ; b773: bd 05 c1    ...            ; Read name byte from TX[5+X] (FS reply); Load file info character
-    jsr print_char_no_spool                                           ; b776: 20 fb 91     ..            ; Print name char (no spool); Print file info character
-    inx                                                               ; b779: e8          .              ; Advance index; Advance to next character
-    cpx #&3e ; '>'                                                    ; b77a: e0 3e       .>             ; End of TX[5+X] name field at offset &3E?; Printed all &3C info bytes?
+    lda hazel_txcb_data,x                                             ; b773: bd 05 c1    ...            ; Read name byte from TX[5+X] (FS reply)
+    jsr print_char_no_spool                                           ; b776: 20 fb 91     ..            ; Print name char (no spool)
+    inx                                                               ; b779: e8          .              ; Advance index
+    cpx #&3e ; '>'                                                    ; b77a: e0 3e       .>             ; End of TX[5+X] name field at offset &3E?
     bne loop_print_wipe_info                                          ; b77c: d0 f5       ..             ; No: continue printing
-    jsr print_inline_no_spool                                         ; b77e: 20 8a 92     ..            ; Print 'Wipe? ' help suffix via inline string; Print ' (Y/N) ' prompt (no '?')
+    jsr print_inline_no_spool                                         ; b77e: 20 8a 92     ..            ; Print 'Wipe? ' help suffix via inline string
     equs " ("                                                         ; b781: 20 28        (
 
     nop                                                               ; b783: ea          .              ; Bit-7 terminator + resume
-    jsr prompt_yn                                                     ; b784: 20 cb b7     ..            ; Re-prompt user with prompt_yn; Read user response (Y/N only)
+    jsr prompt_yn                                                     ; b784: 20 cb b7     ..            ; Re-prompt user with prompt_yn
 ; &b787 referenced 1 time by &b76a
 .check_wipe_response
-    and #&df                                                          ; b787: 29 df       ).             ; Mask to upper-case ('A'..'Z' map to themselves); Force uppercase
-    cmp #&59 ; 'Y'                                                    ; b789: c9 59       .Y             ; Was the response 'Y'?; User said 'Y' (yes)?
-    bne skip_wipe_to_next                                             ; b78b: d0 2a       .*             ; No: skip this entry, advance to next; No: print newline, skip to next file
-    jsr print_char_no_spool                                           ; b78d: 20 fb 91     ..            ; Yes: echo the keypress; Echo 'Y' to screen
-    ldx #0                                                            ; b790: a2 00       ..             ; X=0: start scanning the parse-buffer name; X=0: start of stored filename
-    lda hazel_parse_buf,x                                             ; b792: bd 30 c0    .0.            ; Read first parse-buffer byte at hazel_parse_buf; Check first byte of stored name
-    cmp #&0d                                                          ; b795: c9 0d       ..             ; Is it CR (no path component)?; Is first byte CR (empty first field)?
-    beq use_wipe_leaf_name                                            ; b797: f0 24       .$             ; Yes: use leaf-name only path at &B7BD; Yes: use second filename field
+    and #&df                                                          ; b787: 29 df       ).             ; Mask to upper-case ('A'..'Z' map to themselves)
+    cmp #&59 ; 'Y'                                                    ; b789: c9 59       .Y             ; Was the response 'Y'?
+    bne skip_wipe_to_next                                             ; b78b: d0 2a       .*             ; No: skip this entry, advance to next
+    jsr print_char_no_spool                                           ; b78d: 20 fb 91     ..            ; Yes: echo the keypress
+    ldx #0                                                            ; b790: a2 00       ..             ; X=0: start scanning the parse-buffer name
+    lda hazel_parse_buf,x                                             ; b792: bd 30 c0    .0.            ; Read first parse-buffer byte at hazel_parse_buf
+    cmp #&0d                                                          ; b795: c9 0d       ..             ; Is it CR (no path component)?
+    beq use_wipe_leaf_name                                            ; b797: f0 24       .$             ; Yes: use leaf-name only path at &B7BD
 ; &b799 referenced 1 time by &b7ae
 .loop_build_wipe_cmd
-    lda hazel_parse_buf,x                                             ; b799: bd 30 c0    .0.            ; Read parse-buffer byte at hazel_parse_buf+X; Load byte from stored filename
-    cmp #&0d                                                          ; b79c: c9 0d       ..             ; Is it CR (end of name)?; Is it CR (field separator)?
-    bne skip_if_not_space                                             ; b79e: d0 02       ..             ; No: check for space separator; No: check for space
-    lda #&2e ; '.'                                                    ; b7a0: a9 2e       ..             ; CR: substitute '.' so the dir prefix terminates with a separator; Replace CR with '.' directory sep
+    lda hazel_parse_buf,x                                             ; b799: bd 30 c0    .0.            ; Read parse-buffer byte at hazel_parse_buf+X
+    cmp #&0d                                                          ; b79c: c9 0d       ..             ; Is it CR (end of name)?
+    bne skip_if_not_space                                             ; b79e: d0 02       ..             ; No: check for space separator
+    lda #&2e ; '.'                                                    ; b7a0: a9 2e       ..             ; CR: substitute '.' so the dir prefix terminates with a separator
 ; &b7a2 referenced 1 time by &b79e
 .skip_if_not_space
-    cmp #&20 ; ' '                                                    ; b7a2: c9 20       .              ; Is it space?; Is it a space (name terminator)?
-    bne store_wipe_tx_char                                            ; b7a4: d0 02       ..             ; No: store byte as-is; No: keep character as-is
+    cmp #&20 ; ' '                                                    ; b7a2: c9 20       .              ; Is it space?
+    bne store_wipe_tx_char                                            ; b7a4: d0 02       ..             ; No: store byte as-is
 ; &b7a6 referenced 1 time by &b7c9
 .set_wipe_cr_end
-    lda #&0d                                                          ; b7a6: a9 0d       ..             ; Yes: substitute CR (end-of-cmd); Replace space with CR (end of name)
+    lda #&0d                                                          ; b7a6: a9 0d       ..             ; Yes: substitute CR (end-of-cmd)
 ; &b7a8 referenced 1 time by &b7a4
 .store_wipe_tx_char
-    sta hazel_txcb_data,x                                             ; b7a8: 9d 05 c1    ...            ; Store byte into TX[5+X] (delete-command buffer); Store in delete command TX buffer
-    inx                                                               ; b7ab: e8          .              ; Advance index; Advance to next character
-    cmp #&0d                                                          ; b7ac: c9 0d       ..             ; Was that byte CR (just stored)?; Was it the CR terminator?
-    bne loop_build_wipe_cmd                                           ; b7ae: d0 e9       ..             ; No: continue copying; No: continue building delete command
-    ldy #&14                                                          ; b7b0: a0 14       ..             ; Y=&14: FS function code &14 = delete; Function code &14 = delete file
-    jsr save_net_tx_cb                                                ; b7b2: 20 8a 97     ..            ; Send the delete request and wait for reply; Send delete request to file server
-    dec fs_work_5                                                     ; b7b5: c6 b5       ..             ; Decrement iteration counter so we re-examine the now-shifted-up slot; Adjust file index after deletion
+    sta hazel_txcb_data,x                                             ; b7a8: 9d 05 c1    ...            ; Store byte into TX[5+X] (delete-command buffer)
+    inx                                                               ; b7ab: e8          .              ; Advance index
+    cmp #&0d                                                          ; b7ac: c9 0d       ..             ; Was that byte CR (just stored)?
+    bne loop_build_wipe_cmd                                           ; b7ae: d0 e9       ..             ; No: continue copying
+    ldy #&14                                                          ; b7b0: a0 14       ..             ; Y=&14: FS function code &14 = delete
+    jsr save_net_tx_cb                                                ; b7b2: 20 8a 97     ..            ; Send the delete request and wait for reply
+    dec fs_work_5                                                     ; b7b5: c6 b5       ..             ; Decrement iteration counter so we re-examine the now-shifted-up slot
 ; &b7b7 referenced 1 time by &b78b
 .skip_wipe_to_next
-    jsr print_newline_no_spool                                        ; b7b7: 20 f9 91     ..            ; Print newline before next entry; Print newline after user response
-    jmp skip_wipe_locked                                              ; b7ba: 4c 3d b7    L=.            ; Loop back to skip_wipe_locked (= request next entry); Advance index, process next file
+    jsr print_newline_no_spool                                        ; b7b7: 20 f9 91     ..            ; Print newline before next entry
+    jmp skip_wipe_locked                                              ; b7ba: 4c 3d b7    L=.            ; Loop back to skip_wipe_locked (= request next entry)
 
 ; &b7bd referenced 1 time by &b797
 .use_wipe_leaf_name
     dex                                                               ; b7bd: ca          .              ; DEX: pre-decrement before the INX in the loop
 ; &b7be referenced 1 time by &b7c7
 .loop_copy_wipe_leaf
-    inx                                                               ; b7be: e8          .              ; Advance index; Advance to next byte
-    lda hazel_parse_buf_1,x                                           ; b7bf: bd 31 c0    .1.            ; Read parse-buffer byte at hazel_parse_buf_1+X (skip CR at hazel_parse_buf); Load byte from second field
-    sta hazel_txcb_data,x                                             ; b7c2: 9d 05 c1    ...            ; Store into TX[5+X] (delete-command buffer); Store in delete command TX buffer
-    cmp #&20 ; ' '                                                    ; b7c5: c9 20       .              ; Reached space (end-of-leaf)?; Is it a space (field terminator)?
-    bne loop_copy_wipe_leaf                                           ; b7c7: d0 f5       ..             ; No: continue copying; No: continue copying second field
-    beq set_wipe_cr_end                                               ; b7c9: f0 db       ..             ; Space found: terminate with CR
+    inx                                                               ; b7be: e8          .              ; Advance index
+    lda hazel_parse_buf_1,x                                           ; b7bf: bd 31 c0    .1.            ; Read parse-buffer byte at hazel_parse_buf_1+X (skip CR at hazel_parse_buf)
+    sta hazel_txcb_data,x                                             ; b7c2: 9d 05 c1    ...            ; Store into TX[5+X] (delete-command buffer)
+    cmp #&20 ; ' '                                                    ; b7c5: c9 20       .              ; Reached space (end-of-leaf)?
+    bne loop_copy_wipe_leaf                                           ; b7c7: d0 f5       ..             ; No: continue copying
+    beq set_wipe_cr_end                                               ; b7c9: f0 db       ..             ; ALWAYS branch
 
 ; ***************************************************************************************
 ; Print Y/N prompt and read user response

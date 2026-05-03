@@ -385,23 +385,23 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 3 (17 routines)
 
-- [ ] `0x8215` `nmi_error_dispatch`
-- [ ] `0x8395` `rx_complete_update_rxcb`
-- [ ] `0x84B1` `rx_imm_poke`
-- [ ] `0x8845` `nmi_data_tx_tube`
-- [ ] `0x88E4` `tx_store_result`
-- [ ] `0x8BC6` `print_cmd_table`
-- [ ] `0x8C51` `svc_9_help`
+- [x] `0x8215` `nmi_error_dispatch` -- description had off-by-one count (12 vs 11 callers); the 'tx_flags' label was opaque -- clarified that &0D3E (rx_src_net) is overloaded as TX-state flag here
+- [x] `0x8395` `rx_complete_update_rxcb` -- description matches body; cleaned a misleading 'Set carry for subtraction' inline at &83D2 (LDA doesn't set carry)
+- [x] `0x84B1` `rx_imm_poke` -- fixed wrong inline at &84B1 ('= &3D') -- value is &2E; tightened &84B3 and &84B7 store labels
+- [x] `0x8845` `nmi_data_tx_tube` -- description matches body, no dupes -- confirmed clean
+- [x] `0x88E4` `tx_store_result` -- description matches body, no dupes -- confirmed clean
+- [x] `0x8BC6` `print_cmd_table` -- fixed inline at &8BC6 -- inverted V-flag direction ('V clear: print header first' was wrong; V-clear path skips header)
+- [x] `0x8C51` `svc_9_help` -- fixed description -- table offset is &91 not &C4 (matched body)
 - [x] `0x9900` `cond_save_error_code` - description compared against body, accurate
-- [ ] `0x9B2C` `send_net_packet`
-- [ ] `0x9B89` `setup_pass_txbuf`
-- [ ] `0x9CB5` `setup_dir_display`
-- [ ] `0x9D44` `print_load_exec_addrs`
-- [ ] `0xABE9` `init_bridge_poll`
+- [x] `0x9B2C` `send_net_packet` -- description matches body, confirmed clean
+- [x] `0x9B89` `setup_pass_txbuf` -- description matches body, confirmed clean
+- [x] `0x9CB5` `setup_dir_display` -- description matches body; minor labelling discrepancy noted
+- [x] `0x9D44` `print_load_exec_addrs` -- description matches body; offset claims a bit imprecise but byte-counts match
+- [x] `0xABE9` `init_bridge_poll` -- description matches body; deleted 20-line gap-fill block at lines 9461-9479 (deduped with deliberate review at 14919+)
 - [x] `0xB118` `fscv_5_cat` - description compared against body, accurate
-- [ ] `0xB32A` `print_decimal_3dig`
-- [ ] `0xB703` `request_next_wipe`
-- [ ] `0xBE01` `print_dump_header`
+- [x] `0xB32A` `print_decimal_3dig` -- description matches body, confirmed clean
+- [x] `0xB703` `request_next_wipe` -- description matches body; deleted 82-line older inline block at 15679-15760 (deduped with deliberate review at 8934+)
+- [x] `0xBE01` `print_dump_header` -- description matches body, confirmed clean
 
 ## Depth 4 (18 routines)
 
