@@ -46,10 +46,10 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x84F9` `imm_op_build_reply` - description claimed control byte goes into RX buffer header, but body only LOADS scout_ctrl and falls through into setup_sr_tx which stores it as tx_op_type; rewrote to be precise about what THIS routine does
 - [x] `0x852C` `advance_buffer_ptr` - 4-byte cascade increment correctly described; inline comments accurate
 - [x] `0x853B` `tx_done_dispatch_lo` - 5-entry table description matches; targets verified (&8540/8549/8557/8563/857A); indexing-base trick documented correctly
-- [ ] `0x8540` `tx_done_jsr`
-- [ ] `0x8563` `tx_done_halt`
-- [ ] `0x857A` `tx_done_continue`
-- [ ] `0x8582` `tx_done_exit`
+- [x] `0x8540` `tx_done_jsr` - description matches body; fixed two inline comments that mislabeled stack-target bytes (&85 said 'TX op &85 OSProc' but it's the high byte of tx_done_exit-1; same for &81)
+- [x] `0x8563` `tx_done_halt` - description correct; fixed two inline comments that called the byte at &0D61 'rx_flags' instead of its actual label econet_flags
+- [x] `0x857A` `tx_done_continue` - description correct; fixed inline at &857A that said 'Load current RX flags' (correct label is econet_flags)
+- [x] `0x8582` `tx_done_exit` - description and inline comments accurate
 - [ ] `0x85F1` `inactive_poll`
 - [ ] `0x85FC` `intoff_test_inactive`
 - [ ] `0x862C` `tx_bad_ctrl_error`

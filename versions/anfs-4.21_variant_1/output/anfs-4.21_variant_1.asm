@@ -1804,9 +1804,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; remote-supplied JSR target. When that routine returns via RTS, control resumes at
 ; tx_done_exit which tidies up TX state.
 .tx_done_jsr
-    lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: TX op &85 (OSProc)
+    lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: high byte of tx_done_exit-1 (&8581)
     pha                                                               ; 8542: 48          H              ; Push hi byte on stack
-    lda #&81                                                          ; 8543: a9 81       ..             ; Push lo of (tx_done_exit-1)
+    lda #&81                                                          ; 8543: a9 81       ..             ; A=&81: low byte of tx_done_exit-1 (&8581)
     pha                                                               ; 8545: 48          H              ; Push lo byte on stack
     jmp (exec_addr_lo)                                                ; 8546: 6c 66 0d    lf.            ; Call remote JSR; RTS to tx_done_exit
 
@@ -1859,10 +1859,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; On Exit: A: 0 (success status, set by tx_done_exit) I FLAG: interrupts enabled (CLI
 ; inside the spin) X, Y: restored from stack via tx_done_exit
 .tx_done_halt
-    lda #4                                                            ; 8563: a9 04       ..             ; A=&04: bit 2 mask for rx_flags
+    lda #4                                                            ; 8563: a9 04       ..             ; A=&04: bit 2 mask (halt flag in econet_flags)
     bit econet_flags                                                  ; 8565: 2c 61 0d    ,a.            ; Test if already halted
     bne tx_done_exit                                                  ; 8568: d0 18       ..             ; Already halted: skip to exit
-    ora econet_flags                                                  ; 856a: 0d 61 0d    .a.            ; Set bit 2 in rx_flags
+    ora econet_flags                                                  ; 856a: 0d 61 0d    .a.            ; Set bit 2 in econet_flags (halt)
     sta econet_flags                                                  ; 856d: 8d 61 0d    .a.            ; Store halt flag
     lda #4                                                            ; 8570: a9 04       ..             ; A=4: re-load halt bit mask
     cli                                                               ; 8572: 58          X              ; Enable interrupts during halt wait
@@ -1884,7 +1884,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; On Exit: A: 0 (success status) X, Y: restored from stack via tx_done_exit
 .tx_done_continue
-    lda econet_flags                                                  ; 857a: ad 61 0d    .a.            ; Load current RX flags
+    lda econet_flags                                                  ; 857a: ad 61 0d    .a.            ; Load current econet_flags
     and #&fb                                                          ; 857d: 29 fb       ).             ; Clear bit 2: release halted station
     sta econet_flags                                                  ; 857f: 8d 61 0d    .a.            ; Store updated flags
 ; ***************************************************************************************
