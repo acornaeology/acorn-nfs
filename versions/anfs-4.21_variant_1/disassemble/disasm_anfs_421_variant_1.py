@@ -3794,7 +3794,7 @@ via the CMP/SBC normalisation chain in
 | `&23`      | 18    | `store_ws_page_count`     | top-of-static-ws       |
 | `&24`      | 19    | `noop_dey_rts`            | dynamic ws claim (1 pg) |
 | `&25`      | 20    | `copy_template_to_zp`     | FS name + info reply   |
-| `&26`      | 21    | `check_help_continuation` | close all files        |
+| `&26`      | 21    | `svc_26_close_all_files`  | close all files        |
 | `&27`      | 22    | `nfs_init_body` (this)    | reset re-init          |
 | `&28`      | 23    | `print_fs_ps_help` | *CONFIGURE option      |
 | `&29`      | 24    | `svc_29_status`   | *STATUS option         |
@@ -10122,7 +10122,16 @@ label(0x8ACE, "dispatch_svc_state_check")
 label(0x8B5A, "select_fs_cmd_net_fs")
 label(0x8C46, "svc4_dispatch_lookup")
 label(0x8CBB, "get_ws_page_loop")
-label(0x8E7F, "return_2_data_table")
+label(0x8E7E, "fs_template_done")  # shared RTS at end of copy_template_to_zp;
+                                   # also reused by svc_26_close_all_files's BVC
+data_banner(0x8E7F, "fs_info_template",
+    title="FS-name reply template (11 bytes, byte-reversed)",
+    description="""\
+Source data for the byte-reverse copy in
+[`copy_template_to_zp`](address:8E73). When stored at
+`(os_text_ptr),Y` in reverse order the destination reads
+`"NET" + 6 spaces + "/" + length-byte 5`, which is the FS name
+the ROM reports for service &25 (FS name + info reply).""")
 label(0x8F1F, "private_ws_set_bit")
 label(0x8F4F, "nfs_init_check_fs_flags")
 label(0x8FA6, "init_copy_skip_cmos")
@@ -11683,7 +11692,7 @@ comment(0x8E7E, "Return", inline=True)
 comment(0x8E80, "11-byte template (length 5 in [0], then '       TEN'); "
     "copied to (&F2),Y by copy_template_to_zp", inline=True)
 
-# check_help_continuation (&8E8A) -- Master 128 service &26 handler:
+# svc_26_close_all_files (&8E8A) -- Master 128 service &26 handler:
 # "Close all files". Tests bit 6 of fs_flags (&0D6C); when clear
 # (NFS not currently selected), returns without acting. When set,
 # ensures NFS is selected (since the doc requires "filing systems
@@ -11938,9 +11947,11 @@ label(0xA83C, "svc_8_osword_disp")    # idx  9: alt entry to svc_8_osword
                                       #   (skips the BRA-from-elsewhere path)
 label(0x969A, "match_on_suffix")      # idx 15 = Master svc &18 (Interactive HELP):
                                       # 'ON ' keyword matcher, runs file loader on match
-label(0x8E71, "noop_dey_rts")         # idx 19: DEY / RTS 2-byte stub
-label(0x8E73, "copy_template_to_zp")  # idx 20: copy 11 bytes &8E7F.. to (&F2),Y
-label(0x8E8A, "check_help_continuation")  # idx 21: BIT &0D6C / BVC &8E80 / ...
+# svc_dispatch slots &13/&14/&15 are short Master service handlers
+# that all live in the gap between svc_dispatch's own RTS (&8E70) and
+# svc_26_close_all_files's tail-call (&8E95). Declared as subroutines
+# (further down) so each gets its own banner in the listing rather
+# than reading like one confused fall-through region.
 label(0xB0FE, "ps_scan_resume")           # idx 39: tail of pop_requeue_ps_scan
 label(0xB357, "cmd_info_dispatch")        # idx 40: builds 'i.' prefix, JMPs &8E3C
 label(0xA4DC, "check_urd_present")        # idx 41: BIT &0D6C / BVC ... / JMP &A5A1
@@ -12010,7 +12021,7 @@ _svc_dispatch_entries = [
     (0x12,  0x8EF0,  "store_ws_page_count",           "svc &23: top-of-static-workspace"),
     (0x13,  0x8E71,  "noop_dey_rts",                  "svc &24: dynamic workspace claim"),
     (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply"),
-    (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files"),
+    (0x15,  0x8E8A,  "svc_26_close_all_files",        "svc &26: close all files"),
     (0x16,  0x8F38,  "nfs_init_body",                 "svc &27: post-hard-reset re-init"),
     (0x17,  0x959A,  "print_fs_ps_help",       "svc &28: print *FS/*PS no-arg syntax help"),
     (0x18,  0x9630,  "svc_29_status",         "svc &29: *STATUS handler"),
@@ -13102,18 +13113,55 @@ label(0xA740, "boot_load_cmd")
 # On entry: X=base index, Y=offset. Dispatches to table[X+Y+1].
 subroutine(0x8E61, "svc_dispatch",
     title="PHA/PHA/RTS table dispatch",
-    description="Computes a target index by incrementing X and\n"
-    "decrementing Y until Y goes negative, effectively\n"
-    "calculating X+Y+1. Pushes the target address\n"
-    "(high then low byte) from svc_dispatch_lo/hi\n"
-    "tables onto the stack, loads fs_options into X,\n"
-    "then returns via RTS to dispatch to the target\n"
-    "subroutine. Used for all service dispatch, FS\n"
-    "command execution, and OSBYTE handler routing.",
+    description="""\
+Computes a target index by incrementing `X` and decrementing `Y`
+until `Y` goes negative, effectively calculating `X+Y+1`. Pushes
+the target address (high then low byte) from
+[`svc_dispatch_lo`](address:89ED) /
+[`svc_dispatch_hi`](address:8A20) onto the stack, loads
+`fs_options` into `X`, then `RTS` jumps to the target
+subroutine. Used for all service dispatch, FS command execution,
+and OSBYTE handler routing.
+
+Routine extent is &8E61-&8E70 (the `RTS` is the dispatch). The
+short Master service handlers at
+[`noop_dey_rts`](address:8E71) (svc &24),
+[`copy_template_to_zp`](address:8E73) (svc &25) and
+[`svc_26_close_all_files`](address:8E8A) sit immediately after.""",
     on_entry={"x": "base dispatch index",
               "y": "additional offset"},
     on_exit={"x": "fs_options value"})
-label(0x8E61, "svc_dispatch")
+
+subroutine(0x8E71, "noop_dey_rts",
+    title="Service &24: dynamic workspace claim (1 page)",
+    description="""\
+Two-byte handler reached via [`svc_dispatch`](address:8E61) slot
+&13. `DEY` decrements the caller's first-available-page count by 1
+to claim a single workspace page; `RTS` returns to the dispatcher.""")
+
+subroutine(0x8E73, "copy_template_to_zp",
+    title="Service &25: FS name + info reply",
+    description="""\
+Reached via [`svc_dispatch`](address:8E61) slot &14. Copies the
+11-byte template at [`fs_info_template`](address:8E7F) into the
+caller's workspace at `(os_text_ptr),Y`. The loop counts `X`
+down from 10 to 0 reading from `template[X]`, while `Y`
+increments from the caller's value, so the destination ends up
+holding the template byte-reversed (`'NET      /' + length-byte`).
+Returns via the shared `RTS` at
+[`fs_template_done`](address:8E7E).""")
+
+subroutine(0x8E8A, "svc_26_close_all_files",
+    title="Service &26: close all files (FILEV via Y=0)",
+    description="""\
+Reached via [`svc_dispatch`](address:8E61) slot &15. Tests bit 6
+of [`fs_flags`](address:0D6C) (NFS-active flag). If clear, branches
+back to the shared `RTS` at [`fs_template_done`](address:8E7E)
+without acting. Otherwise calls
+[`ensure_fs_selected`](address:8B4D) to make NFS the current
+filing system, sets `A=Y=0` and tail-calls
+[`findv_handler`](address:A02F) — the FILEV `Y=0` path closes all
+open NFS channels.""")
 
 subroutine(0x8EC9, "osbyte_x0",
     title="OSBYTE wrapper with X=0, Y=&FF",

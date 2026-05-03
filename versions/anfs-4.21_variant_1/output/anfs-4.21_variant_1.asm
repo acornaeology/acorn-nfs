@@ -3081,7 +3081,7 @@ nmi_shim_source = reset_enter_listen+2
     equb <(store_ws_page_count-1)                                     ; 89ff: ef          .              ; &12: svc &23: top-of-static-workspace
     equb <(noop_dey_rts-1)                                            ; 8a00: 70          p              ; &13: svc &24: dynamic workspace claim
     equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; &14: svc &25: FS name + info reply
-    equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; &15: svc &26: close all files
+    equb <(svc_26_close_all_files-1)                                  ; 8a02: 89          .              ; &15: svc &26: close all files
     equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; &16: svc &27: post-hard-reset re-init
     equb <(print_fs_ps_help-1)                                        ; 8a04: 99          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
     equb <(svc_29_status-1)                                           ; 8a05: 2f          /              ; &18: svc &29: *STATUS handler
@@ -3141,7 +3141,7 @@ nmi_shim_source = reset_enter_listen+2
     equb >(store_ws_page_count-1)                                     ; 8a32: 8e          .              ; &12: svc &23: top-of-static-workspace
     equb >(noop_dey_rts-1)                                            ; 8a33: 8e          .              ; &13: svc &24: dynamic workspace claim
     equb >(copy_template_to_zp-1)                                     ; 8a34: 8e          .              ; &14: svc &25: FS name + info reply
-    equb >(check_help_continuation-1)                                 ; 8a35: 8e          .              ; &15: svc &26: close all files
+    equb >(svc_26_close_all_files-1)                                  ; 8a35: 8e          .              ; &15: svc &26: close all files
     equb >(nfs_init_body-1)                                           ; 8a36: 8f          .              ; &16: svc &27: post-hard-reset re-init
     equb >(print_fs_ps_help-1)                                        ; 8a37: 95          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
     equb >(svc_29_status-1)                                           ; 8a38: 96          .              ; &18: svc &29: *STATUS handler
@@ -4300,9 +4300,13 @@ ps_template_base = load_transfer_params+1
 ;
 ; Computes a target index by incrementing X and decrementing Y until Y goes negative,
 ; effectively calculating X+Y+1. Pushes the target address (high then low byte) from
-; svc_dispatch_lo/hi tables onto the stack, loads fs_options into X, then returns via
-; RTS to dispatch to the target subroutine. Used for all service dispatch, FS command
-; execution, and OSBYTE handler routing.
+; svc_dispatch_lo / svc_dispatch_hi onto the stack, loads fs_options into X, then RTS
+; jumps to the target subroutine. Used for all service dispatch, FS command execution,
+; and OSBYTE handler routing.
+;
+; Routine extent is &8E61-&8E70 (the RTS is the dispatch). The short Master service
+; handlers at noop_dey_rts (svc &24), copy_template_to_zp (svc &25) and
+; svc_26_close_all_files sit immediately after.
 ;
 ; On Entry: X: base dispatch index Y: additional offset
 ;
@@ -4323,31 +4327,59 @@ ps_template_base = load_transfer_params+1
 .dispatch_rts
     rts                                                               ; 8e70: 60          `              ; Dispatch via RTS
 
+; ***************************************************************************************
+; Service &24: dynamic workspace claim (1 page)
+;
+; Two-byte handler reached via svc_dispatch slot &13. DEY decrements the caller's
+; first-available-page count by 1 to claim a single workspace page; RTS returns to the
+; dispatcher.
 .noop_dey_rts
     dey                                                               ; 8e71: 88          .              ; Claim 1 page (DEY = decrement Y by 1)
     rts                                                               ; 8e72: 60          `              ; Return
 
+; ***************************************************************************************
+; Service &25: FS name + info reply
+;
+; Reached via svc_dispatch slot &14. Copies the 11-byte template at fs_info_template
+; into the caller's workspace at (os_text_ptr),Y. The loop counts X down from 10 to 0
+; reading from template[X], while Y increments from the caller's value, so the
+; destination ends up holding the template byte-reversed ('NET      /' + length-byte).
+; Returns via the shared RTS at fs_template_done.
 .copy_template_to_zp
     ldx #&0a                                                          ; 8e73: a2 0a       ..             ; X = 10 (top of 11-byte template)
 ; &8e75 referenced 1 time by &8e7c
 .loop_copy_return_template
-    lda return_2_data_table,x                                         ; 8e75: bd 7f 8e    ...            ; Load template byte X from &8E7F+X
+    lda fs_info_template,x                                            ; 8e75: bd 7f 8e    ...            ; Load template byte X from &8E7F+X
     sta (os_text_ptr),y                                               ; 8e78: 91 f2       ..             ; Store at (&F2),Y
     iny                                                               ; 8e7a: c8          .              ; Advance destination cursor
     dex                                                               ; 8e7b: ca          .              ; Step to previous template byte
     bpl loop_copy_return_template                                     ; 8e7c: 10 f7       ..             ; Loop until X has wrapped past 0
 ; &8e7e referenced 1 time by &8e8d
-.return_2
+.fs_template_done
     rts                                                               ; 8e7e: 60          `              ; Return
 
+; ***************************************************************************************
+; FS-name reply template (11 bytes, byte-reversed)
+;
+; Source data for the byte-reverse copy in copy_template_to_zp. When stored at
+; (os_text_ptr),Y in reverse order the destination reads "NET" + 6 spaces + "/" +
+; length-byte 5, which is the FS name the ROM reports for service &25 (FS name + info
+; reply).
 ; &8e7f referenced 1 time by &8e75
-.return_2_data_table
+.fs_info_template
     equb 5                                                            ; 8e7f: 05          .
     equs "/      TEN"                                                 ; 8e80: 2f 20 20... /              ; 11-byte template (length 5 in [0], then ' TEN'); copied to (&F2),Y by copy_template_to_zp
 
-.check_help_continuation
+; ***************************************************************************************
+; Service &26: close all files (FILEV via Y=0)
+;
+; Reached via svc_dispatch slot &15. Tests bit 6 of fs_flags (NFS-active flag). If
+; clear, branches back to the shared RTS at fs_template_done without acting. Otherwise
+; calls ensure_fs_selected to make NFS the current filing system, sets A=Y=0 and
+; tail-calls findv_handler — the FILEV Y=0 path closes all open NFS channels.
+.svc_26_close_all_files
     bit fs_flags                                                      ; 8e8a: 2c 6c 0d    ,l.            ; Test bit 6 of fs_flags (NFS currently selected?)
-    bvc return_2                                                      ; 8e8d: 50 ef       P.             ; Clear: return without acting
+    bvc fs_template_done                                              ; 8e8d: 50 ef       P.             ; Clear: return without acting
     jsr ensure_fs_selected                                            ; 8e8f: 20 4d 8b     M.            ; Ensure NFS is the selected FS
     lda #0                                                            ; 8e92: a9 00       ..             ; A=0
     tay                                                               ; 8e94: a8          .              ; Y=0 -- FILEV 'close all files' sub-call
@@ -4625,20 +4657,20 @@ ps_template_base = load_transfer_params+1
 ; The full set of Master 128 service calls ANFS handles, dispatched via the CMP/SBC
 ; normalisation chain in service_handler:
 ;
-; | svc      | idx   | handler                 | purpose                 |
-; |----------|-------|-------------------------|-------------------------|
-; | &00..&0C | 1..13 | (svc-1..12 handlers)    | service-1 .. service-12 |
-; | &12      | 14    | svc_18_fs_select        | FS select               |
-; | &18      | 15    | match_on_suffix         | Interactive HELP        |
-; | &21      | 16    | raise_y_to_c8           | static ws claim         |
-; | &22      | 17    | set_rom_ws_page         | dynamic ws offer        |
-; | &23      | 18    | store_ws_page_count     | top-of-static-ws        |
-; | &24      | 19    | noop_dey_rts            | dynamic ws claim (1 pg) |
-; | &25      | 20    | copy_template_to_zp     | FS name + info reply    |
-; | &26      | 21    | check_help_continuation | close all files         |
-; | &27      | 22    | nfs_init_body (this)    | reset re-init           |
-; | &28      | 23    | print_fs_ps_help        | *CONFIGURE option       |
-; | &29      | 24    | svc_29_status           | *STATUS option          |
+; | svc      | idx   | handler                | purpose                 |
+; |----------|-------|------------------------|-------------------------|
+; | &00..&0C | 1..13 | (svc-1..12 handlers)   | service-1 .. service-12 |
+; | &12      | 14    | svc_18_fs_select       | FS select               |
+; | &18      | 15    | match_on_suffix        | Interactive HELP        |
+; | &21      | 16    | raise_y_to_c8          | static ws claim         |
+; | &22      | 17    | set_rom_ws_page        | dynamic ws offer        |
+; | &23      | 18    | store_ws_page_count    | top-of-static-ws        |
+; | &24      | 19    | noop_dey_rts           | dynamic ws claim (1 pg) |
+; | &25      | 20    | copy_template_to_zp    | FS name + info reply    |
+; | &26      | 21    | svc_26_close_all_files | close all files         |
+; | &27      | 22    | nfs_init_body (this)   | reset re-init           |
+; | &28      | 23    | print_fs_ps_help       | *CONFIGURE option       |
+; | &29      | 24    | svc_29_status          | *STATUS option          |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
@@ -4760,10 +4792,10 @@ ps_template_base = load_transfer_params+1
     pla                                                               ; 9032: 68          h              ; Restore saved byte
     ldy #3                                                            ; 9033: a0 03       ..             ; Y=3: workspace offset
     eor (nfs_workspace),y                                             ; 9035: 51 9e       Q.
-    bne return_3                                                      ; 9037: d0 02       ..             ; Mismatch: skip store
+    bne return_2                                                      ; 9037: d0 02       ..             ; Mismatch: skip store
     sta (nfs_workspace),y                                             ; 9039: 91 9e       ..             ; Match: store at (nfs_workspace)+3
 ; &903b referenced 1 time by &9037
-.return_3
+.return_2
     rts                                                               ; 903b: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -6858,7 +6890,7 @@ help_topic_template = dispatch_help_command+1
 .check_escape_and_classify
     lda escape_flag                                                   ; 988f: a5 ff       ..             ; Read escape_flag
     and need_release_tube                                             ; 9891: 25 98       %.             ; Mask with need_release_tube (escape-disable)
-    bpl return_4                                                      ; 9893: 10 6a       .j             ; Bit 7 clear: not escaping, return
+    bpl return_3                                                      ; 9893: 10 6a       .j             ; Bit 7 clear: not escaping, return
 ; ***************************************************************************************
 ; Acknowledge escape and raise classified error
 ;
@@ -6971,7 +7003,7 @@ help_topic_template = dispatch_help_command+1
     pla                                                               ; 98fc: 68          h              ; Pull saved rx_wait_timeout into A
     beq build_no_reply_error                                          ; 98fd: f0 0a       ..             ; If timeout reached zero, raise 'No reply'
 ; &98ff referenced 1 time by &9893
-.return_4
+.return_3
     rts                                                               ; 98ff: 60          `              ; Reply received normally: return
 
 ; ***************************************************************************************
@@ -10950,11 +10982,11 @@ osword_subcode_dispatch = extract_osword_subcode+1
     bpl scan_fcb_entry                                                ; aa63: 10 96       ..             ; Loop while X >= 0 (scan all FCBs)
     lda #&0e                                                          ; aa65: a9 0e       ..             ; A=&0E: status flag value
     bit fs_flags                                                      ; aa67: 2c 6c 0d    ,l.            ; Test fs_flags bits 1..3
-    bne return_5                                                      ; aa6a: d0 05       ..             ; Non-zero: skip the FS-active set
+    bne return_4                                                      ; aa6a: d0 05       ..             ; Non-zero: skip the FS-active set
     lda #&40 ; '@'                                                    ; aa6c: a9 40       .@             ; A=&40: FS-active flag bit
     tsb fs_flags                                                      ; aa6e: 0c 6c 0d    .l.            ; Set FS-active flag (bit 6 of fs_flags)
 ; &aa71 referenced 1 time by &aa6a
-.return_5
+.return_4
     rts                                                               ; aa71: 60          `              ; Return -- FCB-status update complete
 
 ; ***************************************************************************************
@@ -11564,7 +11596,7 @@ bridge_err_table = compare_bridge_status+1
     ldy osword_flag                                                   ; acce: a4 aa       ..             ; Load current offset
     inc osword_flag                                                   ; acd0: e6 aa       ..             ; Advance offset for next byte
     lda (ws_ptr_hi),y                                                 ; acd2: b1 ac       ..             ; Load next char from PB
-    beq return_6                                                      ; acd4: f0 16       ..             ; Zero: end of data, return
+    beq return_5                                                      ; acd4: f0 16       ..             ; Zero: end of data, return
     ldy #&7d ; '}'                                                    ; acd6: a0 7d       .}             ; Y=&7D: workspace pointer offset; Y=&7D: workspace char offset
     sta (net_rx_ptr),y                                                ; acd8: 91 9c       ..             ; Store char to RX buffer
     pha                                                               ; acda: 48          H              ; Save char for later test
@@ -11580,7 +11612,7 @@ bridge_err_table = compare_bridge_status+1
     eor #&0d                                                          ; ace8: 49 0d       I.             ; Test if char was CR (&0D)
     bne loop_send_pb_chars                                            ; acea: d0 e2       ..             ; Loop while not CR; Not CR: send next char
 ; &acec referenced 1 time by &acd4
-.return_6
+.return_5
     rts                                                               ; acec: 60          `              ; CR sent: return
 
 ; ***************************************************************************************
@@ -14236,11 +14268,11 @@ ps_print_template = write_ps_slot_hi_link+1
     ldx #1                                                            ; b7d5: a2 01       ..             ; X=1: flush input buffers
     jsr osbyte                                                        ; b7d7: 20 f4 ff     ..            ; Flush keyboard buffer before read
     jsr osrdch                                                        ; b7da: 20 e0 ff     ..            ; Read character from input stream
-    bcc return_7                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
+    bcc return_6                                                      ; b7dd: 90 03       ..             ; C clear: character read OK
     jmp raise_escape_error                                            ; b7df: 4c 95 98    L..            ; Escape pressed: raise error
 
 ; &b7e2 referenced 1 time by &b7dd
-.return_7
+.return_6
     rts                                                               ; b7e2: 60          `              ; Return with character in A
 
 ; ***************************************************************************************
@@ -14417,13 +14449,13 @@ net_chan_err_strings = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b88c: 20 14 b8     ..            ; Validate and look up channel
     and #2                                                            ; b88f: 29 02       ).             ; Test directory flag (bit 1)
-    beq return_8                                                      ; b891: f0 14       ..             ; Not a directory: return OK
+    beq return_7                                                      ; b891: f0 14       ..             ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..             ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..            ; Generate 'Is a dir.' error
     equs "Is a directory", 0                                          ; b898: 49 73 20... Is
 
 ; &b8a7 referenced 1 time by &b891
-.return_8
+.return_7
     rts                                                               ; b8a7: 60          `              ; Return
 
 ; ***************************************************************************************
@@ -15989,7 +16021,6 @@ net_chan_err_strings = err_net_chan_not_found+2
 .pydis_end
 
     assert (255 - inkey_key_ctrl) EOR 128 == &81
-    assert <(check_help_continuation-1) == &89
     assert <(check_urd_present-1) == &db
     assert <(cmd_info_dispatch-1) == &56
     assert <(cmd_run_via_urd-1) == &f0
@@ -16056,6 +16087,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(store_ws_page_count-1) == &ef
     assert <(svc5_irq_check-1) == &27
     assert <(svc_18_fs_select-1) == &44
+    assert <(svc_26_close_all_files-1) == &89
     assert <(svc_29_status-1) == &2f
     assert <(svc_2_priv_ws-1) == &0f
     assert <(svc_3_autoboot-1) == &c6
@@ -16074,7 +16106,6 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(tx_done_jsr-1) == &3f
     assert <(tx_done_os_proc-1) == &56
     assert <(wait_idle_and_reset-1) == &a5
-    assert >(check_help_continuation-1) == &8e
     assert >(check_urd_present-1) == &a4
     assert >(cmd_info_dispatch-1) == &b3
     assert >(cmd_run_via_urd-1) == &a4
@@ -16135,6 +16166,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert >(store_ws_page_count-1) == &8e
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
+    assert >(svc_26_close_all_files-1) == &8e
     assert >(svc_29_status-1) == &96
     assert >(svc_2_priv_ws-1) == &8f
     assert >(svc_3_autoboot-1) == &8c
@@ -16940,6 +16972,8 @@ save pydis_start, pydis_end
 ;     fixup_reply_status_a:            1
 ;     flush_fcb_if_station_known:      1
 ;     flush_fcb_with_init:             1
+;     fs_info_template:                1
+;     fs_template_done:                1
 ;     fs_vector_table:                 1
 ;     fscv_2_star_run:                 1
 ;     fscv_3_star_cmd:                 1
@@ -17355,13 +17389,11 @@ save pydis_start, pydis_end
 ;     retreat_y_by_4:                  1
 ;     retry_with_library:              1
 ;     return_2:                        1
-;     return_2_data_table:             1
 ;     return_3:                        1
 ;     return_4:                        1
 ;     return_5:                        1
 ;     return_6:                        1
 ;     return_7:                        1
-;     return_8:                        1
 ;     return_alloc_success:            1
 ;     return_chan_index:               1
 ;     return_from_2bit_index:          1
@@ -17607,7 +17639,6 @@ save pydis_start, pydis_end
 ;     return_5
 ;     return_6
 ;     return_7
-;     return_8
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
