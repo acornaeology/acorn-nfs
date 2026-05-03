@@ -131,16 +131,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9463` `copy_fs_cmd_name` - description matches body's backwards-scan / forward-copy
 - [x] `0x9612` `osbyte_a2` - description compared against body, accurate
 - [x] `0x962B` `osbyte_a2_value_tya` - description compared against body, accurate
-- [ ] `0x973D` `init_txcb_bye`
-- [ ] `0x974B` `init_txcb`
-- [ ] `0x9763` `txcb_init_template`
-- [ ] `0x976F` `send_request_nowrite`
-- [ ] `0x9773` `send_request_write`
-- [ ] `0x978A` `save_net_tx_cb`
-- [ ] `0x978B` `save_net_tx_cb_vset`
-- [ ] `0x988F` `check_escape_and_classify`
-- [ ] `0x989F` `lang_4_validated`
-- [ ] `0x98BE` `wait_net_tx_ack`
+- [x] `0x973D` `init_txcb_bye` - description matches body
+- [x] `0x974B` `init_txcb` - description had wrong template address (&948B); actual is &9763 (txcb_init_template). Fixed
+- [x] `0x9763` `txcb_init_template` - table description matches contents
+- [x] `0x976F` `send_request_nowrite` - description matches body
+- [x] `0x9773` `send_request_write` - description matches body
+- [x] `0x978A` `save_net_tx_cb` - description matches body
+- [x] `0x978B` `save_net_tx_cb_vset` - description matches body
+- [x] `0x988F` `check_escape_and_classify` - description matches body
+- [x] `0x989F` `lang_4_validated` - description matches body
+- [x] `0x98BE` `wait_net_tx_ack` - description's polling-loop calculation 2.6M iterations / ~22s verified against the body's 3-level nested loop
 - [ ] `0x9930` `fixup_reply_status_a`
 - [ ] `0x993B` `load_reply_and_classify`
 - [ ] `0x99C3` `error_inline`

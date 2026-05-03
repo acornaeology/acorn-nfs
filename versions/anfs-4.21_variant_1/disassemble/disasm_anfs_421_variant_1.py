@@ -4347,7 +4347,7 @@ will set bit 7 when a reply frame arrives on this port, which
 subroutine(0x974B, "init_txcb",
     title="Initialise TX control block from ROM template",
     description="""\
-Copies 12 bytes from `txcb_init_template` (`&948B`) into the
+Copies 12 bytes from [`txcb_init_template`](address:9763) into the
 TXCB workspace at `&00C0`. For the first two bytes (`Y=0,1`),
 also copies the destination station/network from `&0E00` into
 `txcb_dest` (`&C2`). Preserves `A` via `PHA`/`PLA`.

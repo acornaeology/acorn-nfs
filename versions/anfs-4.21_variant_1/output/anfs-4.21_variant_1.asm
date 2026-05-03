@@ -6588,9 +6588,9 @@ help_topic_template = dispatch_help_command+1
 ; ***************************************************************************************
 ; Initialise TX control block from ROM template
 ;
-; Copies 12 bytes from txcb_init_template (&948B) into the TXCB workspace at &00C0. For
-; the first two bytes (Y=0,1), also copies the destination station/network from &0E00
-; into txcb_dest (&C2). Preserves A via PHA/PLA.
+; Copies 12 bytes from txcb_init_template into the TXCB workspace at &00C0. For the
+; first two bytes (Y=0,1), also copies the destination station/network from &0E00 into
+; txcb_dest (&C2). Preserves A via PHA/PLA.
 ;
 ; Called by 4 sites including cmd_pass, init_txcb_port, prep_send_tx_cb, and
 ; send_wipe_request.
