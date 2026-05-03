@@ -7816,7 +7816,7 @@ comment(0xB2D7, "Return", inline=True)
 
 # prompt_yn inline comments (3 items)
 comment(0xB7CB, "Print 'Y/N) ' via the inline-string helper", inline=True)
-comment(0xB7CE, "Inline string body — bytes consumed by sub_c928a (above)",
+comment(0xB7CE, "Inline string body — bytes consumed by print_inline_no_spool (above)",
         inline=True)
 comment(0xB7D1, "Force lower-case (bit 5 = ' ' bit) for case-insensitive "
         "Y/N test", inline=True)

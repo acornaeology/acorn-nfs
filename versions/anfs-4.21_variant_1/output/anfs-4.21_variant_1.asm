@@ -14173,7 +14173,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b7cb referenced 2 times by &b765, &b784
 .prompt_yn
     jsr print_inline_no_spool                                         ; b7cb: 20 8a 92     ..            ; Print 'Y/N) ' via the inline-string helper; Print 'Y/N) ' prompt
-    equs "Y/N) "                                                      ; b7ce: 59 2f 4e... Y/N            ; Inline string body — bytes consumed by sub_c928a (above); Force lower-case (bit 5 = ' ' bit) for case-insensitive Y/N test
+    equs "Y/N) "                                                      ; b7ce: 59 2f 4e... Y/N            ; Inline string body — bytes consumed by print_inline_no_spool (above); Force lower-case (bit 5 = ' ' bit) for case-insensitive Y/N test
 
 ; ***************************************************************************************
 ; Flush keyboard buffer and read one character
