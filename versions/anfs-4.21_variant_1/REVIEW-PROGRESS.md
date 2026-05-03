@@ -141,16 +141,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x988F` `check_escape_and_classify` - description matches body
 - [x] `0x989F` `lang_4_validated` - description matches body
 - [x] `0x98BE` `wait_net_tx_ack` - description's polling-loop calculation 2.6M iterations / ~22s verified against the body's 3-level nested loop
-- [ ] `0x9930` `fixup_reply_status_a`
-- [ ] `0x993B` `load_reply_and_classify`
-- [ ] `0x99C3` `error_inline`
-- [ ] `0x9A5E` `append_space_and_num`
-- [ ] `0x9A7A` `append_decimal_digit`
-- [ ] `0x9A9A` `net_error_lookup_data`
-- [ ] `0x9AA6` `error_msg_table`
-- [ ] `0x9B24` `init_tx_ptr_and_send`
-- [ ] `0x9B75` `pass_txbuf_init_table`
-- [ ] `0x9B81` `init_tx_ptr_for_pass`
+- [x] `0x9930` `fixup_reply_status_a` - description matches body's 'A'->'B' substitution
+- [x] `0x993B` `load_reply_and_classify` - description matches body
+- [x] `0x99C3` `error_inline` - description matches body's inline-string error generation
+- [x] `0x9A5E` `append_space_and_num` - description matches body
+- [x] `0x9A7A` `append_decimal_digit` - description matches body's repeated-subtraction division
+- [x] `0x9A9A` `net_error_lookup_data` - table description matches contents
+- [x] `0x9AA6` `error_msg_table` - table description matches layout
+- [x] `0x9B24` `init_tx_ptr_and_send` - description matches body
+- [x] `0x9B75` `pass_txbuf_init_table` - table description matches contents
+- [x] `0x9B81` `init_tx_ptr_for_pass` - description matches body
 - [ ] `0x9BF5` `load_text_ptr_and_parse`
 - [ ] `0x9C00` `gsread_to_buf`
 - [ ] `0x9D5F` `copy_fsopts_to_zp`
