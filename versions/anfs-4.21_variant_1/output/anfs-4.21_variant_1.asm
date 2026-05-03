@@ -7380,23 +7380,22 @@ bad_prefix_table = bad_str_anchor+1
 ; - Indices 9-11 point to the suffix strings appended after the station address in
 ;   compound errors (' not listening', ' on channel', ' not present').
 ;
-; Adding the looked-up offset to error_msg_table's base (&9AA6) yields the address of
-; either an error-code/message pair (indices 0-8) or a bare suffix string (indices
-; 9-11).
+; Each byte is computed as <message-label> - error_msg_table so the table reflows
+; automatically if a message string is edited.
 ; &9a9a referenced 5 times by &990b, &9949, &9977, &998a, &9a1d
 .net_error_lookup_data
-    equb 0                                                            ; 9a9a: 00          .              ; Class 0: &A0 "Line jammed"
-    equb &0d                                                          ; 9a9b: 0d          .              ; Class 1: &A1 "Net error"
-    equb &18                                                          ; 9a9c: 18          .
-    equb &21                                                          ; 9a9d: 21          !
-    equb &2b                                                          ; 9a9e: 2b          +              ; Class 4: &11 "Escape"
-    equb &2b                                                          ; 9a9f: 2b          +              ; Class 5: &11 "Escape" (duplicate)
-    equb &2b                                                          ; 9aa0: 2b          +              ; Class 6: &11 "Escape" (duplicate)
-    equb &33                                                          ; 9aa1: 33          3              ; Class 7: &CB "Bad option"
-    equb &3f                                                          ; 9aa2: 3f          ?              ; Index 8: &A5 "No reply from station"
-    equb &56                                                          ; 9aa3: 56          V              ; Index 9: " not listening" suffix
-    equb &65                                                          ; 9aa4: 65          e
-    equb &71                                                          ; 9aa5: 71          q              ; Index 11: " not present" suffix
+    equb 0                                                            ; 9a9a: 00          .
+    equb msg_net_error - error_msg_table                              ; 9a9b: 0d          .
+    equb msg_station - error_msg_table                                ; 9a9c: 18          .
+    equb msg_no_clock - error_msg_table                               ; 9a9d: 21          !
+    equb msg_escape - error_msg_table                                 ; 9a9e: 2b          +
+    equb msg_escape - error_msg_table                                 ; 9a9f: 2b          +
+    equb msg_escape - error_msg_table                                 ; 9aa0: 2b          +
+    equb msg_bad_option - error_msg_table                             ; 9aa1: 33          3
+    equb msg_no_reply - error_msg_table                               ; 9aa2: 3f          ?
+    equb msg_not_listening - error_msg_table                          ; 9aa3: 56          V
+    equb msg_on_channel - error_msg_table                             ; 9aa4: 65          e
+    equb msg_not_present - error_msg_table                            ; 9aa5: 71          q
 ; ***************************************************************************************
 ; Net-error message strings
 ;
@@ -7425,7 +7424,9 @@ bad_prefix_table = bad_str_anchor+1
 .msg_station
     equb &a2                                                          ; 9abe: a2          .              ; Error &A2: Station
     equs "Station"                                                    ; 9abf: 53 74 61... Sta
-    equb 0, &a3                                                       ; 9ac6: 00 a3       ..
+    equb 0                                                            ; 9ac6: 00          .
+.msg_no_clock
+    equb &a3                                                          ; 9ac7: a3          .
     equs "No clock"                                                   ; 9ac8: 4e 6f 20... No
     equb 0                                                            ; 9ad0: 00          .              ; Null terminator
 .msg_escape
@@ -7435,9 +7436,12 @@ bad_prefix_table = bad_str_anchor+1
 .msg_bad_option
     equb &cb                                                          ; 9ad9: cb          .              ; Error &CB: Bad option
     equs "Bad option"                                                 ; 9ada: 42 61 64... Bad
-    equb 0, &a5                                                       ; 9ae4: 00 a5       ..             ; Null terminator + Error &A5: No reply from station
+    equb 0                                                            ; 9ae4: 00          .              ; Null terminator + Error &A5: No reply from station
+.msg_no_reply
+    equb &a5                                                          ; 9ae5: a5          .
     equs "No reply from station"                                      ; 9ae6: 4e 6f 20... No             ; err_no_reply = &A5 message body
     equb 0                                                            ; 9afb: 00          .              ; Null terminator
+.msg_not_listening
     equs " not listening"                                             ; 9afc: 20 6e 6f...  no            ; Suffix string (offset &56 in lookup)
     equb 0                                                            ; 9b0a: 00          .              ; Null terminator
 .msg_on_channel
@@ -16131,6 +16135,15 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert gbpbv_handler == &a14c
     assert help_net-1 == &8bc3
     assert help_utils-1 == &8bbf
+    assert msg_bad_option - error_msg_table == &33
+    assert msg_escape - error_msg_table == &2b
+    assert msg_net_error - error_msg_table == &0d
+    assert msg_no_clock - error_msg_table == &21
+    assert msg_no_reply - error_msg_table == &3f
+    assert msg_not_listening - error_msg_table == &56
+    assert msg_not_present - error_msg_table == &71
+    assert msg_on_channel - error_msg_table == &65
+    assert msg_station - error_msg_table == &18
     assert print_fs_address-1 == &966f
     assert print_ps_address-1 == &965e
     assert set_fs_or_ps_cmos_station-1 == &95ed

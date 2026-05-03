@@ -1076,11 +1076,25 @@ Maps Econet network-error classes to byte offsets into
   station address in compound errors ('` not listening`',
   '` on channel`', '` not present`').
 
-Adding the looked-up offset to `error_msg_table`'s base (`&9AA6`)
-yields the address of either an error-code/message pair (indices
-0-8) or a bare suffix string (indices 9-11).""")
+Each byte is computed as `<message-label> - error_msg_table` so the
+table reflows automatically if a message string is edited.""")
+# Each entry is computed as `<msg-label> - error_msg_table` so the
+# table reflows automatically if a message string is edited. Entry 0
+# is the table base itself, so its byte is left as a literal 0
+# (`error_msg_table - error_msg_table` would assemble to the same).
 for i in range(12):
     byte(0x9A9A + i)
+expr(0x9A9B, "msg_net_error - error_msg_table")      # class 1: &A1 "Net error"
+expr(0x9A9C, "msg_station - error_msg_table")        # class 2: &A2 "Station ..."
+expr(0x9A9D, "msg_no_clock - error_msg_table")       # class 3: &A3 "No clock"
+expr(0x9A9E, "msg_escape - error_msg_table")         # class 4: &11 "Escape"
+expr(0x9A9F, "msg_escape - error_msg_table")         # class 5: &11 "Escape" (dup)
+expr(0x9AA0, "msg_escape - error_msg_table")         # class 6: &11 "Escape" (dup)
+expr(0x9AA1, "msg_bad_option - error_msg_table")     # class 7: &CB "Bad option"
+expr(0x9AA2, "msg_no_reply - error_msg_table")       # index 8: &A5 "No reply from station"
+expr(0x9AA3, "msg_not_listening - error_msg_table")  # index 9: " not listening"
+expr(0x9AA4, "msg_on_channel - error_msg_table")     # index 10: " on channel"
+expr(0x9AA5, "msg_not_present - error_msg_table")    # index 11: " not present"
 data_banner(0x9AA6, "error_msg_table",
     title="Net-error message strings",
     description="""\
@@ -12910,11 +12924,14 @@ label(0xACFC, "netv_handler")
 # Command syntax help strings (&900D-&910C)
 label(0x90F7, "syntax_strings")
 
-# Error message table (&97B9)
+# Error message table entries
 label(0x9AB3, "msg_net_error")
 label(0x9ABE, "msg_station")
+label(0x9AC7, "msg_no_clock")
 label(0x9AD1, "msg_escape")
 label(0x9AD9, "msg_bad_option")
+label(0x9AE5, "msg_no_reply")
+label(0x9AFC, "msg_not_listening")
 label(0x9B0B, "msg_on_channel")
 label(0x9B17, "msg_not_present")
 
@@ -16464,15 +16481,6 @@ comment(0x9A92, "Load current text position", inline=True)
 comment(0x9A94, "Store ASCII digit in error text", inline=True)
 comment(0x9A97, "Advance text position", inline=True)
 comment(0x9A99, "Return", inline=True)
-comment(0x9A9A, "Class 0: &A0 \\\"Line jammed\\\"", inline=True)
-comment(0x9A9B, "Class 1: &A1 \\\"Net error\\\"", inline=True)
-comment(0x9A9E, "Class 4: &11 \\\"Escape\\\"", inline=True)
-comment(0x9A9F, "Class 5: &11 \\\"Escape\\\" (duplicate)", inline=True)
-comment(0x9AA0, "Class 6: &11 \\\"Escape\\\" (duplicate)", inline=True)
-comment(0x9AA1, "Class 7: &CB \\\"Bad option\\\"", inline=True)
-comment(0x9AA2, "Index 8: &A5 \\\"No reply from station\\\"", inline=True)
-comment(0x9AA3, "Index 9: \\\" not listening\\\" suffix", inline=True)
-comment(0x9AA5, "Index 11: \\\" not present\\\" suffix", inline=True)
 comment(0x9AB2, "Null terminator", inline=True)
 comment(0x9AB3, "Error &A1: Net error", inline=True)
 comment(0x9ABD, "Null terminator", inline=True)
