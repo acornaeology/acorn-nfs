@@ -6196,10 +6196,10 @@ ps_template_base = load_transfer_params+1
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?
     bne help_dispatch_setup                                           ; 9634: d0 56       .V             ; Non-CR: parse the argument at help_dispatch_setup
-    jsr print_fs_station                                              ; 9636: 20 c8 95     ..            ; Print 'F' (port-number prefix)
-    jsr print_fs_network                                              ; 9639: 20 70 96     p.            ; Print port number from CMOS
-    jsr print_station_low                                             ; 963c: 20 c1 95     ..            ; Print 'P' (station prefix)
-    jsr print_network_from_cmos                                       ; 963f: 20 5f 96     _.            ; Print station number
+    jsr print_fs_station                                              ; 9636: 20 c8 95     ..            ; Print 'FS ' header
+    jsr print_fs_network                                              ; 9639: 20 70 96     p.            ; Print FS network.station from CMOS &02/&01
+    jsr print_station_low                                             ; 963c: 20 c1 95     ..            ; Print 'PS ' header
+    jsr print_network_from_cmos                                       ; 963f: 20 5f 96     _.            ; Print PS network.station from CMOS &04/&03
     ldx #&11                                                          ; 9642: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..            ; Read CMOS &11 (FS state)
     tya                                                               ; 9647: 98          .              ; TYA -- A = CMOS &11

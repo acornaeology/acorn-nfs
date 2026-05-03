@@ -58,7 +58,7 @@ Status: `[ ]` todo, `[x]` done, `[~]` partial / blocked.
 
 | Status | Range | Items | Current comments | Notes |
 |---|---|---|---|---|
-| [~] | `&959A..&973B` | 190 | 149 | Largest gap. Sub-chunks: **(done)** `&959A..&95EB` *FS/*PS no-arg syntax-help printer + shared 'S       ' tail. Next: `&95EE..&9616` set_fs_or_ps_cmos_station (mostly done in earlier work, just verify). Then: `&9619..&9651` CMOS-bit setter helpers. Then: `&965F..&9689` print_network_from_cmos / print_fs_network. Then: `&968E..&973B` help dispatch + 'ON ' suffix matcher + filename walker. |
+| [x] | `&959A..&973B` | 190 | 149 | All sub-chunks walked: *FS/*PS no-arg syntax-help printer (&959A..&95EB), set_fs_or_ps_cmos_station (&95EE..&9616, done in earlier work), CMOS-bit setter helpers (&9619..&9651), print_ps/fs_address pair (&965F..&9689), help-dispatch + 'ON ' suffix matcher (&968C..&96BC), filename walker / help loader (&96BD..&973B). Fixed 4 wrong "F prefix"/"port number"/"P prefix"/"station number" comments at &9636..&963F. Several rename candidates logged. |
 | [ ] | `&89EA..&8A59` | 108 | 2 | Mostly already cleaned. Quick win — verify the 2 remaining. |
 | [ ] | `&A7A8..&A83B` | 70 | 6 | Sub-table 4/5 dispatch tail; also already mostly clean. |
 | [ ] | `&91EC..&9235` | 48 | 44 | `cmd_syntax_table` (data) plus surrounding parse helpers. |
