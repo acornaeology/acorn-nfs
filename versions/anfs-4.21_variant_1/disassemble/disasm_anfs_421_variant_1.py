@@ -3443,16 +3443,17 @@ is handled by the separate [`econet_restore`](address:806C).)""",
 subroutine(0x89B9, "save_econet_state",
     title="Reset Econet flags and enter RX-listen",
     description="""\
-Disables NMIs via two reads of
-[`econet_station_id`](address:FE18) (INTOFF), then clears
+Disables NMIs via `BIT master_intoff` (the Master 128 dedicated
+INTOFF at &FE38), then clears
 [`tx_complete_flag`](address:0D60) and
 [`econet_init_flag`](address:0D62) by storing the current `A`
 value. Sets `Y=5` (service-call workspace page) and jumps to
 [`adlc_rx_listen`](address:899B) to configure the ADLC for
 passive listening.
 
-Used during NMI release (service 12) to safely tear down the
-Econet state before another ROM can claim the NMI workspace.""",
+Used during the wait-idle-and-reset path (svc &0D) to safely
+tear down the Econet state before another ROM can claim the
+NMI workspace.""",
     on_entry={"a": "value to store into tx_complete_flag / "
               "econet_init_flag (typically 0 to clear)"},
     on_exit={"y": "5 (service-call workspace page)"})
@@ -3470,12 +3471,12 @@ initialisation.
 Same sequence as the RAM shim:
 
 ```6502
-BIT econet_station_id  ; INTOFF
+BIT master_intoff      ; INTOFF (Master 128 dedicated register)
 PHA
 TYA
 PHA
-LDA romsel
-STA &FE30
+LDA #romsel-bank
+STA romsel
 JMP nmi_rx_scout
 ```
 
@@ -12622,17 +12623,20 @@ Computes a checksum over the first `&77` bytes of the workspace
 page and verifies against the stored value; raises an error on
 mismatch. On success:
 
-1. Notifies the OS via FSCV reason 6.
-2. Copies the FS context block from the receive block to
-   `fs_context_save` (`&0DFA`).
+1. Notifies the OS via FSCV reason 6
+   ([`notify_new_fs`](address:8CFD)).
+2. Copies the FS context block from the receive block to the
+   HAZEL FS state at [`hazel_fs_station`](address:C000)
+   (offsets 0..9), via the `hazel_minus_2,Y` indexing-base
+   trick.
 3. Installs 7 filing-system vectors (FILEV etc.) from
    [`fs_vector_table`](address:8EA7).
 4. Initialises the ADLC and extended vectors.
 5. Sets up the channel table.
-6. Copies the workspace page to `&1000` as a shadow.
-7. Sets bit 7 of [`fs_flags`](address:0D6C) to mark the FS as
+6. Sets bit 7 of [`fs_flags`](address:0D6C) to mark the FS as
    selected.
-8. Issues service call 15.""",
+7. Issues service call 15 (vectors claimed) via
+   [`issue_svc_15`](address:8D02).""",
     on_entry={"y": "command line offset in text pointer "
               "(unused for *NET FS but supplied by star-cmd dispatch)"},
     on_exit={"a, x, y": "clobbered"})

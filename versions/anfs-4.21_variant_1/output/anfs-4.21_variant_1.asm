@@ -3016,13 +3016,13 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX-listen
 ;
-; Disables NMIs via two reads of econet_station_id (INTOFF), then clears
-; tx_complete_flag and econet_init_flag by storing the current A value. Sets Y=5
+; Disables NMIs via BIT master_intoff (the Master 128 dedicated INTOFF at &FE38), then
+; clears tx_complete_flag and econet_init_flag by storing the current A value. Sets Y=5
 ; (service-call workspace page) and jumps to adlc_rx_listen to configure the ADLC for
 ; passive listening.
 ;
-; Used during NMI release (service 12) to safely tear down the Econet state before
-; another ROM can claim the NMI workspace.
+; Used during the wait-idle-and-reset path (svc &0D) to safely tear down the Econet
+; state before another ROM can claim the NMI workspace.
 ;
 ; On Entry: A: value to store into tx_complete_flag / econet_init_flag (typically 0 to
 ; clear)
@@ -3052,12 +3052,12 @@ nmi_shim_source = reset_enter_listen+2
 ; Same sequence as the RAM shim:
 ;
 ; [6502]
-;     BIT econet_station_id  ; INTOFF
+;     BIT master_intoff      ; INTOFF (Master 128 dedicated register)
 ;     PHA
 ;     TYA
 ;     PHA
-;     LDA romsel
-;     STA &FE30
+;     LDA #romsel-bank
+;     STA romsel
 ;     JMP nmi_rx_scout
 ;
 ; The BIT of econet_station_id (INTOFF) at entry and BIT of econet_nmi_enable (INTON)
@@ -3452,14 +3452,14 @@ nmi_shim_source = reset_enter_listen+2
 ; Computes a checksum over the first &77 bytes of the workspace page and verifies
 ; against the stored value; raises an error on mismatch. On success:
 ;
-; 1. Notifies the OS via FSCV reason 6.
-; 2. Copies the FS context block from the receive block to fs_context_save (&0DFA).
+; 1. Notifies the OS via FSCV reason 6 (notify_new_fs).
+; 2. Copies the FS context block from the receive block to the HAZEL FS state at
+;    hazel_fs_station (offsets 0..9), via the hazel_minus_2,Y indexing-base trick.
 ; 3. Installs 7 filing-system vectors (FILEV etc.) from fs_vector_table.
 ; 4. Initialises the ADLC and extended vectors.
 ; 5. Sets up the channel table.
-; 6. Copies the workspace page to &1000 as a shadow.
-; 7. Sets bit 7 of fs_flags to mark the FS as selected.
-; 8. Issues service call 15.
+; 6. Sets bit 7 of fs_flags to mark the FS as selected.
+; 7. Issues service call 15 (vectors claimed) via issue_svc_15.
 ;
 ; On Entry: Y: command line offset in text pointer (unused for *NET FS but supplied by
 ; star-cmd dispatch)

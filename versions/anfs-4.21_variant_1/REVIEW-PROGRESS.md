@@ -265,17 +265,17 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x83E8` `reset_adlc_rx_listen` - description matches body
 - [x] `0x83F2` `discard_reset_listen` - description matches body
 - [x] `0x8549` `tx_done_econet_event` - description matches body
-- [ ] `0x8557` `tx_done_os_proc`
-- [ ] `0x8589` `tx_begin`
-- [ ] `0x872F` `nmi_tx_complete`
-- [ ] `0x8773` `reject_reply`
-- [ ] `0x88BA` `nmi_final_ack_validate`
-- [ ] `0x8900` `tx_calc_transfer`
-- [ ] `0x89B9` `save_econet_state`
-- [ ] `0x89CA` `nmi_bootstrap_entry`
+- [x] `0x8557` `tx_done_os_proc` - description matches body
+- [x] `0x8589` `tx_begin` - description's 4-step list matches body's broad flow
+- [x] `0x872F` `nmi_tx_complete` - description's TX-to-RX-pivot CR1 sequence table matches
+- [x] `0x8773` `reject_reply` - description matches body (single JMP)
+- [x] `0x88BA` `nmi_final_ack_validate` - description matches body's source-station/network/FV checks
+- [x] `0x8900` `tx_calc_transfer` - description matches body's Tube-vs-non-Tube dispatch
+- [x] `0x89B9` `save_econet_state` - description claimed two reads of econet_station_id (Model-B INTOFF) but body uses BIT master_intoff (Master 128 dedicated). Also referenced 'service 12 / NMI release' incorrectly (this is part of svc &0D wait_idle_and_reset). Rewrote
+- [x] `0x89CA` `nmi_bootstrap_entry` - description's pseudo-code showed 'BIT econet_station_id' but body uses BIT master_intoff; the 'STA &FE30' was also pre-Master (the actual store is to romsel which is &FE30 on Master too, OK). Updated pseudo-code
 - [x] `0x8A54` `service_handler` - description compared against body, accurate
-- [ ] `0x8B23` `cmd_net_fs`
-- [ ] `0x8BD8` `loop_next_entry`
+- [x] `0x8B23` `cmd_net_fs` - description's step 2 said 'fs_context_save (&0DFA)' but the 4.21 body copies into the HAZEL FS state at &C000 via the hazel_minus_2 indexing trick. Step 6 claimed 'copies workspace to &1000' which doesn't happen on 4.21. Rewrote
+- [x] `0x8BD8` `loop_next_entry` - description matches body
 - [ ] `0x8CBD` `setup_ws_ptr`
 - [ ] `0x8D09` `svc_dispatch_idx_2`
 - [ ] `0x8DD5` `cmd_pass`
