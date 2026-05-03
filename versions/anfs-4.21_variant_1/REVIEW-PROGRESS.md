@@ -72,13 +72,13 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x88A6` `nmi_final_ack_net` - description matches body
 - [x] `0x88DE` `tx_result_ok` - description's reference to tx_store_result said '&88E2' but tx_store_result is at &88E4 (&88E2 is tx_result_fail); corrected
 - [x] `0x88E2` `tx_result_fail` - description matches body; references &88E4 correctly
-- [ ] `0x88F0` `rom_gap_88f0`
+- [x] `0x88F0` `rom_gap_88f0` - banner only; bounds correct, contents documented as unknown
 - [x] `0x898C` `adlc_full_reset` - description matches body's CR1/CR4/CR3/fall-through sequence
 - [x] `0x899B` `adlc_rx_listen` - description matches body (CR1=&82, CR2=&67)
 - [x] `0x89A6` `wait_idle_and_reset` - description claimed this is 'Service 12 handler: NMI release' but svc_dispatch idx &0D maps this routine to svc &0D (=13), and 'NMI release' is svc &0B handled by econet_restore. Description and on_entry corrected
 - [x] `0x89D8` `rom_set_nmi_vector` - description matches body (STY hi, STA lo, restore ROM bank, fall through to nmi_rti)
-- [ ] `0x89ED` `svc_dispatch_lo`
-- [ ] `0x8A20` `svc_dispatch_hi`
+- [x] `0x89ED` `svc_dispatch_lo` - description matches table contents
+- [x] `0x8A20` `svc_dispatch_hi` - description matches table contents
 - [x] `0x8B00` `scan_remote_keys` - description matches body's OSBYTE keyboard-scan loop for keys &CE..&CF; minor uncertainty about exact OSBYTE semantics but flow is correct
 - [x] `0x8B18` `save_text_ptr` - description matches body; note that the destinations fs_crc_lo/hi (&BE/&BF) double as OS-text-pointer save slots in this context
 - [x] `0x8B45` `svc_18_fs_select` - description's table mentions 'Bit 7 of fs_flags' check which actually happens in the fall-through routine ensure_fs_selected, not in this routine -- but the chain is correctly described
@@ -99,7 +99,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8E73` `copy_template_to_zp` - description compared against body, accurate
 - [x] `0x8E7F` `fs_info_template` - description compared against body, accurate
 - [x] `0x8E98` `read_cmos_byte_0` - description matches body (LDX #0, fall through to osbyte_a1)
-- [ ] `0x8E9A` `osbyte_a1`
+- [x] `0x8E9A` `osbyte_a1` - description matches body; the 'dual-use trick' note about bytes being read by write_vector_entry is genuinely accurate
 - [x] `0x8EA7` `fs_vector_table` - description matches table layout
 - [x] `0x8EC9` `osbyte_x0` - inline at &8EC9 had a confused claim about a 'BEQ after this is unconditional' (no BEQ exists; routine falls through to osbyte_yff). Cleaned up
 - [x] `0x8ECB` `osbyte_yff` - description matches body
@@ -116,11 +116,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9255` `print_hex_nybble_no_spool` - description matches body; tail-jumps to print_char_no_spool
 - [x] `0x9261` `print_inline` - description matches high-bit-terminated string protocol
 - [x] `0x9269` `loop_next_char` - description matches body's INC lo / on-zero INC hi pointer advance
-- [ ] `0x939A` `is_decimal_digit`
-- [ ] `0x93A2` `is_dec_digit_only`
-- [ ] `0x93AB` `get_access_bits`
-- [ ] `0x93B5` `get_prot_bits`
-- [ ] `0x93C8` `prot_bit_encode_table`
+- [x] `0x939A` `is_decimal_digit` - description claimed return_12 was the shared exit but the actual label is return_from_digit_test (return_12 is a stale auto-name); fixed
+- [x] `0x93A2` `is_dec_digit_only` - description matches body's CMP #&3A / CMP #&30 bracket test
+- [x] `0x93AB` `get_access_bits` - description matches body
+- [x] `0x93B5` `get_prot_bits` - description matches body
+- [x] `0x93C8` `prot_bit_encode_table` - description matches table layout
 - [ ] `0x93D3` `set_text_and_xfer_ptr`
 - [ ] `0x93D7` `set_xfer_params`
 - [ ] `0x93DD` `set_options_ptr`

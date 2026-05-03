@@ -4113,7 +4113,7 @@ subroutine(0x939A, "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
     description="""\
 Compares `A` against `'&'` and `'.'` first; if either matches,
-returns with carry set via the shared `return_12` exit.
+returns with carry set via the shared `return_from_digit_test` exit.
 Otherwise falls through to
 [`is_dec_digit_only`](address:93A2) for the `'0'`..`'9'`
 range test.

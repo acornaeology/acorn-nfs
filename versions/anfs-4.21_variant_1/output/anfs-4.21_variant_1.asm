@@ -5573,8 +5573,8 @@ ps_template_base = load_transfer_params+1
 ; Test for digit, '&', or '.' separator
 ;
 ; Compares A against '&' and '.' first; if either matches, returns with carry set via
-; the shared return_12 exit. Otherwise falls through to is_dec_digit_only for the
-; '0'..'9' range test.
+; the shared return_from_digit_test exit. Otherwise falls through to is_dec_digit_only
+; for the '0'..'9' range test.
 ;
 ; Called by cmd_iam, cmd_ps, and cmd_pollps when parsing station addresses.
 ;
