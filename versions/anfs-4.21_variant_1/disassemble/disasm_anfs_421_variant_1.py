@@ -252,16 +252,6 @@ label(0x021E, "vec_fscv",
                 "FSC handler at init.",
     length=2, group="ram_workspace", access="rw")
 
-# MOS workspace pointers (used by FS reply paths via indirect access)
-label(0xFFB7, "mos_workspace",
-    description="MOS internal workspace base.\n"
-                "ANFS's [`process_all_fcbs`](address:BB38) saves "
-                "&FFB7..&FFBF across each FCB scan, then restores "
-                "before returning. The 9 saved bytes are used by "
-                "MOS for its own bookkeeping during the OSGBPB-style "
-                "iteration.",
-    length=9, group="mmio", access="rw")
-
 # ============================================================
 # Protocol constants
 # ============================================================
@@ -6213,8 +6203,10 @@ subroutine(0xBB2A, "inc_fcb_byte_count",
 subroutine(0xBB38, "process_all_fcbs",
     title="Process all active FCB slots",
     description="""\
-Saves 9 workspace bytes (`&FFB7`–`&FFBF`) on the stack via a
-`PHX`/`PHY`/loop preamble, then scans FCB slots `&0F` down to 0.
+Saves 9 zero-page bytes (`&00B4`–`&00BC`, i.e. `fs_work_4`+0..+8)
+on the stack via a `PHX`/`PHY`/loop preamble using the `&FFBD,X`
+indexing-wrap trick (X = `&F7`..`&FF` wraps to `&00B4`..`&00BC`),
+then scans FCB slots `&0F` down to 0.
 Calls [`start_wipe_pass`](address:B99A) for each active entry
 matching the filter attribute in `Y` (`0` = match all). Restores
 all saved context on completion. Also contains the OSBGET/OSBPUT
@@ -10545,11 +10537,11 @@ label(0xFFB0, "nmi_buf_idx_base",
                 "at `&FFB0` themselves aren't read or written.",
     length=1, group="mmio", access="r")
 label(0xFFBD, "fcb_workspace_idx_base",
-    description="FCB-workspace indexing-base.\n"
-                "Used by `loop_save_fcb_workspace` / "
-                "`loop_restore_fcb_workspace` as a base for "
-                "indexed access; the byte at `&FFBD` itself isn't "
-                "read or written.",
+    description="FCB-workspace indexing-base (wraps into ZP).\n"
+                "Used by `loop_save_fcb_workspace` as the base of "
+                "`LDA &FFBD,X` with X=`&F7`..`&FF`; the effective "
+                "address wraps to `&00B4`..`&00BC` (= `fs_work_4`+"
+                "0..+8). The byte at `&FFBD` itself is never read.",
     length=1, group="mmio", access="r")
 
 # 14 indexing-base aliases that py8dis emitted as `lXXXX = symbol+offset`

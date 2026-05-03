@@ -391,8 +391,7 @@ ev_gbpbv                    = &ff27  ; GBPBV extended-vector dispatcher (block t
 ev_findv                    = &ff2a  ; FINDV extended-vector dispatcher (open / close: OSFIND).
 ev_fscv                     = &ff2d  ; FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands).
 nmi_buf_idx_base            = &ffb0  ; NMI buffer indexing-base.
-mos_workspace               = &ffb7  ; MOS internal workspace base.
-fcb_workspace_idx_base      = &ffbd  ; FCB-workspace indexing-base.
+fcb_workspace_idx_base      = &ffbd  ; FCB-workspace indexing-base (wraps into ZP).
 oseven                      = &ffbf
 gsinit                      = &ffc2
 gsread                      = &ffc5
@@ -14901,11 +14900,12 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Process all active FCB slots
 ;
-; Saves 9 workspace bytes (&FFB7–&FFBF) on the stack via a PHX/PHY/loop preamble, then
-; scans FCB slots &0F down to 0. Calls start_wipe_pass for each active entry matching
-; the filter attribute in Y (0 = match all). Restores all saved context on completion.
-; Also contains the OSBGET/OSBPUT inline logic for reading and writing bytes through
-; file channels.
+; Saves 9 zero-page bytes (&00B4–&00BC, i.e. fs_work_4+0..+8) on the stack via a
+; PHX/PHY/loop preamble using the &FFBD,X indexing-wrap trick (X = &F7..&FF wraps to
+; &00B4..&00BC), then scans FCB slots &0F down to 0. Calls start_wipe_pass for each
+; active entry matching the filter attribute in Y (0 = match all). Restores all saved
+; context on completion. Also contains the OSBGET/OSBPUT inline logic for reading and
+; writing bytes through file channels.
 ;
 ; On Entry: Y: filter attribute (0=process all)
 ; &bb38 referenced 9 times by &8d9d, &9078, &9778, &9ec9, &9f0e, &9fb1, &a06b, &a175, &a9df
