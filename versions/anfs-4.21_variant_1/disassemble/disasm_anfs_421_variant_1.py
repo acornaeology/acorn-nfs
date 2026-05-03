@@ -2706,7 +2706,6 @@ returning.
 
 Used as the clean-up path after RXCB completion and after ADLC
 reset to ensure no stale Tube claims persist.""")
-label(0x83F7, "imm_op_jump_table")
 subroutine(0x8400, "copy_scout_to_buffer",
     title="Copy scout data to port buffer",
     description="""\
@@ -13056,15 +13055,18 @@ for i, (name, handler_label) in enumerate(handler_names):
         byte(base_addr + 2, 1)
         comment(base_addr + 2, "(ROM bank — not read)", inline=True)
 
-# Printer server template data: "PRINT " + &01 &00 (8 bytes)
-# Read by copy_ps_data via indexed addressing from ps_template_base.
-label(0x8E9F, "ps_template_data")
+data_banner(0x8E9F, "ps_template_data",
+    title="Printer-server name template (8 bytes)",
+    description="""\
+Eight bytes (`"PRINT "` then `&01 &00`) read by
+[`copy_ps_data`](address:B3D5) via the indexed-base trick
+`LDA ps_template_base+X` with `X=&F8..&FF`. The base label
+`ps_template_base` resolves to `ps_template_data - &F8` so the
+indexed access lands on the bytes here. Default contents installed
+into the Printer-Server name slot during ANFS initialisation.""")
 
 # NETV handler address pair at &8E8A (read by write_vector_entry)
 label(0xACFC, "netv_handler")
-
-# Command syntax help strings (&900D-&910C)
-label(0x90F7, "syntax_strings")
 
 # Error message table entries
 label(0x9AB3, "msg_net_error")

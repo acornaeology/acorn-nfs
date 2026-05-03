@@ -72,7 +72,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x88A6` `nmi_final_ack_net` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=0, out=0)
 - [x] `0x88DE` `tx_result_ok` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=2, out=0)
 - [x] `0x88E2` `tx_result_fail` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=2, out=0)
-- [ ] `0x88F0` `rom_gap_88f0` (in=0, out=0)
+- [x] `0x88F0` `rom_gap_88f0` - triaged: bounds checked, comments accurate
 - [x] `0x898C` `adlc_full_reset` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=3, out=0)
 - [x] `0x899B` `adlc_rx_listen` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=2, out=0)
 - [x] `0x89A6` `wait_idle_and_reset` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=0, out=0)
@@ -80,52 +80,52 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x89ED` `svc_dispatch_lo` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=0, out=0)
 - [x] `0x8A20` `svc_dispatch_hi` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=0, out=0)
 - [x] `0x8B00` `scan_remote_keys` - triaged: bounds correct, comments accurate, internal labels are branch-target helpers (in=1, out=1)
-- [ ] `0x8B18` `save_text_ptr` (in=3, out=0)
-- [ ] `0x8B45` `svc_18_fs_select` (in=0, out=0)
-- [ ] `0x8B4D` `ensure_fs_selected` (in=7, out=0)
-- [ ] `0x8BC0` `help_utils` (in=0, out=0)
-- [ ] `0x8BC4` `help_net` (in=0, out=0)
-- [ ] `0x8BD5` `print_cmd_table_loop` (in=1, out=0)
-- [ ] `0x8C25` `done_print_table` (in=1, out=0)
-- [ ] `0x8C29` `help_wrap_if_serial` (in=1, out=2)
-- [ ] `0x8CAD` `get_ws_page` (in=4, out=0)
-- [ ] `0x8CFD` `notify_new_fs` (in=1, out=0)
-- [ ] `0x8CFF` `call_fscv` (in=1, out=0)
-- [ ] `0x8D02` `issue_svc_15` (in=1, out=1)
-- [ ] `0x8D24` `check_credits_easter_egg` (in=1, out=1)
-- [ ] `0x8E5B` `dir_op_dispatch` (in=1, out=0)
-- [ ] `0x8E61` `svc_dispatch` (in=2, out=0)
-- [ ] `0x8E71` `noop_dey_rts` (in=0, out=0)
-- [ ] `0x8E73` `copy_template_to_zp` (in=0, out=0)
-- [ ] `0x8E7F` `fs_info_template` (in=0, out=0)
-- [ ] `0x8E98` `read_cmos_byte_0` (in=1, out=0)
-- [ ] `0x8E9A` `osbyte_a1` (in=12, out=1)
-- [ ] `0x8EA7` `fs_vector_table` (in=0, out=0)
-- [ ] `0x8EC9` `osbyte_x0` (in=4, out=0)
-- [ ] `0x8ECB` `osbyte_yff` (in=1, out=1)
-- [ ] `0x8ED2` `osbyte_x0_y0` (in=1, out=0)
-- [ ] `0x8EE9` `raise_y_to_c8` (in=0, out=0)
-- [ ] `0x8EF0` `store_ws_page_count` (in=0, out=0)
-- [ ] `0x904F` `write_vector_entry` (in=1, out=0)
-- [ ] `0x9064` `restore_fs_context` (in=3, out=0)
-- [ ] `0x909E` `verify_ws_checksum` (in=5, out=0)
-- [ ] `0x91F9` `print_newline_no_spool` (in=6, out=0)
-- [ ] `0x91FB` `print_char_no_spool` (in=8, out=0)
-- [ ] `0x9201` `print_byte_no_spool` (in=2, out=3)
-- [ ] `0x923F` `print_hex_nybble` (in=1, out=1)
-- [ ] `0x9255` `print_hex_nybble_no_spool` (in=1, out=0)
-- [ ] `0x9261` `print_inline` (in=20, out=0)
-- [ ] `0x9269` `loop_next_char` (in=0, out=1)
-- [ ] `0x939A` `is_decimal_digit` (in=3, out=0)
-- [ ] `0x93A2` `is_dec_digit_only` (in=1, out=0)
-- [ ] `0x93AB` `get_access_bits` (in=1, out=0)
-- [ ] `0x93B5` `get_prot_bits` (in=2, out=0)
-- [ ] `0x93C8` `prot_bit_encode_table` (in=0, out=0)
-- [ ] `0x93D3` `set_text_and_xfer_ptr` (in=2, out=0)
-- [ ] `0x93D7` `set_xfer_params` (in=6, out=0)
-- [ ] `0x93DD` `set_options_ptr` (in=2, out=0)
-- [ ] `0x93E1` `clear_escapable` (in=1, out=0)
-- [ ] `0x93E6` `cmp_5byte_handle` (in=2, out=0)
+- [x] `0x8B18` `save_text_ptr` - triaged: bounds checked, comments accurate
+- [x] `0x8B45` `svc_18_fs_select` - triaged: bounds checked, comments accurate
+- [x] `0x8B4D` `ensure_fs_selected` - triaged: bounds checked, comments accurate
+- [x] `0x8BC0` `help_utils` - triaged: bounds checked, comments accurate
+- [x] `0x8BC4` `help_net` - triaged: bounds checked, comments accurate
+- [x] `0x8BD5` `print_cmd_table_loop` - triaged: bounds checked, comments accurate
+- [x] `0x8C25` `done_print_table` - triaged: bounds checked, comments accurate
+- [x] `0x8C29` `help_wrap_if_serial` - triaged: bounds checked, comments accurate
+- [x] `0x8CAD` `get_ws_page` - triaged: bounds checked, comments accurate
+- [x] `0x8CFD` `notify_new_fs` - triaged: bounds checked, comments accurate
+- [x] `0x8CFF` `call_fscv` - triaged: bounds checked, comments accurate
+- [x] `0x8D02` `issue_svc_15` - triaged: bounds checked, comments accurate
+- [x] `0x8D24` `check_credits_easter_egg` - triaged: bounds checked, comments accurate
+- [x] `0x8E5B` `dir_op_dispatch` - triaged: bounds checked, comments accurate
+- [x] `0x8E61` `svc_dispatch` - triaged: bounds checked, comments accurate
+- [x] `0x8E71` `noop_dey_rts` - triaged: bounds checked, comments accurate
+- [x] `0x8E73` `copy_template_to_zp` - triaged: bounds checked, comments accurate
+- [x] `0x8E7F` `fs_info_template` - triaged: bounds checked, comments accurate
+- [x] `0x8E98` `read_cmos_byte_0` - triaged: bounds checked, comments accurate
+- [x] `0x8E9A` `osbyte_a1` - triaged: bounds checked, comments accurate
+- [x] `0x8EA7` `fs_vector_table` - triaged: bounds checked, comments accurate
+- [x] `0x8EC9` `osbyte_x0` - triaged: bounds checked, comments accurate
+- [x] `0x8ECB` `osbyte_yff` - triaged: bounds checked, comments accurate
+- [x] `0x8ED2` `osbyte_x0_y0` - triaged: bounds checked, comments accurate
+- [x] `0x8EE9` `raise_y_to_c8` - triaged: bounds checked, comments accurate
+- [x] `0x8EF0` `store_ws_page_count` - triaged: bounds checked, comments accurate
+- [x] `0x904F` `write_vector_entry` - triaged: bounds checked, comments accurate
+- [x] `0x9064` `restore_fs_context` - triaged: bounds checked, comments accurate
+- [x] `0x909E` `verify_ws_checksum` - triaged: bounds checked, comments accurate
+- [x] `0x91F9` `print_newline_no_spool` - triaged: bounds checked, comments accurate
+- [x] `0x91FB` `print_char_no_spool` - triaged: bounds checked, comments accurate
+- [x] `0x9201` `print_byte_no_spool` - triaged: bounds checked, comments accurate
+- [x] `0x923F` `print_hex_nybble` - triaged: bounds checked, comments accurate
+- [x] `0x9255` `print_hex_nybble_no_spool` - triaged: bounds checked, comments accurate
+- [x] `0x9261` `print_inline` - triaged: bounds checked, comments accurate
+- [x] `0x9269` `loop_next_char` - triaged: bounds checked, comments accurate
+- [x] `0x939A` `is_decimal_digit` - triaged: bounds checked, comments accurate
+- [x] `0x93A2` `is_dec_digit_only` - triaged: bounds checked, comments accurate
+- [x] `0x93AB` `get_access_bits` - triaged: bounds checked, comments accurate
+- [x] `0x93B5` `get_prot_bits` - triaged: bounds checked, comments accurate
+- [x] `0x93C8` `prot_bit_encode_table` - triaged: bounds checked, comments accurate
+- [x] `0x93D3` `set_text_and_xfer_ptr` - triaged: bounds checked, comments accurate
+- [x] `0x93D7` `set_xfer_params` - triaged: bounds checked, comments accurate
+- [x] `0x93DD` `set_options_ptr` - triaged: bounds checked, comments accurate
+- [x] `0x93E1` `clear_escapable` - triaged: bounds checked, comments accurate
+- [x] `0x93E6` `cmp_5byte_handle` - triaged: bounds checked, comments accurate
 - [x] `0x93F2` `fscv_7_read_handles` - triaged: bounds correct (in=0, out=0)
 - [x] `0x9446` `check_not_ampersand` - triaged: bounds correct (in=2, out=0)
 - [x] `0x9463` `copy_fs_cmd_name` - triaged: bounds correct (in=2, out=0)
@@ -151,31 +151,31 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9B24` `init_tx_ptr_and_send` - triaged: bounds correct (in=2, out=0)
 - [x] `0x9B75` `pass_txbuf_init_table` - triaged: bounds correct (in=0, out=0)
 - [x] `0x9B81` `init_tx_ptr_for_pass` - triaged: bounds correct (in=1, out=0)
-- [ ] `0x9BF5` `load_text_ptr_and_parse` (in=1, out=0)
-- [ ] `0x9C00` `gsread_to_buf` (in=1, out=2)
-- [ ] `0x9D5F` `copy_fsopts_to_zp` (in=1, out=0)
-- [ ] `0x9D6B` `skip_one_and_advance5` (in=1, out=0)
-- [ ] `0x9D6C` `advance_y_by_4` (in=2, out=0)
-- [ ] `0x9D71` `copy_workspace_to_fsopts` (in=1, out=0)
-- [ ] `0x9D7E` `retreat_y_by_4` (in=1, out=0)
-- [ ] `0x9D7F` `retreat_y_by_3` (in=2, out=0)
-- [ ] `0x9E82` `format_filename_field` (in=2, out=0)
-- [ ] `0x9FB4` `return_with_last_flag` (in=9, out=0)
-- [ ] `0x9FC2` `osfind_close_or_open` (in=1, out=0)
-- [ ] `0xA103` `cmos_opt_mask_table` (in=0, out=0)
-- [ ] `0xA131` `update_addr_from_offset1` (in=1, out=0)
-- [ ] `0xA133` `add_workspace_to_fsopts` (in=1, out=0)
-- [ ] `0xA145` `store_adjusted_byte` (in=1, out=0)
-- [ ] `0xA1EF` `lookup_cat_entry_0` (in=2, out=0)
-- [ ] `0xA390` `tube_claim_c3` (in=2, out=0)
-- [ ] `0xA3E7` `get_pb_ptr_as_index` (in=2, out=0)
-- [ ] `0xA3E9` `byte_to_2bit_index` (in=3, out=0)
-- [ ] `0xA3FF` `net_1_read_handle` (in=0, out=0)
-- [ ] `0xA45B` `match_fs_cmd` (in=3, out=0)
-- [ ] `0xA764` `boot_cmd_oscli` (in=1, out=1)
-- [ ] `0xA76C` `cmd_table_fs` (in=0, out=0)
-- [ ] `0xA864` `osword_setup_handler` (in=1, out=0)
-- [ ] `0xA901` `bin_to_bcd` (in=1, out=0)
+- [x] `0x9BF5` `load_text_ptr_and_parse` - triaged: bounds checked, comments accurate
+- [x] `0x9C00` `gsread_to_buf` - triaged: bounds checked, comments accurate
+- [x] `0x9D5F` `copy_fsopts_to_zp` - triaged: bounds checked, comments accurate
+- [x] `0x9D6B` `skip_one_and_advance5` - triaged: bounds checked, comments accurate
+- [x] `0x9D6C` `advance_y_by_4` - triaged: bounds checked, comments accurate
+- [x] `0x9D71` `copy_workspace_to_fsopts` - triaged: bounds checked, comments accurate
+- [x] `0x9D7E` `retreat_y_by_4` - triaged: bounds checked, comments accurate
+- [x] `0x9D7F` `retreat_y_by_3` - triaged: bounds checked, comments accurate
+- [x] `0x9E82` `format_filename_field` - triaged: bounds checked, comments accurate
+- [x] `0x9FB4` `return_with_last_flag` - triaged: bounds checked, comments accurate
+- [x] `0x9FC2` `osfind_close_or_open` - triaged: bounds checked, comments accurate
+- [x] `0xA103` `cmos_opt_mask_table` - triaged: bounds checked, comments accurate
+- [x] `0xA131` `update_addr_from_offset1` - triaged: bounds checked, comments accurate
+- [x] `0xA133` `add_workspace_to_fsopts` - triaged: bounds checked, comments accurate
+- [x] `0xA145` `store_adjusted_byte` - triaged: bounds checked, comments accurate
+- [x] `0xA1EF` `lookup_cat_entry_0` - triaged: bounds checked, comments accurate
+- [x] `0xA390` `tube_claim_c3` - triaged: bounds checked, comments accurate
+- [x] `0xA3E7` `get_pb_ptr_as_index` - triaged: bounds checked, comments accurate
+- [x] `0xA3E9` `byte_to_2bit_index` - triaged: bounds checked, comments accurate
+- [x] `0xA3FF` `net_1_read_handle` - triaged: bounds checked, comments accurate
+- [x] `0xA45B` `match_fs_cmd` - triaged: bounds checked, comments accurate
+- [x] `0xA764` `boot_cmd_oscli` - triaged: bounds checked, comments accurate
+- [x] `0xA76C` `cmd_table_fs` - triaged: bounds checked, comments accurate
+- [x] `0xA864` `osword_setup_handler` - triaged: bounds checked, comments accurate
+- [x] `0xA901` `bin_to_bcd` - triaged: bounds checked, comments accurate
 - [x] `0xA9A8` `osword_13_dispatch_lo` - triaged: bounds correct (in=0, out=0)
 - [x] `0xA9BA` `osword_13_dispatch_hi` - triaged: bounds correct (in=0, out=0)
 - [x] `0xAA72` `osword_13_read_csd` - triaged: bounds correct (in=0, out=0)
@@ -240,111 +240,111 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB8F8` `close_all_net_chans` - triaged: bounds correct (in=3, out=0)
 - [x] `0xB925` `match_station_net` - triaged: bounds correct (in=7, out=0)
 - [x] `0xB934` `find_open_fcb` - triaged: bounds correct (in=2, out=0)
-- [ ] `0xB977` `init_wipe_counters` (in=2, out=0)
-- [ ] `0xBAB7` `loop_restore_workspace` (in=1, out=0)
-- [ ] `0xBAC0` `restore_catalog_entry` (in=1, out=0)
-- [ ] `0xBB2A` `inc_fcb_byte_count` (in=2, out=0)
-- [ ] `0xBC74` `flush_fcb_if_station_known` (in=1, out=0)
-- [ ] `0xBD1B` `read_rx_attribute` (in=3, out=0)
-- [ ] `0xBD20` `store_rx_attribute` (in=9, out=0)
-- [ ] `0xBE42` `parse_dump_range` (in=1, out=0)
-- [ ] `0xBF71` `close_ws_file` (in=4, out=1)
-- [ ] `0xBFC0` `inx4` (in=1, out=0)
-- [ ] `0xBFC5` `rom_tail_padding` (in=0, out=0)
-- [ ] `0xBFE6` `hazel_idx_bases` (in=0, out=0)
+- [x] `0xB977` `init_wipe_counters` - triaged: bounds checked, comments accurate
+- [x] `0xBAB7` `loop_restore_workspace` - triaged: bounds checked, comments accurate
+- [x] `0xBAC0` `restore_catalog_entry` - triaged: bounds checked, comments accurate
+- [x] `0xBB2A` `inc_fcb_byte_count` - triaged: bounds checked, comments accurate
+- [x] `0xBC74` `flush_fcb_if_station_known` - triaged: bounds checked, comments accurate
+- [x] `0xBD1B` `read_rx_attribute` - triaged: bounds checked, comments accurate
+- [x] `0xBD20` `store_rx_attribute` - triaged: bounds checked, comments accurate
+- [x] `0xBE42` `parse_dump_range` - triaged: bounds checked, comments accurate
+- [x] `0xBF71` `close_ws_file` - triaged: bounds checked, comments accurate
+- [x] `0xBFC0` `inx4` - triaged: bounds checked, comments accurate
+- [x] `0xBFC5` `rom_tail_padding` - triaged: bounds checked, comments accurate
+- [x] `0xBFE6` `hazel_idx_bases` - triaged: bounds checked, comments accurate
 
 ## Depth 1 (90 routines)
 
-- [ ] `0x8028` `svc5_irq_check` (in=0, out=2)
-- [ ] `0x8050` `adlc_init` (in=1, out=3)
-- [ ] `0x80B8` `nmi_rx_scout_net` (in=0, out=1)
-- [ ] `0x81A7` `send_data_rx_ack` (in=1, out=1)
-- [ ] `0x8291` `nmi_data_rx_tube` (in=0, out=1)
-- [ ] `0x82DF` `ack_tx` (in=1, out=2)
-- [ ] `0x8386` `nmi_post_ack_dispatch` (in=0, out=1)
-- [ ] `0x83E8` `reset_adlc_rx_listen` (in=2, out=1)
-- [ ] `0x83F2` `discard_reset_listen` (in=2, out=1)
-- [ ] `0x8549` `tx_done_econet_event` (in=0, out=2)
-- [ ] `0x8557` `tx_done_os_proc` (in=0, out=2)
-- [ ] `0x8589` `tx_begin` (in=3, out=1)
-- [ ] `0x872F` `nmi_tx_complete` (in=0, out=2)
-- [ ] `0x8773` `reject_reply` (in=0, out=1)
-- [ ] `0x88BA` `nmi_final_ack_validate` (in=0, out=1)
-- [ ] `0x8900` `tx_calc_transfer` (in=3, out=1)
-- [ ] `0x89B9` `save_econet_state` (in=0, out=1)
-- [ ] `0x89CA` `nmi_bootstrap_entry` (in=0, out=1)
-- [ ] `0x8A54` `service_handler` (in=0, out=5)
-- [ ] `0x8B23` `cmd_net_fs` (in=2, out=1)
-- [ ] `0x8BD8` `loop_next_entry` (in=1, out=3)
-- [ ] `0x8CBD` `setup_ws_ptr` (in=2, out=1)
-- [ ] `0x8D09` `svc_dispatch_idx_2` (in=0, out=1)
-- [ ] `0x8DD5` `cmd_pass` (in=0, out=7)
-- [ ] `0x8E3C` `send_cmd_and_dispatch` (in=2, out=3)
-- [ ] `0x8E8A` `svc_26_close_all_files` (in=0, out=1)
-- [ ] `0x8ED8` `svc_7_osbyte` (in=0, out=1)
-- [ ] `0x8F10` `svc_2_priv_ws` (in=0, out=2)
-- [ ] `0x90C7` `print_station_id` (in=2, out=3)
-- [ ] `0x9236` `print_hex_byte` (in=2, out=1)
-- [ ] `0x924C` `print_hex_byte_no_spool` (in=2, out=1)
-- [ ] `0x928A` `print_inline_no_spool` (in=5, out=1)
-- [ ] `0x92B2` `parse_addr_arg` (in=3, out=1)
-- [ ] `0x93F7` `set_conn_active` (in=2, out=1)
-- [ ] `0x940D` `clear_conn_active` (in=2, out=1)
-- [ ] `0x95C1` `print_station_low` (in=2, out=1)
-- [ ] `0x95C8` `print_fs_station` (in=2, out=1)
-- [ ] `0x95DA` `print_dir_syntax` (in=1, out=1)
-- [ ] `0x9619` `cmd_space` (in=0, out=1)
-- [ ] `0x9623` `cmd_nospace` (in=0, out=1)
-- [ ] `0x965F` `print_ps_address` (in=1, out=3)
-- [ ] `0x973F` `init_txcb_port` (in=1, out=1)
-- [ ] `0x97B7` `prep_send_tx_cb` (in=1, out=2)
-- [ ] `0x9850` `lang_1_remote_boot` (in=0, out=4)
-- [ ] `0x98AF` `lang_0_insert_key` (in=0, out=2)
-- [ ] `0x99DF` `check_net_error_code` (in=3, out=5)
-- [ ] `0x9A69` `append_decimal_num` (in=1, out=1)
-- [ ] `0x9FB6` `finalise_and_return` (in=4, out=1)
-- [ ] `0xA12C` `update_addr_from_offset9` (in=1, out=1)
-- [ ] `0xA134` `adjust_fsopts_4bytes` (in=2, out=1)
-- [ ] `0xA28A` `send_osbput_data` (in=0, out=1)
-- [ ] `0xA2ED` `write_data_block` (in=1, out=1)
-- [ ] `0xA405` `net_2_read_entry` (in=0, out=1)
-- [ ] `0xA415` `net_3_close_handle` (in=0, out=1)
-- [ ] `0xA42F` `fscv_3_star_cmd` (in=1, out=2)
-- [ ] `0xA440` `cmd_fs_reentry` (in=1, out=1)
-- [ ] `0xA4E4` `fscv_2_star_run` (in=0, out=2)
-- [ ] `0xA644` `find_station_bit2` (in=1, out=2)
-- [ ] `0xA66F` `find_station_bit3` (in=3, out=2)
-- [ ] `0xA6A6` `flip_set_station_boot` (in=2, out=3)
-- [ ] `0xA6D5` `fsreply_1_boot` (in=0, out=1)
-- [ ] `0xA83B` `svc_8_osword` (in=0, out=1)
-- [ ] `0xA877` `extract_osword_subcode` (in=0, out=3)
-- [ ] `0xA985` `osword_12_handler` (in=0, out=2)
-- [ ] `0xA9CC` `osword_13_read_station` (in=0, out=1)
-- [ ] `0xAAB2` `osword_13_read_prot` (in=0, out=1)
-- [ ] `0xAAC2` `osword_13_read_handles` (in=0, out=1)
-- [ ] `0xAAD0` `osword_13_set_handles` (in=0, out=2)
-- [ ] `0xAB68` `osword_13_read_rx_flag` (in=0, out=1)
-- [ ] `0xAC47` `osword_14_handler` (in=0, out=2)
-- [ ] `0xACED` `handle_burst_xfer` (in=0, out=1)
-- [ ] `0xACFC` `netv_handler` (in=0, out=1)
-- [ ] `0xB066` `serialise_palette_entry` (in=1, out=1)
-- [ ] `0xB0F8` `cmd_lex` (in=0, out=1)
-- [ ] `0xB21C` `print_chars_from_buf` (in=1, out=2)
-- [ ] `0xB22C` `parse_filename_arg` (in=3, out=1)
-- [ ] `0xB310` `print_decimal_digit_no_spool` (in=1, out=1)
-- [ ] `0xB39E` `init_spool_drive` (in=2, out=1)
-- [ ] `0xB483` `print_file_server_is` (in=1, out=1)
-- [ ] `0xB48D` `print_printer_server_is` (in=2, out=1)
-- [ ] `0xB4B4` `pop_requeue_ps_scan` (in=2, out=1)
-- [ ] `0xB4D6` `skip_next_ps_slot` (in=0, out=2)
-- [ ] `0xB6D6` `cmd_unprot` (in=0, out=3)
-- [ ] `0xB847` `lookup_chan_by_char` (in=1, out=2)
-- [ ] `0xB886` `store_result_check_dir` (in=2, out=1)
-- [ ] `0xB8FC` `scan_fcb_flags` (in=1, out=1)
-- [ ] `0xBC65` `done_inc_byte_count` (in=1, out=2)
-- [ ] `0xBD25` `abort_if_escape` (in=1, out=4)
-- [ ] `0xBF78` `open_file_for_read` (in=1, out=2)
-- [ ] `0xBFBD` `advance_x_by_4` (in=1, out=1)
+- [x] `0x8028` `svc5_irq_check` - triaged: bounds correct, comments accurate
+- [x] `0x8050` `adlc_init` - triaged: bounds correct, comments accurate
+- [x] `0x80B8` `nmi_rx_scout_net` - triaged: bounds correct, comments accurate
+- [x] `0x81A7` `send_data_rx_ack` - triaged: bounds correct, comments accurate
+- [x] `0x8291` `nmi_data_rx_tube` - triaged: bounds correct, comments accurate
+- [x] `0x82DF` `ack_tx` - triaged: bounds correct, comments accurate
+- [x] `0x8386` `nmi_post_ack_dispatch` - triaged: bounds correct, comments accurate
+- [x] `0x83E8` `reset_adlc_rx_listen` - triaged: bounds correct, comments accurate
+- [x] `0x83F2` `discard_reset_listen` - triaged: bounds correct, comments accurate
+- [x] `0x8549` `tx_done_econet_event` - triaged: bounds correct, comments accurate
+- [x] `0x8557` `tx_done_os_proc` - triaged: bounds correct, comments accurate
+- [x] `0x8589` `tx_begin` - triaged: bounds correct, comments accurate
+- [x] `0x872F` `nmi_tx_complete` - triaged: bounds correct, comments accurate
+- [x] `0x8773` `reject_reply` - triaged: bounds correct, comments accurate
+- [x] `0x88BA` `nmi_final_ack_validate` - triaged: bounds correct, comments accurate
+- [x] `0x8900` `tx_calc_transfer` - triaged: bounds correct, comments accurate
+- [x] `0x89B9` `save_econet_state` - triaged: bounds correct, comments accurate
+- [x] `0x89CA` `nmi_bootstrap_entry` - triaged: bounds correct, comments accurate
+- [x] `0x8A54` `service_handler` - triaged: bounds correct, comments accurate
+- [x] `0x8B23` `cmd_net_fs` - triaged: bounds correct, comments accurate
+- [x] `0x8BD8` `loop_next_entry` - triaged: bounds correct, comments accurate
+- [x] `0x8CBD` `setup_ws_ptr` - triaged: bounds correct, comments accurate
+- [x] `0x8D09` `svc_dispatch_idx_2` - triaged: bounds correct, comments accurate
+- [x] `0x8DD5` `cmd_pass` - triaged: bounds correct, comments accurate
+- [x] `0x8E3C` `send_cmd_and_dispatch` - triaged: bounds correct, comments accurate
+- [x] `0x8E8A` `svc_26_close_all_files` - triaged: bounds correct, comments accurate
+- [x] `0x8ED8` `svc_7_osbyte` - triaged: bounds correct, comments accurate
+- [x] `0x8F10` `svc_2_priv_ws` - triaged: bounds correct, comments accurate
+- [x] `0x90C7` `print_station_id` - triaged: bounds correct, comments accurate
+- [x] `0x9236` `print_hex_byte` - triaged: bounds correct, comments accurate
+- [x] `0x924C` `print_hex_byte_no_spool` - triaged: bounds correct, comments accurate
+- [x] `0x928A` `print_inline_no_spool` - triaged: bounds correct, comments accurate
+- [x] `0x92B2` `parse_addr_arg` - triaged: bounds correct, comments accurate
+- [x] `0x93F7` `set_conn_active` - triaged: bounds correct, comments accurate
+- [x] `0x940D` `clear_conn_active` - triaged: bounds correct, comments accurate
+- [x] `0x95C1` `print_station_low` - triaged: bounds correct, comments accurate
+- [x] `0x95C8` `print_fs_station` - triaged: bounds correct, comments accurate
+- [x] `0x95DA` `print_dir_syntax` - triaged: bounds correct, comments accurate
+- [x] `0x9619` `cmd_space` - triaged: bounds correct, comments accurate
+- [x] `0x9623` `cmd_nospace` - triaged: bounds correct, comments accurate
+- [x] `0x965F` `print_ps_address` - triaged: bounds correct, comments accurate
+- [x] `0x973F` `init_txcb_port` - triaged: bounds correct, comments accurate
+- [x] `0x97B7` `prep_send_tx_cb` - triaged: bounds correct, comments accurate
+- [x] `0x9850` `lang_1_remote_boot` - triaged: bounds correct, comments accurate
+- [x] `0x98AF` `lang_0_insert_key` - triaged: bounds correct, comments accurate
+- [x] `0x99DF` `check_net_error_code` - triaged: bounds correct, comments accurate
+- [x] `0x9A69` `append_decimal_num` - triaged: bounds correct, comments accurate
+- [x] `0x9FB6` `finalise_and_return` - triaged: bounds correct, comments accurate
+- [x] `0xA12C` `update_addr_from_offset9` - triaged: bounds correct, comments accurate
+- [x] `0xA134` `adjust_fsopts_4bytes` - triaged: bounds correct, comments accurate
+- [x] `0xA28A` `send_osbput_data` - triaged: bounds correct, comments accurate
+- [x] `0xA2ED` `write_data_block` - triaged: bounds correct, comments accurate
+- [x] `0xA405` `net_2_read_entry` - triaged: bounds correct, comments accurate
+- [x] `0xA415` `net_3_close_handle` - triaged: bounds correct, comments accurate
+- [x] `0xA42F` `fscv_3_star_cmd` - triaged: bounds correct, comments accurate
+- [x] `0xA440` `cmd_fs_reentry` - triaged: bounds correct, comments accurate
+- [x] `0xA4E4` `fscv_2_star_run` - triaged: bounds correct, comments accurate
+- [x] `0xA644` `find_station_bit2` - triaged: bounds correct, comments accurate
+- [x] `0xA66F` `find_station_bit3` - triaged: bounds correct, comments accurate
+- [x] `0xA6A6` `flip_set_station_boot` - triaged: bounds correct, comments accurate
+- [x] `0xA6D5` `fsreply_1_boot` - triaged: bounds correct, comments accurate
+- [x] `0xA83B` `svc_8_osword` - triaged: bounds correct, comments accurate
+- [x] `0xA877` `extract_osword_subcode` - triaged: bounds correct, comments accurate
+- [x] `0xA985` `osword_12_handler` - triaged: bounds correct, comments accurate
+- [x] `0xA9CC` `osword_13_read_station` - triaged: bounds correct, comments accurate
+- [x] `0xAAB2` `osword_13_read_prot` - triaged: bounds correct, comments accurate
+- [x] `0xAAC2` `osword_13_read_handles` - triaged: bounds correct, comments accurate
+- [x] `0xAAD0` `osword_13_set_handles` - triaged: bounds correct, comments accurate
+- [x] `0xAB68` `osword_13_read_rx_flag` - triaged: bounds correct, comments accurate
+- [x] `0xAC47` `osword_14_handler` - triaged: bounds correct, comments accurate
+- [x] `0xACED` `handle_burst_xfer` - triaged: bounds correct, comments accurate
+- [x] `0xACFC` `netv_handler` - triaged: bounds correct, comments accurate
+- [x] `0xB066` `serialise_palette_entry` - triaged: bounds correct, comments accurate
+- [x] `0xB0F8` `cmd_lex` - triaged: bounds correct, comments accurate
+- [x] `0xB21C` `print_chars_from_buf` - triaged: bounds correct, comments accurate
+- [x] `0xB22C` `parse_filename_arg` - triaged: bounds correct, comments accurate
+- [x] `0xB310` `print_decimal_digit_no_spool` - triaged: bounds correct, comments accurate
+- [x] `0xB39E` `init_spool_drive` - triaged: bounds correct, comments accurate
+- [x] `0xB483` `print_file_server_is` - triaged: bounds correct, comments accurate
+- [x] `0xB48D` `print_printer_server_is` - triaged: bounds correct, comments accurate
+- [x] `0xB4B4` `pop_requeue_ps_scan` - triaged: bounds correct, comments accurate
+- [x] `0xB4D6` `skip_next_ps_slot` - triaged: bounds correct, comments accurate
+- [x] `0xB6D6` `cmd_unprot` - triaged: bounds correct, comments accurate
+- [x] `0xB847` `lookup_chan_by_char` - triaged: bounds correct, comments accurate
+- [x] `0xB886` `store_result_check_dir` - triaged: bounds correct, comments accurate
+- [x] `0xB8FC` `scan_fcb_flags` - triaged: bounds correct, comments accurate
+- [x] `0xBC65` `done_inc_byte_count` - triaged: bounds correct, comments accurate
+- [x] `0xBD25` `abort_if_escape` - triaged: bounds correct, comments accurate
+- [x] `0xBF78` `open_file_for_read` - triaged: bounds correct, comments accurate
+- [x] `0xBFBD` `advance_x_by_4` - triaged: bounds correct, comments accurate
 
 ## Depth 2 (34 routines)
 

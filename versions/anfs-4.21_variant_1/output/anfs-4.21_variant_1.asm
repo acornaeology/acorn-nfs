@@ -1396,7 +1396,6 @@ rom_header_byte2 = rom_header+2
 .discard_reset_listen
     lda #2                                                            ; 83f2: a9 02       ..             ; Tube flag bit 1 AND tx_flags bit 1
     and tube_present                                                  ; 83f4: 2d 63 0d    -c.            ; Check if Tube transfer active
-.imm_op_jump_table
     bit rx_src_net                                                    ; 83f7: 2c 3e 0d    ,>.            ; Test tx_flags for Tube transfer
     beq return_from_discard_reset                                     ; 83fa: f0 03       ..             ; No Tube transfer active -- skip release
     jsr release_tube                                                  ; 83fc: 20 48 84     H.            ; Release Tube claim before discarding
@@ -4438,7 +4437,13 @@ ps_template_base = load_transfer_params+1
 ; ps_template_base,X with X=&F8..&FF (reaching ps_template_base+&F8 = &8E9F). Contains
 ; "PRINT " (6 bytes) as the default printer server name, followed by &01 and &00 as
 ; default status bytes. Absent from NFS versions; unique to ANFS.
-.ps_template_data
+; ***************************************************************************************
+; Printer-server name template (8 bytes)
+;
+; Eight bytes ("PRINT " then &01 &00) read by copy_ps_data via the indexed-base trick
+; LDA ps_template_base+X with X=&F8..&FF. The base label ps_template_base resolves to
+; ps_template_data - &F8 so the indexed access lands on the bytes here. Default
+; contents installed into the Printer-Server name slot during ANFS initialisation.
     equs "PRINT "                                                     ; 8e9f: 50 52 49... PRI            ; PS template: default name "PRINT "
     equb 1, 0                                                         ; 8ea5: 01 00       ..
 ; ***************************************************************************************
@@ -5004,7 +5009,6 @@ ps_template_base = load_transfer_params+1
 ; &90f4 referenced 1 time by &90e5
 .done_print_newline
     jsr osnewl                                                        ; 90f4: 20 e7 ff     ..            ; Write newline (characters 10 and 13)
-.syntax_strings
     rts                                                               ; 90f7: 60          `              ; Return
 
 ; ***************************************************************************************
