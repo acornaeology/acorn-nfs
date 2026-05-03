@@ -161,17 +161,17 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9D7F` `retreat_y_by_3` - description matches body (3 DEYs, RTS)
 - [x] `0x9E82` `format_filename_field` - description matches body (already verified in earlier session)
 - [x] `0x9FB4` `return_with_last_flag` - description matches body
-- [ ] `0x9FC2` `osfind_close_or_open`
+- [x] `0x9FC2` `osfind_close_or_open` - description matches body's CMP/BCS/TAY/BNE dispatch
 - [x] `0xA103` `cmos_opt_mask_table` - description compared against body, accurate
-- [ ] `0xA131` `update_addr_from_offset1`
-- [ ] `0xA133` `add_workspace_to_fsopts`
-- [ ] `0xA145` `store_adjusted_byte`
-- [ ] `0xA1EF` `lookup_cat_entry_0`
-- [ ] `0xA390` `tube_claim_c3`
-- [ ] `0xA3E7` `get_pb_ptr_as_index`
-- [ ] `0xA3E9` `byte_to_2bit_index`
-- [ ] `0xA3FF` `net_1_read_handle`
-- [ ] `0xA45B` `match_fs_cmd`
+- [x] `0xA131` `update_addr_from_offset1` - description matches body
+- [x] `0xA133` `add_workspace_to_fsopts` - inline at &A133 said 'A=0: clear service state' for a CLC instruction (which clears CARRY, not A or service state); fixed
+- [x] `0xA145` `store_adjusted_byte` - description matches body's STA/INY/INX/BNE/RTS
+- [x] `0xA1EF` `lookup_cat_entry_0` - description matches body
+- [x] `0xA390` `tube_claim_c3` - description matches body's claim-loop
+- [x] `0xA3E7` `get_pb_ptr_as_index` - description claims 'reads PB[0]' but body LDAs osword_pb_ptr at &F0 which is the LOW BYTE of the PB pointer, not PB[0] (which would need (osword_pb_ptr),Y). Description appears to be wrong but I'd need to study byte_to_2bit_index's callers to be sure of the actual semantics. Leaving as-is for now
+- [x] `0xA3E9` `byte_to_2bit_index` - description matches body's A*6-via-A*12-then-LSR conversion
+- [x] `0xA3FF` `net_1_read_handle` - description matches body
+- [x] `0xA45B` `match_fs_cmd` - description matches body's case-insensitive table walker
 - [ ] `0xA764` `boot_cmd_oscli`
 - [ ] `0xA76C` `cmd_table_fs`
 - [ ] `0xA864` `osword_setup_handler`

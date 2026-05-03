@@ -14338,7 +14338,7 @@ comment(0xA101, "Tail-branch into the OSARGS done path", inline=True)
 comment(0xA129, "Generate 'Syntax' error", inline=True)
 
 # Dispatch matched command (&A11B)
-comment(0xA133, "A=0: clear service state", inline=True)
+comment(0xA133, "Clear carry for the upcoming 4-byte add", inline=True)
 comment(0xA13A, "Push high byte", inline=True)
 comment(0xA13F, "RTS dispatches to command handler", inline=True)
 

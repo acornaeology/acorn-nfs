@@ -9086,7 +9086,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; On Entry: Y: FS options offset for first byte
 ; &a133 referenced 1 time by &a12e
 .add_workspace_to_fsopts
-    clc                                                               ; a133: 18          .              ; A=0: clear service state
+    clc                                                               ; a133: 18          .              ; Clear carry for the upcoming 4-byte add
 ; ***************************************************************************************
 ; Add or subtract 4 workspace bytes from FS options
 ;
