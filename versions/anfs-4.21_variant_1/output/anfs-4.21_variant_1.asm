@@ -3919,7 +3919,7 @@ nmi_shim_source = reset_enter_listen+2
 .version_string_cr
     equs &0d, "Advanced NFS 4.21", &0d                                ; 8c96: 0d 41 64... .Ad
 
-    nop                                                               ; 8ca9: ea          .              ; Inline-string fallthrough lands here on terminator
+    nop                                                               ; 8ca9: ea          .              ; NOP -- bit-7 terminator + harmless resume opcode
     jmp print_station_id                                              ; 8caa: 4c c7 90    L..            ; Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)
 
 ; ***************************************************************************************
@@ -13682,13 +13682,13 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline                                                  ; b48d: 20 61 92     a.            ; Print 'Printer' via inline string
     equs "Printer"                                                    ; b490: 50 72 69... Pri
 
-    nop                                                               ; b497: ea          .              ; Inline-string fallthrough lands here on terminator; Padding
+    nop                                                               ; b497: ea          .              ; NOP -- bit-7 terminator + harmless resume opcode
 ; &b498 referenced 1 time by &b48b
 .print_server_is_suffix
     jsr print_inline                                                  ; b498: 20 61 92     a.            ; Print ' server is ' via inline string
     equs " server is "                                                ; b49b: 20 73 65...  se            ; fragment for 'File/Printer server is ...' messages
 
-    nop                                                               ; b4a6: ea          .              ; Inline-string fallthrough lands here
+    nop                                                               ; b4a6: ea          .              ; NOP -- bit-7 terminator + harmless resume opcode
     rts                                                               ; b4a7: 60          `              ; Return; caller now prints the actual server (file or printer) address
 
 ; ***************************************************************************************
@@ -15663,7 +15663,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr print_inline                                                  ; bdc4: 20 61 92     a.            ; Print ' ' inline
     equs "   "                                                        ; bdc7: 20 20 20
 
-    nop                                                               ; bdca: ea          .              ; Inline-string fallthrough
+    nop                                                               ; bdca: ea          .              ; NOP -- bit-7 terminator + harmless resume opcode
     ply                                                               ; bdcb: 7a          z              ; Restore Y
     jmp loop_next_dump_col                                            ; bdcc: 4c bb bd    L..            ; Continue padding the rest of the hex column
 
@@ -15733,7 +15733,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr print_inline                                                  ; be21: 20 61 92     a.            ; Print ': ASCII data<CR><CR>' trailer via inline
     equs ":    ASCII data", &0d, &0d                                  ; be24: 3a 20 20... :              ; *Dump trailer
 
-    nop                                                               ; be35: ea          .              ; Inline-string fallthrough
+    nop                                                               ; be35: ea          .              ; NOP -- bit-7 terminator + harmless resume opcode
     rts                                                               ; be36: 60          `              ; Return
 
 ; ***************************************************************************************

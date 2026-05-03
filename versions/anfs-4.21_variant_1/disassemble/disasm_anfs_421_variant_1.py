@@ -8377,12 +8377,12 @@ comment(0xB48B, "Always taken (V was just cleared); skip the 'Printer' "
 comment(0xB48D, "Print 'Printer' via inline string", inline=True)
 # 0xB497 is the inline-string terminator NOP that print_inline jumps
 # back to; it consumes 1 cycle and then falls into the suffix
-comment(0xB497, "Inline-string fallthrough lands here on terminator",
+comment(0xB497, "NOP -- bit-7 terminator + harmless resume opcode",
         inline=True)
 
 # print_server_is_suffix inline comments (3 items)
 comment(0xB498, "Print ' server is ' via inline string", inline=True)
-comment(0xB4A6, "Inline-string fallthrough lands here", inline=True)
+comment(0xB4A6, "NOP -- bit-7 terminator + harmless resume opcode", inline=True)
 comment(0xB4A7, "Return; caller now prints the actual server "
         "(file or printer) address", inline=True)
 
@@ -8427,7 +8427,7 @@ comment(0xB572, "Tail-call print_decimal_3dig for the station number",
 
 # print_version_header inline comments (3 items)
 # 0x8C93 already has 'Print version string via inline' inline comment
-comment(0x8CA9, "Inline-string fallthrough lands here on terminator",
+comment(0x8CA9, "NOP -- bit-7 terminator + harmless resume opcode",
         inline=True)
 comment(0x8CAA, "Tail-call print_station_id to append ' Econet "
         "Station <n>' (and ' No Clock' if appropriate)", inline=True)
@@ -8573,7 +8573,7 @@ comment(0xBE1E, "Step column counter", inline=True)
 comment(0xBE1F, "Loop while X >= 0 (16 iterations)", inline=True)
 comment(0xBE21, "Print ':    ASCII data<CR><CR>' trailer via inline",
         inline=True)
-comment(0xBE35, "Inline-string fallthrough", inline=True)
+comment(0xBE35, "NOP -- bit-7 terminator + harmless resume opcode", inline=True)
 comment(0xBE36, "Return", inline=True)
 
 # parse_dump_range inline comments (~52 items)
@@ -11173,7 +11173,7 @@ comment(0xBDC0, "Step counter (Y was off-by-one from line read)",
 comment(0xBDC1, "Have a real byte? Print it", inline=True)
 comment(0xBDC3, "End of partial line: pad with 3 spaces", inline=True)
 comment(0xBDC4, "Print '   ' inline", inline=True)
-comment(0xBDCA, "Inline-string fallthrough", inline=True)
+comment(0xBDCA, "NOP -- bit-7 terminator + harmless resume opcode", inline=True)
 comment(0xBDCB, "Restore Y", inline=True)
 comment(0xBDCC, "Continue padding the rest of the hex column",
         inline=True)
@@ -15227,7 +15227,7 @@ comment(0xB42D, "Transfer to Y", inline=True)
 comment(0xB42E, "Read slot status", inline=True)
 comment(0xB430, "Bit 7 clear: slot inactive", inline=True)
 comment(0xB450, "Transfer to Y", inline=True)
-comment(0xB497, "Padding", inline=True)
+# &B497 inline covered by deliberate review block above.
 comment(0xB4B4, "Pop return address low", inline=True)
 comment(0xB4BA, "Push 0 as end-of-list marker", inline=True)
 comment(0xB4BD, "Start scanning from offset &84", inline=True)
