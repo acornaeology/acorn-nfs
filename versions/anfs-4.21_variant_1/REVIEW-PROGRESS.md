@@ -540,3 +540,15 @@ Pre-pass + first batch of depth-0 leaves:
 - 5 NMI/RX leaves spot-checked: comments accurate.
 - 3 OSWORD &13 sub-handlers had stale labels in their descriptions
   pointing at the wrong addresses; rewrote against the actual code.
+
+- print_station_id had been swallowing two unrelated data tables
+  (cmd_syntax_strings and cmd_syntax_table) because their bare
+  label() calls didn't break the routine boundary. Promoted both
+  to data_banner() declarations; print_station_id's extent shrank
+  from &90C7-&91F8 down to &90C7-&90F7.
+- Fixed a small wave of pre-HAZEL label refs in subroutine
+  descriptions: cond_save_error_code, fscv_2_star_run,
+  cmd_run_via_urd, fscv_5_cat, parse_access_prefix,
+  mask_owner_access. Each had described pre-HAZEL labels
+  (fs_last_error / fs_lib_flags) when the bodies actually access
+  the &Cxxx HAZEL versions.

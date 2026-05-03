@@ -874,7 +874,18 @@ label(0x9090, "store_ws_byte")
 label(0x909D, "return_from_fs_shutdown")
 label(0x90A6, "loop_sum_ws")
 label(0x90F4, "done_print_newline")
-label(0x90F8, "cmd_syntax_strings")
+data_banner(0x90F8, "cmd_syntax_strings",
+    title="*HELP / *SYNTAX argument strings (8 messages)",
+    description="""\
+Eight zero-terminated argument-syntax strings used by the *HELP
+text builder. Each string describes the argument shape of a
+particular command group; their offsets within this table are
+stored in [`cmd_syntax_table`](address:91ED), keyed by command
+index. Read by [`do_print_no_spool`](address:921D) when no command
+argument was supplied.""")
+# cmd_syntax_strings (above, banner only) and syn_opt_dir (below, beebasm label)
+# are aliases at
+# &90F8: the table's start coincides with the first entry's body.
 label(0x90F8, "syn_opt_dir")     # "(<dir>)"
 label(0x9100, "syn_iam")         # "(<stn. id.>) <user id.>..."
 label(0x912D, "syn_object")      # "<object>"
@@ -883,18 +894,25 @@ label(0x9170, "syn_password")    # "(:<CR>) <password>..."
 label(0x91AA, "syn_access")      # "<object> (L)(W)(R)..."
 label(0x91C6, "syn_rename")      # "<filename> <new filename>"
 label(0x91E0, "syn_opt_stn")     # "(<stn. id.>)"
-label(0x91ED, "cmd_syntax_table")
-# 12 entries (idx 0-11). The byte at &91F9 immediately after the
-# table is the entry point of the print_no_spool helper.
+data_banner(0x91ED, "cmd_syntax_table",
+    title="Argument-syntax offset table (12 entries)",
+    description="""\
+Twelve byte offsets indexing into
+[`syn_opt_dir`](address:90F8). Each entry is computed as
+`<syn_X> - syn_opt_dir - 1` so the print loop can `INY`
+before `LDA` and still land on the first byte of the chosen
+string. The byte at &91F9 immediately after the table is the
+entry point of [`print_no_spool`](address:91F9).""")
+# 12 entries (idx 0-11).
 for i in range(12):
     byte(0x91ED + i)
-# Symbolic expressions: offset = string_start - cmd_syntax_strings - 1
+# Symbolic expressions: offset = string_start - syn_opt_dir - 1
 # (the print loop does INY before LDA, so offset points to byte before string)
-expr(0x91ED, "syn_iam - cmd_syntax_strings - 2")
-expr(0x91EF, "syn_iam - cmd_syntax_strings - 1")
-expr(0x91F0, "syn_object - cmd_syntax_strings - 1")
-expr(0x91F6, "syn_access - cmd_syntax_strings - 1")
-expr(0x91F8, "syn_opt_stn - cmd_syntax_strings - 1")
+expr(0x91ED, "syn_iam - syn_opt_dir - 2")
+expr(0x91EF, "syn_iam - syn_opt_dir - 1")
+expr(0x91F0, "syn_object - syn_opt_dir - 1")
+expr(0x91F6, "syn_access - syn_opt_dir - 1")
+expr(0x91F8, "syn_opt_stn - syn_opt_dir - 1")
 label(0x9203, "save_regs_for_print_no_spool")  # shared body of print_*_no_spool
 label(0x921D, "do_print_no_spool")              # PLP/PLA/PHA + OSASCI/OSWRCH branch
 label(0x9227, "print_via_oswrch")               # OSWRCH branch from BVC at &9220
@@ -3504,7 +3522,7 @@ Single caller (the `BNE` retry at `&8C22` in
 subroutine(0x8C06, "loop_print_syntax",
     title="Per-character body of *HELP syntax string emit",
     description="""\
-`INY` / load `cmd_syntax_strings,Y` / detect terminator or
+`INY` / load `syn_opt_dir,Y` / detect terminator or
 line-break:
 
 | Byte | Action |
@@ -3516,7 +3534,7 @@ line-break:
 Two callers: the `BNE` at `&8C13` (continue with current char)
 and the `BEQ` at `&8C19` (fall-through from the line-wrap
 path).""",
-    on_entry={"y": "current index into cmd_syntax_strings"})
+    on_entry={"y": "current index into syn_opt_dir"})
 subroutine(0x8C25, "done_print_table",
     title="Cleanup epilogue for print_cmd_table",
     description="""\
@@ -4441,7 +4459,7 @@ flag):
 | Bit 7 | Action |
 |---|---|
 | clear | return immediately |
-| set   | store `A` into `fs_last_error` (`&0E09`) |
+| set   | store `A` into `hazel_fs_last_error` (`&0E09`) |
 
 This guards against writing error state when no filing system
 is active. Called internally by the error-classification chain
@@ -5143,7 +5161,7 @@ Saves the OS text pointer via
 [`save_ptr_to_os_text`](address:B373), calls
 [`mask_owner_access`](address:B2CF) to clear the FS-selection bit,
 ORs in bit 1 (the *RUN-in-progress flag), and stores back to
-`fs_lib_flags` (`hazel_fs_lib_flags`). Falls through to the run-handling chain
+[`hazel_fs_lib_flags`](address:C271). Falls through to the run-handling chain
 that opens the file and starts execution. Reached via the FSCV
 vector dispatch with reason code 2.""")
 subroutine(0xA4F1, "cmd_run_via_urd",
@@ -5153,7 +5171,7 @@ Reached from cmd_fs_operation at &8E35 when the first character of
 the *RUN argument is '&' (the URD = User Root Directory prefix).
 Saves the OS text pointer via save_ptr_to_os_text, masks the access
 bits via mask_owner_access, clears bit 1 of the result, and stores
-into fs_lib_flags (hazel_fs_lib_flags). Falls through to cmd_run_load_mask which calls
+into hazel_fs_lib_flags. Falls through to cmd_run_load_mask which calls
 parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument.
 Single caller; never returns directly (continues into the run
 flow).""")
@@ -5787,7 +5805,7 @@ subroutine(0xB118, "fscv_5_cat",
     title="FSCV reason 5: catalogue (*CAT)",
     description="""\
 Sets up transfer parameters via [`set_xfer_params`](address:93D7),
-clears the library bit in `fs_lib_flags` (`hazel_fs_lib_flags`) via the
+clears the library bit in `hazel_fs_lib_flags` via the
 `ROR`/`CLC`/`ROL` idiom that uses carry to preserve other flags,
 and falls through to `cat_set_lib_flag` to issue the FS examine
 request. Reached via the FSCV vector with reason code 5.""")
@@ -5823,7 +5841,7 @@ subroutine(0xB22F, "parse_access_prefix",
     title="Parse access and FS selection prefix characters",
     description="Examines the first character(s) of the parsed\n"
     "buffer at &C030 for prefix characters: '&' sets\n"
-    "the FS selection flag (bit 6 of fs_lib_flags) and\n"
+    "the FS selection flag (bit 6 of hazel_fs_lib_flags) and\n"
     "strips the prefix, ':' with '.' also triggers FS\n"
     "selection, '#' is accepted as a channel prefix.\n"
     "Raises 'Bad file name' for invalid combinations\n"
@@ -5868,7 +5886,7 @@ label(0xB2C8, "done_trim_spaces")
 subroutine(0xB2CF, "mask_owner_access",
     title="Clear FS selection flags from options word",
     description="""\
-`AND`s the `&C271` (`fs_lib_flags`) byte with `&1F`, clearing the
+`AND`s the `&C271` (`hazel_fs_lib_flags`) byte with `&1F`, clearing the
 FS selection flag (bit 6) and other high bits to retain only the
 5-bit owner-access mask. Called before parsing to reset the prefix
 state from a previous command. 12 callers.""",
@@ -11883,7 +11901,7 @@ comment(0x90E7, "Print ' No Clock' via inline", inline=True)
 comment(0x90F3, "String terminator", inline=True)
 comment(0x90F7, "Return", inline=True)
 
-# cmd_syntax_strings (&9022-&910D): null-terminated *HELP syntax
+# syn_opt_dir (&9022-&910D): null-terminated *HELP syntax
 # strings. Multi-line strings use &0D as a line break. Indexed
 # via cmd_syntax_table offsets from the low 5 bits of each
 # command table syntax descriptor byte.
@@ -11904,12 +11922,12 @@ comment(0x91DF, "Null terminator", inline=True)
 comment(0x91E0, "Syn 11: (station id. argument)", inline=True)
 
 # cmd_syntax_table (&910E): 13-entry offset table for *HELP syntax.
-# Each byte is an offset into cmd_syntax_strings (&9022). The print
+# Each byte is an offset into syn_opt_dir (&9022). The print
 # loop does INY before LDA, so the offset points to the byte before
 # the first character of each syntax string.
 comment(0x91ED, "Command syntax string offset table\n"
     "\n"
-    "13 offsets into cmd_syntax_strings (&9022).\n"
+    "13 offsets into syn_opt_dir (&9022).\n"
     "Indexed by the low 5 bits of each command table\n"
     "syntax descriptor byte. Index &0E is handled\n"
     "separately as a shared-commands list. The print\n"

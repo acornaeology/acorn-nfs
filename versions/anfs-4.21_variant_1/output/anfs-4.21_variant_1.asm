@@ -3680,7 +3680,7 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Per-character body of *HELP syntax string emit
 ;
-; INY / load cmd_syntax_strings,Y / detect terminator or line-break:
+; INY / load syn_opt_dir,Y / detect terminator or line-break:
 ;
 ; | Byte     | Action              |
 ; |----------|---------------------|
@@ -3691,11 +3691,11 @@ nmi_shim_source = reset_enter_listen+2
 ; Two callers: the BNE at &8C13 (continue with current char) and the BEQ at &8C19
 ; (fall-through from the line-wrap path).
 ;
-; On Entry: Y: current index into cmd_syntax_strings
+; On Entry: Y: current index into syn_opt_dir
 ; &8c06 referenced 2 times by &8c13, &8c19
 .loop_print_syntax
     iny                                                               ; 8c06: c8          .              ; Advance to next character
-    lda cmd_syntax_strings,y                                          ; 8c07: b9 f8 90    ...            ; Load syntax string character
+    lda syn_opt_dir,y                                                 ; 8c07: b9 f8 90    ...            ; Load syntax string character
     beq done_entry_newline                                            ; 8c0a: f0 10       ..             ; Zero terminator: end of syntax
     cmp #&0d                                                          ; 8c0c: c9 0d       ..             ; Carriage return: line continuation
     bne print_syntax_char                                             ; 8c0e: d0 06       ..             ; No: print the character
@@ -5007,13 +5007,19 @@ ps_template_base = load_transfer_params+1
 .syntax_strings
     rts                                                               ; 90f7: 60          `              ; Return
 
+; ***************************************************************************************
+; *HELP / *SYNTAX argument strings (8 messages)
+;
+; Eight zero-terminated argument-syntax strings used by the *HELP text builder. Each
+; string describes the argument shape of a particular command group; their offsets
+; within this table are stored in cmd_syntax_table, keyed by command index. Read by
+; do_print_no_spool when no command argument was supplied.
 ; *HELP command syntax strings
 ;
 ; 13 null-terminated syntax help strings displayed by *HELP after each command name.
 ; Multi-line entries use &0D as a line break. Indexed by cmd_syntax_table via the low 5
 ; bits of each command's syntax descriptor byte.
 ; &90f8 referenced 1 time by &8c07
-.cmd_syntax_strings
 .syn_opt_dir
     equs "(<dir>)"                                                    ; 90f8: 28 3c 64... (<d            ; Syn 1: *Dir, *LCat, *LEx, *Wipe
     equb 0                                                            ; 90ff: 00          .
@@ -5050,26 +5056,33 @@ ps_template_base = load_transfer_params+1
 .syn_opt_stn
     equs "(<stn. id.>)"                                               ; 91e0: 28 3c 73... (<s            ; Syn 11: (station id. argument)
     equb 0                                                            ; 91ec: 00          .              ; Null terminator
+; ***************************************************************************************
+; Argument-syntax offset table (12 entries)
+;
+; Twelve byte offsets indexing into syn_opt_dir. Each entry is computed as <syn_X> -
+; syn_opt_dir - 1 so the print loop can INY before LDA and still land on the first byte
+; of the chosen string. The byte at &91F9 immediately after the table is the entry
+; point of print_no_spool.
 ; Command syntax string offset table
 ;
-; 13 offsets into cmd_syntax_strings (&9022). Indexed by the low 5 bits of each command
-; table syntax descriptor byte. Index &0E is handled separately as a shared-commands
-; list. The print loop at &8BD5 does INY before LDA, so each offset points to the byte
-; before the first character.
+; 13 offsets into syn_opt_dir (&9022). Indexed by the low 5 bits of each command table
+; syntax descriptor byte. Index &0E is handled separately as a shared-commands list.
+; The print loop at &8BD5 does INY before LDA, so each offset points to the byte before
+; the first character.
 ; &91ed referenced 1 time by &8c02
 .cmd_syntax_table
-    equb syn_iam - cmd_syntax_strings - 2                             ; 91ed: 06          .              ; Idx 0: 'opt_dir' (offset -2 variant for *Dir's INY-twice walker)
+    equb syn_iam - syn_opt_dir - 2                                    ; 91ed: 06          .              ; Idx 0: 'opt_dir' (offset -2 variant for *Dir's INY-twice walker)
     equb &ff                                                          ; 91ee: ff          .              ; Idx 1: &FF = no syntax string for this index
-    equb syn_iam - cmd_syntax_strings - 1                             ; 91ef: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."
-    equb syn_object - cmd_syntax_strings - 1                          ; 91f0: 34          4              ; Idx 3: "<object>"
+    equb syn_iam - syn_opt_dir - 1                                    ; 91ef: 07          .              ; Idx 2: "(<stn.id.>) <user id.>..."
+    equb syn_object - syn_opt_dir - 1                                 ; 91f0: 34          4              ; Idx 3: "<object>"
     equb &3d                                                          ; 91f1: 3d          =              ; Idx 4: "<filename> (<offset>...)"
     equb &60                                                          ; 91f2: 60          `              ; Idx 5: '<dir>' (offset 0x60 = syn_dir)
     equb &66                                                          ; 91f3: 66          f              ; Idx 6: continued <dir> string region
     equb &77                                                          ; 91f4: 77          w              ; Idx 7: "(:<CR>) <password>..."
     equb &9a                                                          ; 91f5: 9a          .              ; Idx 8: "(<stn.id.>|<ps type>)"
-    equb syn_access - cmd_syntax_strings - 1                          ; 91f6: b1          .              ; Idx 9: "<object> (L)(W)(R)..."
+    equb syn_access - syn_opt_dir - 1                                 ; 91f6: b1          .              ; Idx 9: "<object> (L)(W)(R)..."
     equb &cd                                                          ; 91f7: cd          .              ; Idx 10: '<filename> <new filename>' (syn_rename)
-    equb syn_opt_stn - cmd_syntax_strings - 1                         ; 91f8: e7          .              ; Idx 11: "(<stn. id.>)"
+    equb syn_opt_stn - syn_opt_dir - 1                                ; 91f8: e7          .              ; Idx 11: "(<stn. id.>)"
 
 ; ***************************************************************************************
 ; Print CR via OSASCI, bypassing any open *SPOOL file
@@ -7027,10 +7040,10 @@ help_topic_template = dispatch_help_command+1
 ;
 ; Tests bit 7 of fs_flags (FS-selected flag):
 ;
-; | Bit 7 | Action                             |
-; |-------|------------------------------------|
-; | clear | return immediately                 |
-; | set   | store A into fs_last_error (&0E09) |
+; | Bit 7 | Action                                   |
+; |-------|------------------------------------------|
+; | clear | return immediately                       |
+; | set   | store A into hazel_fs_last_error (&0E09) |
 ;
 ; This guards against writing error state when no filing system is active. Called
 ; internally by the error-classification chain and by error_inline_log.
@@ -9901,9 +9914,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;
 ; Saves the OS text pointer via save_ptr_to_os_text, calls mask_owner_access to clear
 ; the FS-selection bit, ORs in bit 1 (the *RUN-in-progress flag), and stores back to
-; fs_lib_flags (hazel_fs_lib_flags). Falls through to the run-handling chain that opens
-; the file and starts execution. Reached via the FSCV vector dispatch with reason code
-; 2.
+; hazel_fs_lib_flags. Falls through to the run-handling chain that opens the file and
+; starts execution. Reached via the FSCV vector dispatch with reason code 2.
 ; &a4e4 referenced 1 time by &a4df
 .fscv_2_star_run
     jsr save_ptr_to_os_text                                           ; a4e4: 20 73 b3     s.            ; Save text pointer (for GSREAD-driven parsing)
@@ -9918,9 +9930,9 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Reached from cmd_fs_operation at &8E35 when the first character of the *RUN argument
 ; is '&' (the URD = User Root Directory prefix). Saves the OS text pointer via
 ; save_ptr_to_os_text, masks the access bits via mask_owner_access, clears bit 1 of the
-; result, and stores into fs_lib_flags (hazel_fs_lib_flags). Falls through to
-; cmd_run_load_mask which calls parse_cmd_arg_y0 to begin parsing the rest of the *RUN
-; argument. Single caller; never returns directly (continues into the run flow).
+; result, and stores into hazel_fs_lib_flags. Falls through to cmd_run_load_mask which
+; calls parse_cmd_arg_y0 to begin parsing the rest of the *RUN argument. Single caller;
+; never returns directly (continues into the run flow).
 ; &a4f1 referenced 1 time by &8e35
 .cmd_run_via_urd
     jsr save_ptr_to_os_text                                           ; a4f1: 20 73 b3     s.            ; Save current OS text pointer
@@ -12740,9 +12752,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; FSCV reason 5: catalogue (*CAT)
 ;
 ; Sets up transfer parameters via set_xfer_params, clears the library bit in
-; fs_lib_flags (hazel_fs_lib_flags) via the ROR/CLC/ROL idiom that uses carry to
-; preserve other flags, and falls through to cat_set_lib_flag to issue the FS examine
-; request. Reached via the FSCV vector with reason code 5.
+; hazel_fs_lib_flags via the ROR/CLC/ROL idiom that uses carry to preserve other flags,
+; and falls through to cat_set_lib_flag to issue the FS examine request. Reached via
+; the FSCV vector with reason code 5.
 .fscv_5_cat
     jsr set_xfer_params                                               ; b118: 20 d7 93     ..            ; Set transfer parameters; Try next slot
     ldy #0                                                            ; b11b: a0 00       ..             ; Y=0: start from entry 0
@@ -12927,9 +12939,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; Parse access and FS selection prefix characters
 ;
 ; Examines the first character(s) of the parsed buffer at &C030 for prefix characters:
-; '&' sets the FS selection flag (bit 6 of fs_lib_flags) and strips the prefix, ':'
-; with '.' also triggers FS selection, '#' is accepted as a channel prefix. Raises 'Bad
-; file name' for invalid combinations like '&.' followed by CR.
+; '&' sets the FS selection flag (bit 6 of hazel_fs_lib_flags) and strips the prefix,
+; ':' with '.' also triggers FS selection, '#' is accepted as a channel prefix. Raises
+; 'Bad file name' for invalid combinations like '&.' followed by CR.
 ; &b22f referenced 4 times by &942c, &94cf, &9505, &9c2b
 .parse_access_prefix
     lda hazel_parse_buf                                               ; b22f: ad 30 c0    .0.            ; Read first parsed-buffer character (the candidate prefix)
@@ -13096,9 +13108,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Clear FS selection flags from options word
 ;
-; ANDs the &C271 (fs_lib_flags) byte with &1F, clearing the FS selection flag (bit 6)
-; and other high bits to retain only the 5-bit owner-access mask. Called before parsing
-; to reset the prefix state from a previous command. 12 callers.
+; ANDs the &C271 (hazel_fs_lib_flags) byte with &1F, clearing the FS selection flag
+; (bit 6) and other high bits to retain only the 5-bit owner-access mask. Called before
+; parsing to reset the prefix state from a previous command. 12 callers.
 ;
 ; On Exit: A: masked value
 ; &b2cf referenced 15 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b0a3, &b189, &b357, &b6f3
@@ -16244,11 +16256,11 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert print_fs_address-1 == &966f
     assert print_ps_address-1 == &965e
     assert set_fs_or_ps_cmos_station-1 == &95ed
-    assert syn_access - cmd_syntax_strings - 1 == &b1
-    assert syn_iam - cmd_syntax_strings - 1 == &07
-    assert syn_iam - cmd_syntax_strings - 2 == &06
-    assert syn_object - cmd_syntax_strings - 1 == &34
-    assert syn_opt_stn - cmd_syntax_strings - 1 == &e7
+    assert syn_access - syn_opt_dir - 1 == &b1
+    assert syn_iam - syn_opt_dir - 1 == &07
+    assert syn_iam - syn_opt_dir - 2 == &06
+    assert syn_object - syn_opt_dir - 1 == &34
+    assert syn_opt_stn - syn_opt_dir - 1 == &e7
 
 save pydis_start, pydis_end
 
@@ -16871,7 +16883,6 @@ save pydis_start, pydis_end
 ;     cmd_fs_reentry:                  1
 ;     cmd_run_load_mask:               1
 ;     cmd_run_via_urd:                 1
-;     cmd_syntax_strings:              1
 ;     cmd_syntax_table:                1
 ;     cmd_table_nfs_iam:               1
 ;     cmos_attr_table:                 1
