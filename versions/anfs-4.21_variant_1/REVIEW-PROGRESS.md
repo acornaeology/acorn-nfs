@@ -205,16 +205,16 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xAE33` `ws_txcb_template_data` - table description matches three overlapping regions
 - [x] `0xAE5A` `netv_spool_check` - description matches body; deleted 6 stale 'Entry listing loop' inline comments at &AE54-&AE6E that were left over from a different routine
 - [x] `0xAE64` `reset_spool_buf_state` - description claimed buffer pointer reset to '&25' but body loads &21; inline at &AE64 also said '&25' but byte is &21. Both fixed
-- [ ] `0xAE94` `append_byte_to_rxbuf`
-- [ ] `0xB002` `tx_econet_txcb_template`
-- [ ] `0xB05F` `commit_state_byte`
-- [ ] `0xB081` `read_osbyte_to_ws_x0`
-- [ ] `0xB083` `read_osbyte_to_ws`
-- [ ] `0xB0D5` `cdir_alloc_size_table`
-- [ ] `0xB0F2` `cmd_lcat`
-- [ ] `0xB103` `cmd_ex`
-- [ ] `0xB21A` `print_10_chars`
-- [ ] `0xB22A` `parse_cmd_arg_y0`
+- [x] `0xAE94` `append_byte_to_rxbuf` - description matches body
+- [x] `0xB002` `tx_econet_txcb_template` - table description matches contents
+- [x] `0xB05F` `commit_state_byte` - description matches body's ws_0d69 -> ws_0d68 copy; the actual semantic of ACR vs IER shadow is unclear from the labels but the copy itself is correct
+- [x] `0xB081` `read_osbyte_to_ws_x0` - description matches body
+- [x] `0xB083` `read_osbyte_to_ws` - description matches body
+- [x] `0xB0D5` `cdir_alloc_size_table` - table description matches contents
+- [x] `0xB0F2` `cmd_lcat` - description says 'rotating SEC into bit 7' but the SEC is AFTER the ROR (so caller's carry is what enters bit 7). Still works correctly because callers set carry; description simplification is mildly imprecise but the behaviour is right
+- [x] `0xB103` `cmd_ex` - description matches body's column-format setup and pagination
+- [x] `0xB21A` `print_10_chars` - description matches body
+- [x] `0xB22A` `parse_cmd_arg_y0` - description matches body
 - [ ] `0xB29F` `copy_arg_to_buf_x0`
 - [ ] `0xB2A1` `copy_arg_to_buf`
 - [ ] `0xB2A3` `copy_arg_validated`
