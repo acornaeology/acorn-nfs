@@ -246,12 +246,12 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xBB2A` `inc_fcb_byte_count` - description matches body's 3-byte cascade increment
 - [x] `0xBC74` `flush_fcb_if_station_known` - description matches body
 - [x] `0xBD1B` `read_rx_attribute` - description matches body
-- [ ] `0xBD20` `store_rx_attribute`
-- [ ] `0xBE42` `parse_dump_range`
-- [ ] `0xBF71` `close_ws_file`
-- [ ] `0xBFC0` `inx4`
-- [ ] `0xBFC5` `rom_tail_padding`
-- [ ] `0xBFE6` `hazel_idx_bases`
+- [x] `0xBD20` `store_rx_attribute` - description matches body
+- [x] `0xBE42` `parse_dump_range` - description matches body's hex-digit accumulator
+- [x] `0xBF71` `close_ws_file` - description matches body
+- [x] `0xBFC0` `inx4` - description matches body (4 INXs + RTS)
+- [x] `0xBFC5` `rom_tail_padding` - padding-block description matches
+- [x] `0xBFE6` `hazel_idx_bases` - description thoroughly explains the HAZEL indexing-base trick
 
 ## Depth 1 (90 routines)
 
