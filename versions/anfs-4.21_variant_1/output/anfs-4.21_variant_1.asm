@@ -3064,7 +3064,7 @@ nmi_shim_source = reset_enter_listen+2
     equb 4                                                            ; 89ed: 04          .              ; &00: placeholder (never reached)
     equb <(dispatch_rts-1)                                            ; 89ee: 6f          o              ; &01: no-op (RTS only)
     equb <(svc_dispatch_idx_2-1)                                      ; 89ef: 08          .              ; &02: workspace claim helper (CMOS bit 0)
-    equb <(svc_2_private_workspace_pages-1)                           ; 89f0: 0f          .              ; &03: svc &02: private workspace pages
+    equb <(svc_2_priv_ws-1)                                           ; 89f0: 0f          .              ; &03: svc &02: private workspace pages
     equb <(svc_3_autoboot-1)                                          ; 89f1: c6          .              ; &04: svc &03: auto-boot
     equb <(svc_4_star_command-1)                                      ; 89f2: 41          A              ; &05: svc &04: unrecognised *command
     equb <(svc5_irq_check-1)                                          ; 89f3: 27          '              ; &06: svc &05: IRQ check
@@ -3084,13 +3084,13 @@ nmi_shim_source = reset_enter_listen+2
     equb <(copy_template_to_zp-1)                                     ; 8a01: 72          r              ; &14: svc &25: FS name + info reply
     equb <(check_help_continuation-1)                                 ; 8a02: 89          .              ; &15: svc &26: close all files
     equb <(nfs_init_body-1)                                           ; 8a03: 37          7              ; &16: svc &27: post-hard-reset re-init
-    equb <(print_fs_ps_no_arg_help-1)                                 ; 8a04: 99          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
-    equb <(svc_29_status_handler-1)                                   ; 8a05: 2f          /              ; &18: svc &29: *STATUS handler
-    equb <(lang_0_insert_remote_key-1)                                ; 8a06: ae          .              ; &19: language reply 0: insert remote key
+    equb <(print_fs_ps_help-1)                                        ; 8a04: 99          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
+    equb <(svc_29_status-1)                                           ; 8a05: 2f          /              ; &18: svc &29: *STATUS handler
+    equb <(lang_0_insert_key-1)                                       ; 8a06: ae          .              ; &19: language reply 0: insert remote key
     equb <(lang_1_remote_boot-1)                                      ; 8a07: 4f          O              ; &1A: language reply 1: remote boot
     equb <(lang_2_save_palette_vdu-1)                                 ; 8a08: 19          .              ; &1B: language reply 2: save palette/VDU
-    equb <(lang_3_execute_at_0100-1)                                  ; 8a09: 7d          }              ; &1C: language reply 3: execute at &0100
-    equb <(lang_4_remote_validated-1)                                 ; 8a0a: 9e          .              ; &1D: language reply 4: remote validated
+    equb <(lang_3_exec_0100-1)                                        ; 8a09: 7d          }              ; &1C: language reply 3: execute at &0100
+    equb <(lang_4_validated-1)                                        ; 8a0a: 9e          .              ; &1D: language reply 4: remote validated
     equb <(fscv_0_opt_entry-1)                                        ; 8a0b: a8          .              ; &1E: FSCV 0: *OPT
     equb <(fscv_1_eof-1)                                              ; 8a0c: 0a          .              ; &1F: FSCV 1: EOF
     equb <(cmd_run_via_urd-1)                                         ; 8a0d: f0          .              ; &20: FSCV 2: *RUN
@@ -3104,13 +3104,13 @@ nmi_shim_source = reset_enter_listen+2
     equb <(cmd_info_dispatch-1)                                       ; 8a15: 56          V              ; &28: *Info dispatch
     equb <(check_urd_present-1)                                       ; 8a16: db          .              ; &29: URD-present check
     equb <(ex_init_scan_x0-1)                                         ; 8a17: da          .              ; &2A: *Ex scan init
-    equb <(fsreply_1_copy_handles_boot-1)                             ; 8a18: d4          .              ; &2B: FS reply 1: copy handles + boot
+    equb <(fsreply_1_boot-1)                                          ; 8a18: d4          .              ; &2B: FS reply 1: copy handles + boot
     equb <(fsreply_2_copy_handles-1)                                  ; 8a19: e4          .              ; &2C: FS reply 2: copy handles
     equb <(fsreply_3_set_csd-1)                                       ; 8a1a: 37          7              ; &2D: FS reply 3: set CSD
     equb <(cmd_run_via_urd-1)                                         ; 8a1b: f0          .              ; &2E: FS reply 4: *RUN (alias)
     equb <(fsreply_5_set_lib-1)                                       ; 8a1c: 3d          =              ; &2F: FS reply 5: set library
     equb <(net_1_read_handle-1)                                       ; 8a1d: fe          .              ; &30: net handle 1: read handle
-    equb <(net_2_read_handle_entry-1)                                 ; 8a1e: 04          .              ; &31: net handle 2: read handle entry
+    equb <(net_2_read_entry-1)                                        ; 8a1e: 04          .              ; &31: net handle 2: read handle entry
     equb <(net_3_close_handle-1)                                      ; 8a1f: 14          .              ; &32: net handle 3: close handle
 ; ***************************************************************************************
 ; svc_dispatch high-byte table (51 entries + 1 padding)
@@ -3124,7 +3124,7 @@ nmi_shim_source = reset_enter_listen+2
     equb &e9                                                          ; 8a20: e9          .              ; &00: placeholder (never reached)
     equb >(dispatch_rts-1)                                            ; 8a21: 8e          .              ; &01: no-op (RTS only)
     equb >(svc_dispatch_idx_2-1)                                      ; 8a22: 8d          .              ; &02: workspace claim helper (CMOS bit 0)
-    equb >(svc_2_private_workspace_pages-1)                           ; 8a23: 8f          .              ; &03: svc &02: private workspace pages
+    equb >(svc_2_priv_ws-1)                                           ; 8a23: 8f          .              ; &03: svc &02: private workspace pages
     equb >(svc_3_autoboot-1)                                          ; 8a24: 8c          .              ; &04: svc &03: auto-boot
     equb >(svc_4_star_command-1)                                      ; 8a25: 8c          .              ; &05: svc &04: unrecognised *command
     equb >(svc5_irq_check-1)                                          ; 8a26: 80          .              ; &06: svc &05: IRQ check
@@ -3144,13 +3144,13 @@ nmi_shim_source = reset_enter_listen+2
     equb >(copy_template_to_zp-1)                                     ; 8a34: 8e          .              ; &14: svc &25: FS name + info reply
     equb >(check_help_continuation-1)                                 ; 8a35: 8e          .              ; &15: svc &26: close all files
     equb >(nfs_init_body-1)                                           ; 8a36: 8f          .              ; &16: svc &27: post-hard-reset re-init
-    equb >(print_fs_ps_no_arg_help-1)                                 ; 8a37: 95          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
-    equb >(svc_29_status_handler-1)                                   ; 8a38: 96          .              ; &18: svc &29: *STATUS handler
-    equb >(lang_0_insert_remote_key-1)                                ; 8a39: 98          .              ; &19: language reply 0: insert remote key
+    equb >(print_fs_ps_help-1)                                        ; 8a37: 95          .              ; &17: svc &28: print *FS/*PS no-arg syntax help
+    equb >(svc_29_status-1)                                           ; 8a38: 96          .              ; &18: svc &29: *STATUS handler
+    equb >(lang_0_insert_key-1)                                       ; 8a39: 98          .              ; &19: language reply 0: insert remote key
     equb >(lang_1_remote_boot-1)                                      ; 8a3a: 98          .              ; &1A: language reply 1: remote boot
     equb >(lang_2_save_palette_vdu-1)                                 ; 8a3b: b0          .              ; &1B: language reply 2: save palette/VDU
-    equb >(lang_3_execute_at_0100-1)                                  ; 8a3c: 98          .              ; &1C: language reply 3: execute at &0100
-    equb >(lang_4_remote_validated-1)                                 ; 8a3d: 98          .              ; &1D: language reply 4: remote validated
+    equb >(lang_3_exec_0100-1)                                        ; 8a3c: 98          .              ; &1C: language reply 3: execute at &0100
+    equb >(lang_4_validated-1)                                        ; 8a3d: 98          .              ; &1D: language reply 4: remote validated
     equb >(fscv_0_opt_entry-1)                                        ; 8a3e: a0          .              ; &1E: FSCV 0: *OPT
     equb >(fscv_1_eof-1)                                              ; 8a3f: a1          .              ; &1F: FSCV 1: EOF
     equb >(cmd_run_via_urd-1)                                         ; 8a40: a4          .              ; &20: FSCV 2: *RUN
@@ -3164,13 +3164,13 @@ nmi_shim_source = reset_enter_listen+2
     equb >(cmd_info_dispatch-1)                                       ; 8a48: b3          .              ; &28: *Info dispatch
     equb >(check_urd_present-1)                                       ; 8a49: a4          .              ; &29: URD-present check
     equb >(ex_init_scan_x0-1)                                         ; 8a4a: b2          .              ; &2A: *Ex scan init
-    equb >(fsreply_1_copy_handles_boot-1)                             ; 8a4b: a6          .              ; &2B: FS reply 1: copy handles + boot
+    equb >(fsreply_1_boot-1)                                          ; 8a4b: a6          .              ; &2B: FS reply 1: copy handles + boot
     equb >(fsreply_2_copy_handles-1)                                  ; 8a4c: a6          .              ; &2C: FS reply 2: copy handles
     equb >(fsreply_3_set_csd-1)                                       ; 8a4d: a6          .              ; &2D: FS reply 3: set CSD
     equb >(cmd_run_via_urd-1)                                         ; 8a4e: a4          .              ; &2E: FS reply 4: *RUN (alias)
     equb >(fsreply_5_set_lib-1)                                       ; 8a4f: a6          .              ; &2F: FS reply 5: set library
     equb >(net_1_read_handle-1)                                       ; 8a50: a3          .              ; &30: net handle 1: read handle
-    equb >(net_2_read_handle_entry-1)                                 ; 8a51: a4          .              ; &31: net handle 2: read handle entry
+    equb >(net_2_read_entry-1)                                        ; 8a51: a4          .              ; &31: net handle 2: read handle entry
     equb >(net_3_close_handle-1)                                      ; 8a52: a4          .              ; &32: net handle 3: close handle
     equb &8a                                                          ; 8a53: 8a          .              ; padding (table has only 51 entries)
 
@@ -4284,8 +4284,8 @@ ps_template_base = load_transfer_params+1
 ; Validates X < 5 and sets Y = &18 as the dispatch offset, then falls through into
 ; svc_dispatch. The INX/DEY/BPL loop in svc_dispatch then settles X_final = X_caller +
 ; Y + 1, landing on indices &19..&1D of the svc_dispatch_lo / svc_dispatch_hi tables.
-; Those slots map to the language-reply handlers lang_0_insert_remote_key (idx &19)
-; through lang_4_remote_validated (idx &1D).
+; Those slots map to the language-reply handlers lang_0_insert_key (idx &19) through
+; lang_4_validated (idx &1D).
 ;
 ; (In 4.18 the offset was &0E, reaching indices 15..19. The 4.21 shift to &18 puts the
 ; targets ten slots higher in the rebuilt dispatch table.)
@@ -4521,8 +4521,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Stores the workspace allocation from service 1 into offset &0B of the receive control
 ; block, capping the value at &D3 to prevent overflow into adjacent workspace areas.
-; Called by svc_2_private_workspace_pages after issuing the absolute workspace claim
-; service call.
+; Called by svc_2_priv_ws after issuing the absolute workspace claim service call.
 ;
 ; On Entry: Y: workspace page count from service 1
 .store_ws_page_count
@@ -4566,7 +4565,7 @@ ps_template_base = load_transfer_params+1
 ; lives at nfs_init_body and is dispatched separately – see the comment block above.
 ;
 ; On Entry: Y: first available private workspace page
-.svc_2_private_workspace_pages
+.svc_2_priv_ws
     phy                                                               ; 8f10: 5a          Z              ; Save Y on stack (caller's claim)
     ldx #&11                                                          ; 8f11: a2 11       ..             ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 8f13: 20 9a 8e     ..            ; Read CMOS &11 via osbyte_a1
@@ -4639,8 +4638,8 @@ ps_template_base = load_transfer_params+1
 ; | &25      | 20    | copy_template_to_zp     | FS name + info reply    |
 ; | &26      | 21    | check_help_continuation | close all files         |
 ; | &27      | 22    | nfs_init_body (this)    | reset re-init           |
-; | &28      | 23    | print_fs_ps_no_arg_help | *CONFIGURE option       |
-; | &29      | 24    | svc_29_status_handler   | *STATUS option          |
+; | &28      | 23    | print_fs_ps_help        | *CONFIGURE option       |
+; | &29      | 24    | svc_29_status           | *STATUS option          |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
@@ -4821,8 +4820,8 @@ ps_template_base = load_transfer_params+1
 ; back into the receive control block via (net_rx_ptr). This restores the station
 ; identity, directory handles, and library path after a filing-system reselection.
 ;
-; Called by svc_2_private_workspace_pages during init, deselect_fs_if_active during FS
-; teardown, and flip_set_station_boot.
+; Called by svc_2_priv_ws during init, deselect_fs_if_active during FS teardown, and
+; flip_set_station_boot.
 ;
 ; On Exit: A, Y: clobbered (loop counter / data byte)
 ; &9064 referenced 3 times by &8fb8, &907b, &a6d2
@@ -6064,7 +6063,7 @@ ps_template_base = load_transfer_params+1
 .dir_pass_simple
     jmp check_urd_prefix                                              ; 9597: 4c 2d 8e    L-.            ; Simple: pass command to FS; Workspace offset &0F
 
-.print_fs_ps_no_arg_help
+.print_fs_ps_help
     lda (os_text_ptr),y                                               ; 959a: b1 f2       ..             ; Read first command-line char at (os_text_ptr),Y
     cmp #&0d                                                          ; 959c: c9 0d       ..             ; Is it CR (no argument supplied)?
     bne dispatch_fs_ps_with_arg                                       ; 959e: d0 49       .I             ; Non-CR: argument present -- exit via dispatch_fs_ps_with_arg (X=&A0)
@@ -6118,7 +6117,7 @@ ps_template_base = load_transfer_params+1
 ; Print '[<D>.]<D>\r' directory-name syntax fragment
 ;
 ; 3-byte JSR + inline '[<D>.]<D>' + CR + NOP terminator. Used as a shared fragment by
-; both *Dir's syntax help and the *FS/*PS no-argument help via print_fs_ps_no_arg_help.
+; both *Dir's syntax help and the *FS/*PS no-argument help via print_fs_ps_help.
 ; &95da referenced 2 times by &95a3, &95a9
 .print_dir_syntax
     jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (file-name syntax fragment, shared between *FS/*PS no-arg help and *Dir)
@@ -6211,7 +6210,7 @@ ps_template_base = load_transfer_params+1
     tay                                                               ; 962b: a8          .              ; New CMOS value to Y
     ldx #&11                                                          ; 962c: a2 11       ..             ; X=&11: CMOS RAM byte index
     bra osbyte_a2                                                     ; 962e: 80 e2       ..             ; BRA osbyte_a2: write CMOS &11 = Y
-.svc_29_status_handler
+.svc_29_status
     lda (os_text_ptr),y                                               ; 9630: b1 f2       ..             ; Read first command-line char
     cmp #&0d                                                          ; 9632: c9 0d       ..             ; Is it CR (no argument)?
     bne help_dispatch_setup                                           ; 9634: d0 56       .V             ; Non-CR: parse the argument at help_dispatch_setup
@@ -6288,10 +6287,10 @@ ps_template_base = load_transfer_params+1
 ; Dispatch *HELP-style argument via svc4_dispatch_lookup
 ;
 ; 3-byte trampoline: JMP svc4_dispatch_lookup with X = &BD from the caller. Used by
-; svc_29_status_handler's non-CR path so an argument after *STATUS (or similar
-; *HELP-like cmd) gets parsed and dispatched through the same shared parser as the
-; regular cmd-table dispatch. Note the '!Help.' bytes immediately following are an
-; unrelated inline string used by the filename walker, not part of this routine's body.
+; svc_29_status's non-CR path so an argument after *STATUS (or similar *HELP-like cmd)
+; gets parsed and dispatched through the same shared parser as the regular cmd-table
+; dispatch. Note the '!Help.' bytes immediately following are an unrelated inline
+; string used by the filename walker, not part of this routine's body.
 .dispatch_help_command
 help_topic_template = dispatch_help_command+1
     jmp svc4_dispatch_lookup                                          ; 968e: 4c 46 8c    LF.            ; JMP svc4_dispatch_lookup -- shared parser dispatch
@@ -6807,7 +6806,7 @@ help_topic_template = dispatch_help_command+1
 ; error_inline_log with the inline string Remoted followed by &07 (BEL). Used by
 ; remote-language replies that need to abort the current operation with a terminal beep
 ; + error. Never returns.
-.lang_3_execute_at_0100
+.lang_3_exec_0100
     jsr commit_state_byte                                             ; 987e: 20 5f b0     _.            ; Commit the language-reply state byte
     lda #0                                                            ; 9881: a9 00       ..             ; A=0: 'Bad' error code
     jsr error_inline_log                                              ; 9883: 20 c0 99     ..            ; Raise via error_inline_log (never returns)
@@ -6855,7 +6854,7 @@ help_topic_template = dispatch_help_command+1
 ; init_remote_session to set up a fresh remote session. Otherwise reads the validation
 ; byte at offset &80 and the local stored value at workspace offset &0E; on mismatch,
 ; the remote session is rejected.
-.lang_4_remote_validated
+.lang_4_validated
     ldy #0                                                            ; 989f: a0 00       ..             ; Y=0: status byte offset
     lda (net_rx_ptr),y                                                ; 98a1: b1 9c       ..             ; Read RX status byte
     beq init_remote_session                                           ; 98a3: f0 b4       ..             ; Zero status: re-init the session
@@ -6872,7 +6871,7 @@ help_topic_template = dispatch_help_command+1
 ; keyboard buffer) to deliver the keypress to the local machine.
 ;
 ; On Entry: A: ignored (entry from reply dispatch)
-.lang_0_insert_remote_key
+.lang_0_insert_key
     ldy #&82                                                          ; 98af: a0 82       ..             ; Y=&82: keypress byte offset in RX
     lda (net_rx_ptr),y                                                ; 98b1: b1 9c       ..             ; Read remote keypress code
     tay                                                               ; 98b3: a8          .              ; Y = key code
@@ -9577,7 +9576,7 @@ cmos_attr_table = sub_ca0fe+1
 ; workspace-table index. On out-of-range (C=1), returns zero. Otherwise reads the
 ; handle byte from nfs_workspace,Y; if the slot is ? (uninitialised marker), falls
 ; through to the zero-return path; otherwise stores the real handle into PB[0].
-.net_2_read_handle_entry
+.net_2_read_entry
     jsr get_pb_ptr_as_index                                           ; a405: 20 e7 a3     ..            ; Convert PB pointer to workspace table offset
     bcs return_zero_uninit                                            ; a408: b0 06       ..             ; Out of range: return zero (uninitialised)
     lda (nfs_workspace),y                                             ; a40a: b1 9e       ..             ; Read workspace handle byte
@@ -10217,7 +10216,7 @@ cmos_attr_table = sub_ca0fe+1
 ; hazel_txcb_result and stores it into both the current-boot-type slot (hazel_fs_flags)
 ; and the FCB-flags table. Pushes the boot type for the fall-through into
 ; fsreply_2_copy_handles which copies the per-handle table.
-.fsreply_1_copy_handles_boot
+.fsreply_1_boot
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..            ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@             ; A=&40: protection-level marker
     tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.
@@ -15956,19 +15955,19 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(fscv_5_cat-1) == &17
     assert <(fscv_6_shutdown-1) == &70
     assert <(fscv_7_read_handles-1) == &f1
-    assert <(fsreply_1_copy_handles_boot-1) == &d4
+    assert <(fsreply_1_boot-1) == &d4
     assert <(fsreply_2_copy_handles-1) == &e4
     assert <(fsreply_2_skip_handles) == &fe
     assert <(fsreply_3_set_csd-1) == &37
     assert <(fsreply_5_set_lib-1) == &3d
-    assert <(lang_0_insert_remote_key-1) == &ae
+    assert <(lang_0_insert_key-1) == &ae
     assert <(lang_1_remote_boot-1) == &4f
     assert <(lang_2_save_palette_vdu-1) == &19
-    assert <(lang_3_execute_at_0100-1) == &7d
-    assert <(lang_4_remote_validated-1) == &9e
+    assert <(lang_3_exec_0100-1) == &7d
+    assert <(lang_4_validated-1) == &9e
     assert <(match_on_suffix-1) == &99
     assert <(net_1_read_handle-1) == &fe
-    assert <(net_2_read_handle_entry-1) == &04
+    assert <(net_2_read_entry-1) == &04
     assert <(net_3_close_handle-1) == &14
     assert <(netv_claim_release-1) == &63
     assert <(netv_print_data-1) == &6e
@@ -15995,7 +15994,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(osword_13_write_ws_pair-1) == &9c
     assert <(osword_4_handler-1) == &31
     assert <(osword_8_handler-1) == &d2
-    assert <(print_fs_ps_no_arg_help-1) == &99
+    assert <(print_fs_ps_help-1) == &99
     assert <(proc_op_status2-1) == &cf
     assert <(ps_scan_resume-1) == &fd
     assert <(raise_y_to_c8-1) == &e8
@@ -16008,8 +16007,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(store_ws_page_count-1) == &ef
     assert <(svc5_irq_check-1) == &27
     assert <(svc_18_fs_select-1) == &44
-    assert <(svc_29_status_handler-1) == &2f
-    assert <(svc_2_private_workspace_pages-1) == &0f
+    assert <(svc_29_status-1) == &2f
+    assert <(svc_2_priv_ws-1) == &0f
     assert <(svc_3_autoboot-1) == &c6
     assert <(svc_4_star_command-1) == &41
     assert <(svc_7_osbyte-1) == &d7
@@ -16041,19 +16040,19 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert >(fscv_5_cat-1) == &b1
     assert >(fscv_6_shutdown-1) == &90
     assert >(fscv_7_read_handles-1) == &93
-    assert >(fsreply_1_copy_handles_boot-1) == &a6
+    assert >(fsreply_1_boot-1) == &a6
     assert >(fsreply_2_copy_handles-1) == &a6
     assert >(fsreply_2_skip_handles) == &a6
     assert >(fsreply_3_set_csd-1) == &a6
     assert >(fsreply_5_set_lib-1) == &a6
-    assert >(lang_0_insert_remote_key-1) == &98
+    assert >(lang_0_insert_key-1) == &98
     assert >(lang_1_remote_boot-1) == &98
     assert >(lang_2_save_palette_vdu-1) == &b0
-    assert >(lang_3_execute_at_0100-1) == &98
-    assert >(lang_4_remote_validated-1) == &98
+    assert >(lang_3_exec_0100-1) == &98
+    assert >(lang_4_validated-1) == &98
     assert >(match_on_suffix-1) == &96
     assert >(net_1_read_handle-1) == &a3
-    assert >(net_2_read_handle_entry-1) == &a4
+    assert >(net_2_read_entry-1) == &a4
     assert >(net_3_close_handle-1) == &a4
     assert >(netv_claim_release-1) == &ad
     assert >(netv_print_data-1) == &ae
@@ -16080,15 +16079,15 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert >(osword_13_write_ws_pair-1) == &aa
     assert >(osword_4_handler-1) == &ad
     assert >(osword_8_handler-1) == &ad
-    assert >(print_fs_ps_no_arg_help-1) == &95
+    assert >(print_fs_ps_help-1) == &95
     assert >(ps_scan_resume-1) == &b0
     assert >(raise_y_to_c8-1) == &8e
     assert >(set_rom_ws_page-1) == &8e
     assert >(store_ws_page_count-1) == &8e
     assert >(svc5_irq_check-1) == &80
     assert >(svc_18_fs_select-1) == &8b
-    assert >(svc_29_status_handler-1) == &96
-    assert >(svc_2_private_workspace_pages-1) == &8f
+    assert >(svc_29_status-1) == &96
+    assert >(svc_2_priv_ws-1) == &8f
     assert >(svc_3_autoboot-1) == &8c
     assert >(svc_4_star_command-1) == &8c
     assert >(svc_7_osbyte-1) == &8e

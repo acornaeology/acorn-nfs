@@ -783,10 +783,10 @@ label(0x10F3, "filename_buf")         # Filename display buffer (12 bytes)
 
 # ============================================================
 # Code label renames (Phase 3)
-label(0x959A, "print_fs_ps_no_arg_help")
+label(0x959A, "print_fs_ps_help")
 label(0x95CD, "print_field_tail_s")
 label(0x95E9, "dispatch_fs_ps_with_arg")
-label(0x9630, "svc_29_status_handler")
+label(0x9630, "svc_29_status")
 label(0x965F, "print_ps_address")
 label(0x9670, "print_fs_address")
 label(0x967F, "print_cmos_decimal_nl")
@@ -1039,9 +1039,9 @@ label(0x983D, "loop_copy_error")
 label(0x9850, "lang_1_remote_boot")
 label(0x9856, "done_commit_state")
 label(0x9859, "init_remote_session")
-label(0x987E, "lang_3_execute_at_0100")
-label(0x989F, "lang_4_remote_validated")
-label(0x98AF, "lang_0_insert_remote_key")
+label(0x987E, "lang_3_exec_0100")
+label(0x989F, "lang_4_validated")
+label(0x98AF, "lang_0_insert_key")
 label(0x98CF, "init_poll_counters")
 label(0x98D5, "loop_poll_tx")
 label(0x98F6, "done_poll_tx")
@@ -1266,7 +1266,7 @@ label(0xA3B8, "print_current_fs")
 label(0xA3DA, "store_station_lo")
 label(0xA3E1, "skip_if_no_station")
 label(0xA3FF, "net_1_read_handle")
-label(0xA405, "net_2_read_handle_entry")
+label(0xA405, "net_2_read_entry")
 label(0xA410, "return_zero_uninit")
 label(0xA412, "store_pb_result")
 label(0xA415, "net_3_close_handle")
@@ -1321,7 +1321,7 @@ label(0xA6BF, "done_search_boot")
 label(0xA6CD, "set_flags_boot")
 label(0xA6CF, "store_stn_flags_restore")
 label(0xA6D2, "jmp_restore_fs_ctx")
-label(0xA6D5, "fsreply_1_copy_handles_boot")
+label(0xA6D5, "fsreply_1_boot")
 label(0xA6E5, "fsreply_2_copy_handles")
 label(0xA726, "check_auto_boot_flag")
 
@@ -3661,8 +3661,8 @@ then falls through into [`svc_dispatch`](address:8E61). The
 X_caller + Y + 1`, landing on indices `&19..&1D` of the
 [`svc_dispatch_lo`](address:89ED) /
 [`svc_dispatch_hi`](address:8A20) tables. Those slots map to
-the language-reply handlers `lang_0_insert_remote_key`
-(idx `&19`) through `lang_4_remote_validated` (idx `&1D`).
+the language-reply handlers `lang_0_insert_key`
+(idx `&19`) through `lang_4_validated` (idx `&1D`).
 
 (In 4.18 the offset was `&0E`, reaching indices 15..19. The 4.21
 shift to `&18` puts the targets ten slots higher in the rebuilt
@@ -3694,7 +3694,7 @@ subroutine(0x8EF0, "store_ws_page_count",
 Stores the workspace allocation from service 1 into offset `&0B` of
 the receive control block, capping the value at `&D3` to prevent
 overflow into adjacent workspace areas. Called by
-[`svc_2_private_workspace_pages`](address:8F10) after issuing the
+[`svc_2_priv_ws`](address:8F10) after issuing the
 absolute workspace claim service call.""",
     on_entry={"y": "workspace page count from service 1"})
 # Three PHA/PHA/RTS dispatch targets in this area, each reached only
@@ -3723,7 +3723,7 @@ absolute workspace claim service call.""",
 entry(0x8EFE)
 entry(0x8F10)
 entry(0x8F38)
-subroutine(0x8F10, "svc_2_private_workspace_pages",
+subroutine(0x8F10, "svc_2_priv_ws",
     title="Service-2 page-allocation prologue",
     description="""\
 Reads CMOS byte `&11` to test bit 2 of the saved Econet status;
@@ -3793,8 +3793,8 @@ via the CMP/SBC normalisation chain in
 | `&25`      | 20    | `copy_template_to_zp`     | FS name + info reply   |
 | `&26`      | 21    | `check_help_continuation` | close all files        |
 | `&27`      | 22    | `nfs_init_body` (this)    | reset re-init          |
-| `&28`      | 23    | `print_fs_ps_no_arg_help` | *CONFIGURE option      |
-| `&29`      | 24    | `svc_29_status_handler`   | *STATUS option         |
+| `&28`      | 23    | `print_fs_ps_help` | *CONFIGURE option      |
+| `&29`      | 24    | `svc_29_status`   | *STATUS option         |
 
 Everything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)
 falls through to
@@ -3836,7 +3836,7 @@ Copies 8 bytes (offsets 2 to 9) from the saved workspace at
 via `(net_rx_ptr)`. This restores the station identity, directory
 handles, and library path after a filing-system reselection.
 
-Called by [`svc_2_private_workspace_pages`](address:8F10)
+Called by [`svc_2_priv_ws`](address:8F10)
 during init, `deselect_fs_if_active` during FS teardown, and
 `flip_set_station_boot`.""",
     on_exit={"a, y": "clobbered (loop counter / data byte)"})
@@ -4355,7 +4355,7 @@ Reads the reply byte at `(net_rx_ptr),0`. If zero, branches to
 [`init_remote_session`](address:9859) to (re)initialise the
 remote session. Otherwise falls through to `done_commit_state`
 which finalises the boot state byte for the active session.""")
-subroutine(0x987E, "lang_3_execute_at_0100",
+subroutine(0x987E, "lang_3_exec_0100",
     title="Language reply 3: raise 'Remoted' error at &0100",
     description="""\
 Calls [`commit_state_byte`](address:B05F) to record the new state,
@@ -4373,7 +4373,7 @@ classify_reply_error which builds the Escape error. Reached from
 (cmd_wipe's per-iteration escape check). Never returns -- the
 classify_reply_error path triggers BRK.""",
     on_exit={"a": "6 (Escape error code passed to classify_reply_error)"})
-subroutine(0x989F, "lang_4_remote_validated",
+subroutine(0x989F, "lang_4_validated",
     title="Language reply 4: validate remote session and apply",
     description="""\
 Reads the first reply byte at `(net_rx_ptr),0`. If zero, branches
@@ -4381,7 +4381,7 @@ to [`init_remote_session`](address:9859) to set up a fresh remote
 session. Otherwise reads the validation byte at offset `&80` and
 the local stored value at workspace offset `&0E`; on mismatch,
 the remote session is rejected.""")
-subroutine(0x98AF, "lang_0_insert_remote_key",
+subroutine(0x98AF, "lang_0_insert_key",
     title="Language reply 0: insert remote keypress",
     description="""\
 Reads the keycode from the reply at `(net_rx_ptr),&82` into `Y`,
@@ -5058,7 +5058,7 @@ Reads the inline handle byte directly from the RX buffer at
 PB-store path. Used when the caller wants the raw handle byte from
 the FS reply rather than the workspace-tracked value.""",
     on_exit={"a": "handle byte from RX buffer"})
-subroutine(0xA405, "net_2_read_handle_entry",
+subroutine(0xA405, "net_2_read_entry",
     title="FS reply: read handle byte from workspace table",
     description="""\
 Calls [`get_pb_ptr_as_index`](address:A3E7) to convert the OSWORD
@@ -5212,7 +5212,7 @@ subroutine(0xA6A6, "flip_set_station_boot",
     "system state.",
     on_entry={"a": "boot type code to store"},
     on_exit={"a, x, y": "clobbered"})
-subroutine(0xA6D5, "fsreply_1_copy_handles_boot",
+subroutine(0xA6D5, "fsreply_1_boot",
     title="FS reply 1: copy boot handles + flag boot pending",
     description="""\
 Closes all network channels via
@@ -8831,7 +8831,7 @@ comment(0xB7C5, "Reached space (end-of-leaf)?", inline=True)
 comment(0xB7C7, "No: continue copying", inline=True)
 
 # &959A..&95E8: *FS/*PS no-argument syntax-help printer + shared
-# print-inline tails. print_fs_ps_no_arg_help (&959A) checks for an
+# print-inline tails. print_fs_ps_help (&959A) checks for an
 # argument after the command; if absent (CR), it prints a four-line
 # syntax block by chaining print_fs_station / print_dir_syntax /
 # print_station_low / print_dir_syntax / inline 'Space\rNoSpace\r'.
@@ -8956,7 +8956,7 @@ comment(0x8AC8, "Below: dispatch fall-through", inline=True)
 comment(0x8ACA, "Compare with &18", inline=True)
 comment(0x8ACC, "Below: dispatch index now in A", inline=True)
 
-# lang_4_remote_validated (&989F): validates a remote-validated
+# lang_4_validated (&989F): validates a remote-validated
 # language reply -- checks RX buffer offset 0 (status byte) and the
 # session ID at offset &80 against the stored copy at workspace+&0E.
 comment(0x989F, "Y=0: status byte offset", inline=True)
@@ -9031,7 +9031,7 @@ comment(0xA439, "X=&35: NFS-commands sub-table offset", inline=True)
 comment(0xA43B, "Match against the NFS sub-table", inline=True)
 comment(0xA43E, "C set: no match -> dispatch via fall-through", inline=True)
 
-# lang_0_insert_remote_key (&98AF): take remote keypress, insert
+# lang_0_insert_key (&98AF): take remote keypress, insert
 # into local keyboard buffer.
 comment(0x98AF, "Y=&82: keypress byte offset in RX", inline=True)
 comment(0x98B1, "Read remote keypress code", inline=True)
@@ -9077,7 +9077,7 @@ comment(0xA456, "Load dispatch lo byte from cmd_dispatch_lo_table+X", inline=Tru
 comment(0xA459, "Push lo for RTS dispatch", inline=True)
 comment(0xA45A, "RTS -> dispatched command handler", inline=True)
 
-# svc_2_private_workspace_pages (&8F10): allocate workspace pages
+# svc_2_priv_ws (&8F10): allocate workspace pages
 # for the NFS ROM. Tests CMOS &11 bit 2 to choose how many pages.
 comment(0x8F10, "Save Y on stack (caller's claim)", inline=True)
 comment(0x8F11, "X=&11: CMOS RAM byte index", inline=True)
@@ -9483,9 +9483,9 @@ comment(0x8B42, "Raise via build_simple_error (never returns)", inline=True)
 #   &9619: bit-0 SET helper (no static callers found -- likely 4.18
 #                            carry-over from before CMOS protection moved)
 #   &9623: bit-0 CLEAR helper (ditto)
-#   &9630: svc_29_status_handler (svc_dispatch idx &18)
+#   &9630: svc_29_status (svc_dispatch idx &18)
 #   &965F/&9670: print_ps_address / print_fs_address -- helpers shared
-#               with svc_29_status_handler
+#               with svc_29_status
 #   help_dispatch_setup: dispatch tail
 #   &969A: match_on_suffix (svc_dispatch idx &0F)
 #   &96BB..&973C: filename-walker + *TYPE-style file-print loop reached
@@ -9513,7 +9513,7 @@ comment(0x962B, "New CMOS value to Y", inline=True)
 comment(0x962C, "X=&11: CMOS RAM byte index", inline=True)
 comment(0x962E, "BRA osbyte_a2: write CMOS &11 = Y", inline=True)
 
-# svc_29_status_handler (&9630): scans (os_text_ptr),Y for CR; if
+# svc_29_status (&9630): scans (os_text_ptr),Y for CR; if
 # at end-of-line, prints all CMOS settings (port number / station
 # / network / FS-state) and returns; otherwise jumps to the
 # argument-parser at help_dispatch_setup.
@@ -10258,7 +10258,7 @@ subroutine(0x95DA, "print_dir_syntax",
     description="""\
 3-byte JSR + inline `'[<D>.]<D>'` + CR + NOP terminator. Used as
 a shared fragment by both `*Dir`'s syntax help and the `*FS`/`*PS`
-no-argument help via [`print_fs_ps_no_arg_help`](address:959A).""")
+no-argument help via [`print_fs_ps_help`](address:959A).""")
 subroutine(0x965F, "print_ps_address",
     title="Print printer-server address from CMOS",
     description="""\
@@ -10281,7 +10281,7 @@ subroutine(0x968E, "dispatch_help_command",
     title="Dispatch *HELP-style argument via svc4_dispatch_lookup",
     description="""\
 3-byte trampoline: `JMP svc4_dispatch_lookup` with `X = &BD` from
-the caller. Used by [`svc_29_status_handler`](address:9630)'s
+the caller. Used by [`svc_29_status`](address:9630)'s
 non-CR path so an argument after `*STATUS` (or similar *HELP-like
 cmd) gets parsed and dispatched through the same shared parser as
 the regular cmd-table dispatch. Note the `'!Help.'` bytes
@@ -10572,7 +10572,7 @@ label(0xB0D4, "cdir_size_thresholds")
 label(0xB4FD, "ps_print_template")
 label(0xB821, "net_chan_err_strings")
 
-# Boot-command strings used by fsreply_1_copy_handles_boot via OSCLI.
+# Boot-command strings used by fsreply_1_boot via OSCLI.
 # &A741: 'L.-NET-!Boot' (Load and run !Boot file from NET partition).
 # &A74E: 'E.-NET-!Boot' (Exec the !Boot file -- alternate variant).
 # Each string is 12 chars + a 0x0D CR terminator at &A74D / &A75A.
@@ -11120,13 +11120,13 @@ comment(0xAFFF, "Discard saved status", inline=True)
 comment(0xB000, "Discard caller's saved A", inline=True)
 comment(0xB001, "Return", inline=True)
 
-# net_1_read_handle / net_2_read_handle_entry inline comments
+# net_1_read_handle / net_2_read_entry inline comments
 comment(0xA3FF, "Y=&6F: net_rx_ptr offset for the 'inline' handle byte",
         inline=True)
 comment(0xA401, "Read handle byte directly from RX buffer", inline=True)
 comment(0xA403, "C clear: read-handle path -- store directly to PB",
         inline=True)
-# net_2_read_handle_entry
+# net_2_read_entry
 comment(0xA405, "Convert PB pointer to workspace table offset",
         inline=True)
 comment(0xA408, "Out of range: return zero (uninitialised)", inline=True)
@@ -11927,7 +11927,7 @@ _svc_dispatch_entries = [
     (0x00,  0xE905,  None,                            "placeholder (never reached)"),
     (0x01,  0x8E70,  "dispatch_rts",                  "no-op (RTS only)"),
     (0x02,  0x8D09,  "svc_dispatch_idx_2",            "workspace claim helper (CMOS bit 0)"),
-    (0x03,  0x8F10,  "svc_2_private_workspace_pages", "svc &02: private workspace pages"),
+    (0x03,  0x8F10,  "svc_2_priv_ws", "svc &02: private workspace pages"),
     (0x04,  0x8CC7,  "svc_3_autoboot",                "svc &03: auto-boot"),
     (0x05,  0x8C42,  "svc_4_star_command",            "svc &04: unrecognised *command"),
     (0x06,  0x8028,  "svc5_irq_check",                "svc &05: IRQ check"),
@@ -11947,13 +11947,13 @@ _svc_dispatch_entries = [
     (0x14,  0x8E73,  "copy_template_to_zp",           "svc &25: FS name + info reply"),
     (0x15,  0x8E8A,  "check_help_continuation",       "svc &26: close all files"),
     (0x16,  0x8F38,  "nfs_init_body",                 "svc &27: post-hard-reset re-init"),
-    (0x17,  0x959A,  "print_fs_ps_no_arg_help",       "svc &28: print *FS/*PS no-arg syntax help"),
-    (0x18,  0x9630,  "svc_29_status_handler",         "svc &29: *STATUS handler"),
-    (0x19,  0x98AF,  "lang_0_insert_remote_key",      "language reply 0: insert remote key"),
+    (0x17,  0x959A,  "print_fs_ps_help",       "svc &28: print *FS/*PS no-arg syntax help"),
+    (0x18,  0x9630,  "svc_29_status",         "svc &29: *STATUS handler"),
+    (0x19,  0x98AF,  "lang_0_insert_key",      "language reply 0: insert remote key"),
     (0x1A,  0x9850,  "lang_1_remote_boot",            "language reply 1: remote boot"),
     (0x1B,  0xB01A,  "lang_2_save_palette_vdu",       "language reply 2: save palette/VDU"),
-    (0x1C,  0x987E,  "lang_3_execute_at_0100",        "language reply 3: execute at &0100"),
-    (0x1D,  0x989F,  "lang_4_remote_validated",       "language reply 4: remote validated"),
+    (0x1C,  0x987E,  "lang_3_exec_0100",        "language reply 3: execute at &0100"),
+    (0x1D,  0x989F,  "lang_4_validated",       "language reply 4: remote validated"),
     (0x1E,  0xA0A9,  "fscv_0_opt_entry",              "FSCV 0: *OPT"),
     (0x1F,  0xA10B,  "fscv_1_eof",                    "FSCV 1: EOF"),
     (0x20,  0xA4F1,  "cmd_run_via_urd",               "FSCV 2: *RUN"),
@@ -11967,13 +11967,13 @@ _svc_dispatch_entries = [
     (0x28,  0xB357,  "cmd_info_dispatch",             "*Info dispatch"),
     (0x29,  0xA4DC,  "check_urd_present",             "URD-present check"),
     (0x2A,  0xB2DB,  "ex_init_scan_x0",               "*Ex scan init"),
-    (0x2B,  0xA6D5,  "fsreply_1_copy_handles_boot",   "FS reply 1: copy handles + boot"),
+    (0x2B,  0xA6D5,  "fsreply_1_boot",   "FS reply 1: copy handles + boot"),
     (0x2C,  0xA6E5,  "fsreply_2_copy_handles",        "FS reply 2: copy handles"),
     (0x2D,  0xA638,  "fsreply_3_set_csd",             "FS reply 3: set CSD"),
     (0x2E,  0xA4F1,  "cmd_run_via_urd",               "FS reply 4: *RUN (alias)"),
     (0x2F,  0xA63E,  "fsreply_5_set_lib",             "FS reply 5: set library"),
     (0x30,  0xA3FF,  "net_1_read_handle",             "net handle 1: read handle"),
-    (0x31,  0xA405,  "net_2_read_handle_entry",       "net handle 2: read handle entry"),
+    (0x31,  0xA405,  "net_2_read_entry",       "net handle 2: read handle entry"),
     (0x32,  0xA415,  "net_3_close_handle",            "net handle 3: close handle"),
 ]
 for idx, target, name, desc in _svc_dispatch_entries:
