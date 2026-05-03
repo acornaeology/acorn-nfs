@@ -137,9 +137,7 @@ against 4.18.
 
 ## Related analysis
 
-- `docs/analysis/anfs-421-variant-naming.md` — why this ROM is named
-  "variant 1" (host-OS gate at &8A61 rejects OS 5.0 / Master Compact;
-  the natural sibling would be a Compact build).
+- The "variant 1" naming is unexplained pending more evidence.
 
 ## Findings — to fold into CHANGES-FROM-4.18.md eventually
 

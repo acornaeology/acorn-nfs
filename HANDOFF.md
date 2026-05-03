@@ -22,8 +22,6 @@ listed below.
 4. `docs/analysis/` — published analyses linked from the website:
    - `authors-easter-egg.md` — *HELP authors trigger and the
      keyword-overlapping-message trick across 4.08.53 / 4.18 / 4.21
-   - `anfs-421-variant-naming.md` — falsifiable hypothesis for why
-     this ROM is "variant 1"
 5. `docs/techniques/README.md` and the four numbered papers in that
    directory — describe the address-recovery techniques we built and
    when to apply each.
@@ -239,8 +237,8 @@ them. Summary:
    &0Dxx-&10xx replaced with sideways-RAM &C000-&C2FF.
 4. **65C12 instruction adoption** for tighter prologues.
 5. **No page-relocation copy loop** (the 4.18 &BE94 area).
-6. **Variant naming**: see `docs/analysis/anfs-421-variant-naming.md`
-   for the falsifiable hypothesis.
+6. **Variant naming**: why this ROM is named "variant 1" is still
+   open pending more evidence.
 7. **Dispatch-table reshape**: 4.18's svc dispatch table layout
    shifted in 4.21; `dir_op_dispatch` now sets `Y=&18` (not `&0E`),
    moving its reachable indices from 15..19 to 25..29. Some 4.18
