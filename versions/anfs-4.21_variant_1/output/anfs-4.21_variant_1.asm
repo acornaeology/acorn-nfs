@@ -1770,10 +1770,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; TX done: remote JSR execution
 ;
 ; Pushes (tx_done_exit (&8582)  - 1) on the stack so RTS returns to tx_done_exit
-; (&8582) when the remote routine completes, then does JMP
-; ([exec_addr_lo](address:0D66?hex)) to call the remote-supplied JSR target. When that
-; routine returns via RTS, control resumes at tx_done_exit (&8582) which tidies up TX
-; state.
+; (&8582) when the remote routine completes, then does JMP indirect through
+; exec_addr_lo (&0D66) to call the remote-supplied JSR target. When that routine
+; returns via RTS, control resumes at tx_done_exit (&8582) which tidies up TX state.
 .tx_done_jsr
     lda #&85                                                          ; 8540: a9 85       ..             ; A=&85: TX op &85 (OSProc)
     pha                                                               ; 8542: 48          H              ; Push hi byte on stack
@@ -2255,8 +2254,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; NMI TX data handler
 ;
 ; Writes 2 bytes per NMI invocation to the TX FIFO at adlc_tx (&FEA2). Uses BIT
-; [adlc_cr1](address:FEA0?hex) on SR1 to test TDRA (V flag = bit 6) and IRQ (N flag =
-; bit 7).
+; adlc_cr1 (&FEA0) on SR1 to test TDRA (V flag = bit 6) and IRQ (N flag = bit 7).
 ;
 ; After writing 2 bytes, checks if the frame is complete:
 ;
@@ -3017,9 +3015,9 @@ nmi_shim_source = reset_enter_listen+2
 ;     STA &FE30
 ;     JMP nmi_rx_scout
 ;
-; The BIT [econet_station_id](address:FE18?hex) (INTOFF) at entry and BIT
-; [econet_nmi_enable](address:FE20?hex) (INTON) before RTI in nmi_rti (&0D14) are
-; essential for edge-triggered NMI re-delivery.
+; The BIT of econet_station_id (&FE18) (INTOFF) at entry and BIT of econet_nmi_enable
+; (&FE20) (INTON) before RTI in nmi_rti (&0D14) are essential for edge-triggered NMI
+; re-delivery.
 ;
 ; The 6502 /NMI is falling-edge triggered; the Econet NMI-enable flip-flop (IC97) gates
 ; the ADLC IRQ onto /NMI. INTOFF clears the flip-flop, forcing /NMI high; INTON sets
@@ -3042,10 +3040,10 @@ nmi_shim_source = reset_enter_listen+2
 ; ROM-resident version of the NMI-exit sequence; also the source for the initial copy
 ; to RAM at set_nmi_vector (&0D0E).
 ;
-; | RAM target             | Function                                                                                                                                                       |
-; |------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-; | set_nmi_vector (&0D0E) | writes both hi and lo bytes of the JMP target at nmi_jmp_lo (&0D0C) / nmi_jmp_hi (&0D0D)                                                                       |
-; | nmi_rti (&0D14)        | restores the original ROM bank, pulls Y and A from the stack, then BIT [econet_nmi_enable](address:FE20?hex) (INTON) to re-enable the NMI flip-flop before RTI |
+; | RAM target             | Function                                                                                                                                              |
+; |------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | set_nmi_vector (&0D0E) | writes both hi and lo bytes of the JMP target at nmi_jmp_lo (&0D0C) / nmi_jmp_hi (&0D0D)                                                              |
+; | nmi_rti (&0D14)        | restores the original ROM bank, pulls Y and A from the stack, then BIT of econet_nmi_enable (&FE20) (INTON) to re-enable the NMI flip-flop before RTI |
 ;
 ; The INTON creates a guaranteed falling edge on /NMI if the ADLC IRQ is already
 ; asserted, ensuring the next handler fires immediately.
@@ -3854,9 +3852,9 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Print ANFS version string and station number
 ;
-; Uses an inline string after JSR [print_inline](address:9261?hex): CR + "Advanced NFS
-; 4.21" + CR. After the inline string, JMPs to print_station_id (&90C7) to append the
-; local Econet station number.
+; Uses an inline string after JSR to print_inline (&9261): CR + "Advanced NFS 4.21" +
+; CR. After the inline string, JMPs to print_station_id (&90C7) to append the local
+; Econet station number.
 ;
 ; On Exit: A, X, Y: clobbered (print_inline + print_station_id)
 ; &8c93 referenced 2 times by &8bca, &8c5c
@@ -5795,7 +5793,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; Per-character loop body of the filename-copy logic in check_not_ampersand (&9446):
 ;
-; 1. JSR [check_not_ampersand](address:9446?hex) to reject '&'.
+; 1. JSR to check_not_ampersand (&9446) to reject '&'.
 ; 2. Store the byte at hazel_txcb_data (&C105)+X (TX buffer area).
 ; 3. Increment X.
 ; 4. Branch to send_fs_request (&945E) on CR, or strip a BASIC token prefix via

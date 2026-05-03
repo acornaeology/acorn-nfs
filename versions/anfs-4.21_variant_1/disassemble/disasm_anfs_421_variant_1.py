@@ -425,15 +425,15 @@ label(0x0D0D, "nmi_jmp_hi",
 # All three converge on the INTON/RTI at &0D1C/&0D1F.
 label(0x0D0E, "set_nmi_vector",
     description="NMI vector update (both bytes).\n"
-                "`STY [nmi_jmp_hi](address:0D0D?hex)` then `STA "
-                "[nmi_jmp_lo](address:0D0C?hex)`, writing the full "
+                "`STY` [nmi_jmp_hi](address:0D0D?hex) then `STA` "
+                "[nmi_jmp_lo](address:0D0C?hex), writing the full "
                 "16-bit NMI handler address into the JMP-target "
                 "slot. Falls through to "
                 "[`nmi_rti`](address:0D14?hex).",
     length=3, group="ram_workspace", access="r")
 label(0x0D11, "install_nmi_handler",
     description="NMI vector update (low byte only).\n"
-                "`STA [nmi_jmp_lo](address:0D0C?hex)` only, leaving the "
+                "`STA` [nmi_jmp_lo](address:0D0C?hex) only, leaving the "
                 "existing high byte at [`nmi_jmp_hi`](address:0D0D?hex) "
                 "in place. Same-page optimisation used when the "
                 "next handler is in the same page as the current "
@@ -2714,8 +2714,8 @@ subroutine(0x8540, "tx_done_jsr",
     description="""\
 Pushes ([`tx_done_exit`](address:8582?hex) ` - 1`) on the stack so
 `RTS` returns to [`tx_done_exit`](address:8582?hex) when the remote
-routine completes, then does `JMP
-([exec_addr_lo](address:0D66?hex))` to call the remote-supplied JSR
+routine completes, then does `JMP` indirect through
+[`exec_addr_lo`](address:0D66?hex) to call the remote-supplied JSR
 target. When that routine returns via `RTS`, control resumes at
 [`tx_done_exit`](address:8582?hex) which tidies up TX state.""")
 subroutine(0x8549, "tx_done_econet_event",
@@ -2925,7 +2925,8 @@ subroutine(0x86E7, "nmi_tx_data",
     title="NMI TX data handler",
     description="""\
 Writes 2 bytes per NMI invocation to the TX FIFO at
-[`adlc_tx`](address:FEA2?hex). Uses `BIT [adlc_cr1](address:FEA0?hex)`
+[`adlc_tx`](address:FEA2?hex). Uses `BIT`
+[`adlc_cr1`](address:FEA0?hex)
 on `SR1` to test `TDRA` (`V` flag = bit 6) and `IRQ` (`N` flag =
 bit 7).
 
@@ -3271,9 +3272,9 @@ STA &FE30
 JMP nmi_rx_scout
 ```
 
-The `BIT [econet_station_id](address:FE18?hex)` (INTOFF) at entry
-and `BIT [econet_nmi_enable](address:FE20?hex)` (INTON) before
-`RTI` in [`nmi_rti`](address:0D14?hex) are essential for
+The `BIT` of [`econet_station_id`](address:FE18?hex) (INTOFF) at
+entry and `BIT` of [`econet_nmi_enable`](address:FE20?hex) (INTON)
+before `RTI` in [`nmi_rti`](address:0D14?hex) are essential for
 edge-triggered NMI re-delivery.
 
 The 6502 /NMI is falling-edge triggered; the Econet NMI-enable
@@ -3295,7 +3296,7 @@ for the initial copy to RAM at
 | RAM target | Function |
 |---|---|
 | [`set_nmi_vector`](address:0D0E?hex) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C?hex) / [`nmi_jmp_hi`](address:0D0D?hex) |
-| [`nmi_rti`](address:0D14?hex) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT [econet_nmi_enable](address:FE20?hex)` (INTON) to re-enable the NMI flip-flop before `RTI` |
+| [`nmi_rti`](address:0D14?hex) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`econet_nmi_enable`](address:FE20?hex) (INTON) to re-enable the NMI flip-flop before `RTI` |
 
 The INTON creates a guaranteed falling edge on /NMI if the ADLC
 IRQ is already asserted, ensuring the next handler fires
@@ -3434,8 +3435,8 @@ without acting on it.""",
 subroutine(0x8C93, "print_version_header",
     title="Print ANFS version string and station number",
     description="""\
-Uses an inline string after `JSR
-[print_inline](address:9261?hex)`: `CR + "Advanced NFS 4.21" +
+Uses an inline string after `JSR` to
+[`print_inline`](address:9261?hex): `CR + "Advanced NFS 4.21" +
 CR`. After the inline string, `JMP`s to
 [`print_station_id`](address:90C7?hex) to append the local Econet
 station number.""",
@@ -4076,7 +4077,7 @@ subroutine(0x944E, "read_filename_char",
 Per-character loop body of the filename-copy logic in
 [`check_not_ampersand`](address:9446?hex):
 
-1. `JSR [check_not_ampersand](address:9446?hex)` to reject `'&'`.
+1. `JSR` to [`check_not_ampersand`](address:9446?hex) to reject `'&'`.
 2. Store the byte at [`hazel_txcb_data`](address:C105?hex)`+X`
    (TX buffer area).
 3. Increment `X`.
