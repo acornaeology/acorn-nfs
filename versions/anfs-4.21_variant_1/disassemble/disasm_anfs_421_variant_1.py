@@ -12830,11 +12830,15 @@ subroutine(0x8D91, "cmd_iam",
     on_entry={"y": "command line offset in text pointer"})
 subroutine(0xB0F2, "cmd_lcat",
     title="*LCat command handler",
-    description="Sets the library flag by rotating SEC into bit 7 of\n"
-    "hazel_fs_lib_flags, then branches to cat_set_lib_flag inside cmd_ex\n"
-    "to catalogue the library directory with three entries\n"
-    "per column.",
-    on_entry={"y": "command line offset in text pointer"})
+    description="""\
+Rotates the caller's carry into bit 7 of
+[`hazel_fs_lib_flags`](address:C271) (the dispatch path enters
+with C=1 so this sets the 'library' flag), then `SEC` / `BCS`
+unconditionally jumps to `cat_set_lib_flag` inside
+[`cmd_ex`](address:B103) to catalogue the library directory
+with three entries per column.""",
+    on_entry={"y": "command line offset in text pointer",
+              "c": "1 (set by the cmd_table_fs dispatch path)"})
 subroutine(0xB0F8, "cmd_lex",
     title="*LEx command handler",
     description="Sets the library flag by rotating SEC into bit 7 of\n"

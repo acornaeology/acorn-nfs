@@ -12766,11 +12766,13 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; *LCat command handler
 ;
-; Sets the library flag by rotating SEC into bit 7 of hazel_fs_lib_flags, then branches
-; to cat_set_lib_flag inside cmd_ex to catalogue the library directory with three
-; entries per column.
+; Rotates the caller's carry into bit 7 of hazel_fs_lib_flags (the dispatch path enters
+; with C=1 so this sets the 'library' flag), then SEC / BCS unconditionally jumps to
+; cat_set_lib_flag inside cmd_ex to catalogue the library directory with three entries
+; per column.
 ;
-; On Entry: Y: command line offset in text pointer
+; On Entry: Y: command line offset in text pointer C: 1 (set by the cmd_table_fs
+; dispatch path)
 .cmd_lcat
     ror hazel_fs_lib_flags                                            ; b0f2: 6e 71 c2    nq.            ; Rotate carry into lib flag bit 7
     sec                                                               ; b0f5: 38          8              ; Set carry (= library directory); Return
