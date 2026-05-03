@@ -8796,6 +8796,26 @@ comment(0x95E9, "X=&A0: index into svc4 dispatch table (no-arg path)",
     inline=True)
 comment(0x95EB, "Tail-jump to svc4_dispatch_lookup with X=&A0", inline=True)
 
+# &A5FB..&A604: tail of os_text_ptr+Y -> fs_crc 16-bit pointer add.
+comment(0xA5FB, "Store low byte of (os_text_ptr + Y) -> fs_crc_lo "
+    "(repurposed as a generic pointer)", inline=True)
+comment(0xA5FD, "Load os_text_ptr_hi for the high-byte add", inline=True)
+comment(0xA5FF, "ADC carry from low add (no extra increment)", inline=True)
+comment(0xA601, "Store result high byte -> fs_crc_hi", inline=True)
+
+# &A9EF..&A9F6: FS-flags update after handle clearing in the FS-state
+# transition. fs_flags is &0D6C; the helper sets bits &0E (3..1) and
+# clears bit &40 (FS-active flag) in one read-modify-write pass.
+comment(0xA9EF, "A=&0E: bits 1..3 (FS-state mask)", inline=True)
+comment(0xA9F1, "TSB fs_flags: set bits 1..3", inline=True)
+comment(0xA9F4, "A=&40: FS-active flag bit", inline=True)
+comment(0xA9F6, "TRB fs_flags: clear FS-active flag (bit 6)", inline=True)
+
+# &AABB..&AAC1: set_via_shadow_pair body.
+comment(0xAABB, "Mirror A into ws_0d68 (shadow ACR)", inline=True)
+comment(0xAABE, "Mirror A into ws_0d69 (shadow IER)", inline=True)
+comment(0xAAC1, "Return", inline=True)
+
 # cmd_pollps gap-fill (8 items).
 comment(0xB60F, "Y=&18: name field offset in RX buffer", inline=True)
 comment(0xB624, "NOP -- bit-7 terminator from preceding stringhi", inline=True)

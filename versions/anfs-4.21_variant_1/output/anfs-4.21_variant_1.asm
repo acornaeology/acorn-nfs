@@ -9976,10 +9976,10 @@ cmos_attr_table = sub_ca0fe+1
     clc                                                               ; a5f7: 18          .              ; Clear C for arithmetic
     tya                                                               ; a5f8: 98          .              ; Compare Y with OSWORD flag
     adc os_text_ptr                                                   ; a5f9: 65 f2       e.             ; Add to text pointer low
-    sta fs_crc_lo                                                     ; a5fb: 85 be       ..
-    lda os_text_ptr_hi                                                ; a5fd: a5 f3       ..
-    adc #0                                                            ; a5ff: 69 00       i.
-    sta fs_crc_hi                                                     ; a601: 85 bf       ..
+    sta fs_crc_lo                                                     ; a5fb: 85 be       ..             ; Store low byte of (os_text_ptr + Y) -> fs_crc_lo (repurposed as a generic pointer)
+    lda os_text_ptr_hi                                                ; a5fd: a5 f3       ..             ; Load os_text_ptr_hi for the high-byte add
+    adc #0                                                            ; a5ff: 69 00       i.             ; ADC carry from low add (no extra increment)
+    sta fs_crc_hi                                                     ; a601: 85 bf       ..             ; Store result high byte -> fs_crc_hi
     jsr save_text_ptr                                                 ; a603: 20 18 8b     ..            ; Save text pointer for later
     ldx #&c0                                                          ; a606: a2 c0       ..             ; X=&C0: pointer-to-options high byte
     stx fs_block_offset                                               ; a608: 86 bc       ..             ; Y=1: workspace flag offset
@@ -10777,10 +10777,10 @@ osword_subcode_dispatch = extract_osword_subcode+1
     dey                                                               ; a9e9: 88          .              ; DEY -- step back to previous byte
     bne loop_store_station                                            ; a9ea: d0 f8       ..             ; Loop for bytes 2..1
     jsr clear_if_station_match                                        ; a9ec: 20 21 8e     !.            ; Clear handles if station matches
-    lda #&0e                                                          ; a9ef: a9 0e       ..
-    tsb fs_flags                                                      ; a9f1: 0c 6c 0d    .l.
-    lda #&40 ; '@'                                                    ; a9f4: a9 40       .@
-    trb fs_flags                                                      ; a9f6: 1c 6c 0d    .l.
+    lda #&0e                                                          ; a9ef: a9 0e       ..             ; A=&0E: bits 1..3 (FS-state mask)
+    tsb fs_flags                                                      ; a9f1: 0c 6c 0d    .l.            ; TSB fs_flags: set bits 1..3
+    lda #&40 ; '@'                                                    ; a9f4: a9 40       .@             ; A=&40: FS-active flag bit
+    trb fs_flags                                                      ; a9f6: 1c 6c 0d    .l.            ; TRB fs_flags: clear FS-active flag (bit 6)
     ldx #&0f                                                          ; a9f9: a2 0f       ..
 ; &a9fb referenced 1 time by &aa63
 .scan_fcb_entry
@@ -10964,9 +10964,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; On Entry: A: value to mirror into both shadow VIA bytes
 ; &aabb referenced 2 times by &8fa6, &b6d9
 .set_via_shadow_pair
-    sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.
-    sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.
-    rts                                                               ; aac1: 60          `
+    sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.            ; Mirror A into ws_0d68 (shadow ACR)
+    sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.            ; Mirror A into ws_0d69 (shadow IER)
+    rts                                                               ; aac1: 60          `              ; Return
 
 ; ***************************************************************************************
 ; OSWORD &13 sub 6: read FCB handle info
