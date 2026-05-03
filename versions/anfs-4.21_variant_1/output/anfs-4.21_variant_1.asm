@@ -4372,7 +4372,7 @@ ps_template_base = load_transfer_params+1
 ; On Entry: X: CMOS RAM byte index
 ;
 ; On Exit: Y: CMOS byte read X: preserved
-; &8e9a referenced 18 times by &8d0c, &8f13, &8f60, &8f68, &8f70, &8f7a, &8f9c, &904f, &9055, &961b, &9625, &9644, &9661, &9672, &967f, &a0e3, &a70d, &b6de
+; &8e9a referenced 20 times by &8d0c, &8f13, &8f60, &8f68, &8f70, &8f7a, &8f9c, &904f, &9055, &95f7, &95fe, &961b, &9625, &9644, &9661, &9672, &967f, &a0e3, &a70d, &b6de
 .osbyte_a1
     lda #osbyte_read_cmos_ram                                         ; 8e9a: a9 a1       ..             ; A=&A1: OSBYTE &A1 = read CMOS RAM
     jmp osbyte                                                        ; 8e9c: 4c f4 ff    L..            ; Master and Compact: Read CMOS RAM/EEPROM byte X
@@ -6103,29 +6103,73 @@ ps_template_base = load_transfer_params+1
 ; &95da referenced 2 times by &95a3, &95a9
 .print_dir_syntax
     jsr print_inline                                                  ; 95da: 20 61 92     a.            ; Print '[<D>.]<D>\r' (syntax help for *Dir)
-    equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D            ; Save TX timeout counter; Push (used as outer loop counter); Save TX control state; Push (preserved during wait); Check if TX in progress
+    equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D
 
-    nop                                                               ; 95e7: ea          .              ; Non-zero: skip force-wait
+    nop                                                               ; 95e7: ea          .
     rts                                                               ; 95e8: 60          `              ; Return
 
 ; &95e9 referenced 1 time by &959e
 .parse_filename_sub_exit
-    ldx #&a0                                                          ; 95e9: a2 a0       ..             ; Set bit 7 to force wait mode
-    jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.            ; Store updated control state
+    ldx #&a0                                                          ; 95e9: a2 a0       ..
+    jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.
 
-    equb &bd, &6c, &a7, &29, &3f, &aa, &da, &5a, &da, &20, &9a, &8e   ; 95ee: bd 6c a7... .l.            ; A=0: initial counter values; Push inner loop counter; Push middle loop counter; X=SP for stack-relative DECs; Poll TX completion status; Bit 7 set: TX complete; Decrement inner counter
-    equb &84, &b5, &fa, &e8, &20, &9a, &8e, &84, &b6, &7a, &20, &c4   ; 95fa: 84 b5 fa... ...            ; Not zero: keep polling; Decrement middle counter; Not zero: keep polling; Decrement outer counter; Not zero: keep polling
-    equb &a3, &fa, &da, &a4, &b5, &20, &12, &96, &fa, &e8, &a4, &b7   ; 9606: a3 fa da... ...            ; Discard inner counter; Discard middle counter; Restore econet_flags control state; Write back TX control state; Pop outer counter (0 if timed out); Zero: TX timed out; Return (TX acknowledged)
-
+; ***************************************************************************************
+; Write FS/PS station+network to Master 128 CMOS RAM
+;
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A80F, *PS at
+; &A814) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
+; saved address.
+;
+; The flag byte's low 6 bits (AND #&3F) double as the CMOS byte index for the relevant
+; station:
+;
+; | command | flag | idx | CMOS bytes                     |
+; |---------|------|-----|--------------------------------|
+; | *FS     | &C1  | 1   | 1 = FS station, 2 = FS network |
+; | *PS     | &C3  | 3   | 3 = PS station, 4 = PS network |
+;
+; Pre-reads existing CMOS[idx] and CMOS[idx+1] into fs_work_5 / fs_work_6 so that the
+; no-argument path leaves the saved values unchanged. Calls parse_fs_ps_args which
+; conditionally overwrites fs_work_5 (station), fs_work_6 (canonical network: 0=local,
+; non-zero=remote) and fs_work_7 (raw parsed network).
+;
+; Writes the station via osbyte_a2, then falls through into osbyte_a2 itself to write
+; the raw network at CMOS[idx+1]. Final BRA inside osbyte_a2 returns via
+; svc_return_unclaimed.
+;
+; On Entry: X: offset in cmd_table_fs of the matched entry's flag byte
+.set_fs_or_ps_cmos_station
+    lda cmd_table_fs,x                                                ; 95ee: bd 6c a7    .l.            ; Read flag byte for matched cmd entry (syntax idx in bits 0..4)
+    and #&3f ; '?'                                                    ; 95f1: 29 3f       )?             ; Mask off end-marker (bit 7) and V-if-no-arg flag (bit 6)
+    tax                                                               ; 95f3: aa          .              ; X = CMOS byte index (1=FS stn, 3=PS stn)
+    phx                                                               ; 95f4: da          .              ; Save CMOS index
+    phy                                                               ; 95f5: 5a          Z              ; Save caller's command-line cursor
+    phx                                                               ; 95f6: da          .              ; Save CMOS index again (consumed by first PLX below)
+    jsr osbyte_a1                                                     ; 95f7: 20 9a 8e     ..            ; Read existing CMOS[idx] (current station)
+    sty fs_work_5                                                     ; 95fa: 84 b5       ..             ; Default station if user gives no args
+    plx                                                               ; 95fc: fa          .
+    inx                                                               ; 95fd: e8          .
+    jsr osbyte_a1                                                     ; 95fe: 20 9a 8e     ..            ; Read existing CMOS[idx+1] (current network)
+    sty fs_work_6                                                     ; 9601: 84 b6       ..             ; Default network if user gives no args
+    ply                                                               ; 9603: 7a          z              ; Restore command-line cursor
+    jsr parse_fs_ps_args                                              ; 9604: 20 c4 a3     ..            ; Parse '<net>.<stn>'; updates fs_work_5/6/7 if args present
+    plx                                                               ; 9607: fa          .
+    phx                                                               ; 9608: da          .              ; Re-save CMOS index for second write
+    ldy fs_work_5                                                     ; 9609: a4 b5       ..             ; Y = station (parsed or pre-read default)
+    jsr osbyte_a2                                                     ; 960b: 20 12 96     ..            ; Write CMOS[idx] = station
+    plx                                                               ; 960e: fa          .
+    inx                                                               ; 960f: e8          .
+    ldy fs_work_7                                                     ; 9610: a4 b7       ..             ; Y = raw parsed network (NOT canonical fs_work_6); fall through into osbyte_a2 to write CMOS[idx+1]
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
 ;
 ; Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / BRA c95be. Writes the Master 128
-; CMOS RAM byte indexed by X with the value in Y. Sole caller: format_filename_field at
-; &A0FE. Counterpart of osbyte_a1 at &8E9A (read).
+; CMOS RAM byte indexed by X with the value in Y. Called from set_fs_or_ps_cmos_station
+; (twice: once via JSR, once via fall-through) and store_carry_to_workspace.
+; Counterpart of osbyte_a1 at &8E9A (read).
 ;
 ; On Entry: X: CMOS RAM byte index Y: value to write
-; &9612 referenced 2 times by &962e, &a0fe
+; &9612 referenced 3 times by &960b, &962e, &a0fe
 .osbyte_a2
     lda #osbyte_write_cmos_ram                                        ; 9612: a9 a2       ..             ; A=&A2: write CMOS RAM byte via OSBYTE
     jsr osbyte                                                        ; 9614: 20 f4 ff     ..            ; Master and Compact: Write to CMOS RAM/EEPROM byte X with value Y
@@ -9399,7 +9443,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; On Entry: Y: current command-line offset
 ;
 ; On Exit: X, Y: preserved (saved/restored via PHX/PHY)
-; &a3c4 referenced 3 times by &a3a8, &b3cf, &b5a6
+; &a3c4 referenced 4 times by &9604, &a3a8, &b3cf, &b5a6
 .parse_fs_ps_args
     phx                                                               ; a3c4: da          .              ; Save caller's X (command-line offset cursor)
     lda #0                                                            ; a3c5: a9 00       ..             ; A=0: clear the dot-seen flag for parse_addr_arg
@@ -10232,7 +10276,7 @@ cmos_attr_table = store_carry_to_workspace+1
 ; for the sub-table layout, walker contract, and flag-byte encoding. Each entry's
 ; two-byte dispatch word stores target-1; PHA/PHA/RTS arrives at target. Per-entry
 ; inline comments below name the command, syntax-template index, and dispatch target.
-; &a76c referenced 10 times by &8bd8, &8be7, &8bef, &8bfc, &9465, &946d, &a460, &a465, &a475, &a4ac
+; &a76c referenced 11 times by &8bd8, &8be7, &8bef, &8bfc, &9465, &946d, &95ee, &a460, &a465, &a475, &a4ac
 .cmd_table_fs
 cmd_dispatch_lo_table = cmd_table_fs+1
 cmd_dispatch_hi_table = cmd_table_fs+2
@@ -16120,14 +16164,14 @@ save pydis_start, pydis_end
 ;     econet_flags:                   20
 ;     error_text:                     20
 ;     os_text_ptr:                    20
+;     osbyte_a1:                      20
+;     fs_work_5:                      18
 ;     hazel_fcb_addr_lo:              18
 ;     hazel_fcb_slot_attr:            18
-;     osbyte_a1:                      18
 ;     acccon:                         17
 ;     hazel_parse_buf:                17
 ;     ws_page:                        17
 ;     fs_block_offset:                16
-;     fs_work_5:                      16
 ;     open_port_buf_hi:               16
 ;     fs_last_byte_flag:              15
 ;     hazel_fcb_addr_mid:             15
@@ -16144,21 +16188,21 @@ save pydis_start, pydis_end
 ;     osasci:                         13
 ;     print_inline_no_spool:          13
 ;     set_nmi_vector:                 13
+;     fs_work_6:                      12
 ;     hazel_chan_attr:                12
 ;     osnewl:                         12
 ;     return_with_last_flag:          12
+;     cmd_table_fs:                   11
 ;     copy_arg_to_buf:                11
 ;     error_bad_inline:               11
 ;     error_block:                    11
 ;     error_inline_log:               11
 ;     fs_load_addr_3:                 11
-;     fs_work_6:                      11
 ;     hazel_fs_network:               11
 ;     net_rx_ptr_hi:                  11
 ;     nmi_error_dispatch:             11
 ;     print_char_no_spool:            11
 ;     tx_result_fail:                 11
-;     cmd_table_fs:                   10
 ;     hazel_txcb_network:             10
 ;     nfs_workspace_hi:               10
 ;     store_rx_attribute:             10
@@ -16199,6 +16243,7 @@ save pydis_start, pydis_end
 ;     discard_reset_rx:                6
 ;     error_overflow:                  6
 ;     fs_crc_hi:                       6
+;     fs_work_7:                       6
 ;     fs_ws_ptr:                       6
 ;     hazel_exec_addr:                 6
 ;     hazel_fs_context_copy:           6
@@ -16222,7 +16267,6 @@ save pydis_start, pydis_end
 ;     copy_pb_byte_to_ws:              5
 ;     escapable:                       5
 ;     fs_spool_handle:                 5
-;     fs_work_7:                       5
 ;     hazel_fs_last_error:             5
 ;     hazel_fs_pending_state:          5
 ;     hazel_fs_prefix_stn:             5
@@ -16275,6 +16319,7 @@ save pydis_start, pydis_end
 ;     osbyte_x0:                       4
 ;     osfind:                          4
 ;     parse_access_prefix:             4
+;     parse_fs_ps_args:                4
 ;     port_match_found:                4
 ;     print_station_addr:              4
 ;     process_spool_data:              4
@@ -16333,12 +16378,12 @@ save pydis_start, pydis_end
 ;     next_port_slot:                  3
 ;     nmi_jmp_hi:                      3
 ;     nmi_jmp_lo:                      3
+;     osbyte_a2:                       3
 ;     osbyte_a_copy:                   3
 ;     osword:                          3
 ;     osword_pb_ptr_hi:                3
 ;     parse_cmd_arg_y0:                3
 ;     parse_filename_arg:              3
-;     parse_fs_ps_args:                3
 ;     poll_adlc_tx_status:             3
 ;     print_10_chars:                  3
 ;     process_match_result:            3
@@ -16506,7 +16551,6 @@ save pydis_start, pydis_end
 ;     next_fcb_entry:                  2
 ;     osargs:                          2
 ;     osbget:                          2
-;     osbyte_a2:                       2
 ;     oscli:                           2
 ;     osrdch:                          2
 ;     osword_11_done:                  2
@@ -17499,11 +17543,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14395 bytes (88%)
-;     Data                     = 1989 bytes (12%)
+;     Code                     = 14431 bytes (88%)
+;     Data                     = 1953 bytes (12%)
 ;
-;     Number of instructions   = 7087
-;     Number of data bytes     = 682 bytes
+;     Number of instructions   = 7108
+;     Number of data bytes     = 646 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 1279 bytes
 ;     Number of strings        = 151

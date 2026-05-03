@@ -11888,12 +11888,45 @@ subroutine(0x9255, "print_hex_nybble_no_spool",
     "digits 0-9 / A-F. Tail-jumps to print_char_no_spool via BRA.",
     on_entry={"a": "value (low nybble used)"})
 
+subroutine(0x95EE, "set_fs_or_ps_cmos_station",
+    title="Write FS/PS station+network to Master 128 CMOS RAM",
+    description="""\
+Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
+(`*FS` at [`&A80F`](address:A80F), `*PS` at
+[`&A814`](address:A814)) when the caller supplies a `<net>.<stn>`
+argument or wants to inspect/update the saved address.
+
+The flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte
+index for the relevant station:
+
+| command | flag | idx | CMOS bytes      |
+| ------- | ---- | --- | --------------- |
+| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |
+| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |
+
+Pre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /
+`fs_work_6` so that the no-argument path leaves the saved values
+unchanged. Calls
+[`parse_fs_ps_args`](address:A3C4) which conditionally overwrites
+`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,
+non-zero=remote) and `fs_work_7` (raw parsed network).
+
+Writes the station via [`osbyte_a2`](address:9612), then falls
+through into `osbyte_a2` itself to write the raw network at
+CMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via
+[`svc_return_unclaimed`](address:8C64).""",
+    on_entry={"x": "offset in cmd_table_fs of the matched entry's "
+              "flag byte"})
+
 subroutine(0x9612, "osbyte_a2",
     title="OSBYTE &A2 (write Master CMOS RAM byte)",
     description="Three-instruction wrapper: LDA #&A2 / JSR OSBYTE / "
     "BRA c95be. Writes the Master 128 CMOS RAM byte indexed by X "
-    "with the value in Y. Sole caller: format_filename_field at "
-    "&A0FE. Counterpart of osbyte_a1 at &8E9A (read).",
+    "with the value in Y. Called from "
+    "[`set_fs_or_ps_cmos_station`](address:95EE) (twice: once "
+    "via JSR, once via fall-through) and "
+    "[`store_carry_to_workspace`](address:A0FE). "
+    "Counterpart of osbyte_a1 at &8E9A (read).",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"})
 
 subroutine(0x8B45, "svc_18_fs_select",
@@ -12565,6 +12598,7 @@ entry(0x9619)   # CMOS-bit setter helpers — reached via *Spool/*Spooloff style
 entry(0x9623)   # second entry of the &9619 helper (clear bit 0 of CMOS &11)
 entry(0x9630)   # 31-byte block: command-line walker that JSRs &95C8/&9670/&95C1/&965F
 entry(0x959A)   # 21-byte block: LDA(&F2),Y / CMP #&0D loop with JSRs to &95C8/&95DA/&95C1
+entry(0x95EE)   # 36-byte CMOS-write helper: LDA &A76C,X / parse_network_station / writes station+network back to CMOS via osbyte_a2 fall-through
 # entry(0x96BD) and entry(0x96F5) removed: now reached naturally via the
 # &969A dispatch entry, which traces the whole &969A..&973C body as code.
 # svc_dispatch table targets: PHA/PHA/RTS dispatch from &89ED/&8A20 reaches each
@@ -13922,45 +13956,36 @@ comment(0x95D3, "X=0: keyboard buffer", inline=True)
 comment(0x95D5, "Commit state change", inline=True)
 comment(0x95D8, "OSBYTE &99: insert into buffer", inline=True)
 
-# wait_net_tx_ack (&95DD) — poll TX status with 3-level timeout
-comment(0x95DD, "Save TX timeout counter", inline=True)
-comment(0x95E0, "Push (used as outer loop counter)", inline=True)
-comment(0x95E1, "Save TX control state", inline=True)
-comment(0x95E4, "Push (preserved during wait)", inline=True)
-comment(0x95E5, "Check if TX in progress", inline=True)
-comment(0x95E7, "Non-zero: skip force-wait", inline=True)
-comment(0x95E9, "Set bit 7 to force wait mode", inline=True)
-comment(0x95EB, "Store updated control state", inline=True)
-comment(0x95EE, "A=0: initial counter values", inline=True)
-comment(0x95F0, "Push inner loop counter", inline=True)
-comment(0x95F1, "Push middle loop counter", inline=True)
-comment(0x95F3, "X=SP for stack-relative DECs", inline=True)
-comment(0x95F4, "Poll TX completion status", inline=True)
-comment(0x95F6, "Bit 7 set: TX complete", inline=True)
-comment(0x95F8, "Decrement inner counter", inline=True)
-comment(0x95FB, "Not zero: keep polling", inline=True)
-comment(0x95FD, "Decrement middle counter", inline=True)
-comment(0x9600, "Not zero: keep polling", inline=True)
-comment(0x9602, "Decrement outer counter", inline=True)
-comment(0x9605, "Not zero: keep polling", inline=True)
-comment(0x9607, "Discard inner counter", inline=True)
-comment(0x9608, "Discard middle counter", inline=True)
-comment(0x9609, "Restore econet_flags control state", inline=True)
-comment(0x960A, "Write back TX control state", inline=True)
-comment(0x960D, "Pop outer counter (0 if timed out)", inline=True)
-comment(0x960E, "Zero: TX timed out", inline=True)
-comment(0x9610, "Return (TX acknowledged)", inline=True)
-
-# NOTE: A 78-line block of stale 4.18 carry-over comments at addresses
-# &9611..&96B3 was deleted here. The 4.18 cond_save_error_code /
-# build_no_reply_error / classify_reply_error / build_simple_error
-# bodies that those comments described moved to &95FB..&96B7 in 4.21
-# (different layout); the addresses &9611..&96B3 in 4.21 hold osbyte_a2
-# (&9612), the CMOS-bit setter helpers (&9619/&9623), the parse-object
-# parser (&9630), the parse-filename validator (&959A entry), the 'ON '
-# suffix matcher (&969A), and the filename walker (&96BD..). The fresh
-# inline annotations for those new occupants are added inline below as
-# this region is walked end-to-end in Phase G.
+# set_fs_or_ps_cmos_station (&95EE) — write FS/PS station+network to CMOS RAM
+comment(0x95EE, "Read flag byte for matched cmd entry "
+    "(syntax idx in bits 0..4)", inline=True)
+comment(0x95F1, "Mask off end-marker (bit 7) and "
+    "V-if-no-arg flag (bit 6)", inline=True)
+comment(0x95F3, "X = CMOS byte index (1=FS stn, 3=PS stn)",
+    inline=True)
+comment(0x95F4, "Save CMOS index", inline=True)
+comment(0x95F5, "Save caller's command-line cursor", inline=True)
+comment(0x95F6, "Save CMOS index again "
+    "(consumed by first PLX below)", inline=True)
+comment(0x95F7, "Read existing CMOS[idx] (current station)",
+    inline=True)
+comment(0x95FA, "Default station if user gives no args",
+    inline=True)
+comment(0x95FE, "Read existing CMOS[idx+1] (current network)",
+    inline=True)
+comment(0x9601, "Default network if user gives no args",
+    inline=True)
+comment(0x9603, "Restore command-line cursor", inline=True)
+comment(0x9604, "Parse '<net>.<stn>'; updates "
+    "fs_work_5/6/7 if args present", inline=True)
+comment(0x9608, "Re-save CMOS index for second write",
+    inline=True)
+comment(0x9609, "Y = station (parsed or pre-read default)",
+    inline=True)
+comment(0x960B, "Write CMOS[idx] = station", inline=True)
+comment(0x9610, "Y = raw parsed network (NOT canonical "
+    "fs_work_6); fall through into osbyte_a2 to write CMOS[idx+1]",
+    inline=True)
 
 
 # cmd_fs (&A063) — *FS: select file server by number
