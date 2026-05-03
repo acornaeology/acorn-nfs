@@ -17314,14 +17314,6 @@ comment(0x9E79, "Loop until all copied", inline=True)
 comment(0x9E7B, "Reload file handle", inline=True)
 comment(0x9E7E, "Transfer to A", inline=True)
 comment(0x9E7F, "Jump to finalise and return", inline=True)
-comment(0x9E82, "Unreachable dead code (3 bytes)\n"
-    "\n"
-    "Duplicate of the JMP at &9B92 immediately above.\n"
-    "Unreachable after the unconditional JMP and\n"
-    "unreferenced. Likely a development remnant.")
-comment(0x9E82, "Dead: duplicate JMP finalise_and_return", inline=True)
-
-# format_filename_field: format filename for display (&9B86-&9BAE)
 comment(0x9E82, "Y=0: destination index", inline=True)
 comment(0x9E84, "Load source offset from fs_cmd_csd", inline=True)
 comment(0x9E87, "Non-zero: copy from fs_cmd_data buffer", inline=True)

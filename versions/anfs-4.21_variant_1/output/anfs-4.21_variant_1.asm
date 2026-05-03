@@ -8309,13 +8309,9 @@ bad_prefix_table = bad_str_anchor+1
 ; depending on the value in fs_cmd_csd. Truncates or pads to exactly 12 characters.
 ;
 ; On Exit: A, X, Y: clobbered
-; Unreachable dead code (3 bytes)
-;
-; Duplicate of the JMP at &9B92 immediately above. Unreachable after the unconditional
-; JMP and unreferenced. Likely a development remnant.
 ; &9e82 referenced 2 times by &9c71, &9cfc
 .format_filename_field
-    ldy #0                                                            ; 9e82: a0 00       ..             ; Dead: duplicate JMP finalise_and_return; Y=0: destination index
+    ldy #0                                                            ; 9e82: a0 00       ..             ; Y=0: destination index
     ldx hazel_txcb_network                                            ; 9e84: ae 03 c1    ...            ; Load source offset from fs_cmd_csd
     bne copy_from_buf_entry                                           ; 9e87: d0 19       ..             ; Non-zero: copy from fs_cmd_data buffer
 ; &9e89 referenced 1 time by &9e93
