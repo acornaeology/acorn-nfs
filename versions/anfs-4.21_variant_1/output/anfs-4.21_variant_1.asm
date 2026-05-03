@@ -2209,8 +2209,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; Shared path for PEEK (A=3) and POKE (A=2):
 ;
 ; 1. Stores A as the scout status byte at rx_port.
-; 2. Performs a 4-byte addition with carry propagation, adding bytes from the TXCB
-;    (nmi_tx_block+&0C .. +&0F) into the transfer-address workspace at &0D1E..&0D21.
+; 2. Performs a 4-byte addition with carry propagation. For Y=&0C..&0F it adds
+;    (nmi_tx_block),Y (i.e. TXCB bytes 12..15 from the block pointed to by
+;    nmi_tx_block) into tx_addr_base,Y -- tx_addr_base+&0C..&0F is the 4-byte
+;    transfer-length workspace at tx_data_len..&0D2D.
 ; 3. Falls through to tx_ctrl_proc which checks the loop boundary, then continues to
 ;    tx_calc_transfer and tx_ctrl_exit.
 ;

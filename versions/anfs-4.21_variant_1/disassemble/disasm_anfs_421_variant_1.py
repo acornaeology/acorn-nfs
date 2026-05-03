@@ -3090,9 +3090,12 @@ Shared path for PEEK (`A=3`) and POKE (`A=2`):
 
 1. Stores `A` as the scout status byte at
    [`rx_port`](address:0D40).
-2. Performs a 4-byte addition with carry propagation, adding
-   bytes from the TXCB (`nmi_tx_block+&0C` .. `+&0F`) into the
-   transfer-address workspace at `&0D1E..&0D21`.
+2. Performs a 4-byte addition with carry propagation. For
+   `Y=&0C..&0F` it adds `(nmi_tx_block),Y` (i.e. TXCB bytes
+   12..15 from the block pointed to by
+   [`nmi_tx_block`](address:00A0)) into `tx_addr_base,Y` --
+   `tx_addr_base+&0C..&0F` is the 4-byte transfer-length
+   workspace at [`tx_data_len`](address:0D2A)..&0D2D.
 3. Falls through to [`tx_ctrl_proc`](address:86A2) which
    checks the loop boundary, then continues to
    [`tx_calc_transfer`](address:8900) and `tx_ctrl_exit`.""",

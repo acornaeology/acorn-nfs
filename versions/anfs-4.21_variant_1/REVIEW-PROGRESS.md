@@ -55,11 +55,11 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x862C` `tx_bad_ctrl_error` - description and inline comments accurate
 - [x] `0x8630` `tx_line_jammed` - description correct re flow; CR2 bit-naming is sloppy (CR2=&07 is RIE|TIE|CLR_TX_ST not 'FC_TDRA|2_1_BYTE|PSE') but the byte value is right
 - [x] `0x864A` `tx_prepare` - description had a fabricated step 4 (claimed it writes the 4-byte destination address to the TX FIFO; that actually happens in the dispatched-to handler) and described 'Tube transfer / Direct transfer' paths that don't match the body's port-based dispatch on tx_port. Rewrote. Also fixed three inline comments: &8652 said 'Install NMI handler at &86E0' but byte loaded is &E7 (target &86E7); &865C/D claimed 'need_release_tube flag' but body rotates prot_flags (different addr); &8676 said high byte was '&9C' but A=&86
-- [ ] `0x867E` `tx_ctrl_dispatch_lo`
-- [ ] `0x8686` `tx_ctrl_machine_type`
-- [ ] `0x868A` `tx_ctrl_peek`
-- [ ] `0x868E` `tx_ctrl_poke`
-- [ ] `0x8690` `tx_ctrl_store_and_add`
+- [x] `0x867E` `tx_ctrl_dispatch_lo` - 8-entry table; description matches
+- [x] `0x8686` `tx_ctrl_machine_type` - description matches body
+- [x] `0x868A` `tx_ctrl_peek` - description matches body
+- [x] `0x868E` `tx_ctrl_poke` - description matches body
+- [x] `0x8690` `tx_ctrl_store_and_add` - step 2 of description claimed the 4-byte addition wrote to '&0D1E..&0D21' but tx_addr_base is at &0D1E and Y starts at &0C so destination is actually &0D2A..&0D2D (tx_data_len area); corrected
 - [ ] `0x8723` `tx_last_data`
 - [ ] `0x874B` `nmi_reply_scout`
 - [ ] `0x875F` `nmi_reply_cont`
