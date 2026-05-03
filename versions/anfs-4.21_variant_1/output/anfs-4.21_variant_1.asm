@@ -5707,9 +5707,10 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; Set OS text pointer then transfer parameters
 ;
-; Stores X/Y into the MOS text pointer at &F2/&F3, then falls through to
-; set_xfer_params and set_options_ptr to configure the full FS transfer context. Called
-; by byte_to_2bit_index.
+; Stores X/Y into the MOS text pointer at os_text_ptr / os_text_ptr_hi (&F2/&F3), then
+; falls through to set_xfer_params and set_options_ptr to configure the full FS
+; transfer context. Two callers: fscv_3_star_cmd (FSCV reason 3) and ps_scan_resume (PS
+; scan tail).
 ;
 ; On Entry: X: text pointer low byte Y: text pointer high byte
 ; &93d3 referenced 2 times by &a42f, &b0fe

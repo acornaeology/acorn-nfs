@@ -82,7 +82,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8B00` `scan_remote_keys` - description matches body's OSBYTE keyboard-scan loop for keys &CE..&CF; minor uncertainty about exact OSBYTE semantics but flow is correct
 - [x] `0x8B18` `save_text_ptr` - description matches body; note that the destinations fs_crc_lo/hi (&BE/&BF) double as OS-text-pointer save slots in this context
 - [x] `0x8B45` `svc_18_fs_select` - description's table mentions 'Bit 7 of fs_flags' check which actually happens in the fall-through routine ensure_fs_selected, not in this routine -- but the chain is correctly described
-- [ ] `0x8B4D` `ensure_fs_selected`
+- [x] `0x8B4D` `ensure_fs_selected` - description matches body
 - [x] `0x8BC0` `help_utils` - description matches body (X=0)
 - [x] `0x8BC4` `help_net` - description claimed X=&4A but body sets X=&35; corrected
 - [x] `0x8BD5` `print_cmd_table_loop` - description matches body's table walker
@@ -121,14 +121,14 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x93AB` `get_access_bits` - description matches body
 - [x] `0x93B5` `get_prot_bits` - description matches body
 - [x] `0x93C8` `prot_bit_encode_table` - description matches table layout
-- [ ] `0x93D3` `set_text_and_xfer_ptr`
-- [ ] `0x93D7` `set_xfer_params`
-- [ ] `0x93DD` `set_options_ptr`
-- [ ] `0x93E1` `clear_escapable`
-- [ ] `0x93E6` `cmp_5byte_handle`
-- [ ] `0x93F2` `fscv_7_read_handles`
-- [ ] `0x9446` `check_not_ampersand`
-- [ ] `0x9463` `copy_fs_cmd_name`
+- [x] `0x93D3` `set_text_and_xfer_ptr` - description's caller claim 'byte_to_2bit_index' was wrong; actual callers are fscv_3_star_cmd and ps_scan_resume
+- [x] `0x93D7` `set_xfer_params` - description matches body's transfer-context store; caller list approximate but correct
+- [x] `0x93DD` `set_options_ptr` - description matches body
+- [x] `0x93E1` `clear_escapable` - description matches body's PHP/LSR/PLP/RTS
+- [x] `0x93E6` `cmp_5byte_handle` - description matches body's EOR-loop comparison
+- [x] `0x93F2` `fscv_7_read_handles` - description matches body (X=&20, Y=&2F, RTS)
+- [x] `0x9446` `check_not_ampersand` - description matches body
+- [x] `0x9463` `copy_fs_cmd_name` - description matches body's backwards-scan / forward-copy
 - [x] `0x9612` `osbyte_a2` - description compared against body, accurate
 - [x] `0x962B` `osbyte_a2_value_tya` - description compared against body, accurate
 - [ ] `0x973D` `init_txcb_bye`

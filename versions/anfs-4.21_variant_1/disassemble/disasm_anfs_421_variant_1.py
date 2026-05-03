@@ -4164,10 +4164,13 @@ and ORs in the corresponding value from
 subroutine(0x93D3, "set_text_and_xfer_ptr",
     title="Set OS text pointer then transfer parameters",
     description="""\
-Stores `X`/`Y` into the MOS text pointer at `&F2`/`&F3`, then
-falls through to [`set_xfer_params`](address:93D7) and
+Stores `X`/`Y` into the MOS text pointer at `os_text_ptr` /
+`os_text_ptr_hi` (`&F2`/`&F3`), then falls through to
+[`set_xfer_params`](address:93D7) and
 [`set_options_ptr`](address:93DD) to configure the full FS
-transfer context. Called by `byte_to_2bit_index`.""",
+transfer context. Two callers:
+[`fscv_3_star_cmd`](address:A42F) (FSCV reason 3) and
+[`ps_scan_resume`](address:B0FE) (PS scan tail).""",
     on_entry={"x": "text pointer low byte",
               "y": "text pointer high byte"})
 subroutine(0x93D7, "set_xfer_params",
