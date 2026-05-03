@@ -8348,7 +8348,7 @@ bad_prefix_table = bad_str_anchor+1
 ; On Exit: A, X, Y: clobbered
 ; &9e82 referenced 2 times by &9c71, &9cfc
 .format_filename_field
-    ldy #0                                                            ; 9e82: a0 00       ..
+    ldy #0                                                            ; 9e82: a0 00       ..             ; Y=0: start writing at filename_buf[0]
     ldx hazel_txcb_network                                            ; 9e84: ae 03 c1    ...            ; Load source offset from l0f03
     bne copy_from_buf_entry                                           ; 9e87: d0 19       ..             ; Non-zero: copy from l0f05 buffer
 ; &9e89 referenced 1 time by &9e93
