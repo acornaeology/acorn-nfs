@@ -10151,7 +10151,26 @@ label(0x9984, "suffix_copy_loop")
 label(0x9A0D, "net_error_close_spool")
 label(0xA0CF, "osargs_store_ptr_lo")
 label(0xA0DB, "osargs_check_length")
-label(0xA103, "osargs_close_jump")
+data_banner(0xA103, "cmos_opt_mask_table",
+    title="CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
+    description="""\
+Used by the OSARGS-via-FSCV / *OPT 4 path
+([`osopt_check_cmos_protect`](address:A0DF)) to read or update bit
+fields inside CMOS RAM byte `&11` (the Econet status byte holding
+the auto-boot type and printer/messages flags).
+
+- **Indices 0-3** are extraction masks: `AND CMOS_&11` with
+  `&01`, `&02`, `&04`, `&06` returns bit 0, bit 1, bit 2 or
+  bits 1+2 respectively.
+- **Indices 4-7** are clear masks: `AND CMOS_&11` with `&FD`,
+  `&F3`, `&CF`, `&3F` zeroes bits 1, 2-3, 4-5 or 6-7 in turn,
+  before OR-ing the new value back in.
+
+A second indexed-base trick reads the same eight bytes through
+[`cmos_attr_table`](address:A0FF) (this label - 4): for write
+sub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double
+as the bit-shift counts that left-align the new value into its
+target field.""")
 # Force per-byte rendering so each AND mask carries an inline comment.
 for _i in range(8):
     byte(0xA103 + _i)
@@ -10594,7 +10613,16 @@ label(0x8877, "tx_flags_table")
 label(0x89C9, "nmi_shim_source")
 label(0x968F, "help_topic_template")
 label(0x99A3, "bad_prefix_table")
-label(0xA0FF, "cmos_attr_table")
+label(0xA0FF, "cmos_attr_table",
+    description="Indexing-base alias of "
+                "[`cmos_opt_mask_table`](address:A103) - 4.\n"
+                "`LDA cmos_attr_table,X` at &A0ED with X=4..7 reads "
+                "the read-masks 1, 2, 4, 6 from the underlying table; "
+                "those values double as bit-shift counts that left-"
+                "align the new field into CMOS &11. The byte at "
+                "&A0FF is inside the operand of the JSR at &A0FE "
+                "and is never read directly.",
+    length=1, group="idx_base", access="r")
 label(0xA76D, "cmd_dispatch_lo_table")
 label(0xA76E, "cmd_dispatch_hi_table")
 label(0xA878, "osword_subcode_dispatch")
@@ -14031,21 +14059,21 @@ comment(0xA094, "Parameter block low", inline=True)
 comment(0xA096, "Parameter block high", inline=True)
 
 # Print current FS info
-comment(0xA0A1, "Print station address", inline=True)
+comment(0xA0A1, "Clear hazel_fcb_addr_mid for slot Y", inline=True)
 
 # parse_fs_ps_args (&A08F) — parse net.station arguments for FS/PS
-comment(0xA0A7, "Save X on stack", inline=True)
-comment(0xA0A9, "A=0: initialise dot-seen flag", inline=True)
-comment(0xA0AB, "Clear dot-seen flag", inline=True)
-comment(0xA0AD, "Parse first number (network)", inline=True)
-comment(0xA0B3, "Push Y", inline=True)
-comment(0xA0B4, "Initialise bridge polling", inline=True)
-comment(0xA0B9, "Same: keep bridge result", inline=True)
-comment(0xA0BB, "Different: use parsed value", inline=True)
-comment(0xA0BD, "Store station low byte", inline=True)
-comment(0xA0C0, "Transfer back to Y", inline=True)
-comment(0xA0C5, "Zero result: skip store", inline=True)
-comment(0xA0CA, "Transfer back to X", inline=True)
+comment(0xA0A7, "Z still set from LDA #0: always branch to done_close", inline=True)
+comment(0xA0A9, "A=0 (init sub-code): jump to store_display_flag", inline=True)
+comment(0xA0AB, "Non-zero A: X==4? (read OSARGS args)", inline=True)
+comment(0xA0AD, "X != 4: take normal OSARGS dispatch", inline=True)
+comment(0xA0B3, "X-- (osargs_dispatch entry): step sub-code down", inline=True)
+comment(0xA0B4, "X != 1: take store-ptr-lo path", inline=True)
+comment(0xA0B9, "Tail-branch to done_close", inline=True)
+comment(0xA0BB, "A=7: error code (out-of-range OSARGS sub-code)", inline=True)
+comment(0xA0BD, "Raise BRK error", inline=True)
+comment(0xA0C0, "Store Y as TXCB data byte (OSARGS payload)", inline=True)
+comment(0xA0C5, "Send OSARGS request via TX control block", inline=True)
+comment(0xA0CA, "Update hazel_fs_flags from OSARGS reply", inline=True)
 
 # OSARGS sub-code dispatcher (&A0CF..&A101): osargs_store_ptr_lo
 # routes by sub-code. X = OSARGS sub-code (0..7), Y = OSARGS arg.
@@ -14064,7 +14092,7 @@ comment(0xA0DD, "Yes: argument out of range", inline=True)
 comment(0xA0E0, "Save sub-code across the CMOS read", inline=True)
 comment(0xA0E3, "Read CMOS &11 (Econet status) -> Y", inline=True)
 comment(0xA0E6, "Restore sub-code", inline=True)
-comment(0xA0E8, "Mask CMOS &11 with osargs_close_jump[X]", inline=True)
+comment(0xA0E8, "Mask CMOS &11 with cmos_opt_mask_table[X]", inline=True)
 comment(0xA0ED, "Load shift count from cmos_attr_table[X]", inline=True)
 comment(0xA0F1, "Caller's Y back to A as the value to shift",
     inline=True)
@@ -17193,13 +17221,13 @@ comment(0xA098, "Clear V flag", inline=True)
 comment(0xA099, "Scan and clear all FCB flags", inline=True)
 comment(0xA09C, "Return with last flag", inline=True)
 comment(0xA09F, "A=0: clear FCB entry", inline=True)
-comment(0xA0A4, "Clear l1040 (FCB flags)", inline=True)
-comment(0xA0AF, "Compare Y with 4", inline=True)
-comment(0xA0B1, "Below 4: handle special OSARGS", inline=True)
-comment(0xA0B6, "Store Y in display control flag l0e06", inline=True)
-comment(0xA0C3, "Y=&16: OSARGS save command", inline=True)
-comment(0xA0C8, "Reload block offset", inline=True)
-comment(0xA0CD, "Positive: return with flag", inline=True)
+comment(0xA0A4, "Clear hazel_fcb_state_byte for slot Y", inline=True)
+comment(0xA0AF, "X==4 path: Y < 4?", inline=True)
+comment(0xA0B1, "Yes: send OSARGS request via TXCB", inline=True)
+comment(0xA0B6, "Store Y as hazel_fs_messages_flag (display control)", inline=True)
+comment(0xA0C3, "Y=&16: TXCB function code (OSARGS request)", inline=True)
+comment(0xA0C8, "Reload Y from fs_block_offset", inline=True)
+comment(0xA0CD, "No error (positive): tail to done_close", inline=True)
 comment(0xA10B, "Verify workspace checksum", inline=True)
 comment(0xA10E, "Push checksum-verify result -- preserve it across "
     "the FCB lookups below", inline=True)

@@ -8770,9 +8770,9 @@ bad_prefix_table = bad_str_anchor+1
 ; &a09f referenced 1 time by &a096
 .clear_single_fcb
     lda #0                                                            ; a09f: a9 00       ..             ; A=0: clear FCB entry
-    sta hazel_fcb_addr_mid,y                                          ; a0a1: 99 10 c2    ...            ; Print station address
-    sta hazel_fcb_state_byte,y                                        ; a0a4: 99 40 c2    .@.            ; Clear l1040 (FCB flags)
-    beq done_close                                                    ; a0a7: f0 f3       ..             ; Save X on stack
+    sta hazel_fcb_addr_mid,y                                          ; a0a1: 99 10 c2    ...            ; Clear hazel_fcb_addr_mid for slot Y
+    sta hazel_fcb_state_byte,y                                        ; a0a4: 99 40 c2    .@.            ; Clear hazel_fcb_state_byte for slot Y
+    beq done_close                                                    ; a0a7: f0 f3       ..             ; Z still set from LDA #0: always branch to done_close
 
 ; ***************************************************************************************
 ; FSCV reason 0: read OSARGS
@@ -8784,32 +8784,32 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; On Entry: A: OSARGS sub-function (0 = initialise) X: argument index (0-3)
 .fscv_0_opt_entry
-    beq store_display_flag                                            ; a0a9: f0 0b       ..             ; A=0: initialise dot-seen flag
-    cpx #4                                                            ; a0ab: e0 04       ..             ; Clear dot-seen flag
-    bne osargs_dispatch                                               ; a0ad: d0 04       ..             ; Parse first number (network)
-    cpy #4                                                            ; a0af: c0 04       ..             ; Compare Y with 4
-    bcc send_osargs_request                                           ; a0b1: 90 0d       ..             ; Below 4: handle special OSARGS
+    beq store_display_flag                                            ; a0a9: f0 0b       ..             ; A=0 (init sub-code): jump to store_display_flag
+    cpx #4                                                            ; a0ab: e0 04       ..             ; Non-zero A: X==4? (read OSARGS args)
+    bne osargs_dispatch                                               ; a0ad: d0 04       ..             ; X != 4: take normal OSARGS dispatch
+    cpy #4                                                            ; a0af: c0 04       ..             ; X==4 path: Y < 4?
+    bcc send_osargs_request                                           ; a0b1: 90 0d       ..             ; Yes: send OSARGS request via TXCB
 ; &a0b3 referenced 1 time by &a0ad
 .osargs_dispatch
-    dex                                                               ; a0b3: ca          .              ; Push Y
-    bne osargs_store_ptr_lo                                           ; a0b4: d0 19       ..             ; Initialise bridge polling
+    dex                                                               ; a0b3: ca          .              ; X-- (osargs_dispatch entry): step sub-code down
+    bne osargs_store_ptr_lo                                           ; a0b4: d0 19       ..             ; X != 1: take store-ptr-lo path
 ; &a0b6 referenced 1 time by &a0a9
 .store_display_flag
-    sty hazel_fs_messages_flag                                        ; a0b6: 8c 06 c0    ...            ; Store Y in display control flag l0e06
-    bcc done_close                                                    ; a0b9: 90 e1       ..             ; Same: keep bridge result
+    sty hazel_fs_messages_flag                                        ; a0b6: 8c 06 c0    ...            ; Store Y as hazel_fs_messages_flag (display control)
+    bcc done_close                                                    ; a0b9: 90 e1       ..             ; Tail-branch to done_close
 ; &a0bb referenced 2 times by &a0d1, &a0dd
 .error_osargs
-    lda #7                                                            ; a0bb: a9 07       ..             ; Different: use parsed value
-    jmp classify_reply_error                                          ; a0bd: 4c 3d 99    L=.            ; Store station low byte
+    lda #7                                                            ; a0bb: a9 07       ..             ; A=7: error code (out-of-range OSARGS sub-code)
+    jmp classify_reply_error                                          ; a0bd: 4c 3d 99    L=.            ; Raise BRK error
 
 ; &a0c0 referenced 1 time by &a0b1
 .send_osargs_request
-    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...            ; Transfer back to Y
-    ldy #&16                                                          ; a0c3: a0 16       ..             ; Y=&16: OSARGS save command
-    jsr save_net_tx_cb                                                ; a0c5: 20 8a 97     ..            ; Zero result: skip store
-    ldy fs_block_offset                                               ; a0c8: a4 bc       ..             ; Reload block offset
-    sty hazel_fs_flags                                                ; a0ca: 8c 05 c0    ...            ; Transfer back to X
-    bpl done_close                                                    ; a0cd: 10 cd       ..             ; Positive: return with flag
+    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...            ; Store Y as TXCB data byte (OSARGS payload)
+    ldy #&16                                                          ; a0c3: a0 16       ..             ; Y=&16: TXCB function code (OSARGS request)
+    jsr save_net_tx_cb                                                ; a0c5: 20 8a 97     ..            ; Send OSARGS request via TX control block
+    ldy fs_block_offset                                               ; a0c8: a4 bc       ..             ; Reload Y from fs_block_offset
+    sty hazel_fs_flags                                                ; a0ca: 8c 05 c0    ...            ; Update hazel_fs_flags from OSARGS reply
+    bpl done_close                                                    ; a0cd: 10 cd       ..             ; No error (positive): tail to done_close
 ; &a0cf referenced 1 time by &a0b4
 .osargs_store_ptr_lo
     cpx #8                                                            ; a0cf: e0 08       ..             ; X >= 8?
@@ -8830,7 +8830,7 @@ bad_prefix_table = bad_str_anchor+1
     jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..            ; Read CMOS &11 (Econet status) -> Y
     plx                                                               ; a0e6: fa          .              ; Restore sub-code
     tya                                                               ; a0e7: 98          .              ; Read CMOS &11 result to A
-    and osargs_close_jump,x                                           ; a0e8: 3d 03 a1    =..            ; Mask CMOS &11 with osargs_close_jump[X]
+    and cmos_opt_mask_table,x                                         ; a0e8: 3d 03 a1    =..            ; Mask CMOS &11 with cmos_opt_mask_table[X]
     ply                                                               ; a0eb: 7a          z
     pha                                                               ; a0ec: 48          H              ; Push CMOS value
     lda cmos_attr_table,x                                             ; a0ed: bd ff a0    ...            ; Load shift count from cmos_attr_table[X]
@@ -8851,8 +8851,23 @@ cmos_attr_table = sub_ca0fe+1
     jsr osbyte_a2                                                     ; a0fe: 20 12 96     ..            ; Write CMOS RAM byte (Y) to byte index (X)
 ; &a0ff referenced 1 time by &a0ed
     bra done_close                                                    ; a101: 80 99       ..             ; Tail-branch into the OSARGS done path
+; ***************************************************************************************
+; CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)
+;
+; Used by the OSARGS-via-FSCV / *OPT 4 path (osopt_check_cmos_protect) to read or
+; update bit fields inside CMOS RAM byte &11 (the Econet status byte holding the
+; auto-boot type and printer/messages flags).
+;
+; - Indices 0-3 are extraction masks: AND CMOS_&11 with &01, &02, &04, &06 returns bit
+;   0, bit 1, bit 2 or bits 1+2 respectively.
+; - Indices 4-7 are clear masks: AND CMOS_&11 with &FD, &F3, &CF, &3F zeroes bits 1,
+;   2-3, 4-5 or 6-7 in turn, before OR-ing the new value back in.
+;
+; A second indexed-base trick reads the same eight bytes through cmos_attr_table (this
+; label - 4): for write sub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double
+; as the bit-shift counts that left-align the new value into its target field.
 ; &a103 referenced 1 time by &a0e8
-.osargs_close_jump
+.cmos_opt_mask_table
     equb 1                                                            ; a103: 01          .              ; Idx 0: AND mask = &01 (extract CMOS &11 bit 0)
     equb 2                                                            ; a104: 02          .              ; Idx 1: AND mask = &02 (extract CMOS &11 bit 1)
     equb 4                                                            ; a105: 04          .              ; Idx 2: AND mask = &04 (extract CMOS &11 bit 2)
@@ -16778,6 +16793,7 @@ save pydis_start, pydis_end
 ;     cmd_syntax_table:                1
 ;     cmd_table_nfs_iam:               1
 ;     cmos_attr_table:                 1
+;     cmos_opt_mask_table:             1
 ;     col_sep_print_char:              1
 ;     col_sep_print_cr:                1
 ;     commit_workspace_pages:          1
@@ -17214,7 +17230,6 @@ save pydis_start, pydis_end
 ;     option_offset_table:             1
 ;     option_str_offset_data:          1
 ;     osargs_check_length:             1
-;     osargs_close_jump:               1
 ;     osargs_dispatch:                 1
 ;     osargs_ptr_dispatch:             1
 ;     osargs_read_op:                  1
