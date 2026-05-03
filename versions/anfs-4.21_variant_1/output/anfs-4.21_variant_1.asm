@@ -10283,134 +10283,107 @@ cmos_attr_table = sub_ca0fe+1
 .cmd_table_fs
 cmd_dispatch_lo_table = cmd_table_fs+1
 cmd_dispatch_hi_table = cmd_table_fs+2
-    equs "Net"                                                        ; a76c: 4e 65 74    Net            ; *Net -- no syn -- Econet HW check + select NFS -> cmd_net_check_hw (&8B39)
+    equs "Net"                                                        ; a76c: 4e 65 74    Net            ; Econet HW check + select NFS
 ; &a76d referenced 2 times by &8c87, &a456
 ; &a76e referenced 2 times by &8c83, &a452
-    equb &80                                                          ; a76f: 80          .
-    equb <(cmd_net_check_hw-1)                                        ; a770: 38          8
-    equb >(cmd_net_check_hw-1)                                        ; a771: 8b          .
-    equs "Pollps"                                                     ; a772: 50 6f 6c... Pol            ; *Pollps -- syn 8: (<stn. id.>|<ps type>) -> cmd_pollps (&B581)
-    equb &88                                                          ; a778: 88          .
-    equb <(cmd_pollps-1)                                              ; a779: 80          .
-    equb >(cmd_pollps-1)                                              ; a77a: b5          .
-    equs "Prot"                                                       ; a77b: 50 72 6f... Pro            ; *Prot -- no syn -- toggle CMOS protection bit -> cmd_prot (&B6D2)
-    equb &80                                                          ; a77f: 80          .
-    equb <(cmd_prot-1)                                                ; a780: d1          .
-    equb >(cmd_prot-1)                                                ; a781: b6          .
-    equs "PS"                                                         ; a782: 50 53       PS             ; *PS -- syn 8: (<stn. id.>|<ps type>) -> cmd_ps (&B3AC)
-    equb &88                                                          ; a784: 88          .
-    equb <(cmd_ps-1)                                                  ; a785: ab          .
-    equb >(cmd_ps-1)                                                  ; a786: b3          .
-    equs "Roff"                                                       ; a787: 52 6f 66... Rof            ; *Roff -- no syn -- printer offline -> cmd_roff (&8AEA)
-    equb &80                                                          ; a78b: 80          .
-    equb <(cmd_roff-1)                                                ; a78c: e9          .
-    equb >(cmd_roff-1)                                                ; a78d: 8a          .
-    equs "Unprot"                                                     ; a78e: 55 6e 70... Unp            ; *Unprot -- no syn -- toggle CMOS protection bit -> cmd_unprot (&B6D6)
-    equb &80                                                          ; a794: 80          .
-    equb <(cmd_unprot-1)                                              ; a795: d5          .
-    equb >(cmd_unprot-1)                                              ; a796: b6          .
-    equs "Wdump"                                                      ; a797: 57 64 75... Wdu            ; *Wdump -- V if no arg; syn 4 -- *DUMP alias -> cmd_dump (&BD41)
-    equb &c4                                                          ; a79c: c4          .
-    equb <(cmd_dump-1)                                                ; a79d: 40          @
-    equb >(cmd_dump-1)                                                ; a79e: bd          .
+    equb &80                                                          ; a76f: 80          .              ; no syn
+    equw cmd_net_check_hw-1                                           ; a770: 38 8b       8.
+    equs "Pollps"                                                     ; a772: 50 6f 6c... Pol            ; syn 8: (<stn. id.>|<ps type>)
+    equb &88                                                          ; a778: 88          .              ; syn &8
+    equw cmd_pollps-1                                                 ; a779: 80 b5       ..
+    equs "Prot"                                                       ; a77b: 50 72 6f... Pro            ; toggle CMOS protection bit
+    equb &80                                                          ; a77f: 80          .              ; no syn
+    equw cmd_prot-1                                                   ; a780: d1 b6       ..
+    equs "PS"                                                         ; a782: 50 53       PS             ; syn 8: (<stn. id.>|<ps type>)
+    equb &88                                                          ; a784: 88          .              ; syn &8
+    equw cmd_ps-1                                                     ; a785: ab b3       ..
+    equs "Roff"                                                       ; a787: 52 6f 66... Rof            ; printer offline
+    equb &80                                                          ; a78b: 80          .              ; no syn
+    equw cmd_roff-1                                                   ; a78c: e9 8a       ..
+    equs "Unprot"                                                     ; a78e: 55 6e 70... Unp            ; toggle CMOS protection bit
+    equb &80                                                          ; a794: 80          .              ; no syn
+    equw cmd_unprot-1                                                 ; a795: d5 b6       ..
+    equs "Wdump"                                                      ; a797: 57 64 75... Wdu            ; syn 4 -- *DUMP alias
+    equb &c4                                                          ; a79c: c4          .              ; syn &4, V if no arg
+    equw cmd_dump-1                                                   ; a79d: 40 bd       @.
     equb &80                                                          ; a79f: 80          .              ; Sub-table 1 end (walker reads &80 -> stop)
     equb &80                                                          ; a7a0: 80          .              ; Padding (alignment before sub-table 2)
 .cmd_table_nfs
-    equs "Access"                                                     ; a7a1: 41 63 63... Acc            ; *Access -- V if no arg; syn 9: <obj> (L)(W)(R)... -> cmd_fs_operation (&9425)
-    equb &c9                                                          ; a7a7: c9          .
-    equb <(cmd_fs_operation-1)                                        ; a7a8: 24          $
-    equb >(cmd_fs_operation-1)                                        ; a7a9: 94          .
-    equs "Bye"                                                        ; a7aa: 42 79 65    Bye            ; *Bye -- no syn -- log off FS -> cmd_bye (&9776)
-    equb &80                                                          ; a7ad: 80          .
-    equb <(cmd_bye-1)                                                 ; a7ae: 75          u
-    equb >(cmd_bye-1)                                                 ; a7af: 97          .
-    equs "Cdir"                                                       ; a7b0: 43 64 69... Cdi            ; *Cdir -- V if no arg; syn 6 -- create directory -> cmd_cdir (&B0A1)
-    equb &c6                                                          ; a7b4: c6          .
-    equb <(cmd_cdir-1)                                                ; a7b5: a0          .
-    equb >(cmd_cdir-1)                                                ; a7b6: b0          .
-    equs "Dir"                                                        ; a7b7: 44 69 72    Dir            ; *Dir -- syn 1: (<dir>) -> cmd_dir (&9512)
-    equb &81                                                          ; a7ba: 81          .
-    equb <(cmd_dir-1)                                                 ; a7bb: 11          .
-    equb >(cmd_dir-1)                                                 ; a7bc: 95          .
-    equs "Flip"                                                       ; a7bd: 46 6c 69... Fli            ; *Flip -- no syn -- swap fs/private workspace -> cmd_flip (&A69A)
-    equb &80                                                          ; a7c1: 80          .
-    equb <(cmd_flip-1)                                                ; a7c2: 99          .
-    equb >(cmd_flip-1)                                                ; a7c3: a6          .
-    equs "FS"                                                         ; a7c4: 46 53       FS             ; *FS -- syn &B -- file-server selection -> cmd_fs (&A398)
-    equb &8b                                                          ; a7c6: 8b          .
-    equb <(cmd_fs-1)                                                  ; a7c7: 97          .
-    equb >(cmd_fs-1)                                                  ; a7c8: a3          .
+    equs "Access"                                                     ; a7a1: 41 63 63... Acc            ; syn 9: <obj> (L)(W)(R)...
+    equb &c9                                                          ; a7a7: c9          .              ; syn &9, V if no arg
+    equw cmd_fs_operation-1                                           ; a7a8: 24 94       $.
+    equs "Bye"                                                        ; a7aa: 42 79 65    Bye            ; log off FS
+    equb &80                                                          ; a7ad: 80          .              ; no syn
+    equw cmd_bye-1                                                    ; a7ae: 75 97       u.
+    equs "Cdir"                                                       ; a7b0: 43 64 69... Cdi            ; syn 6 -- create directory
+    equb &c6                                                          ; a7b4: c6          .              ; syn &6, V if no arg
+    equw cmd_cdir-1                                                   ; a7b5: a0 b0       ..
+    equs "Dir"                                                        ; a7b7: 44 69 72    Dir            ; syn 1: (<dir>)
+    equb &81                                                          ; a7ba: 81          .              ; syn &1
+    equw cmd_dir-1                                                    ; a7bb: 11 95       ..
+    equs "Flip"                                                       ; a7bd: 46 6c 69... Fli            ; swap fs/private workspace
+    equb &80                                                          ; a7c1: 80          .              ; no syn
+    equw cmd_flip-1                                                   ; a7c2: 99 a6       ..
+    equs "FS"                                                         ; a7c4: 46 53       FS             ; syn &B -- file-server selection
+    equb &8b                                                          ; a7c6: 8b          .              ; syn &B
+    equw cmd_fs-1                                                     ; a7c7: 97 a3       ..
 ; &a7c9 referenced 1 time by &8dc8
 .cmd_table_nfs_iam
-    equs "I am"                                                       ; a7c9: 49 20 61... I a            ; *I am -- V if no arg; syn 2: (<stn>) <user>... -> cmd_iam_save_ctx (&8D87)
-    equb &c2                                                          ; a7cd: c2          .
-    equb <(cmd_iam_save_ctx-1)                                        ; a7ce: 86          .
-    equb >(cmd_iam_save_ctx-1)                                        ; a7cf: 8d          .
-    equs "Lcat"                                                       ; a7d0: 4c 63 61... Lca            ; *Lcat -- syn 1: (<dir>) -- *CAT of library -> cmd_lcat (&B0F2)
-    equb &81                                                          ; a7d4: 81          .
-    equb <(cmd_lcat-1)                                                ; a7d5: f1          .
-    equb >(cmd_lcat-1)                                                ; a7d6: b0          .
-    equs "Lex"                                                        ; a7d7: 4c 65 78    Lex            ; *Lex -- syn 1: (<dir>) -- *EX of library -> cmd_lex (&B0F8)
-    equb &81                                                          ; a7da: 81          .
-    equb <(cmd_lex-1)                                                 ; a7db: f7          .
-    equb >(cmd_lex-1)                                                 ; a7dc: b0          .
-    equs "Lib"                                                        ; a7dd: 4c 69 62    Lib            ; *Lib -- V if no arg; syn 5: <dir> -- set library -> cmd_fs_operation (&9425)
-    equb &c5                                                          ; a7e0: c5          .
-    equb <(cmd_fs_operation-1)                                        ; a7e1: 24          $
-    equb >(cmd_fs_operation-1)                                        ; a7e2: 94          .
-    equs "Pass"                                                       ; a7e3: 50 61 73... Pas            ; *Pass -- V if no arg; syn 7: <pass> ... -> cmd_pass (&8DD5)
-    equb &c7                                                          ; a7e7: c7          .
-    equb <(cmd_pass-1)                                                ; a7e8: d4          .
-    equb >(cmd_pass-1)                                                ; a7e9: 8d          .
-    equs "Rename"                                                     ; a7ea: 52 65 6e... Ren            ; *Rename -- V if no arg; syn &A: <old> <new> -> cmd_rename (&94C5)
-    equb &ca                                                          ; a7f0: ca          .
-    equb <(cmd_rename-1)                                              ; a7f1: c4          .
-    equb >(cmd_rename-1)                                              ; a7f2: 94          .
-    equs "Wipe"                                                       ; a7f3: 57 69 70... Wip            ; *Wipe -- syn 1: (<dir>) -- delete with confirm -> cmd_wipe (&B6F3)
-    equb &81                                                          ; a7f7: 81          .
-    equb <(cmd_wipe-1)                                                ; a7f8: f2          .
-    equb >(cmd_wipe-1)                                                ; a7f9: b6          .
+    equs "I am"                                                       ; a7c9: 49 20 61... I a            ; syn 2: (<stn>) <user>...
+    equb &c2                                                          ; a7cd: c2          .              ; syn &2, V if no arg
+    equw cmd_iam_save_ctx-1                                           ; a7ce: 86 8d       ..
+    equs "Lcat"                                                       ; a7d0: 4c 63 61... Lca            ; syn 1: (<dir>) -- *CAT of library
+    equb &81                                                          ; a7d4: 81          .              ; syn &1
+    equw cmd_lcat-1                                                   ; a7d5: f1 b0       ..
+    equs "Lex"                                                        ; a7d7: 4c 65 78    Lex            ; syn 1: (<dir>) -- *EX of library
+    equb &81                                                          ; a7da: 81          .              ; syn &1
+    equw cmd_lex-1                                                    ; a7db: f7 b0       ..
+    equs "Lib"                                                        ; a7dd: 4c 69 62    Lib            ; syn 5: <dir> -- set library
+    equb &c5                                                          ; a7e0: c5          .              ; syn &5, V if no arg
+    equw cmd_fs_operation-1                                           ; a7e1: 24 94       $.
+    equs "Pass"                                                       ; a7e3: 50 61 73... Pas            ; syn 7: <pass> ...
+    equb &c7                                                          ; a7e7: c7          .              ; syn &7, V if no arg
+    equw cmd_pass-1                                                   ; a7e8: d4 8d       ..
+    equs "Rename"                                                     ; a7ea: 52 65 6e... Ren            ; syn &A: <old> <new>
+    equb &ca                                                          ; a7f0: ca          .              ; syn &A, V if no arg
+    equw cmd_rename-1                                                 ; a7f1: c4 94       ..
+    equs "Wipe"                                                       ; a7f3: 57 69 70... Wip            ; syn 1: (<dir>) -- delete with confirm
+    equb &81                                                          ; a7f7: 81          .              ; syn &1
+    equw cmd_wipe-1                                                   ; a7f8: f2 b6       ..
     equb &80                                                          ; a7fa: 80          .              ; Sub-table 2 end (walker reads &80 -> stop)
     equb &2c                                                          ; a7fb: 2c          ,              ; Padding -- &2C 8E happens to spell &8E2D = check_urd_prefix but is never read
     equb &8e                                                          ; a7fc: 8e          .              ; Padding (continued)
 .cmd_table_help_topics
-    equs "Net"                                                        ; a7fd: 4e 65 74    Net            ; *Net -- no syn -- *HELP NET -> help_net (&8BC4)
-    equb &80                                                          ; a800: 80          .
-    equb <(help_net-1)                                                ; a801: c3          .
-    equb >(help_net-1)                                                ; a802: 8b          .
-    equs "Utils"                                                      ; a803: 55 74 69... Uti            ; *Utils -- no syn -- *HELP UTILS -> help_utils (&8BC0)
-    equb &80                                                          ; a808: 80          .
-    equb <(help_utils-1)                                              ; a809: bf          .
-    equb >(help_utils-1)                                              ; a80a: 8b          .
+    equs "Net"                                                        ; a7fd: 4e 65 74    Net            ; *HELP NET
+    equb &80                                                          ; a800: 80          .              ; no syn
+    equw help_net-1                                                   ; a801: c3 8b       ..
+    equs "Utils"                                                      ; a803: 55 74 69... Uti            ; *HELP UTILS
+    equb &80                                                          ; a808: 80          .              ; no syn
+    equw help_utils-1                                                 ; a809: bf 8b       ..
     equb &80                                                          ; a80b: 80          .              ; Sub-table 3 end (walker reads &80 -> stop)
 .cmd_table_syntax_help
-    equs "FS"                                                         ; a80c: 46 53       FS             ; *FS -- syn 1 (FS not selected -- &95EE) -> syntax-help-only entry
-    equb &c1                                                          ; a80e: c1          .
-    equb &ed                                                          ; a80f: ed          .
-    equb &95                                                          ; a810: 95          .
-    equs "PS"                                                         ; a811: 50 53       PS             ; *PS -- syn 3 (PS not selected -- &95EE) -> syntax-help-only entry
-    equb &c3                                                          ; a813: c3          .
-    equb &ed                                                          ; a814: ed          .
-    equb &95                                                          ; a815: 95          .
-    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS            ; *NoSpace -- no syn (caller &9623) -> syntax-help-only entry
-    equb &80                                                          ; a81d: 80          .
-    equb &22                                                          ; a81e: 22          "
-    equb &96                                                          ; a81f: 96          .
-    equs "Space"                                                      ; a820: 53 70 61... Spa            ; *Space -- no syn (caller &9619) -> syntax-help-only entry
-    equb &80                                                          ; a825: 80          .
-    equb &18                                                          ; a826: 18          .
-    equb &96                                                          ; a827: 96          .
+    equs "FS"                                                         ; a80c: 46 53       FS             ; FS not selected
+    equb &c1                                                          ; a80e: c1          .              ; syn &1, V if no arg
+    equw set_fs_or_ps_cmos_station-1                                  ; a80f: ed 95       ..
+    equs "PS"                                                         ; a811: 50 53       PS             ; PS not selected
+    equb &c3                                                          ; a813: c3          .              ; syn &3, V if no arg
+    equw set_fs_or_ps_cmos_station-1                                  ; a814: ed 95       ..
+    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS            ; caller &9623
+    equb &80                                                          ; a81d: 80          .              ; no syn
+    equw &9622                                                        ; a81e: 22 96       ".
+    equs "Space"                                                      ; a820: 53 70 61... Spa            ; caller &9619
+    equb &80                                                          ; a825: 80          .              ; no syn
+    equw &9618                                                        ; a826: 18 96       ..
     equb &80                                                          ; a828: 80          .              ; Sub-tables 4/5 separator
-    equs "FS"                                                         ; a829: 46 53       FS             ; *FS -- syn 1 (caller &9670) -> syntax-help-only entry
-    equb &81                                                          ; a82b: 81          .
-    equb &6f                                                          ; a82c: 6f          o
-    equb &96                                                          ; a82d: 96          .
-    equs "PS"                                                         ; a82e: 50 53       PS             ; *PS -- syn 3 (caller &965F) -> syntax-help-only entry
-    equb &83                                                          ; a830: 83          .
-    equb &5e                                                          ; a831: 5e          ^
-    equb &96                                                          ; a832: 96          .
-    equs "Space"                                                      ; a833: 53 70 61... Spa
-    equb &80, &41, &96                                                ; a838: 80 41 96    .A.
+    equs "FS"                                                         ; a829: 46 53       FS             ; caller &9670
+    equb &81                                                          ; a82b: 81          .              ; syn &1
+    equw print_fs_network-1                                           ; a82c: 6f 96       o.
+    equs "PS"                                                         ; a82e: 50 53       PS             ; caller &965F
+    equb &83                                                          ; a830: 83          .              ; syn &3
+    equw print_network_from_cmos-1                                    ; a831: 5e 96       ^.
+    equs "Space"                                                      ; a833: 53 70 61... Spa            ; caller &9641
+    equb &80                                                          ; a838: 80          .              ; no syn
+    equw &9641                                                        ; a839: 41 96       A.
 
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
@@ -15917,27 +15890,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert (255 - inkey_key_ctrl) EOR 128 == &81
     assert <(check_help_continuation-1) == &89
     assert <(check_urd_present-1) == &db
-    assert <(cmd_bye-1) == &75
-    assert <(cmd_cdir-1) == &a0
-    assert <(cmd_dir-1) == &11
-    assert <(cmd_dump-1) == &40
-    assert <(cmd_flip-1) == &99
-    assert <(cmd_fs-1) == &97
-    assert <(cmd_fs_operation-1) == &24
-    assert <(cmd_iam_save_ctx-1) == &86
     assert <(cmd_info_dispatch-1) == &56
-    assert <(cmd_lcat-1) == &f1
-    assert <(cmd_lex-1) == &f7
-    assert <(cmd_net_check_hw-1) == &38
-    assert <(cmd_pass-1) == &d4
-    assert <(cmd_pollps-1) == &80
-    assert <(cmd_prot-1) == &d1
-    assert <(cmd_ps-1) == &ab
-    assert <(cmd_rename-1) == &c4
-    assert <(cmd_roff-1) == &e9
     assert <(cmd_run_via_urd-1) == &f0
-    assert <(cmd_unprot-1) == &d5
-    assert <(cmd_wipe-1) == &f2
     assert <(copy_template_to_zp-1) == &72
     assert <(dispatch_rts-1) == &6f
     assert <(econet_restore-1) == &6b
@@ -15954,8 +15908,6 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(fsreply_2_skip_handles) == &fe
     assert <(fsreply_3_set_csd-1) == &37
     assert <(fsreply_5_set_lib-1) == &3d
-    assert <(help_net-1) == &c3
-    assert <(help_utils-1) == &bf
     assert <(lang_0_insert_remote_key-1) == &ae
     assert <(lang_1_remote_boot-1) == &4f
     assert <(lang_2_save_palette_vdu-1) == &19
@@ -16023,27 +15975,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert <(wait_idle_and_reset-1) == &a5
     assert >(check_help_continuation-1) == &8e
     assert >(check_urd_present-1) == &a4
-    assert >(cmd_bye-1) == &97
-    assert >(cmd_cdir-1) == &b0
-    assert >(cmd_dir-1) == &95
-    assert >(cmd_dump-1) == &bd
-    assert >(cmd_flip-1) == &a6
-    assert >(cmd_fs-1) == &a3
-    assert >(cmd_fs_operation-1) == &94
-    assert >(cmd_iam_save_ctx-1) == &8d
     assert >(cmd_info_dispatch-1) == &b3
-    assert >(cmd_lcat-1) == &b0
-    assert >(cmd_lex-1) == &b0
-    assert >(cmd_net_check_hw-1) == &8b
-    assert >(cmd_pass-1) == &8d
-    assert >(cmd_pollps-1) == &b5
-    assert >(cmd_prot-1) == &b6
-    assert >(cmd_ps-1) == &b3
-    assert >(cmd_rename-1) == &94
-    assert >(cmd_roff-1) == &8a
     assert >(cmd_run_via_urd-1) == &a4
-    assert >(cmd_unprot-1) == &b6
-    assert >(cmd_wipe-1) == &b6
     assert >(copy_template_to_zp-1) == &8e
     assert >(dispatch_rts-1) == &8e
     assert >(econet_restore-1) == &80
@@ -16060,8 +15993,6 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert >(fsreply_2_skip_handles) == &a6
     assert >(fsreply_3_set_csd-1) == &a6
     assert >(fsreply_5_set_lib-1) == &a6
-    assert >(help_net-1) == &8b
-    assert >(help_utils-1) == &8b
     assert >(lang_0_insert_remote_key-1) == &98
     assert >(lang_1_remote_boot-1) == &98
     assert >(lang_2_save_palette_vdu-1) == &b0
@@ -16115,6 +16046,25 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert argsv_handler == &9eab
     assert bgetv_handler == &bb68
     assert bputv_handler == &bbe7
+    assert cmd_bye-1 == &9775
+    assert cmd_cdir-1 == &b0a0
+    assert cmd_dir-1 == &9511
+    assert cmd_dump-1 == &bd40
+    assert cmd_flip-1 == &a699
+    assert cmd_fs-1 == &a397
+    assert cmd_fs_operation-1 == &9424
+    assert cmd_iam_save_ctx-1 == &8d86
+    assert cmd_lcat-1 == &b0f1
+    assert cmd_lex-1 == &b0f7
+    assert cmd_net_check_hw-1 == &8b38
+    assert cmd_pass-1 == &8dd4
+    assert cmd_pollps-1 == &b580
+    assert cmd_prot-1 == &b6d1
+    assert cmd_ps-1 == &b3ab
+    assert cmd_rename-1 == &94c4
+    assert cmd_roff-1 == &8ae9
+    assert cmd_unprot-1 == &b6d5
+    assert cmd_wipe-1 == &b6f2
     assert copyright - rom_header == &19
     assert ev_argsv == &ff1e
     assert ev_bgetv == &ff21
@@ -16127,6 +16077,11 @@ net_chan_err_strings = err_net_chan_not_found+2
     assert findv_handler == &a02f
     assert fscv_handler == &8e4b
     assert gbpbv_handler == &a14c
+    assert help_net-1 == &8bc3
+    assert help_utils-1 == &8bbf
+    assert print_fs_network-1 == &966f
+    assert print_network_from_cmos-1 == &965e
+    assert set_fs_or_ps_cmos_station-1 == &95ed
     assert syn_access - cmd_syntax_strings - 1 == &b1
     assert syn_iam - cmd_syntax_strings - 1 == &07
     assert syn_iam - cmd_syntax_strings - 2 == &06
@@ -17551,7 +17506,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1953 bytes (12%)
 ;
 ;     Number of instructions   = 7108
-;     Number of data bytes     = 644 bytes
-;     Number of data words     = 28 bytes
+;     Number of data bytes     = 586 bytes
+;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 151

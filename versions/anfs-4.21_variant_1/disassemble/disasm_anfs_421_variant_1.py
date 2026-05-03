@@ -12062,98 +12062,75 @@ entry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS
 arrives at `target`. Per-entry inline comments below name the
 command, syntax-template index, and dispatch target.""")
 
-# Each entry: (name_addr, name, flag_byte_addr, addr_lo_addr,
+# Each entry: (name_addr, name, flag_addr, flag_byte, lo_addr,
 #              target_label, syntax_role).
 # 'name' is the visible *command name (without the leading *).
-# Where target_label is None, expression falls back to a literal.
+# 'flag_byte' is the flag byte's value at flag_addr; bit 7 is the
+# end-of-name marker, bit 6 = "V if no arg", bits 0-4 = syntax index.
+# 'target_label' may be None for syntax-help-only entries whose target
+# has no semantic label.
 _cmd_table_fs_entries = [
     # --- Sub-table 1: utility commands ---
-    (0xA76C, "Net",     0xA76F, 0xA770, "cmd_net_check_hw", "no syn -- Econet HW check + select NFS"),
-    (0xA772, "Pollps",  0xA778, 0xA779, "cmd_pollps",       "syn 8: (<stn. id.>|<ps type>)"),
-    (0xA77B, "Prot",    0xA77F, 0xA780, "cmd_prot",         "no syn -- toggle CMOS protection bit"),
-    (0xA782, "PS",      0xA784, 0xA785, "cmd_ps",           "syn 8: (<stn. id.>|<ps type>)"),
-    (0xA787, "Roff",    0xA78B, 0xA78C, "cmd_roff",         "no syn -- printer offline"),
-    (0xA78E, "Unprot",  0xA794, 0xA795, "cmd_unprot",       "no syn -- toggle CMOS protection bit"),
-    (0xA797, "Wdump",   0xA79C, 0xA79D, "cmd_dump",         "V if no arg; syn 4 -- *DUMP alias"),
+    (0xA76C, "Net",     0xA76F, 0x80, 0xA770, "cmd_net_check_hw", "Econet HW check + select NFS"),
+    (0xA772, "Pollps",  0xA778, 0x88, 0xA779, "cmd_pollps",       "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA77B, "Prot",    0xA77F, 0x80, 0xA780, "cmd_prot",         "toggle CMOS protection bit"),
+    (0xA782, "PS",      0xA784, 0x88, 0xA785, "cmd_ps",           "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA787, "Roff",    0xA78B, 0x80, 0xA78C, "cmd_roff",         "printer offline"),
+    (0xA78E, "Unprot",  0xA794, 0x80, 0xA795, "cmd_unprot",       "toggle CMOS protection bit"),
+    (0xA797, "Wdump",   0xA79C, 0xC4, 0xA79D, "cmd_dump",         "syn 4 -- *DUMP alias"),
     # sub-table 1 sentinel at &A79F, padding at &A7A0
     # --- Sub-table 2: NFS commands ---
-    (0xA7A1, "Access",  0xA7A7, 0xA7A8, "cmd_fs_operation", "V if no arg; syn 9: <obj> (L)(W)(R)..."),
-    (0xA7AA, "Bye",     0xA7AD, 0xA7AE, "cmd_bye",          "no syn -- log off FS"),
-    (0xA7B0, "Cdir",    0xA7B4, 0xA7B5, "cmd_cdir",         "V if no arg; syn 6 -- create directory"),
-    (0xA7B7, "Dir",     0xA7BA, 0xA7BB, "cmd_dir",          "syn 1: (<dir>)"),
-    (0xA7BD, "Flip",    0xA7C1, 0xA7C2, "cmd_flip",         "no syn -- swap fs/private workspace"),
-    (0xA7C4, "FS",      0xA7C6, 0xA7C7, "cmd_fs",           "syn &B -- file-server selection"),
-    (0xA7C9, "I am",    0xA7CD, 0xA7CE, "cmd_iam_save_ctx", "V if no arg; syn 2: (<stn>) <user>..."),
-    (0xA7D0, "Lcat",    0xA7D4, 0xA7D5, "cmd_lcat",         "syn 1: (<dir>) -- *CAT of library"),
-    (0xA7D7, "Lex",     0xA7DA, 0xA7DB, "cmd_lex",          "syn 1: (<dir>) -- *EX of library"),
-    (0xA7DD, "Lib",     0xA7E0, 0xA7E1, "cmd_fs_operation", "V if no arg; syn 5: <dir> -- set library"),
-    (0xA7E3, "Pass",    0xA7E7, 0xA7E8, "cmd_pass",         "V if no arg; syn 7: <pass> ..."),
-    (0xA7EA, "Rename",  0xA7F0, 0xA7F1, "cmd_rename",       "V if no arg; syn &A: <old> <new>"),
-    (0xA7F3, "Wipe",    0xA7F7, 0xA7F8, "cmd_wipe",         "syn 1: (<dir>) -- delete with confirm"),
+    (0xA7A1, "Access",  0xA7A7, 0xC9, 0xA7A8, "cmd_fs_operation", "syn 9: <obj> (L)(W)(R)..."),
+    (0xA7AA, "Bye",     0xA7AD, 0x80, 0xA7AE, "cmd_bye",          "log off FS"),
+    (0xA7B0, "Cdir",    0xA7B4, 0xC6, 0xA7B5, "cmd_cdir",         "syn 6 -- create directory"),
+    (0xA7B7, "Dir",     0xA7BA, 0x81, 0xA7BB, "cmd_dir",          "syn 1: (<dir>)"),
+    (0xA7BD, "Flip",    0xA7C1, 0x80, 0xA7C2, "cmd_flip",         "swap fs/private workspace"),
+    (0xA7C4, "FS",      0xA7C6, 0x8B, 0xA7C7, "cmd_fs",           "syn &B -- file-server selection"),
+    (0xA7C9, "I am",    0xA7CD, 0xC2, 0xA7CE, "cmd_iam_save_ctx", "syn 2: (<stn>) <user>..."),
+    (0xA7D0, "Lcat",    0xA7D4, 0x81, 0xA7D5, "cmd_lcat",         "syn 1: (<dir>) -- *CAT of library"),
+    (0xA7D7, "Lex",     0xA7DA, 0x81, 0xA7DB, "cmd_lex",          "syn 1: (<dir>) -- *EX of library"),
+    (0xA7DD, "Lib",     0xA7E0, 0xC5, 0xA7E1, "cmd_fs_operation", "syn 5: <dir> -- set library"),
+    (0xA7E3, "Pass",    0xA7E7, 0xC7, 0xA7E8, "cmd_pass",         "syn 7: <pass> ..."),
+    (0xA7EA, "Rename",  0xA7F0, 0xCA, 0xA7F1, "cmd_rename",       "syn &A: <old> <new>"),
+    (0xA7F3, "Wipe",    0xA7F7, 0x81, 0xA7F8, "cmd_wipe",         "syn 1: (<dir>) -- delete with confirm"),
     # sub-table 2 sentinel at &A7FA, padding bytes at &A7FB-&A7FC
     # --- Sub-table 3: *HELP topics ---
-    (0xA7FD, "Net",     0xA800, 0xA801, "help_net",         "no syn -- *HELP NET"),
-    (0xA803, "Utils",   0xA808, 0xA809, "help_utils",       "no syn -- *HELP UTILS"),
+    (0xA7FD, "Net",     0xA800, 0x80, 0xA801, "help_net",         "*HELP NET"),
+    (0xA803, "Utils",   0xA808, 0x80, 0xA809, "help_utils",       "*HELP UTILS"),
     # sub-table 3 sentinel at &A80B
     # --- Sub-tables 4+5: syntax-error helpers, called by &95EE / &9619 / &9623 / &965F / &9670 ---
-    (0xA80C, "FS",      0xA80E, 0xA80F, None,               "syn 1 (FS not selected -- &95EE)"),
-    (0xA811, "PS",      0xA813, 0xA814, None,               "syn 3 (PS not selected -- &95EE)"),
-    (0xA816, "NoSpace", 0xA81D, 0xA81E, None,               "no syn (caller &9623)"),
-    (0xA820, "Space",   0xA825, 0xA826, None,               "no syn (caller &9619)"),
+    (0xA80C, "FS",      0xA80E, 0xC1, 0xA80F, "set_fs_or_ps_cmos_station", "FS not selected"),
+    (0xA811, "PS",      0xA813, 0xC3, 0xA814, "set_fs_or_ps_cmos_station", "PS not selected"),
+    (0xA816, "NoSpace", 0xA81D, 0x80, 0xA81E, None,               "caller &9623"),
+    (0xA820, "Space",   0xA825, 0x80, 0xA826, None,               "caller &9619"),
     # sentinel at &A828
-    (0xA829, "FS",      0xA82B, 0xA82C, None,               "syn 1 (caller &9670)"),
-    (0xA82E, "PS",      0xA830, 0xA831, None,               "syn 3 (caller &965F)"),
+    (0xA829, "FS",      0xA82B, 0x81, 0xA82C, "print_fs_network",          "caller &9670"),
+    (0xA82E, "PS",      0xA830, 0x83, 0xA831, "print_network_from_cmos",   "caller &965F"),
+    # sub-tables 4/5 final entry
+    (0xA833, "Space",   0xA838, 0x80, 0xA839, None,               "caller &9641"),
 ]
 
-import collections
-_TABLE_TARGETS_BY_LABEL = collections.OrderedDict([
-    ("cmd_net_check_hw", 0x8B39),
-    ("cmd_pollps",       0xB581),
-    ("cmd_prot",         0xB6D2),
-    ("cmd_ps",           0xB3AC),
-    ("cmd_roff",         0x8AEA),
-    ("cmd_unprot",       0xB6D6),
-    ("cmd_dump",         0xBD41),
-    ("cmd_fs_operation", 0x9425),
-    ("cmd_bye",          0x9776),
-    ("cmd_cdir",         0xB0A1),
-    ("cmd_dir",          0x9512),
-    ("cmd_flip",         0xA69A),
-    ("cmd_fs",           0xA398),
-    ("cmd_iam_save_ctx", 0x8D87),
-    ("cmd_lcat",         0xB0F2),
-    ("cmd_lex",          0xB0F8),
-    ("cmd_pass",         0x8DD5),
-    ("cmd_rename",       0x94C5),
-    ("cmd_wipe",         0xB6F3),
-    ("help_net",         0x8BC4),
-    ("help_utils",       0x8BC0),
-])
-
-# Lock each entry's name as a string, flag as a byte, and addr-lo /
-# addr-hi as bytes with symbolic exprs.
-for (name_addr, name, flag_addr, lo_addr, target_label, role) in _cmd_table_fs_entries:
+# Lock each entry's name as a string, flag as a byte (with decoded
+# inline annotation), and address as a word with symbolic expr.
+for (name_addr, name, flag_addr, flag_byte, lo_addr, target_label, role) in _cmd_table_fs_entries:
     name_len = flag_addr - name_addr
     if name_len > 1:
         string(name_addr, name_len)
     else:
         byte(name_addr)
     byte(flag_addr)
-    byte(lo_addr)
-    byte(lo_addr + 1)
+    word(lo_addr)
     if target_label is not None:
-        # Each target's label currently resolves to its actual entry
-        # address (the byte where execution begins after PHA/PHA/RTS).
-        # So the table must store target-1 = label-1.
-        expr(lo_addr,     "<(%s-1)" % target_label)
-        expr(lo_addr + 1, ">(%s-1)" % target_label)
-    # Per-entry inline comment: name + role + target.
-    if target_label:
-        target_addr = _TABLE_TARGETS_BY_LABEL.get(target_label, 0)
-        target_str = "%s (&%04X)" % (target_label, target_addr) if target_addr else target_label
-    else:
-        target_str = "syntax-help-only entry"
-    comment(name_addr, "*%s -- %s -> %s" % (name, role, target_str), inline=True)
+        # The walker arrives at PHA/PHA/RTS so the stored word is target-1.
+        expr(lo_addr, "%s-1" % target_label)
+    # Inline comment on the name byte: just the role.
+    comment(name_addr, role, inline=True)
+    # Inline comment on the flag byte: decode bits 0-4 (syn idx) and 6 (V).
+    syn_idx = flag_byte & 0x1F
+    flag_parts = ["no syn"] if syn_idx == 0 else ["syn &%X" % syn_idx]
+    if flag_byte & 0x40:
+        flag_parts.append("V if no arg")
+    comment(flag_addr, ", ".join(flag_parts), inline=True)
 
 # Sentinel / padding bytes between sub-tables. Each is &80 (a flag
 # byte with no following address; the walker stops on bit 7 set).
