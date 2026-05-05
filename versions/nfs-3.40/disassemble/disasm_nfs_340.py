@@ -60,7 +60,11 @@ load(0x8000, _rom_filepath, "6502")
 move(0x0016, 0x931C, 0x61)
 
 # NMI handler / CLI command code (&935D/&9456/&9556 → pages &04/&05/&06)
-move(0x0400, 0x935D, 0x100)
+# Page-4 length is &F9 (not &100): the dispatch table at &9456 sits 7 bytes
+# earlier here than in 3.34/3.60/3.65, so Move 2 ends at the dispatch
+# table's start. Other versions have &100/&100/&100 because their
+# Move-2/Move-3 boundary lands cleanly on a &100 multiple.
+move(0x0400, 0x935D, 0xF9)
 move(0x0500, 0x9456, 0x100)
 move(0x0600, 0x9556, 0x100)
 
