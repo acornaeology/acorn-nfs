@@ -51,7 +51,7 @@ versions/<VER>/
 
 Update `acornaeology.json` to add the new version to the versions array.
 
-Naming convention: version "3.35D" becomes script `disasm_nfs_335d.py` and ROM `nfs-3.35D.rom`.
+Naming convention: version "3.35D" becomes script `disasm_nfs_335D.py` and ROM `nfs-3.35D.rom` — version-letter case preserved in both, since `fantasm disassemble <ver>` constructs the driver path with the version's exact spelling and the GitHub Linux CI runner is case-sensitive.
 
 ### Step 2: Run initial comparison
 

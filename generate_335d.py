@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the initial disasm_nfs_335d.py by mapping addresses from 3.34B.
+"""Generate the initial disasm_nfs_335D.py by mapping addresses from 3.34B.
 
 Uses opcode-level sequence matching to build an address map between
 the 3.34B and 3.35D ROMs, then transforms the 3.34B disassembly
@@ -301,8 +301,8 @@ def main():
     base = Path('/Users/rjs/Code/acornaeology/acorn-nfs')
     rom_a_filepath = base / 'versions' / '3.34B' / 'rom' / 'nfs-3.34B.rom'
     rom_b_filepath = base / 'versions' / '3.35D' / 'rom' / 'nfs-3.35D.rom'
-    script_filepath = base / 'versions' / '3.34B' / 'disassemble' / 'disasm_nfs_334b.py'
-    output_filepath = base / 'versions' / '3.35D' / 'disassemble' / 'disasm_nfs_335d.py'
+    script_filepath = base / 'versions' / '3.34B' / 'disassemble' / 'disasm_nfs_334B.py'
+    output_filepath = base / 'versions' / '3.35D' / 'disassemble' / 'disasm_nfs_335D.py'
 
     print("Loading ROMs...", file=sys.stderr)
     data_a = rom_a_filepath.read_bytes()

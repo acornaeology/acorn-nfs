@@ -291,7 +291,7 @@ def main():
     base = Path('/Users/rjs/Code/acornaeology/acorn-nfs')
     rom_a_filepath = base / 'versions' / '3.35K' / 'rom' / 'nfs-3.35K.rom'
     rom_b_filepath = base / 'versions' / '3.40' / 'rom' / 'nfs-3.40.rom'
-    script_filepath = base / 'versions' / '3.35K' / 'disassemble' / 'disasm_nfs_335k.py'
+    script_filepath = base / 'versions' / '3.35K' / 'disassemble' / 'disasm_nfs_335K.py'
     output_filepath = base / 'versions' / '3.40' / 'disassemble' / 'disasm_nfs_340.py'
 
     print("Loading ROMs...", file=sys.stderr)

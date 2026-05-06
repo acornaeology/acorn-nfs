@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 VERSIONS_DIRPATH = Path(__file__).resolve().parent / "versions"
-TARGET_FILEPATH = VERSIONS_DIRPATH / "3.35K" / "disassemble" / "disasm_nfs_335k.py"
+TARGET_FILEPATH = VERSIONS_DIRPATH / "3.35K" / "disassemble" / "disasm_nfs_335K.py"
 
 # Source version JSONs (oldest first — later versions override earlier ones
 # for duplicate label names, which is correct since more recent source
