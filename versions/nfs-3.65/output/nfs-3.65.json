@@ -36506,7 +36506,7 @@
         "tube_main_loop"
       ],
       "comments_before": [
-        "&9344 referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[4], &0665[4], &0692[4]"
+        "&9344 referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[3], &0665[3], &0692[3]"
       ],
       "comment_inline": "BIT R1 status: check WRCH request",
       "references": [
@@ -39845,7 +39845,7 @@
         "tube_reply_byte"
       ],
       "comments_before": [
-        "&9503 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]"
+        "&9503 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[3]"
       ],
       "comment_inline": "Poll R2 status until ready",
       "references": [
@@ -40487,10 +40487,11 @@
         "tube_poll_r2_result"
       ],
       "comments_before": [
-        "&9561 referenced 1 time by &0625[4]"
+        "&9561 referenced 2 times by &05ff[3], &0625[3]"
       ],
       "comment_inline": "Poll R2 status for result send",
       "references": [
+        1535,
         1573
       ],
       "type": "code",
@@ -40502,35 +40503,27 @@
     {
       "addr": 1535,
       "bytes": [
-        80
-      ],
-      "binary_addr": 38244,
-      "comment_inline": "BVC: page 5/6 boundary straddle",
-      "type": "byte",
-      "values": [
-        80
-      ]
-    },
-    {
-      "addr": 1536,
-      "bytes": [
+        80,
         251
       ],
-      "binary_addr": 38245,
+      "binary_addr": 38244,
       "labels": [
-        "tube_page6_start"
+        "tube_poll_r2_result_branch"
       ],
+      "sub_labels": {
+        "1536": [
+          "tube_page6_start"
+        ]
+      },
       "comments_before": [
         "&9565 referenced 1 time by &8161"
       ],
-      "comment_inline": "Send carry+status to co-processor via R2",
-      "references": [
-        33121
-      ],
-      "type": "byte",
-      "values": [
-        251
-      ]
+      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready Send carry+status to co-processor via R2",
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "tube_poll_r2_result",
+      "target": 1532,
+      "target_label": "tube_poll_r2_result"
     },
     {
       "addr": 1537,
@@ -40559,7 +40552,7 @@
         "bytex"
       ],
       "comments_before": [
-        "&9569 referenced 1 time by &0617[4]"
+        "&9569 referenced 1 time by &0617[3]"
       ],
       "comment_inline": "Return to main event loop",
       "references": [
@@ -40721,7 +40714,7 @@
         "tube_osbyte_send_y"
       ],
       "comments_before": [
-        "&9582 referenced 1 time by &0620[4]"
+        "&9582 referenced 1 time by &0620[3]"
       ],
       "comment_inline": "Poll R2 status for ready",
       "references": [
@@ -40823,7 +40816,7 @@
         "tube_osword_read"
       ],
       "comments_before": [
-        "&9590 referenced 1 time by &062e[4]"
+        "&9590 referenced 1 time by &062e[3]"
       ],
       "comment_inline": "Poll R2 status for data ready",
       "references": [
@@ -40903,7 +40896,7 @@
         "tube_osword_read_lp"
       ],
       "comments_before": [
-        "&959b referenced 2 times by &0639[4], &0642[4]"
+        "&959b referenced 2 times by &0639[3], &0642[3]"
       ],
       "comment_inline": "Poll R2 status for data ready",
       "references": [
@@ -41005,7 +40998,7 @@
         "skip_param_read"
       ],
       "comments_before": [
-        "&95aa referenced 1 time by &0634[4]"
+        "&95aa referenced 1 time by &0634[3]"
       ],
       "comment_inline": "XY=&0128: param block address for OSWORD",
       "references": [
@@ -41054,7 +41047,7 @@
         "poll_r2_osword_result"
       ],
       "comments_before": [
-        "&95b1 referenced 1 time by &064f[4]"
+        "&95b1 referenced 1 time by &064f[3]"
       ],
       "comment_inline": "Poll R2 status for ready",
       "references": [
@@ -41131,7 +41124,7 @@
         "tube_osword_write"
       ],
       "comments_before": [
-        "&95bc referenced 1 time by &0663[4]"
+        "&95bc referenced 1 time by &0663[3]"
       ],
       "comment_inline": "Send result block bytes from &0128 via R2",
       "references": [
@@ -41155,7 +41148,7 @@
         "tube_osword_write_lp"
       ],
       "comments_before": [
-        "&95bf referenced 1 time by &065d[4]"
+        "&95bf referenced 1 time by &065d[3]"
       ],
       "comment_inline": "Poll R2 status for ready",
       "references": [
@@ -41232,7 +41225,7 @@
         "tube_return_main"
       ],
       "comments_before": [
-        "&95ca referenced 1 time by &0655[4]"
+        "&95ca referenced 1 time by &0655[3]"
       ],
       "comment_inline": "Return to main event loop",
       "references": [
@@ -41275,7 +41268,7 @@
         "read_rdln_ctrl_block"
       ],
       "comments_before": [
-        "&95cf referenced 1 time by &0670[4]"
+        "&95cf referenced 1 time by &0670[3]"
       ],
       "comment_inline": "Read control block byte from R2",
       "references": [
@@ -41424,7 +41417,7 @@
         "tube_rdln_send_line"
       ],
       "comments_before": [
-        "&95e5 referenced 1 time by &0679[4]"
+        "&95e5 referenced 1 time by &0679[3]"
       ],
       "comment_inline": "X=0: start of input buffer at &0700",
       "references": [
@@ -41473,7 +41466,7 @@
         "tube_rdln_send_loop"
       ],
       "comments_before": [
-        "&95ec referenced 1 time by &0690[4]"
+        "&95ec referenced 1 time by &0690[3]"
       ],
       "comment_inline": "Load char from input buffer",
       "references": [
@@ -41568,7 +41561,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Send byte to Tube data register R2\n\nPolls Tube status register 2 until bit 6 (TDRA)\nis set, then writes A to the data register. Uses a\ntight BIT/BVC polling loop. Called by 12 sites\nacross the Tube host code for all R2 data\ntransmission: command responses, file data, OSBYTE\nresults, and control block bytes.",
-        "&95fa referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]"
+        "&95fa referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[3], &0684[3], &068a[3], &0698[3]"
       ],
       "comment_inline": "Poll R2 status (bit 6 = ready)",
       "references": [
@@ -41646,7 +41639,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Send byte to Tube data register R4\n\nPolls Tube status register 4 until bit 6 is set,\nthen writes A to the data register. Uses a tight\nBIT/BVC polling loop. R4 is the command/control\nchannel used for address claims (ADRR), data transfer\nsetup (SENDW), and release commands. Called by 7\nsites, primarily during tube_release_claim and\ntube_transfer_setup sequences.",
-        "&9603 referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[4]"
+        "&9603 referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[3]"
       ],
       "comment_inline": "Poll R4 status (bit 6 = ready)",
       "references": [
@@ -41875,7 +41868,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Send byte to Tube data register R1\n\nPolls Tube status register 1 until bit 6 is set,\nthen writes A to the data register. Uses a tight\nBIT/BVC polling loop. R1 is used for asynchronous\nevent and escape notification to the co-processor.\nCalled by tube_event_handler to forward event type,\nY, and X parameters, and reached via BMI from\ntube_escape_check when the escape flag is set.",
-        "&9621 referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]"
+        "&9621 referenced 5 times by &06ab[3], &06b0[3], &06b4[3], &06b8[3], &06bf[3]"
       ],
       "comment_inline": "Poll R1 status (bit 6 = ready)",
       "references": [
@@ -41944,7 +41937,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Read a byte from Tube data register R2\n\nPolls Tube status register 2 until data is available\n(bit 7 set), then loads A from Tube data register 2.\nCalled by all Tube dispatch handlers that receive data\nor parameters from the co-processor.",
-        "&962a referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]"
+        "&962a referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &0627[3], &066a[3], &06c8[3]"
       ],
       "comment_inline": "Poll R2 status (bit 7 = ready)",
       "references": [
@@ -42445,7 +42438,7 @@
       "comments_before": [
         "***************************************************************************************",
         "ADLC initialisation\n\nReads station ID (INTOFF side effect), performs full ADLC reset,\nchecks for Tube presence (OSBYTE &EA), then falls through to\nadlc_init_workspace.",
-        "&969a referenced 1 time by &06ee[4]"
+        "&969a referenced 1 time by &06ee[3]"
       ],
       "comment_inline": "INTOFF: read station ID, disable NMIs",
       "references": [
@@ -42611,7 +42604,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Initialise NMI workspace (skip service request)\n\nSub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\n&0D00, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs.",
-        "&96b8 referenced 1 time by &06f4[4]"
+        "&96b8 referenced 1 time by &06f4[3]"
       ],
       "comment_inline": "Copy 32 bytes of NMI shim from ROM to &0D00",
       "references": [
@@ -50477,7 +50470,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Begin TX operation\n\nMain TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen enters the INACTIVE polling loop.",
-        "&9b90 referenced 1 time by &06eb[4]"
+        "&9b90 referenced 1 time by &06eb[3]"
       ],
       "comment_inline": "Save X on stack",
       "references": [
@@ -56851,7 +56844,7 @@
       "comments_before": [
         "***************************************************************************************",
         "Wait for idle NMI state and reset Econet\n\nCalled via svc_12_nmi_release (&06D4). Checks if Econet has been\ninitialised; if not, skips to adlc_rx_listen. If initialised,\nspins until the NMI handler is idle (pointing at nmi_rx_scout),\nthen falls through to save_econet_state to clear flags and\nre-enter RX listen mode.",
-        "&9f8a referenced 1 time by &06f1[4]"
+        "&9f8a referenced 1 time by &06f1[3]"
       ],
       "comment_inline": "Econet not initialised -- skip to adlc_rx_listen",
       "references": [

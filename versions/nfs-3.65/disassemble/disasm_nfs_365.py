@@ -11,14 +11,24 @@ d = dasmos.Disassembler.create(cpu='6502', auto_label_data_prefix='l', auto_labe
 d.load(_rom_filepath, 0x8000)
 d.add_move(0x0016, 0x9324, 0x61)
 d.add_move(0x0400, 0x9365, 0x100)
-d.add_move(0x0500, 0x9465, 0x100)
-d.add_move(0x0600, 0x9565, 0x100)
+# Pages 5 and 6 of the relocated Tube workspace form one logical block
+# at runtime (&0500..&06FF). The BVC poll loop at &955E..&955F (BIT
+# &FEE2) is closed by a `BVC $05FC` instruction whose two bytes span
+# the boundary between the source-side blocks: &9564 is the opcode
+# (runtime &05FF, last byte of "page 5") and &9565 is the operand
+# (runtime &0600, first byte of "page 6"). Modelling the two pages
+# as one 512-byte move recovers the instruction; declaring them
+# separately makes dasmos rightly render each byte as `equb` because
+# no instruction can span two distinct runtime spaces.
+d.add_move(0x0500, 0x9465, 0x200)
 
 d.label(0x9324, 'reloc_zp_src')
 
 d.label(0x9365, 'reloc_p4_src')
 
 d.label(0x9465, 'reloc_p5_src')
+
+d.label(0x05FF, 'tube_poll_r2_result_branch')
 
 d.label(0x9565, 'reloc_p6_src')
 d.use_environment('acorn_mos')
@@ -684,7 +694,7 @@ d.comment(0x05F5, 'X = first parameter', align=Align.INLINE)
 d.comment(0x05F6, 'Read A (OSBYTE number) from R2', align=Align.INLINE)
 d.comment(0x05F9, 'Execute OSBYTE call', align=Align.INLINE)
 d.comment(0x05FC, 'Poll R2 status for result send', align=Align.INLINE)
-d.comment(0x05FF, 'BVC: page 5/6 boundary straddle', align=Align.INLINE)
+d.comment(0x05FF, 'Loop while R2 status bit 6 (V) clear — wait for result-send ready', align=Align.INLINE)
 d.comment(0x0600, 'Send carry+status to co-processor via R2', align=Align.INLINE)
 d.comment(0x0615, 'Test for OSBYTE &9D (fast Tube BPUT)', align=Align.INLINE)
 d.comment(0x0601, 'Send X result for 2-param OSBYTE', align=Align.INLINE)
