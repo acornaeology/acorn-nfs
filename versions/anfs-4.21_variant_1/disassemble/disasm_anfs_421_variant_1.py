@@ -3009,6 +3009,7 @@ d.entry(0x89CA)
 d.entry(0x89D8)
 d.comment(0x8000, """ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
 ==============================================================""")
+d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding.""", align=Align.AFTER_LABEL)
 
 
 d.subroutine(0x8050, 'adlc_init', title='ADLC initialisation', description="""Initialise ADLC hardware and Econet workspace. Disables NMIs via

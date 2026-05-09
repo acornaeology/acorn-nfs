@@ -1839,6 +1839,7 @@ d.label(0x9297, 'bsxl0')
 d.label(0x92AA, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.62 disassembly (Acorn Econet filing system)
 ==============================================================""")
+d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""The MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`.""", align=Align.AFTER_LABEL)
 d.comment(0x8018, """Error message offset table (9 entries).
 Each byte is a Y offset into error_msg_table.
 Entry 0 (Y=0, "Line Jammed") doubles as the

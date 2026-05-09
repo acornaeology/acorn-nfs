@@ -805,6 +805,7 @@ d.label(0x928C, 'bsxl0')
 d.label(0x92A3, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.35D disassembly (Acorn Econet filing system)
 ==============================================================""")
+d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""The MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`.""", align=Align.AFTER_LABEL)
 d.comment(0x8000, 'JMP language_handler', align=Align.INLINE)
 d.comment(0x8003, 'JMP service_handler', align=Align.INLINE)
 for i in range(1, 14):

@@ -2884,7 +2884,14 @@
       "fall_through": true
     }
   ],
-  "banners": [],
+  "banners": [
+    {
+      "addr": 32768,
+      "name": "language_entry",
+      "title": "Language-entry slot (3 bytes)",
+      "description": "On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
+    }
+  ],
   "external_labels": {
     "zp_ptr_lo": 0,
     "zp_ptr_hi": 1,
@@ -3255,6 +3262,10 @@
         "&8000 referenced 1 time by &04e6[2]",
         "&8001 referenced 1 time by &04eb[2]",
         "&8002 referenced 1 time by &04f0[2]"
+      ],
+      "comments_after": [
+        "***************************************************************************************",
+        "Language-entry slot (3 bytes)\n\nOn a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
       ],
       "references": [
         1254

@@ -1460,6 +1460,14 @@ tube_cmd_lo = tube_dispatch_cmd+1
 rom_header_byte1 = language_entry+1
 ; &8002 referenced 1 time by &bff0
 rom_header_byte2 = language_entry+2
+; ***************************************************************************************
+; Language-entry slot (3 bytes)
+;
+; On a language ROM the MOS dispatches JMP &8000 on startup with a reason code in A (1 =
+; normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is
+; service-only (rom_type bit 6 clear), so byte 0 is &00 per the Acorn ROM-header standard
+; ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (&42
+; &43) are unused padding.
     equb &00, &42, &43                                                ; 8000: 00 42 43    .BC   
 ; &8003 referenced 1 time by &bff5
 .service_entry

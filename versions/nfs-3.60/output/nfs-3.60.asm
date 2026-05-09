@@ -1336,6 +1336,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
 language_handler_lo = language_entry+1
 ; &8002 referenced 1 time by &9452
 language_handler_hi = language_entry+2
+; ***************************************************************************************
+; Language-entry slot (3 bytes)
+;
+; The MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal
+; start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a
+; language (rom_type bit 6 set), so this slot is a real JMP to language_handler.
     jmp lang_entry_dispatch                                           ; 8000: 4c e1 80    L..      ; JMP language_handler
 ; &8003 referenced 1 time by &9457
 .service_entry

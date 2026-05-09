@@ -4514,6 +4514,12 @@
   ],
   "banners": [
     {
+      "addr": 32768,
+      "name": "language_entry",
+      "title": "Language-entry slot (3 bytes)",
+      "description": "On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
+    },
+    {
       "addr": 35056,
       "name": "rom_gap_88f0",
       "title": "Purpose unknown. Unreferenced, unreachable."
@@ -6620,6 +6626,10 @@
       "comments_before": [
         "Sideways ROM header",
         "ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)\n=============================================================="
+      ],
+      "comments_after": [
+        "***************************************************************************************",
+        "Language-entry slot (3 bytes)\n\nOn a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
       ],
       "type": "byte",
       "values": [

@@ -3302,6 +3302,7 @@ set_rx_buf_len_hi. If Y >= &86, skips the protection
 setup and dispatches directly.""", on_entry={'y': 'TX operation type (dispatch index)'})
 d.comment(0x8000, """ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
 ==============================================================""")
+d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding.""", align=Align.AFTER_LABEL)
 
 
 d.subroutine(0x0520, 'tube_osbput', title='Tube OSBPUT handler (R2 cmd 8)', description="""Reads file handle and data byte from R2, then

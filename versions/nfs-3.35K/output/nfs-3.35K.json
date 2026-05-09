@@ -1912,7 +1912,14 @@
       "description": "Tests MOS escape flag (&FF bit 7). If escape is pending:\nacknowledges via OSBYTE &7E, writes &3F (deleted marker) into\nthe control block via (net_tx_ptr),Y, and branches to the\nNLISTN error path. If no escape, returns immediately."
     }
   ],
-  "banners": [],
+  "banners": [
+    {
+      "addr": 32768,
+      "name": "language_entry",
+      "title": "Language-entry slot (3 bytes)",
+      "description": "The MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`."
+    }
+  ],
   "external_labels": {
     "zp_ptr_lo": 0,
     "zp_ptr_hi": 1,
@@ -2229,6 +2236,10 @@
         "&8002 referenced 1 time by &0495[2]"
       ],
       "comment_inline": "JMP language_handler",
+      "comments_after": [
+        "***************************************************************************************",
+        "Language-entry slot (3 bytes)\n\nThe MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`."
+      ],
       "references": [
         1163,
         39879
