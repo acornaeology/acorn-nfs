@@ -1916,8 +1916,14 @@
     {
       "addr": 32768,
       "name": "language_entry",
-      "title": "Language-entry slot (3 bytes)",
-      "description": "The MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`."
+      "title": "Sideways ROM header \u2014 language-entry slot (3 bytes)",
+      "description": "MOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``."
+    },
+    {
+      "addr": 32771,
+      "name": "service_entry",
+      "title": "Service-entry slot (3 bytes)",
+      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
     }
   ],
   "external_labels": {
@@ -2229,16 +2235,14 @@
         ]
       },
       "comments_before": [
-        "Sideways ROM header",
-        "NFS ROM 3.35K disassembly (Acorn Econet filing system)\n==============================================================",
+        "# NFS ROM 3.35K disassembly (Acorn Econet filing system)",
         "&8000 referenced 2 times by &048b[2], &9bc7",
         "&8001 referenced 1 time by &0490[2]",
         "&8002 referenced 1 time by &0495[2]"
       ],
-      "comment_inline": "JMP language_handler",
       "comments_after": [
         "***************************************************************************************",
-        "Language-entry slot (3 bytes)\n\nThe MOS dispatches `JMP &8000` on language startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a language ([`rom_type`](address:8006) bit 6 set), so this slot is a real `JMP` to `language_handler`."
+        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``."
       ],
       "references": [
         1163,
@@ -2269,7 +2273,10 @@
         "&8003 referenced 1 time by &049a[2]",
         "&8004 referenced 1 time by &049d[2]"
       ],
-      "comment_inline": "JMP service_handler",
+      "comments_after": [
+        "***************************************************************************************",
+        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+      ],
       "references": [
         1178
       ],
@@ -2290,6 +2297,7 @@
       "comments_before": [
         "&8006 referenced 1 time by &0482[2]"
       ],
+      "comment_inline": "ROM type: Service entry; 6502 (non-BASIC)",
       "references": [
         1154
       ],
@@ -2309,6 +2317,7 @@
       "comments_before": [
         "&8007 referenced 1 time by &0487[2]"
       ],
+      "comment_inline": "Offset of NUL preceding copyright (= &0c \u2192 copyright at &800c)",
       "references": [
         1159
       ],
@@ -2331,6 +2340,7 @@
       "comments_before": [
         "&8008 referenced 2 times by &81d4, &81dd"
       ],
+      "comment_inline": "Binary version: &03 (informational, not used by MOS)",
       "references": [
         33236,
         33245

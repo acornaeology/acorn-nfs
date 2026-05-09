@@ -24,7 +24,7 @@ d.label(0xBD94, 'reloc_p6_src')
 d.byte(0xBC93)
 d.use_environment('acorn_mos')
 d.use_environment('acorn_model_b_hardware')
-d.use_environment('acorn_sideways_rom')
+d.use_environment('acorn_sideways_rom', rom_title='ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)')
 d.hook_subroutine(0x9145, 'print_inline', stringhi_hook)
 d.hook_subroutine(0x96D4, 'error_inline', stringz_hook)
 d.hook_subroutine(0x96D1, 'error_inline_log', stringz_hook)
@@ -3272,9 +3272,6 @@ mask, sets protection bits 2-4, then dispatches through
 the PHA/RTS trampoline using the table at
 set_rx_buf_len_hi. If Y >= &86, skips the protection
 setup and dispatches directly.""", on_entry={'y': 'TX operation type (dispatch index)'})
-d.comment(0x8000, """ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
-==============================================================""")
-d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding.""", align=Align.AFTER_LABEL)
 
 
 d.subroutine(0x0520, 'tube_osbput', title='Tube OSBPUT handler (R2 cmd 8)', description="""Reads file handle and data byte from R2, then
@@ -5770,9 +5767,6 @@ d.comment(0x06F6, 'Store in EVNTV vector high', align=Align.INLINE)
 d.comment(0x06F9, 'BRKV low byte (&16)', align=Align.INLINE)
 d.comment(0x06FB, 'Store in BRKV vector', align=Align.INLINE)
 d.comment(0x06FE, 'A=0', align=Align.INLINE)
-d.comment(0x8003, 'JMP service_handler', align=Align.INLINE)
-d.comment(0x8006, 'ROM type: service + language', align=Align.INLINE)
-d.comment(0x8019, 'Null terminator before copyright', align=Align.INLINE)
 d.comment(0x8028, 'A=4: SR bit mask for IFR test', align=Align.INLINE)
 d.comment(0x802A, 'Test IFR bit 2: SR complete', align=Align.INLINE)
 d.comment(0x802D, 'SR set: shift register complete', align=Align.INLINE)

@@ -1327,7 +1327,6 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &8000
 
 .pydis_start
-; Sideways ROM header
 ; NFS ROM 3.62 disassembly (Acorn Econet filing system)
 ; &8000 referenced 2 times by &9448, &9b42
 .language_entry
@@ -1337,35 +1336,45 @@ language_handler_lo = language_entry+1
 ; &8002 referenced 1 time by &9452
 language_handler_hi = language_entry+2
 ; ***************************************************************************************
-; Language-entry slot (3 bytes)
+; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; The MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal
-; start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a
-; language (rom_type bit 6 set), so this slot is a real JMP to language_handler.
-    jmp lang_entry_dispatch                                           ; 8000: 4c e1 80    L..      ; JMP language_handler
+; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
+; 0 = no language available, 2/3 = Electron softkey query).
+;
+; Byte 0 is &4C so this ROM declares itself a language (rom_type bit 6 set); the slot is
+; a real JMP to language_handler.
+    jmp lang_entry_dispatch                                           ; 8000: 4c e1 80    L..   
 ; &8003 referenced 1 time by &9457
 .service_entry
 ; &8004 referenced 1 time by &945a
 service_handler_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c f7 80    L..      ; JMP service_handler
+; ***************************************************************************************
+; Service-entry slot (3 bytes)
+;
+; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
+; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
+; The reason code arrives in A.
+;
+; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
+    jmp service_handler                                               ; 8003: 4c f7 80    L..   
 ; &8006 referenced 1 time by &943c
 .rom_type
-    equb &82                                                          ; 8006: 82          .        ; ROM type: service + language
+    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
 ; &8007 referenced 1 time by &9444
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 10          .        ; Copyright string offset from &8000
+    equb copyright - rom_header                                       ; 8007: 10          .        ; Offset of NUL preceding copyright (= &10 → copyright at &8010)
 ; &8008 referenced 2 times by &836e, &8377
 .binary_version
-    equb &83                                                          ; 8008: 83          .        ; Binary version number
+    equb &83                                                          ; 8008: 83          .        ; Binary version: &83 (informational, not used by MOS)
 .title
-    equs "    NET"                                                    ; 8009: 20 20 20...    ...   ; ROM title string " NET"
+    equs "    NET"                                                    ; 8009: 20 20 20...    ...
 .copyright
 ; The 'ROFF' suffix (copyright_string+3) is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
 copyright_string = copyright+1
 ; &8018 referenced 1 time by &8515
 ; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 error_offsets = copyright+8
-    equb &00, "(C)ROFF", &00                                          ; 8010: 00 28 43... .(C...   ; Null terminator before copyright  Copyright string "(C)ROFF"  "Line Jammed"
+    equb &00, "(C)ROFF", &00                                          ; 8010: 00 28 43... .(C...   ; "Line Jammed"
     equb &0d                                                          ; 8019: 0d          .        ; "Net Error"
     equb &18                                                          ; 801a: 18          .        ; "Not listening"
     equb &27                                                          ; 801b: 27          '        ; "No Clock"

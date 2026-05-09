@@ -3048,8 +3048,14 @@
     {
       "addr": 32768,
       "name": "language_entry",
-      "title": "Language-entry slot (3 bytes)",
-      "description": "On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
+      "title": "Sideways ROM header \u2014 language-entry slot (3 bytes)",
+      "description": "MOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&00`` (service-only ROM, ``rom_type`` bit 6 clear) \u2014 set to inhibit the MOS dispatch path per the Acorn header standard. Bytes 1-2 are unused padding."
+    },
+    {
+      "addr": 32771,
+      "name": "service_entry",
+      "title": "Service-entry slot (3 bytes)",
+      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
     }
   ],
   "external_labels": {
@@ -3425,15 +3431,14 @@
         ]
       },
       "comments_before": [
-        "Sideways ROM header",
-        "ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)\n==============================================================",
+        "# ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)",
         "&8000 referenced 1 time by &04e2[2]",
         "&8001 referenced 1 time by &04e7[2]",
         "&8002 referenced 1 time by &04ec[2]"
       ],
       "comments_after": [
         "***************************************************************************************",
-        "Language-entry slot (3 bytes)\n\nOn a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard (\"JMP language_entry, set to 0 if not a language\") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding."
+        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&00`` (service-only ROM, ``rom_type`` bit 6 clear) \u2014 set to inhibit the MOS dispatch path per the Acorn header standard. Bytes 1-2 are unused padding."
       ],
       "references": [
         1250
@@ -3464,7 +3469,10 @@
         "&8003 referenced 1 time by &04f1[2]",
         "&8004 referenced 1 time by &04f4[2]"
       ],
-      "comment_inline": "JMP service_handler",
+      "comments_after": [
+        "***************************************************************************************",
+        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+      ],
       "references": [
         1265
       ],
@@ -3485,7 +3493,7 @@
       "comments_before": [
         "&8006 referenced 1 time by &04d6[2]"
       ],
-      "comment_inline": "ROM type: service + language",
+      "comment_inline": "ROM type: Service entry; 6502 (non-BASIC)",
       "references": [
         1238
       ],
@@ -3505,6 +3513,7 @@
       "comments_before": [
         "&8007 referenced 1 time by &04de[2]"
       ],
+      "comment_inline": "Offset of NUL preceding copyright (= &19 \u2192 copyright at &8019)",
       "references": [
         1246
       ],
@@ -3524,6 +3533,7 @@
       "labels": [
         "binary_version"
       ],
+      "comment_inline": "Binary version: &04 (informational, not used by MOS)",
       "type": "byte",
       "values": [
         4
@@ -3582,7 +3592,6 @@
           "copyright_string"
         ]
       },
-      "comment_inline": "Null terminator before copyright",
       "type": "string",
       "string": ".(C)1985 Acorn."
     },

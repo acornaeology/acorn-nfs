@@ -1463,7 +1463,6 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &8000
 
 .pydis_start
-; Sideways ROM header
 ; ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
 ; &8000 referenced 1 time by &bfe6
 .language_entry
@@ -1473,32 +1472,40 @@ rom_header_byte1 = language_entry+1
 ; &8002 referenced 1 time by &bff0
 rom_header_byte2 = language_entry+2
 ; ***************************************************************************************
-; Language-entry slot (3 bytes)
+; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; On a language ROM the MOS dispatches JMP &8000 on startup with a reason code in A (1 =
-; normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is
-; service-only (rom_type bit 6 clear), so byte 0 is &00 per the Acorn ROM-header standard
-; ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (&42
-; &43) are unused padding.
+; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
+; 0 = no language available, 2/3 = Electron softkey query).
+;
+; Byte 0 is &00 (service-only ROM, rom_type bit 6 clear) — set to inhibit the MOS
+; dispatch path per the Acorn header standard. Bytes 1-2 are unused padding.
     equb &00, &42, &43                                                ; 8000: 00 42 43    .BC   
 ; &8003 referenced 1 time by &bff5
 .service_entry
 ; &8004 referenced 1 time by &bff8
 service_handler_lo = service_entry+1
-    jmp service_handler                                               ; 8003: 4c 15 8a    L..      ; JMP service_handler
+; ***************************************************************************************
+; Service-entry slot (3 bytes)
+;
+; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
+; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
+; The reason code arrives in A.
+;
+; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
+    jmp service_handler                                               ; 8003: 4c 15 8a    L..   
 ; &8006 referenced 1 time by &bfda
 .rom_type
-    equb &82                                                          ; 8006: 82          .        ; ROM type: service + language
+    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
 ; &8007 referenced 1 time by &bfe2
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 19          .     
+    equb copyright - rom_header                                       ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
 .binary_version
-    equb &04                                                          ; 8008: 04          .     
+    equb &04                                                          ; 8008: 04          .        ; Binary version: &04 (informational, not used by MOS)
 .title
     equs "Acorn ANFS 4.18", &00                                       ; 8009: 41 63 6f... Aco...
 .copyright
 copyright_string = copyright+1
-    equb &00, "(C)1985 Acorn", &00                                    ; 8019: 00 28 43... .(C...   ; Null terminator before copyright
+    equb &00, "(C)1985 Acorn", &00                                    ; 8019: 00 28 43... .(C...
 ; ***************************************************************************************
 ; Service 5: unrecognised interrupt (SR dispatch)
 ;

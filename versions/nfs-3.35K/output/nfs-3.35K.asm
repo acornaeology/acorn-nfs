@@ -1199,7 +1199,6 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     org &8000
 
 .pydis_start
-; Sideways ROM header
 ; NFS ROM 3.35K disassembly (Acorn Econet filing system)
 ; &8000 referenced 2 times by &93e5, &9bc7
 .language_entry
@@ -1209,26 +1208,36 @@ lang_entry_lo = language_entry+1
 ; &8002 referenced 1 time by &93ef
 lang_entry_hi = language_entry+2
 ; ***************************************************************************************
-; Language-entry slot (3 bytes)
+; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; The MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal
-; start, 0 = no language available, 2/3 = Electron softkey query). NFS declares itself a
-; language (rom_type bit 6 set), so this slot is a real JMP to language_handler.
-    jmp lang_entry_dispatch                                           ; 8000: 4c d4 80    L..      ; JMP language_handler
+; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
+; 0 = no language available, 2/3 = Electron softkey query).
+;
+; Byte 0 is &4C so this ROM declares itself a language (rom_type bit 6 set); the slot is
+; a real JMP to language_handler.
+    jmp lang_entry_dispatch                                           ; 8000: 4c d4 80    L..   
 ; &8003 referenced 1 time by &93f4
 .service_entry
 ; &8004 referenced 1 time by &93f7
 svc_entry_lo = service_entry+1
-    jmp check_svc_high                                                ; 8003: 4c ea 80    L..      ; JMP service_handler
+; ***************************************************************************************
+; Service-entry slot (3 bytes)
+;
+; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
+; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
+; The reason code arrives in A.
+;
+; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
+    jmp check_svc_high                                                ; 8003: 4c ea 80    L..   
 ; &8006 referenced 1 time by &93dc
 .rom_type
-    equb &82                                                          ; 8006: 82          .     
+    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
 ; &8007 referenced 1 time by &93e1
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 0c          .     
+    equb copyright - rom_header                                       ; 8007: 0c          .        ; Offset of NUL preceding copyright (= &0c → copyright at &800c)
 ; &8008 referenced 2 times by &81d4, &81dd
 .binary_version
-    equb &03                                                          ; 8008: 03          .     
+    equb &03                                                          ; 8008: 03          .        ; Binary version: &03 (informational, not used by MOS)
 .title
     equs "NET"                                                        ; 8009: 4e 45 54    NET   
 .copyright

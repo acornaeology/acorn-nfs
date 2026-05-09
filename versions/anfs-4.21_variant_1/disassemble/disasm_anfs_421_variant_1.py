@@ -57,7 +57,7 @@ the `&FF` byte at each label address is incidental, only the
 address matters.""")
 d.use_environment('acorn_mos')
 d.use_environment('acorn_master_hardware')
-d.use_environment('acorn_sideways_rom')
+d.use_environment('acorn_sideways_rom', rom_title='ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)')
 d.hook_subroutine(0x9261, 'print_inline', stringhi_hook)
 d.hook_subroutine(0x928A, 'print_inline_no_spool', stringhi_hook)
 d.hook_subroutine(0x99C3, 'error_inline', stringz_hook)
@@ -3007,9 +3007,6 @@ d.entry(0x88E4)
 d.entry(0x8968)
 d.entry(0x89CA)
 d.entry(0x89D8)
-d.comment(0x8000, """ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
-==============================================================""")
-d.banner(0x8000, title='Language-entry slot (3 bytes)', description="""On a language ROM the MOS dispatches `JMP &8000` on startup with a reason code in `A` (1 = normal start, 0 = no language available, 2/3 = Electron softkey query). ANFS is service-only ([`rom_type`](address:8006) bit 6 clear), so byte 0 is `&00` per the Acorn ROM-header standard ("JMP language_entry, set to 0 if not a language") to inhibit dispatch; bytes 1-2 (`&42 &43`) are unused padding.""", align=Align.AFTER_LABEL)
 
 
 d.subroutine(0x8050, 'adlc_init', title='ADLC initialisation', description="""Initialise ADLC hardware and Econet workspace. Disables NMIs via
@@ -6495,8 +6492,6 @@ through (4 more INXs). Total: 8 INXs.""", on_entry={'x': 'value to advance'}, on
 d.subroutine(0xBFC0, 'inx4', title='Increment X four times', description="""Four consecutive INX instructions. Used as a
 building block by advance_x_by_4 and
 advance_x_by_8 via JSR/fall-through chaining.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 4', 'a, y': 'preserved', 'n, z flags': 'reflect new X'})
-d.comment(0x8006, 'ROM type: service + language', align=Align.INLINE)
-d.comment(0x8019, 'Null terminator before copyright', align=Align.INLINE)
 d.comment(0x803A, 'Copy to A for sign test', align=Align.INLINE)
 d.comment(0x803B, 'Bit 7 set: dispatch via table', align=Align.INLINE)
 d.comment(0x803D, 'A=&FE: Econet receive event', align=Align.INLINE)
