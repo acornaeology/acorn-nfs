@@ -13076,12 +13076,6 @@ d.comment(0x9B8C, 'Loop until all copied', align=Align.INLINE)
 d.comment(0x9B8E, 'Reload file handle', align=Align.INLINE)
 d.comment(0x9B91, 'Transfer to A', align=Align.INLINE)
 d.comment(0x9B92, 'Jump to finalise and return', align=Align.INLINE)
-d.comment(0x9B95, """Unreachable dead code (3 bytes)
-
-Duplicate of the JMP at &9B92 immediately above.
-Unreachable after the unconditional JMP and
-unreferenced. Likely a development remnant.""")
-d.comment(0x9B95, 'Dead: duplicate JMP finalise_and_return', align=Align.INLINE)
 d.comment(0x9B95, 'Y=0: destination index', align=Align.INLINE)
 d.comment(0x9B97, 'Load source offset from l0f03', align=Align.INLINE)
 d.comment(0x9B9A, 'Non-zero: copy from l0f05 buffer', align=Align.INLINE)

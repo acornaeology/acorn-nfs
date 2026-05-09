@@ -49039,10 +49039,9 @@
       "comments_before": [
         "***************************************************************************************",
         "Format filename into fixed-width display field\n\nBuilds a 12-character space-padded filename at\n&10F3 for directory listing output. Sources the\nname from either the command line or the l0f05\nreply buffer depending on the value in l0f03.\nTruncates or pads to exactly 12 characters.",
-        "Unreachable dead code (3 bytes)\n\nDuplicate of the JMP at &9B92 immediately above.\nUnreachable after the unconditional JMP and\nunreferenced. Likely a development remnant.",
         "&9b95 referenced 2 times by &9984, &9a0f"
       ],
-      "comment_inline": "Dead: duplicate JMP finalise_and_return Y=0: destination index",
+      "comment_inline": "Y=0: destination index",
       "references": [
         39300,
         39439

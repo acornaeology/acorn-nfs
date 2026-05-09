@@ -7413,12 +7413,9 @@ bad_prefix = bad_str_anchor+1
 ; Builds a 12-character space-padded filename at &10F3 for directory listing output.
 ; Sources the name from either the command line or the l0f05 reply buffer depending on
 ; the value in l0f03. Truncates or pads to exactly 12 characters.
-; Unreachable dead code (3 bytes)
-;
-; Duplicate of the JMP at &9B92 immediately above. Unreachable after the unconditional JMP and unreferenced. Likely a development remnant.
 ; &9b95 referenced 2 times by &9984, &9a0f
 .format_filename_field
-    ldy #0                                                            ; 9b95: a0 00       ..       ; Dead: duplicate JMP finalise_and_return  Y=0: destination index
+    ldy #0                                                            ; 9b95: a0 00       ..       ; Y=0: destination index
     ldx fs_cmd_csd                                                    ; 9b97: ae 03 0f    ...      ; Load source offset from l0f03
     bne copy_from_buf_entry                                           ; 9b9a: d0 19       ..       ; Non-zero: copy from l0f05 buffer
 ; &9b9c referenced 1 time by &9ba6
