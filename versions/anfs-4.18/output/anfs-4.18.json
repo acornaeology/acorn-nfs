@@ -2596,6 +2596,12 @@
       "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done\noperation types &83-&87. Read by the dispatch at\n[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,\nwhich resolves to `set_rx_buf_len_hi + Y` \u2013 an aliased read\ninto this table since [`set_rx_buf_len_hi`](address:84BB?hex)\nsits 0x83 bytes before the first entry.\n\nHigh byte is always &85, so targets are &85xx+1. Entries for\nY < &83 read from preceding code bytes and are not valid\noperation types."
     },
     {
+      "addr": 34433,
+      "name": "tx_ctrl_dispatch_lo",
+      "title": "TX-ctrl dispatch table (lo bytes, 8 entries)",
+      "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl\ncontrol-byte types &81-&88. Read by the dispatch at\n[`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,\nwhich resolves to [`intoff_disable_nmi_op`](address:8600?hex)\n(= `intoff_test_inactive + 1`) plus Y \u2013 an aliased read into\nthis table.\n\nHigh byte is always &86, so targets are &86xx+1. The last\nentry (Y=&88) dispatches to\n[`tx_ctrl_machine_type`](address:8689), the routine that\nbegins immediately after the table."
+    },
+    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -13928,7 +13934,8 @@
         "tx_ctrl_dispatch_lo"
       ],
       "comments_before": [
-        "TX ctrl dispatch table (lo bytes)\n\nLow bytes of PHA/PHA/RTS dispatch targets for TX\ncontrol byte types &81-&88. Read by the dispatch\nat &867C via LDA intoff_disable_nmi_op,Y (base\nintoff_test_inactive+1). High byte is always &86,\nso targets are &86xx+1. Last entry dispatches to\ntx_ctrl_machine_type at &867F, immediately after\nthe table."
+        "***************************************************************************************",
+        "TX-ctrl dispatch table (lo bytes, 8 entries)\n\nLow bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl\ncontrol-byte types &81-&88. Read by the dispatch at\n[`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,\nwhich resolves to [`intoff_disable_nmi_op`](address:8600?hex)\n(= `intoff_test_inactive + 1`) plus Y \u2013 an aliased read into\nthis table.\n\nHigh byte is always &86, so targets are &86xx+1. The last\nentry (Y=&88) dispatches to\n[`tx_ctrl_machine_type`](address:8689), the routine that\nbegins immediately after the table."
       ],
       "type": "byte",
       "values": [

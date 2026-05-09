@@ -2995,8 +2995,6 @@ d.label(0x8641, 'store_tx_error')
 
 d.label(0x869A, 'add_bytes_loop')
 
-d.label(0x8681, 'tx_ctrl_dispatch_lo')
-
 d.label(0x8689, 'tx_ctrl_machine_type')
 
 d.label(0x86AC, 'setup_data_xfer')
@@ -6490,15 +6488,17 @@ d.comment(0x867B, 'Push high byte for PHA/PHA/RTS dispatch', align=Align.INLINE)
 d.comment(0x867C, 'Look up handler address low from table', align=Align.INLINE)
 d.comment(0x867F, 'Push low byte for PHA/PHA/RTS dispatch', align=Align.INLINE)
 d.comment(0x8680, 'RTS dispatches to control-byte handler', align=Align.INLINE)
-d.comment(0x8681, """TX ctrl dispatch table (lo bytes)
+d.subroutine(0x8681, 'tx_ctrl_dispatch_lo', title='TX-ctrl dispatch table (lo bytes, 8 entries)', description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl
+control-byte types &81-&88. Read by the dispatch at
+[`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,
+which resolves to [`intoff_disable_nmi_op`](address:8600?hex)
+(= `intoff_test_inactive + 1`) plus Y – an aliased read into
+this table.
 
-Low bytes of PHA/PHA/RTS dispatch targets for TX
-control byte types &81-&88. Read by the dispatch
-at &867C via LDA intoff_disable_nmi_op,Y (base
-intoff_test_inactive+1). High byte is always &86,
-so targets are &86xx+1. Last entry dispatches to
-tx_ctrl_machine_type at &867F, immediately after
-the table.""")
+High byte is always &86, so targets are &86xx+1. The last
+entry (Y=&88) dispatches to
+[`tx_ctrl_machine_type`](address:8689), the routine that
+begins immediately after the table.""")
 d.comment(0x8689, 'scout_status=3 (machine type query)', align=Align.INLINE)
 d.comment(0x868B, 'Skip address addition, store status', align=Align.INLINE)
 d.comment(0x868D, 'A=3: scout_status for PEEK op', align=Align.INLINE)

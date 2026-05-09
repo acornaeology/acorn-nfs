@@ -2798,9 +2798,16 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda intoff_disable_nmi_op,y                                       ; 867c: b9 00 86    ...      ; Look up handler address low from table
     pha                                                               ; 867f: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 8680: 60          `        ; RTS dispatches to control-byte handler
-; TX ctrl dispatch table (lo bytes)
+; ***************************************************************************************
+; TX-ctrl dispatch table (lo bytes, 8 entries)
 ;
-; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte types &81-&88. Read by the dispatch at &867C via LDA intoff_disable_nmi_op,Y (base intoff_test_inactive+1). High byte is always &86, so targets are &86xx+1. Last entry dispatches to tx_ctrl_machine_type at &867F, immediately after the table.
+; Low bytes of PHA/PHA/RTS dispatch targets for TX-ctrl control-byte types &81-&88. Read
+; by the dispatch at &867C (&867C) via LDA intoff_disable_nmi_op,Y, which resolves to
+; intoff_disable_nmi_op (&8600) (= intoff_test_inactive + 1) plus Y – an aliased read
+; into this table.
+;
+; High byte is always &86, so targets are &86xx+1. The last entry (Y=&88) dispatches to
+; tx_ctrl_machine_type, the routine that begins immediately after the table.
 .tx_ctrl_dispatch_lo
     equb <(tx_ctrl_peek-1)                                            ; 8681: 8c          .     
     equb <(tx_ctrl_poke-1)                                            ; 8682: 90          .     
