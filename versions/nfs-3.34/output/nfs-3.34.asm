@@ -5999,7 +5999,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 .restore_econet_state
     bit station_id_disable_net_nmis                                   ; 96b4: 2c 18 fe    ,..      ; INTOFF: disable NMIs for state restore
     ldy #8                                                            ; 96b7: a0 08       ..       ; Y=8: workspace offset for flags
-    lda (net_rx_ptr),y                                                ; 96b9: b1 9c       ..       ; Load saved rx_status_flags from RXCB  Load saved rx_status_flags
+    lda (net_rx_ptr),y                                                ; 96b9: b1 9c       ..       ; Load saved rx_status_flags from RXCB
     sta rx_status_flags                                               ; 96bb: 8d 38 0d    .8.      ; Restore rx_status_flags
     iny                                                               ; 96be: c8          .     
     lda (net_rx_ptr),y                                                ; 96bf: b1 9c       ..       ; Load saved protection mask

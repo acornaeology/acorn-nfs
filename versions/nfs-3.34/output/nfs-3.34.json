@@ -42315,7 +42315,7 @@
         177,
         156
       ],
-      "comment_inline": "Load saved rx_status_flags from RXCB Load saved rx_status_flags",
+      "comment_inline": "Load saved rx_status_flags from RXCB",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(net_rx_ptr),y",

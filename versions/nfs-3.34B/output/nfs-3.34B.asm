@@ -2454,7 +2454,7 @@ error_offsets = copyright+8
     rts                                                               ; 84a4: 60          `        ; Return with handle mask in A
 ; &84a5 referenced 1 time by &8761
 .add_5_to_y
-    iny                                                               ; 84a5: c8          .        ; Y += 5  Y += 5 (entry point)
+    iny                                                               ; 84a5: c8          .        ; Y += 5 (entry point)
 ; &84a6 referenced 1 time by &8a4e
 .add_4_to_y
     iny                                                               ; 84a6: c8          .        ; Y += 4

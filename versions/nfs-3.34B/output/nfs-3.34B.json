@@ -10861,7 +10861,7 @@
       "comments_before": [
         "&84a5 referenced 1 time by &8761"
       ],
-      "comment_inline": "Y += 5 Y += 5 (entry point)",
+      "comment_inline": "Y += 5 (entry point)",
       "references": [
         34657
       ],
