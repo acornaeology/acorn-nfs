@@ -825,7 +825,6 @@ d.label(0x927B, 'loop_encode_prot')
 
 d.label(0x9283, 'skip_clear_prot')
 
-d.label(0x9286, 'prot_bit_encode_table')
 for i in range(11):
     d.byte(0x9286 + i)
 
@@ -10228,21 +10227,18 @@ d.comment(0x927E, 'Bit clear: skip this position', align=Align.INLINE)
 d.comment(0x9280, 'Bit set: OR in encoded value', align=Align.INLINE)
 d.comment(0x9283, 'More bits to process', align=Align.INLINE)
 d.comment(0x9285, 'Return encoded access in A', align=Align.INLINE)
-d.comment(0x9286, """Protection/access bit encode table
+d.subroutine(0x9286, 'prot_bit_encode_table', title='Protection/access bit encode table (11 entries)', description="""11-entry lookup table used by
+[`get_prot_bits`](address:9273?hex) and
+[`get_access_bits`](address:9269?hex) to remap attribute bits
+between the file-server protocol format and the local
+representation. The encoding loop shifts out each source bit;
+for each set bit, the corresponding table entry is `ORA`-ed
+into the result.
 
-11-entry lookup table used by get_prot_bits and
-get_access_bits to remap attribute bits between
-the file server protocol format and the local
-representation. The encoding loop shifts out each
-source bit; for each set bit, the corresponding
-table entry is ORed into the result.
-
-Indices 0-4: used by get_prot_bits (5-bit input).
-Some entries set multiple output bits (expansion).
-
-Indices 5-10: used by get_access_bits (6-bit input
-from directory entry offset &0E). Each entry sets
-exactly one output bit (pure permutation).""")
+| Indices | Used by             | Notes                                       |
+|---------|---------------------|---------------------------------------------|
+| 0-4     | `get_prot_bits`     | 5-bit input. Some entries expand to 2 bits. |
+| 5-10    | `get_access_bits`   | 6-bit input (dir entry offset &0E). Pure permutation – one output bit per entry. |""")
 d.comment(0x9286, 'Bit 0: &50 = %01010000 (bits 4,6)', align=Align.INLINE)
 d.comment(0x9287, 'Bit 1: &20 = %00100000 (bit 5)', align=Align.INLINE)
 d.comment(0x9288, 'Bit 2: &05 = %00000101 (bits 0,2)', align=Align.INLINE)

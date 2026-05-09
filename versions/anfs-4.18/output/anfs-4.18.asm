@@ -5395,13 +5395,18 @@ ws_init_data = error_bad_station+2
 .skip_clear_prot
     bne loop_encode_prot                                              ; 9283: d0 f6       ..       ; More bits to process
     rts                                                               ; 9285: 60          `        ; Return encoded access in A
-; Protection/access bit encode table
+; ***************************************************************************************
+; Protection/access bit encode table (11 entries)
 ;
-; 11-entry lookup table used by get_prot_bits and get_access_bits to remap attribute bits between the file server protocol format and the local representation. The encoding loop shifts out each source bit; for each set bit, the corresponding table entry is ORed into the result.
+; 11-entry lookup table used by get_prot_bits (&9273) and get_access_bits (&9269) to
+; remap attribute bits between the file-server protocol format and the local
+; representation. The encoding loop shifts out each source bit; for each set bit, the
+; corresponding table entry is ORA-ed into the result.
 ;
-; Indices 0-4: used by get_prot_bits (5-bit input). Some entries set multiple output bits (expansion).
-;
-; Indices 5-10: used by get_access_bits (6-bit input from directory entry offset &0E). Each entry sets exactly one output bit (pure permutation).
+; | Indices | Used by         | Notes                                                                            |
+; |---------|-----------------|----------------------------------------------------------------------------------|
+; | 0-4     | get_prot_bits   | 5-bit input. Some entries expand to 2 bits.                                      |
+; | 5-10    | get_access_bits | 6-bit input (dir entry offset &0E). Pure permutation – one output bit per entry. |
 ; &9286 referenced 1 time by &9280
 .prot_bit_encode_table
     equb &50                                                          ; 9286: 50          P        ; Bit 0: &50 = %01010000 (bits 4,6)
