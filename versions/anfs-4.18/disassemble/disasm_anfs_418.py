@@ -876,7 +876,6 @@ d.label(0x9476, 'loop_init_txcb')
 
 d.label(0x9486, 'skip_txcb_dest')
 
-d.label(0x948B, 'txcb_init_template')
 for i in range(12):
     d.byte(0x948B + i)
 
@@ -7631,16 +7630,14 @@ d.comment(0x913A, 'Digit >= &0A?', align=Align.INLINE)
 d.comment(0x913C, 'No: skip letter adjustment', align=Align.INLINE)
 d.comment(0x913E, "Add 7 to get 'A'-'F' (6 + carry)", align=Align.INLINE)
 d.comment(0x9140, "Add &30 for ASCII '0'-'9' or 'A'-'F'", align=Align.INLINE)
-d.comment(0x948B, """TXCB initialisation template (12 bytes)
+d.subroutine(0x948B, 'txcb_init_template', title='TXCB initialisation template (12 bytes)', description="""Copied by [`loop_init_txcb`](address:9476?hex) into the TXCB
+workspace at &00C0. For offsets 0-1, the destination station
+bytes are also copied from `l0e00` into `txcb_dest`.
 
-Copied by init_txcb into the TXCB workspace at
-&00C0. For offsets 0-1, the destination station
-bytes are also copied from l0e00 into txcb_dest.
-
-The &FF byte at offset 6 (bit_test_ff, &9491)
-serves double duty: it is part of this template
-AND a BIT target used by 22 callers to set the
-V and N flags without clobbering A.""")
+The &FF byte at offset 6
+([`bit_test_ff`](address:9491?hex)) serves double duty: it is
+part of this template **and** a `BIT` target used by 22
+callers to set the `V` and `N` flags without clobbering `A`.""")
 d.comment(0x948B, 'Offset 0: txcb_ctrl = &80 (transmit)', align=Align.INLINE)
 d.comment(0x948C, 'Offset 1: txcb_port = &99 (FS reply)', align=Align.INLINE)
 d.comment(0x948D, 'Offset 2: txcb_dest lo (overwritten)', align=Align.INLINE)

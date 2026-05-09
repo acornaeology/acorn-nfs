@@ -2615,6 +2615,12 @@
       "fall_through": true
     },
     {
+      "addr": 38027,
+      "name": "txcb_init_template",
+      "title": "TXCB initialisation template (12 bytes)",
+      "description": "Copied by [`loop_init_txcb`](address:9476?hex) into the TXCB\nworkspace at &00C0. For offsets 0-1, the destination station\nbytes are also copied from `l0e00` into `txcb_dest`.\n\nThe &FF byte at offset 6\n([`bit_test_ff`](address:9491?hex)) serves double duty: it is\npart of this template **and** a `BIT` target used by 22\ncallers to set the `V` and `N` flags without clobbering `A`."
+    },
+    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -36835,7 +36841,8 @@
         "txcb_init_template"
       ],
       "comments_before": [
-        "TXCB initialisation template (12 bytes)\n\nCopied by init_txcb into the TXCB workspace at\n&00C0. For offsets 0-1, the destination station\nbytes are also copied from l0e00 into txcb_dest.\n\nThe &FF byte at offset 6 (bit_test_ff, &9491)\nserves double duty: it is part of this template\nAND a BIT target used by 22 callers to set the\nV and N flags without clobbering A.",
+        "***************************************************************************************",
+        "TXCB initialisation template (12 bytes)\n\nCopied by [`loop_init_txcb`](address:9476?hex) into the TXCB\nworkspace at &00C0. For offsets 0-1, the destination station\nbytes are also copied from `l0e00` into `txcb_dest`.\n\nThe &FF byte at offset 6\n([`bit_test_ff`](address:9491?hex)) serves double duty: it is\npart of this template **and** a `BIT` target used by 22\ncallers to set the `V` and `N` flags without clobbering `A`.",
         "&948b referenced 1 time by &9476"
       ],
       "comment_inline": "Offset 0: txcb_ctrl = &80 (transmit)",

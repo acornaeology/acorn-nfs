@@ -5874,11 +5874,15 @@ ws_init_data = error_bad_station+2
     bpl loop_init_txcb                                                ; 9487: 10 ed       ..       ; More bytes: continue
     pla                                                               ; 9489: 68          h        ; Restore A
     rts                                                               ; 948a: 60          `        ; Return
+; ***************************************************************************************
 ; TXCB initialisation template (12 bytes)
 ;
-; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1, the destination station bytes are also copied from l0e00 into txcb_dest.
+; Copied by loop_init_txcb (&9476) into the TXCB workspace at &00C0. For offsets 0-1, the
+; destination station bytes are also copied from l0e00 into txcb_dest.
 ;
-; The &FF byte at offset 6 (bit_test_ff, &9491) serves double duty: it is part of this template AND a BIT target used by 22 callers to set the V and N flags without clobbering A.
+; The &FF byte at offset 6 (bit_test_ff (&9491)) serves double duty: it is part of this
+; template and a BIT target used by 22 callers to set the V and N flags without
+; clobbering A.
 ; &948b referenced 1 time by &9476
 .txcb_init_template
     equb &80                                                          ; 948b: 80          .        ; Offset 0: txcb_ctrl = &80 (transmit)
