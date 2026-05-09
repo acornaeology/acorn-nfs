@@ -2516,11 +2516,16 @@ copyright_string = copyright+1
 ; &853d referenced 3 times by &8531, &8535, &8539
 .return_from_advance_buf
     rts                                                               ; 853d: 60          `        ; Return
-; TX done dispatch table (lo bytes)
+; ***************************************************************************************
+; TX-done dispatch table (lo bytes, 5 entries)
 ;
-; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types &83-&87. Read by the dispatch at &8064 via LDA set_rx_buf_len_hi,Y (base &84BB
+; Low bytes of PHA/PHA/RTS dispatch targets for TX-done operation types &83-&87. Read by
+; the dispatch at &8064 (&8064) via LDA set_rx_buf_len_hi,Y, which resolves to
+; set_rx_buf_len_hi + Y – an aliased read into this table since set_rx_buf_len_hi (&84BB)
+; sits 0x83 bytes before the first entry.
 ;
-; - Y). High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes and are not valid operation types.
+; High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from
+; preceding code bytes and are not valid operation types.
 .tx_done_dispatch_lo
     equb <(tx_done_jsr-1)                                             ; 853e: 42          B     
     equb <(tx_done_econet_event-1)                                    ; 853f: 4b          K     

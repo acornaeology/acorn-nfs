@@ -2061,8 +2061,6 @@ d.label(0x83FB, 'set_nmi_rx_scout')
 
 d.label(0x850F, 'setup_sr_tx')
 
-d.label(0x853E, 'tx_done_dispatch_lo')
-
 d.label(0x854C, 'tx_done_econet_event')
 
 d.label(0x8554, 'tx_done_fire_event')
@@ -6335,14 +6333,16 @@ d.comment(0x8545, 'Push hi byte on stack', align=Align.INLINE)
 d.comment(0x8546, 'Push lo of (tx_done_exit-1)', align=Align.INLINE)
 d.comment(0x8548, 'Push lo byte on stack', align=Align.INLINE)
 d.comment(0x8549, 'Call remote JSR; RTS to tx_done_exit', align=Align.INLINE)
-d.comment(0x853E, """TX done dispatch table (lo bytes)
-
-Low bytes of PHA/PHA/RTS dispatch targets for TX
+d.subroutine(0x853E, 'tx_done_dispatch_lo', title='TX-done dispatch table (lo bytes, 5 entries)', description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done
 operation types &83-&87. Read by the dispatch at
-&8064 via LDA set_rx_buf_len_hi,Y (base &84BB
-+ Y). High byte is always &85, so targets are
-&85xx+1. Entries for Y < &83 read from preceding
-code bytes and are not valid operation types.""")
+[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,
+which resolves to `set_rx_buf_len_hi + Y` – an aliased read
+into this table since [`set_rx_buf_len_hi`](address:84BB?hex)
+sits 0x83 bytes before the first entry.
+
+High byte is always &85, so targets are &85xx+1. Entries for
+Y < &83 read from preceding code bytes and are not valid
+operation types.""")
 d.comment(0x854C, 'X = remote address lo from l0d66', align=Align.INLINE)
 d.comment(0x854F, 'A = remote address hi from l0d67', align=Align.INLINE)
 d.comment(0x8552, 'Y = 8: Econet event number', align=Align.INLINE)

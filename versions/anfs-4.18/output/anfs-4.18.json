@@ -2590,6 +2590,12 @@
       "description": "Four consecutive INX instructions. Used as a\nbuilding block by advance_x_by_4 and\nadvance_x_by_8 via JSR/fall-through chaining."
     },
     {
+      "addr": 34110,
+      "name": "tx_done_dispatch_lo",
+      "title": "TX-done dispatch table (lo bytes, 5 entries)",
+      "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done\noperation types &83-&87. Read by the dispatch at\n[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,\nwhich resolves to `set_rx_buf_len_hi + Y` \u2013 an aliased read\ninto this table since [`set_rx_buf_len_hi`](address:84BB?hex)\nsits 0x83 bytes before the first entry.\n\nHigh byte is always &85, so targets are &85xx+1. Entries for\nY < &83 read from preceding code bytes and are not valid\noperation types."
+    },
+    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -11793,7 +11799,8 @@
         "tx_done_dispatch_lo"
       ],
       "comments_before": [
-        "TX done dispatch table (lo bytes)\n\nLow bytes of PHA/PHA/RTS dispatch targets for TX\noperation types &83-&87. Read by the dispatch at\n&8064 via LDA set_rx_buf_len_hi,Y (base &84BB\n+ Y). High byte is always &85, so targets are\n&85xx+1. Entries for Y < &83 read from preceding\ncode bytes and are not valid operation types."
+        "***************************************************************************************",
+        "TX-done dispatch table (lo bytes, 5 entries)\n\nLow bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done\noperation types &83-&87. Read by the dispatch at\n[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,\nwhich resolves to `set_rx_buf_len_hi + Y` \u2013 an aliased read\ninto this table since [`set_rx_buf_len_hi`](address:84BB?hex)\nsits 0x83 bytes before the first entry.\n\nHigh byte is always &85, so targets are &85xx+1. Entries for\nY < &83 read from preceding code bytes and are not valid\noperation types."
       ],
       "type": "byte",
       "values": [
