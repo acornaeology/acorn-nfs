@@ -1219,8 +1219,8 @@ lang_entry_hi = rom_header+2
 ;
 ; | A | Meaning                                           |
 ; |---|---------------------------------------------------|
-; | 1 | Normal startup                                    |
 ; | 0 | No language available — MOS calling Tube ROM      |
+; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
     jmp language_handler                                              ; 8000: 4c d4 80    L..   

@@ -690,8 +690,8 @@ cpu 1
 ;
 ; | A | Meaning                                           |
 ; |---|---------------------------------------------------|
-; | 1 | Normal startup                                    |
 ; | 0 | No language available — MOS calling Tube ROM      |
+; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
     equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
