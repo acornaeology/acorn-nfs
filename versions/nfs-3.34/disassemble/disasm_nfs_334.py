@@ -354,6 +354,8 @@ space-saving trick that shares ROM bytes between the
 copyright string and the star command table.""")
 
 d.label(0x800D, 'copyright_string')
+d.label(0x8010, 'cmd_roff_str')
+d.label(0x8009, 'cmd_net_str')
 
 d.label(0x8014, 'error_offsets')
 d.comment(0x8014, """Error message offset table (9 entries).
@@ -3393,7 +3395,6 @@ d.comment(0x816D, 'A=0: clear remote state', align=Align.INLINE)
 d.comment(0x816F, 'Clear &A9 (service dispatch state)', align=Align.INLINE)
 
 d.label(0x817D, 'match_net_cmd')
-d.comment(0x817D, 'X=1: ROM offset for "NET" match', align=Align.INLINE)
 d.comment(0x817F, 'Try matching *NET command', align=Align.INLINE)
 d.comment(0x8182, 'No match: return unclaimed', align=Align.INLINE)
 d.comment(0x8184, 'Notify current FS of shutdown (FSCV A=6)', align=Align.INLINE)
@@ -6812,7 +6813,6 @@ d.label(0x8C4D, 'cat_access_setup')
 d.comment(0x0615, 'Encode carry into result bit 7', align=Align.INLINE)
 d.comment(0x0616, 'Send carry+result byte via R2', align=Align.INLINE)
 d.comment(0x8171, 'Return from workspace reset', align=Align.INLINE)
-d.comment(0x8172, 'X=8: ROM offset for *ROFF match', align=Align.INLINE)
 d.comment(0x8174, 'Match command against ROM string', align=Align.INLINE)
 d.comment(0x8177, 'No match: try *NET command', align=Align.INLINE)
 d.comment(0x8179, 'Match found: claim service (A=0)', align=Align.INLINE)
@@ -7016,6 +7016,9 @@ d.comment(0x90CF, 'OSWORD 7? (make sound)', align=Align.INLINE)
 d.comment(0x903D, 'Get stack pointer for P register', align=Align.INLINE)
 d.comment(0x96AE, 'Load TX in-progress flag', align=Align.INLINE)
 d.comment(0x9F5D, 'Load TX block byte at offset 6', align=Align.INLINE)
+d.expr(0x8173, 'cmd_roff_str - binary_version')
+d.expr(0x817e, 'cmd_net_str - binary_version')
+
 import sys
 ir = d.disassemble()
 output = str(ir.render('beebasm', boundary_label_prefix='pydis_', byte_column=True, byte_column_format='py8dis', default_byte_cols=12, default_word_cols=6))

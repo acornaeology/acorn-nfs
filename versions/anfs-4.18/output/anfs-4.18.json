@@ -3047,15 +3047,20 @@
   "banners": [
     {
       "addr": 32768,
-      "name": "language_entry",
+      "name": "rom_header",
       "title": "Sideways ROM header \u2014 language-entry slot (3 bytes)",
-      "description": "MOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&00`` (service-only ROM, ``rom_type`` bit 6 clear) \u2014 set to inhibit the MOS dispatch path per the Acorn header standard. Bytes 1-2 are unused padding."
+      "description": "MOS dispatches ``JMP &8000`` on language startup.\n\nService-only ROM (``rom_type`` bit 6 clear). Per-byte detail is inline.\n\nReason code in A on entry:\n\n| A | Meaning                                              |\n|---|------------------------------------------------------|\n| 1 | Normal startup                                       |\n| 0 | No language available \u2014 MOS calling Tube ROM         |\n| 2 | Request next byte of softkey expansion (Electron)    |\n| 3 | Request length of softkey expansion (Electron)       |"
     },
     {
       "addr": 32771,
       "name": "service_entry",
       "title": "Service-entry slot (3 bytes)",
-      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A."
+    },
+    {
+      "addr": 32774,
+      "name": "rom_type",
+      "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |"
     }
   ],
   "external_labels": {
@@ -3414,38 +3419,53 @@
     {
       "addr": 32768,
       "bytes": [
-        0,
-        66,
-        67
+        0
       ],
       "labels": [
-        "language_entry",
-        "rom_header"
+        "rom_header",
+        "language_entry"
       ],
-      "sub_labels": {
-        "32769": [
-          "rom_header_byte1"
-        ],
-        "32770": [
-          "rom_header_byte2"
-        ]
-      },
       "comments_before": [
         "# ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)",
-        "&8000 referenced 1 time by &04e2[2]",
-        "&8001 referenced 1 time by &04e7[2]",
-        "&8002 referenced 1 time by &04ec[2]"
+        "&8000 referenced 1 time by &04e2[2]"
       ],
+      "comment_inline": "no-language sentinel (rom_type bit 6 clear)",
       "comments_after": [
         "***************************************************************************************",
-        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&00`` (service-only ROM, ``rom_type`` bit 6 clear) \u2014 set to inhibit the MOS dispatch path per the Acorn header standard. Bytes 1-2 are unused padding."
+        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup.\n\nService-only ROM (``rom_type`` bit 6 clear). Per-byte detail is inline.\n\nReason code in A on entry:\n\n| A | Meaning                                              |\n|---|------------------------------------------------------|\n| 1 | Normal startup                                       |\n| 0 | No language available \u2014 MOS calling Tube ROM         |\n| 2 | Request next byte of softkey expansion (Electron)    |\n| 3 | Request length of softkey expansion (Electron)       |"
       ],
       "references": [
         1250
       ],
       "type": "byte",
       "values": [
-        0,
+        0
+      ]
+    },
+    {
+      "addr": 32769,
+      "bytes": [
+        66,
+        67
+      ],
+      "labels": [
+        "rom_header_byte1"
+      ],
+      "sub_labels": {
+        "32770": [
+          "rom_header_byte2"
+        ]
+      },
+      "comments_before": [
+        "&8001 referenced 1 time by &04e7[2]",
+        "&8002 referenced 1 time by &04ec[2]"
+      ],
+      "comment_inline": "unused padding",
+      "references": [
+        1255
+      ],
+      "type": "byte",
+      "values": [
         66,
         67
       ]
@@ -3471,7 +3491,7 @@
       ],
       "comments_after": [
         "***************************************************************************************",
-        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A."
       ],
       "references": [
         1265
@@ -3493,7 +3513,11 @@
       "comments_before": [
         "&8006 referenced 1 time by &04d6[2]"
       ],
-      "comment_inline": "ROM type: Service entry; 6502 (non-BASIC)",
+      "comment_inline": "ROM type",
+      "comments_after": [
+        "***************************************************************************************",
+        "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |"
+      ],
       "references": [
         1238
       ],
@@ -3556,19 +3580,42 @@
         52,
         46,
         49,
-        56,
-        0
+        56
       ],
       "labels": [
         "title"
       ],
       "type": "string",
-      "string": "Acorn ANFS 4.18."
+      "string": "Acorn ANFS 4.18"
+    },
+    {
+      "addr": 32792,
+      "bytes": [
+        0
+      ],
+      "comment_inline": "NUL terminator",
+      "type": "byte",
+      "values": [
+        0
+      ]
     },
     {
       "addr": 32793,
       "bytes": [
-        0,
+        0
+      ],
+      "labels": [
+        "copyright"
+      ],
+      "comment_inline": "NUL preceding copyright string",
+      "type": "byte",
+      "values": [
+        0
+      ]
+    },
+    {
+      "addr": 32794,
+      "bytes": [
         40,
         67,
         41,
@@ -3581,19 +3628,24 @@
         99,
         111,
         114,
-        110,
-        0
+        110
       ],
       "labels": [
-        "copyright"
+        "copyright_string"
       ],
-      "sub_labels": {
-        "32794": [
-          "copyright_string"
-        ]
-      },
       "type": "string",
-      "string": ".(C)1985 Acorn."
+      "string": "(C)1985 Acorn"
+    },
+    {
+      "addr": 32807,
+      "bytes": [
+        0
+      ],
+      "comment_inline": "NUL terminator",
+      "type": "byte",
+      "values": [
+        0
+      ]
     },
     {
       "addr": 32808,
@@ -10975,8 +11027,8 @@
         46
       ],
       "labels": [
-        "rx_imm_poke",
-        "svc5_dispatch_lo"
+        "svc5_dispatch_lo",
+        "rx_imm_poke"
       ],
       "comments_before": [
         "***************************************************************************************",
@@ -30461,8 +30513,8 @@
         40
       ],
       "labels": [
-        "cmd_syntax_strings",
-        "syn_opt_dir"
+        "syn_opt_dir",
+        "cmd_syntax_strings"
       ],
       "comments_before": [
         "***************************************************************************************",

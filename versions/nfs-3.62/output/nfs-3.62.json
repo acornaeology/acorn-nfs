@@ -2176,15 +2176,20 @@
   "banners": [
     {
       "addr": 32768,
-      "name": "language_entry",
+      "name": "rom_header",
       "title": "Sideways ROM header \u2014 language-entry slot (3 bytes)",
-      "description": "MOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``."
+      "description": "MOS dispatches ``JMP &8000`` on language startup.\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``.\n\nReason code in A on entry:\n\n| A | Meaning                                              |\n|---|------------------------------------------------------|\n| 1 | Normal startup                                       |\n| 0 | No language available \u2014 MOS calling Tube ROM         |\n| 2 | Request next byte of softkey expansion (Electron)    |\n| 3 | Request length of softkey expansion (Electron)       |"
     },
     {
       "addr": 32771,
       "name": "service_entry",
       "title": "Service-entry slot (3 bytes)",
-      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+      "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A."
+    },
+    {
+      "addr": 32774,
+      "name": "rom_type",
+      "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |"
     }
   ],
   "external_labels": {
@@ -2483,8 +2488,8 @@
         128
       ],
       "labels": [
-        "language_entry",
-        "rom_header"
+        "rom_header",
+        "language_entry"
       ],
       "sub_labels": {
         "32769": [
@@ -2502,7 +2507,7 @@
       ],
       "comments_after": [
         "***************************************************************************************",
-        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup with a reason code in A (1 = normal start, 0 = no language available, 2/3 = Electron softkey query).\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``."
+        "Sideways ROM header \u2014 language-entry slot (3 bytes)\n\nMOS dispatches ``JMP &8000`` on language startup.\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``.\n\nReason code in A on entry:\n\n| A | Meaning                                              |\n|---|------------------------------------------------------|\n| 1 | Normal startup                                       |\n| 0 | No language available \u2014 MOS calling Tube ROM         |\n| 2 | Request next byte of softkey expansion (Electron)    |\n| 3 | Request length of softkey expansion (Electron)       |"
       ],
       "references": [
         1254,
@@ -2535,7 +2540,7 @@
       ],
       "comments_after": [
         "***************************************************************************************",
-        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.\n\nByte 0 is ``&4C`` (``JMP abs``) \u2014 slot dispatches to ``service_handler``."
+        "Service-entry slot (3 bytes)\n\nMOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A."
       ],
       "references": [
         1269
@@ -2557,7 +2562,11 @@
       "comments_before": [
         "&8006 referenced 1 time by &04da[2]"
       ],
-      "comment_inline": "ROM type: Service entry; 6502 (non-BASIC)",
+      "comment_inline": "ROM type",
+      "comments_after": [
+        "***************************************************************************************",
+        "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |"
+      ],
       "references": [
         1242
       ],
@@ -2624,41 +2633,73 @@
       "labels": [
         "title"
       ],
+      "sub_labels": {
+        "32781": [
+          "cmd_net_str"
+        ]
+      },
       "type": "string",
       "string": "    NET"
     },
     {
       "addr": 32784,
       "bytes": [
-        0,
+        0
+      ],
+      "labels": [
+        "copyright"
+      ],
+      "comment_inline": "NUL preceding copyright string",
+      "type": "byte",
+      "values": [
+        0
+      ]
+    },
+    {
+      "addr": 32785,
+      "bytes": [
         40,
         67,
         41,
         82,
         79,
         70,
-        70,
-        0
+        70
       ],
       "labels": [
-        "copyright"
+        "copyright_string"
       ],
       "sub_labels": {
-        "32785": [
-          "copyright_string"
-        ],
-        "32792": [
-          "error_offsets"
+        "32788": [
+          "cmd_roff_str"
         ]
       },
       "comments_before": [
-        "The 'ROFF' suffix (copyright_string+3) is reused by\nthe *ROFF command matcher (svc_star_command) \u2014 a\nspace-saving trick that shares ROM bytes between the\ncopyright string and the star command table.",
+        "The 'ROFF' suffix (copyright_string+3) is reused by\nthe *ROFF command matcher (svc_star_command) \u2014 a\nspace-saving trick that shares ROM bytes between the\ncopyright string and the star command table."
+      ],
+      "type": "string",
+      "string": "(C)ROFF"
+    },
+    {
+      "addr": 32792,
+      "bytes": [
+        0
+      ],
+      "labels": [
+        "error_offsets"
+      ],
+      "comments_before": [
         "Error message offset table (9 entries).\nEach byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8.",
         "&8018 referenced 1 time by &8515"
       ],
-      "comment_inline": "\"Line Jammed\"",
-      "type": "string",
-      "string": ".(C)ROFF."
+      "comment_inline": "NUL terminator \"Line Jammed\"",
+      "references": [
+        34069
+      ],
+      "type": "byte",
+      "values": [
+        0
+      ]
     },
     {
       "addr": 32793,
@@ -4594,8 +4635,8 @@
         5
       ],
       "labels": [
-        "lang_entry_dispatch",
-        "language_handler"
+        "language_handler",
+        "lang_entry_dispatch"
       ],
       "comments_before": [
         "***************************************************************************************",
@@ -6057,10 +6098,9 @@
       "labels": [
         "svc_4_star_command"
       ],
-      "comment_inline": "ROM offset for \"ROFF\" (copyright suffix)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&0c"
+      "operand": "#cmd_roff_str - binary_version"
     },
     {
       "addr": 33207,
@@ -6411,13 +6451,12 @@
       "comments_before": [
         "&81ea referenced 1 time by &81ba"
       ],
-      "comment_inline": "X=5: ROM offset for \"NET\" match",
       "references": [
         33210
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#5"
+      "operand": "#cmd_net_str - binary_version"
     },
     {
       "addr": 33260,
@@ -21370,8 +21409,8 @@
         202
       ],
       "labels": [
-        "gbpbf2",
-        "gbpbx0"
+        "gbpbx0",
+        "gbpbf2"
       ],
       "comments_before": [
         "&8aa2 referenced 1 time by &8a9f"
@@ -25857,8 +25896,8 @@
         0
       ],
       "labels": [
-        "copy_filename",
-        "infol2"
+        "infol2",
+        "copy_filename"
       ],
       "comments_before": [
         "***************************************************************************************",
@@ -57391,8 +57430,8 @@
         190
       ],
       "labels": [
-        "ex_exec_trampoline",
-        "ex_trampoline"
+        "ex_trampoline",
+        "ex_exec_trampoline"
       ],
       "comments_before": [
         "***************************************************************************************",

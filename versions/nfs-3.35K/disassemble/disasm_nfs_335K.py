@@ -356,6 +356,8 @@ trick that shares ROM bytes between the copyright
 string and the star command table.""")
 
 d.label(0x800D, 'copyright_string')
+d.label(0x8010, 'cmd_roff_str')
+d.label(0x8009, 'cmd_net_str')
 
 d.label(0x8014, 'error_offsets')
 d.comment(0x8014, """Error message offset table (9 entries).
@@ -3386,7 +3388,6 @@ d.comment(0x8166, 'Write back &A8', align=Align.INLINE)
 d.comment(0x8168, 'Restore saved A from service dispatch', align=Align.INLINE)
 d.comment(0x8169, 'Save to workspace &A9', align=Align.INLINE)
 d.comment(0x816B, 'Return ROM number in A', align=Align.INLINE)
-d.comment(0x8179, 'ROM offset for "ROFF" (copyright suffix)', align=Align.INLINE)
 d.comment(0x817B, 'Try matching *ROFF command', align=Align.INLINE)
 d.comment(0x817E, 'No match: try *NET', align=Align.INLINE)
 d.comment(0x8180, 'Y=4: offset of keyboard disable flag', align=Align.INLINE)
@@ -3416,7 +3417,6 @@ d.comment(0x81AB, 'Clear workspace byte', align=Align.INLINE)
 d.comment(0x81AD, 'Return', align=Align.INLINE)
 
 d.label(0x81AE, 'match_net_cmd')
-d.comment(0x81AE, 'X=1: ROM offset for "NET" match', align=Align.INLINE)
 d.comment(0x81B0, 'Try matching *NET command', align=Align.INLINE)
 d.comment(0x81B3, 'No match: return unclaimed', align=Align.INLINE)
 d.comment(0x81B5, 'Notify current FS of shutdown (FSCV A=6)', align=Align.INLINE)
@@ -7135,6 +7135,9 @@ d.comment(0x9F39, 'Load TX flags for next action', align=Align.INLINE)
 d.comment(0x9F3C, 'bit7 clear: no data phase', align=Align.INLINE)
 d.comment(0x9F3E, 'Install data RX handler', align=Align.INLINE)
 d.comment(0x9FF4, 'Transfer ROM bank to Y', align=Align.INLINE)
+d.expr(0x817a, 'cmd_roff_str - binary_version')
+d.expr(0x81af, 'cmd_net_str - binary_version')
+
 import sys
 ir = d.disassemble()
 output = str(ir.render('beebasm', boundary_label_prefix='pydis_', byte_column=True, byte_column_format='py8dis', default_byte_cols=12, default_word_cols=6))

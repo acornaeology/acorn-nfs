@@ -816,10 +816,9 @@ d.entry(0x06BC)
 d.comment(0x06CE, '&FF padding (29 bytes before trampolines)', align=Align.INLINE)
 
 d.label(0x0DEB, 'fs_state_deb')
-d.comment(0x800D, """The 'ROFF' suffix at &8014 is reused by the *ROFF
-command matcher (svc_star_command) — a space-saving
-trick that shares ROM bytes between the copyright
-string and the star command table.""")
+d.comment(0x800D, """The 'ROFF' suffix of "(C)ROFF" at [`cmd_roff_str`](address:8010) is reused by the `*ROFF` command matcher [`svc_4_star_command`](address:81A2?hex) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
+
+The `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just the [`title`](address:8009) bytes (`"NET"`). Both call sites compute their offsets symbolically as `cmd_X_str - binary_version`, since `match_rom_string` does `cmp binary_version,X`.""")
 
 d.label(0x8001, 'language_handler_lo')
 
@@ -828,6 +827,8 @@ d.label(0x8002, 'language_handler_hi')
 d.label(0x8004, 'service_handler_lo')
 
 d.label(0x800D, 'copyright_string')
+d.label(0x8010, 'cmd_roff_str')
+d.label(0x8009, 'cmd_net_str')
 
 d.label(0x8014, 'error_offsets')
 
@@ -2799,7 +2800,6 @@ d.comment(0x819C, 'Restore saved A from service dispatch', align=Align.INLINE)
 d.comment(0x819D, 'Save to workspace &A9', align=Align.INLINE)
 d.comment(0x819F, 'Return ROM number in A', align=Align.INLINE)
 d.comment(0x81A0, 'Restore X from MOS ROM select copy', align=Align.INLINE)
-d.comment(0x81A3, 'ROM offset for "ROFF" (copyright suffix)', align=Align.INLINE)
 d.comment(0x81A5, 'Try matching *ROFF command', align=Align.INLINE)
 d.comment(0x81A8, 'No match: try *NET', align=Align.INLINE)
 
@@ -3239,7 +3239,6 @@ d.comment(0x81D1, 'A=0: clear remote state', align=Align.INLINE)
 d.comment(0x81D3, 'Clear &A9 (service dispatch state)', align=Align.INLINE)
 d.comment(0x81D5, 'Clear workspace byte', align=Align.INLINE)
 d.comment(0x81D7, 'Return', align=Align.INLINE)
-d.comment(0x81D8, 'X=1: ROM offset for "NET" match', align=Align.INLINE)
 d.comment(0x81DA, 'Try matching *NET command', align=Align.INLINE)
 d.comment(0x81DD, 'No match: return unclaimed', align=Align.INLINE)
 
@@ -7324,6 +7323,9 @@ d.comment(0x06F7, 'A=4: SR interrupt bit mask', align=Align.INLINE)
 d.comment(0x06F9, 'Test SR flag in VIA IFR', align=Align.INLINE)
 d.comment(0x06FC, 'SR active: handle interrupt', align=Align.INLINE)
 d.comment(0x06FE, 'A=5: NMI not for us', align=Align.INLINE)
+d.expr(0x81a4, 'cmd_roff_str - binary_version')
+d.expr(0x81d9, 'cmd_net_str - binary_version')
+
 import sys
 ir = d.disassemble()
 output = str(ir.render('beebasm', boundary_label_prefix='pydis_', byte_column=True, byte_column_format='py8dis', default_byte_cols=12, default_word_cols=6))

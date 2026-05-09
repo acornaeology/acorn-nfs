@@ -358,6 +358,8 @@ space-saving trick that shares ROM bytes between the
 copyright string and the star command table.""")
 
 d.label(0x800D, 'copyright_string')
+d.label(0x8010, 'cmd_roff_str')
+d.label(0x8009, 'cmd_net_str')
 
 d.label(0x8014, 'error_offsets')
 d.comment(0x8014, """Error message offset table (9 entries).
@@ -3398,7 +3400,6 @@ d.comment(0x81B5, 'Clear workspace byte', align=Align.INLINE)
 d.comment(0x81B7, 'Return', align=Align.INLINE)
 
 d.label(0x81B8, 'match_net_cmd')
-d.comment(0x81B8, 'X=1: ROM offset for "NET" match', align=Align.INLINE)
 d.comment(0x81BA, 'Try matching *NET command', align=Align.INLINE)
 d.comment(0x81BD, 'No match: return unclaimed', align=Align.INLINE)
 d.comment(0x81BF, 'Notify current FS of shutdown (FSCV A=6)', align=Align.INLINE)
@@ -7034,7 +7035,6 @@ d.label(0x9C62, 'intoff_test_inactive')
 d.comment(0x80EB, 'Load per-ROM workspace flag', align=Align.INLINE)
 d.comment(0x80F0, 'Service >= &80: always handle', align=Align.INLINE)
 d.comment(0x80F2, 'C=1 (disabled): skip this ROM', align=Align.INLINE)
-d.comment(0x8183, 'X=8: compare 8 chars for *ROFF', align=Align.INLINE)
 d.comment(0x8205, 'Reload saved character counter', align=Align.INLINE)
 d.comment(0x8234, 'Y=&14: offset for station number', align=Align.INLINE)
 d.comment(0x8256, 'Load vector address from table', align=Align.INLINE)
@@ -7150,6 +7150,9 @@ d.label(0x9FFA, 'rom_nmi_tail')
 d.comment(0x9FFA, 'Load current TX flags', align=Align.INLINE)
 d.comment(0x9FFD, 'Set bit 1 (transfer mode flag)', align=Align.INLINE)
 d.comment(0x9FFF, 'Store updated TX flags', align=Align.INLINE)
+d.expr(0x8184, 'cmd_roff_str - binary_version')
+d.expr(0x81b9, 'cmd_net_str - binary_version')
+
 import sys
 ir = d.disassemble()
 output = str(ir.render('beebasm', boundary_label_prefix='pydis_', byte_column=True, byte_column_format='py8dis', default_byte_cols=12, default_word_cols=6))

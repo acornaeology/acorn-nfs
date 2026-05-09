@@ -803,7 +803,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &04e5 referenced 1 time by &944e
 .scan_copyright_end
     inx                                                               ; 944a: e8          . :04e5[2]          ; Skip past null-terminated copyright string
-    lda language_entry,x                                              ; 944b: bd 00 80    ... :04e6[2]        ; Load next byte from ROM header
+    lda rom_header,x                                                  ; 944b: bd 00 80    ... :04e6[2]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; 944e: d0 fa       .. :04e9[2]         ; Loop until null terminator found
     lda language_handler_lo,x                                         ; 9450: bd 01 80    ... :04eb[2]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; 9453: 85 53       .S :04ee[2]         ; Store reloc addr byte 1 as transfer addr
@@ -1308,21 +1308,29 @@ tube_page6_start = tube_poll_r2_result_branch+1
 .pydis_start
 ; NFS ROM 3.65 disassembly (Acorn Econet filing system)
 ; &8000 referenced 2 times by &944b, &9b64
-.language_entry
 .rom_header
+.language_entry
 ; &8001 referenced 1 time by &9450
-language_handler_lo = language_entry+1
+language_handler_lo = rom_header+1
 ; &8002 referenced 1 time by &9455
-language_handler_hi = language_entry+2
+language_handler_hi = rom_header+2
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
-; 0 = no language available, 2/3 = Electron softkey query).
+; MOS dispatches JMP &8000 on language startup.
 ;
 ; Byte 0 is &4C so this ROM declares itself a language (rom_type bit 6 set); the slot is
 ; a real JMP to language_handler.
-    jmp lang_entry_dispatch                                           ; 8000: 4c dd 80    L..   
+;
+; Reason code in A on entry:
+;
+; | A | Meaning                                           |
+; |---|---------------------------------------------------|
+; | 1 | Normal startup                                    |
+; | 0 | No language available — MOS calling Tube ROM      |
+; | 2 | Request next byte of softkey expansion (Electron) |
+; | 3 | Request length of softkey expansion (Electron)    |
+    jmp language_handler                                              ; 8000: 4c dd 80    L..   
 ; &8003 referenced 1 time by &945a
 .service_entry
 ; &8004 referenced 1 time by &945d
@@ -1333,12 +1341,18 @@ service_handler_lo = service_entry+1
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
-;
-; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
     jmp service_handler                                               ; 8003: 4c f3 80    L..   
 ; &8006 referenced 1 time by &943f
 .rom_type
-    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
+    equb %10000010                                                    ; 8006: 82          .        ; ROM type
+; ***************************************************************************************
+; | Bit | Value | Meaning                     |
+; |-----|-------|-----------------------------|
+; | 7   | 1     | Service entry present       |
+; | 6   | 0     | No language entry           |
+; | 5   | 0     | No Tube relocation          |
+; | 4   | 0     | No Electron firmkey         |
+; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
 ; &8007 referenced 1 time by &9447
 .copyright_offset
     equb copyright - rom_header                                       ; 8007: 0c          .        ; Offset of NUL preceding copyright (= &0c → copyright at &800c)
@@ -1346,14 +1360,20 @@ service_handler_lo = service_entry+1
 .binary_version
     equb &03                                                          ; 8008: 03          .        ; Binary version: &03 (informational, not used by MOS)
 .title
+.cmd_net_str
     equs "NET"                                                        ; 8009: 4e 45 54    NET   
 .copyright
-; The 'ROFF' suffix at &8014 is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
-copyright_string = copyright+1
-; &8014 referenced 1 time by &8503
+    equb &00                                                          ; 800c: 00          .        ; NUL preceding copyright string
+; The 'ROFF' suffix of "(C)ROFF" at cmd_roff_str is reused by the *ROFF command matcher svc_4_star_command (&81A2) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
+;
+; The *NET matcher uses the same trick: cmd_net_str is just the title bytes ("NET"). Both call sites compute their offsets symbolically as cmd_X_str - binary_version, since match_rom_string does cmp binary_version,X.
+.copyright_string
+cmd_roff_str = copyright_string+3
+    equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)...
 ; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
-error_offsets = copyright+8
-    equb &00, "(C)ROFF", &00                                          ; 800c: 00 28 43... .(C...   ; "Line Jammed"
+; &8014 referenced 1 time by &8503
+.error_offsets
+    equb &00                                                          ; 8014: 00          .        ; NUL terminator  "Line Jammed"
     equb &0d                                                          ; 8015: 0d          .        ; "Net Error"
     equb &18                                                          ; 8016: 18          .        ; "Not listening"
     equb &27                                                          ; 8017: 27          '        ; "No Clock"
@@ -1511,7 +1531,7 @@ error_offsets = copyright+8
     sta fs_server_stn                                                 ; 8096: 8d 00 0e    ...   
 ; &8099 referenced 2 times by &8086, &8094
 .skip_stn_parse
-    jsr copy_filename                                                 ; 8099: 20 70 8d     p.      ; Copy command text to FS buffer
+    jsr infol2                                                        ; 8099: 20 70 8d     p.      ; Copy command text to FS buffer
 ; &809c referenced 2 times by &80a4, &80bb
 .scan_for_colon
     dey                                                               ; 809c: 88          .        ; Scan backward for ':' (interactive prefix)
@@ -1542,7 +1562,7 @@ error_offsets = copyright+8
 ; command match table at &8C4B, and from FSCV 2/3/4 indirectly. If CSD handle is zero
 ; (not logged in), returns without sending.
 .forward_star_cmd
-    jsr copy_filename                                                 ; 80bd: 20 70 8d     p.      ; Copy command text to FS buffer
+    jsr infol2                                                        ; 80bd: 20 70 8d     p.      ; Copy command text to FS buffer
     tay                                                               ; 80c0: a8          .     
 ; &80c1 referenced 1 time by &809d
 .prepare_cmd_dispatch
@@ -1585,8 +1605,8 @@ error_offsets = copyright+8
 ; post-init). X = reason code (0-4). Dispatches via table indices 15-19 (base offset
 ; Y=&0E).
 ; &80dd referenced 1 time by &8000
-.lang_entry_dispatch
 .language_handler
+.lang_entry_dispatch
     cpx #5                                                            ; 80dd: e0 05       ..       ; X >= 5: invalid reason code, return
 ; &80df referenced 1 time by &8071
 .svc_dispatch_range
@@ -1752,7 +1772,7 @@ error_offsets = copyright+8
 .return_2
     rts                                                               ; 81a2: 60          `        ; Return to MOS service handler
 .svc_4_star_command
-    ldx #8                                                            ; 81a3: a2 08       ..       ; ROM offset for "ROFF" (copyright suffix)
+    ldx #cmd_roff_str - binary_version                                ; 81a3: a2 08       ..    
     jsr match_rom_string                                              ; 81a5: 20 50 83     P.      ; Try matching *ROFF command
     bne match_net_cmd                                                 ; 81a8: d0 2e       ..       ; No match: try *NET
 ; ***************************************************************************************
@@ -1797,7 +1817,7 @@ error_offsets = copyright+8
     rts                                                               ; 81d7: 60          `        ; Return
 ; &81d8 referenced 1 time by &81a8
 .match_net_cmd
-    ldx #1                                                            ; 81d8: a2 01       ..       ; X=1: ROM offset for "NET" match
+    ldx #cmd_net_str - binary_version                                 ; 81d8: a2 01       ..    
     jsr match_rom_string                                              ; 81da: 20 50 83     P.      ; Try matching *NET command
     bne restore_ws_return                                             ; 81dd: d0 24       .$       ; No match: return unclaimed
 ; ***************************************************************************************
@@ -3309,7 +3329,7 @@ error_table_base = bgetv_shared_jsr+1
     jmp restore_args_return                                           ; 8708: 4c a1 89    L..      ; Unknown negative code: no-op return
 ; &870b referenced 1 time by &8706
 .loadop
-    jsr copy_filename                                                 ; 870b: 20 70 8d     p.      ; Copy parsed filename to cmd buffer
+    jsr infol2                                                        ; 870b: 20 70 8d     p.      ; Copy parsed filename to cmd buffer
     ldy #2                                                            ; 870e: a0 02       ..       ; Y=2: FS function code offset
 ; ***************************************************************************************
 ; Send FS examine command
@@ -3741,7 +3761,7 @@ error_table_base = bgetv_shared_jsr+1
     bne send_fs_cmd_v1                                                ; 8903: d0 05       ..       ; ALWAYS branch to send command
 ; &8905 referenced 1 time by &88c4
 .cha6
-    jsr copy_filename                                                 ; 8905: 20 70 8d     p.      ; A=6: copy filename (delete)
+    jsr infol2                                                        ; 8905: 20 70 8d     p.      ; A=6: copy filename (delete)
     ldy #&14                                                          ; 8908: a0 14       ..       ; Y=&14: fn code for FCDEL (delete)
 ; &890a referenced 1 time by &8903
 .send_fs_cmd_v1
@@ -4123,11 +4143,11 @@ error_table_base = bgetv_shared_jsr+1
     sta fs_func_code,x                                                ; 8a87: 9d 06 0f    ...      ; Store to FS command buffer at &0F06+X
     dey                                                               ; 8a8a: 88          .        ; Previous param block byte
     cpy #8                                                            ; 8a8b: c0 08       ..       ; Skip param block offset 8 (the handle)
-    bne gbpbf2                                                        ; 8a8d: d0 01       ..       ; Not at handle offset: continue
+    bne gbpbx0                                                        ; 8a8d: d0 01       ..       ; Not at handle offset: continue
     dey                                                               ; 8a8f: 88          .        ; Extra DEY to skip handle byte
 ; &8a90 referenced 1 time by &8a8d
-.gbpbf2
 .gbpbx0
+.gbpbf2
     dex                                                               ; 8a90: ca          .        ; Decrement copy counter
     bne gbpbf1                                                        ; 8a91: d0 f2       ..       ; Loop for all 6 bytes
     pla                                                               ; 8a93: 68          h        ; Recover function code from stack
@@ -4643,8 +4663,8 @@ boot_string_offsets = boot_option_offsets+1
 ;     Y: string length (incl CR)
 ;     A: 0 (from EOR &0D with final CR)
 ; &8d70 referenced 5 times by &8099, &80bd, &870b, &8905, &8de2
-.copy_filename
 .infol2
+.copy_filename
     ldx #0                                                            ; 8d70: a2 00       ..       ; Start writing at &0F05 (after cmd header)
 ; ***************************************************************************************
 ; Copy string to FS command buffer
@@ -4800,7 +4820,7 @@ boot_string_offsets = boot_option_offsets+1
 ; fsreply_4_notify_exec to set up and send the FS load-as-command request.
 .fscv_2_star_run
     jsr parse_filename_gs                                             ; 8ddf: 20 d6 86     ..      ; Parse filename from command line
-    jsr copy_filename                                                 ; 8de2: 20 70 8d     p.      ; Copy filename to FS command buffer
+    jsr infol2                                                        ; 8de2: 20 70 8d     p.      ; Copy filename to FS command buffer
 ; ***************************************************************************************
 ; FS reply 4: send FS load-as-command and execute response
 ;
@@ -7155,7 +7175,7 @@ svc5_dispatch_lo = sub_c9abe+1
 .tx_done_os_proc
     ldx l0d58                                                         ; 9b5e: ae 58 0d    .X.      ; X = remote address lo
     ldy l0d59                                                         ; 9b61: ac 59 0d    .Y.      ; Y = remote address hi
-    jsr language_entry                                                ; 9b64: 20 00 80     ..      ; Call ROM entry point at &8000
+    jsr rom_header                                                    ; 9b64: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9b67: 4c 89 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
 ; TX done: HALT
@@ -8892,7 +8912,7 @@ save pydis_start, pydis_end
 ;     Data                     = 682 bytes (8%)
 ;
 ;     Number of instructions   = 3635
-;     Number of data bytes     = 407 bytes
+;     Number of data bytes     = 409 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 223 bytes
+;     Number of string bytes   = 221 bytes
 ;     Number of strings        = 36

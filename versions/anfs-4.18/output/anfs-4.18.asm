@@ -1432,7 +1432,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &04e1 referenced 1 time by &bfe9
 .scan_copyright_end
     inx                                                               ; bfe5: e8          . :04e1[4]          ; Skip past null-terminated copyright string
-    lda language_entry,x                                              ; bfe6: bd 00 80    ... :04e2[4]        ; Load next byte from ROM header
+    lda rom_header,x                                                  ; bfe6: bd 00 80    ... :04e2[4]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; bfe9: d0 fa       .. :04e5[4]         ; Loop until null terminator found
     lda rom_header_byte1,x                                            ; bfeb: bd 01 80    ... :04e7[4]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; bfee: 85 53       .S :04ea[4]         ; Store reloc addr byte 1 as transfer addr
@@ -1465,21 +1465,29 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .pydis_start
 ; ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
 ; &8000 referenced 1 time by &bfe6
-.language_entry
 .rom_header
-; &8001 referenced 1 time by &bfeb
-rom_header_byte1 = language_entry+1
-; &8002 referenced 1 time by &bff0
-rom_header_byte2 = language_entry+2
+.language_entry
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
-; 0 = no language available, 2/3 = Electron softkey query).
+; MOS dispatches JMP &8000 on language startup.
 ;
-; Byte 0 is &00 (service-only ROM, rom_type bit 6 clear) — set to inhibit the MOS
-; dispatch path per the Acorn header standard. Bytes 1-2 are unused padding.
-    equb &00, &42, &43                                                ; 8000: 00 42 43    .BC   
+; Service-only ROM (rom_type bit 6 clear). Per-byte detail is inline.
+;
+; Reason code in A on entry:
+;
+; | A | Meaning                                           |
+; |---|---------------------------------------------------|
+; | 1 | Normal startup                                    |
+; | 0 | No language available — MOS calling Tube ROM      |
+; | 2 | Request next byte of softkey expansion (Electron) |
+; | 3 | Request length of softkey expansion (Electron)    |
+    equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
+; &8001 referenced 1 time by &bfeb
+.rom_header_byte1
+; &8002 referenced 1 time by &bff0
+rom_header_byte2 = rom_header_byte1+1
+    equb &42, &43                                                     ; 8001: 42 43       BC       ; unused padding
 ; &8003 referenced 1 time by &bff5
 .service_entry
 ; &8004 referenced 1 time by &bff8
@@ -1490,22 +1498,31 @@ service_handler_lo = service_entry+1
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
-;
-; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
     jmp service_handler                                               ; 8003: 4c 15 8a    L..   
 ; &8006 referenced 1 time by &bfda
 .rom_type
-    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
+    equb %10000010                                                    ; 8006: 82          .        ; ROM type
+; ***************************************************************************************
+; | Bit | Value | Meaning                     |
+; |-----|-------|-----------------------------|
+; | 7   | 1     | Service entry present       |
+; | 6   | 0     | No language entry           |
+; | 5   | 0     | No Tube relocation          |
+; | 4   | 0     | No Electron firmkey         |
+; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
 ; &8007 referenced 1 time by &bfe2
 .copyright_offset
     equb copyright - rom_header                                       ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
 .binary_version
     equb &04                                                          ; 8008: 04          .        ; Binary version: &04 (informational, not used by MOS)
 .title
-    equs "Acorn ANFS 4.18", &00                                       ; 8009: 41 63 6f... Aco...
+    equs "Acorn ANFS 4.18"                                            ; 8009: 41 63 6f... Aco...
+    equb &00                                                          ; 8018: 00          .        ; NUL terminator
 .copyright
-copyright_string = copyright+1
-    equb &00, "(C)1985 Acorn", &00                                    ; 8019: 00 28 43... .(C...
+    equb &00                                                          ; 8019: 00          .        ; NUL preceding copyright string
+.copyright_string
+    equs "(C)1985 Acorn"                                              ; 801a: 28 43 29... (C)...
+    equb &00                                                          ; 8027: 00          .        ; NUL terminator
 ; ***************************************************************************************
 ; Service 5: unrecognised interrupt (SR dispatch)
 ;
@@ -2422,8 +2439,8 @@ copyright_string = copyright+1
 ;
 ; Sets up workspace offsets for receiving POKE data. port_ws_offset=&2E,
 ; rx_buf_offset=&0D, then jumps to the common data-receive path at c81af.
-.rx_imm_poke
 .svc5_dispatch_lo
+.rx_imm_poke
     lda #&2e ; '.'                                                    ; 84ae: a9 2e       ..       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84b0: 85 a6       ..       ; Store workspace offset lo
     lda #&0d                                                          ; 84b2: a9 0d       ..       ; RX buffer page = &0D
@@ -4102,7 +4119,7 @@ init_rom_scan = sub_c8a6c+2
 ; &8be0 referenced 2 times by &8bed, &8bf3
 .loop_print_syntax
     iny                                                               ; 8be0: c8          .        ; Advance to next character
-    lda cmd_syntax_strings,y                                          ; 8be1: b9 22 90    .".      ; Load syntax string character
+    lda syn_opt_dir,y                                                 ; 8be1: b9 22 90    .".      ; Load syntax string character
     beq done_entry_newline                                            ; 8be4: f0 40       .@       ; Zero terminator: end of syntax
     cmp #&0d                                                          ; 8be6: c9 0d       ..       ; Carriage return: line continuation
     bne print_syntax_char                                             ; 8be8: d0 06       ..       ; No: print the character
@@ -5075,8 +5092,8 @@ ws_init_data = error_bad_station+2
 ; byte. Each table entry holds the offset of (the byte before) the corresponding string,
 ; since the print loop at &8BD5 (&8BD5) does INY before LDA.
 ; &9022 referenced 1 time by &8be1
-.cmd_syntax_strings
 .syn_opt_dir
+.cmd_syntax_strings
     plp                                                               ; 9022: 28          (        ; Syn 1: *Dir, *LCat, *LEx, *Wipe
     equs "<dir>)"                                                     ; 9023: 3c 64 69... <di...
     equb &00                                                          ; 9029: 00          .        ; Null terminator
@@ -15647,7 +15664,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1769 bytes (11%)
 ;
 ;     Number of instructions   = 7169
-;     Number of data bytes     = 534 bytes
+;     Number of data bytes     = 537 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1123 bytes
+;     Number of string bytes   = 1120 bytes
 ;     Number of strings        = 143

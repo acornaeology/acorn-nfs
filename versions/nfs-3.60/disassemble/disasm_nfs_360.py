@@ -819,6 +819,8 @@ d.label(0x8002, 'language_handler_hi')
 d.label(0x8004, 'service_handler_lo')
 
 d.label(0x8011, 'copyright_string')
+d.label(0x8014, 'cmd_roff_str')
+d.label(0x800d, 'cmd_net_str')
 
 d.label(0x8018, 'error_offsets')
 
@@ -2823,7 +2825,6 @@ d.comment(0x81AA, 'Save to workspace &A9', align=Align.INLINE)
 d.comment(0x81AC, 'Return ROM number in A', align=Align.INLINE)
 d.comment(0x81AD, 'Restore X from MOS ROM select copy', align=Align.INLINE)
 d.comment(0x81B0, 'Padding: dispatch targets &81B5', align=Align.INLINE)
-d.comment(0x81B5, 'ROM offset for "ROFF" (copyright suffix)', align=Align.INLINE)
 d.comment(0x81B7, 'Try matching *ROFF command', align=Align.INLINE)
 d.comment(0x81BA, 'No match: try *NET', align=Align.INLINE)
 
@@ -3247,7 +3248,6 @@ d.comment(0x81E3, 'A=0: clear remote state', align=Align.INLINE)
 d.comment(0x81E5, 'Clear &A9 (service dispatch state)', align=Align.INLINE)
 d.comment(0x81E7, 'Clear workspace byte', align=Align.INLINE)
 d.comment(0x81E9, 'Return', align=Align.INLINE)
-d.comment(0x81EA, 'X=5: ROM offset for "NET" match', align=Align.INLINE)
 d.comment(0x81EC, 'Try matching *NET command', align=Align.INLINE)
 d.comment(0x81EF, 'No match: return unclaimed', align=Align.INLINE)
 
@@ -7365,6 +7365,9 @@ d.comment(0x06F6, 'A=4: SR interrupt bit', align=Align.INLINE)
 d.comment(0x06F8, 'Clear SR interrupt flag', align=Align.INLINE)
 d.comment(0x06FB, 'Disable SR interrupt', align=Align.INLINE)
 d.comment(0x06FE, 'A=5: NMI not for us', align=Align.INLINE)
+d.expr(0x81b6, 'cmd_roff_str - binary_version')
+d.expr(0x81eb, 'cmd_net_str - binary_version')
+
 import sys
 ir = d.disassemble()
 output = str(ir.render('beebasm', boundary_label_prefix='pydis_', byte_column=True, byte_column_format='py8dis', default_byte_cols=12, default_word_cols=6))

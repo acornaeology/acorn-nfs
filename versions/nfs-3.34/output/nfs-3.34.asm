@@ -713,7 +713,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; &048a referenced 1 time by &93da
 .scan_copyright_end
     inx                                                               ; 93d6: e8          . :048a[2]          ; Skip past null-terminated copyright string
-    lda language_entry,x                                              ; 93d7: bd 00 80    ... :048b[2]        ; Load next byte from ROM header
+    lda rom_header,x                                                  ; 93d7: bd 00 80    ... :048b[2]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; 93da: d0 fa       .. :048e[2]         ; Loop until null terminator found
     lda lang_entry_lo,x                                               ; 93dc: bd 01 80    ... :0490[2]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; 93df: 85 57       .W :0493[2]         ; Store reloc addr byte 1 as transfer addr
@@ -1209,21 +1209,29 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 .pydis_start
 ; NFS ROM 3.34 disassembly (Acorn Econet filing system)
 ; &8000 referenced 2 times by &93d7, &9bb8
-.language_entry
 .rom_header
+.language_entry
 ; &8001 referenced 1 time by &93dc
-lang_entry_lo = language_entry+1
+lang_entry_lo = rom_header+1
 ; &8002 referenced 1 time by &93e1
-lang_entry_hi = language_entry+2
+lang_entry_hi = rom_header+2
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
-; MOS dispatches JMP &8000 on language startup with a reason code in A (1 = normal start,
-; 0 = no language available, 2/3 = Electron softkey query).
+; MOS dispatches JMP &8000 on language startup.
 ;
 ; Byte 0 is &4C so this ROM declares itself a language (rom_type bit 6 set); the slot is
 ; a real JMP to language_handler.
-    jmp lang_entry_dispatch                                           ; 8000: 4c 99 80    L..   
+;
+; Reason code in A on entry:
+;
+; | A | Meaning                                           |
+; |---|---------------------------------------------------|
+; | 1 | Normal startup                                    |
+; | 0 | No language available — MOS calling Tube ROM      |
+; | 2 | Request next byte of softkey expansion (Electron) |
+; | 3 | Request length of softkey expansion (Electron)    |
+    jmp language_handler                                              ; 8000: 4c 99 80    L..   
 ; &8003 referenced 1 time by &93e6
 .service_entry
 ; &8004 referenced 1 time by &93e9
@@ -1234,12 +1242,18 @@ svc_entry_lo = service_entry+1
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
-;
-; Byte 0 is &4C (JMP abs) — slot dispatches to service_handler.
-    jmp check_svc_high                                                ; 8003: 4c af 80    L..   
+    jmp service_handler                                               ; 8003: 4c af 80    L..   
 ; &8006 referenced 1 time by &93ce
 .rom_type
-    equb &82                                                          ; 8006: 82          .        ; ROM type: Service entry; 6502 (non-BASIC)
+    equb %10000010                                                    ; 8006: 82          .        ; ROM type
+; ***************************************************************************************
+; | Bit | Value | Meaning                     |
+; |-----|-------|-----------------------------|
+; | 7   | 1     | Service entry present       |
+; | 6   | 0     | No language entry           |
+; | 5   | 0     | No Tube relocation          |
+; | 4   | 0     | No Electron firmkey         |
+; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
 ; &8007 referenced 1 time by &93d3
 .copyright_offset
     equb copyright - rom_header                                       ; 8007: 0c          .        ; Offset of NUL preceding copyright (= &0c → copyright at &800c)
@@ -1247,14 +1261,18 @@ svc_entry_lo = service_entry+1
 .binary_version
     equb &03                                                          ; 8008: 03          .        ; Binary version: &03 (informational, not used by MOS)
 .title
+.cmd_net_str
     equs "NET"                                                        ; 8009: 4e 45 54    NET   
 .copyright
+    equb &00                                                          ; 800c: 00          .        ; NUL preceding copyright string
 ; The 'ROFF' suffix at copyright_string+3 is reused by the *ROFF command matcher (svc_4_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
-copyright_string = copyright+1
-; &8014 referenced 1 time by &842d
+.copyright_string
+cmd_roff_str = copyright_string+3
+    equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)...
 ; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
-error_offsets = copyright+8
-    equb &00, "(C)ROFF", &00                                          ; 800c: 00 28 43... .(C...   ; "Line Jammed"
+; &8014 referenced 1 time by &842d
+.error_offsets
+    equb &00                                                          ; 8014: 00          .        ; NUL terminator  "Line Jammed"
     equb &0d                                                          ; 8015: 0d          .        ; "Net Error"
     equb &18                                                          ; 8016: 18          .        ; "Not listening"
     equb &27                                                          ; 8017: 27          '        ; "No Clock"
@@ -1431,8 +1449,8 @@ error_offsets = copyright+8
 ; post-init). X = reason code (0-4). Dispatches via table indices 14-18 (base offset
 ; Y=&0D).
 ; &8099 referenced 1 time by &8000
-.lang_entry_dispatch
 .language_handler
+.lang_entry_dispatch
     cpx #5                                                            ; 8099: e0 05       ..       ; X >= 5: invalid reason code, return
 .svc_dispatch_range
     bcs return_1                                                      ; 809b: b0 11       ..       ; Out of range: return via RTS
@@ -1471,9 +1489,9 @@ error_offsets = copyright+8
 ; &0016-&0076, then fall through to select NFS. &12 with Y=5: Select NFS as active filing
 ; system. All other service calls dispatch via dispatch_service (&8127).
 ; &80af referenced 1 time by &8003
-.check_svc_high
 .service_handler
 .service_handler_entry
+.check_svc_high
     cmp #&fe                                                          ; 80af: c9 fe       ..       ; Service >= &FE?
     bcc check_svc_12                                                  ; 80b1: 90 6c       .l       ; Service < &FE: skip to &12/dispatch check
     bne init_vectors_and_copy                                         ; 80b3: d0 13       ..       ; Service &FF: full init (vectors + RAM copy)
@@ -1639,14 +1657,14 @@ error_offsets = copyright+8
 ;
 ; If neither matches, returns with the service call unclaimed.
 .svc_4_star_command
-    ldx #8                                                            ; 8172: a2 08       ..       ; X=8: ROM offset for *ROFF match
+    ldx #cmd_roff_str - binary_version                                ; 8172: a2 08       ..    
     jsr match_rom_string                                              ; 8174: 20 9b 81     ..      ; Match command against ROM string
     bne match_net_cmd                                                 ; 8177: d0 04       ..       ; No match: try *NET command
     sta rom_svc_num                                                   ; 8179: 85 ce       ..       ; Match found: claim service (A=0)
     beq resume_after_remote                                           ; 817b: f0 c9       ..    
 ; &817d referenced 1 time by &8177
 .match_net_cmd
-    ldx #1                                                            ; 817d: a2 01       ..       ; X=1: ROM offset for "NET" match
+    ldx #cmd_net_str - binary_version                                 ; 817d: a2 01       ..    
     jsr match_rom_string                                              ; 817f: 20 9b 81     ..      ; Try matching *NET command
     bne restore_y_return                                              ; 8182: d0 45       .E       ; No match: return unclaimed
 ; ***************************************************************************************
@@ -6207,7 +6225,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     jmp immediate_op                                                  ; 9794: 4c 59 9a    LY.      ; Port = 0 -- immediate operation handler
 ; &9797 referenced 3 times by &97e2, &97e7, &9819
 .scout_no_match
-    jmp nmi_error_dispatch                                            ; 9797: 4c 8a 98    L..      ; Port = 0 -- immediate operation handler
+    jmp rx_error                                                      ; 9797: 4c 8a 98    L..      ; Port = 0 -- immediate operation handler
 ; &979a referenced 1 time by &9792
 .scout_match_port
     bit tx_flags                                                      ; 979a: 2c 4a 0d    ,J.      ; Check if broadcast (bit6 of tx_flags)
@@ -6322,18 +6340,18 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 .nmi_data_rx
     lda #1                                                            ; 9839: a9 01       ..       ; A=&01: mask for AP (Address Present)
     bit econet_control23_or_status2                                   ; 983b: 2c a1 fe    ,..      ; BIT SR2: test AP bit
-    beq nmi_error_dispatch                                            ; 983e: f0 4a       .J       ; No AP: wrong frame or error
+    beq rx_error                                                      ; 983e: f0 4a       .J       ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 9840: ad a2 fe    ...      ; Read first byte (dest station)
     cmp station_id_disable_net_nmis                                   ; 9843: cd 18 fe    ...      ; Compare to our station ID (INTOFF)
-    bne nmi_error_dispatch                                            ; 9846: d0 42       .B       ; Not for us: error path
+    bne rx_error                                                      ; 9846: d0 42       .B       ; Not for us: error path
     lda #&4f ; 'O'                                                    ; 9848: a9 4f       .O       ; Install net check handler at &984F
     ldy #&98                                                          ; 984a: a0 98       ..       ; High byte of nmi_data_rx handler
     jmp set_nmi_vector                                                ; 984c: 4c 0e 0d    L..      ; Set NMI vector via RAM shim
 .nmi_data_rx_net
     bit econet_control23_or_status2                                   ; 984f: 2c a1 fe    ,..      ; Validate source network = 0
-    bpl nmi_error_dispatch                                            ; 9852: 10 36       .6       ; SR2 bit7 clear: no data ready -- error
+    bpl rx_error                                                      ; 9852: 10 36       .6       ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 9854: ad a2 fe    ...      ; Read dest network byte
-    bne nmi_error_dispatch                                            ; 9857: d0 31       .1       ; Network != 0: wrong network -- error
+    bne rx_error                                                      ; 9857: d0 31       .1       ; Network != 0: wrong network -- error
     lda #&65 ; 'e'                                                    ; 9859: a9 65       .e       ; Install skip handler at &9865
     ldy #&98                                                          ; 985b: a0 98       ..       ; High byte of &9865 handler
     bit econet_control1_or_status1                                    ; 985d: 2c a0 fe    ,..      ; SR1 bit7: IRQ, data already waiting
@@ -6342,7 +6360,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &9865 referenced 1 time by &9860
 .nmi_data_rx_skip
     bit econet_control23_or_status2                                   ; 9865: 2c a1 fe    ,..      ; Skip control and port bytes (already known from scout)
-    bpl nmi_error_dispatch                                            ; 9868: 10 20       .        ; SR2 bit7 clear: error
+    bpl rx_error                                                      ; 9868: 10 20       .        ; SR2 bit7 clear: error
     lda econet_data_continue_frame                                    ; 986a: ad a2 fe    ...      ; Discard control byte
     lda econet_data_continue_frame                                    ; 986d: ad a2 fe    ...      ; Discard port byte
 ; ***************************************************************************************
@@ -6372,8 +6390,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; full ADLC reset and returns to idle listen (RX error path); if set, jumps to
 ; tx_result_fail (TX not-listening path).
 ; &988a referenced 12 times by &9797, &983e, &9846, &9852, &9857, &9868, &98ad, &98df, &98e5, &9930, &99b8, &9a8c
-.nmi_error_dispatch
 .rx_error
+.nmi_error_dispatch
     lda tx_flags                                                      ; 988a: ad 4a 0d    .J.      ; Check tx_flags for error path
     bpl rx_error_reset                                                ; 988d: 10 05       ..       ; Bit7 clear: RX error path
     lda #&41 ; 'A'                                                    ; 988f: a9 41       .A       ; A=&41: 'not listening' error
@@ -6402,7 +6420,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     bne read_sr2_between_pairs                                        ; 98a7: d0 06       ..       ; Y != 0: no page boundary crossing
     inc open_port_buf_hi                                              ; 98a9: e6 a5       ..       ; Crossed page: increment buffer high byte
     dec port_buf_len_hi                                               ; 98ab: c6 a3       ..       ; Decrement remaining page count
-    beq nmi_error_dispatch                                            ; 98ad: f0 db       ..       ; No pages left: handle as complete
+    beq rx_error                                                      ; 98ad: f0 db       ..       ; No pages left: handle as complete
 ; &98af referenced 1 time by &98a7
 .read_sr2_between_pairs
     lda econet_control23_or_status2                                   ; 98af: ad a1 fe    ...      ; Read SR2 between byte pairs
@@ -6439,11 +6457,11 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     sty port_buf_len                                                  ; 98d8: 84 a2       ..       ; Save Y (byte count from data RX loop)
     lda #2                                                            ; 98da: a9 02       ..       ; A=&02: FV mask
     bit econet_control23_or_status2                                   ; 98dc: 2c a1 fe    ,..      ; BIT SR2: test FV (Z) and RDA (N)
-    beq nmi_error_dispatch                                            ; 98df: f0 a9       ..       ; No FV -- error
+    beq rx_error                                                      ; 98df: f0 a9       ..       ; No FV -- error
     bpl send_ack                                                      ; 98e1: 10 11       ..       ; FV set, no RDA -- proceed to ACK
     lda port_buf_len_hi                                               ; 98e3: a5 a3       ..       ; Check if buffer space remains
 .read_last_rx_byte
-    beq nmi_error_dispatch                                            ; 98e5: f0 a3       ..       ; No buffer space: error/discard frame
+    beq rx_error                                                      ; 98e5: f0 a3       ..       ; No buffer space: error/discard frame
     lda econet_data_continue_frame                                    ; 98e7: ad a2 fe    ...      ; FV+RDA: read and store last data byte
     ldy port_buf_len                                                  ; 98ea: a4 a2       ..       ; Y = current buffer write offset
     sta (open_port_buf),y                                             ; 98ec: 91 a4       ..       ; Store last byte in port receive buffer
@@ -6487,7 +6505,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     jmp nmi_rti                                                       ; 992d: 4c 14 0d    L..      ; Return from NMI, wait for data
 ; &9930 referenced 3 times by &9910, &9942, &994e
 .data_rx_tube_error
-    jmp nmi_error_dispatch                                            ; 9930: 4c 8a 98    L..      ; Unexpected end: return from NMI
+    jmp rx_error                                                      ; 9930: 4c 8a 98    L..      ; Unexpected end: return from NMI
 ; &9933 referenced 2 times by &98fa, &9926
 .data_rx_tube_complete
     lda #0                                                            ; 9933: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -6569,7 +6587,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     jmp data_tx_begin                                                 ; 99b5: 4c 3b 9e    L;.      ; Jump to start data TX phase
 ; &99b8 referenced 2 times by &9980, &9998
 .tdra_error
-    jmp nmi_error_dispatch                                            ; 99b8: 4c 8a 98    L..      ; TDRA error: jump to error handler
+    jmp rx_error                                                      ; 99b8: 4c 8a 98    L..      ; TDRA error: jump to error handler
 ; ***************************************************************************************
 ; Post-ACK scout processing
 ;
@@ -6763,7 +6781,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
     rts                                                               ; 9a8b: 60          `        ; RTS dispatches to handler
 ; &9a8c referenced 2 times by &9a5e, &9a62
 .imm_op_out_of_range
-    jmp nmi_error_dispatch                                            ; 9a8c: 4c 8a 98    L..      ; Jump to discard handler
+    jmp rx_error                                                      ; 9a8c: 4c 8a 98    L..      ; Jump to discard handler
     equb <(rx_imm_peek-1)                                             ; 9a8f: da          .     
     equb <(rx_imm_poke-1)                                             ; 9a90: bc          .     
     equb <(rx_imm_exec-1)                                             ; 9a91: 9e          .     
@@ -6997,7 +7015,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 .tx_done_os_proc
     ldx l0d58                                                         ; 9bb2: ae 58 0d    .X.      ; X = remote address lo
     ldy l0d59                                                         ; 9bb5: ac 59 0d    .Y.      ; Y = remote address hi
-    jsr language_entry                                                ; 9bb8: 20 00 80     ..      ; Call ROM entry point at &8000
+    jsr rom_header                                                    ; 9bb8: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9bbb: 4c dd 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
 ; TX done: HALT
@@ -8687,7 +8705,7 @@ save pydis_start, pydis_end
 ;     Data                     = 593 bytes (7%)
 ;
 ;     Number of instructions   = 3662
-;     Number of data bytes     = 351 bytes
+;     Number of data bytes     = 353 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 214 bytes
+;     Number of string bytes   = 212 bytes
 ;     Number of strings        = 34
