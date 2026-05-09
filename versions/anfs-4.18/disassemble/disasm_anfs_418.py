@@ -764,7 +764,6 @@ d.label(0x910A, 'syn_opt_stn')
 
 d.label(0x9117, 'syn_filename')
 
-d.label(0x9122, 'cmd_syntax_table')
 for i in range(13):
     d.byte(0x9122 + i)
 d.expr(0x9122, 'syn_iam - cmd_syntax_strings - 2')
@@ -7596,27 +7595,30 @@ d.comment(0x910A, 'Syn 11: (station id. argument)', align=Align.INLINE)
 d.comment(0x9116, 'Null terminator', align=Align.INLINE)
 d.comment(0x9117, 'Syn 12: *Print, *Type', align=Align.INLINE)
 d.comment(0x9121, 'Null terminator', align=Align.INLINE)
-d.comment(0x9122, """Command syntax string offset table
+d.subroutine(0x9122, 'cmd_syntax_table', title='Command syntax-string offset table (13 entries)', description="""13 offsets into [`cmd_syntax_strings`](address:9022).
+Indexed by the low 5 bits of each command's syntax descriptor
+byte. Index &0E is handled separately as a shared-commands
+list. The print loop at [`&8BD5`](address:8BD5?hex) does
+`INY` before `LDA`, so each offset points to the byte before
+the first character of the target string.
 
-13 offsets into cmd_syntax_strings (&9022).
-Indexed by the low 5 bits of each command table
-syntax descriptor byte. Index &0E is handled
-separately as a shared-commands list. The print
-loop at &8BD5 does INY before LDA, so each offset
-points to the byte before the first character.""")
-d.comment(0x9122, 'Idx 0: (no syntax)', align=Align.INLINE)
-d.comment(0x9123, 'Idx 1: "(<dir>)" (Y wraps via &FF)', align=Align.INLINE)
-d.comment(0x9124, 'Idx 2: "(<stn.id.>) <user id.>..."', align=Align.INLINE)
-d.comment(0x9125, 'Idx 3: "<object>"', align=Align.INLINE)
-d.comment(0x9126, 'Idx 4: "<filename> (<offset>...)"', align=Align.INLINE)
-d.comment(0x9127, 'Idx 5: "<dir>"', align=Align.INLINE)
-d.comment(0x9128, 'Idx 6: "<dir> (<number>)"', align=Align.INLINE)
-d.comment(0x9129, 'Idx 7: "(:<CR>) <password>..."', align=Align.INLINE)
-d.comment(0x912A, 'Idx 8: "(<stn.id.>|<ps type>)"', align=Align.INLINE)
-d.comment(0x912B, 'Idx 9: "<object> (L)(W)(R)..."', align=Align.INLINE)
-d.comment(0x912C, 'Idx 10: "<filename> <new filename>"', align=Align.INLINE)
-d.comment(0x912D, 'Idx 11: "(<stn. id.>)"', align=Align.INLINE)
-d.comment(0x912E, 'Idx 12: "<filename>"', align=Align.INLINE)
+| Idx | Target string                            | Used by                          |
+|-----|------------------------------------------|----------------------------------|
+|  0  | – (no syntax)                            | (commands with no argument)      |
+|  1  | `(<dir>)`                                | `*Dir`, `*LCat`, `*LEx`, `*Wipe` |
+|  2  | `(<stn. id.>) <user id.> ((:<CR>)<password>)` | `*I Am`                     |
+|  3  | `<object>`                               | `*Delete`, `*FS`, `*Remove`      |
+|  4  | `<filename> (<offset> (<address>))`      | `*Dump`                          |
+|  5  | `<dir>`                                  | `*Lib`                           |
+|  6  | `<dir> (<number>)`                       | (catalogue/info commands)        |
+|  7  | `(:<CR>) <password> ((:<CR>) <new password>)` | `*Pass`                     |
+|  8  | `(<stn. id.>\|<ps type>)`                | `*PS`, `*PollPS`                 |
+|  9  | `<object> (L)(W)(R)(E)`                  | `*Access`                        |
+| 10  | `<filename> <new filename>`              | `*Rename`                        |
+| 11  | `(<stn. id.>)`                           | `*Bye`, `*Flip`, `*NetLocal` etc. |
+| 12  | `<filename>`                             | `*Print`, `*Type`                |
+
+The entry for index 1 stores the offset as `(syn_opt_dir − cmd_syntax_strings − 1) AND &FF`, which evaluates to &FF because `syn_opt_dir == cmd_syntax_strings`. The print loop relies on `INY` wrapping &FF→&00 to land on the first character of `syn_opt_dir`.""")
 d.comment(0x912F, 'Save full byte', align=Align.INLINE)
 d.comment(0x9130, 'Shift high nybble to low', align=Align.INLINE)
 d.comment(0x9131, 'Continue shifting', align=Align.INLINE)

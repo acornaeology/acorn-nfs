@@ -2615,6 +2615,12 @@
       "fall_through": true
     },
     {
+      "addr": 37154,
+      "name": "cmd_syntax_table",
+      "title": "Command syntax-string offset table (13 entries)",
+      "description": "13 offsets into [`cmd_syntax_strings`](address:9022).\nIndexed by the low 5 bits of each command's syntax descriptor\nbyte. Index &0E is handled separately as a shared-commands\nlist. The print loop at [`&8BD5`](address:8BD5?hex) does\n`INY` before `LDA`, so each offset points to the byte before\nthe first character of the target string.\n\n| Idx | Target string                            | Used by                          |\n|-----|------------------------------------------|----------------------------------|\n|  0  | \u2013 (no syntax)                            | (commands with no argument)      |\n|  1  | `(<dir>)`                                | `*Dir`, `*LCat`, `*LEx`, `*Wipe` |\n|  2  | `(<stn. id.>) <user id.> ((:<CR>)<password>)` | `*I Am`                     |\n|  3  | `<object>`                               | `*Delete`, `*FS`, `*Remove`      |\n|  4  | `<filename> (<offset> (<address>))`      | `*Dump`                          |\n|  5  | `<dir>`                                  | `*Lib`                           |\n|  6  | `<dir> (<number>)`                       | (catalogue/info commands)        |\n|  7  | `(:<CR>) <password> ((:<CR>) <new password>)` | `*Pass`                     |\n|  8  | `(<stn. id.>\\|<ps type>)`                | `*PS`, `*PollPS`                 |\n|  9  | `<object> (L)(W)(R)(E)`                  | `*Access`                        |\n| 10  | `<filename> <new filename>`              | `*Rename`                        |\n| 11  | `(<stn. id.>)`                           | `*Bye`, `*Flip`, `*NetLocal` etc. |\n| 12  | `<filename>`                             | `*Print`, `*Type`                |\n\nThe entry for index 1 stores the offset as `(syn_opt_dir \u2212 cmd_syntax_strings \u2212 1) AND &FF`, which evaluates to &FF because `syn_opt_dir == cmd_syntax_strings`. The print loop relies on `INY` wrapping &FF\u2192&00 to land on the first character of `syn_opt_dir`."
+    },
+    {
       "addr": 38027,
       "name": "txcb_init_template",
       "title": "TXCB initialisation template (12 bytes)",
@@ -31004,10 +31010,10 @@
         "cmd_syntax_table"
       ],
       "comments_before": [
-        "Command syntax string offset table\n\n13 offsets into cmd_syntax_strings (&9022).\nIndexed by the low 5 bits of each command table\nsyntax descriptor byte. Index &0E is handled\nseparately as a shared-commands list. The print\nloop at &8BD5 does INY before LDA, so each offset\npoints to the byte before the first character.",
+        "***************************************************************************************",
+        "Command syntax-string offset table (13 entries)\n\n13 offsets into [`cmd_syntax_strings`](address:9022).\nIndexed by the low 5 bits of each command's syntax descriptor\nbyte. Index &0E is handled separately as a shared-commands\nlist. The print loop at [`&8BD5`](address:8BD5?hex) does\n`INY` before `LDA`, so each offset points to the byte before\nthe first character of the target string.\n\n| Idx | Target string                            | Used by                          |\n|-----|------------------------------------------|----------------------------------|\n|  0  | \u2013 (no syntax)                            | (commands with no argument)      |\n|  1  | `(<dir>)`                                | `*Dir`, `*LCat`, `*LEx`, `*Wipe` |\n|  2  | `(<stn. id.>) <user id.> ((:<CR>)<password>)` | `*I Am`                     |\n|  3  | `<object>`                               | `*Delete`, `*FS`, `*Remove`      |\n|  4  | `<filename> (<offset> (<address>))`      | `*Dump`                          |\n|  5  | `<dir>`                                  | `*Lib`                           |\n|  6  | `<dir> (<number>)`                       | (catalogue/info commands)        |\n|  7  | `(:<CR>) <password> ((:<CR>) <new password>)` | `*Pass`                     |\n|  8  | `(<stn. id.>\\|<ps type>)`                | `*PS`, `*PollPS`                 |\n|  9  | `<object> (L)(W)(R)(E)`                  | `*Access`                        |\n| 10  | `<filename> <new filename>`              | `*Rename`                        |\n| 11  | `(<stn. id.>)`                           | `*Bye`, `*Flip`, `*NetLocal` etc. |\n| 12  | `<filename>`                             | `*Print`, `*Type`                |\n\nThe entry for index 1 stores the offset as `(syn_opt_dir \u2212 cmd_syntax_strings \u2212 1) AND &FF`, which evaluates to &FF because `syn_opt_dir == cmd_syntax_strings`. The print loop relies on `INY` wrapping &FF\u2192&00 to land on the first character of `syn_opt_dir`.",
         "&9122 referenced 1 time by &8bdc"
       ],
-      "comment_inline": "Idx 0: (no syntax)",
       "references": [
         35804
       ],
@@ -31024,7 +31030,6 @@
       "bytes": [
         255
       ],
-      "comment_inline": "Idx 1: \"(<dir>)\" (Y wraps via &FF)",
       "type": "byte",
       "values": [
         255
@@ -31038,7 +31043,6 @@
       "bytes": [
         7
       ],
-      "comment_inline": "Idx 2: \"(<stn.id.>) <user id.>...\"",
       "type": "byte",
       "values": [
         7
@@ -31052,7 +31056,6 @@
       "bytes": [
         52
       ],
-      "comment_inline": "Idx 3: \"<object>\"",
       "type": "byte",
       "values": [
         52
@@ -31066,7 +31069,6 @@
       "bytes": [
         61
       ],
-      "comment_inline": "Idx 4: \"<filename> (<offset>...)\"",
       "type": "byte",
       "values": [
         61
@@ -31080,7 +31082,6 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Idx 5: \"<dir>\"",
       "type": "byte",
       "values": [
         96
@@ -31094,7 +31095,6 @@
       "bytes": [
         102
       ],
-      "comment_inline": "Idx 6: \"<dir> (<number>)\"",
       "type": "byte",
       "values": [
         102
@@ -31108,7 +31108,6 @@
       "bytes": [
         119
       ],
-      "comment_inline": "Idx 7: \"(:<CR>) <password>...\"",
       "type": "byte",
       "values": [
         119
@@ -31122,7 +31121,6 @@
       "bytes": [
         154
       ],
-      "comment_inline": "Idx 8: \"(<stn.id.>|<ps type>)\"",
       "type": "byte",
       "values": [
         154
@@ -31136,7 +31134,6 @@
       "bytes": [
         177
       ],
-      "comment_inline": "Idx 9: \"<object> (L)(W)(R)...\"",
       "type": "byte",
       "values": [
         177
@@ -31150,7 +31147,6 @@
       "bytes": [
         205
       ],
-      "comment_inline": "Idx 10: \"<filename> <new filename>\"",
       "type": "byte",
       "values": [
         205
@@ -31164,7 +31160,6 @@
       "bytes": [
         231
       ],
-      "comment_inline": "Idx 11: \"(<stn. id.>)\"",
       "type": "byte",
       "values": [
         231
@@ -31178,7 +31173,6 @@
       "bytes": [
         244
       ],
-      "comment_inline": "Idx 12: \"<filename>\"",
       "type": "byte",
       "values": [
         244

@@ -5064,24 +5064,48 @@ ws_init_data = error_bad_station+2
 .syn_filename
     equs "<filename>"                                                 ; 9117: 3c 66 69... <fi...   ; Syn 12: *Print, *Type
     equb &00                                                          ; 9121: 00          .        ; Null terminator
-; Command syntax string offset table
+; ***************************************************************************************
+; Command syntax-string offset table (13 entries)
 ;
-; 13 offsets into cmd_syntax_strings (&9022). Indexed by the low 5 bits of each command table syntax descriptor byte. Index &0E is handled separately as a shared-commands list. The print loop at &8BD5 does INY before LDA, so each offset points to the byte before the first character.
+; 13 offsets into cmd_syntax_strings. Indexed by the low 5 bits of each command's syntax
+; descriptor byte. Index &0E is handled separately as a shared-commands list. The print
+; loop at &8BD5 (&8BD5) does INY before LDA, so each offset points to the byte before the
+; first character of the target string.
+;
+; | Idx | Target string                               | Used by                     |
+; |-----|---------------------------------------------|-----------------------------|
+; | 0   | – (no syntax)                               | (commands with no argument) |
+; | 1   | (<dir>)                                     | *Dir, *LCat, *LEx, *Wipe    |
+; | 2   | (<stn. id.>) <user id.> ((:<CR>)<password>) | *I Am                       |
+; | 3   | <object>                                    | *Delete, *FS, *Remove       |
+; | 4   | <filename> (<offset> (<address>))           | *Dump                       |
+; | 5   | <dir>                                       | *Lib                        |
+; | 6   | <dir> (<number>)                            | (catalogue/info commands)   |
+; | 7   | (:<CR>) <password> ((:<CR>) <new password>) | *Pass                       |
+; | 8   | (<stn. id.>|<ps type>)                      | *PS, *PollPS                |
+; | 9   | <object> (L)(W)(R)(E)                       | *Access                     |
+; | 10  | <filename> <new filename>                   | *Rename                     |
+; | 11  | (<stn. id.>)                                | *Bye, *Flip, *NetLocal etc. |
+; | 12  | <filename>                                  | *Print, *Type               |
+;
+; The entry for index 1 stores the offset as (syn_opt_dir − cmd_syntax_strings − 1) AND
+; &FF, which evaluates to &FF because syn_opt_dir == cmd_syntax_strings. The print loop
+; relies on INY wrapping &FF→&00 to land on the first character of syn_opt_dir.
 ; &9122 referenced 1 time by &8bdc
 .cmd_syntax_table
-    equb syn_iam - cmd_syntax_strings - 2                             ; 9122: 06          .        ; Idx 0: (no syntax)
-    equb (syn_opt_dir - cmd_syntax_strings - 1) AND &FF               ; 9123: ff          .        ; Idx 1: "(<dir>)" (Y wraps via &FF)
-    equb syn_iam - cmd_syntax_strings - 1                             ; 9124: 07          .        ; Idx 2: "(<stn.id.>) <user id.>..."
-    equb syn_object - cmd_syntax_strings - 1                          ; 9125: 34          4        ; Idx 3: "<object>"
-    equb syn_file_offset - cmd_syntax_strings - 1                     ; 9126: 3d          =        ; Idx 4: "<filename> (<offset>...)"
-    equb syn_dir - cmd_syntax_strings - 1                             ; 9127: 60          `        ; Idx 5: "<dir>"
-    equb syn_dir_num - cmd_syntax_strings - 1                         ; 9128: 66          f        ; Idx 6: "<dir> (<number>)"
-    equb syn_password - cmd_syntax_strings - 1                        ; 9129: 77          w        ; Idx 7: "(:<CR>) <password>..."
-    equb syn_ps_type - cmd_syntax_strings - 1                         ; 912a: 9a          .        ; Idx 8: "(<stn.id.>|<ps type>)"
-    equb syn_access - cmd_syntax_strings - 1                          ; 912b: b1          .        ; Idx 9: "<object> (L)(W)(R)..."
-    equb syn_rename - cmd_syntax_strings - 1                          ; 912c: cd          .        ; Idx 10: "<filename> <new filename>"
-    equb syn_opt_stn - cmd_syntax_strings - 1                         ; 912d: e7          .        ; Idx 11: "(<stn. id.>)"
-    equb syn_filename - cmd_syntax_strings - 1                        ; 912e: f4          .        ; Idx 12: "<filename>"
+    equb syn_iam - cmd_syntax_strings - 2                             ; 9122: 06          .     
+    equb (syn_opt_dir - cmd_syntax_strings - 1) AND &FF               ; 9123: ff          .     
+    equb syn_iam - cmd_syntax_strings - 1                             ; 9124: 07          .     
+    equb syn_object - cmd_syntax_strings - 1                          ; 9125: 34          4     
+    equb syn_file_offset - cmd_syntax_strings - 1                     ; 9126: 3d          =     
+    equb syn_dir - cmd_syntax_strings - 1                             ; 9127: 60          `     
+    equb syn_dir_num - cmd_syntax_strings - 1                         ; 9128: 66          f     
+    equb syn_password - cmd_syntax_strings - 1                        ; 9129: 77          w     
+    equb syn_ps_type - cmd_syntax_strings - 1                         ; 912a: 9a          .     
+    equb syn_access - cmd_syntax_strings - 1                          ; 912b: b1          .     
+    equb syn_rename - cmd_syntax_strings - 1                          ; 912c: cd          .     
+    equb syn_opt_stn - cmd_syntax_strings - 1                         ; 912d: e7          .     
+    equb syn_filename - cmd_syntax_strings - 1                        ; 912e: f4          .     
 ; ***************************************************************************************
 ; Print A as two hexadecimal digits
 ;
