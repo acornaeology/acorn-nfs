@@ -2001,12 +2001,12 @@ error_offsets = copyright+8
 ; &829a referenced 1 time by &8266
 .fs_dispatch_addrs
     equw &ff1b                                                        ; 829a: 1b ff       ..       ; FILEV dispatch (&FF1B)
-    equw &ff1e                                                        ; 829c: 1e ff       ..       ; ARGSV dispatch (&FF1E)  ARGSV dispatch lo
+    equw &ff1e                                                        ; 829c: 1e ff       ..       ; ARGSV dispatch (&FF1E)
     equw &ff21                                                        ; 829e: 21 ff       !.       ; BGETV dispatch (&FF21)  BGETV dispatch hi
-    equw &ff24                                                        ; 82a0: 24 ff       $.       ; BPUTV dispatch (&FF24)  BPUTV dispatch lo
-    equw &ff27                                                        ; 82a2: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch lo  GBPBV dispatch hi
-    equw &ff2a                                                        ; 82a4: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch lo  FINDV dispatch hi
-    equw &ff2d                                                        ; 82a6: 2d ff       -.       ; FSCV dispatch (&FF2D)  FSCV dispatch lo
+    equw &ff24                                                        ; 82a0: 24 ff       $.       ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 82a2: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch hi
+    equw &ff2a                                                        ; 82a4: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch hi
+    equw &ff2d                                                        ; 82a6: 2d ff       -.       ; FSCV dispatch (&FF2D)
     equw filev_handler                                                ; 82a8: 0c 87       ..       ; FILEV handler (&870C)
     equb &4a                                                          ; 82aa: 4a          J        ; (ROM bank — not read)
     equw argsv_handler                                                ; 82ab: 68 89       h.       ; ARGSV handler (&8968)

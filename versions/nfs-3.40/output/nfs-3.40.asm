@@ -1923,12 +1923,12 @@ error_offsets = copyright+8
 ; &8296 referenced 1 time by &8262
 .fs_vector_addrs
     equw &ff1b                                                        ; 8296: 1b ff       ..       ; FILEV dispatch (&FF1B)
-    equw &ff1e                                                        ; 8298: 1e ff       ..       ; ARGSV dispatch (&FF1E)  ARGSV dispatch lo
+    equw &ff1e                                                        ; 8298: 1e ff       ..       ; ARGSV dispatch (&FF1E)
     equw &ff21                                                        ; 829a: 21 ff       !.       ; BGETV dispatch (&FF21)  BGETV dispatch hi
-    equw &ff24                                                        ; 829c: 24 ff       $.       ; BPUTV dispatch (&FF24)  BPUTV dispatch lo
-    equw &ff27                                                        ; 829e: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch lo  GBPBV dispatch hi
-    equw &ff2a                                                        ; 82a0: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch lo  FINDV dispatch hi
-    equw &ff2d                                                        ; 82a2: 2d ff       -.       ; FSCV dispatch (&FF2D)  FSCV dispatch lo
+    equw &ff24                                                        ; 829c: 24 ff       $.       ; BPUTV dispatch (&FF24)
+    equw &ff27                                                        ; 829e: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch hi
+    equw &ff2a                                                        ; 82a0: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch hi
+    equw &ff2d                                                        ; 82a2: 2d ff       -.       ; FSCV dispatch (&FF2D)
     equw filev_handler                                                ; 82a4: 05 87       ..       ; FILEV handler (&8705)
     equb &4a                                                          ; 82a6: 4a          J        ; (ROM bank — not read)
     equw argsv_handler                                                ; 82a7: 24 89       $.       ; ARGSV handler (&8924)

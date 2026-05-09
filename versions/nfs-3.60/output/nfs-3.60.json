@@ -7363,7 +7363,7 @@
         30,
         255
       ],
-      "comment_inline": "ARGSV dispatch (&FF1E) ARGSV dispatch lo",
+      "comment_inline": "ARGSV dispatch (&FF1E)",
       "type": "word",
       "values": [
         65310
@@ -7387,7 +7387,7 @@
         36,
         255
       ],
-      "comment_inline": "BPUTV dispatch (&FF24) BPUTV dispatch lo",
+      "comment_inline": "BPUTV dispatch (&FF24)",
       "type": "word",
       "values": [
         65316
@@ -7399,7 +7399,7 @@
         39,
         255
       ],
-      "comment_inline": "GBPBV dispatch (&FF27) GBPBV dispatch lo GBPBV dispatch hi",
+      "comment_inline": "GBPBV dispatch (&FF27) GBPBV dispatch hi",
       "type": "word",
       "values": [
         65319
@@ -7411,7 +7411,7 @@
         42,
         255
       ],
-      "comment_inline": "FINDV dispatch (&FF2A) FINDV dispatch lo FINDV dispatch hi",
+      "comment_inline": "FINDV dispatch (&FF2A) FINDV dispatch hi",
       "type": "word",
       "values": [
         65322
@@ -7423,7 +7423,7 @@
         45,
         255
       ],
-      "comment_inline": "FSCV dispatch (&FF2D) FSCV dispatch lo",
+      "comment_inline": "FSCV dispatch (&FF2D)",
       "type": "word",
       "values": [
         65325
