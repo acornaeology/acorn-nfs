@@ -740,8 +740,6 @@ d.label(0x8FD4, 'loop_sum_ws')
 
 d.label(0x901E, 'done_print_newline')
 
-d.label(0x9022, 'cmd_syntax_strings')
-
 d.label(0x9022, 'syn_opt_dir')
 
 d.label(0x902A, 'syn_iam')
@@ -7562,13 +7560,15 @@ d.comment(0x900F, 'Clock present: skip warning', align=Align.INLINE)
 d.comment(0x9011, "Print ' No Clock' via inline", align=Align.INLINE)
 d.comment(0x901D, 'NOP (string terminator)', align=Align.INLINE)
 d.comment(0x9021, 'Return', align=Align.INLINE)
-d.comment(0x9022, """*HELP command syntax strings
+d.subroutine(0x9022, 'cmd_syntax_strings', title='*HELP command syntax strings (13 entries)', description="""13 null-terminated syntax help strings displayed by `*HELP`
+after each command name. Multi-line entries use &0D as a line
+break.
 
-13 null-terminated syntax help strings displayed
-by *HELP after each command name. Multi-line
-entries use &0D as a line break. Indexed by
-cmd_syntax_table via the low 5 bits of each
-command's syntax descriptor byte.""")
+Indexed by [`cmd_syntax_table`](address:9122) via the low 5
+bits of each command's syntax descriptor byte. Each table
+entry holds the offset of (the byte before) the corresponding
+string, since the print loop at
+[`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.""")
 d.comment(0x9022, 'Syn 1: *Dir, *LCat, *LEx, *Wipe', align=Align.INLINE)
 d.comment(0x9029, 'Null terminator', align=Align.INLINE)
 d.comment(0x902A, 'Syn 2: *I Am (login)', align=Align.INLINE)

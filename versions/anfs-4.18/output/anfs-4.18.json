@@ -2608,6 +2608,13 @@
       "description": "16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)\nand [`tx_calc_transfer`](address:88F2?hex). Unreachable as\ncode (it follows an unconditional `JMP`) and unreferenced as\ndata \u2013 no label, index, or indirect pointer targets any\naddress in the &88E2-&88F1 range. Likely an unused remnant\nfrom development."
     },
     {
+      "addr": 36898,
+      "name": "cmd_syntax_strings",
+      "title": "*HELP command syntax strings (13 entries)",
+      "description": "13 null-terminated syntax help strings displayed by `*HELP`\nafter each command name. Multi-line entries use &0D as a line\nbreak.\n\nIndexed by [`cmd_syntax_table`](address:9122) via the low 5\nbits of each command's syntax descriptor byte. Each table\nentry holds the offset of (the byte before) the corresponding\nstring, since the print loop at\n[`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.",
+      "fall_through": true
+    },
+    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -23596,9 +23603,9 @@
       "comment_inline": "Load syntax string character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "cmd_syntax_strings,y",
+      "operand": "syn_opt_dir,y",
       "target": 36898,
-      "target_label": "cmd_syntax_strings"
+      "target_label": "syn_opt_dir"
     },
     {
       "addr": 35812,
@@ -30395,7 +30402,27 @@
     {
       "addr": 36898,
       "bytes": [
-        40,
+        40
+      ],
+      "labels": [
+        "cmd_syntax_strings",
+        "syn_opt_dir"
+      ],
+      "comments_before": [
+        "***************************************************************************************",
+        "*HELP command syntax strings (13 entries)\n\n13 null-terminated syntax help strings displayed by `*HELP`\nafter each command name. Multi-line entries use &0D as a line\nbreak.\n\nIndexed by [`cmd_syntax_table`](address:9122) via the low 5\nbits of each command's syntax descriptor byte. Each table\nentry holds the offset of (the byte before) the corresponding\nstring, since the print loop at\n[`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.",
+        "&9022 referenced 1 time by &8be1"
+      ],
+      "comment_inline": "Syn 1: *Dir, *LCat, *LEx, *Wipe",
+      "references": [
+        35809
+      ],
+      "type": "code",
+      "mnemonic": "plp"
+    },
+    {
+      "addr": 36899,
+      "bytes": [
         60,
         100,
         105,
@@ -30403,20 +30430,8 @@
         62,
         41
       ],
-      "labels": [
-        "cmd_syntax_strings",
-        "syn_opt_dir"
-      ],
-      "comments_before": [
-        "*HELP command syntax strings\n\n13 null-terminated syntax help strings displayed\nby *HELP after each command name. Multi-line\nentries use &0D as a line break. Indexed by\ncmd_syntax_table via the low 5 bits of each\ncommand's syntax descriptor byte.",
-        "&9022 referenced 1 time by &8be1"
-      ],
-      "comment_inline": "Syn 1: *Dir, *LCat, *LEx, *Wipe",
-      "references": [
-        35809
-      ],
       "type": "string",
-      "string": "(<dir>)"
+      "string": "<dir>)"
     },
     {
       "addr": 36905,

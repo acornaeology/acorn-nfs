@@ -5010,13 +5010,20 @@ ws_init_data = error_bad_station+2
     jsr osnewl                                                        ; 901e: 20 e7 ff     ..   
 .syntax_strings
     rts                                                               ; 9021: 60          `        ; Return
-; *HELP command syntax strings
+; ***************************************************************************************
+; *HELP command syntax strings (13 entries)
 ;
-; 13 null-terminated syntax help strings displayed by *HELP after each command name. Multi-line entries use &0D as a line break. Indexed by cmd_syntax_table via the low 5 bits of each command's syntax descriptor byte.
+; 13 null-terminated syntax help strings displayed by *HELP after each command name.
+; Multi-line entries use &0D as a line break.
+;
+; Indexed by cmd_syntax_table via the low 5 bits of each command's syntax descriptor
+; byte. Each table entry holds the offset of (the byte before) the corresponding string,
+; since the print loop at &8BD5 (&8BD5) does INY before LDA.
 ; &9022 referenced 1 time by &8be1
 .cmd_syntax_strings
 .syn_opt_dir
-    equs "(<dir>)"                                                    ; 9022: 28 3c 64... (<d...   ; Syn 1: *Dir, *LCat, *LEx, *Wipe
+    plp                                                               ; 9022: 28          (        ; Syn 1: *Dir, *LCat, *LEx, *Wipe
+    equs "<dir>)"                                                     ; 9023: 3c 64 69... <di...
     equb &00                                                          ; 9029: 00          .        ; Null terminator
 .syn_iam
     equs "(<stn. id.>) <user id.> "                                   ; 902a: 28 3c 73... (<s...   ; Syn 2: *I Am (login)
@@ -15522,11 +15529,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14614 bytes (89%)
-;     Data                     = 1770 bytes (11%)
+;     Code                     = 14615 bytes (89%)
+;     Data                     = 1769 bytes (11%)
 ;
-;     Number of instructions   = 7168
+;     Number of instructions   = 7169
 ;     Number of data bytes     = 534 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1124 bytes
+;     Number of string bytes   = 1123 bytes
 ;     Number of strings        = 143
