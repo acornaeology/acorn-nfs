@@ -710,7 +710,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 .send_rom_page_bytes
     lda (zp_ptr_lo),y                                                 ; 9401: b1 00       .. :04a4[2]         ; Send 256-byte page via R3, byte at a time
     sta tube_data_register_3                                          ; 9403: 8d e5 fe    ... :04a6[2]        ; Write byte to Tube R3 data register
-    lda rom_header                                                    ; 9406: ad 00 80    ... :04a9[2]        ; Load ROM header byte for TX
+    lda language_entry                                                ; 9406: ad 00 80    ... :04a9[2]        ; Load ROM header byte for TX
     iny                                                               ; 9409: c8          . :04ac[2]          ; Next byte in page
     bne send_rom_page_bytes                                           ; 940a: d0 f5       .. :04ad[2]         ; Loop for all 256 bytes
     inc tube_xfer_page                                                ; 940c: e6 54       .T :04af[2]         ; Increment 24-bit destination addr
@@ -750,7 +750,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; &04de referenced 1 time by &943f
 .scan_copyright_end
     inx                                                               ; 943b: e8          . :04de[2]          ; Skip past null-terminated copyright string
-    lda rom_header,x                                                  ; 943c: bd 00 80    ... :04df[2]        ; Load next byte from ROM header
+    lda language_entry,x                                              ; 943c: bd 00 80    ... :04df[2]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; 943f: d0 fa       .. :04e2[2]         ; Loop until null terminator found
     lda lang_entry_lo,x                                               ; 9441: bd 01 80    ... :04e4[2]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; 9444: 85 53       .S :04e7[2]         ; Store reloc addr byte 1 as transfer addr
@@ -1265,13 +1265,6 @@ tube_osword = tube_osbyte_short+1
 
 .pydis_start
 ; NFS ROM 3.40 disassembly (Acorn Econet filing system)
-; &8000 referenced 3 times by &9406, &943c, &9b9b
-.rom_header
-.language_entry
-; &8001 referenced 1 time by &9441
-lang_entry_lo = rom_header+1
-; &8002 referenced 1 time by &9446
-lang_entry_hi = rom_header+2
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
@@ -1288,18 +1281,31 @@ lang_entry_hi = rom_header+2
 ; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
+; &8000 referenced 3 times by &9406, &943c, &9b9b
+.language_entry
+; &8001 referenced 1 time by &9441
+lang_entry_lo = language_entry+1
+; &8002 referenced 1 time by &9446
+lang_entry_hi = language_entry+2
     jmp language_handler                                              ; 8000: 4c e1 80    L..   
-; &8003 referenced 1 time by &944b
-.service_entry
-; &8004 referenced 1 time by &944e
-svc_entry_lo = service_entry+1
 ; ***************************************************************************************
 ; Service-entry slot (3 bytes)
 ;
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
+; &8003 referenced 1 time by &944b
+.service_entry
+; &8004 referenced 1 time by &944e
+svc_entry_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c f7 80    L..   
+; ***************************************************************************************
+; ROM identification
+;
+; Six descriptive fields that follow the entry-point JMPs: ROM type flag byte,
+; copyright-string offset, binary version, title string, optional version string, and
+; copyright string. The MOS uses these for identification, dispatch-table lookup, and the
+; (C)-prefix validity check.
 ; &8006 referenced 1 time by &9430
 .rom_type
 ; ***************************************************************************************
@@ -1315,7 +1321,7 @@ svc_entry_lo = service_entry+1
     equb %10000010                                                    ; 8006: 82          .        ; ROM type
 ; &8007 referenced 1 time by &9438
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 10          .        ; Offset of NUL preceding copyright (= &10 → copyright at &8010)
+    equb copyright - language_entry                                   ; 8007: 10          .        ; Offset of NUL preceding copyright (= &10 → copyright at &8010)
 ; &8008 referenced 2 times by &836a, &8373
 .binary_version
     equb &83                                                          ; 8008: 83          .        ; Binary version: &83 (informational, not used by MOS)
@@ -6972,7 +6978,7 @@ tx_done_handler_hi = tx_nmi_setup+1
 .tx_done_os_proc
     ldx l0d58                                                         ; 9b95: ae 58 0d    .X.      ; X = remote address lo
     ldy l0d59                                                         ; 9b98: ac 59 0d    .Y.      ; Y = remote address hi
-    jsr rom_header                                                    ; 9b9b: 20 00 80     ..      ; Call ROM entry point at &8000
+    jsr language_entry                                                ; 9b9b: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9b9e: 4c c0 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
 ; TX done: HALT
@@ -8003,7 +8009,6 @@ save pydis_start, pydis_end
 ;     print_reply_bytes:                        3
 ;     pydis_start:                              3
 ;     return_1:                                 3
-;     rom_header:                               3
 ;     rom_ws_table:                             3
 ;     rx_check_error:                           3
 ;     rx_update_buf:                            3

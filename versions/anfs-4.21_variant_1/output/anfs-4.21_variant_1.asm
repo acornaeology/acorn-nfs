@@ -677,8 +677,6 @@ cpu 1
 
 .pydis_start
 ; ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
-.rom_header
-.language_entry
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
@@ -694,18 +692,26 @@ cpu 1
 ; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
+.language_entry
     equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
 .rom_header_byte1
 rom_header_byte2 = rom_header_byte1+1
     equb &42, &43                                                     ; 8001: 42 43       BC       ; unused padding
-.service_entry
 ; ***************************************************************************************
 ; Service-entry slot (3 bytes)
 ;
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
+.service_entry
     jmp service_handler                                               ; 8003: 4c 54 8a    LT.   
+; ***************************************************************************************
+; ROM identification
+;
+; Six descriptive fields that follow the entry-point JMPs: ROM type flag byte,
+; copyright-string offset, binary version, title string, optional version string, and
+; copyright string. The MOS uses these for identification, dispatch-table lookup, and the
+; (C)-prefix validity check.
 .rom_type
 ; ***************************************************************************************
 ; ROM type byte
@@ -719,7 +725,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
     equb %10000010                                                    ; 8006: 82          .        ; ROM type
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
+    equb copyright - language_entry                                   ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
 .binary_version
     equb &04                                                          ; 8008: 04          .        ; Binary version: &04 (informational, not used by MOS)
 .title

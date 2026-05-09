@@ -1432,7 +1432,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &04e1 referenced 1 time by &bfe9
 .scan_copyright_end
     inx                                                               ; bfe5: e8          . :04e1[4]          ; Skip past null-terminated copyright string
-    lda rom_header,x                                                  ; bfe6: bd 00 80    ... :04e2[4]        ; Load next byte from ROM header
+    lda language_entry,x                                              ; bfe6: bd 00 80    ... :04e2[4]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; bfe9: d0 fa       .. :04e5[4]         ; Loop until null terminator found
     lda rom_header_byte1,x                                            ; bfeb: bd 01 80    ... :04e7[4]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; bfee: 85 53       .S :04ea[4]         ; Store reloc addr byte 1 as transfer addr
@@ -1464,9 +1464,6 @@ tube_cmd_lo = tube_dispatch_cmd+1
 
 .pydis_start
 ; ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
-; &8000 referenced 1 time by &bfe6
-.rom_header
-.language_entry
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
@@ -1482,23 +1479,32 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
+; &8000 referenced 1 time by &bfe6
+.language_entry
     equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
 ; &8001 referenced 1 time by &bfeb
 .rom_header_byte1
 ; &8002 referenced 1 time by &bff0
 rom_header_byte2 = rom_header_byte1+1
     equb &42, &43                                                     ; 8001: 42 43       BC       ; unused padding
-; &8003 referenced 1 time by &bff5
-.service_entry
-; &8004 referenced 1 time by &bff8
-service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Service-entry slot (3 bytes)
 ;
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
+; &8003 referenced 1 time by &bff5
+.service_entry
+; &8004 referenced 1 time by &bff8
+service_handler_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c 15 8a    L..   
+; ***************************************************************************************
+; ROM identification
+;
+; Six descriptive fields that follow the entry-point JMPs: ROM type flag byte,
+; copyright-string offset, binary version, title string, optional version string, and
+; copyright string. The MOS uses these for identification, dispatch-table lookup, and the
+; (C)-prefix validity check.
 ; &8006 referenced 1 time by &bfda
 .rom_type
 ; ***************************************************************************************
@@ -1514,7 +1520,7 @@ service_handler_lo = service_entry+1
     equb %10000010                                                    ; 8006: 82          .        ; ROM type
 ; &8007 referenced 1 time by &bfe2
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
+    equb copyright - language_entry                                   ; 8007: 19          .        ; Offset of NUL preceding copyright (= &19 → copyright at &8019)
 .binary_version
     equb &04                                                          ; 8008: 04          .        ; Binary version: &04 (informational, not used by MOS)
 .title
@@ -15385,7 +15391,6 @@ save pydis_start, pydis_end
 ;     return_with_result:                       1
 ;     return_zero_uninit:                       1
 ;     roff_off_string:                          1
-;     rom_header:                               1
 ;     rom_header_byte1:                         1
 ;     rom_header_byte2:                         1
 ;     rom_type:                                 1

@@ -2170,24 +2170,24 @@
   "banners": [
     {
       "addr": 32768,
-      "name": "rom_header",
+      "name": "language_entry",
       "title": "Sideways ROM header \u2014 language-entry slot (3 bytes)",
       "description": "MOS dispatches ``JMP &8000`` on language startup.\n\nByte 0 is ``&4C`` so this ROM declares itself a language (``rom_type`` bit 6 set); the slot is a real ``JMP`` to ``language_handler``.\n\nReason code in A on entry:\n\n| A | Meaning                                              |\n|---|------------------------------------------------------|\n| 0 | No language available \u2014 MOS calling Tube ROM         |\n| 1 | Normal startup                                       |\n| 2 | Request next byte of softkey expansion (Electron)    |\n| 3 | Request length of softkey expansion (Electron)       |",
-      "align": "after_label"
+      "align": "before_label"
     },
     {
       "addr": 32771,
       "name": "service_entry",
       "title": "Service-entry slot (3 bytes)",
       "description": "MOS calls ``JMP &8003`` for service-call dispatch \u2014 unrecognised ``*`` commands, OSWORDs, OSBYTEs, ``*HELP``, filing-system init / select, paged-ROM scans, and many other events. The reason code arrives in A.",
-      "align": "after_label"
+      "align": "before_label"
     },
     {
       "addr": 32774,
       "name": "rom_type",
-      "title": "ROM type byte",
-      "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |",
-      "align": "after_label"
+      "title": "ROM identification",
+      "description": "Six descriptive fields that follow the entry-point JMPs: ROM type flag byte, copyright-string offset, binary version, title string, optional version string, and copyright string. The MOS uses these for identification, dispatch-table lookup, and the ``(C)``-prefix validity check.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -2486,7 +2486,6 @@
         128
       ],
       "labels": [
-        "rom_header",
         "language_entry"
       ],
       "sub_labels": {
@@ -2586,7 +2585,7 @@
         16
       ],
       "expressions": [
-        "copyright - rom_header"
+        "copyright - language_entry"
       ]
     },
     {
@@ -38134,9 +38133,9 @@
       "comment_inline": "Load next byte from ROM header",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rom_header,x",
+      "operand": "language_entry,x",
       "target": 32768,
-      "target_label": "rom_header"
+      "target_label": "language_entry"
     },
     {
       "addr": 1257,
@@ -49696,9 +49695,9 @@
       "comment_inline": "Call ROM entry point at &8000",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "rom_header",
+      "operand": "language_entry",
       "target": 32768,
-      "target_label": "rom_header"
+      "target_label": "language_entry"
     },
     {
       "addr": 39749,

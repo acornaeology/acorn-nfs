@@ -803,7 +803,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &04e5 referenced 1 time by &944e
 .scan_copyright_end
     inx                                                               ; 944a: e8          . :04e5[2]          ; Skip past null-terminated copyright string
-    lda rom_header,x                                                  ; 944b: bd 00 80    ... :04e6[2]        ; Load next byte from ROM header
+    lda language_entry,x                                              ; 944b: bd 00 80    ... :04e6[2]        ; Load next byte from ROM header
     bne scan_copyright_end                                            ; 944e: d0 fa       .. :04e9[2]         ; Loop until null terminator found
     lda language_handler_lo,x                                         ; 9450: bd 01 80    ... :04eb[2]        ; Read 4-byte reloc address from ROM header
     sta tube_transfer_addr                                            ; 9453: 85 53       .S :04ee[2]         ; Store reloc addr byte 1 as transfer addr
@@ -1307,13 +1307,6 @@ tube_page6_start = tube_poll_r2_result_branch+1
 
 .pydis_start
 ; NFS ROM 3.65 disassembly (Acorn Econet filing system)
-; &8000 referenced 2 times by &944b, &9b64
-.rom_header
-.language_entry
-; &8001 referenced 1 time by &9450
-language_handler_lo = rom_header+1
-; &8002 referenced 1 time by &9455
-language_handler_hi = rom_header+2
 ; ***************************************************************************************
 ; Sideways ROM header — language-entry slot (3 bytes)
 ;
@@ -1330,18 +1323,31 @@ language_handler_hi = rom_header+2
 ; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
+; &8000 referenced 2 times by &944b, &9b64
+.language_entry
+; &8001 referenced 1 time by &9450
+language_handler_lo = language_entry+1
+; &8002 referenced 1 time by &9455
+language_handler_hi = language_entry+2
     jmp language_handler                                              ; 8000: 4c dd 80    L..   
-; &8003 referenced 1 time by &945a
-.service_entry
-; &8004 referenced 1 time by &945d
-service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Service-entry slot (3 bytes)
 ;
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
+; &8003 referenced 1 time by &945a
+.service_entry
+; &8004 referenced 1 time by &945d
+service_handler_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c f3 80    L..   
+; ***************************************************************************************
+; ROM identification
+;
+; Six descriptive fields that follow the entry-point JMPs: ROM type flag byte,
+; copyright-string offset, binary version, title string, optional version string, and
+; copyright string. The MOS uses these for identification, dispatch-table lookup, and the
+; (C)-prefix validity check.
 ; &8006 referenced 1 time by &943f
 .rom_type
 ; ***************************************************************************************
@@ -1357,7 +1363,7 @@ service_handler_lo = service_entry+1
     equb %10000010                                                    ; 8006: 82          .        ; ROM type
 ; &8007 referenced 1 time by &9447
 .copyright_offset
-    equb copyright - rom_header                                       ; 8007: 0c          .        ; Offset of NUL preceding copyright (= &0c → copyright at &800c)
+    equb copyright - language_entry                                   ; 8007: 0c          .        ; Offset of NUL preceding copyright (= &0c → copyright at &800c)
 ; &8008 referenced 2 times by &835c, &8365
 .binary_version
     equb &03                                                          ; 8008: 03          .        ; Binary version: &03 (informational, not used by MOS)
@@ -7177,7 +7183,7 @@ svc5_dispatch_lo = sub_c9abe+1
 .tx_done_os_proc
     ldx l0d58                                                         ; 9b5e: ae 58 0d    .X.      ; X = remote address lo
     ldy l0d59                                                         ; 9b61: ac 59 0d    .Y.      ; Y = remote address hi
-    jsr rom_header                                                    ; 9b64: 20 00 80     ..      ; Call ROM entry point at &8000
+    jsr language_entry                                                ; 9b64: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9b67: 4c 89 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
 ; TX done: HALT
@@ -8356,7 +8362,6 @@ save pydis_start, pydis_end
 ;     return_nbyte:                             2
 ;     return_printer_select:                    2
 ;     return_tube_init:                         2
-;     rom_header:                               2
 ;     romsel:                                   2
 ;     run_fscv_cmd:                             2
 ;     rx_extra_byte:                            2
