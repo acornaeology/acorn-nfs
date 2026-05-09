@@ -989,7 +989,6 @@ d.label(0x97A4, 'store_digit')
 
 d.label(0x97AC, 'return_from_store_digit')
 
-d.label(0x97AD, 'net_error_lookup_data')
 for i in range(12):
     d.byte(0x97AD + i)
 d.expr(0x97AD, 'error_msg_table - error_msg_table')
@@ -12578,13 +12577,12 @@ d.comment(0x97A5, 'Load current text position', align=Align.INLINE)
 d.comment(0x97A7, 'Store ASCII digit in error text', align=Align.INLINE)
 d.comment(0x97AA, 'Advance text position', align=Align.INLINE)
 d.comment(0x97AC, 'Return', align=Align.INLINE)
-d.comment(0x97AD, """Network error lookup table (12 bytes)
-
-Each byte is an offset into error_msg_table.
-Indices 0-7 are keyed by error class (reply AND 7).
-Index 8 is used by build_no_reply_error.
-Indices 9-11 point to suffix strings appended
-after the station address in compound errors.""")
+d.subroutine(0x97AD, 'net_error_lookup_data', title='Network error lookup table (12 entries)', description="""Each byte is an offset into
+[`error_msg_table`](address:97B9?hex). Indices 0-7 are keyed
+by error class (reply `AND #7`). Index 8 is used by
+[`build_no_reply_error`](address:961A?hex). Indices 9-11 point
+to suffix strings appended after the station address in
+compound errors.""")
 d.comment(0x97AD, 'Class 0: &A0 "Line jammed"', align=Align.INLINE)
 d.comment(0x97AE, 'Class 1: &A1 "Net error"', align=Align.INLINE)
 d.comment(0x97AF, 'Class 2: &A2 "Station"', align=Align.INLINE)

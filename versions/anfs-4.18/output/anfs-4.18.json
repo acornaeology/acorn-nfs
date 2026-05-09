@@ -3018,6 +3018,12 @@
       "name": "prot_bit_encode_table",
       "title": "Protection/access bit encode table (11 entries)",
       "description": "11-entry lookup table used by\n[`get_prot_bits`](address:9273?hex) and\n[`get_access_bits`](address:9269?hex) to remap attribute bits\nbetween the file-server protocol format and the local\nrepresentation. The encoding loop shifts out each source bit;\nfor each set bit, the corresponding table entry is `ORA`-ed\ninto the result.\n\n| Indices | Used by             | Notes                                       |\n|---------|---------------------|---------------------------------------------|\n| 0-4     | `get_prot_bits`     | 5-bit input. Some entries expand to 2 bits. |\n| 5-10    | `get_access_bits`   | 6-bit input (dir entry offset &0E). Pure permutation \u2013 one output bit per entry. |"
+    },
+    {
+      "addr": 38829,
+      "name": "net_error_lookup_data",
+      "title": "Network error lookup table (12 entries)",
+      "description": "Each byte is an offset into\n[`error_msg_table`](address:97B9?hex). Indices 0-7 are keyed\nby error class (reply `AND #7`). Index 8 is used by\n[`build_no_reply_error`](address:961A?hex). Indices 9-11 point\nto suffix strings appended after the station address in\ncompound errors."
     }
   ],
   "banners": [],
@@ -42377,7 +42383,8 @@
         "net_error_lookup_data"
       ],
       "comments_before": [
-        "Network error lookup table (12 bytes)\n\nEach byte is an offset into error_msg_table.\nIndices 0-7 are keyed by error class (reply AND 7).\nIndex 8 is used by build_no_reply_error.\nIndices 9-11 point to suffix strings appended\nafter the station address in compound errors.",
+        "***************************************************************************************",
+        "Network error lookup table (12 entries)\n\nEach byte is an offset into\n[`error_msg_table`](address:97B9?hex). Indices 0-7 are keyed\nby error class (reply `AND #7`). Index 8 is used by\n[`build_no_reply_error`](address:961A?hex). Indices 9-11 point\nto suffix strings appended after the station address in\ncompound errors.",
         "&97ad referenced 5 times by &961c, &965a, &9688, &969b, &9730"
       ],
       "comment_inline": "Class 0: &A0 \"Line jammed\"",

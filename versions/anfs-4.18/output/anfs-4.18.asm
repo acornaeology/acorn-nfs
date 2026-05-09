@@ -6593,9 +6593,12 @@ bad_prefix = bad_str_anchor+1
 ; &97ac referenced 1 time by &97a2
 .return_from_store_digit
     rts                                                               ; 97ac: 60          `        ; Return
-; Network error lookup table (12 bytes)
+; ***************************************************************************************
+; Network error lookup table (12 entries)
 ;
-; Each byte is an offset into error_msg_table. Indices 0-7 are keyed by error class (reply AND 7). Index 8 is used by build_no_reply_error. Indices 9-11 point to suffix strings appended after the station address in compound errors.
+; Each byte is an offset into error_msg_table (&97B9). Indices 0-7 are keyed by error
+; class (reply AND #7). Index 8 is used by build_no_reply_error (&961A). Indices 9-11
+; point to suffix strings appended after the station address in compound errors.
 ; &97ad referenced 5 times by &961c, &965a, &9688, &969b, &9730
 .net_error_lookup_data
     equb error_msg_table - error_msg_table                            ; 97ad: 00          .        ; Class 0: &A0 "Line jammed"
