@@ -838,7 +838,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; (tube_osbyte_short at &05F2 straddles the page boundary with a BVC at &05FF/&0600).
 ; &0500 referenced 2 times by &8168, &935b
 .tube_dispatch_table
-    equw tube_osrdch                                                  ; 9462: 37 05       7. :0500[3]         ; 12-entry Tube R2 command dispatch table  R2 cmd 0: OSRDCH
+    equw tube_osrdch                                                  ; 9462: 37 05       7. :0500[3]         ; R2 cmd 0: OSRDCH
     equw tube_oscli                                                   ; 9464: 96 05       .. :0502[3]         ; R2 cmd 1: OSCLI
     equw tube_osbyte_2param                                           ; 9466: f2 05       .. :0504[3]         ; R2 cmd 2: OSBYTE (2-param)
     equw tube_osbyte_long                                             ; 9468: 07 06       .. :0506[3]         ; R2 cmd 3: OSBYTE (3-param)

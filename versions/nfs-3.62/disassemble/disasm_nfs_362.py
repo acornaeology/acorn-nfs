@@ -542,7 +542,6 @@ d.comment(0x04F8, 'Load reloc addr byte 4 (highest)', align=Align.INLINE)
 d.comment(0x04FB, 'Store high byte of end address', align=Align.INLINE)
 d.comment(0x04FD, 'Store byte 3 of end address', align=Align.INLINE)
 d.comment(0x04FF, 'Return with pointers initialised', align=Align.INLINE)
-d.comment(0x0500, '12-entry Tube R2 command dispatch table', align=Align.INLINE)
 d.comment(0x0518, """Tube ULA control register values, indexed by transfer
 type (0-7). Written to &FEE0 after clearing V+M with
 &18. Bit layout: S=set/clear, T=reset regs, P=PRST,

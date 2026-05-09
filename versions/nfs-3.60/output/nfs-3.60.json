@@ -38633,7 +38633,7 @@
         "Tube host code page 5 \u2014 reference: NFS13 (TASKS, BPUT-FILE)\n\nCopied from ROM at reloc_p5_src during init. Contains:\n  &0500: 12-entry dispatch table (&0500-&0517)\n  &0518: 8-byte Tube control register value table\n  &0520: tube_osbput \u2014 write byte to file\n  &052D: tube_osbget \u2014 read byte from file\n  &0537: tube_osrdch \u2014 read character\n  &053A: tube_rdch_reply \u2014 send carry+data as reply\n  &0542: tube_osfind \u2014 open/close file\n  &055E: tube_osargs \u2014 file argument read/write\n  &0582: tube_read_string \u2014 read string from R2 into &0700\n  &0596: tube_oscli \u2014 execute * command\n  &059C: tube_reply_ack \u2014 send &7F acknowledge\n  &05A9: tube_osfile \u2014 whole file operation\n  &05D1: tube_osgbpb \u2014 multi-byte file read/write\nCode continues seamlessly into page 6 (tube_osbyte_short at &05F2\nstraddles the page boundary with a BVC at &05FF/&0600).",
         "&9462 referenced 2 times by &0050[1], &8168"
       ],
-      "comment_inline": "12-entry Tube R2 command dispatch table R2 cmd 0: OSRDCH",
+      "comment_inline": "R2 cmd 0: OSRDCH",
       "references": [
         80,
         33128
