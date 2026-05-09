@@ -83,7 +83,9 @@ Write: final byte of frame (`LAST_DATA = 1`; ADLC appends CRC + closing flag).
 Read: next byte from RX FIFO.""", length=1, group='mmio', access='rw')
 
 d.label(0xFE18, 'econet_station_id', description="""Econet station ID register / INTOFF latch.
-Read: station DIP-switch byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input).
+Read: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input).
+
+On the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with `*CONFIGURE STATION nnn`); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.)
 
 ANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler.""", length=1, group='mmio', access='r')
 

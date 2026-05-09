@@ -6442,7 +6442,7 @@
       "length": 1,
       "group": "mmio",
       "access": "r",
-      "description": "Econet station ID register / INTOFF latch.\nRead: station DIP-switch byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input).\n\nANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler."
+      "description": "Econet station ID register / INTOFF latch.\nRead: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input).\n\nOn the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with `*CONFIGURE STATION nnn`); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.)\n\nANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler."
     },
     {
       "addr": 65056,
