@@ -24392,6 +24392,9 @@
         244,
         255
       ],
+      "comments_before": [
+        "On return, X is the OS version number:\n\n| X | Meaning |\n|---|---|\n| 0 | OS 1.00 (Early BBC B or Electron OS 1.00) |\n| 1 | OS 1.20 or American OS |\n| 2 | OS 2.00 (BBC B+) |\n| 3 | OS 3.2/3.5 (Master 128) |\n| 4 | OS 4.0 (Master Econet Terminal) |\n| 5 | OS 5.0 (Master Compact) |"
+      ],
       "comment_inline": "X=1, OS 1.20 or American OS",
       "type": "code",
       "mnemonic": "jsr",
@@ -24404,9 +24407,6 @@
       "bytes": [
         224,
         3
-      ],
-      "comments_before": [
-        "X is the OS version number:\n\n| X | Meaning |\n|---|---|\n| 0 | OS 1.00 (Early BBC B or Electron OS 1.00) |\n| 1 | OS 1.20 or American OS |\n| 2 | OS 2.00 (BBC B+) |\n| 3 | OS 3.2/3.5 (Master 128) |\n| 4 | OS 4.0 (Master Econet Terminal) |\n| 5 | OS 5.0 (Master Compact) |"
       ],
       "comment_inline": "OS 3.2/3.5 (Master 128)?",
       "type": "code",

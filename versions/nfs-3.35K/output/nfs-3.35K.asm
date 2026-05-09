@@ -906,8 +906,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bpl read_osargs_params                                            ; 94f2: 10 f8       .. :0598[3]         ; Loop until all 4 bytes read
     inx                                                               ; 94f4: e8          . :059a[3]          ; X=0: reset index after loop
     jsr tube_read_r2                                                  ; 94f5: 20 f7 04     .. :059b[3]        ; Read OSARGS reason code from R2
-    jsr osargs                                                        ; 94f8: 20 da ff     .. :059e[3]        ; Get filing system number (A=0, Y=0)
-; A is the filing system number:
+; On return, A is the filing system number:
 ;
 ; | A  | Meaning                   |
 ; |----|---------------------------|
@@ -922,6 +921,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; | 8  | ADFS                      |
 ; | 9  | Host filing system        |
 ; | 10 | Videodisc filing system   |
+    jsr osargs                                                        ; 94f8: 20 da ff     .. :059e[3]        ; Get filing system number (A=0, Y=0)
     jsr tube_send_r2                                                  ; 94fb: 20 d0 06     .. :05a1[3]        ; Send result A back to co-processor
     ldx #3                                                            ; 94fe: a2 03       .. :05a4[3]         ; Return 4-byte result from ZP &00-&03
 ; &05a6 referenced 1 time by &9506

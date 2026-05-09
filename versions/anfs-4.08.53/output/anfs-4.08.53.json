@@ -20440,6 +20440,9 @@
         244,
         255
       ],
+      "comments_before": [
+        "On return, X is the OS version number:\n\n| X | Meaning |\n|---|---|\n| 0 | OS 1.00 (Early BBC B or Electron OS 1.00) |\n| 1 | OS 1.20 or American OS |\n| 2 | OS 2.00 (BBC B+) |\n| 3 | OS 3.2/3.5 (Master 128) |\n| 4 | OS 4.0 (Master Econet Terminal) |\n| 5 | OS 5.0 (Master Compact) |"
+      ],
       "comment_inline": "X=1, OS 1.20 or American OS",
       "type": "code",
       "mnemonic": "jsr",
@@ -20452,9 +20455,6 @@
       "bytes": [
         224,
         1
-      ],
-      "comments_before": [
-        "X is the OS version number:\n\n| X | Meaning |\n|---|---|\n| 0 | OS 1.00 (Early BBC B or Electron OS 1.00) |\n| 1 | OS 1.20 or American OS |\n| 2 | OS 2.00 (BBC B+) |\n| 3 | OS 3.2/3.5 (Master 128) |\n| 4 | OS 4.0 (Master Econet Terminal) |\n| 5 | OS 5.0 (Master Compact) |"
       ],
       "comment_inline": "OS 1.20?",
       "type": "code",
@@ -105434,6 +105434,9 @@
         255
       ],
       "binary_addr": 48383,
+      "comments_before": [
+        "On return, A is the filing system number:\n\n| A | Meaning |\n|---|---|\n| 0 | no filing system selected |\n| 1 | 1200 baud CFS |\n| 2 | 300 baud CFS |\n| 3 | ROM filing system |\n| 4 | Disc filing system |\n| 5 | Network filing system |\n| 6 | Teletext filing system |\n| 7 | IEEE filing system |\n| 8 | ADFS |\n| 9 | Host filing system |\n| 10 | Videodisc filing system |"
+      ],
       "comment_inline": "Get filing system number (A=0, Y=0)",
       "type": "code",
       "mnemonic": "jsr",
@@ -105449,9 +105452,6 @@
         6
       ],
       "binary_addr": 48386,
-      "comments_before": [
-        "A is the filing system number:\n\n| A | Meaning |\n|---|---|\n| 0 | no filing system selected |\n| 1 | 1200 baud CFS |\n| 2 | 300 baud CFS |\n| 3 | ROM filing system |\n| 4 | Disc filing system |\n| 5 | Network filing system |\n| 6 | Teletext filing system |\n| 7 | IEEE filing system |\n| 8 | ADFS |\n| 9 | Host filing system |\n| 10 | Videodisc filing system |"
-      ],
       "comment_inline": "Send result A via R2",
       "type": "code",
       "mnemonic": "jsr",

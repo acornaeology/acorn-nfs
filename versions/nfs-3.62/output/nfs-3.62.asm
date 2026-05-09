@@ -938,8 +938,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     dex                                                               ; 94cb: ca          . :0569[3]          ; Decrement byte counter
     bne read_osargs_params                                            ; 94cc: d0 f8       .. :056a[3]         ; Loop for 4 bytes
     jsr tube_read_r2                                                  ; 94ce: 20 c5 06     .. :056c[3]        ; Read OSARGS reason code from R2
-    jsr osargs                                                        ; 94d1: 20 da ff     .. :056f[3]        ; Get filing system number (A=0, Y=0)
-; A is the filing system number:
+; On return, A is the filing system number:
 ;
 ; | A  | Meaning                   |
 ; |----|---------------------------|
@@ -954,6 +953,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; | 8  | ADFS                      |
 ; | 9  | Host filing system        |
 ; | 10 | Videodisc filing system   |
+    jsr osargs                                                        ; 94d1: 20 da ff     .. :056f[3]        ; Get filing system number (A=0, Y=0)
     jsr tube_send_r2                                                  ; 94d4: 20 95 06     .. :0572[3]        ; Send result A back to co-processor
     ldx #3                                                            ; 94d7: a2 03       .. :0575[3]         ; Return 4-byte result from ZP &00-&03
 ; &0577 referenced 1 time by &94df

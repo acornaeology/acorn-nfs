@@ -703,8 +703,7 @@ oscli                                  = &fff7
     dex                                                               ; bcfd: ca          . :0569[1]          ; Decrement index
     bne read_osargs_params                                            ; bcfe: d0 f8       .. :056a[1]         ; More params: continue reading
     jsr tube_read_r2                                                  ; bd00: 20 c5 06     .. :056c[1]        ; Read OSARGS reason code from R2
-    jsr osargs                                                        ; bd03: 20 da ff     .. :056f[1]        ; Get filing system number (A=0, Y=0)
-; A is the filing system number:
+; On return, A is the filing system number:
 ;
 ; | A  | Meaning                   |
 ; |----|---------------------------|
@@ -719,6 +718,7 @@ oscli                                  = &fff7
 ; | 8  | ADFS                      |
 ; | 9  | Host filing system        |
 ; | 10 | Videodisc filing system   |
+    jsr osargs                                                        ; bd03: 20 da ff     .. :056f[1]        ; Get filing system number (A=0, Y=0)
     jsr tube_send_r2                                                  ; bd06: 20 95 06     .. :0572[1]        ; Send result A via R2
     ldx #3                                                            ; bd09: a2 03       .. :0575[1]         ; X=3: send 4 result bytes
 ; &0577 referenced 1 time by &bd11
@@ -3697,8 +3697,7 @@ listen_jmp_hi = reset_enter_listen+2
     pha                                                               ; 8a1b: 48          H        ; Save Y on stack
     lda #osbyte_read_os_version                                       ; 8a1c: a9 00       ..       ; OSBYTE 0: read OS version
     ldx #1                                                            ; 8a1e: a2 01       ..       ; X=1 to request version number
-    jsr osbyte                                                        ; 8a20: 20 f4 ff     ..      ; X=1, OS 1.20 or American OS
-; X is the OS version number:
+; On return, X is the OS version number:
 ;
 ; | X | Meaning                                   |
 ; |---|-------------------------------------------|
@@ -3708,6 +3707,7 @@ listen_jmp_hi = reset_enter_listen+2
 ; | 3 | OS 3.2/3.5 (Master 128)                   |
 ; | 4 | OS 4.0 (Master Econet Terminal)           |
 ; | 5 | OS 5.0 (Master Compact)                   |
+    jsr osbyte                                                        ; 8a20: 20 f4 ff     ..      ; X=1, OS 1.20 or American OS
     cpx #1                                                            ; 8a23: e0 01       ..       ; OS 1.20?
     beq restore_rom_slot                                              ; 8a25: f0 11       ..       ; Yes: skip workspace setup
     cpx #2                                                            ; 8a27: e0 02       ..       ; OS 2.00 (BBC B+)?

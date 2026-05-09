@@ -3480,8 +3480,7 @@ nmi_shim_source = reset_enter_listen+2
     phy                                                               ; 8a59: 5a          Z        ; Save Y on stack across the version-check
     lda #osbyte_read_os_version                                       ; 8a5a: a9 00       ..       ; OSBYTE 0: read OS version
     ldx #1                                                            ; 8a5c: a2 01       ..       ; X=1 to request version number
-    jsr osbyte                                                        ; 8a5e: 20 f4 ff     ..      ; X=1, OS 1.20 or American OS
-; X is the OS version number:
+; On return, X is the OS version number:
 ;
 ; | X | Meaning                                   |
 ; |---|-------------------------------------------|
@@ -3491,6 +3490,7 @@ nmi_shim_source = reset_enter_listen+2
 ; | 3 | OS 3.2/3.5 (Master 128)                   |
 ; | 4 | OS 4.0 (Master Econet Terminal)           |
 ; | 5 | OS 5.0 (Master Compact)                   |
+    jsr osbyte                                                        ; 8a5e: 20 f4 ff     ..      ; X=1, OS 1.20 or American OS
     cpx #3                                                            ; 8a61: e0 03       ..       ; OS 3.2/3.5 (Master 128)?
     beq restore_rom_slot                                              ; 8a63: f0 25       .%       ; Yes: target OS, skip Bad ROM message
     cpx #4                                                            ; 8a65: e0 04       ..       ; OS 4.0 (Master Econet Terminal)?
