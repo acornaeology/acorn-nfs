@@ -1847,7 +1847,7 @@ d.label(0x929A, 'bsxl0')
 
 d.label(0x92AD, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.65 disassembly (Acorn Econet filing system)
-====================================================""")
+==============================================================""")
 d.comment(0x8000, 'JMP language_handler', align=Align.INLINE)
 d.comment(0x8003, 'JMP service_handler', align=Align.INLINE)
 d.comment(0x8006, 'ROM type: service + language', align=Align.INLINE)

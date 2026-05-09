@@ -3008,7 +3008,7 @@ d.entry(0x8968)
 d.entry(0x89CA)
 d.entry(0x89D8)
 d.comment(0x8000, """ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)
-============================================================================""")
+==============================================================""")
 
 
 d.subroutine(0x8050, 'adlc_init', title='ADLC initialisation', description="""Initialise ADLC hardware and Econet workspace. Disables NMIs via

@@ -868,7 +868,7 @@ d.label(0x9292, 'bsxl0')
 
 d.label(0x92A5, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.40 disassembly (Acorn Econet filing system)
-====================================================""")
+==============================================================""")
 d.comment(0x8000, 'JMP language_handler', align=Align.INLINE)
 d.comment(0x8003, 'JMP service_handler', align=Align.INLINE)
 d.comment(0x8018, """Error message offset table (9 entries).

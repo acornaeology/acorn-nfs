@@ -6619,7 +6619,7 @@
       },
       "comments_before": [
         "Sideways ROM header",
-        "ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)\n============================================================================"
+        "ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)\n=============================================================="
       ],
       "type": "byte",
       "values": [

@@ -796,7 +796,7 @@ d.label(0x927A, 'bsxl0')
 
 d.label(0x9291, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.34B disassembly (Acorn Econet filing system)
-=====================================================""")
+==============================================================""")
 d.comment(0x8000, 'JMP language_handler', align=Align.INLINE)
 d.comment(0x8003, 'JMP service_handler', align=Align.INLINE)
 for i in range(1, 14):

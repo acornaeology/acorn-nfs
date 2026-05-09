@@ -1838,7 +1838,7 @@ d.label(0x9297, 'bsxl0')
 
 d.label(0x92AA, 'return_bspsx')
 d.comment(0x8000, """NFS ROM 3.62 disassembly (Acorn Econet filing system)
-====================================================""")
+==============================================================""")
 d.comment(0x8018, """Error message offset table (9 entries).
 Each byte is a Y offset into error_msg_table.
 Entry 0 (Y=0, "Line Jammed") doubles as the
