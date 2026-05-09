@@ -2636,9 +2636,9 @@ d.label(0xBF58, 'loop_add_disp_bytes')
 
 d.label(0xBF68, 'loop_store_disp_addr')
 
-d.label(0xBFBA, 'advance_x_by_8')
+d.label(0xBFBA, 'inx16')
 
-d.label(0xBFBD, 'advance_x_by_4')
+d.label(0xBFBD, 'inx8')
 
 d.label(0xBFC0, 'inx4')
 d.entry(0x8028)
@@ -6472,26 +6472,13 @@ against the file size, raising 'Outside file' if either
 exceeds the extent.""", on_entry={'y': 'command-line offset of the address arguments'})
 
 
-d.subroutine(0xBFBA, 'advance_x_by_8', title='Advance X by 16 via nested JSR + fall-through', description="""**Note:** the name is historical and misleading -- this routine
-actually advances `X` by 16, not 8.
-
-`JSR advance_x_by_4` followed by no `RTS`, so control falls
-through into [`advance_x_by_4`](address:BFBD) itself for a
-second pass. Each pass through `advance_x_by_4` runs `inx4`
-twice (8 INXs), so two passes give 16 INXs in total.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 16', 'a, y': 'preserved'})
+d.subroutine(0xBFBA, 'inx16', title='Increment X 16 times', description="""`JSR` [`inx8`](address:BFBD), then fall through into `inx8` for a second pass — 16 `INX` instructions in total.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 16', 'a, y': 'preserved'})
 
 
-d.subroutine(0xBFBD, 'advance_x_by_4', title='Advance X by 8 via JSR and fall-through', description="""**Note:** the name is historical and misleading -- this routine
-actually advances `X` by 8, not 4.
-
-`JSR inx4` (4 INXs); the JSR's RTS lands at &BFC0 which is
-[`inx4`](address:BFC0)'s entry, so a second pass runs by fall-
-through (4 more INXs). Total: 8 INXs.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 8', 'a, y': 'preserved'})
+d.subroutine(0xBFBD, 'inx8', title='Increment X 8 times', description="""`JSR` [`inx4`](address:BFC0), then fall through into `inx4` for a second pass — 8 `INX` instructions in total.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 8', 'a, y': 'preserved'})
 
 
-d.subroutine(0xBFC0, 'inx4', title='Increment X four times', description="""Four consecutive INX instructions. Used as a
-building block by advance_x_by_4 and
-advance_x_by_8 via JSR/fall-through chaining.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 4', 'a, y': 'preserved', 'n, z flags': 'reflect new X'})
+d.subroutine(0xBFC0, 'inx4', title='Increment X 4 times', description="""Four consecutive `INX` instructions then `RTS`. Building block for [`inx8`](address:BFBD) and [`inx16`](address:BFBA) via JSR/fall-through chaining.""", on_entry={'x': 'value to advance'}, on_exit={'x': 'input + 4', 'a, y': 'preserved', 'n, z flags': 'reflect new X'})
 d.comment(0x803A, 'Copy to A for sign test', align=Align.INLINE)
 d.comment(0x803B, 'Bit 7 set: dispatch via table', align=Align.INLINE)
 d.comment(0x803D, 'A=&FE: Econet receive event', align=Align.INLINE)
@@ -7775,12 +7762,12 @@ d.comment(0xB7CE, 'Inline string body — bytes consumed by print_inline_no_spoo
 d.comment(0xBF71, 'Y = saved file handle from ws_page', align=Align.INLINE)
 d.comment(0xBF73, 'A=0: OSFIND close', align=Align.INLINE)
 d.comment(0xBF75, 'Tail-call OSFIND to close the handle', align=Align.INLINE)
-d.comment(0xBFBA, 'First INX-by-4 via JSR; falls into advance_x_by_4 for the second four', align=Align.INLINE)
-d.comment(0xBFBD, 'JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four', align=Align.INLINE)
+d.comment(0xBFBA, 'JSR inx8; on RTS, fall through into inx8 for the second 8', align=Align.INLINE)
+d.comment(0xBFBD, 'JSR inx4; on RTS, fall through into inx4 for the second 4', align=Align.INLINE)
 d.comment(0xBFC1, '(continued)', align=Align.INLINE)
 d.comment(0xBFC2, '(continued)', align=Align.INLINE)
 d.comment(0xBFC3, '(continued)', align=Align.INLINE)
-d.comment(0xBFC4, "Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)", align=Align.INLINE)
+d.comment(0xBFC4, 'Return — total X advance depends on the entry: 4 (inx4), 8 (inx8), or 16 (inx16)', align=Align.INLINE)
 d.comment(0xB2A1, "Y=0: scan from start of command line (CLC entry skips '&' validation)", align=Align.INLINE)
 d.comment(0xB2A3, "Set C: this entry validates against '&'", align=Align.INLINE)
 d.comment(0xB2A4, 'Read next source byte through fs_crc_lo pointer', align=Align.INLINE)
@@ -10189,7 +10176,7 @@ d.comment(0xBDCC, 'Continue padding the rest of the hex column', align=Align.INL
 d.comment(0xBDCF, 'Counter has finished -- step it once more for the ASCII test', align=Align.INLINE)
 d.comment(0xBDD0, "Print ': ' inline (ASCII field separator)", align=Align.INLINE)
 d.comment(0xBDD5, 'Y=0: rewind to start of line buffer', align=Align.INLINE)
-d.comment(0xBDD7, 'Skip 8 padding spaces if needed (advance_x_by_8)', align=Align.INLINE)
+d.comment(0xBDD7, 'Skip 16 padding spaces if needed (inx16)', align=Align.INLINE)
 d.comment(0xBDDA, 'Read line buffer byte', align=Align.INLINE)
 d.comment(0xBDDC, 'Mask off bit 7 (DEL/inverted)', align=Align.INLINE)
 d.comment(0xBDDE, "Below ' '? (control char)", align=Align.INLINE)

@@ -3827,9 +3827,9 @@
     },
     {
       "addr": 49082,
-      "name": "advance_x_by_8",
-      "title": "Advance X by 16 via nested JSR + fall-through",
-      "description": "**Note:** the name is historical and misleading -- this routine\nactually advances `X` by 16, not 8.\n\n`JSR advance_x_by_4` followed by no `RTS`, so control falls\nthrough into [`advance_x_by_4`](address:BFBD) itself for a\nsecond pass. Each pass through `advance_x_by_4` runs `inx4`\ntwice (8 INXs), so two passes give 16 INXs in total.",
+      "name": "inx16",
+      "title": "Increment X 16 times",
+      "description": "`JSR` [`inx8`](address:BFBD), then fall through into `inx8` for a second pass \u2014 16 `INX` instructions in total.",
       "on_entry": {
         "x": "value to advance"
       },
@@ -3841,9 +3841,9 @@
     },
     {
       "addr": 49085,
-      "name": "advance_x_by_4",
-      "title": "Advance X by 8 via JSR and fall-through",
-      "description": "**Note:** the name is historical and misleading -- this routine\nactually advances `X` by 8, not 4.\n\n`JSR inx4` (4 INXs); the JSR's RTS lands at &BFC0 which is\n[`inx4`](address:BFC0)'s entry, so a second pass runs by fall-\nthrough (4 more INXs). Total: 8 INXs.",
+      "name": "inx8",
+      "title": "Increment X 8 times",
+      "description": "`JSR` [`inx4`](address:BFC0), then fall through into `inx4` for a second pass \u2014 8 `INX` instructions in total.",
       "on_entry": {
         "x": "value to advance"
       },
@@ -3856,8 +3856,8 @@
     {
       "addr": 49088,
       "name": "inx4",
-      "title": "Increment X four times",
-      "description": "Four consecutive INX instructions. Used as a\nbuilding block by advance_x_by_4 and\nadvance_x_by_8 via JSR/fall-through chaining.",
+      "title": "Increment X 4 times",
+      "description": "Four consecutive `INX` instructions then `RTS`. Building block for [`inx8`](address:BFBD) and [`inx16`](address:BFBA) via JSR/fall-through chaining.",
       "on_entry": {
         "x": "value to advance"
       },
@@ -57056,9 +57056,9 @@
       "comment_inline": "Advance X by 8 (next FCB field)",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "advance_x_by_8",
+      "operand": "inx16",
       "target": 49082,
-      "target_label": "advance_x_by_8"
+      "target_label": "inx16"
     },
     {
       "addr": 40669,
@@ -79316,9 +79316,9 @@
       "comment_inline": "Advance retry counter by 8",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "advance_x_by_8",
+      "operand": "inx16",
       "target": 49082,
-      "target_label": "advance_x_by_8"
+      "target_label": "inx16"
     },
     {
       "addr": 44085,
@@ -108649,12 +108649,12 @@
         186,
         191
       ],
-      "comment_inline": "Skip 8 padding spaces if needed (advance_x_by_8)",
+      "comment_inline": "Skip 16 padding spaces if needed (inx16)",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "advance_x_by_8",
+      "operand": "inx16",
       "target": 49082,
-      "target_label": "advance_x_by_8"
+      "target_label": "inx16"
     },
     {
       "addr": 48602,
@@ -111780,9 +111780,9 @@
         191
       ],
       "labels": [
-        "advance_x_by_8"
+        "inx16"
       ],
-      "comment_inline": "First INX-by-4 via JSR; falls into advance_x_by_4 for the second four",
+      "comment_inline": "JSR inx8; on RTS, fall through into inx8 for the second 8",
       "xref_summaries": [
         "&bfba referenced 3 times by &9eda, &ac32, &bdd7"
       ],
@@ -111793,9 +111793,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "advance_x_by_4",
+      "operand": "inx8",
       "target": 49085,
-      "target_label": "advance_x_by_4"
+      "target_label": "inx8"
     },
     {
       "addr": 49085,
@@ -111805,9 +111805,9 @@
         191
       ],
       "labels": [
-        "advance_x_by_4"
+        "inx8"
       ],
-      "comment_inline": "JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four",
+      "comment_inline": "JSR inx4; on RTS, fall through into inx4 for the second 4",
       "xref_summaries": [
         "&bfbd referenced 1 time by &bfba"
       ],
@@ -111870,7 +111870,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)",
+      "comment_inline": "Return \u2014 total X advance depends on the entry: 4 (inx4), 8 (inx8), or 16 (inx16)",
       "type": "code",
       "mnemonic": "rts"
     },

@@ -8832,7 +8832,7 @@ bad_prefix_table = bad_str_anchor+1
 .loop_copy_fcb_fields
     lda hazel_fcb_addr_mid,x                                          ; 9ed5: bd 10 c2    ...      ; Load channel data from fcb_attr_or_count_mid+X
     sta (fs_options),y                                                ; 9ed8: 91 bb       ..       ; Store in FS options at Y
-    jsr advance_x_by_8                                                ; 9eda: 20 ba bf     ..      ; Advance X by 8 (next FCB field)
+    jsr inx16                                                         ; 9eda: 20 ba bf     ..      ; Advance X by 8 (next FCB field)
     iny                                                               ; 9edd: c8          .        ; Advance destination index
     cpy #4                                                            ; 9ede: c0 04       ..       ; Copied all 4 channel fields?
     bne loop_copy_fcb_fields                                          ; 9ee0: d0 f3       ..       ; No: copy next field
@@ -11790,7 +11790,7 @@ bridge_err_table = compare_bridge_status+1
     ldy #&18                                                          ; ac2c: a0 18       ..       ; Y=&18: status-byte offset
     lda (nfs_workspace),y                                             ; ac2e: b1 9e       ..       ; Load bridge response
     bmi bridge_responded                                              ; ac30: 30 05       0.       ; Negative: bridge responded
-    jsr advance_x_by_8                                                ; ac32: 20 ba bf     ..      ; Advance retry counter by 8
+    jsr inx16                                                         ; ac32: 20 ba bf     ..      ; Advance retry counter by 8
     bpl loop_wait_ws_status                                           ; ac35: 10 d6       ..       ; Positive: retry poll loop
 ; &ac37 referenced 1 time by &ac30
 .bridge_responded
@@ -15900,7 +15900,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr print_inline                                                  ; bdd0: 20 61 92     a.      ; Print ': ' inline (ASCII field separator)
     equs ": "                                                         ; bdd3: 3a 20       :     
     ldy #0                                                            ; bdd5: a0 00       ..       ; Y=0: rewind to start of line buffer
-    jsr advance_x_by_8                                                ; bdd7: 20 ba bf     ..      ; Skip 8 padding spaces if needed (advance_x_by_8)
+    jsr inx16                                                         ; bdd7: 20 ba bf     ..      ; Skip 16 padding spaces if needed (inx16)
 ; &bdda referenced 1 time by &bdf1
 .loop_print_dump_ascii
     lda (work_ae),y                                                   ; bdda: b1 ae       ..       ; Read line buffer byte
@@ -16287,14 +16287,9 @@ net_chan_err_strings = err_net_chan_not_found+2
     plp                                                               ; bfb8: 28          (        ; Done: Y points just past the filename and any spaces
     rts                                                               ; bfb9: 60          `        ; Restore caller's flags
 ; ***************************************************************************************
-; Advance X by 16 via nested JSR + fall-through
+; Increment X 16 times
 ;
-; Note: the name is historical and misleading -- this routine actually advances X by 16,
-; not 8.
-;
-; JSR advance_x_by_4 followed by no RTS, so control falls through into advance_x_by_4
-; itself for a second pass. Each pass through advance_x_by_4 runs inx4 twice (8 INXs), so
-; two passes give 16 INXs in total.
+; JSR inx8, then fall through into inx8 for a second pass — 16 INX instructions in total.
 ;
 ; On Entry:
 ;     X: value to advance
@@ -16303,16 +16298,12 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;     X: input + 16
 ;     A, Y: preserved
 ; &bfba referenced 3 times by &9eda, &ac32, &bdd7
-.advance_x_by_8
-    jsr advance_x_by_4                                                ; bfba: 20 bd bf     ..      ; First INX-by-4 via JSR; falls into advance_x_by_4 for the second four
+.inx16
+    jsr inx8                                                          ; bfba: 20 bd bf     ..      ; JSR inx8; on RTS, fall through into inx8 for the second 8
 ; ***************************************************************************************
-; Advance X by 8 via JSR and fall-through
+; Increment X 8 times
 ;
-; Note: the name is historical and misleading -- this routine actually advances X by 8,
-; not 4.
-;
-; JSR inx4 (4 INXs); the JSR's RTS lands at &BFC0 which is inx4's entry, so a second pass
-; runs by fall- through (4 more INXs). Total: 8 INXs.
+; JSR inx4, then fall through into inx4 for a second pass — 8 INX instructions in total.
 ;
 ; On Entry:
 ;     X: value to advance
@@ -16321,13 +16312,13 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;     X: input + 8
 ;     A, Y: preserved
 ; &bfbd referenced 1 time by &bfba
-.advance_x_by_4
-    jsr inx4                                                          ; bfbd: 20 c0 bf     ..      ; JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four
+.inx8
+    jsr inx4                                                          ; bfbd: 20 c0 bf     ..      ; JSR inx4; on RTS, fall through into inx4 for the second 4
 ; ***************************************************************************************
-; Increment X four times
+; Increment X 4 times
 ;
-; Four consecutive INX instructions. Used as a building block by advance_x_by_4 and
-; advance_x_by_8 via JSR/fall-through chaining.
+; Four consecutive INX instructions then RTS. Building block for inx8 and inx16 via
+; JSR/fall-through chaining.
 ;
 ; On Entry:
 ;     X: value to advance
@@ -16342,7 +16333,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     inx                                                               ; bfc1: e8          .        ; (continued)
     inx                                                               ; bfc2: e8          .        ; (continued)
     inx                                                               ; bfc3: e8          .        ; (continued)
-    rts                                                               ; bfc4: 60          `        ; Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)
+    rts                                                               ; bfc4: 60          `        ; Return — total X advance depends on the entry: 4 (inx4), 8 (inx8), or 16 (inx16)
 ; ***************************************************************************************
 ; ROM-tail &FF padding (33 bytes positioning the HAZEL indexing bases)
 ;
@@ -16605,7 +16596,6 @@ save pydis_start, pydis_end
 ;     zp_work_3:                       4
 ;     adlc_full_reset:                 3
 ;     advance_buffer_ptr:              3
-;     advance_x_by_8:                  3
 ;     alloc_fcb_with_flags:            3
 ;     append_byte_to_rxbuf:            3
 ;     check_tube_irq_loop:             3
@@ -16638,6 +16628,7 @@ save pydis_start, pydis_end
 ;     hazel_parse_buf_1:               3
 ;     hazel_pass_counter:              3
 ;     hazel_txcb_port:                 3
+;     inx16:                           3
 ;     is_decimal_digit:                3
 ;     jmp_restore_fs_ctx:              3
 ;     loop_ps_delay:                   3
@@ -16939,7 +16930,6 @@ save pydis_start, pydis_end
 ;     adlc_tx2:                        1
 ;     advance_positions:               1
 ;     advance_spool_rx_idx:            1
-;     advance_x_by_4:                  1
 ;     alloc_common_entry:              1
 ;     alloc_error_overflow:            1
 ;     alloc_fcb_for_open:              1
@@ -17216,6 +17206,7 @@ save pydis_start, pydis_end
 ;     install_saved_handler:           1
 ;     install_tube_rx:                 1
 ;     inx4:                            1
+;     inx8:                            1
 ;     irq_check_dispatch:              1
 ;     is_dec_digit_only:               1
 ;     issue_svc_15:                    1
