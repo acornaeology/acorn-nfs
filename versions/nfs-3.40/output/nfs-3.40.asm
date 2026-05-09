@@ -1302,8 +1302,9 @@ svc_entry_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c f7 80    L..   
 ; &8006 referenced 1 time by &9430
 .rom_type
-    equb %10000010                                                    ; 8006: 82          .        ; ROM type
 ; ***************************************************************************************
+; ROM type byte
+;
 ; | Bit | Value | Meaning                     |
 ; |-----|-------|-----------------------------|
 ; | 7   | 1     | Service entry present       |
@@ -1311,6 +1312,7 @@ svc_entry_lo = service_entry+1
 ; | 5   | 0     | No Tube relocation          |
 ; | 4   | 0     | No Electron firmkey         |
 ; | 3-0 | 0010  | Processor: 6502 (non-BASIC) |
+    equb %10000010                                                    ; 8006: 82          .        ; ROM type
 ; &8007 referenced 1 time by &9438
 .copyright_offset
     equb copyright - rom_header                                       ; 8007: 10          .        ; Offset of NUL preceding copyright (= &10 → copyright at &8010)
