@@ -283,6 +283,12 @@
       "name": "oscli"
     },
     {
+      "addr": 42275,
+      "name": "osword_dispatch_lo_table",
+      "title": "OSWORD dispatch table (7 entries, split lo/hi)",
+      "description": "`PHA`/`PHA`/`RTS` dispatch used by `svc_8_osword`.\nMaps OSWORD codes &0E-&14 to handler routines (lo bytes at\n&A523-&A529, hi bytes at [`osword_dispatch_hi_table`](address:A52A))."
+    },
+    {
       "addr": 42404,
       "name": "osword_10_handler",
       "title": "OSWORD &10 (Econet transmit) handler",
@@ -9454,7 +9460,7 @@
         165,
         166
       ],
-      "comment_inline": "Set carry for subtraction Load RXCB workspace pointer low byte",
+      "comment_inline": "Load RXCB workspace pointer low byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "port_ws_offset",
@@ -29507,7 +29513,7 @@
         153,
         143
       ],
-      "comment_inline": "X=&FF Restore FS state if previously active",
+      "comment_inline": "Restore FS state if previously active",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "fscv_6_shutdown",
@@ -38260,7 +38266,7 @@
       "bytes": [
         104
       ],
-      "comment_inline": "No pending: build error from reply Pending: clean up stack (3 bytes)",
+      "comment_inline": "Pending: clean up stack (3 bytes)",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -46710,7 +46716,7 @@
         208,
         247
       ],
-      "comment_inline": "Printed all 12 characters? No: print next character",
+      "comment_inline": "Loop while Y wraps to 0 \u2014 i.e. print all 12 chars",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_print_filename",
@@ -64651,7 +64657,7 @@
         "Push OSWORD handler address for RTS dispatch\n\nIndexes the OSWORD dispatch table by X to\npush a handler address (hi then lo) onto the\nstack. Copies 3 bytes from the osword_flag\nworkspace into the RX buffer, loads PB byte 0\n(the OSWORD sub-code), and clears svc_state.\nThe subsequent RTS dispatches to the pushed\nhandler address.\n\nOn Entry:\n    X: OSWORD handler index (0-6)",
         "&a516 referenced 1 time by &a509"
       ],
-      "comment_inline": "X = OSWORD index (0-6) Load handler address high byte",
+      "comment_inline": "Load handler address high byte (X = OSWORD index 0-6)",
       "references": [
         42249
       ],
@@ -64699,7 +64705,7 @@
         177,
         172
       ],
-      "comment_inline": "Copy 3 bytes (Y=2,1,0) Load PB byte 0 (OSWORD sub-code)",
+      "comment_inline": "Copy 3 bytes (Y=2,1,0)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(ws_ptr_hi),y",
@@ -64712,7 +64718,7 @@
         132,
         169
       ],
-      "comment_inline": "Load from osword_flag workspace Clear service state",
+      "comment_inline": "Y=0 from copy loop above \u2014 clear svc_state",
       "type": "code",
       "mnemonic": "sty",
       "operand": "svc_state",
@@ -64747,10 +64753,11 @@
         "osword_dispatch_lo_table"
       ],
       "comments_before": [
-        "OSWORD dispatch table (7 entries, split lo/hi).\nPHA/PHA/RTS dispatch used by svc_8_osword.\nMaps OSWORD codes &0E-&14 to handler routines.",
+        "***************************************************************************************",
+        "OSWORD dispatch table (7 entries, split lo/hi)\n\n`PHA`/`PHA`/`RTS` dispatch used by `svc_8_osword`.\nMaps OSWORD codes &0E-&14 to handler routines (lo bytes at\n&A523-&A529, hi bytes at [`osword_dispatch_hi_table`](address:A52A)).",
         "&a523 referenced 1 time by &a51a"
       ],
-      "comment_inline": "lo-&0E: Read clock lo-&13: Misc operations Store to RX buffer",
+      "comment_inline": "lo-&0E: read clock",
       "references": [
         42266
       ],
@@ -64767,6 +64774,7 @@
       "bytes": [
         33
       ],
+      "comment_inline": "lo-&0F: (unimplemented)",
       "type": "byte",
       "values": [
         33
@@ -64780,6 +64788,7 @@
       "bytes": [
         163
       ],
+      "comment_inline": "lo-&10: transmit",
       "type": "byte",
       "values": [
         163
@@ -64793,6 +64802,7 @@
       "bytes": [
         192
       ],
+      "comment_inline": "lo-&11: receive",
       "type": "byte",
       "values": [
         192
@@ -64806,6 +64816,7 @@
       "bytes": [
         24
       ],
+      "comment_inline": "lo-&12: read station info",
       "type": "byte",
       "values": [
         24
@@ -64819,6 +64830,7 @@
       "bytes": [
         45
       ],
+      "comment_inline": "lo-&13: misc operations",
       "type": "byte",
       "values": [
         45
@@ -64832,6 +64844,7 @@
       "bytes": [
         196
       ],
+      "comment_inline": "lo-&14: bridge/net config",
       "type": "byte",
       "values": [
         196
@@ -64851,6 +64864,7 @@
       "comments_before": [
         "&a52a referenced 1 time by &a516"
       ],
+      "comment_inline": "hi-&0E: read clock",
       "references": [
         42262
       ],
@@ -64867,7 +64881,7 @@
       "bytes": [
         165
       ],
-      "comment_inline": "hi-&0E: Read clock",
+      "comment_inline": "hi-&0F: (unimplemented)",
       "type": "byte",
       "values": [
         165
@@ -64881,7 +64895,7 @@
       "bytes": [
         165
       ],
-      "comment_inline": "hi-&0F: (unimplemented)",
+      "comment_inline": "hi-&10: transmit",
       "type": "byte",
       "values": [
         165
@@ -64895,7 +64909,7 @@
       "bytes": [
         165
       ],
-      "comment_inline": "hi-&10: Transmit",
+      "comment_inline": "hi-&11: receive",
       "type": "byte",
       "values": [
         165
@@ -64909,6 +64923,7 @@
       "bytes": [
         166
       ],
+      "comment_inline": "hi-&12: read station info",
       "type": "byte",
       "values": [
         166
@@ -64922,7 +64937,7 @@
       "bytes": [
         166
       ],
-      "comment_inline": "hi-&12: Read station info",
+      "comment_inline": "hi-&13: misc operations",
       "type": "byte",
       "values": [
         166
@@ -64936,6 +64951,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "hi-&14: bridge/net config",
       "type": "byte",
       "values": [
         168
@@ -64954,7 +64970,7 @@
       "labels": [
         "osword_0e_handler"
       ],
-      "comment_inline": "hi-&14: Bridge/net config Test station active flag",
+      "comment_inline": "Test station active flag",
       "type": "code",
       "mnemonic": "bit",
       "operand": "fs_flags",
@@ -64980,7 +64996,7 @@
         201,
         4
       ],
-      "comment_inline": "Restore A (OSWORD sub-code) Sub-code = 4? (read clock)",
+      "comment_inline": "Sub-code = 4? (read clock)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#4"
@@ -70254,7 +70270,7 @@
         108,
         13
       ],
-      "comment_inline": "Return Load l0d6d[Y]",
+      "comment_inline": "Load l0d6d[Y]",
       "type": "code",
       "mnemonic": "lda",
       "operand": "fs_flags,y",
@@ -72039,7 +72055,7 @@
         118,
         169
       ],
-      "comment_inline": "Enable interrupts Send the network packet",
+      "comment_inline": "Re-enable IRQ and poll the TX completion flag",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "enable_irq_and_poll",
@@ -80643,7 +80659,7 @@
       "comments_before": [
         "&adb2 referenced 1 time by &adae"
       ],
-      "comment_inline": "Rotate back Get cycle number",
+      "comment_inline": "Rotate back",
       "references": [
         44462
       ],
@@ -80682,7 +80698,7 @@
         173,
         148
       ],
-      "comment_inline": "Send request to file server Print ')     '",
+      "comment_inline": "Send request to file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "save_net_tx_cb",
@@ -82704,7 +82720,7 @@
       "labels": [
         "restore_after_check"
       ],
-      "comment_inline": "'&' in filename: bad filename Restore A (undo '&' EOR)",
+      "comment_inline": "Restore A (undo '&' EOR)",
       "type": "code",
       "mnemonic": "eor",
       "operand": "#&26"
@@ -93198,7 +93214,7 @@
       "labels": [
         "skip_set_carry"
       ],
-      "comment_inline": "Branch always to scan entry Set V flag via BIT (alternate mode)",
+      "comment_inline": "Set V flag via BIT bit_test_ff (alternate-mode entry)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "bit_test_ff",
@@ -95354,7 +95370,7 @@
         120,
         16
       ],
-      "comment_inline": "Store in TX buffer Store station low in FCB",
+      "comment_inline": "Store station low in FCB slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "fcb_stn_lo,x",
@@ -95382,7 +95398,7 @@
         136,
         16
       ],
-      "comment_inline": "Store in TX buffer Store station high in FCB",
+      "comment_inline": "Store station high in FCB slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "fcb_stn_hi,x",
@@ -95461,7 +95477,7 @@
         218,
         184
       ],
-      "comment_inline": "Command byte = 0 Send directory request to server",
+      "comment_inline": "Send directory request to server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "flush_fcb_if_station_known",
@@ -95510,7 +95526,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Function code &0D Push to stack",
+      "comment_inline": "Push to stack",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -98187,7 +98203,7 @@
         228,
         184
       ],
-      "comment_inline": "Save X Save context and flush FCB data",
+      "comment_inline": "Save context and flush FCB data",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "flush_fcb_with_init",
@@ -98207,7 +98223,7 @@
       "comments_before": [
         "&b898 referenced 1 time by &b893"
       ],
-      "comment_inline": "Push Y Compare count with buffer offset",
+      "comment_inline": "Compare count with buffer offset",
       "references": [
         47251
       ],
@@ -98236,7 +98252,7 @@
         105,
         0
       ],
-      "comment_inline": "Carry set from BCS/BCC above Add carry (count + 1)",
+      "comment_inline": "Add carry (count + 1)",
       "type": "code",
       "mnemonic": "adc",
       "operand": "#0"
@@ -101567,7 +101583,7 @@
       "comments_before": [
         "&ba95 referenced 1 time by &baa8"
       ],
-      "comment_inline": "Space separator Next column",
+      "comment_inline": "Advance Y to next column",
       "references": [
         47784
       ],
@@ -102156,7 +102172,7 @@
       "bytes": [
         56
       ],
-      "comment_inline": "Space separator SEC for +1 via ADC",
+      "comment_inline": "SEC for +1 via ADC",
       "type": "code",
       "mnemonic": "sec"
     },
@@ -102187,7 +102203,7 @@
       "bytes": [
         202
       ],
-      "comment_inline": "Restore column number Count down",
+      "comment_inline": "Count down",
       "type": "code",
       "mnemonic": "dex"
     },
