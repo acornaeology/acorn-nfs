@@ -13438,7 +13438,7 @@
         54,
         134
       ],
-      "comment_inline": "Print load address as 2 hex bytes Print load address as 2 hex bytes",
+      "comment_inline": "Print load address as 2 hex bytes",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_hex_bytes",

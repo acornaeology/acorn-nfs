@@ -1095,7 +1095,7 @@ tube_jmp_target = tube_dispatch_cmd+1
 tube_osword = tube_osbyte_short+1
     cmp tube_send_zero_r2,x                                           ; 957c: d5 20       . :0626[4]          ; Send X result via R2 (data overlap with &70=BVS)
     cmp l0006                                                         ; 957e: c5 06       .. :0628[4]         ; Read OSWORD number from R2
-    tay                                                               ; 9580: a8          . :062a[4]          ; Save OSWORD number in Y  Save OSWORD number in Y
+    tay                                                               ; 9580: a8          . :062a[4]          ; Save OSWORD number in Y
 ; &062b referenced 1 time by &9584
 .tube_osword_read
     bit tube_status_register_2                                        ; 9581: 2c e2 fe    ,.. :062b[4]        ; Poll R2 status for data ready

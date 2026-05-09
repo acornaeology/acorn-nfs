@@ -40176,7 +40176,7 @@
         168
       ],
       "binary_addr": 38272,
-      "comment_inline": "Save OSWORD number in Y Save OSWORD number in Y",
+      "comment_inline": "Save OSWORD number in Y",
       "type": "code",
       "mnemonic": "tay"
     },

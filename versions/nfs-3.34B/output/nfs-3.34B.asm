@@ -2950,7 +2950,7 @@ error_offsets = copyright+8
     cpy #&0c                                                          ; 861c: c0 0c       ..       ; Pad to 12 chars wide
     bcc pad_filename_spaces                                           ; 861e: 90 f8       ..       ; Continue padding if < 12 chars
     ldy #5                                                            ; 8620: a0 05       ..       ; Y=5: high byte of load address
-    jsr print_hex_bytes                                               ; 8622: 20 36 86     6.      ; Print load address as 2 hex bytes  Print load address as 2 hex bytes
+    jsr print_hex_bytes                                               ; 8622: 20 36 86     6.      ; Print load address as 2 hex bytes
     jsr print_exec_and_len                                            ; 8625: 20 2b 86     +.      ; Print exec address and length
     jmp osnewl                                                        ; 8628: 4c e7 ff    L..   
 ; &862b referenced 1 time by &8625

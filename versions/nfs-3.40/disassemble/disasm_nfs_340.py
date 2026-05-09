@@ -6457,7 +6457,6 @@ d.comment(0x061D, 'Poll R2 status for ready', align=Align.INLINE)
 d.comment(0x0620, 'Not ready: keep polling', align=Align.INLINE)
 
 d.label(0x0627, 'tube_osword')
-d.comment(0x062A, 'Save OSWORD number in Y', align=Align.INLINE)
 d.comment(0x062B, 'Poll R2 status for data ready', align=Align.INLINE)
 d.comment(0x062E, 'Not ready: keep polling', align=Align.INLINE)
 d.comment(0x0634, 'No params (length=0): skip read loop', align=Align.INLINE)
