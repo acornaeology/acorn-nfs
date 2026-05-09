@@ -6876,7 +6876,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "Copy to A for sign test Bring saved Y back into A so BMI can test bit 7",
+      "comment_inline": "Copy to A for sign test",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -6886,7 +6886,7 @@
         48,
         11
       ],
-      "comment_inline": "Bit 7 set: dispatch via table Bit 7 of caller's Y set: dispatch via PHA/PHA/RTS table",
+      "comment_inline": "Bit 7 set: dispatch via table",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "dispatch_svc5",
@@ -6925,7 +6925,7 @@
         130,
         133
       ],
-      "comment_inline": "Fire event (enable: *FX52,150) Tail-jump to tx_done_exit which restores X/Y and claims the service",
+      "comment_inline": "Fire event (enable: *FX52,150)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tx_done_exit",
@@ -37154,7 +37154,7 @@
         176,
         11
       ],
-      "comment_inline": "Always taken (CMP #'&' set C if A>='&'); jump into the hex digit-range check Convert to channel index",
+      "comment_inline": "Always taken (CMP #'&' set C if A>='&'); jump into the hex digit-range check",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "check_digit_range",
@@ -37290,7 +37290,7 @@
         144,
         10
       ],
-      "comment_inline": "No (it's '0'-'9'): straight to digit extraction Get stack pointer",
+      "comment_inline": "No (it's '0'-'9'): straight to digit extraction",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "extract_digit_value",
@@ -37314,7 +37314,7 @@
         105,
         184
       ],
-      "comment_inline": "Map 'A'-'F' to &FA-&FF (ADC #&B8 with C from earlier CMP #':' which set C) Convert to channel index",
+      "comment_inline": "Map 'A'-'F' to &FA-&FF (ADC #&B8 with C from earlier CMP #':' which set C)",
       "type": "code",
       "mnemonic": "adc",
       "operand": "#&b8"
@@ -37417,7 +37417,7 @@
         201,
         16
       ],
-      "comment_inline": "Above 16? (would overflow when shifted left 4) Transfer back to X",
+      "comment_inline": "Above 16? (would overflow when shifted left 4)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&10"
@@ -72057,7 +72057,7 @@
       "labels": [
         "cmd_table_nfs"
       ],
-      "comment_inline": "syn 9: <obj> (L)(W)(R)... *Access",
+      "comment_inline": "syn 9: <obj> (L)(W)(R)...",
       "type": "string",
       "string": "Access"
     },
@@ -72066,7 +72066,7 @@
       "bytes": [
         201
       ],
-      "comment_inline": "syn &9, V if no arg V no arg; syn 9: <obj> (L)(W)(R)...",
+      "comment_inline": "syn &9, V if no arg",
       "type": "byte",
       "values": [
         201
@@ -81749,7 +81749,7 @@
         165,
         239
       ],
-      "comment_inline": "Reload original OSWORD number into A for the handler Reload OSWORD number for handler",
+      "comment_inline": "Reload original OSWORD number into A for the handler",
       "type": "code",
       "mnemonic": "lda",
       "operand": "osbyte_a_copy",
@@ -82002,7 +82002,7 @@
       "bytes": [
         142
       ],
-      "comment_inline": "reason &06: dispatch_rts hi OSWORD 6: no-op (RTS)",
+      "comment_inline": "reason &06: dispatch_rts",
       "type": "byte",
       "values": [
         142
@@ -82141,7 +82141,7 @@
         "Send Econet abort/disconnect packet\n\nStores the abort code in workspace, configures\nthe TX control block with control byte &80\n(immediate operation flag), and transmits the\nabort packet. Used to cleanly disconnect from\na remote station during error recovery.\n\nOn Entry:\n    A: abort code (stored in workspace before TX)",
         "&ad40 referenced 3 times by &8afd, &ad93, &adf9"
       ],
-      "comment_inline": "Y=&D9: workspace offset for the abort code byte Y=&D9: workspace abort offset",
+      "comment_inline": "Y=&D9: workspace offset for the abort code byte",
       "references": [
         35581,
         44435,
@@ -82157,7 +82157,7 @@
         145,
         158
       ],
-      "comment_inline": "Store the abort code (passed in A) at workspace[&D9] Store abort code to workspace",
+      "comment_inline": "Store the abort code (passed in A) at workspace[&D9]",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -82205,7 +82205,7 @@
         165,
         154
       ],
-      "comment_inline": "Save current net_tx_ptr low (we'll repoint TX at the abort packet) Save current TX ptr low",
+      "comment_inline": "Save current net_tx_ptr low (we'll repoint TX at the abort packet)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "net_tx_ptr",
@@ -82249,7 +82249,7 @@
         132,
         154
       ],
-      "comment_inline": "TX low = &0C (abort packet starts at workspace[&0C]) Set TX ptr to workspace offset",
+      "comment_inline": "TX low = &0C (abort packet starts at workspace[&0C])",
       "type": "code",
       "mnemonic": "sty",
       "operand": "net_tx_ptr",
@@ -82275,7 +82275,7 @@
         134,
         155
       ],
-      "comment_inline": "TX high = workspace page (so net_tx_ptr now points at the abort packet in workspace) Set TX ptr high",
+      "comment_inline": "TX high = workspace page (so net_tx_ptr now points at the abort packet in workspace)",
       "type": "code",
       "mnemonic": "stx",
       "operand": "net_tx_ptr_hi",
@@ -82289,7 +82289,7 @@
         44,
         155
       ],
-      "comment_inline": "Send the abort packet via the standard TX path Send the abort packet",
+      "comment_inline": "Send the abort packet via the standard TX path",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "send_net_packet",
@@ -82302,7 +82302,7 @@
         169,
         63
       ],
-      "comment_inline": "A=&3F: TXCB status = abort-complete sentinel Set status to &3F (complete)",
+      "comment_inline": "A=&3F: TXCB status = abort-complete sentinel",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&3f"
@@ -82313,7 +82313,7 @@
         129,
         154
       ],
-      "comment_inline": "Write status via (net_tx_ptr,X) -- mark TX done Store at TX ptr offset 0",
+      "comment_inline": "Write status via (net_tx_ptr,X) -- mark TX done",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(net_tx_ptr,x)",
@@ -82386,7 +82386,7 @@
         "***************************************************************************************",
         "OSWORD 7 handler: claim/release network resources\n\nHandles OSWORD 7 (SOUND) intercepted via NETV.\nSearches the claim code table in two passes:\nfirst 11 entries (state 2), then all 18 (state\n3). On match, saves 3 tube state bytes to\nworkspace and sends an abort with the state\ncode. For state 3 matches, also polls workspace\nfor a response and restores the caller's stack\nframe from the saved bytes.\n\nOn Entry:\n    A: OSWORD 7 number (validated by caller)"
       ],
-      "comment_inline": "Y = OSWORD parameter-block pointer high byte (used as an 'unrecognised' sentinel below) Load PB pointer high",
+      "comment_inline": "Y = OSWORD parameter-block pointer high byte (used as an 'unrecognised' sentinel below)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "osword_pb_ptr_hi",
@@ -82399,7 +82399,7 @@
         201,
         129
       ],
-      "comment_inline": "Code &81? (compatibility shortcut for one specific claim type) Compare with &81 (special case)",
+      "comment_inline": "Code &81? (compatibility shortcut for one specific claim type)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&81"
@@ -82410,7 +82410,7 @@
         240,
         19
       ],
-      "comment_inline": "Yes: skip table scan, use match-result with Y already set non-zero Match: skip to processing",
+      "comment_inline": "Yes: skip table scan, use match-result with Y already set non-zero",
       "type": "code",
       "mnemonic": "beq",
       "operand": "process_match_result",
@@ -82434,7 +82434,7 @@
         162,
         10
       ],
-      "comment_inline": "X=&0A: scan first 11 entries (table indices 0..&0A) X=&0A: 11 codes to check",
+      "comment_inline": "X=&0A: scan first 11 entries (table indices 0..&0A)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&0a"
@@ -82490,7 +82490,7 @@
         162,
         17
       ],
-      "comment_inline": "X=&11: scan all 18 entries (state 3 also accepts the extended range) X=&11: 18 codes to check",
+      "comment_inline": "X=&11: scan all 18 entries (state 3 also accepts the extended range)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&11"
@@ -82527,7 +82527,7 @@
       "bytes": [
         200
       ],
-      "comment_inline": "Y=1 again (no match found, will return below) Not found: increment Y",
+      "comment_inline": "Y=1 again (no match found, will return below)",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -82543,7 +82543,7 @@
       "comments_before": [
         "&ad7d referenced 3 times by &ad68, &ad71, &ad7a"
       ],
-      "comment_inline": "X=2: default state code passed to tx_econet_abort X=2: default state",
+      "comment_inline": "X=2: default state code passed to tx_econet_abort",
       "references": [
         44392,
         44401,
@@ -82558,7 +82558,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "Move match marker (Y) into A for the BEQ test A = Y (search result)",
+      "comment_inline": "Move match marker (Y) into A for the BEQ test",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -82580,7 +82580,7 @@
       "bytes": [
         8
       ],
-      "comment_inline": "Save flags so we can branch later on Y's sign Save result flags",
+      "comment_inline": "Save flags so we can branch later on Y's sign",
       "type": "code",
       "mnemonic": "php"
     },
@@ -82618,7 +82618,7 @@
       "comments_before": [
         "&ad86 referenced 1 time by &ad83"
       ],
-      "comment_inline": "Y=&DC: workspace offset for tube state bytes Y=&DC: workspace offset for save",
+      "comment_inline": "Y=&DC: workspace offset for tube state bytes",
       "references": [
         44419
       ],
@@ -82688,7 +82688,7 @@
         16,
         246
       ],
-      "comment_inline": "Loop while Y > &DA (saves &DA, &DB, &DC -- 3 bytes) Loop for 3 bytes",
+      "comment_inline": "Loop while Y > &DA (saves &DA, &DB, &DC -- 3 bytes)",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_save_tube_bytes",
@@ -82700,7 +82700,7 @@
       "bytes": [
         138
       ],
-      "comment_inline": "Move state code (2 or 3) into A for the abort A = state (2 or 3)",
+      "comment_inline": "Move state code (2 or 3) into A for the abort",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -82803,7 +82803,7 @@
         16,
         252
       ],
-      "comment_inline": "Bit 7 still clear: keep polling for response Positive: keep waiting",
+      "comment_inline": "Bit 7 still clear: keep polling for response",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_poll_ws_status",
@@ -82815,7 +82815,7 @@
       "bytes": [
         186
       ],
-      "comment_inline": "Capture S so we can patch the caller's stack frame Get stack pointer",
+      "comment_inline": "Capture S so we can patch the caller's stack frame",
       "type": "code",
       "mnemonic": "tsx"
     },
@@ -82825,7 +82825,7 @@
         160,
         221
       ],
-      "comment_inline": "Y=&DD: highest workspace offset for the response copy Y=&DD: workspace result offset",
+      "comment_inline": "Y=&DD: highest workspace offset for the response copy",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&dd"
@@ -82860,7 +82860,7 @@
         208,
         4
       ],
-      "comment_inline": "Always taken (after ORA result is non-zero); store into stack[&106+X] then walk down Always branch (NZ from ORA)",
+      "comment_inline": "Always taken (after ORA result is non-zero); store into stack[&106+X] then walk down",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_stack_byte",
@@ -83270,7 +83270,7 @@
         "***************************************************************************************",
         "OSWORD 7/8 handler: copy PB to workspace and abort\n\nHandles OSWORD 7 or 8 by copying 15 bytes from\nthe parameter block to workspace at offset &DB,\nstoring the OSWORD number at offset &DA, setting\ncontrol value &E9, and sending an abort packet.\nReturns via tx_econet_abort. Rejects other\nOSWORD numbers by returning immediately.\n\nOn Entry:\n    A: OSWORD number (must be 7 or 8 to be processed)"
       ],
-      "comment_inline": "Y=&0E: scan 15 bytes (offsets 14..0) of the PB Y=&0E: copy 15 bytes (0-14)",
+      "comment_inline": "Y=&0E: scan 15 bytes (offsets 14..0) of the PB",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0e"
@@ -83292,7 +83292,7 @@
         240,
         4
       ],
-      "comment_inline": "Yes: handle as either 7 or 8 -- both copy PB to ws Yes: handle",
+      "comment_inline": "Yes: handle as either 7 or 8 -- both copy PB to ws",
       "type": "code",
       "mnemonic": "beq",
       "operand": "copy_pb_to_ws",
@@ -83316,7 +83316,7 @@
         208,
         227
       ],
-      "comment_inline": "Neither 7 nor 8: return early (other OSWORDs handled elsewhere) No: return",
+      "comment_inline": "Neither 7 nor 8: return early (other OSWORDs handled elsewhere)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "return_from_match_rx_code",
@@ -83335,7 +83335,7 @@
       "comments_before": [
         "&addd referenced 1 time by &add7"
       ],
-      "comment_inline": "X=&DB: workspace offset for the PB copy Workspace low = &DB",
+      "comment_inline": "X=&DB: workspace offset for the PB copy",
       "references": [
         44503
       ],
@@ -83349,7 +83349,7 @@
         134,
         158
       ],
-      "comment_inline": "Temporarily reuse nfs_workspace as the destination low byte (high byte already points at the workspace page) Set nfs_workspace low byte",
+      "comment_inline": "Temporarily reuse nfs_workspace as the destination low byte (high byte already points at the workspace page)",
       "type": "code",
       "mnemonic": "stx",
       "operand": "nfs_workspace",
@@ -83384,7 +83384,7 @@
         145,
         158
       ],
-      "comment_inline": "Write to (nfs_workspace),Y -- effectively writes to workspace[&DB+Y] Store to workspace[Y]",
+      "comment_inline": "Write to (nfs_workspace),Y -- effectively writes to workspace[&DB+Y]",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -83418,7 +83418,7 @@
       "bytes": [
         200
       ],
-      "comment_inline": "Bring Y back to 0 for the next single-byte write Y=0",
+      "comment_inline": "Bring Y back to 0 for the next single-byte write",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -83428,7 +83428,7 @@
         198,
         158
       ],
-      "comment_inline": "Decrement nfs_workspace low byte: now points at workspace[&DA] (one before the copied region) Workspace low = &DA",
+      "comment_inline": "Decrement nfs_workspace low byte: now points at workspace[&DA] (one before the copied region)",
       "type": "code",
       "mnemonic": "dec",
       "operand": "nfs_workspace",
@@ -83441,7 +83441,7 @@
         165,
         239
       ],
-      "comment_inline": "Read original OSWORD number from osbyte_a_copy Load OSWORD number",
+      "comment_inline": "Read original OSWORD number from osbyte_a_copy",
       "type": "code",
       "mnemonic": "lda",
       "operand": "osbyte_a_copy",
@@ -83454,7 +83454,7 @@
         145,
         158
       ],
-      "comment_inline": "Store at workspace[&DA] -- so the abort packet header carries the OSWORD number Store at workspace+0 (= &DA)",
+      "comment_inline": "Store at workspace[&DA] -- so the abort packet header carries the OSWORD number",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -83467,7 +83467,7 @@
         132,
         158
       ],
-      "comment_inline": "Restore nfs_workspace to its proper low byte (Y=0) Workspace low = 0 (restore)",
+      "comment_inline": "Restore nfs_workspace to its proper low byte (Y=0)",
       "type": "code",
       "mnemonic": "sty",
       "operand": "nfs_workspace",
@@ -83491,7 +83491,7 @@
         169,
         233
       ],
-      "comment_inline": "A=&E9: status code for OSWORD-passthrough abort Control value &E9",
+      "comment_inline": "A=&E9: status code for OSWORD-passthrough abort",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&e9"
@@ -83540,7 +83540,7 @@
         134,
         158
       ],
-      "comment_inline": "Restore nfs_workspace from X (X is unchanged across tx_econet_abort) Restore nfs_workspace low",
+      "comment_inline": "Restore nfs_workspace from X (X is unchanged across tx_econet_abort)",
       "type": "code",
       "mnemonic": "stx",
       "operand": "nfs_workspace",
@@ -83576,7 +83576,7 @@
         160,
         124
       ],
-      "comment_inline": "Y=&7C: workspace destination offset for wide variant Y=&7C: workspace destination offset",
+      "comment_inline": "Y=&7C: workspace destination offset for wide variant",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&7c"
@@ -83588,7 +83588,7 @@
         105,
         151
       ],
-      "comment_inline": "BIT &FF unconditionally sets V (the always_set_v_byte trick) Test bit 6 (V flag check)",
+      "comment_inline": "BIT &FF unconditionally sets V (the always_set_v_byte trick)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "always_set_v_byte",
@@ -83601,7 +83601,7 @@
         112,
         5
       ],
-      "comment_inline": "V=1 always: skip the narrow-mode prologue and CLV V=1: skip to wide mode copy",
+      "comment_inline": "V=1 always: skip the narrow-mode prologue and CLV",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "loop_copy_ws_template",
@@ -83622,7 +83622,7 @@
         "Initialise workspace copy in narrow mode (27 bytes)\n\nSets up a 27-byte copy to workspace offset &17,\nthen falls through to ws_copy_vclr_entry for\nthe template-driven copy loop. Used for the\ncompact workspace initialisation variant.\n\nOn Entry:\n    X: template source offset",
         "&ae07 referenced 1 time by &9872"
       ],
-      "comment_inline": "Y=&17: workspace destination offset for narrow variant Y=&17: narrow mode dest offset",
+      "comment_inline": "Y=&17: workspace destination offset for narrow variant",
       "references": [
         39026
       ],
@@ -83636,7 +83636,7 @@
         162,
         26
       ],
-      "comment_inline": "X=&1A: 27 template bytes to process; fall into ws_copy_vclr_entry which CLVs X=&1A: 27 bytes to copy",
+      "comment_inline": "X=&1A: 27 template bytes to process; fall into ws_copy_vclr_entry which CLVs",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&1a"
@@ -83654,7 +83654,7 @@
         "Template-driven workspace copy with V clear\n\nProcesses a template byte array to initialise\nworkspace. Special marker bytes: &FE terminates\nthe copy, &FD skips the current offset, and &FC\nsubstitutes the workspace page pointer. All\nother values are stored directly to the\nworkspace at the current offset.\n\nOn Entry:\n    X: template source offset\n    Y: destination offset within NFS workspace\n    V FLAG: clear (controls a downstream branch in the shared body; init_ws_copy_wide / _narrow enter with V=0)\n\nOn Exit:\n    A, X, Y: clobbered",
         "&ae0b referenced 1 time by &aecc"
       ],
-      "comment_inline": "Clear V: narrow mode (writes via nfs_workspace pointer) Clear V flag for narrow mode",
+      "comment_inline": "Clear V: narrow mode (writes via nfs_workspace pointer)",
       "references": [
         44748
       ],
@@ -83739,7 +83739,7 @@
         201,
         252
       ],
-      "comment_inline": "&FC: substitute-workspace-page-pointer marker? Is it &FC? (page ptr marker)",
+      "comment_inline": "&FC: substitute-workspace-page-pointer marker?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&fc"
@@ -83763,7 +83763,7 @@
         165,
         157
       ],
-      "comment_inline": "Wide path: page pointer is net_rx_ptr's high byte &FC: load RX buffer page",
+      "comment_inline": "Wide path: page pointer is net_rx_ptr's high byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "net_rx_ptr_hi",
@@ -83789,7 +83789,7 @@
         165,
         159
       ],
-      "comment_inline": "V=0 (narrow): use nfs_workspace high byte instead V=0: use nfs_workspace_hi",
+      "comment_inline": "V=0 (narrow): use nfs_workspace high byte instead",
       "type": "code",
       "mnemonic": "lda",
       "operand": "nfs_workspace_hi",
@@ -83808,7 +83808,7 @@
       "comments_before": [
         "&ae21 referenced 1 time by &ae1d"
       ],
-      "comment_inline": "Stash whichever page byte we picked into net_tx_ptr_hi Store as TX ptr high",
+      "comment_inline": "Stash whichever page byte we picked into net_tx_ptr_hi",
       "references": [
         44573
       ],
@@ -86527,7 +86527,7 @@
         162,
         255
       ],
-      "comment_inline": "X=&FF: scan counter -- INX in loop bumps to 0 X=&FF: start search from -1",
+      "comment_inline": "X=&FF: scan counter -- INX in loop bumps to 0",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&ff"
@@ -86537,7 +86537,7 @@
       "bytes": [
         168
       ],
-      "comment_inline": "Y=A: status code (also used as station-table key) Y = disconnect code",
+      "comment_inline": "Y=A: status code (also used as station-table key)",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -86576,7 +86576,7 @@
         48,
         194
       ],
-      "comment_inline": "Compare with table[X] at &C230 (per-station status) Compare with station table entry",
+      "comment_inline": "Compare with table[X] at &C230 (per-station status)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "hazel_fcb_slot_attr,x",
@@ -86669,7 +86669,7 @@
         37,
         185
       ],
-      "comment_inline": "Verify station/network at this slot still matches caller Check station and network match",
+      "comment_inline": "Verify station/network at this slot still matches caller",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_station_net",
@@ -86777,7 +86777,7 @@
         44,
         155
       ],
-      "comment_inline": "Send the disconnect packet via four-way handshake Send the packet",
+      "comment_inline": "Send the disconnect packet via four-way handshake",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "send_net_packet",
@@ -86875,7 +86875,7 @@
       "bytes": [
         104
       ],
-      "comment_inline": "Pull caller's original A again (was double-saved) Check original disconnect code",
+      "comment_inline": "Pull caller's original A again (was double-saved)",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -86907,7 +86907,7 @@
         160,
         144
       ],
-      "comment_inline": "Non-zero: use Y=&90 (FS reply port instead) Non-zero: use &90 control",
+      "comment_inline": "Non-zero: use Y=&90 (FS reply port instead)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&90"
@@ -86977,7 +86977,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Push the status (we'll EOR with reply below) Save status on stack",
+      "comment_inline": "Push the status (we'll EOR with reply below)",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -87033,7 +87033,7 @@
       "bytes": [
         104
       ],
-      "comment_inline": "Pull saved status (peek without consuming) Restore status",
+      "comment_inline": "Pull saved status (peek without consuming)",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -87052,7 +87052,7 @@
         81,
         154
       ],
-      "comment_inline": "EOR with TX[0]: zero iff reply matches saved Compare with current TX buffer",
+      "comment_inline": "EOR with TX[0]: zero iff reply matches saved",
       "type": "code",
       "mnemonic": "eor",
       "operand": "(net_tx_ptr),y",
@@ -87064,7 +87064,7 @@
       "bytes": [
         106
       ],
-      "comment_inline": "Rotate result; C set if bit 0 differs Rotate result bit 0 to carry",
+      "comment_inline": "Rotate result; C set if bit 0 differs",
       "type": "code",
       "mnemonic": "ror"
     },
@@ -91420,7 +91420,7 @@
         "Copy argument to TX buffer from offset zero\n\nSets X=0 and falls through to copy_arg_to_buf\nthen copy_arg_validated. Provides the simplest\nentry point for copying a single parsed argument\ninto the TX buffer at position zero.\n\nOn Exit:\n    X: TX buffer offset just past the copied argument\n    Y: advanced past the source argument",
         "&b29f referenced 5 times by &8dd5, &8e38, &9c39, &9e29, &a5df"
       ],
-      "comment_inline": "X=0: place the argument at the start of the TX buffer; fall into copy_arg_to_buf X=0: start of buffer",
+      "comment_inline": "X=0: place the argument at the start of the TX buffer; fall into copy_arg_to_buf",
       "references": [
         36309,
         36408,
@@ -91446,7 +91446,7 @@
         "Copy argument to TX buffer with Y=0\n\nSets Y=0 and falls through to copy_arg_validated\nwith carry set, enabling '&' character validation.\nX must already contain the destination offset\nwithin the TX buffer.\n\nOn Entry:\n    X: destination offset within the TX buffer\n\nOn Exit:\n    X: TX buffer offset just past the copied argument\n    Y: advanced past the source argument",
         "&b2a1 referenced 11 times by &9ceb, &9e22, &9e45, &9feb, &a501, &a52e, &b0cd, &b13f, &b1f8, &b36c, &b712"
       ],
-      "comment_inline": "Y=0: scan from start of command line (CLC entry skips '&' validation) Y=0: start of argument",
+      "comment_inline": "Y=0: scan from start of command line (CLC entry skips '&' validation)",
       "references": [
         40171,
         40482,
@@ -91498,7 +91498,7 @@
       "comments_before": [
         "&b2a4 referenced 1 time by &b2b7"
       ],
-      "comment_inline": "Read next source byte through fs_crc_lo pointer Get character from command line",
+      "comment_inline": "Read next source byte through fs_crc_lo pointer",
       "references": [
         45751
       ],
@@ -91528,7 +91528,7 @@
         144,
         8
       ],
-      "comment_inline": "Validation off (C clear): just advance positions Carry clear: skip validation",
+      "comment_inline": "Validation off (C clear): just advance positions",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "advance_positions",
@@ -91563,7 +91563,7 @@
         240,
         200
       ],
-      "comment_inline": "'&' inside the argument is illegal: raise 'Bad filename' Yes: '&' not allowed in filenames",
+      "comment_inline": "'&' inside the argument is illegal: raise 'Bad filename'",
       "type": "code",
       "mnemonic": "beq",
       "operand": "error_bad_prefix",
@@ -91579,7 +91579,7 @@
       "labels": [
         "restore_after_check"
       ],
-      "comment_inline": "Restore A by undoing the EOR (so the loop terminator test below sees the original byte) '&' in filename: bad filename",
+      "comment_inline": "Restore A by undoing the EOR (so the loop terminator test below sees the original byte)",
       "type": "code",
       "mnemonic": "eor",
       "operand": "#&26"
@@ -91617,7 +91617,7 @@
         73,
         13
       ],
-      "comment_inline": "EOR with CR; Z set iff we just stored the terminator Is it CR (end of line)?",
+      "comment_inline": "EOR with CR; Z set iff we just stored the terminator",
       "type": "code",
       "mnemonic": "eor",
       "operand": "#&0d"
@@ -91648,7 +91648,7 @@
       "comments_before": [
         "&b2b9 referenced 1 time by &b2c6"
       ],
-      "comment_inline": "Look at the byte just before the CR we stopped on Load character from end of buffer",
+      "comment_inline": "Look at the byte just before the CR we stopped on",
       "references": [
         45766
       ],
@@ -91664,7 +91664,7 @@
         73,
         32
       ],
-      "comment_inline": "EOR with space; Z set iff that byte was a trailing space Test for space (&20)",
+      "comment_inline": "EOR with space; Z set iff that byte was a trailing space",
       "type": "code",
       "mnemonic": "eor",
       "operand": "#&20"
@@ -91722,7 +91722,7 @@
         208,
         241
       ],
-      "comment_inline": "Always taken (A=&0D from LDA #&0D so Z is clear); look at the next byte back ALWAYS: trim next character back",
+      "comment_inline": "Always taken (A=&0D from LDA #&0D so Z is clear); look at the next byte back",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_trim_trailing_spaces",
@@ -91741,7 +91741,7 @@
       "comments_before": [
         "&b2c8 referenced 1 time by &b2be"
       ],
-      "comment_inline": "All trailing spaces consumed (or none present) A=0: success return code",
+      "comment_inline": "All trailing spaces consumed (or none present)",
       "references": [
         45758
       ],
@@ -91835,7 +91835,7 @@
         113,
         194
       ],
-      "comment_inline": "Store back, clearing FS-selection and other high bits Store masked flags",
+      "comment_inline": "Store back, clearing FS-selection and other high bits",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fs_lib_flags",
@@ -93661,7 +93661,7 @@
         "Copy printer server template at offset &18\n\nSets Y=&18 and falls through to copy_ps_data.\nCalled during workspace initialisation\n(svc_2_private_workspace) to set up the printer\nserver template at the standard offset.\n\nOn Exit:\n    Y: &20 (advanced past the copied 8 bytes)",
         "&b3d5 referenced 1 time by &8f5b"
       ],
-      "comment_inline": "Y=&18: standard offset for the PS template; fall into copy_ps_data Start at offset &18",
+      "comment_inline": "Y=&18: standard offset for the PS template; fall into copy_ps_data",
       "references": [
         36699
       ],
@@ -93683,7 +93683,7 @@
         "Copy 8-byte printer server template to RX buffer\n\nCopies 8 bytes of default printer server data into the RX buffer\nat the current `Y` offset. Uses indexed addressing: `LDA\nps_template_base,X` with `X` starting at `&F8`, so the effective\nread address is `ps_template_base+&F8 = ps_template_data`\n([`&8E9F`](address:8E9F)). The 6502 trick reaches data 248\nbytes past the base label in a single instruction; the base\naddress (`ps_template_base`) deliberately falls inside the operand\nbyte of a JSR instruction at `&8DA6` -- see\ndocs/analysis/authors-easter-egg.md.\n\nOn Entry:\n    Y: destination offset within the RX buffer\n\nOn Exit:\n    Y: advanced by 8\n    X: 0 (loop terminator)\n    A: last template byte",
         "&b3d7 referenced 1 time by &b5b6"
       ],
-      "comment_inline": "X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F) X=&F8: offset into template",
+      "comment_inline": "X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F)",
       "references": [
         46518
       ],
@@ -93704,7 +93704,7 @@
       "comments_before": [
         "&b3d9 referenced 1 time by &b3e0"
       ],
-      "comment_inline": "Read template byte from ps_template_data + (X-&F8) Get template byte",
+      "comment_inline": "Read template byte from ps_template_data + (X-&F8)",
       "references": [
         46048
       ],
@@ -93741,7 +93741,7 @@
       "bytes": [
         232
       ],
-      "comment_inline": "Step source -- wraps from &FF to &00 to terminate Next source offset",
+      "comment_inline": "Step source -- wraps from &FF to &00 to terminate",
       "type": "code",
       "mnemonic": "inx"
     },
@@ -95084,7 +95084,7 @@
         "Pop return address and requeue PS slot scan\n\nConverts the PS slot flags to a workspace index,\nwrites slot data, and jumps back into the PS scan\nloop to continue processing.\n\nOn Entry:\n    A: PS slot flags byte to convert into a workspace index",
         "&b4b4 referenced 2 times by &b41c, &b5fb"
       ],
-      "comment_inline": "Pull saved upper byte of ws_ptr_lo+osword_flag pair Pop return address low",
+      "comment_inline": "Pull saved upper byte of ws_ptr_lo+osword_flag pair",
       "references": [
         46108,
         46587
@@ -95133,7 +95133,7 @@
         169,
         0
       ],
-      "comment_inline": "Push 0 -- placeholder, will be the stacked return marker Push 0 as end-of-list marker",
+      "comment_inline": "Push 0 -- placeholder, will be the stacked return marker",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#0"
@@ -95153,7 +95153,7 @@
         169,
         132
       ],
-      "comment_inline": "ws_ptr_hi base = &84 (start of PS slot table area) Start scanning from offset &84",
+      "comment_inline": "ws_ptr_hi base = &84 (start of PS slot table area)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&84"
@@ -95178,7 +95178,7 @@
         97,
         13
       ],
-      "comment_inline": "Shift bit 0 of econet_flags into C (saved scan state) Shift PS slot flags right",
+      "comment_inline": "Shift bit 0 of econet_flags into C (saved scan state)",
       "type": "code",
       "mnemonic": "lsr",
       "operand": "econet_flags",
@@ -95209,7 +95209,7 @@
       "comments_before": [
         "&b4c6 referenced 1 time by &b4d8"
       ],
-      "comment_inline": "Convert slot index to 12-byte-aligned table offset Convert to 2-bit workspace index",
+      "comment_inline": "Convert slot index to 12-byte-aligned table offset",
       "references": [
         46296
       ],
@@ -95225,7 +95225,7 @@
         176,
         55
       ],
-      "comment_inline": "Out of range (clamped to 0): all slots scanned Carry set: no more slots",
+      "comment_inline": "Out of range (clamped to 0): all slots scanned",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "done_ps_slot_scan",
@@ -95246,7 +95246,7 @@
       "bytes": [
         74
       ],
-      "comment_inline": "A /= 2 again (now slot index * 4 / 4 = slot index) To get slot offset",
+      "comment_inline": "A /= 2 again (now slot index * 4 / 4 = slot index)",
       "type": "code",
       "mnemonic": "lsr"
     },
@@ -95344,7 +95344,7 @@
         208,
         236
       ],
-      "comment_inline": "Loop while X != 0 (wraps when all slots done) Loop for more slots",
+      "comment_inline": "Loop while X != 0 (wraps when all slots done)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_scan_ps_slots",
@@ -95417,7 +95417,7 @@
         169,
         158
       ],
-      "comment_inline": "A=&9E: control byte (Master 128 PS-init pattern) Low byte: workspace page",
+      "comment_inline": "A=&9E: control byte (Master 128 PS-init pattern)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&9e"
@@ -95595,7 +95595,7 @@
       "comments_before": [
         "&b4fd referenced 1 time by &b6a8"
       ],
-      "comment_inline": "Write another buffer page + two &FF sentinels Write another page + &FF bytes",
+      "comment_inline": "Write another buffer page + two &FF sentinels",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "write_ps_slot_byte_ff",
@@ -95629,7 +95629,7 @@
       "comments_before": [
         "&b502 referenced 2 times by &b4c9, &b4d0"
       ],
-      "comment_inline": "Restore bit 0 of econet_flags via ASL (recovers from the LSR at &B4C1) Shift PS slot flags back",
+      "comment_inline": "Restore bit 0 of econet_flags via ASL (recovers from the LSR at &B4C1)",
       "references": [
         46281,
         46288
@@ -95658,7 +95658,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Push it back (the caller's return-resume sequence) Push onto stack",
+      "comment_inline": "Push it back (the caller's return-resume sequence)",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -95774,7 +95774,7 @@
         208,
         250
       ],
-      "comment_inline": "Middle not zero: refresh inner and continue Middle loop: 10 iterations",
+      "comment_inline": "Middle not zero: refresh inner and continue",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_ps_delay",
@@ -95800,7 +95800,7 @@
         208,
         246
       ],
-      "comment_inline": "Outer not zero: another full sweep (~1000 cycles) Outer loop: ~1000 delay cycles",
+      "comment_inline": "Outer not zero: another full sweep (~1000 cycles)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_ps_delay",
@@ -95869,7 +95869,7 @@
         169,
         255
       ],
-      "comment_inline": "A=&FF: sentinel; fall into write_two_bytes_inc_y to store two of them A=&FF",
+      "comment_inline": "A=&FF: sentinel; fall into write_two_bytes_inc_y to store two of them",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ff"
@@ -95922,7 +95922,7 @@
         145,
         158
       ],
-      "comment_inline": "Write A at the next offset (two consecutive copies) Write byte to workspace",
+      "comment_inline": "Write A at the next offset (two consecutive copies)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -95934,7 +95934,7 @@
       "bytes": [
         200
       ],
-      "comment_inline": "Final INY leaves Y pointing past the second write Advance Y",
+      "comment_inline": "Final INY leaves Y pointing past the second write",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -95961,7 +95961,7 @@
         "Reverse-copy printer server name to TX buffer\n\nCopies 8 bytes from the RX buffer at offsets `&18..&1F`\n(`(net_rx_ptr)+&18..+&1F`) to the TX buffer at offsets\n`&10..&17` (`(net_rx_ptr)+&10..+&17`) in reversed byte order.\nImplementation: pushes the 8 RX bytes onto the stack, then pops\nthem back to the TX area; the LIFO order achieves the reversal.\n\nOn Exit:\n    A, X, Y: clobbered",
         "&b52b referenced 2 times by &b416, &b588"
       ],
-      "comment_inline": "Y=&18: source offset (start of PS name in RX buffer) Start of PS name at offset &1C",
+      "comment_inline": "Y=&18: source offset (start of PS name in RX buffer)",
       "references": [
         46102,
         46472
@@ -96040,7 +96040,7 @@
         160,
         23
       ],
-      "comment_inline": "Y=&17: destination offset for the reversed name End of TX name field at &1B",
+      "comment_inline": "Y=&17: destination offset for the reversed name",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&17"
@@ -96056,7 +96056,7 @@
       "comments_before": [
         "&b537 referenced 1 time by &b53d"
       ],
-      "comment_inline": "Pull next pushed byte (LIFO -> reversed order) Pop byte (reversed order)",
+      "comment_inline": "Pull next pushed byte (LIFO -> reversed order)",
       "references": [
         46397
       ],
@@ -96091,7 +96091,7 @@
         192,
         15
       ],
-      "comment_inline": "Reached &0F (one before the destination range)? Start of TX field (&0F)?",
+      "comment_inline": "Reached &0F (one before the destination range)?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&0f"
@@ -96115,7 +96115,7 @@
         165,
         157
       ],
-      "comment_inline": "Copy net_rx_ptr_hi as the TX page (TX shares the same page as RX for this packet) Copy RX page to TX",
+      "comment_inline": "Copy net_rx_ptr_hi as the TX page (TX shares the same page as RX for this packet)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "net_rx_ptr_hi",
@@ -96141,7 +96141,7 @@
         169,
         12
       ],
-      "comment_inline": "TX low byte = &0C: skip past the TX header to where the reversed name lives TX offset &10",
+      "comment_inline": "TX low byte = &0C: skip past the TX header to where the reversed name lives",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&0c"
@@ -96305,7 +96305,7 @@
         "Print station address as decimal net.station\n\nIf the network number is zero, prints only the\nstation number. Otherwise prints network.station\nseparated by a dot. V flag controls padding with\nleading spaces for column alignment.\n\nOn Entry:\n    V FLAG: set = no leading-space padding; clear = pad to align in a column\n\nOn Exit:\n    A, X, Y: clobbered (print_decimal_3dig and OSASCI)",
         "&b556 referenced 4 times by &a3be, &b607, &b63f, &b697"
       ],
-      "comment_inline": "Save caller's V (controls leading-zero padding via the BVS at &B566) Save V flag (controls padding)",
+      "comment_inline": "Save caller's V (controls leading-zero padding via the BVS at &B566)",
       "references": [
         41918,
         46599,
@@ -96361,7 +96361,7 @@
         169,
         46
       ],
-      "comment_inline": "A='.': separator between network and station '.' separator",
+      "comment_inline": "A='.': separator between network and station",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&2e"
@@ -96387,7 +96387,7 @@
         105,
         151
       ],
-      "comment_inline": "Set V so the next BVS branches over the padding (we just printed digits, no padding needed) Set V (suppress station padding)",
+      "comment_inline": "Set V so the next BVS branches over the padding (we just printed digits, no padding needed)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "always_set_v_byte",
@@ -96423,7 +96423,7 @@
         97,
         146
       ],
-      "comment_inline": "V clear (caller wanted padding): print 4 leading spaces via inline string Print 4 spaces (padding)",
+      "comment_inline": "V clear (caller wanted padding): print 4 leading spaces via inline string",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_inline",
@@ -96468,7 +96468,7 @@
       "bytes": [
         40
       ],
-      "comment_inline": "Restore caller's V (so print_decimal_3dig honours its own leading-zero suppression) Restore flags",
+      "comment_inline": "Restore caller's V (so print_decimal_3dig honours its own leading-zero suppression)",
       "type": "code",
       "mnemonic": "plp"
     },
@@ -96479,7 +96479,7 @@
         42,
         179
       ],
-      "comment_inline": "Tail-call print_decimal_3dig for the station number Print station as 3 digits",
+      "comment_inline": "Tail-call print_decimal_3dig for the station number",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "print_decimal_3dig",
@@ -108731,7 +108731,7 @@
         162,
         20
       ],
-      "comment_inline": "X=&14: 21-byte stack buffer for dump line state 21 bytes to push (0-&14)",
+      "comment_inline": "X=&14: 21-byte stack buffer for dump line state",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&14"
@@ -108803,7 +108803,7 @@
         171,
         190
       ],
-      "comment_inline": "Parse address range and validate against file extent Set up buffer pointer and parse args",
+      "comment_inline": "Parse address range and validate against file extent",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "init_dump_buffer",
@@ -108840,7 +108840,7 @@
         240,
         3
       ],
-      "comment_inline": "Aligned (high nibble zero): skip the header print Skip header if 16-byte aligned",
+      "comment_inline": "Aligned (high nibble zero): skip the header print",
       "type": "code",
       "mnemonic": "beq",
       "operand": "loop_dump_line",
@@ -108854,7 +108854,7 @@
         1,
         190
       ],
-      "comment_inline": "Print 'Address: 00 01 ... 0F: ASCII data' header Print column header for offset start",
+      "comment_inline": "Print 'Address: 00 01 ... 0F: ASCII data' header",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_dump_header",
@@ -109194,7 +109194,7 @@
         208,
         3
       ],
-      "comment_inline": "Non-zero: not a 256-byte boundary, skip header Non-zero: header already current",
+      "comment_inline": "Non-zero: not a 256-byte boundary, skip header",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_start_dump_addr",
@@ -109346,7 +109346,7 @@
         105,
         16
       ],
-      "comment_inline": "Bump address by 16 bytes for next line Add 16 to lowest address byte",
+      "comment_inline": "Bump address by 16 bytes for next line",
       "type": "code",
       "mnemonic": "adc",
       "operand": "#&10"
@@ -109473,7 +109473,7 @@
         97,
         146
       ],
-      "comment_inline": "Print ' : ' separator before hex byte field Print address/data separator",
+      "comment_inline": "Print ' : ' separator before hex byte field",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_inline",
@@ -109507,7 +109507,7 @@
         166,
         170
       ],
-      "comment_inline": "X = byte counter (-1 initially, INC'd to 0..&0F) X = bytes read (counter for display)",
+      "comment_inline": "X = byte counter (-1 initially, INC'd to 0..&0F)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "osword_flag",
@@ -109599,7 +109599,7 @@
       "bytes": [
         202
       ],
-      "comment_inline": "Step counter (Y was off-by-one from line read) Decrement remaining data bytes",
+      "comment_inline": "Step counter (Y was off-by-one from line read)",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -110334,7 +110334,7 @@
         "Parse hex address for dump range\n\nReads up to 4 hex digits from the command line\ninto a 4-byte accumulator, stopping at CR or\nspace. Each digit shifts the accumulator left\nby 4 bits before ORing in the new nybble.\n\nOn Entry:\n    Y: current command-line offset\n\nOn Exit:\n    Y: advanced past the parsed digits\n    A: first non-hex character (CR or space)",
         "&be42 referenced 2 times by &beb2, &bf3e"
       ],
-      "comment_inline": "Move command-line offset Y into A for the X copy Save command line offset to X",
+      "comment_inline": "Move command-line offset Y into A for the X copy",
       "references": [
         48818,
         48958
@@ -110347,7 +110347,7 @@
       "bytes": [
         170
       ],
-      "comment_inline": "X = current command-line offset (live cursor) X tracks current position",
+      "comment_inline": "X = current command-line offset (live cursor)",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -110566,7 +110566,7 @@
         144,
         10
       ],
-      "comment_inline": "No: it's '0'-'9' -- skip the letter handling Yes: is a decimal digit",
+      "comment_inline": "No: it's '0'-'9' -- skip the letter handling",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "done_mask_hex_digit",
@@ -110590,7 +110590,7 @@
         105,
         184
       ],
-      "comment_inline": "Add &B8: 'A' (=&41) becomes &F9 with C set; 'F' becomes &FE; this maps 'A'-'F' to &FA-&FF in C Map 'A'-'F' \u2192 &FA-&FF (C=0 here)",
+      "comment_inline": "Add &B8: 'A' (=&41) becomes &F9 with C set; 'F' becomes &FE; this maps 'A'-'F' to &FA-&FF in C",
       "type": "code",
       "mnemonic": "adc",
       "operand": "#&b8"
@@ -110601,7 +110601,7 @@
         176,
         51
       ],
-      "comment_inline": "Carry out of ADC: digit was below 'A' -> bad hex Carry set: char > 'F', error",
+      "comment_inline": "Carry out of ADC: digit was below 'A' -> bad hex",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "error_bad_hex_value",
@@ -110614,7 +110614,7 @@
         201,
         250
       ],
-      "comment_inline": "Below &FA? (i.e. before 'A' in mapped range) Below &FA? (i.e. was < 'A')",
+      "comment_inline": "Below &FA? (i.e. before 'A' in mapped range)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&fa"
@@ -110685,7 +110685,7 @@
         162,
         4
       ],
-      "comment_inline": "X=4: rotate the 4-byte accumulator left 4 times 4 bits to shift in",
+      "comment_inline": "X=4: rotate the 4-byte accumulator left 4 times",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#4"
@@ -110730,7 +110730,7 @@
       "comments_before": [
         "&be77 referenced 1 time by &be83"
       ],
-      "comment_inline": "Save A onto stack so we can use PHP/PLP to round-trip carry through the rotate Transfer carry bit to flags via stack",
+      "comment_inline": "Save A onto stack so we can use PHP/PLP to round-trip carry through the rotate",
       "references": [
         48771
       ],
@@ -110742,7 +110742,7 @@
       "bytes": [
         40
       ],
-      "comment_inline": "Pull flags (effectively C clear from the TYA above; on later iterations C carries the bit shifted out) C = bit shifted out of prev iter",
+      "comment_inline": "Pull flags (effectively C clear from the TYA above; on later iterations C carries the bit shifted out)",
       "type": "code",
       "mnemonic": "plp"
     },
@@ -110764,7 +110764,7 @@
       "bytes": [
         42
       ],
-      "comment_inline": "Shift in C from below, shift out top bit to C Rotate left through carry",
+      "comment_inline": "Shift in C from below, shift out top bit to C",
       "type": "code",
       "mnemonic": "rol"
     },
@@ -110856,7 +110856,7 @@
         176,
         15
       ],
-      "comment_inline": "C set: a bit fell off the top -- overflow Overflow: address too large",
+      "comment_inline": "C set: a bit fell off the top -- overflow",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "error_hex_overflow",
@@ -111021,7 +111021,7 @@
       "comments_before": [
         "&be9c referenced 3 times by &be5d, &be67, &be6b"
       ],
-      "comment_inline": "Close the dump file before raising the error Close open file before error",
+      "comment_inline": "Close the dump file before raising the error",
       "references": [
         48733,
         48743,
@@ -111143,7 +111143,7 @@
         "Initialise dump buffer and parse address range\n\nParses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent.\n\nOn Entry:\n    Y: command-line offset of the address arguments",
         "&beab referenced 1 time by &bd4d"
       ],
-      "comment_inline": "Step Y past the *Dump command name into the argument X+1: first byte of buffer",
+      "comment_inline": "Step Y past the *Dump command name into the argument",
       "references": [
         48461
       ],
@@ -111169,7 +111169,7 @@
         162,
         1
       ],
-      "comment_inline": "Set bit 0 of addr_work to 1 -- 'mode' flag for parse_dump_range below Buffer is on stack in page 1",
+      "comment_inline": "Set bit 0 of addr_work to 1 -- 'mode' flag for parse_dump_range below",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#1"
@@ -111194,7 +111194,7 @@
         66,
         190
       ],
-      "comment_inline": "Parse the start address (max 4 hex digits) Parse start offset from command line",
+      "comment_inline": "Parse the start address (max 4 hex digits)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "parse_dump_range",
@@ -111219,7 +111219,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "Save current Y (cursor after start address) A = command line offset after parse",
+      "comment_inline": "Save current Y (cursor after start address)",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -111262,7 +111262,7 @@
         169,
         2
       ],
-      "comment_inline": "A=2: OSARGS sub-fn 2 = read sequential file extent A=2: read file extent (length)",
+      "comment_inline": "A=2: OSARGS sub-fn 2 = read sequential file extent",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#2"
@@ -111321,7 +111321,7 @@
         209,
         174
       ],
-      "comment_inline": "Compare with parsed start address (work_ae+Y) Compare with start offset byte",
+      "comment_inline": "Compare with parsed start address (work_ae+Y)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "(work_ae),y",
@@ -111356,7 +111356,7 @@
         16,
         246
       ],
-      "comment_inline": "Loop while Y >= 0 (covers indices 3, 2, 1, 0) More bytes to compare",
+      "comment_inline": "Loop while Y >= 0 (covers indices 3, 2, 1, 0)",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_cmp_file_length",
@@ -111369,7 +111369,7 @@
         48,
         32
       ],
-      "comment_inline": "All bytes equal: start = extent (allowed); jump to the post-validation path All equal: start = length, within file",
+      "comment_inline": "All bytes equal: start = extent (allowed); jump to the post-validation path",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "done_advance_start",
@@ -111388,7 +111388,7 @@
       "comments_before": [
         "&bed0 referenced 1 time by &bec9"
       ],
-      "comment_inline": "C clear: parsed_start > file_size -- reject Length < start: outside file",
+      "comment_inline": "C clear: parsed_start > file_size -- reject",
       "references": [
         48841
       ],
@@ -111404,7 +111404,7 @@
         160,
         255
       ],
-      "comment_inline": "Y=&FF: signal 'no copy needed' to the loop below Y=&FF: length > start, flag for later",
+      "comment_inline": "Y=&FF: signal 'no copy needed' to the loop below",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&ff"
@@ -111415,7 +111415,7 @@
         208,
         26
       ],
-      "comment_inline": "Always taken: skip directly to advance phase Continue to copy start address",
+      "comment_inline": "Always taken: skip directly to advance phase",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_advance_start",
@@ -111505,7 +111505,7 @@
       "comments_before": [
         "&beeb referenced 1 time by &bef3"
       ],
-      "comment_inline": "Copy file-extent byte from osword_flag to (work_ae) Load start address byte from buffer",
+      "comment_inline": "Copy file-extent byte from osword_flag to (work_ae)",
       "references": [
         48883
       ],
@@ -111602,7 +111602,7 @@
         169,
         1
       ],
-      "comment_inline": "A=1: OSARGS sub-fn 1 = write sequential file pointer A=1: write file pointer",
+      "comment_inline": "A=1: OSARGS sub-fn 1 = write sequential file pointer",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#1"
@@ -111614,7 +111614,7 @@
         218,
         255
       ],
-      "comment_inline": "Set the file's read pointer to the parsed start OSARGS: set file pointer Write sequential file pointer from zero page address X (A=1)",
+      "comment_inline": "Set the file's read pointer to the parsed start Write sequential file pointer from zero page address X (A=1)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osargs",
@@ -111682,7 +111682,7 @@
         160,
         1
       ],
-      "comment_inline": "Y=1: copy os_text_ptr (2 bytes) to work_ae as a displacement-base hint Copy 2 bytes: os_text_ptr to buffer",
+      "comment_inline": "Y=1: copy os_text_ptr (2 bytes) to work_ae as a displacement-base hint",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#1"
@@ -111802,7 +111802,7 @@
         160,
         2
       ],
-      "comment_inline": "Y=2: shift 3 bytes down 2 positions to drop the first 2 bytes (action code + a flag) Start at OSFILE +2 (load addr byte 0)",
+      "comment_inline": "Y=2: shift 3 bytes down 2 positions to drop the first 2 bytes (action code + a flag)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#2"
@@ -111916,7 +111916,7 @@
       "bytes": [
         136
       ],
-      "comment_inline": "Y -= 2: position at high byte of load address Y=6 after loop exit",
+      "comment_inline": "Y -= 2: position at high byte of load address",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -111968,7 +111968,7 @@
         208,
         35
       ],
-      "comment_inline": "No: have a real load address; add it as displacement No: valid load address, use it",
+      "comment_inline": "No: have a real load address; add it as displacement",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_add_disp_base",
@@ -112003,7 +112003,7 @@
         160,
         3
       ],
-      "comment_inline": "All four bytes were &FF: zero out the load address Clear all 4 bytes",
+      "comment_inline": "All four bytes were &FF: zero out the load address",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#3"
@@ -112069,7 +112069,7 @@
         48,
         21
       ],
-      "comment_inline": "Always taken (after BPL drops out): skip second-arg path Continue to compute display address",
+      "comment_inline": "Always taken (after BPL drops out): skip second-arg path",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "done_add_disp_base",
@@ -112119,7 +112119,7 @@
         113,
         191
       ],
-      "comment_inline": "Parse error: close file then raise 'Bad address' Invalid: close file before error",
+      "comment_inline": "Parse error: close file then raise 'Bad address'",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "close_ws_file",
@@ -112237,7 +112237,7 @@
         170,
         0
       ],
-      "comment_inline": "Add osword_flag+Y (low byte of length, with carry propagating) Add start offset byte",
+      "comment_inline": "Add osword_flag+Y (low byte of length, with carry propagating)",
       "type": "code",
       "mnemonic": "adc",
       "operand": "osword_flag,y",
@@ -112295,7 +112295,7 @@
         160,
         20
       ],
-      "comment_inline": "Y=&14: target offset = workspace+&13 (top of end-addr field, stored hi-byte-first) Point past end of address area",
+      "comment_inline": "Y=&14: target offset = workspace+&13 (top of end-addr field, stored hi-byte-first)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&14"
@@ -112464,7 +112464,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "Move command-line offset Y into A for the add A=filename offset from Y",
+      "comment_inline": "Move command-line offset Y into A for the add",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -112483,7 +112483,7 @@
         101,
         242
       ],
-      "comment_inline": "A = os_text_ptr_lo + Y (filename address low byte) Add text pointer low byte",
+      "comment_inline": "A = os_text_ptr_lo + Y (filename address low byte)",
       "type": "code",
       "mnemonic": "adc",
       "operand": "os_text_ptr",
@@ -112495,7 +112495,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Push it (we need to restore os_text_ptr after OSFIND) Save filename address low",
+      "comment_inline": "Push it (we need to restore os_text_ptr after OSFIND)",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -112504,7 +112504,7 @@
       "bytes": [
         170
       ],
-      "comment_inline": "Move filename low into X (OSFIND wants the address in X/Y) X=filename address low (for OSFIND)",
+      "comment_inline": "Move filename low into X (OSFIND wants the address in X/Y)",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -112525,7 +112525,7 @@
         101,
         243
       ],
-      "comment_inline": "Add os_text_ptr_hi with carry from the low add Add text pointer high byte + carry",
+      "comment_inline": "Add os_text_ptr_hi with carry from the low add",
       "type": "code",
       "mnemonic": "adc",
       "operand": "os_text_ptr_hi",
@@ -112628,7 +112628,7 @@
         195,
         153
       ],
-      "comment_inline": "Raise the error with the inline string below; never returns Raise 'Not found' error",
+      "comment_inline": "Raise the error with the inline string below; never returns",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "error_inline",
@@ -112663,7 +112663,7 @@
       "comments_before": [
         "&bf9e referenced 1 time by &bf8d"
       ],
-      "comment_inline": "Restore the saved filename high byte into os_text_ptr_hi -- but wait, this writes the FILENAME address into os_text_ptr; the caller intentionally moves os_text_ptr to scan past the filename below Restore text pointer high from stack",
+      "comment_inline": "Restore the saved filename high byte into os_text_ptr_hi -- but wait, this writes the FILENAME address into os_text_ptr; the caller intentionally moves os_text_ptr to scan past the filename below",
       "references": [
         49037
       ],
@@ -112688,7 +112688,7 @@
       "bytes": [
         104
       ],
-      "comment_inline": "Restore filename low byte into os_text_ptr_lo (so (os_text_ptr) now points at the filename) Restore text pointer low from stack",
+      "comment_inline": "Restore filename low byte into os_text_ptr_lo (so (os_text_ptr) now points at the filename)",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -112764,7 +112764,7 @@
         240,
         11
       ],
-      "comment_inline": "Yes: filename ended at CR (no trailing spaces) Yes: finished parsing filename",
+      "comment_inline": "Yes: filename ended at CR (no trailing spaces)",
       "type": "code",
       "mnemonic": "beq",
       "operand": "done_skip_filename",
@@ -112861,7 +112861,7 @@
       "comments_before": [
         "&bfb8 referenced 1 time by &bfab"
       ],
-      "comment_inline": "Done: Y points just past the filename and any spaces Restore caller flags",
+      "comment_inline": "Done: Y points just past the filename and any spaces",
       "references": [
         49067
       ],
@@ -112892,7 +112892,7 @@
         "Advance X by 16 via nested JSR + fall-through\n\n**Note:** the name is historical and misleading -- this routine\nactually advances `X` by 16, not 8.\n\n`JSR advance_x_by_4` followed by no `RTS`, so control falls\nthrough into [`advance_x_by_4`](address:BFBD) itself for a\nsecond pass. Each pass through `advance_x_by_4` runs `inx4`\ntwice (8 INXs), so two passes give 16 INXs in total.\n\nOn Entry:\n    X: value to advance\n\nOn Exit:\n    X: input + 16\n    A, Y: preserved",
         "&bfba referenced 3 times by &9eda, &ac32, &bdd7"
       ],
-      "comment_inline": "First INX-by-4 via JSR; falls into advance_x_by_4 for the second four JSR+fall-through: 8+8=16 INXs total",
+      "comment_inline": "First INX-by-4 via JSR; falls into advance_x_by_4 for the second four",
       "references": [
         40666,
         44082,
@@ -112919,7 +112919,7 @@
         "Advance X by 8 via JSR and fall-through\n\n**Note:** the name is historical and misleading -- this routine\nactually advances `X` by 8, not 4.\n\n`JSR inx4` (4 INXs); the JSR's RTS lands at &BFC0 which is\n[`inx4`](address:BFC0)'s entry, so a second pass runs by fall-\nthrough (4 more INXs). Total: 8 INXs.\n\nOn Entry:\n    X: value to advance\n\nOn Exit:\n    X: input + 8\n    A, Y: preserved",
         "&bfbd referenced 1 time by &bfba"
       ],
-      "comment_inline": "JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four JSR+fall-through: 4+4=8 INXs",
+      "comment_inline": "JSR inx4 (4 INX); RTS returns here, then falls into inx4 again for the implicit second four",
       "references": [
         49082
       ],
@@ -112981,7 +112981,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total) Return",
+      "comment_inline": "Return; caller is either an explicit JSR (so X has advanced by 4) or advance_x_by_8's fall-through (so X has advanced by 8 total)",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -113010,7 +113010,7 @@
       "bytes": [
         255
       ],
-      "comment_inline": "ROM-tail padding (1 byte &FF; on its own line for annotation) Padding; next byte is reloc_p5_src",
+      "comment_inline": "ROM-tail padding (1 byte &FF; on its own line for annotation)",
       "type": "byte",
       "values": [
         255
