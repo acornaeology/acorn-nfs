@@ -1464,7 +1464,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 
 .pydis_start
 ; Sideways ROM header
-; ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
+; ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
 ; &8000 referenced 1 time by &bfe6
 .language_entry
 .rom_header

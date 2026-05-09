@@ -3269,8 +3269,8 @@ mask, sets protection bits 2-4, then dispatches through
 the PHA/RTS trampoline using the table at
 set_rx_buf_len_hi. If Y >= &86, skips the protection
 setup and dispatches directly.""", on_entry={'y': 'TX operation type (dispatch index)'})
-d.comment(0x8000, """ANFS ROM 4.08.53 disassembly (Acorn Advanced Network Filing System)
-===================================================================""")
+d.comment(0x8000, """ANFS ROM 4.18 disassembly (Acorn Advanced Network Filing System)
+================================================================""")
 
 
 d.subroutine(0x0520, 'tube_osbput', title='Tube OSBPUT handler (R2 cmd 8)', description="""Reads file handle and data byte from R2, then
