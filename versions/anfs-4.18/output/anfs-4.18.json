@@ -828,20 +828,20 @@
     {
       "addr": 34638,
       "name": "nmi_reply_scout",
-      "title": "RX reply scout handler",
-      "description": "Handles reception of the reply scout frame after transmission.\nChecks SR2 bit0 (AP) for incoming data, reads the first byte\n(destination station) and compares to our station ID via &FE18\n(which also disables NMIs as a side effect)."
+      "title": "Scout-ACK reception (step 2 of four-way handshake)",
+      "description": "Receives the **scout ACK** \u2013 the 4-byte acknowledgement frame the remote station sends back after our scout. This is step 2 of the four-way handshake (`CR1` previously written to &82 by [`nmi_tx_complete`](address:8732)). The frame layout is identical to a scout: `[dst_stn][dst_net][src_stn][src_net]`.\n\nReads `SR2` bit 0 (`AP` \u2013 address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).\n\n(Not to be confused with the \"reply\" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server \u2013 see [`nmi_rx_scout`](address:80BE?hex).)"
     },
     {
       "addr": 34658,
       "name": "nmi_reply_cont",
-      "title": "RX reply continuation handler",
-      "description": "Reads the second byte of the reply scout (destination network) and\nvalidates it is zero (local network). Installs nmi_reply_validate\n(&8779) for the remaining two bytes (source station and network).\nOptimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\nIf IRQ is still set, falls through directly to &8779 without an RTI,\navoiding NMI re-entry overhead for short frames where all bytes arrive\nin quick succession."
+      "title": "Scout-ACK continuation: destination-network check",
+      "description": "Second byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](address:8779) for the remaining two bytes (source station and network).\n\nOptimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](address:8779) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession."
     },
     {
       "addr": 34681,
       "name": "nmi_reply_validate",
-      "title": "RX reply validation (Path 2 for FV/PSE interaction)",
-      "description": "Reads the source station and source network from the reply scout and\nvalidates them against the original TX destination (&0D20/&0D21).\nSequence:\n  1. Check SR2 bit7 (RDA) at &8779 -- must see data available\n  2. Read source station at &877E, compare to &0D20 (tx_dst_stn)\n  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\nIf all checks pass, the reply scout is valid and the ROM proceeds\nto send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode)."
+      "title": "Scout-ACK validation, then begin data TX (step 3 of handshake)",
+      "description": "Validates the source station/network of the scout ACK against the original TX destination, then switches back to TX mode for the **data frame** (step 3 of the four-way handshake).\n\nValidation sequence:\n\n1. `SR2` bit 7 (`RDA`) at &8779 \u2013 must see data available\n2. Read source station at &877E, compare to `tx_dst_stn` (&0D20)\n3. Read source network at &877C, compare to `tx_dst_net` (&0D21)\n4. `SR2` bit 1 (`FV`) at &8786 \u2013 must see frame valid\n\nOn success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mode and begin transmitting the data frame. The `CR1 = &44` write re-asserts `RX_RESET` (bit 6), which means the *data ACK* (step 4) cannot be received until the next [`nmi_tx_complete`](address:8732) writes `CR1 = &82` again. The full `CR1` walk through the handshake:\n\n| Step | `CR1` | Phase                  | Routine fires                                |\n|------|-------|------------------------|----------------------------------------------|\n| 1    | &44   | scout TX               | [`tx_prepare`](address:864D?hex)             |\n| 2    | &82   | await scout ACK        | [`nmi_tx_complete`](address:8732)            |\n| 3    | &44   | data TX                | [`nmi_reply_validate`](address:8779) (here) |\n| 4    | &82   | await data ACK         | [`handshake_await_ack`](address:8878)        |"
     },
     {
       "addr": 34753,
@@ -15390,7 +15390,7 @@
       ],
       "comments_before": [
         "***************************************************************************************",
-        "RX reply scout handler\n\nHandles reception of the reply scout frame after transmission.\nChecks SR2 bit0 (AP) for incoming data, reads the first byte\n(destination station) and compares to our station ID via &FE18\n(which also disables NMIs as a side effect)."
+        "Scout-ACK reception (step 2 of four-way handshake)\n\nReceives the **scout ACK** \u2013 the 4-byte acknowledgement frame the remote station sends back after our scout. This is step 2 of the four-way handshake (`CR1` previously written to &82 by [`nmi_tx_complete`](address:8732)). The frame layout is identical to a scout: `[dst_stn][dst_net][src_stn][src_net]`.\n\nReads `SR2` bit 0 (`AP` \u2013 address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).\n\n(Not to be confused with the \"reply\" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server \u2013 see [`nmi_rx_scout`](address:80BE?hex).)"
       ],
       "comment_inline": "A=&01: AP mask for SR2",
       "type": "code",
@@ -15502,7 +15502,7 @@
       ],
       "comments_before": [
         "***************************************************************************************",
-        "RX reply continuation handler\n\nReads the second byte of the reply scout (destination network) and\nvalidates it is zero (local network). Installs nmi_reply_validate\n(&8779) for the remaining two bytes (source station and network).\nOptimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.\nIf IRQ is still set, falls through directly to &8779 without an RTI,\navoiding NMI re-entry overhead for short frames where all bytes arrive\nin quick succession."
+        "Scout-ACK continuation: destination-network check\n\nSecond byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](address:8779) for the remaining two bytes (source station and network).\n\nOptimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](address:8779) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession."
       ],
       "comment_inline": "Read RX byte (destination station)",
       "type": "code",
@@ -15644,7 +15644,7 @@
       ],
       "comments_before": [
         "***************************************************************************************",
-        "RX reply validation (Path 2 for FV/PSE interaction)\n\nReads the source station and source network from the reply scout and\nvalidates them against the original TX destination (&0D20/&0D21).\nSequence:\n  1. Check SR2 bit7 (RDA) at &8779 -- must see data available\n  2. Read source station at &877E, compare to &0D20 (tx_dst_stn)\n  3. Read source network at &877C, compare to &0D21 (tx_dst_net)\n  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete\nIf all checks pass, the reply scout is valid and the ROM proceeds\nto send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).",
+        "Scout-ACK validation, then begin data TX (step 3 of handshake)\n\nValidates the source station/network of the scout ACK against the original TX destination, then switches back to TX mode for the **data frame** (step 3 of the four-way handshake).\n\nValidation sequence:\n\n1. `SR2` bit 7 (`RDA`) at &8779 \u2013 must see data available\n2. Read source station at &877E, compare to `tx_dst_stn` (&0D20)\n3. Read source network at &877C, compare to `tx_dst_net` (&0D21)\n4. `SR2` bit 1 (`FV`) at &8786 \u2013 must see frame valid\n\nOn success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mode and begin transmitting the data frame. The `CR1 = &44` write re-asserts `RX_RESET` (bit 6), which means the *data ACK* (step 4) cannot be received until the next [`nmi_tx_complete`](address:8732) writes `CR1 = &82` again. The full `CR1` walk through the handshake:\n\n| Step | `CR1` | Phase                  | Routine fires                                |\n|------|-------|------------------------|----------------------------------------------|\n| 1    | &44   | scout TX               | [`tx_prepare`](address:864D?hex)             |\n| 2    | &82   | await scout ACK        | [`nmi_tx_complete`](address:8732)            |\n| 3    | &44   | data TX                | [`nmi_reply_validate`](address:8779) (here) |\n| 4    | &82   | await data ACK         | [`handshake_await_ack`](address:8878)        |",
         "&8779 referenced 1 time by &8771"
       ],
       "comment_inline": "BIT SR2: test RDA (bit7). Must be set for valid reply.",

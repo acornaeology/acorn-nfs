@@ -3754,30 +3754,35 @@ Dispatches on the `rx_src_net` flags written earlier in the TX path:
 | both clear                    | install [`nmi_reply_scout`](address:874E) for scout-ACK reception |""")
 
 
-d.subroutine(0x874E, 'nmi_reply_scout', title='RX reply scout handler', description="""Handles reception of the reply scout frame after transmission.
-Checks SR2 bit0 (AP) for incoming data, reads the first byte
-(destination station) and compares to our station ID via &FE18
-(which also disables NMIs as a side effect).""")
+d.subroutine(0x874E, 'nmi_reply_scout', title='Scout-ACK reception (step 2 of four-way handshake)', description="""Receives the **scout ACK** – the 4-byte acknowledgement frame the remote station sends back after our scout. This is step 2 of the four-way handshake (`CR1` previously written to &82 by [`nmi_tx_complete`](address:8732)). The frame layout is identical to a scout: `[dst_stn][dst_net][src_stn][src_net]`.
+
+Reads `SR2` bit 0 (`AP` – address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).
+
+(Not to be confused with the "reply" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server – see [`nmi_rx_scout`](address:80BE?hex).)""")
 
 
-d.subroutine(0x8762, 'nmi_reply_cont', title='RX reply continuation handler', description="""Reads the second byte of the reply scout (destination network) and
-validates it is zero (local network). Installs nmi_reply_validate
-(&8779) for the remaining two bytes (source station and network).
-Optimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &8767.
-If IRQ is still set, falls through directly to &8779 without an RTI,
-avoiding NMI re-entry overhead for short frames where all bytes arrive
-in quick succession.""")
+d.subroutine(0x8762, 'nmi_reply_cont', title='Scout-ACK continuation: destination-network check', description="""Second byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](address:8779) for the remaining two bytes (source station and network).
+
+Optimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](address:8779) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession.""")
 
 
-d.subroutine(0x8779, 'nmi_reply_validate', title='RX reply validation (Path 2 for FV/PSE interaction)', description="""Reads the source station and source network from the reply scout and
-validates them against the original TX destination (&0D20/&0D21).
-Sequence:
-  1. Check SR2 bit7 (RDA) at &8779 -- must see data available
-  2. Read source station at &877E, compare to &0D20 (tx_dst_stn)
-  3. Read source network at &877C, compare to &0D21 (tx_dst_net)
-  4. Check SR2 bit1 (FV) at &8786 -- must see frame complete
-If all checks pass, the reply scout is valid and the ROM proceeds
-to send the scout ACK (CR2=&A7 for RTS, CR1=&44 for TX mode).""")
+d.subroutine(0x8779, 'nmi_reply_validate', title='Scout-ACK validation, then begin data TX (step 3 of handshake)', description="""Validates the source station/network of the scout ACK against the original TX destination, then switches back to TX mode for the **data frame** (step 3 of the four-way handshake).
+
+Validation sequence:
+
+1. `SR2` bit 7 (`RDA`) at &8779 – must see data available
+2. Read source station at &877E, compare to `tx_dst_stn` (&0D20)
+3. Read source network at &877C, compare to `tx_dst_net` (&0D21)
+4. `SR2` bit 1 (`FV`) at &8786 – must see frame valid
+
+On success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mode and begin transmitting the data frame. The `CR1 = &44` write re-asserts `RX_RESET` (bit 6), which means the *data ACK* (step 4) cannot be received until the next [`nmi_tx_complete`](address:8732) writes `CR1 = &82` again. The full `CR1` walk through the handshake:
+
+| Step | `CR1` | Phase                  | Routine fires                                |
+|------|-------|------------------------|----------------------------------------------|
+| 1    | &44   | scout TX               | [`tx_prepare`](address:864D?hex)             |
+| 2    | &82   | await scout ACK        | [`nmi_tx_complete`](address:8732)            |
+| 3    | &44   | data TX                | [`nmi_reply_validate`](address:8779) (here) |
+| 4    | &82   | await data ACK         | [`handshake_await_ack`](address:8878)        |""")
 
 
 d.subroutine(0x87C1, 'nmi_scout_ack_src', title='TX scout ACK: write source address', description="""Continuation of the TX-side scout ACK. Reads our
