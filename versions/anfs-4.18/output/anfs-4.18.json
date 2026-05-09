@@ -2602,6 +2602,12 @@
       "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl\ncontrol-byte types &81-&88. Read by the dispatch at\n[`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,\nwhich resolves to [`intoff_disable_nmi_op`](address:8600?hex)\n(= `intoff_test_inactive + 1`) plus Y \u2013 an aliased read into\nthis table.\n\nHigh byte is always &86, so targets are &86xx+1. The last\nentry (Y=&88) dispatches to\n[`tx_ctrl_machine_type`](address:8689), the routine that\nbegins immediately after the table."
     },
     {
+      "addr": 35042,
+      "name": "unreachable_dead_88e2",
+      "title": "Unreachable dead data (16 bytes)",
+      "description": "16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)\nand [`tx_calc_transfer`](address:88F2?hex). Unreachable as\ncode (it follows an unconditional `JMP`) and unreferenced as\ndata \u2013 no label, index, or indirect pointer targets any\naddress in the &88E2-&88F1 range. Likely an unused remnant\nfrom development."
+    },
+    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -17813,8 +17819,12 @@
       "bytes": [
         14
       ],
+      "labels": [
+        "unreachable_dead_88e2"
+      ],
       "comments_before": [
-        "Unreferenced dead data (16 bytes)\n\n16 bytes between JMP discard_reset_rx (&88DF) and\ntx_calc_transfer (&88F2). Unreachable as code (after\nan unconditional JMP) and unreferenced as data. No\nlabel, index, or indirect pointer targets any address\nin the &88E2-&88F1 range. Likely unused remnant from\ndevelopment."
+        "***************************************************************************************",
+        "Unreachable dead data (16 bytes)\n\n16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)\nand [`tx_calc_transfer`](address:88F2?hex). Unreachable as\ncode (it follows an unconditional `JMP`) and unreferenced as\ndata \u2013 no label, index, or indirect pointer targets any\naddress in the &88E2-&88F1 range. Likely an unused remnant\nfrom development."
       ],
       "comment_inline": "Dead data: &0E",
       "type": "byte",

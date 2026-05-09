@@ -6755,14 +6755,12 @@ d.comment(0x88D8, 'Store result/error code at (nmi_tx_block),0', align=Align.INL
 d.comment(0x88DA, '&80: completion flag for &0D3A', align=Align.INLINE)
 d.comment(0x88DC, 'Signal TX complete', align=Align.INLINE)
 d.comment(0x88DF, 'Full ADLC reset and return to idle listen', align=Align.INLINE)
-d.comment(0x88E2, """Unreferenced dead data (16 bytes)
-
-16 bytes between JMP discard_reset_rx (&88DF) and
-tx_calc_transfer (&88F2). Unreachable as code (after
-an unconditional JMP) and unreferenced as data. No
-label, index, or indirect pointer targets any address
-in the &88E2-&88F1 range. Likely unused remnant from
-development.""")
+d.subroutine(0x88E2, 'unreachable_dead_88e2', title='Unreachable dead data (16 bytes)', description="""16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)
+and [`tx_calc_transfer`](address:88F2?hex). Unreachable as
+code (it follows an unconditional `JMP`) and unreferenced as
+data – no label, index, or indirect pointer targets any
+address in the &88E2-&88F1 range. Likely an unused remnant
+from development.""")
 d.comment(0x88E2, 'Dead data: &0E', align=Align.INLINE)
 d.comment(0x88E3, 'Dead data: &0E', align=Align.INLINE)
 d.comment(0x88E4, 'Dead data: &0A', align=Align.INLINE)

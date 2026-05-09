@@ -3326,9 +3326,14 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     lda #&80                                                          ; 88da: a9 80       ..       ; &80: completion flag for &0D3A
     sta tx_complete_flag                                              ; 88dc: 8d 60 0d    .`.      ; Signal TX complete
     jmp discard_reset_rx                                              ; 88df: 4c f5 83    L..      ; Full ADLC reset and return to idle listen
-; Unreferenced dead data (16 bytes)
+; ***************************************************************************************
+; Unreachable dead data (16 bytes)
 ;
-; 16 bytes between JMP discard_reset_rx (&88DF) and tx_calc_transfer (&88F2). Unreachable as code (after an unconditional JMP) and unreferenced as data. No label, index, or indirect pointer targets any address in the &88E2-&88F1 range. Likely unused remnant from development.
+; 16 bytes between JMP discard_reset_rx (&88DF) and tx_calc_transfer (&88F2). Unreachable
+; as code (it follows an unconditional JMP) and unreferenced as data – no label, index,
+; or indirect pointer targets any address in the &88E2-&88F1 range. Likely an unused
+; remnant from development.
+.unreachable_dead_88e2
     equb &0e                                                          ; 88e2: 0e          .        ; Dead data: &0E
     equb &0e                                                          ; 88e3: 0e          .        ; Dead data: &0E
     equb &0a                                                          ; 88e4: 0a          .        ; Dead data: &0A
