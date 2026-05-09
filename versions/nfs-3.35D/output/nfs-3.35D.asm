@@ -1277,7 +1277,11 @@ svc_entry_lo = service_entry+1
 cmd_roff_str = copyright_string+3
 ; The 'ROFF' suffix at copyright_string+3 is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
     equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)...
-; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
+; ***************************************************************************************
+; Error-message offset table (9 entries)
+;
+; Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as
+; the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8014 referenced 1 time by &84dd
 .error_offsets
     equb &00                                                          ; 8014: 00          .        ; NUL terminator  "Line Jammed"
@@ -1295,9 +1299,22 @@ cmd_roff_str = copyright_string+3
     equb &35                                                          ; 801f: 35          5        ; Purpose unknown
 ; &8020 referenced 1 time by &80e3
     equb &03                                                          ; 8020: 03          .        ; Purpose unknown
-; Dispatch table: low bytes of (handler_address - 1) Each entry stores the low byte of a handler address minus 1, for use with the PHA/PHA/RTS dispatch trick at &80DA. See dispatch_0_hi (&8045) for the corresponding high bytes.
+; ***************************************************************************************
+; Dispatch table: handler-address low bytes (37 entries)
 ;
-; Five callers share this table via different Y base offsets: Y=&00  Service calls 0-12       (indices 1-13) Y=&0D  Language entry reasons    (indices 14-18) Y=&12  FSCV codes 0-7           (indices 19-26) Y=&16  FS reply handlers        (indices 27-32) Y=&20  *NET1-4 sub-commands     (indices 33-36)
+; Each entry stores the low byte of a handler address minus 1, for use with the
+; PHA/PHA/RTS dispatch trick at &80DA. See dispatch_0_hi (&8045) for the corresponding
+; high bytes.
+;
+; Five callers share this table via different Y base offsets:
+;
+; | Y base | Caller group           | Indices |
+; |--------|------------------------|---------|
+; | &00    | Service calls 0-12     | 1-13    |
+; | &0D    | Language entry reasons | 14-18   |
+; | &12    | FSCV codes 0-7         | 19-26   |
+; | &16    | FS reply handlers      | 27-32   |
+; | &20    | *NET1-4 sub-commands   | 33-36   |
 .dispatch_0_lo
     equb <(return_2-1)                                                ; 8021: 75          u        ; lo - Svc 0: already claimed (no-op)
     equb <(svc_1_abs_workspace-1)                                     ; 8022: ab          .        ; lo - Svc 1: absolute workspace

@@ -385,6 +385,12 @@
       "description": "Polls Tube status register 2 until data is available\n(bit 7 set), then loads A from Tube data register 2.\nCalled by all Tube dispatch handlers that receive data\nor parameters from the co-processor."
     },
     {
+      "addr": 32792,
+      "name": "error_offsets",
+      "title": "Error-message offset table (9 entries)",
+      "description": "Each byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
+    },
+    {
       "addr": 39573,
       "name": "rx_imm_exec",
       "title": "RX immediate: JSR/UserProc/OSProc setup",
@@ -700,6 +706,12 @@
         "x": "corrupted (by OSASCI)",
         "y": "0"
       }
+    },
+    {
+      "addr": 32805,
+      "name": "dispatch_0_lo",
+      "title": "Dispatch table: handler-address low bytes (37 entries)",
+      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0-12     | 0-13    |\n| `&0E`  | Language entry reasons | 14-18   |\n| `&13`  | FSCV codes 0-7         | 19-26   |\n| `&17`  | FS reply handlers      | 27-32   |\n| `&21`  | *NET1-4 sub-commands   | 33-36   |\n\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
     },
     {
       "addr": 32879,
@@ -2158,6 +2170,7 @@
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fs_error_buf": 4064,
+    "lf086": 61574,
     "fred_hard_drive_0": 64576,
     "fred_hard_drive_1": 64577,
     "fred_hard_drive_2": 64578,
@@ -2446,9 +2459,6 @@
       "labels": [
         "error_offsets"
       ],
-      "comments_before_label": [
-        "Error message offset table (9 entries).\nEach byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
-      ],
       "comment_inline": "NUL terminator \"Line Jammed\"",
       "xref_summaries": [
         "&8018 referenced 1 time by &8500"
@@ -2609,9 +2619,6 @@
       ],
       "labels": [
         "dispatch_0_lo"
-      ],
-      "comments_before_label": [
-        "Dispatch table: low bytes of (handler_address - 1)\nEach entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n  Y=&00  Service calls 0-12       (indices 0-13)\n  Y=&0E  Language entry reasons    (indices 14-18)\n  Y=&13  FSCV codes 0-7           (indices 19-26)\n  Y=&17  FS reply handlers        (indices 27-32)\n  Y=&21  *NET1-4 sub-commands     (indices 33-36)\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
       ],
       "comment_inline": "lo - Svc 0: already claimed (no-op)",
       "type": "byte",
@@ -3906,37 +3913,47 @@
     {
       "addr": 32917,
       "bytes": [
-        32,
-        32,
-        134
+        32
       ],
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "parse_decimal",
-      "target": 34336,
-      "target_label": "parse_decimal"
+      "type": "byte",
+      "values": [
+        32
+      ]
     },
     {
-      "addr": 32920,
+      "addr": 32918,
       "bytes": [
-        240,
-        3
+        32,
+        134,
+        240
       ],
       "labels": [
-        "got_station_num"
+        "sub_c8096"
       ],
+      "sub_labels": {
+        "32920": [
+          "got_station_num"
+        ]
+      },
       "comment_inline": "Z=1: no station parsed (empty or non-numeric)",
       "xref_summaries": [
         "&8098 referenced 1 time by &808f"
       ],
-      "references": [
-        32911
-      ],
       "type": "code",
-      "mnemonic": "beq",
-      "operand": "skip_stn_parse",
-      "target": 32925,
-      "target_label": "skip_stn_parse"
+      "mnemonic": "jsr",
+      "operand": "lf086",
+      "target": 61574,
+      "target_label": "lf086"
+    },
+    {
+      "addr": 32921,
+      "bytes": [
+        3
+      ],
+      "type": "byte",
+      "values": [
+        3
+      ]
     },
     {
       "addr": 32922,
@@ -3963,11 +3980,10 @@
       ],
       "comment_inline": "Copy command text to FS buffer",
       "xref_summaries": [
-        "&809d referenced 2 times by &808a, &8098"
+        "&809d referenced 1 time by &808a"
       ],
       "references": [
-        32906,
-        32920
+        32906
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -12954,11 +12970,10 @@
       ],
       "comment_inline": "Zero accumulator",
       "xref_summaries": [
-        "&8620 referenced 2 times by &808c, &8095"
+        "&8620 referenced 1 time by &808c"
       ],
       "references": [
-        32908,
-        32917
+        32908
       ],
       "type": "code",
       "mnemonic": "lda",

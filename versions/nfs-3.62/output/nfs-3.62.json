@@ -263,6 +263,12 @@
       "name": "oscli"
     },
     {
+      "addr": 32792,
+      "name": "error_offsets",
+      "title": "Error-message offset table (9 entries)",
+      "description": "Each byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
+    },
+    {
       "addr": 39553,
       "name": "rx_imm_exec",
       "title": "RX immediate: JSR/UserProc/OSProc setup",
@@ -608,6 +614,12 @@
         "x": "corrupted (by OSASCI)",
         "y": "0"
       }
+    },
+    {
+      "addr": 32805,
+      "name": "dispatch_0_lo",
+      "title": "Dispatch table: handler-address low bytes (37 entries)",
+      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0-12     | 0-13    |\n| `&0E`  | Language entry reasons | 14-18   |\n| `&13`  | FSCV codes 0-7         | 19-26   |\n| `&17`  | FS reply handlers      | 27-32   |\n| `&21`  | *NET1-4 sub-commands   | 33-36   |\n\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
     },
     {
       "addr": 32879,
@@ -2684,9 +2696,6 @@
       "labels": [
         "error_offsets"
       ],
-      "comments_before_label": [
-        "Error message offset table (9 entries).\nEach byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
-      ],
       "comment_inline": "NUL terminator \"Line Jammed\"",
       "xref_summaries": [
         "&8018 referenced 1 time by &8515"
@@ -2847,9 +2856,6 @@
       ],
       "labels": [
         "dispatch_0_lo"
-      ],
-      "comments_before_label": [
-        "Dispatch table: low bytes of (handler_address - 1)\nEach entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n  Y=&00  Service calls 0-12       (indices 0-13)\n  Y=&0E  Language entry reasons    (indices 14-18)\n  Y=&13  FSCV codes 0-7           (indices 19-26)\n  Y=&17  FS reply handlers        (indices 27-32)\n  Y=&21  *NET1-4 sub-commands     (indices 33-36)\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
       ],
       "comment_inline": "lo - Svc 0: already claimed (no-op)",
       "type": "byte",

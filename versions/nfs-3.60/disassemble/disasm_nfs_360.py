@@ -822,9 +822,7 @@ d.label(0x8011, 'copyright_string')
 d.label(0x8014, 'cmd_roff_str')
 d.label(0x800d, 'cmd_net_str')
 
-d.label(0x8018, 'error_offsets')
 
-d.label(0x8025, 'dispatch_0_lo')
 
 d.label(0x804A, 'dispatch_0_hi')
 d.expr_label(0x8024, 'dispatch_0_lo-1')
@@ -1839,8 +1837,7 @@ d.label(0x928F, 'bspsx')
 d.label(0x9297, 'bsxl0')
 
 d.label(0x92AA, 'return_bspsx')
-d.comment(0x8018, """Error message offset table (9 entries).
-Each byte is a Y offset into error_msg_table.
+d.subroutine(0x8018, 'error_offsets', title='Error-message offset table (9 entries)', description="""Each byte is a Y offset into error_msg_table.
 Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""")
@@ -2434,17 +2431,20 @@ d.comment(0x8664, 'Advance pointer past return address / to next char', align=Al
 d.comment(0x866A, 'Load next byte from inline string', align=Align.INLINE)
 d.comment(0x866C, 'Bit 7 set? Done — this byte is the next opcode', align=Align.INLINE)
 d.comment(0x8674, 'Jump to address of high-bit byte (resumes code after string)', align=Align.INLINE)
-d.comment(0x8025, """Dispatch table: low bytes of (handler_address - 1)
-Each entry stores the low byte of a handler address minus 1,
+d.subroutine(0x8025, 'dispatch_0_lo', title='Dispatch table: handler-address low bytes (37 entries)', description="""Each entry stores the low byte of a handler address minus 1,
 for use with the PHA/PHA/RTS dispatch trick at &80E7.
 See dispatch_0_hi (&804A) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
-  Y=&00  Service calls 0-12       (indices 0-13)
-  Y=&0E  Language entry reasons    (indices 14-18)
-  Y=&13  FSCV codes 0-7           (indices 19-26)
-  Y=&17  FS reply handlers        (indices 27-32)
-  Y=&21  *NET1-4 sub-commands     (indices 33-36)
+
+| Y base | Caller group           | Indices |
+|--------|------------------------|---------|
+| `&00`  | Service calls 0-12     | 0-13    |
+| `&0E`  | Language entry reasons | 14-18   |
+| `&13`  | FSCV codes 0-7         | 19-26   |
+| `&17`  | FS reply handlers      | 27-32   |
+| `&21`  | *NET1-4 sub-commands   | 33-36   |
+
 
 Lo bytes for the last 6 entries (indices 31-36) occupy
 &8044-&8049, immediately before the hi bytes. Their hi

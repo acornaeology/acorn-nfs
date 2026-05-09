@@ -387,6 +387,8 @@ fs_error_flags                         = &0fdf
 ; &0fdf referenced 2 times by &8411, &8563
 fs_error_buf                           = &0fe0
 ; &0fe0 referenced 1 time by &844e
+lf086                                  = &f086
+; &f086 referenced 1 time by &8096
 station_id_disable_net_nmis            = &fe18
 ; &fe18 referenced 17 times by &810a, &810f, &8312, &966f, &96a5, &96c5, &96c8, &96fc, &982b, &997b, &9c3a, &9c3d, &9d5e, &9d9d, &9e0a, &9ed0, &9fa8
 video_ula_control                      = &fe20
@@ -1334,7 +1336,11 @@ cmd_net_str = title+4
 cmd_roff_str = copyright_string+3
 ; The 'ROFF' suffix at &8014 is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
     equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)...
-; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
+; ***************************************************************************************
+; Error-message offset table (9 entries)
+;
+; Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as
+; the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8018 referenced 1 time by &8500
 .error_offsets
     equb &00                                                          ; 8018: 00          .        ; NUL terminator  "Line Jammed"
@@ -1352,11 +1358,25 @@ cmd_roff_str = copyright_string+3
     equb &40                                                          ; 8023: 40          @        ; Purpose unknown
 ; &8024 referenced 1 time by &80f0
     equb &03                                                          ; 8024: 03          .        ; Purpose unknown
-; Dispatch table: low bytes of (handler_address - 1) Each entry stores the low byte of a handler address minus 1, for use with the PHA/PHA/RTS dispatch trick at &80E7. See dispatch_0_hi (&804A) for the corresponding high bytes.
+; ***************************************************************************************
+; Dispatch table: handler-address low bytes (37 entries)
 ;
-; Five callers share this table via different Y base offsets: Y=&00  Service calls 0-12       (indices 0-13) Y=&0E  Language entry reasons    (indices 14-18) Y=&13  FSCV codes 0-7           (indices 19-26) Y=&17  FS reply handlers        (indices 27-32) Y=&21  *NET1-4 sub-commands     (indices 33-36)
+; Each entry stores the low byte of a handler address minus 1, for use with the
+; PHA/PHA/RTS dispatch trick at &80E7. See dispatch_0_hi (&804A) for the corresponding
+; high bytes.
 ;
-; Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049, immediately before the hi bytes. Their hi bytes are at &8069-&806E, after dispatch_0_hi.
+; Five callers share this table via different Y base offsets:
+;
+; | Y base | Caller group           | Indices |
+; |--------|------------------------|---------|
+; | &00    | Service calls 0-12     | 0-13    |
+; | &0E    | Language entry reasons | 14-18   |
+; | &13    | FSCV codes 0-7         | 19-26   |
+; | &17    | FS reply handlers      | 27-32   |
+; | &21    | *NET1-4 sub-commands   | 33-36   |
+;
+; Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049, immediately before
+; the hi bytes. Their hi bytes are at &8069-&806E, after dispatch_0_hi.
 .dispatch_0_lo
     equb <(return_1-1)                                                ; 8025: f5          .        ; lo - Svc 0: already claimed (no-op)
     equb <(svc_1_abs_workspace-1)                                     ; 8026: b7          .        ; lo - Svc 1: absolute workspace
@@ -1489,12 +1509,14 @@ cmd_roff_str = copyright_string+3
     bcc got_station_num                                               ; 808f: 90 07       ..       ; C=1: dot found, first number was network
     sta fs_server_net                                                 ; 8091: 8d 01 0e    ...      ; Store network number (n.s = network.station)
     iny                                                               ; 8094: c8          .     
-    jsr parse_decimal                                                 ; 8095: 20 20 86      .   
+    equb &20                                                          ; 8095: 20                
+.sub_c8096
 ; &8098 referenced 1 time by &808f
-.got_station_num
-    beq skip_stn_parse                                                ; 8098: f0 03       ..       ; Z=1: no station parsed (empty or non-numeric)
+got_station_num = sub_c8096+2
+    jsr lf086                                                         ; 8096: 20 86 f0     ..      ; Z=1: no station parsed (empty or non-numeric)
+    equb &03                                                          ; 8099: 03          .     
     sta fs_server_stn                                                 ; 809a: 8d 00 0e    ...   
-; &809d referenced 2 times by &808a, &8098
+; &809d referenced 1 time by &808a
 .skip_stn_parse
     jsr infol2                                                        ; 809d: 20 75 8d     u.      ; Copy command text to FS buffer
 ; &80a0 referenced 2 times by &80a8, &80bf
@@ -2830,7 +2852,7 @@ cmd_roff_str = copyright_string+3
 ;     A: parsed value (accumulated in &B2)
 ;     X: preserved
 ;     Y: offset past last digit parsed
-; &8620 referenced 2 times by &808c, &8095
+; &8620 referenced 1 time by &808c
 .parse_decimal
     lda #0                                                            ; 8620: a9 00       ..       ; Zero accumulator
     sta fs_load_addr_2                                                ; 8622: 85 b2       ..       ; Initialise accumulator to zero
@@ -8106,7 +8128,6 @@ save pydis_start, pydis_end
 ;     osfind:                                   2
 ;     osrdch:                                   2
 ;     osword_pb_ptr_hi:                         2
-;     parse_decimal:                            2
 ;     parse_filename_gs:                        2
 ;     poll_tube_ready:                          2
 ;     prepare_cmd_clv:                          2
@@ -8149,7 +8170,6 @@ save pydis_start, pydis_end
 ;     skip_nmi_release:                         2
 ;     skip_space_next:                          2
 ;     skip_spaces:                              2
-;     skip_stn_parse:                           2
 ;     store_handle_return:                      2
 ;     store_output_byte:                        2
 ;     store_rom_ptr_pair:                       2
@@ -8406,6 +8426,7 @@ save pydis_start, pydis_end
 ;     lang_entry_hi:                            1
 ;     lang_entry_lo:                            1
 ;     language_handler:                         1
+;     lf086:                                    1
 ;     loadop:                                   1
 ;     lodchk:                                   1
 ;     lodfil:                                   1
@@ -8456,6 +8477,7 @@ save pydis_start, pydis_end
 ;     osword_handler_lo:                        1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1
+;     parse_decimal:                            1
 ;     parse_decimal_rts:                        1
 ;     parse_filename_gs_y:                      1
 ;     poll_nmi_ready:                           1
@@ -8571,6 +8593,7 @@ save pydis_start, pydis_end
 ;     skip_param_read:                          1
 ;     skip_param_write:                         1
 ;     skip_set_attrib_bit:                      1
+;     skip_stn_parse:                           1
 ;     skip_tube_update:                         1
 ;     sr2_idle_status:                          1
 ;     start_data_tx:                            1
@@ -8686,14 +8709,16 @@ save pydis_start, pydis_end
 ;     l0d60
 ;     l0e11
 ;     l9556
+;     lf086
+;     sub_c8096
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7503 bytes (92%)
-;     Data                     = 689 bytes (8%)
+;     Code                     = 7501 bytes (92%)
+;     Data                     = 691 bytes (8%)
 ;
-;     Number of instructions   = 3617
-;     Number of data bytes     = 394 bytes
+;     Number of instructions   = 3616
+;     Number of data bytes     = 396 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34
