@@ -65,7 +65,11 @@ published at <https://acornaeology.github.io/fantasm/>. Use:
 
 The 4.21 driver script itself
 (`versions/anfs-4.21_variant_1/disassemble/disasm_anfs_421_variant_1.py`)
-uses the py8dis DSL only, not fantasm. To regenerate its outputs run
+uses the [dasmos](https://acornaeology.github.io/dasmos/) driver API
+(`Disassembler.create`, `d.label`, `d.subroutine`, `d.add_move`,
+`d.hook_subroutine`, `d.entry`, `d.rts_code_ptr`, `ir = d.disassemble()`,
+`ir.render('beebasm' | 'json')`). It does not depend on fantasm at
+import time. To regenerate its outputs run
 `uv run fantasm disassemble 4.21_variant_1` (or invoke the driver
 directly with `uv run python <path>`; the driver picks up
 FANTASM_ROM / FANTASM_OUTPUT_DIR from the environment, falling
@@ -122,7 +126,7 @@ matching dict entry.
 
 | Command | What |
 |---|---|
-| `uv run fantasm disassemble <ver>` | Run the py8dis driver to generate `.asm` and `.json` |
+| `uv run fantasm disassemble <ver>` | Run the dasmos driver to generate `.asm` and `.json` |
 | `uv run fantasm verify <ver>` | Reassemble via beebasm, byte-compare against ROM (THE correctness check) |
 | `uv run fantasm lint <ver> <DRIVER_PATH>` | Validate annotation addresses, doc links |
 | `uv run fantasm audit summary <ver>` | Subroutine summary with audit flags |
@@ -275,7 +279,7 @@ them. Summary:
    over from 4.18 may force 4.21 code-bearing bytes to data
    classification. `imm_op_dispatch_lo` at &848B and the
    &8EFE..&903B block are both examples — fix is to remove the
-   `byte()` carryovers and add `entry(addr)` markers so py8dis
+   `byte()` carryovers and add `d.entry(addr)` markers so dasmos
    walks the bytes as code.
 5. **Dual-use bytes**: e.g. `osbyte_a1` at &8E9A — its 5 bytes (`A9 A1
    4C F4 FF`) are both the routine's code AND the leading entries of

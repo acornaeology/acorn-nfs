@@ -85,7 +85,7 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
 
 ## How it works
 
-The disassembly is produced by a Python script that drives a custom version of [py8dis](https://github.com/acornaeology/py8dis), a programmable disassembler for 6502 binaries. The script feeds the original ROM image to py8dis along with annotations — entry points, labels, constants, and comments — to produce readable assembly output.
+The disassembly is produced by a Python script that drives [dasmos](https://acornaeology.github.io/dasmos/), a programmable disassembler for 6502 binaries with a stable 1.0 API and byte-faithful round-trip oracle. The script feeds the original ROM image to dasmos along with annotations — entry points, labels, constants, and comments — to produce readable assembly output.
 
 The output is verified by reassembling with [beebasm](https://github.com/stardot/beebasm) and comparing the result byte-for-byte against the original ROM. This round-trip verification runs automatically in CI on every push.
 
@@ -150,7 +150,8 @@ beebasm -i versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm -o anfs-4
 
 ## Credits
 
-- [py8dis](https://github.com/acornaeology/py8dis) by [SteveF](https://github.com/ZornsLemma), forked for use with acornaeology
+- [dasmos](https://acornaeology.github.io/dasmos/) — programmable 6502 disassembler with a byte-faithful round-trip oracle
+- [py8dis](https://github.com/ZornsLemma/py8dis) by [SteveF](https://github.com/ZornsLemma), the original disassembler whose design inspired dasmos
 - [beebasm](https://github.com/stardot/beebasm) by Rich Mayfield and contributors
 - [The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/) by tobylobster
 

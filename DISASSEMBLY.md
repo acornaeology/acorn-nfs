@@ -20,7 +20,7 @@ The general-purpose disassembly tooling is provided by [fantasm](https://acornae
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `fantasm disassemble` | Run py8dis driver to generate `.asm` and `.json` | `uv run fantasm disassemble 3.34` |
+| `fantasm disassemble` | Run dasmos driver to generate `.asm` and `.json` | `uv run fantasm disassemble 3.34` |
 | `fantasm verify` | Reassemble and byte-compare against original ROM | `uv run fantasm verify 3.34` |
 | `fantasm lint` | Validate annotation addresses in driver script | `uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py` |
 | `fantasm compare` | Compare two ROM versions (byte and opcode level) | `uv run fantasm compare 3.34 3.34B` |
@@ -77,9 +77,9 @@ Use `generate_335d.py` in the project root as a template. The key functions:
 
 **`transform_script(script_text, addr_map)`** — Parses the base driver script and transforms all address-bearing calls:
 
-- `label(0xADDR, ...)`, `subroutine(0xADDR, ...)`, `comment(0xADDR, ...)`, `entry(0xADDR)`, `hook_subroutine(0xADDR, ...)`, `rts_code_ptr(0xADDR, ...)` — address is mapped
-- `move(dest, src, length)` — source address needs manual updating
-- `constant(...)` — NOT mapped (these are symbolic values, not ROM addresses)
+- `d.label(0xADDR, ...)`, `d.subroutine(0xADDR, ...)`, `d.comment(0xADDR, ...)`, `d.entry(0xADDR)`, `d.hook_subroutine(0xADDR, ...)`, `d.rts_code_ptr(0xADDR, ...)` — address is mapped
+- `d.add_move(dest, src, length)` — source address needs manual updating
+- `d.constant(...)` — NOT mapped (these are symbolic values, not ROM addresses)
 - `for addr in [...]` loops — all hex values in the list are mapped
 
 Unmapped addresses get an `# UNMAPPED:` prefix. The `group_logical_statements()` function handles multi-line calls (open parentheses).
@@ -108,19 +108,19 @@ uv run fantasm disassemble <VER>
 uv run fantasm verify <VER>
 ```
 
-#### py8dis AssertionError: "Nothing loaded at address 0xNNNN"
+#### dasmos error: "Nothing loaded at address 0xNNNN"
 
-An `entry()` points to an address at the ROM boundary where the instruction would extend past the end. Comment out the entry and its label.
+A `d.entry()` points to an address at the ROM boundary where the instruction would extend past the end. Comment out the entry and its label.
 
-Example: `entry(0x9FFA)` where the 3-byte instruction at &9FFF would need bytes at &A000+.
+Example: `d.entry(0x9FFA)` where the 3-byte instruction at &9FFF would need bytes at &A000+.
 
 #### beebasm "Duplicate label" errors
 
-py8dis auto-generates `return_1`, `return_2`, etc. for RTS instructions. If the same auto-label appears in both main ROM and relocated code, beebasm reports a duplicate. Fix by adding explicit labels at one of the conflicting addresses:
+dasmos auto-generates names like `return_1`, `return_2`, etc. for RTS instructions (the exact prefix is configurable via `Disassembler.create(..., auto_label_*_prefix=...)`). If the same auto-label appears in both main ROM and relocated code, beebasm reports a duplicate. Fix by adding explicit labels at one of the conflicting addresses:
 
 ```python
-label(0x8555, "return_4")
-label(0x8D5A, "return_5")
+d.label(0x8555, "return_4")
+d.label(0x8D5A, "return_5")
 ```
 
 Check for this pattern by searching the generated `.asm` for the duplicate label.
@@ -163,27 +163,55 @@ Focus on subroutine descriptions that explain:
 4. Side effects
 
 
-## py8dis driver script reference
+## dasmos driver script reference
 
-The driver script configures py8dis using a Python DSL. Each call annotates the disassembly output.
+The driver script configures a `dasmos.Disassembler` instance through method calls. Full reference: <https://acornaeology.github.io/dasmos/driver_api.html>. Local source-of-truth checkout: `/Users/rjs/Code/acornaeology/dasmos/`.
 
-### Core DSL calls
+### Setup
 
-**`label(address, name)`** — Assign a symbolic name to a ROM or RAM address. The name appears in the assembly output wherever that address is referenced.
+```python
+import dasmos
+from dasmos import Align
+from dasmos.hooks import stringhi_hook   # plus stringz_hook, stringcr_hook as needed
 
-**`constant(name, value)`** — Define a named constant for a numeric value. Used for OSBYTE numbers, hardware register addresses, and other magic numbers. The value is symbolic, not a ROM address — do not transform it during address mapping.
+d = dasmos.Disassembler.create(cpu='6502')
+d.load(_rom_filepath, 0x8000)
+d.use_environment('acorn_mos')
+d.use_environment('acorn_model_b_hardware')
+d.use_environment('acorn_sideways_rom')
+```
 
-**`comment(address, text)`** — Attach a comment to a specific instruction address. Appears as a `; comment` in the assembly output. Multiple `comment()` calls at the same address are concatenated.
+CPU plug-ins are Stevedore-managed; for ANFS 4.21 (variant 1) use `cpu='65c02'`. Environments register OS / hardware symbol tables (workspace, vectors, hardware registers) so the driver doesn't need to redeclare them.
 
-**`subroutine(address, title, description)`** — Mark the start of a subroutine with a title and description. The title is a short summary (one line). The description is a longer explanation of behaviour, calling convention, and side effects.
+### Core driver-API calls
 
-**`entry(address)`** — Mark an address as a code entry point. Ensures py8dis disassembles from this address rather than treating it as data.
+**`d.label(address, name)`** — Assign a symbolic name to a ROM or RAM address. Covers both in-ROM labels and runtime-only addresses outside the ROM (replacing py8dis's separate `external_label()`).
 
-**`move(dest, source, length)`** — Declare a relocated code block. The ROM contains code at `source` that is copied to `dest` at runtime. py8dis disassembles it using `dest` addresses.
+**`d.constant(value, name)`** — Define a named constant for a numeric value. Used for OSBYTE numbers, hardware register addresses, and other magic numbers. The value is symbolic, not a ROM address — do not transform it during address mapping.
 
-**`hook_subroutine(address, hook_function)`** — Register a custom Python function that py8dis calls when it encounters this subroutine during disassembly. Used for special handling of dispatch tables, inline data, etc.
+**`d.comment(address, text, align=Align.INLINE)`** — Attach a comment to a specific instruction address. Appears as a `; comment` in the assembly output. Multiple `comment()` calls at the same address are concatenated.
 
-**`rts_code_ptr(lo_address, hi_address, count)`** — Declare a split lo/hi byte address table used for PHA/PHA/RTS dispatch. Addresses in the table are stored minus 1 (the 6502 RTS convention).
+**`d.subroutine(address, name, title=..., description=..., on_entry=..., on_exit=...)`** — Mark the start of a subroutine with a title and description. The title is a short summary (one line). The description is a longer explanation of behaviour, calling convention, and side effects.
+
+**`d.entry(address, name=...)`** — Mark an address as a code entry point. Ensures dasmos disassembles from this address rather than treating it as data.
+
+**`d.add_move(dest, source, length)`** — Declare a relocated code block. The ROM contains code at `source` that is copied to `dest` at runtime. dasmos disassembles it using `dest` addresses. Returns a typed `Move` handle that is also a context manager: `with move: d.label(...)` scopes annotations under it.
+
+**`d.hook_subroutine(address, name, hook_function)`** — Register a custom Python function that dasmos calls when it encounters this subroutine during disassembly. Used for special handling of dispatch tables, inline data, etc. Bundled hooks live in `dasmos.hooks` (`stringhi_hook`, `stringz_hook`, `stringcr_hook`).
+
+**`d.rts_code_ptr(lo_address, hi_address)`** — Declare a paired lo/hi byte address entry used for PHA/PHA/RTS dispatch. Addresses in the table are stored minus 1 (the 6502 RTS convention).
+
+**`d.format_hint(address, FormatHint.X)`** and the sugars `d.char_literal(address)` / `d.inkey_code(address)` — declare an operand byte's semantic intent (CHAR / DECIMAL / HEX / BINARY / OCTAL / INKEY) and let each renderer choose its syntax.
+
+### Rendering
+
+```python
+ir = d.disassemble()
+asm_filepath.write_text(str(ir.render('beebasm')), encoding='utf-8')
+json_filepath.write_text(str(ir.render('json')), encoding='utf-8')
+```
+
+The drivers in this repo pass `byte_column_format='py8dis'` to `ir.render('beebasm', ...)` — that is a renderer-side option that preserves the py8dis-compatible byte-column layout, not a residual py8dis dependency.
 
 ### Calling convention format
 
@@ -224,7 +252,7 @@ A good subroutine description:
 
 ### Comment length
 
-Assembly comments are formatted to fit within 62 characters. This is a py8dis formatting constraint. For longer explanations, use multiple `comment()` calls at the same address (they are concatenated with line breaks) or put the detail in the `subroutine()` description.
+Assembly comments are formatted to fit within 62 characters. This is a renderer-side formatting constraint. For longer explanations, use multiple `d.comment()` calls at the same address (they are concatenated with line breaks) or put the detail in the `d.subroutine()` description.
 
 ### Hex notation
 
@@ -357,11 +385,11 @@ Both link types are validated by the lint tool in CI.
 
 1. **Dispatch tables are data, not code.** The split lo/hi byte tables at &8020/&8044 contain addresses minus 1 (for PHA/PHA/RTS dispatch). Don't let the disassembler trace through them as code.
 
-2. **Relocated code has two address spaces.** The ROM source address and the runtime address are different. py8dis `move()` handles this, but annotations need to reference the runtime address when discussing what the code does.
+2. **Relocated code has two address spaces.** The ROM source address and the runtime address are different. dasmos `d.add_move()` handles this, but annotations need to reference the runtime address when discussing what the code does.
 
 3. **The ROM is exactly 8192 bytes.** Code insertions must be balanced by deletions or compressions elsewhere. Check if the version string length changed, if any trailing data was trimmed, or if routines were compacted.
 
-4. **py8dis auto-labels can collide.** Any `return_N`, `loop_cXXXX`, etc. that appears in both main ROM and relocated code will cause beebasm duplicate label errors. Fix by adding explicit labels.
+4. **Auto-generated labels can collide.** Any `return_N`, `loop_cXXXX`, etc. emitted by dasmos in both main ROM and relocated code will cause beebasm duplicate-label errors. Fix by adding explicit labels.
 
 5. **Context window management.** The full assembly output is 7000-8000 lines. Use `extract` to examine specific sections. Use search tools to find patterns. Work on one subroutine at a time rather than loading the full output.
 

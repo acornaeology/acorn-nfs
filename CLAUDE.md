@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-Annotated disassembly of Acorn NFS and ANFS (Network Filing System / Advanced Network Filing System) ROMs for BBC Micro. Python scripts drive py8dis (a programmable 6502 disassembler) to produce readable, verified assembly output from the original ROM binaries. Versions covered: NFS 3.34, 3.34B, 3.35D, 3.35K, 3.40, 3.60, 3.62, 3.65; ANFS 4.08.53.
+Annotated disassembly of Acorn NFS and ANFS (Network Filing System / Advanced Network Filing System) ROMs for BBC Micro. Python scripts drive [dasmos](https://acornaeology.github.io/dasmos/) (a programmable 6502 disassembler with a stable 1.0 API and byte-faithful round-trip oracle) to produce readable, verified assembly output from the original ROM binaries. Versions covered: NFS 3.34, 3.34B, 3.35D, 3.35K, 3.40, 3.60, 3.62, 3.65; ANFS 4.08.53, 4.18, 4.21 (variant 1).
 
 ## Build commands
 
@@ -12,12 +12,12 @@ Requires [uv](https://docs.astral.sh/uv/) and [beebasm](https://github.com/stard
 
 ```sh
 uv sync                                                                       # Install dependencies (incl. fantasm)
-uv run fantasm disassemble 3.34                                               # Run py8dis driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
+uv run fantasm disassemble 3.34                                               # Run dasmos driver via fantasm (sets FANTASM_ROM / FANTASM_OUTPUT_DIR)
 uv run fantasm lint 3.34 versions/nfs-3.34/disassemble/disasm_nfs_334.py     # Validate annotation addresses
 uv run fantasm verify 3.34                                                    # Reassemble and byte-compare against original ROM
 ```
 
-Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the py8dis output — catching stale addresses carried over from other versions. CI runs `fantasm disassemble`, then `fantasm lint`, then `fantasm verify` on every push.
+Verification is the primary correctness check: the generated assembly must reassemble to a byte-identical copy of the original ROM. Lint validates that all annotation addresses (comments, subroutines, labels) reference valid item addresses in the dasmos JSON output — catching stale addresses carried over from other versions. CI runs `fantasm disassemble`, then `fantasm lint`, then `fantasm verify` on every push.
 
 ## Architecture
 
@@ -29,11 +29,11 @@ The general-purpose 6502 disassembly tooling lives in the [fantasm](https://pypi
 
 ### Disassembly driver
 
-`versions/nfs-3.34/disassemble/disasm_nfs_334.py` — the main annotation file (~3,600 lines). Configures py8dis with labels, constants, subroutine descriptions, comments, and relocated code blocks using py8dis's DSL (`label()`, `constant()`, `comment()`, `subroutine()`, `move()`, `hook_subroutine()`). This is where most development work happens. Run the driver directly with `uv run python <driver-path>` to regenerate `.asm` and `.json` outputs.
+`versions/nfs-3.34/disassemble/disasm_nfs_334.py` — the main annotation file. Constructs a `dasmos.Disassembler` with `Disassembler.create(cpu='6502', ...)` and configures it with environments (`d.use_environment('acorn_mos')`), labels, constants, subroutine descriptions, comments, and relocated code blocks via the dasmos driver API (`d.label()`, `d.constant()`, `d.comment()`, `d.subroutine()`, `d.add_move()`, `d.hook_subroutine()`, `d.entry()`, `d.rts_code_ptr()`, `d.format_hint()`). Disassembly is finalised with `ir = d.disassemble()` and rendered via `ir.render('beebasm')` / `ir.render('json')`. This is where most development work happens. Run the driver directly with `uv run python <driver-path>` to regenerate `.asm` and `.json` outputs. Full driver-API guide: <https://acornaeology.github.io/dasmos/driver_api.html>.
 
 ### Lint
 
-`uv run fantasm lint <VER> <DRIVER_PATH>` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the py8dis JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
+`uv run fantasm lint <VER> <DRIVER_PATH>` — validates that every `comment()`, `subroutine()`, and `label()` address in a driver script corresponds to a valid address in the dasmos JSON output (items, external labels, or subroutines). Catches stale addresses carried over during auto-generation of new version driver scripts. Also validates `address_links` and `glossary_links` in each version's `rom.json`.
 
 ### Verification
 
@@ -47,7 +47,7 @@ The general-purpose 6502 disassembly tooling lives in the [fantasm](https://pypi
 
 Each ROM version lives under `versions/<prefix>-<version>/` where prefix is `nfs` or `anfs` (e.g. `versions/nfs-3.34/`, `versions/anfs-4.08.53/`). Subdirectories:
 - `rom/` — original ROM binary and metadata (`rom.json` with hashes)
-- `disassemble/` — py8dis driver script and correlation tools
+- `disassemble/` — dasmos driver script and correlation tools
 - `output/` — generated assembly (`.asm`) and structured data (`.json`)
 
 Version IDs in `acornaeology.json` and CLI arguments are bare numbers (`3.34`, `4.08.53`). fantasm and the project's own scripts resolve a version ID to its prefixed directory by probing for `anfs-{id}` then `nfs-{id}`.
@@ -77,13 +77,13 @@ Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": 
 
 ### Disassembly guide
 
-`DISASSEMBLY.md` — comprehensive development guide covering the full workflow for producing a new version disassembly, CLI tool reference, py8dis DSL conventions, annotation guidelines, audit methodology, and common gotchas.
+`DISASSEMBLY.md` — comprehensive development guide covering the full workflow for producing a new version disassembly, CLI tool reference, dasmos driver-API conventions, annotation guidelines, audit methodology, and common gotchas.
 
 ## Key technical context
 
 - NFS ROM base address: 0x8000, size: 8192 bytes (standard BBC Micro sideways ROM)
 - ANFS ROM base address: 0x8000, size: 16384 bytes (16KB sideways ROM)
-- The ROM contains relocated code blocks (copied to pages 0x04-0x06 and zero page at runtime), handled via py8dis `move()` calls
-- py8dis dependency is a custom fork at `github.com/acornaeology/py8dis`
-- Assembly output targets beebasm syntax
+- The ROM contains relocated code blocks (copied to pages 0x04-0x06 and zero page at runtime), handled via dasmos `d.add_move(dest, src, length)` calls
+- Disassembler is [dasmos](https://acornaeology.github.io/dasmos/) (PyPI `dasmos>=1.0`); local source-of-truth checkout at `/Users/rjs/Code/acornaeology/dasmos/`
+- Assembly output targets beebasm syntax (renderer keyword: `'beebasm'`)
 - Assembly comments are formatted to fit within 62 characters
