@@ -3721,18 +3721,26 @@ nmi_rti creates the /NMI edge for the frame-complete interrupt
 from TDRA to frame-complete without de-asserting.""")
 
 
-d.subroutine(0x8732, 'nmi_tx_complete', title='TX completion: switch to RX mode', description="""Called via NMI after the frame (including CRC
-and closing flag) has been fully transmitted.
-Writes CR1=&82 (TX_RESET|RIE) to clear RX_RESET
-and enable RX interrupts -- the TX-to-RX pivot in
-the four-way handshake. The scout ACK can only be
-received after this point. Full CR1 sequence through
-a handshake: &44 (scout TX) -> &82 (await scout ACK)
--> &44 (data TX) -> &82 (await data ACK).
-Dispatches on rx_src_net flags: bit6=broadcast
-(tx_result_ok), bit0=handshake data pending
-(handshake_await_ack), both clear=install
-nmi_reply_scout for scout ACK reception.""")
+d.subroutine(0x8732, 'nmi_tx_complete', title='TX completion: switch to RX mode', description="""Called via NMI after the frame (including CRC and closing flag) has been fully transmitted.
+
+Writes `CR1 = &82` (`TX_RESET | RIE`, i.e. `1000_0010`): clears `RX_RESET` (bit 6) to re-enable the receiver, and sets `RIE` so the next incoming frame raises an NMI. This is the **TX→RX pivot** of the four-way handshake – the remote station's scout ACK can only be received after this point. The full `CR1` sequence through a handshake is:
+
+| Step | `CR1` | Phase                |
+|------|-------|----------------------|
+| 1    | &44   | scout TX             |
+| 2    | &82   | await scout ACK ←    |
+| 3    | &44   | data TX              |
+| 4    | &82   | await data ACK       |
+
+(this routine fires at step 2; [`handshake_await_ack`](address:8878) at step 4.)
+
+Dispatches on the `rx_src_net` flags written earlier in the TX path:
+
+| Flag                          | Next handler                                   |
+|-------------------------------|------------------------------------------------|
+| bit 6 set (broadcast)         | [`tx_result_ok`](address:88D0) – skip the ACK  |
+| bit 0 set (handshake pending) | [`handshake_await_ack`](address:8878)          |
+| both clear                    | install [`nmi_reply_scout`](address:874E) for scout-ACK reception |""")
 
 
 d.subroutine(0x874E, 'nmi_reply_scout', title='RX reply scout handler', description="""Handles reception of the reply scout frame after transmission.
