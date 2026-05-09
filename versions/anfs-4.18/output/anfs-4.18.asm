@@ -9256,8 +9256,30 @@ bad_prefix = bad_str_anchor+1
 .done_bcd_convert
     plp                                                               ; a5a2: 28          (        ; Restore flags (clears decimal mode)
     rts                                                               ; a5a3: 60          `        ; Return with BCD result in A
+; ***************************************************************************************
+; OSWORD &10 (Econet transmit) handler
+;
+; Entry point for all Econet transmissions initiated via OSWORD &10, including
+; transmissions forwarded from a Tube co-processor by the L3FS.
+;
+; Fire-and-forget from the caller's perspective: the routine sets up nmi_tx_block and the
+; OSWORD parameter block, then JMPs to tx_begin and the four-way handshake runs entirely
+; under NMI (nmi_tx_data (&8702) → tx_last_data → nmi_tx_complete → nmi_reply_scout).
+; This bypasses send_net_packet and poll_adlc_tx_status, which poll synchronously for
+; completion – there is no retry loop here.
+;
+; Sequence:
+;
+; 1. ASL tx_complete_flag – tests bit 7 (TX-in-progress). On busy, store 0 to PB and
+;    return immediately.
+; 2. Set ws_ptr_lo/nmi_tx_block_hi from net_rx_ptr_hi, point the buffer at &xx6F.
+; 3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via
+;    copy_pb_byte_to_ws.
+; 4. JMP tx_begin.
+;
+; Called from service call 8 in interrupt context, never foreground.
 .osword_10_handler
-    asl tx_complete_flag                                              ; a5a4: 0e 60 0d    .`.      ; Shift ws_0d60 left (status flag)
+    asl tx_complete_flag                                              ; a5a4: 0e 60 0d    .`.      ; Test tx_complete_flag (bit 7 = TX in progress)
     tya                                                               ; a5a7: 98          .        ; A = Y (saved index)
     bcs setup_ws_rx_ptrs                                              ; a5a8: b0 03       ..       ; C=1: transmit active path
     sta (ws_ptr_hi),y                                                 ; a5aa: 91 ac       ..       ; C=0: store Y to parameter block

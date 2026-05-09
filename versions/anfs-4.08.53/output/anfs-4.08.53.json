@@ -287,6 +287,12 @@
       "name": "oscli"
     },
     {
+      "addr": 42379,
+      "name": "osword_10_handler",
+      "title": "OSWORD &10 (Econet transmit) handler",
+      "description": "Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.\n\nFire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:8582) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:86E0) \u2192 `tx_last_data` \u2192 [`nmi_tx_complete`](address:8728) \u2192 [`nmi_reply_scout`](address:8744)). This bypasses [`send_net_packet`](address:982A) and [`poll_adlc_tx_status`](address:98B4), which poll synchronously for completion \u2013 there is no retry loop here.\n\nSequence:\n\n1. `ASL tx_complete_flag` \u2013 tests bit 7 (TX-in-progress). On busy, store 0 to PB and return immediately.\n2. Set `ws_ptr_lo`/`nmi_tx_block_hi` from `net_rx_ptr_hi`, point the buffer at `&xx6F`.\n3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](address:A6FB).\n4. `JMP tx_begin`.\n\nCalled from service call 8 in interrupt context, never foreground."
+    },
+    {
       "addr": 32803,
       "name": "svc5_irq_check",
       "title": "Service 5: unrecognised interrupt (SR dispatch)",
@@ -65353,7 +65359,11 @@
       "labels": [
         "osword_10_handler"
       ],
-      "comment_inline": "Shift ws_0d60 left (status flag)",
+      "comments_before": [
+        "***************************************************************************************",
+        "OSWORD &10 (Econet transmit) handler\n\nEntry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.\n\nFire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:8582) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:86E0) \u2192 `tx_last_data` \u2192 [`nmi_tx_complete`](address:8728) \u2192 [`nmi_reply_scout`](address:8744)). This bypasses [`send_net_packet`](address:982A) and [`poll_adlc_tx_status`](address:98B4), which poll synchronously for completion \u2013 there is no retry loop here.\n\nSequence:\n\n1. `ASL tx_complete_flag` \u2013 tests bit 7 (TX-in-progress). On busy, store 0 to PB and return immediately.\n2. Set `ws_ptr_lo`/`nmi_tx_block_hi` from `net_rx_ptr_hi`, point the buffer at `&xx6F`.\n3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](address:A6FB).\n4. `JMP tx_begin`.\n\nCalled from service call 8 in interrupt context, never foreground."
+      ],
+      "comment_inline": "Test tx_complete_flag (bit 7 = TX in progress)",
       "type": "code",
       "mnemonic": "asl",
       "operand": "tx_complete_flag",

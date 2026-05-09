@@ -1461,7 +1461,18 @@ d.label(0xA59C, 'loop_bcd_add')
 
 d.label(0xA5A2, 'done_bcd_convert')
 
-d.label(0xA5A4, 'osword_10_handler')
+d.subroutine(0xA5A4, 'osword_10_handler', title='OSWORD &10 (Econet transmit) handler', description="""Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.
+
+Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:858C) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:8702?hex) → `tx_last_data` → [`nmi_tx_complete`](address:8732) → [`nmi_reply_scout`](address:874E)). This bypasses [`send_net_packet`](address:983F) and [`poll_adlc_tx_status`](address:98C9), which poll synchronously for completion – there is no retry loop here.
+
+Sequence:
+
+1. `ASL tx_complete_flag` – tests bit 7 (TX-in-progress). On busy, store 0 to PB and return immediately.
+2. Set `ws_ptr_lo`/`nmi_tx_block_hi` from `net_rx_ptr_hi`, point the buffer at `&xx6F`.
+3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](address:A6F8).
+4. `JMP tx_begin`.
+
+Called from service call 8 in interrupt context, never foreground.""")
 
 d.label(0xA5AD, 'setup_ws_rx_ptrs')
 
@@ -10394,7 +10405,7 @@ d.comment(0xA59F, 'Count down binary value', align=Align.INLINE)
 d.comment(0xA5A0, 'Loop until zero', align=Align.INLINE)
 d.comment(0xA5A2, 'Restore flags (clears decimal mode)', align=Align.INLINE)
 d.comment(0xA5A3, 'Return with BCD result in A', align=Align.INLINE)
-d.comment(0xA5A4, 'Shift ws_0d60 left (status flag)', align=Align.INLINE)
+d.comment(0xA5A4, 'Test tx_complete_flag (bit 7 = TX in progress)', align=Align.INLINE)
 d.comment(0xA5A7, 'A = Y (saved index)', align=Align.INLINE)
 d.comment(0xA5A8, 'C=1: transmit active path', align=Align.INLINE)
 d.comment(0xA5AA, 'C=0: store Y to parameter block', align=Align.INLINE)
