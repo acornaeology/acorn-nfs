@@ -1366,11 +1366,11 @@ service_handler_lo = service_entry+1
     equs "NET"                                                        ; 8009: 4e 45 54    NET   
 .copyright
     equb &00                                                          ; 800c: 00          .        ; NUL preceding copyright string
+.copyright_string
+cmd_roff_str = copyright_string+3
 ; The 'ROFF' suffix of "(C)ROFF" at cmd_roff_str is reused by the *ROFF command matcher svc_4_star_command (&81A2) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
 ;
 ; The *NET matcher uses the same trick: cmd_net_str is just the title bytes ("NET"). Both call sites compute their offsets symbolically as cmd_X_str - binary_version, since match_rom_string does cmp binary_version,X.
-.copyright_string
-cmd_roff_str = copyright_string+3
     equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)...
 ; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8014 referenced 1 time by &8503

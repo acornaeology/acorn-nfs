@@ -818,7 +818,7 @@ d.comment(0x06CE, '&FF padding (29 bytes before trampolines)', align=Align.INLIN
 d.label(0x0DEB, 'fs_state_deb')
 d.comment(0x800D, """The 'ROFF' suffix of "(C)ROFF" at [`cmd_roff_str`](address:8010) is reused by the `*ROFF` command matcher [`svc_4_star_command`](address:81A2?hex) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
 
-The `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just the [`title`](address:8009) bytes (`"NET"`). Both call sites compute their offsets symbolically as `cmd_X_str - binary_version`, since `match_rom_string` does `cmp binary_version,X`.""")
+The `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just the [`title`](address:8009) bytes (`"NET"`). Both call sites compute their offsets symbolically as `cmd_X_str - binary_version`, since `match_rom_string` does `cmp binary_version,X`.""", align=Align.AFTER_LABEL)
 
 d.label(0x8001, 'language_handler_lo')
 

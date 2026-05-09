@@ -2635,7 +2635,7 @@
           "cmd_roff_str"
         ]
       },
-      "comments_before": [
+      "comments_after": [
         "The 'ROFF' suffix of \"(C)ROFF\" at [`cmd_roff_str`](address:8010) is reused by the `*ROFF` command matcher [`svc_4_star_command`](address:81A2?hex) \u2014 a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.\n\nThe `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just the [`title`](address:8009) bytes (`\"NET\"`). Both call sites compute their offsets symbolically as `cmd_X_str - binary_version`, since `match_rom_string` does `cmp binary_version,X`."
       ],
       "type": "string",

@@ -2397,7 +2397,7 @@
           "cmd_roff_str"
         ]
       },
-      "comments_before": [
+      "comments_after": [
         "The 'ROFF' suffix at copyright_string+3 is reused by\nthe *ROFF command matcher (svc_4_star_command) \u2014 a\nspace-saving trick that shares ROM bytes between the\ncopyright string and the star command table."
       ],
       "type": "string",

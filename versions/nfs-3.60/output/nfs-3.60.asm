@@ -1387,9 +1387,9 @@ cmd_net_str = title+4
     equs "    NET"                                                    ; 8009: 20 20 20...    ...
 .copyright
     equb &00                                                          ; 8010: 00          .        ; NUL preceding copyright string
-; The 'ROFF' suffix at copyright_string+3 is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
 .copyright_string
 cmd_roff_str = copyright_string+3
+; The 'ROFF' suffix at copyright_string+3 is reused by the *ROFF command matcher (svc_star_command) — a space-saving trick that shares ROM bytes between the copyright string and the star command table.
     equs "(C)ROFF"                                                    ; 8011: 28 43 29... (C)...
 ; Error message offset table (9 entries). Each byte is a Y offset into error_msg_table. Entry 0 (Y=0, "Line Jammed") doubles as the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8018 referenced 1 time by &8515

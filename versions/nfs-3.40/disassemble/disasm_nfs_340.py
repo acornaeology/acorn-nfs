@@ -330,7 +330,7 @@ d.label(0x0DEB, 'fs_state_deb')
 d.comment(0x8011, """The 'ROFF' suffix at &8014 is reused by the *ROFF
 command matcher (svc_star_command) — a space-saving
 trick that shares ROM bytes between the copyright
-string and the star command table.""")
+string and the star command table.""", align=Align.AFTER_LABEL)
 
 d.label(0x8011, 'copyright_string')
 d.label(0x8014, 'cmd_roff_str')
