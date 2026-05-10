@@ -1343,23 +1343,23 @@ d.subroutine(
     "dispatch_0_lo",
     title="Dispatch table: handler-address low bytes (37 entries)",
     description="""Each entry stores the low byte of a handler address minus 1,
-for use with the PHA/PHA/RTS dispatch trick at &80E7.
-See dispatch_0_hi (&804A) for the corresponding high bytes.
+for use with the `PHA`/`PHA`/`RTS` dispatch trick at
+[`dispatch`](address:80E7).
+See [`dispatch_0_hi`](address:804A) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
 
 | Y base | Caller group           | Indices |
 |--------|------------------------|---------|
-| `&00`  | Service calls 0-12     | 0-13    |
-| `&0E`  | Language entry reasons | 14-18   |
-| `&13`  | FSCV codes 0-7         | 19-26   |
-| `&17`  | FS reply handlers      | 27-32   |
-| `&21`  | *NET1-4 sub-commands   | 33-36   |
+| `&00`  | Service calls 0–12     | 0–13    |
+| `&0E`  | Language entry reasons | 14–18   |
+| `&13`  | FSCV codes 0–7         | 19–26   |
+| `&17`  | FS reply handlers      | 27–32   |
+| `&21`  | `*NET1`–`4` sub-commands | 33–36 |
 
-
-Lo bytes for the last 6 entries (indices 31-36) occupy
-&8044-&8049, immediately before the hi bytes. Their hi
-bytes are at &8069-&806E, after dispatch_0_hi.""",
+Lo bytes for the last 6 entries (indices 31–36) occupy
+`&8044`–`&8049`, immediately before the hi bytes. Their hi bytes are
+at `&8069`–`&806E`, after [`dispatch_0_hi`](address:804A).""",
 )
 for i, body in enumerate(dispatch_comments):
     d.comment(0x8025 + i, f"lo - {body}", align=Align.INLINE)
@@ -1371,36 +1371,31 @@ d.expr_label(0x8049, "dispatch_0_hi-1")
 d.label(0x804A, "dispatch_0_hi")
 d.comment(
     0x804A,
-    """Dispatch table: high bytes of (handler_address - 1)
-Paired with dispatch_0_lo (&8025). Together they form a table
-of 37 handler addresses, used via the PHA/PHA/RTS trick at
-&80E7.""",
+    """Dispatch table: high bytes of `(handler_address − 1)`.
+Paired with [`dispatch_0_lo`](address:8025). Together they form a table
+of 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at
+[`dispatch`](address:80E7).""",
 )
 d.subroutine(
     0x806F,
     "dispatch_net_cmd",
     title="*NET command dispatcher",
-    description="""Parses the character after *NET as '1'-'4', maps to table
-indices 33-36 via base offset Y=&21, and dispatches via &80E7.
-Characters outside '1'-'4' fall through to return_1 (RTS).
+    description="""Parses the character after `*NET` as `'1'`–`'4'`, maps to dispatch
+indices 33–36 via base offset `Y=&21`, and dispatches via
+[`dispatch`](address:80E7). Characters outside `'1'`–`'4'` fall through
+to `return_1` (`RTS`).
 
-These are internal sub-commands used only by the ROM itself,
-not user-accessible star commands. The MOS command parser
-requires a space or terminator after 'NET', so *NET1 typed
-at the command line does not match; these are reached only
-via OSCLI calls within the ROM.
+These are internal sub-commands used only by the ROM itself, not
+user-accessible star commands. The MOS command parser requires a space
+or terminator after `'NET'`, so `*NET1` typed at the command line does
+not match; these are reached only via `OSCLI` calls within the ROM.
 
-*NET1 (&8E59): read file handle from received
-packet (net_1_read_handle)
-
-*NET2 (&8E5F): read handle entry from workspace
-(net_2_read_handle_entry)
-
-*NET3 (&8E6F): close handle / mark as unused
-(net_3_close_handle)
-
-*NET4 (&81B8): resume after remote operation
-(net_4_resume_remote)""",
+| Sub-cmd | Handler | Role |
+|---------|---------|------|
+| `*NET1` | [`net_1_read_handle`](address:8E59) | read file handle from received packet |
+| `*NET2` | [`net_2_read_handle_entry`](address:8E5F) | read handle entry from workspace |
+| `*NET3` | [`net_3_close_handle`](address:8E6F) | close handle / mark as unused |
+| `*NET4` | [`net_4_resume_remote`](address:81B8) | resume after remote operation |""",
 )
 d.comment(0x806F, "Read command character following *NET", align=Align.INLINE)
 d.comment(0x8071, "Subtract ASCII '1' to get 0-based command index", align=Align.INLINE)
@@ -1422,15 +1417,20 @@ d.subroutine(
     "i_am_handler",
     title='"I AM" command handler',
     description="""Dispatched from the command match table when the user types
-"*I AM <station>" or "*I AM <network>.<station>". Also used as
-the station number parser for "*NET <network>.<station>".
-Skips leading spaces, then calls parse_decimal for the first
-number. If a dot separator was found (carry set), it stores the
-result directly as the network (&0E01) and calls parse_decimal
-again for the station (&0E00). With a single number, it is stored
-as the station and the network defaults to 0 (local). If a colon
-follows, reads interactive input via OSRDCH and appends it to
-the command buffer. Finally jumps to forward_star_cmd.""",
+`*I AM <station>` or `*I AM <network>.<station>`. Also used as the
+station-number parser for `*NET <network>.<station>`.
+
+Skips leading spaces, then calls `parse_decimal` for the first number:
+
+- **Dot separator found** (carry set): store the result as the network
+  ([`fs_server_net`](address:0E01)) and call `parse_decimal` again for
+  the station ([`fs_server_stn`](address:0E00)).
+- **Single number**: store as the station; network defaults to 0
+  (local).
+- **Colon follows**: read interactive input via `OSRDCH` and append it
+  to the command buffer.
+
+Finally jumps to [`forward_star_cmd`](address:80C1).""",
 )
 
 
@@ -1470,15 +1470,16 @@ d.subroutine(
     0x80C1,
     "forward_star_cmd",
     title="Forward unrecognised * command to fileserver (COMERR)",
-    description="""Copies command text from (fs_crc_lo) to &0F05+ via copy_filename,
-prepares an FS command with function code 0, and sends it to the
-fileserver to request decoding. The server returns a command code
-indicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,
-5=load-as-command). This mechanism allows the fileserver to extend
-the client's command set without ROM updates. Called from the "I."
-and catch-all entries in the command match table at &8C05, and
-from FSCV 2/3/4 indirectly. If CSD handle is zero (not logged
-in), returns without sending.""",
+    description="""Copies command text from `(fs_crc_lo)` to
+[`fs_cmd_data`](address:0F05)`+` via `copy_filename`, prepares an FS
+command with function code 0, and sends it to the fileserver to
+request decoding. The server returns a command code indicating what
+action to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).
+This mechanism allows the fileserver to extend the client's command
+set without ROM updates. Called from the `I.` and catch-all entries
+in the [`fs_cmd_match_table`](address:8C05), and from FSCV 2 / 3 / 4
+indirectly. If the CSD handle is zero (not logged in), returns without
+sending.""",
 )
 
 
@@ -1490,11 +1491,23 @@ d.subroutine(
     "fscv_handler",
     title="FSCV dispatch entry",
     description="""Entered via the extended vector table when the MOS calls FSCV.
-Stores A/X/Y via save_fscv_args, compares A (function code) against 8,
-and dispatches codes 0-7 via the shared dispatch table at &8024
-with base offset Y=&13 (table indices 20-27).
-Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
-4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.""",
+Stores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)
+against 8, and dispatches codes 0–7 via the shared
+[`dispatch_0_lo`](address:8025) table with base offset `Y=&13` (table
+indices 20–27).
+
+Function codes:
+
+| Code | Action |
+|------|--------|
+| 0    | `*OPT`                |
+| 1    | EOF                   |
+| 2    | `*/` (run)            |
+| 3    | unrecognised `*`      |
+| 4    | `*RUN`                |
+| 5    | `*CAT`                |
+| 6    | shutdown              |
+| 7    | read handles          |""",
     on_entry={"a": "function code (0-7)", "x": "depends on function", "y": "depends on function"},
     on_exit={
         "a": "depends on handler (preserved if A >= 8)",
@@ -1514,10 +1527,11 @@ d.subroutine(
     0x80E1,
     "lang_entry_dispatch",
     title="Language entry dispatcher",
-    description="""Called when the NFS ROM is entered as a language. Although rom_type
-(&82) does not set the language bit, the MOS enters this point
-after NFS claims service &FE (Tube post-init). X = reason code
-(0-4). Dispatches via table indices 15-19 (base offset Y=&0E).""",
+    description="""Called when the NFS ROM is entered as a language. Although
+`rom_type` (`&82`) does not set the language bit, the MOS enters this
+point after NFS claims service `&FE` (Tube post-init). `X` = reason
+code (0–4). Dispatches via [`dispatch_0_lo`](address:8025) at indices
+15–19 (base offset `Y=&0E`).""",
 )
 d.comment(0x80E1, "X >= 5: invalid reason code, return", align=Align.INLINE)
 
@@ -1530,16 +1544,20 @@ d.subroutine(
     0x80E7,
     "dispatch",
     title="PHA/PHA/RTS computed dispatch",
-    description="""X = command index within caller's group (e.g. service number)
-Y = base offset into dispatch table (0, &0E, &13, &21, etc.)
-The loop adds Y+1 to X, so final X = command index + base + 1.
-Then high and low bytes of (handler-1) are pushed onto the stack,
-and RTS pops them and jumps to handler_address.
+    description="""On entry:
 
-This is a standard 6502 trick: RTS increments the popped address
-by 1 before jumping, so the table stores (address - 1) to
-compensate. Multiple callers share one table via different Y
-base offsets.""",
+- `X` = command index within the caller's group (e.g. service number).
+- `Y` = base offset into the dispatch table (`0`, `&0E`, `&13`, `&21`, …).
+
+The loop adds `Y+1` to `X`, so the final `X = command index + base + 1`.
+The high and low bytes of `(handler − 1)` are then pushed onto the
+stack, and `RTS` pops them and jumps to the handler.
+
+This is a standard 6502 trick: `RTS` increments the popped address by
+1 before jumping, so the table stores `(address − 1)` to compensate.
+Multiple callers share one table via different `Y` base offsets — see
+[`dispatch_0_lo`](address:8025) for the low-byte table and the caller
+groups.""",
 )
 d.comment(0x80E7, "Add base offset Y to index X (loop: X += Y+1)", align=Align.INLINE)
 d.comment(0x80E8, "Decrement base offset counter", align=Align.INLINE)

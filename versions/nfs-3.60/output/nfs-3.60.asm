@@ -1475,21 +1475,21 @@ cmd_roff_str = copyright_string+3
 ; Dispatch table: handler-address low bytes (37 entries)
 ;
 ; Each entry stores the low byte of a handler address minus 1, for use with the
-; PHA/PHA/RTS dispatch trick at &80E7. See dispatch_0_hi (&804A) for the corresponding
-; high bytes.
+; PHA/PHA/RTS dispatch trick at dispatch. See dispatch_0_hi for the corresponding high
+; bytes.
 ;
 ; Five callers share this table via different Y base offsets:
 ;
 ; | Y base | Caller group           | Indices |
 ; |--------|------------------------|---------|
-; | &00    | Service calls 0-12     | 0-13    |
-; | &0E    | Language entry reasons | 14-18   |
-; | &13    | FSCV codes 0-7         | 19-26   |
-; | &17    | FS reply handlers      | 27-32   |
-; | &21    | *NET1-4 sub-commands   | 33-36   |
+; | &00    | Service calls 0–12     | 0–13    |
+; | &0E    | Language entry reasons | 14–18   |
+; | &13    | FSCV codes 0–7         | 19–26   |
+; | &17    | FS reply handlers      | 27–32   |
+; | &21    | *NET1–4 sub-commands   | 33–36   |
 ;
-; Lo bytes for the last 6 entries (indices 31-36) occupy &8044-&8049, immediately before
-; the hi bytes. Their hi bytes are at &8069-&806E, after dispatch_0_hi.
+; Lo bytes for the last 6 entries (indices 31–36) occupy &8044–&8049, immediately before
+; the hi bytes. Their hi bytes are at &8069–&806E, after dispatch_0_hi.
 .dispatch_0_lo
     equb <(return_1-1)                                                ; 8025: f5          .        ; lo - Svc 0: already claimed (no-op)
     equb <(svc_1_abs_workspace-1)                                     ; 8026: bb          .        ; lo - Svc 1: absolute workspace
@@ -1529,7 +1529,7 @@ cmd_roff_str = copyright_string+3
     equb <(net_3_close_handle-1)                                      ; 8048: 7c          |        ; lo - *NET3: close handle
 ; &8049 referenced 1 time by &80ec
     equb <(net_4_resume_remote-1)                                     ; 8049: bb          .        ; lo - *NET4: resume remote
-; Dispatch table: high bytes of (handler_address - 1) Paired with dispatch_0_lo (&8025). Together they form a table of 37 handler addresses, used via the PHA/PHA/RTS trick at &80E7.
+; Dispatch table: high bytes of (handler_address − 1). Paired with dispatch_0_lo. Together they form a table of 37 handler addresses, used via the PHA/PHA/RTS trick at dispatch.
 .dispatch_0_hi
     equb >(return_1-1)                                                ; 804a: 80          .        ; hi - Svc 0: already claimed (no-op)
     equb >(svc_1_abs_workspace-1)                                     ; 804b: 82          .        ; hi - Svc 1: absolute workspace
@@ -1571,22 +1571,21 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; *NET command dispatcher
 ;
-; Parses the character after *NET as '1'-'4', maps to table indices 33-36 via base offset
-; Y=&21, and dispatches via &80E7. Characters outside '1'-'4' fall through to return_1
-; (RTS).
+; Parses the character after *NET as '1'–'4', maps to dispatch indices 33–36 via base
+; offset Y=&21, and dispatches via dispatch. Characters outside '1'–'4' fall through to
+; return_1 (RTS).
 ;
 ; These are internal sub-commands used only by the ROM itself, not user-accessible star
 ; commands. The MOS command parser requires a space or terminator after 'NET', so *NET1
 ; typed at the command line does not match; these are reached only via OSCLI calls within
 ; the ROM.
 ;
-; *NET1 (&8E67): read file handle from received packet (net_1_read_handle)
-;
-; *NET2 (&8E6D): read handle entry from workspace (net_2_read_handle_entry)
-;
-; *NET3 (&8E7D): close handle / mark as unused (net_3_close_handle)
-;
-; *NET4 (&81BC): resume after remote operation (net_4_resume_remote)
+; | Sub-cmd | Handler                 | Role                                  |
+; |---------|-------------------------|---------------------------------------|
+; | *NET1   | net_1_read_handle       | read file handle from received packet |
+; | *NET2   | net_2_read_handle_entry | read handle entry from workspace      |
+; | *NET3   | net_3_close_handle      | close handle / mark as unused         |
+; | *NET4   | net_4_resume_remote     | resume after remote operation         |
 .dispatch_net_cmd
     lda osbyte_a_copy                                                 ; 806f: a5 ef       ..       ; Read command character following *NET
     sbc #&31 ; '1'                                                    ; 8071: e9 31       .1       ; Subtract ASCII '1' to get 0-based command index
@@ -1604,13 +1603,17 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; "I AM" command handler
 ;
-; Dispatched from the command match table when the user types "*I AM <station>" or "*I AM
-; <network>.<station>". Also used as the station number parser for "*NET
-; <network>.<station>". Skips leading spaces, then calls parse_decimal for the first
-; number. If a dot separator was found (carry set), it stores the result directly as the
-; network (&0E01) and calls parse_decimal again for the station (&0E00). With a single
-; number, it is stored as the station and the network defaults to 0 (local). If a colon
-; follows, reads interactive input via OSRDCH and appends it to the command buffer.
+; Dispatched from the command match table when the user types *I AM <station> or *I AM
+; <network>.<station>. Also used as the station-number parser for *NET
+; <network>.<station>.
+;
+; Skips leading spaces, then calls parse_decimal for the first number:
+;
+; - Dot separator found (carry set): store the result as the network (fs_server_net) and
+;   call parse_decimal again for the station (fs_server_stn).
+; - Single number: store as the station; network defaults to 0 (local).
+; - Colon follows: read interactive input via OSRDCH and append it to the command buffer.
+;
 ; Finally jumps to forward_star_cmd.
 .i_am_handler
     lda (fs_options),y                                                ; 8082: b1 bb       ..       ; Load next char from command line
@@ -1652,12 +1655,12 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Forward unrecognised * command to fileserver (COMERR)
 ;
-; Copies command text from (fs_crc_lo) to &0F05+ via copy_filename, prepares an FS
+; Copies command text from (fs_crc_lo) to fs_cmd_data+ via copy_filename, prepares an FS
 ; command with function code 0, and sends it to the fileserver to request decoding. The
-; server returns a command code indicating what action to take (e.g. code 4=INFO, 7=DIR,
-; 9=LIB, 5=load-as-command). This mechanism allows the fileserver to extend the client's
-; command set without ROM updates. Called from the "I." and catch-all entries in the
-; command match table at &8C4B, and from FSCV 2/3/4 indirectly. If CSD handle is zero
+; server returns a command code indicating what action to take (e.g. 4 = INFO, 7 = DIR, 9
+; = LIB, 5 = load-as-command). This mechanism allows the fileserver to extend the
+; client's command set without ROM updates. Called from the I. and catch-all entries in
+; the fs_cmd_match_table, and from FSCV 2 / 3 / 4 indirectly. If the CSD handle is zero
 ; (not logged in), returns without sending.
 .forward_star_cmd
     jsr infol2                                                        ; 80c1: 20 82 8d     ..      ; Copy command text to FS buffer
@@ -1674,9 +1677,21 @@ cmd_roff_str = copyright_string+3
 ; FSCV dispatch entry
 ;
 ; Entered via the extended vector table when the MOS calls FSCV. Stores A/X/Y via
-; save_fscv_args, compares A (function code) against 8, and dispatches codes 0-7 via the
-; shared dispatch table at &8024 with base offset Y=&13 (table indices 20-27). Function
-; codes: 0=OPT, 1=EOF, 2=/, 3=unrecognised *, 4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.
+; save_fscv_args, compares A (function code) against 8, and dispatches codes 0–7 via the
+; shared dispatch_0_lo table with base offset Y=&13 (table indices 20–27).
+;
+; Function codes:
+;
+; | Code | Action         |
+; |------|----------------|
+; | 0    | *OPT           |
+; | 1    | EOF            |
+; | 2    | */ (run)       |
+; | 3    | unrecognised * |
+; | 4    | *RUN           |
+; | 5    | *CAT           |
+; | 6    | shutdown       |
+; | 7    | read handles   |
 ;
 ; On Entry:
 ;     A: function code (0-7)
@@ -1700,8 +1715,8 @@ cmd_roff_str = copyright_string+3
 ;
 ; Called when the NFS ROM is entered as a language. Although rom_type (&82) does not set
 ; the language bit, the MOS enters this point after NFS claims service &FE (Tube
-; post-init). X = reason code (0-4). Dispatches via table indices 15-19 (base offset
-; Y=&0E).
+; post-init). X = reason code (0–4). Dispatches via dispatch_0_lo at indices 15–19 (base
+; offset Y=&0E).
 ; &80e1 referenced 1 time by &8000
 .language_handler
 .lang_entry_dispatch
@@ -1713,14 +1728,19 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; PHA/PHA/RTS computed dispatch
 ;
-; X = command index within caller's group (e.g. service number) Y = base offset into
-; dispatch table (0, &0E, &13, &21, etc.) The loop adds Y+1 to X, so final X = command
-; index + base + 1. Then high and low bytes of (handler-1) are pushed onto the stack, and
-; RTS pops them and jumps to handler_address.
+; On entry:
+;
+; - X = command index within the caller's group (e.g. service number).
+; - Y = base offset into the dispatch table (0, &0E, &13, &21, …).
+;
+; The loop adds Y+1 to X, so the final X = command index + base + 1. The high and low
+; bytes of (handler − 1) are then pushed onto the stack, and RTS pops them and jumps to
+; the handler.
 ;
 ; This is a standard 6502 trick: RTS increments the popped address by 1 before jumping,
-; so the table stores (address - 1) to compensate. Multiple callers share one table via
-; different Y base offsets.
+; so the table stores (address − 1) to compensate. Multiple callers share one table via
+; different Y base offsets — see dispatch_0_lo for the low-byte table and the caller
+; groups.
 ; &80e7 referenced 5 times by &807f, &80d2, &80df, &80e9, &81a1
 .dispatch
     inx                                                               ; 80e7: e8          .        ; Add base offset Y to index X (loop: X += Y+1)

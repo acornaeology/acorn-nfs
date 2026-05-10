@@ -1185,18 +1185,19 @@ d.subroutine(
     "dispatch_0_lo",
     title="Dispatch table: handler-address low bytes (37 entries)",
     description="""Each entry stores the low byte of a handler address minus 1,
-for use with the PHA/PHA/RTS dispatch trick at &809F.
-See dispatch_0_hi (&8045) for the corresponding high bytes.
+for use with the `PHA`/`PHA`/`RTS` dispatch trick at
+[`dispatch`](address:809F).
+See [`dispatch_0_hi`](address:8045) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
 
 | Y base | Caller group           | Indices |
 |--------|------------------------|---------|
-| `&00`  | Service calls 0-12     | 1-13    |
-| `&0D`  | Language entry reasons | 14-18   |
-| `&12`  | FSCV codes 0-7         | 19-26   |
-| `&16`  | FS reply handlers      | 27-32   |
-| `&20`  | *NET1-4 sub-commands   | 33-36   |
+| `&00`  | Service calls 0–12     | 1–13    |
+| `&0D`  | Language entry reasons | 14–18   |
+| `&12`  | FSCV codes 0–7         | 19–26   |
+| `&16`  | FS reply handlers      | 27–32   |
+| `&20`  | `*NET1`–`4` sub-commands | 33–36 |
 """,
 )
 for i, body in enumerate(dispatch_comments):
@@ -1209,36 +1210,31 @@ d.expr_label(0x8044, "dispatch_0_hi-1")
 d.label(0x8045, "dispatch_0_hi")
 d.comment(
     0x8045,
-    """Dispatch table: high bytes of (handler_address - 1)
-Paired with dispatch_0_lo (&8021). Together they form a table
-of 37 handler addresses, used via the PHA/PHA/RTS trick at
-&809F.""",
+    """Dispatch table: high bytes of `(handler_address − 1)`.
+Paired with [`dispatch_0_lo`](address:8021). Together they form a table
+of 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at
+[`dispatch`](address:809F).""",
 )
 d.subroutine(
     0x8069,
     "dispatch_net_cmd",
     title="*NET command dispatcher",
-    description="""Parses the character after *NET as '1'-'4', maps to table
-indices 33-36 via base offset Y=&20, and dispatches via &809F.
-Characters outside '1'-'4' fall through to return_1 (RTS).
+    description="""Parses the character after `*NET` as `'1'`–`'4'`, maps to dispatch
+indices 33–36 via base offset `Y=&20`, and dispatches via
+[`dispatch`](address:809F). Characters outside `'1'`–`'4'` fall through
+to `return_1` (`RTS`).
 
-These are internal sub-commands used only by the ROM itself,
-not user-accessible star commands. The MOS command parser
-requires a space or terminator after 'NET', so *NET1 typed
-at the command line does not match; these are reached only
-via OSCLI calls within the ROM.
+These are internal sub-commands used only by the ROM itself, not
+user-accessible star commands. The MOS command parser requires a space
+or terminator after `'NET'`, so `*NET1` typed at the command line does
+not match; these are reached only via `OSCLI` calls within the ROM.
 
-*NET1 (&8DB0): read file handle from received
-packet (net_1_read_handle)
-
-*NET2 (&8DCA): read handle entry from workspace
-(net_2_read_handle_entry)
-
-*NET3 (&8DE0): close handle / mark as unused
-(net_3_close_handle)
-
-*NET4 (&8DF3): resume after remote operation
-(net_4_resume_remote)""",
+| Sub-cmd | Handler | Role |
+|---------|---------|------|
+| `*NET1` | [`net_1_read_handle`](address:8DB0) | read file handle from received packet |
+| `*NET2` | [`net_2_read_handle_entry`](address:8DCA) | read handle entry from workspace |
+| `*NET3` | [`net_3_close_handle`](address:8DE0) | close handle / mark as unused |
+| `*NET4` | [`net_4_resume_remote`](address:8DF3) | resume after remote operation |""",
 )
 d.comment(0x8069, "Read command character following *NET", align=Align.INLINE)
 d.comment(0x806B, "Subtract ASCII '1' to get 0-based command index", align=Align.INLINE)
@@ -1255,15 +1251,16 @@ d.subroutine(
     0x8079,
     "forward_star_cmd",
     title="Forward unrecognised * command to fileserver (COMERR)",
-    description="""Copies command text from (fs_crc_lo) to &0F05+ via copy_filename,
-prepares an FS command with function code 0, and sends it to the
-fileserver to request decoding. The server returns a command code
-indicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,
-5=load-as-command). This mechanism allows the fileserver to extend
-the client's command set without ROM updates. Called from the "I."
-and catch-all entries in the command match table at &8BD7, and
-from FSCV 2/3/4 indirectly. If CSD handle is zero (not logged
-in), returns without sending.""",
+    description="""Copies command text from `(fs_crc_lo)` to
+[`fs_cmd_data`](address:0F05)`+` via `copy_filename`, prepares an FS
+command with function code 0, and sends it to the fileserver to
+request decoding. The server returns a command code indicating what
+action to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).
+This mechanism allows the fileserver to extend the client's command
+set without ROM updates. Called from the `I.` and catch-all entries
+in the [`fs_cmd_match_table`](address:8BD7), and from FSCV 2 / 3 / 4
+indirectly. If the CSD handle is zero (not logged in), returns without
+sending.""",
 )
 
 
@@ -1275,11 +1272,23 @@ d.subroutine(
     "fscv_handler",
     title="FSCV dispatch entry",
     description="""Entered via the extended vector table when the MOS calls FSCV.
-Stores A/X/Y via save_fscv_args, compares A (function code) against 8,
-and dispatches codes 0-7 via the shared dispatch table at &8020
-with base offset Y=&12 (table indices 19-26).
-Function codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,
-4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.""",
+Stores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)
+against 8, and dispatches codes 0–7 via the shared
+[`dispatch_0_lo`](address:8021) table with base offset `Y=&12` (table
+indices 19–26).
+
+Function codes:
+
+| Code | Action |
+|------|--------|
+| 0    | `*OPT`                |
+| 1    | EOF                   |
+| 2    | `*/` (run)            |
+| 3    | unrecognised `*`      |
+| 4    | `*RUN`                |
+| 5    | `*CAT`                |
+| 6    | shutdown              |
+| 7    | read handles          |""",
     on_entry={"a": "function code (0-7)", "x": "depends on function", "y": "depends on function"},
     on_exit={
         "a": "depends on handler (preserved if A >= 8)",

@@ -321,27 +321,27 @@
       "addr": 32801,
       "name": "dispatch_0_lo",
       "title": "Dispatch table: handler-address low bytes (37 entries)",
-      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &809F.\nSee dispatch_0_hi (&8045) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0-12     | 1-13    |\n| `&0D`  | Language entry reasons | 14-18   |\n| `&12`  | FSCV codes 0-7         | 19-26   |\n| `&16`  | FS reply handlers      | 27-32   |\n| `&20`  | *NET1-4 sub-commands   | 33-36   |\n"
+      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the `PHA`/`PHA`/`RTS` dispatch trick at\n[`dispatch`](address:809F).\nSee [`dispatch_0_hi`](address:8045) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0\u201312     | 1\u201313    |\n| `&0D`  | Language entry reasons | 14\u201318   |\n| `&12`  | FSCV codes 0\u20137         | 19\u201326   |\n| `&16`  | FS reply handlers      | 27\u201332   |\n| `&20`  | `*NET1`\u2013`4` sub-commands | 33\u201336 |\n"
     },
     {
       "addr": 32873,
       "name": "dispatch_net_cmd",
       "title": "*NET command dispatcher",
-      "description": "Parses the character after *NET as '1'-'4', maps to table\nindices 33-36 via base offset Y=&20, and dispatches via &809F.\nCharacters outside '1'-'4' fall through to return_1 (RTS).\n\nThese are internal sub-commands used only by the ROM itself,\nnot user-accessible star commands. The MOS command parser\nrequires a space or terminator after 'NET', so *NET1 typed\nat the command line does not match; these are reached only\nvia OSCLI calls within the ROM.\n\n*NET1 (&8DAF): read file handle from received\npacket (net_1_read_handle)\n\n*NET2 (&8DC9): read handle entry from workspace\n(net_2_read_handle_entry)\n\n*NET3 (&8DDF): close handle / mark as unused\n(net_3_close_handle)\n\n*NET4 (&8DF2): resume after remote operation\n(net_4_resume_remote)",
+      "description": "Parses the character after `*NET` as `'1'`\u2013`'4'`, maps to dispatch\nindices 33\u201336 via base offset `Y=&20`, and dispatches via\n[`dispatch`](address:809F). Characters outside `'1'`\u2013`'4'` fall through\nto `return_1` (`RTS`).\n\nThese are internal sub-commands used only by the ROM itself, not\nuser-accessible star commands. The MOS command parser requires a space\nor terminator after `'NET'`, so `*NET1` typed at the command line does\nnot match; these are reached only via `OSCLI` calls within the ROM.\n\n| Sub-cmd | Handler | Role |\n|---------|---------|------|\n| `*NET1` | [`net_1_read_handle`](address:8DAF) | read file handle from received packet |\n| `*NET2` | [`net_2_read_handle_entry`](address:8DC9) | read handle entry from workspace |\n| `*NET3` | [`net_3_close_handle`](address:8DDF) | close handle / mark as unused |\n| `*NET4` | [`net_4_resume_remote`](address:8DF2) | resume after remote operation |",
       "fall_through": true
     },
     {
       "addr": 32889,
       "name": "forward_star_cmd",
       "title": "Forward unrecognised * command to fileserver (COMERR)",
-      "description": "Copies command text from (fs_crc_lo) to &0F05+ via copy_filename,\nprepares an FS command with function code 0, and sends it to the\nfileserver to request decoding. The server returns a command code\nindicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,\n5=load-as-command). This mechanism allows the fileserver to extend\nthe client's command set without ROM updates. Called from the \"I.\"\nand catch-all entries in the command match table at &8BD6, and\nfrom FSCV 2/3/4 indirectly. If CSD handle is zero (not logged\nin), returns without sending.",
+      "description": "Copies command text from `(fs_crc_lo)` to\n[`fs_cmd_data`](address:0F05)`+` via `copy_filename`, prepares an FS\ncommand with function code 0, and sends it to the fileserver to\nrequest decoding. The server returns a command code indicating what\naction to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).\nThis mechanism allows the fileserver to extend the client's command\nset without ROM updates. Called from the `I.` and catch-all entries\nin the [`fs_cmd_match_table`](address:8BD6), and from FSCV 2 / 3 / 4\nindirectly. If the CSD handle is zero (not logged in), returns without\nsending.",
       "fall_through": true
     },
     {
       "addr": 32908,
       "name": "fscv_handler",
       "title": "FSCV dispatch entry",
-      "description": "Entered via the extended vector table when the MOS calls FSCV.\nStores A/X/Y via save_fscv_args, compares A (function code) against 8,\nand dispatches codes 0-7 via the shared dispatch table at &8020\nwith base offset Y=&12 (table indices 19-26).\nFunction codes: 0=*OPT, 1=EOF, 2=*/, 3=unrecognised *,\n4=*RUN, 5=*CAT, 6=shutdown, 7=read handles.",
+      "description": "Entered via the extended vector table when the MOS calls FSCV.\nStores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)\nagainst 8, and dispatches codes 0\u20137 via the shared\n[`dispatch_0_lo`](address:8021) table with base offset `Y=&12` (table\nindices 19\u201326).\n\nFunction codes:\n\n| Code | Action |\n|------|--------|\n| 0    | `*OPT`                |\n| 1    | EOF                   |\n| 2    | `*/` (run)            |\n| 3    | unrecognised `*`      |\n| 4    | `*RUN`                |\n| 5    | `*CAT`                |\n| 6    | shutdown              |\n| 7    | read handles          |",
       "on_entry": {
         "a": "function code (0-7)",
         "x": "depends on function",
@@ -3109,7 +3109,7 @@
         "dispatch_0_hi"
       ],
       "comments_before_label": [
-        "Dispatch table: high bytes of (handler_address - 1)\nPaired with dispatch_0_lo (&8021). Together they form a table\nof 37 handler addresses, used via the PHA/PHA/RTS trick at\n&809F."
+        "Dispatch table: high bytes of `(handler_address \u2212 1)`.\nPaired with [`dispatch_0_lo`](address:8021). Together they form a table\nof 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at\n[`dispatch`](address:809F)."
       ],
       "comment_inline": "hi - Svc 0: already claimed (no-op)",
       "type": "byte",
