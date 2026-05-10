@@ -467,14 +467,16 @@ oscli                                  = &fff7
 ;
 ; Sends error information to the Tube co-processor via R2 and R4:
 ;
-; 1. Sends &FF to R4 (WRIFOR) to signal error
-; 2. Reads R2 data (flush any pending byte)
-; 3. Sends &00 via R2, then error number from (&FD),0
-; 4. Loops sending error string bytes via R2 until zero terminator
-; 5. Falls through to tube_reset_stack → tube_main_loop The main loop continuously polls
-;    R1 for WRCH requests (forwarded to OSWRITCH &FFCB) and R2 for command bytes
-;    (dispatched via the 14-entry table at &0500). The R2 command byte is stored at &55
-;    before dispatch via JMP (&0500).
+; 1. Send &FF to R4 (WRIFOR) to signal error.
+; 2. Read R2 data (flush any pending byte).
+; 3. Send &00 via R2, then error number from (brk_ptr),0.
+; 4. Loop sending error string bytes via R2 until zero terminator.
+; 5. Fall through to tube_reset_stack → tube_main_loop.
+;
+; The main loop continuously polls R1 for WRCH requests (forwarded to nvwrch, the
+; non-vectored OSWRCH entry at &FFCB) and R2 for command bytes (dispatched via the
+; 14-entry tube_dispatch_table). The R2 command byte is stored at tube_dispatch_ptr_lo
+; (self-modifying the JMP (tube_dispatch_table) indirect low byte) before dispatch.
 ; &16 referenced 1 time by &813d
 .nmi_workspace_start
 .tube_brk_handler

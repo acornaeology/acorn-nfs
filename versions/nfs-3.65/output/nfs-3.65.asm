@@ -483,25 +483,27 @@ oscli                                  = &fff7
 ;
 ; Sends error information to the Tube co-processor via R2 and R4:
 ;
-; 1. Sends &FF to R4 (WRIFOR) to signal error
-; 2. Reads R2 data (flush any pending byte)
-; 3. Sends &00 via R2, then error number from (&FD),0
-; 4. Loops sending error string bytes via R2 until zero terminator
-; 5. Falls through to tube_reset_stack → tube_main_loop The main loop continuously polls
-;    R1 for WRCH requests (forwarded to OSWRITCH &FFCB) and R2 for command bytes
-;    (dispatched via the 12-entry table at &0500). The R2 command byte is stored at &51
-;    (self-modifying the JMP indirect low byte) before dispatch.
+; 1. Send &FF to R4 (WRIFOR) to signal error.
+; 2. Read R2 data (flush any pending byte).
+; 3. Send &00 via R2, then error number from (brk_ptr),0.
+; 4. Loop sending error string bytes via R2 until zero terminator.
+; 5. Fall through to tube_reset_stack → tube_main_loop.
+;
+; The main loop continuously polls R1 for WRCH requests (forwarded to nvwrch, the
+; non-vectored OSWRCH entry at &FFCB) and R2 for command bytes (dispatched via the
+; 12-entry tube_dispatch_table). The R2 command byte is stored at tube_cmd_lo
+; (self-modifying the JMP indirect low byte) before dispatch.
 ; &16 referenced 1 time by &816f
 .nmi_workspace_start
 .tube_brk_handler
     lda #&ff                                                          ; 9324: a9 ff       .. :0016[1]         ; A=&FF: signal error to co-processor via R4
-    jsr tube_send_r4                                                  ; 9326: 20 9e 06     .. :0018[1]        ; Send &FF error signal to Tube R4
+    jsr tube_send_r4                                                  ; 9326: 20 9e 06     .. :0018[1]        ; Send &FF to Tube R4 (signal error)
     lda tube_data_register_2                                          ; 9329: ad e3 fe    ... :001b[1]        ; Flush any pending R2 byte
     lda #0                                                            ; 932c: a9 00       .. :001e[1]         ; A=0: send zero prefix to R2
 .tube_send_zero_r2
     jsr tube_send_r2                                                  ; 932e: 20 95 06     .. :0020[1]        ; Send zero prefix byte via R2
-    tay                                                               ; 9331: a8          . :0023[1]          ; Y=0: start of error block at (&FD)
-    lda (brk_ptr),y                                                   ; 9332: b1 fd       .. :0024[1]         ; Load error number from (&FD),0
+    tay                                                               ; 9331: a8          . :0023[1]          ; Y=0: error block starts at (brk_ptr)
+    lda (brk_ptr),y                                                   ; 9332: b1 fd       .. :0024[1]         ; Load error number from (brk_ptr),0
     jsr tube_send_r2                                                  ; 9334: 20 95 06     .. :0026[1]        ; Send error number via R2
 ; &29 referenced 1 time by &933e
 .tube_brk_send_loop

@@ -116,33 +116,37 @@ d.add_move(0x0016, 0x9324, 0x61)
 d.label(0x0016, "nmi_workspace_start")
 
 d.entry(0x0016)
-d.comment(0x0016, "A=&FF: signal error to co-processor via R4", align=Align.INLINE)
+d.comment(0x0016, "`A=&FF`: signal error to co-processor via R4", align=Align.INLINE)
 d.subroutine(
     0x0016,
     "tube_brk_handler",
     title="Tube BRK handler (BRKV target) — reference: NFS11 NEWBR",
     description="""Sends error information to the Tube co-processor via R2 and R4:
-  1. Sends &FF to R4 (WRIFOR) to signal error
-  2. Reads R2 data (flush any pending byte)
-  3. Sends &00 via R2, then error number from (&FD),0
-  4. Loops sending error string bytes via R2 until zero terminator
-  5. Falls through to tube_reset_stack → tube_main_loop
-The main loop continuously polls R1 for WRCH requests (forwarded
-to OSWRITCH &FFCB) and R2 for command bytes (dispatched via the
-12-entry table at &0500). The R2 command byte is stored at &51
-(self-modifying the JMP indirect low byte) before dispatch.""",
+
+1. Send `&FF` to R4 (`WRIFOR`) to signal error.
+2. Read R2 data (flush any pending byte).
+3. Send `&00` via R2, then error number from (`brk_ptr`),0.
+4. Loop sending error string bytes via R2 until zero terminator.
+5. Fall through to [`tube_reset_stack`](address:0032) → [`tube_main_loop`](address:0036).
+
+The main loop continuously polls R1 for `WRCH` requests (forwarded
+to `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for
+command bytes (dispatched via the 12-entry
+[`tube_dispatch_table`](address:0500)). The R2 command byte is stored
+at [`tube_cmd_lo`](address:0051) (self-modifying the `JMP` indirect
+low byte) before dispatch.""",
 )
 
 
-d.comment(0x0018, "Send &FF error signal to Tube R4", align=Align.INLINE)
+d.comment(0x0018, "Send `&FF` to Tube R4 (signal error)", align=Align.INLINE)
 d.comment(0x001B, "Flush any pending R2 byte", align=Align.INLINE)
-d.comment(0x001E, "A=0: send zero prefix to R2", align=Align.INLINE)
+d.comment(0x001E, "`A=0`: send zero prefix to R2", align=Align.INLINE)
 d.constant(0x20, "handle_base")
 d.comment(0x0020, "Send zero prefix byte via R2", align=Align.INLINE)
 d.label(0x0020, "tube_send_zero_r2")
 
-d.comment(0x0023, "Y=0: start of error block at (&FD)", align=Align.INLINE)
-d.comment(0x0024, "Load error number from (&FD),0", align=Align.INLINE)
+d.comment(0x0023, "`Y=0`: error block starts at (`brk_ptr`)", align=Align.INLINE)
+d.comment(0x0024, "Load error number from (`brk_ptr`),0", align=Align.INLINE)
 d.comment(0x0026, "Send error number via R2", align=Align.INLINE)
 d.label(0x0029, "tube_brk_send_loop")
 

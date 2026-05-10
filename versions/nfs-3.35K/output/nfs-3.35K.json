@@ -271,7 +271,7 @@
       "binary_addr": 37653,
       "name": "tube_brk_handler",
       "title": "Tube BRK handler (BRKV target) \u2014 reference: NFS11 NEWBR",
-      "description": "Sends error information to the Tube co-processor via R2 and R4:\n  1. Sends &FF to R4 (WRIFOR) to signal error\n  2. Reads R2 data (flush any pending byte)\n  3. Sends &00 via R2, then error number from (&FD),0\n  4. Loops sending error string bytes via R2 until zero terminator\n  5. Falls through to tube_reset_stack \u2192 tube_main_loop\nThe main loop continuously polls R1 for WRCH requests (forwarded\nto OSWRITCH &FFCB) and R2 for command bytes (dispatched via the\n14-entry table at &0500). The R2 command byte is stored at &55\nbefore dispatch via JMP (&0500).",
+      "description": "Sends error information to the Tube co-processor via R2 and R4:\n\n1. Send `&FF` to R4 (`WRIFOR`) to signal error.\n2. Read R2 data (flush any pending byte).\n3. Send `&00` via R2, then error number from (`brk_ptr`),0.\n4. Loop sending error string bytes via R2 until zero terminator.\n5. Fall through to [`tube_reset_stack`](address:0032) \u2192 [`tube_main_loop`](address:003A).\n\nThe main loop continuously polls R1 for `WRCH` requests (forwarded\nto `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for\ncommand bytes (dispatched via the 14-entry\n[`tube_dispatch_table`](address:0500)). The R2 command byte is stored\nat [`tube_dispatch_ptr_lo`](address:0055) (self-modifying the\n`JMP (tube_dispatch_table)` indirect low byte) before dispatch.",
       "fall_through": true
     },
     {
