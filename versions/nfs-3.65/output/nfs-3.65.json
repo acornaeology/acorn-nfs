@@ -2178,6 +2178,13 @@
       "title": "ROM identification",
       "description": "Six descriptive fields that follow the entry-point JMPs: ROM type flag byte, copyright-string offset, binary version, title string, optional version string, and copyright string. The MOS uses these for identification, dispatch-table lookup, and the ``(C)``-prefix validity check.",
       "align": "before_label"
+    },
+    {
+      "addr": 32774,
+      "name": "rom_type",
+      "title": "ROM type byte",
+      "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |",
+      "align": "after_label"
     }
   ],
   "external_labels": {
