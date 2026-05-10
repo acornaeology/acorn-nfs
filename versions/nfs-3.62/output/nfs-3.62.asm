@@ -5325,17 +5325,27 @@ cmd_match_data = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; OSWORD &12 handler: dispatch sub-functions 0-9
 ;
-; Range-checks the sub-function code from the param block and dispatches: 0: read FS
-; server station/network (from &0E00/&0E01) 1: set  FS server station/network 2: read
-; printer server station/network (from dynamic ws) 3: set  printer server station/network
-; 4: read JSR protection mask (LSTAT at &0D63) 5: set  JSR protection mask 6: read
-; context handles (URD/CSD/LIB) 7: set  context handles 8: read cached local station
-; number (from (net_rx_ptr)+&14, populated at init by reading the &FE18 station-ID latch)
-; 9: read JSR argument buffer size Sub-functions 0-3 select the appropriate workspace
-; page (static &0D or dynamic) and offset, then fall through to the bidirectional param
-; block copy loop. Sub-functions >= 6 are re-dispatched via rsl1; values >= 10 return the
-; last FS error. Note: there is no sub-function that sets the local station number -- on
-; the Model B that is hardwired via the 8 station ID links read from &FE18.
+; Range-checks the sub-function code from the param block and dispatches:
+;
+; | Sub | Direction | Target                                                                                                       |
+; |-----|-----------|--------------------------------------------------------------------------------------------------------------|
+; | 0   | read      | FS server station / network (from &0E00/&0E01)                                                               |
+; | 1   | set       | FS server station / network                                                                                  |
+; | 2   | read      | printer server station / network (from dynamic ws)                                                           |
+; | 3   | set       | printer server station / network                                                                             |
+; | 4   | read      | JSR protection mask (LSTAT at &0D63)                                                                         |
+; | 5   | set       | JSR protection mask                                                                                          |
+; | 6   | read      | context handles (URD / CSD / LIB)                                                                            |
+; | 7   | set       | context handles                                                                                              |
+; | 8   | read      | cached local station number (from (net_rx_ptr)+&14, populated at init by reading the &FE18 station-ID latch) |
+; | 9   | read      | JSR argument buffer size                                                                                     |
+;
+; Sub-functions 0–3 select the appropriate workspace page (static &0D or dynamic) and
+; offset, then fall through to the bidirectional param- block copy loop. Sub-functions
+; >=6 are re-dispatched via rsl1; values >=10 return the last FS error.
+;
+; Note: there is no sub-function that sets the local station number — on the Model B that
+; is hardwired via the 8 station-ID links read from &FE18.
 .osword_12_dispatch
     cmp #6                                                            ; 8f01: c9 06       ..       ; OSWORD &12: range check sub-function
     bcs rsl1                                                          ; 8f03: b0 41       .A       ; Sub-function >= 6: not supported

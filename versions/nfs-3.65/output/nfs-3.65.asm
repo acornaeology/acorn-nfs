@@ -4583,14 +4583,19 @@ error_table_base = bgetv_shared_jsr+1
 ; FS command match table (COMTAB)
 ;
 ; Format: command letters (bit 7 clear), then dispatch address as two big-endian bytes:
-; high|(bit 7 set), low. The bit 7 set on the high byte marks the end of the command
-; string. The PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching is
-; case-insensitive (AND &DF) and supports '.' abbreviation.
+; high|(bit 7 set), low. The bit-7-set on the high byte marks the end of the command
+; string. The PHA/PHA/RTS trick adds 1 to the stored (address − 1). Matching is
+; case-insensitive (AND &DF) and supports . abbreviation.
 ;
-; Entries: "I."     → &80BD (forward_star_cmd) — placed first as a fudge to catch *I.
-; abbreviation before matching *I AM "I AM"   → &8082 (i_am_handler: parse station.net,
-; logon) "}EX"    → &8C4F (ex_handler: } terminator rejects *EXEC) "BYE"\r  → &83AE
-; (bye_handler: logoff) <catch-all> → &80BD (forward anything else to FS)
+; Entries:
+;
+; | Pattern   | Handler          | Note                                                                    |
+; |-----------|------------------|-------------------------------------------------------------------------|
+; | "I."      | forward_star_cmd | placed first as a fudge to catch *I. abbreviation before matching *I AM |
+; | "I AM"    | i_am_handler     | parse station.net, logon                                                |
+; | "}EX"     | ex_handler       | } terminator rejects *EXEC                                              |
+; | "BYE"\r   | bye_handler      | logoff                                                                  |
+; | catch-all | forward_star_cmd | forward anything else to the FS                                         |
 ; &8c39 referenced 2 times by &8c16, &8c23
 .fs_cmd_match_table
 ; &8c3a referenced 1 time by &8c34
@@ -5317,17 +5322,27 @@ boot_string_offsets = boot_option_offsets+1
 ; ***************************************************************************************
 ; OSWORD &12 handler: dispatch sub-functions 0-9
 ;
-; Range-checks the sub-function code from the param block and dispatches: 0: read FS
-; server station/network (from &0E00/&0E01) 1: set  FS server station/network 2: read
-; printer server station/network (from dynamic ws) 3: set  printer server station/network
-; 4: read JSR protection mask (LSTAT at &0D63) 5: set  JSR protection mask 6: read
-; context handles (URD/CSD/LIB) 7: set  context handles 8: read cached local station
-; number (from (net_rx_ptr)+&14, populated at init by reading the &FE18 station-ID latch)
-; 9: read JSR argument buffer size Sub-functions 0-3 select the appropriate workspace
-; page (static &0D or dynamic) and offset, then fall through to the bidirectional param
-; block copy loop. Sub-functions >= 6 are re-dispatched via rsl1; values >= 10 return the
-; last FS error. Note: there is no sub-function that sets the local station number -- on
-; the Model B that is hardwired via the 8 station ID links read from &FE18.
+; Range-checks the sub-function code from the param block and dispatches:
+;
+; | Sub | Direction | Target                                                                                                       |
+; |-----|-----------|--------------------------------------------------------------------------------------------------------------|
+; | 0   | read      | FS server station / network (from &0E00/&0E01)                                                               |
+; | 1   | set       | FS server station / network                                                                                  |
+; | 2   | read      | printer server station / network (from dynamic ws)                                                           |
+; | 3   | set       | printer server station / network                                                                             |
+; | 4   | read      | JSR protection mask (LSTAT at &0D63)                                                                         |
+; | 5   | set       | JSR protection mask                                                                                          |
+; | 6   | read      | context handles (URD / CSD / LIB)                                                                            |
+; | 7   | set       | context handles                                                                                              |
+; | 8   | read      | cached local station number (from (net_rx_ptr)+&14, populated at init by reading the &FE18 station-ID latch) |
+; | 9   | read      | JSR argument buffer size                                                                                     |
+;
+; Sub-functions 0–3 select the appropriate workspace page (static &0D or dynamic) and
+; offset, then fall through to the bidirectional param- block copy loop. Sub-functions
+; >=6 are re-dispatched via rsl1; values >=10 return the last FS error.
+;
+; Note: there is no sub-function that sets the local station number — on the Model B that
+; is hardwired via the 8 station-ID links read from &FE18.
 .osword_12_dispatch
     cmp #6                                                            ; 8f04: c9 06       ..       ; OSWORD &12: range check sub-function
     bcs rsl1                                                          ; 8f06: b0 41       .A       ; Sub-function >= 6: not supported
@@ -5563,9 +5578,12 @@ boot_string_offsets = boot_option_offsets+1
 ; ***************************************************************************************
 ; Econet transmit/receive handler
 ;
-; A=0: Initialise TX control block from ROM template at &8383 (init_tx_ctrl_block+Y, zero
-; entries substituted from NMI workspace &0DE6), transmit it, set up RX control block,
-; and receive reply. A>=1: Handle transmit result (branch to cleanup at &903E).
+; Dispatch by A:
+;
+; - A=0: initialise TX control block from the ROM template at init_tx_ctrl_block (zero
+;   entries substituted from NMI workspace &0DE6), transmit it, set up the RX control
+;   block, and receive reply.
+; - A>=1: handle transmit result (branch to cleanup at &903E).
 ;
 ; On Entry:
 ;     A: 0=set up and transmit, >=1=handle TX result

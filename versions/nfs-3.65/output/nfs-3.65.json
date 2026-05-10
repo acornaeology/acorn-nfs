@@ -1278,7 +1278,7 @@
       "addr": 35897,
       "name": "fs_cmd_match_table",
       "title": "FS command match table (COMTAB)",
-      "description": "Format: command letters (bit 7 clear), then dispatch address\nas two big-endian bytes: high|(bit 7 set), low. The bit 7 set\non the high byte marks the end of the command string. The\nPHA/PHA/RTS trick adds 1 to the stored (address-1). Matching\nis case-insensitive (AND &DF) and supports '.' abbreviation.\n\nEntries:\n  \"I.\"     \u2192 &80BD (forward_star_cmd) \u2014 placed first as a fudge\n             to catch *I. abbreviation before matching *I AM\n  \"I AM\"   \u2192 &8082 (i_am_handler: parse station.net, logon)\n  \"}EX\"    \u2192 &8C4F (ex_handler: } terminator rejects *EXEC)\n  \"BYE\"\\r  \u2192 &83AE (bye_handler: logoff)\n  <catch-all> \u2192 &80BD (forward anything else to FS)",
+      "description": "Format: command letters (bit 7 clear), then dispatch address as two\nbig-endian bytes: `high|(bit 7 set)`, `low`. The bit-7-set on the high\nbyte marks the end of the command string. The `PHA`/`PHA`/`RTS` trick\nadds 1 to the stored `(address \u2212 1)`. Matching is case-insensitive\n(`AND &DF`) and supports `.` abbreviation.\n\nEntries:\n\n| Pattern        | Handler | Note |\n|----------------|---------|------|\n| `\"I.\"`         | [`forward_star_cmd`](address:80BD) | placed first as a fudge to catch `*I.` abbreviation before matching `*I AM` |\n| `\"I AM\"`       | [`i_am_handler`](address:807E) | parse `station.net`, logon |\n| `\"}EX\"`        | [`ex_handler`](address:8C4F) | `}` terminator rejects `*EXEC` |\n| `\"BYE\"\\r`      | [`bye_handler`](address:83AE) | logoff |\n| catch-all      | [`forward_star_cmd`](address:80BD) | forward anything else to the FS |",
       "fall_through": true
     },
     {
@@ -1516,7 +1516,7 @@
       "addr": 36612,
       "name": "osword_12_dispatch",
       "title": "OSWORD &12 handler: dispatch sub-functions 0-9",
-      "description": "Range-checks the sub-function code from the param block and\ndispatches:\n  0: read FS server station/network (from &0E00/&0E01)\n  1: set  FS server station/network\n  2: read printer server station/network (from dynamic ws)\n  3: set  printer server station/network\n  4: read JSR protection mask (LSTAT at &0D63)\n  5: set  JSR protection mask\n  6: read context handles (URD/CSD/LIB)\n  7: set  context handles\n  8: read cached local station number (from (net_rx_ptr)+&14,\n     populated at init by reading the &FE18 station-ID latch)\n  9: read JSR argument buffer size\nSub-functions 0-3 select the appropriate workspace page\n(static &0D or dynamic) and offset, then fall through to the\nbidirectional param block copy loop. Sub-functions >= 6 are\nre-dispatched via rsl1; values >= 10 return the last FS error.\nNote: there is no sub-function that *sets* the local station\nnumber -- on the Model B that is hardwired via the 8 station\nID links read from &FE18.",
+      "description": "Range-checks the sub-function code from the param block and dispatches:\n\n| Sub | Direction | Target |\n|-----|-----------|--------|\n| 0   | read   | FS server station / network (from `&0E00`/`&0E01`) |\n| 1   | set    | FS server station / network |\n| 2   | read   | printer server station / network (from dynamic ws) |\n| 3   | set    | printer server station / network |\n| 4   | read   | JSR protection mask (LSTAT at `&0D63`) |\n| 5   | set    | JSR protection mask |\n| 6   | read   | context handles (URD / CSD / LIB) |\n| 7   | set    | context handles |\n| 8   | read   | cached local station number (from `(net_rx_ptr)+&14`, populated at init by reading the `&FE18` station-ID latch) |\n| 9   | read   | JSR argument buffer size |\n\nSub-functions 0\u20133 select the appropriate workspace page (static `&0D`\nor dynamic) and offset, then fall through to the bidirectional param-\nblock copy loop. Sub-functions `>=6` are re-dispatched via `rsl1`;\nvalues `>=10` return the last FS error.\n\nNote: there is no sub-function that *sets* the local station number \u2014\non the Model B that is hardwired via the 8 station-ID links read from\n`&FE18`.",
       "fall_through": true
     },
     {
@@ -1580,7 +1580,7 @@
       "addr": 36851,
       "name": "econet_tx_rx",
       "title": "Econet transmit/receive handler",
-      "description": "A=0: Initialise TX control block from ROM template at &8383\n     (init_tx_ctrl_block+Y, zero entries substituted from NMI\n     workspace &0DE6), transmit it, set up RX control block,\n     and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &903E).",
+      "description": "Dispatch by `A`:\n\n- `A=0`: initialise TX control block from the ROM template at\n  [`init_tx_ctrl_block`](address:8383) (zero entries substituted from\n  NMI workspace `&0DE6`), transmit it, set up the RX control block,\n  and receive reply.\n- `A>=1`: handle transmit result (branch to cleanup at `&903E`).",
       "on_entry": {
         "a": "0=set up and transmit, >=1=handle TX result"
       },
