@@ -309,7 +309,7 @@
       "binary_addr": 38239,
       "name": "tube_code_page6",
       "title": "Tube host code page 6 \u2014 reference: NFS13 (GBPB-ESCA)",
-      "description": "Copied from ROM at [`reloc_p6_src`](address:955F)\u2212`&18` during init.\n`&0600`\u2013`&0601` is the tail of [`tube_osfile`](address:05D8) (`BEQ` to\n[`tube_reply_byte`](address:05CD) when done).\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0602` | [`tube_osgbpb`](address:0602) \u2014 multi-byte file I/O |\n| `&0626` | [`tube_osbyte_short`](address:0626) \u2014 2-param `OSBYTE` (returns X) |\n| `&063B` | [`tube_osbyte_long`](address:063B) \u2014 3-param `OSBYTE` (returns carry+Y+X) |\n| `&065D` | [`tube_osword`](address:065D) \u2014 variable-length `OSWORD` (buffer at `&0130`) |\n| `&06A3` | [`tube_osword_rdln`](address:06A3) \u2014 `OSWORD 0` (read line, 5-byte params) |\n| `&06BB` | [`tube_rdln_send_line`](address:06BB) \u2014 send input line from `&0700` |\n| `&06D0` | [`tube_send_r2`](address:06D0) \u2014 poll R2 status, write `A` to R2 data |\n| `&06D9` | [`tube_send_r4`](address:06D9) \u2014 poll R4 status, write `A` to R4 data |\n| `&06E2` | [`tube_escape_check`](address:06E2) \u2014 check `&FF`, forward escape to R1 |\n| `&06E8` | [`tube_event_handler`](address:06E8) \u2014 EVNTV: forward event (A, X, Y) via R1 |\n| `&06F7` | [`tube_send_r1`](address:06F7) \u2014 poll R1 status, write `A` to R1 data |"
+      "description": "Copied from ROM at [`reloc_p6_src`](address:955F)\u2212`&18` during init.\n`&0600`\u2013`&0601` is the tail of [`tube_osfile`](address:05D8) (`BEQ` to\n[`tube_reply_byte`](address:05CD) when done).\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0602` | [`tube_osgbpb`](address:0602) \u2014 multi-byte file I/O |\n| `&0626` | [`tube_osbyte_short`](address:0626) \u2014 2-param `OSBYTE` (returns X) |\n| `&063B` | [`tube_osbyte_long`](address:063B) \u2014 3-param `OSBYTE` (returns carry+Y+X) |\n| `&065D` | [`tube_osword`](address:065D) \u2014 variable-length `OSWORD` (buffer at `&0128`) |\n| `&06A3` | [`tube_osword_rdln`](address:06A3) \u2014 `OSWORD 0` (read line, 5-byte params) |\n| `&06BB` | [`tube_rdln_send_line`](address:06BB) \u2014 send input line from `&0700` |\n| `&06D0` | [`tube_send_r2`](address:06D0) \u2014 poll R2 status, write `A` to R2 data |\n| `&06D9` | [`tube_send_r4`](address:06D9) \u2014 poll R4 status, write `A` to R4 data |\n| `&06E2` | [`tube_escape_check`](address:06E2) \u2014 check `&FF`, forward escape to R1 |\n| `&06E8` | [`tube_event_handler`](address:06E8) \u2014 EVNTV: forward event (A, X, Y) via R1 |\n| `&06F7` | [`tube_send_r1`](address:06F7) \u2014 poll R1 status, write `A` to R1 data |"
     },
     {
       "addr": 32788,
@@ -535,13 +535,13 @@
       "addr": 33632,
       "name": "init_tx_ctrl_block",
       "title": "Initialise TX control block at &00C0 from template",
-      "description": "Copies 12 bytes from tx_ctrl_template (&8335) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation/network from &0E00/&0E01 to &00C2/&00C3.\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes."
+      "description": "Copies 12 bytes from tx_ctrl_template (&8335) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes."
     },
     {
       "addr": 33656,
       "name": "tx_ctrl_template",
       "title": "TX control block template (TXTAB, 12 bytes)",
-      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers (&0F00-&0FFF). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
+      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](address:0F00)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
     },
     {
       "addr": 33668,
@@ -675,7 +675,7 @@
       "addr": 34213,
       "name": "save_fscv_args_with_ptrs",
       "title": "Save FSCV arguments with text pointers",
-      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
+      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X / Y into the [`os_text_ptr`](address:00F2) and [`fs_cmd_ptr`](address:0E10) 16-bit pointers, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
       "fall_through": true
     },
     {
@@ -1384,7 +1384,7 @@
       "addr": 36845,
       "name": "econet_tx_rx",
       "title": "Econet transmit/receive handler",
-      "description": "A=0: Initialise TX control block from ROM template at &8360\n     (zero entries substituted from NMI workspace &0DE6), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &9039).",
+      "description": "A=0: Initialise TX control block from ROM template at &8360\n     (zero entries substituted from NMI workspace [`nmi_sub_table`](address:0DE6)), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &9039).",
       "on_entry": {
         "a": "0=set up and transmit, >=1=handle TX result"
       },

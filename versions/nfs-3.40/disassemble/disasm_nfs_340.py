@@ -1716,15 +1716,15 @@ The service 4 handler itself is dispatched via the table to
 calls against the ROM header, reusing header bytes as command
 strings:
 
-  X=&0C: matches "ROFF" at &8014 — the suffix of the
-         copyright string "(C)ROFF" → *ROFF (Remote Off,
-         end remote session) — falls through to net_4_resume_remote
+- `X=&0C`: matches `"ROFF"` at [`cmd_roff_str`](address:8014) — the
+  suffix of the copyright string `"(C)ROFF"` → `*ROFF` (Remote Off,
+  end remote session). Falls through to
+  [`net_4_resume_remote`](address:81B8).
+- `X=5`: matches `"NET"` at [`cmd_net_str`](address:800D) — the ROM
+  title suffix → `*NET` (select NFS). Falls through to
+  [`svc_13_select_nfs`](address:81ED).
 
-  X=5: matches "NET" at &800D — the ROM title suffix
-       → *NET (select NFS) — falls through to svc_13_select_nfs
-
-If neither matches, returns with the service call
-unclaimed.""",
+If neither matches, returns with the service call unclaimed.""",
 )
 
 
@@ -2217,7 +2217,7 @@ d.subroutine(
     title="Initialise TX control block at &00C0 from template",
     description="""Copies 12 bytes from tx_ctrl_template (&83A9) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
-station/network from &0E00/&0E01 to &00C2/&00C3.
+station / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).
 The template sets up: control=&80, port=&99 (FS command port),
 command data length=&0F, plus padding bytes.""",
 )
@@ -2246,7 +2246,7 @@ d.subroutine(
     title="TX control block template (TXTAB, 12 bytes)",
     description="""12-byte template copied to &00C0 by init_tx_ctrl. Defines the
 TX control block for FS commands: control flag, port, station/
-network, and data buffer pointers (&0F00-&0FFF). The 4-byte
+network, and data buffer pointers ([`fs_cmd_type`](address:0F00)–`&0FFF`). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""",
 )
 
@@ -2783,7 +2783,7 @@ d.subroutine(
     "save_fscv_args_with_ptrs",
     title="Save FSCV arguments with text pointers",
     description="""Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.
-Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
+Copies X / Y into the [`os_text_ptr`](address:00F2) and [`fs_cmd_ptr`](address:0E10) 16-bit pointers, then
 falls through to save_fscv_args to store A/X/Y in the FS
 workspace.""",
 )
@@ -4569,20 +4569,22 @@ d.subroutine(
     0x8D0F,
     "boot_cmd_strings",
     title="Boot command strings for auto-boot",
-    description="""The four boot options use OSCLI strings at offsets within page &8D.
-The offset table at boot_option_offsets+1 (&8D1C) is indexed by
-the boot option value (0-3); each byte is the low byte of the
-string address, with the page high byte &8D loaded separately:
-  Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command)
-  Option 1 (Load): offset &0C → &8D0C = "L.!BOOT" (the bytes
-      &4C='L', &2E='.', &21='!' precede "BOOT" + CR at &8D0F)
-  Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN)
-  Option 3 (Exec): offset &14 → &8D14 = "E.!BOOT"
+    description="""The four boot options use OSCLI strings at offsets within page
+`&8D`. The offset table at [`boot_oscli_offset`](address:8D1C) is
+indexed by the boot option value (0–3); each byte is the low byte of
+the string address, with the page high byte `&8D` loaded separately:
 
-This is a classic BBC ROM space optimisation: the string data
-overlaps with other byte sequences to save space. The &0D byte
-at &8D1B terminates "E.!BOOT" AND doubles as the bare-CR
-command for boot option 0.""",
+| Opt | Offset | Address  | String |
+|-----|--------|----------|--------|
+| 0 — Off  | `&1B` | `&8D1B` | bare `CR` (empty command) |
+| 1 — Load | `&0C` | `&8D0C` | `"L.!BOOT"` (`&4C` `'L'`, `&2E` `'.'`, `&21` `'!'` precede `"BOOT"` + `CR`) |
+| 2 — Run  | `&0E` | `&8D0E` | `"!BOOT"` (bare filename = `*RUN`) |
+| 3 — Exec | `&14` | `&8D14` | `"E.!BOOT"` |
+
+This is a classic BBC ROM space optimisation: the string data overlaps
+with other byte sequences to save space. The `&0D` byte at `&8D1B`
+terminates `"E.!BOOT"` *and* doubles as the bare-`CR` command for
+boot option 0.""",
 )
 
 
@@ -5405,7 +5407,7 @@ d.subroutine(
     "econet_tx_rx",
     title="Econet transmit/receive handler",
     description="""A=0: Initialise TX control block from ROM template at &8391
-     (zero entries substituted from NMI workspace &0DDA), transmit
+     (zero entries substituted from NMI workspace [`nmi_sub_table`](address:0DE6)), transmit
      it, set up RX control block, and receive reply.
 A>=1: Handle transmit result (branch to cleanup at &9034).""",
     on_entry={"a": "0=set up and transmit, >=1=handle TX result"},
@@ -7175,9 +7177,9 @@ d.subroutine(
     0x9ABE,
     "rx_imm_machine_type",
     title="RX immediate: machine type query",
-    description="""Sets up a buffer at &7F25 (length #&01FC) for the machine
-type query response, then jumps to the query handler at
-set_tx_reply_flag. Returns system identification data to the remote
+    description="""Sets up a response buffer (start `&25`, page `&7F`, length `#&01FC`)
+for the machine-type query, then jumps to the query handler at
+`set_tx_reply_flag`. Returns system identification data to the remote
 station.""",
 )
 

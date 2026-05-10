@@ -67,6 +67,71 @@ Legend: `.` = pending, `~` = in-progress, `✓` = swept + verified.
   with the bare hex if needed (`` `&FFCB` ``). Confirmed via site rebuild —
   `address:FFCB` produced "no memory-map entry and not in ROM range".
 
+## MEDIUM-finding pass
+
+`fantasm comments check` (without `--strict`) reports MEDIUM-confidence
+findings whenever a comment / description text contains a bare `&XXXX`
+that doesn't resolve to a labeled item. Reviewed each one across all 8
+versions and split into:
+
+**Genuine bugs uncovered + fixed:**
+
+- `tube_osword` buffer address: 3.35D / 3.35K page-6 banner table said
+  *buffer at `&0130`* but those versions actually use `&0128` (the
+  3.34/B versions use `&0130`). My own page-5/6 sweep had copied the
+  wrong value across.
+- `tube_osword` inline at &0692 in 3.34 / 3.34B: said *Send result
+  block bytes from `&0128`* but the instruction is `LDY l0130,X`.
+  Should be `&0130`.
+- `econet_tx_rx` description: 3.34 / 3.34B / 3.35K / 3.40 said *NMI
+  workspace `&0DDA`* — but `nmi_sub_table` is at `&0DE6` in every
+  version (the actual `LDA nmi_sub_table,Y` source confirms this).
+  3.35D had previously been corrected; 3.60 / 3.62 / 3.65 had the
+  right address. Fixed all four to `nmi_sub_table` link.
+- `svc_4_star_command` description in 3.40 referenced `&8014` and
+  `&800D` for the `*ROFF` and `*NET` matchers. Both are real labels
+  (`cmd_roff_str`, `cmd_net_str`) — linkified. Also linkified the
+  fall-through targets (`net_4_resume_remote`, `svc_13_select_nfs`).
+- `boot_cmd_strings` description in 3.40 became a 4-row table with
+  one row per boot option (Off / Load / Run / Exec).
+
+**Cosmetic linkifications (silence false positives, improve readability):**
+
+- `init_tx_ctrl_block` description: linkified `&0E00`/`&0E01`
+  (`fs_server_stn` / `fs_server_net`) and the `&00C2/&00C3`
+  destination (`txcb_dest`).
+- `save_fscv_args_with_ptrs` description: replaced
+  `os_text_ptr/&F3` and `fs_cmd_ptr/&0E11` with single-label links
+  to the 16-bit pointers.
+- `tx_ctrl_template` description: linkified `&0F00` (`fs_cmd_type`)
+  in the `&0F00`–`&0FFF` buffer-page reference.
+- `rx_imm_machine_type` (3.40): rephrased the buffer setup so the
+  `&7F25` literal becomes `&25` + `&7F` (offset and page) rather
+  than a stale "address" reference.
+
+**Genuine false positives left alone:**
+
+- MOS extended-vector dispatch addresses `&FF1B`–`&FF2D` (mentioned
+  by `init_fs_vectors` and `fs_vector_addrs`) — these are MOS-side
+  and have no labels in our project.
+- High-byte halves of split-byte writes (`&0221` = `EVNTV+1`,
+  `&0203` = `BRKV+1`) — the inline comments correctly say which byte
+  is being written; no separate label exists.
+- Sentinel values like `&FFFF` (used for "any station", "unlimited
+  length") — these are byte-pair values, not addresses.
+- `&0D00` (NMI shim runtime base) — `nmi_code_base` label is at
+  `&0CFF` for unrelated reasons; the shim genuinely starts at `&0D00`
+  with no separate label there. Refactoring the label was out of
+  scope.
+- `&01FC` (length value passed as immediate operand). `&XXXX` is the
+  project's chosen hex notation per `CLAUDE.md`.
+
+Final tally: MEDIUM findings reduced from
+17/18/19/20/24/22/22/22 → 15/16/17/17/19/20/20/20 across the 8 NFS
+versions (down ~25 findings total, ~12% reduction). The remaining
+~150 findings are accepted false positives (legitimate references
+to non-labeled addresses or non-address values in `&XXXX` notation).
+
 ## Drive-by correctness fixes (now resolved)
 
 - **3.34B Tube WRCH register comments** — inline comments at &003D

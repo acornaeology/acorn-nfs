@@ -1160,7 +1160,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bmi tube_return_main                                              ; 95dc: 30 0e       0. :0690[4]         ; No results to send: return to main loop
 ; &0692 referenced 1 time by &95ea
 .tube_osword_write
-    ldy l0130,x                                                       ; 95de: bc 30 01    .0. :0692[4]        ; Send result block bytes from &0128 via R2
+    ldy l0130,x                                                       ; 95de: bc 30 01    .0. :0692[4]        ; Send result block bytes from &0130 via R2
 ; &0695 referenced 1 time by &95e4
 .tube_osword_write_lp
     bit tube_status_register_2                                        ; 95e1: 2c e2 fe    ,.. :0695[4]        ; Poll R2 status for ready
@@ -2141,9 +2141,9 @@ cmd_roff_str = copyright_string+3
 ; Initialise TX control block at &00C0 from template
 ;
 ; Copies 12 bytes from tx_ctrl_template (&8334) to &00C0. For the first 2 bytes (Y=0,1),
-; also copies the fileserver station/network from &0E00/&0E01 to &00C2/&00C3. The
-; template sets up: control=&80, port=&99 (FS command port), command data length=&0F,
-; plus padding bytes.
+; also copies the fileserver station / network from fs_server_stn / fs_server_net to
+; txcb_dest (2 bytes). The template sets up: control=&80, port=&99 (FS command port),
+; command data length=&0F, plus padding bytes.
 ; &831c referenced 3 times by &8310, &8370, &83b9
 .init_tx_ctrl_block
     pha                                                               ; 831c: 48          H        ; Preserve A across call
@@ -2166,8 +2166,9 @@ cmd_roff_str = copyright_string+3
 ; TX control block template (TXTAB, 12 bytes)
 ;
 ; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the TX control block for FS
-; commands: control flag, port, station/ network, and data buffer pointers (&0F00-&0FFF).
-; The 4-byte Econet addresses use only the low 2 bytes; upper bytes are &FF.
+; commands: control flag, port, station/ network, and data buffer pointers
+; (fs_cmd_type–&0FFF). The 4-byte Econet addresses use only the low 2 bytes; upper bytes
+; are &FF.
 ; &8334 referenced 1 time by &831f
 .tx_ctrl_template
     equb &80                                                          ; 8334: 80          .        ; Control flag
@@ -5194,8 +5195,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Econet transmit/receive handler
 ;
 ; A=0: Initialise TX control block from ROM template at &8310 (zero entries substituted
-; from NMI workspace &0DDA), transmit it, set up RX control block, and receive reply.
-; A>=1: Handle transmit result (branch to cleanup at &8F48).
+; from NMI workspace nmi_sub_table), transmit it, set up RX control block, and receive
+; reply. A>=1: Handle transmit result (branch to cleanup at &8F48).
 ;
 ; On Entry:
 ;     A: 0=set up and transmit, >=1=handle TX result

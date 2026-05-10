@@ -2322,9 +2322,9 @@ cmd_roff_str = copyright_string+3
 ; Initialise TX control block at &00C0 from template
 ;
 ; Copies 12 bytes from tx_ctrl_template (&839B) to &00C0. For the first 2 bytes (Y=0,1),
-; also copies the fileserver station/network from &0E00/&0E01 to &00C2/&00C3. The
-; template sets up: control=&80, port=&99 (FS command port), command data length=&0F,
-; plus padding bytes.
+; also copies the fileserver station / network from fs_server_stn / fs_server_net to
+; txcb_dest (2 bytes). The template sets up: control=&80, port=&99 (FS command port),
+; command data length=&0F, plus padding bytes.
 ;
 ; On Exit:
 ;     A: preserved
@@ -2351,8 +2351,9 @@ cmd_roff_str = copyright_string+3
 ; TX control block template (TXTAB, 12 bytes)
 ;
 ; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the TX control block for FS
-; commands: control flag, port, station/ network, and data buffer pointers (&0F00-&0FFF).
-; The 4-byte Econet addresses use only the low 2 bytes; upper bytes are &FF.
+; commands: control flag, port, station/ network, and data buffer pointers
+; (fs_cmd_type–&0FFF). The 4-byte Econet addresses use only the low 2 bytes; upper bytes
+; are &FF.
 ; &839b referenced 1 time by &8386
 .tx_ctrl_template
     equb &80                                                          ; 839b: 80          .        ; Control flag
@@ -3040,9 +3041,9 @@ error_table_base = bgetv_shared_jsr+1
 ; ***************************************************************************************
 ; Save FSCV arguments with text pointers
 ;
-; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X/Y into
-; os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then falls through to save_fscv_args to store
-; A/X/Y in the FS workspace.
+; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X / Y into the
+; os_text_ptr and fs_cmd_ptr 16-bit pointers, then falls through to save_fscv_args to
+; store A/X/Y in the FS workspace.
 ;
 ; On Entry:
 ;     A: function code
@@ -5581,8 +5582,8 @@ boot_string_offsets = boot_option_offsets+1
 ; Dispatch by A:
 ;
 ; - A=0: initialise TX control block from the ROM template at init_tx_ctrl_block (zero
-;   entries substituted from NMI workspace &0DE6), transmit it, set up the RX control
-;   block, and receive reply.
+;   entries substituted from NMI workspace nmi_sub_table), transmit it, set up the RX
+;   control block, and receive reply.
 ; - A>=1: handle transmit result (branch to cleanup at &903E).
 ;
 ; On Entry:

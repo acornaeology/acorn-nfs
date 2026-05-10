@@ -1832,11 +1832,10 @@ got_station_num = sub_c8096+2
 ; padding). It makes two match_rom_string calls against the ROM header, reusing header
 ; bytes as command strings:
 ;
-; X=&0C: matches "ROFF" at &8014 — the suffix of the copyright string "(C)ROFF" → *ROFF
-; (Remote Off, end remote session) — falls through to net_4_resume_remote
-;
-; X=5: matches "NET" at &800D — the ROM title suffix → *NET (select NFS) — falls through
-; to svc_13_select_nfs
+; - X=&0C: matches "ROFF" at cmd_roff_str — the suffix of the copyright string "(C)ROFF"
+;   → *ROFF (Remote Off, end remote session). Falls through to net_4_resume_remote.
+; - X=5: matches "NET" at cmd_net_str — the ROM title suffix → *NET (select NFS). Falls
+;   through to svc_13_select_nfs.
 ;
 ; If neither matches, returns with the service call unclaimed.
 .svc_star_command
@@ -2275,9 +2274,9 @@ got_station_num = sub_c8096+2
 ; Initialise TX control block at &00C0 from template
 ;
 ; Copies 12 bytes from tx_ctrl_template (&83A9) to &00C0. For the first 2 bytes (Y=0,1),
-; also copies the fileserver station/network from &0E00/&0E01 to &00C2/&00C3. The
-; template sets up: control=&80, port=&99 (FS command port), command data length=&0F,
-; plus padding bytes.
+; also copies the fileserver station / network from fs_server_stn / fs_server_net to
+; txcb_dest (2 bytes). The template sets up: control=&80, port=&99 (FS command port),
+; command data length=&0F, plus padding bytes.
 ; &8391 referenced 4 times by &8385, &83df, &8428, &8fee
 .init_tx_ctrl_block
     pha                                                               ; 8391: 48          H        ; Preserve A across call
@@ -2300,8 +2299,9 @@ got_station_num = sub_c8096+2
 ; TX control block template (TXTAB, 12 bytes)
 ;
 ; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the TX control block for FS
-; commands: control flag, port, station/ network, and data buffer pointers (&0F00-&0FFF).
-; The 4-byte Econet addresses use only the low 2 bytes; upper bytes are &FF.
+; commands: control flag, port, station/ network, and data buffer pointers
+; (fs_cmd_type–&0FFF). The 4-byte Econet addresses use only the low 2 bytes; upper bytes
+; are &FF.
 ; &83a9 referenced 1 time by &8394
 .tx_ctrl_template
     equb &80                                                          ; 83a9: 80          .        ; Control flag
@@ -2795,9 +2795,9 @@ got_station_num = sub_c8096+2
 ; ***************************************************************************************
 ; Save FSCV arguments with text pointers
 ;
-; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X/Y into
-; os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then falls through to save_fscv_args to store
-; A/X/Y in the FS workspace.
+; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X / Y into the
+; os_text_ptr and fs_cmd_ptr 16-bit pointers, then falls through to save_fscv_args to
+; store A/X/Y in the FS workspace.
 ; &85c8 referenced 3 times by &80d4, &8994, &8bd7
 .save_fscv_args_with_ptrs
     stx os_text_ptr                                                   ; 85c8: 86 f2       ..       ; X to os_text_ptr (text ptr lo)
@@ -4551,15 +4551,18 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Boot command strings for auto-boot
 ;
 ; The four boot options use OSCLI strings at offsets within page &8D. The offset table at
-; boot_option_offsets+1 (&8D1C) is indexed by the boot option value (0-3); each byte is
-; the low byte of the string address, with the page high byte &8D loaded separately:
-; Option 0 (Off):  offset &1B → &8D1B = bare CR (empty command) Option 1 (Load): offset
-; &0C → &8D0C = "L.!BOOT" (the bytes &4C='L', &2E='.', &21='!' precede "BOOT" + CR at
-; &8D0F) Option 2 (Run):  offset &0E → &8D0E = "!BOOT" (bare filename = *RUN) Option 3
-; (Exec): offset &14 → &8D14 = "E.!BOOT"
+; boot_oscli_offset is indexed by the boot option value (0–3); each byte is the low byte
+; of the string address, with the page high byte &8D loaded separately:
+;
+; | Opt      | Offset | Address | String                                                    |
+; |----------|--------|---------|-----------------------------------------------------------|
+; | 0 — Off  | &1B    | &8D1B   | bare CR (empty command)                                   |
+; | 1 — Load | &0C    | &8D0C   | "L.!BOOT" (&4C 'L', &2E '.', &21 '!' precede "BOOT" + CR) |
+; | 2 — Run  | &0E    | &8D0E   | "!BOOT" (bare filename = *RUN)                            |
+; | 3 — Exec | &14    | &8D14   | "E.!BOOT"                                                 |
 ;
 ; This is a classic BBC ROM space optimisation: the string data overlaps with other byte
-; sequences to save space. The &0D byte at &8D1B terminates "E.!BOOT" AND doubles as the
+; sequences to save space. The &0D byte at &8D1B terminates "E.!BOOT" and doubles as the
 ; bare-CR command for boot option 0.
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8d0f: 42 4f 4f... BOO...
@@ -5324,8 +5327,8 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; Econet transmit/receive handler
 ;
 ; A=0: Initialise TX control block from ROM template at &8391 (zero entries substituted
-; from NMI workspace &0DDA), transmit it, set up RX control block, and receive reply.
-; A>=1: Handle transmit result (branch to cleanup at &9034).
+; from NMI workspace nmi_sub_table), transmit it, set up RX control block, and receive
+; reply. A>=1: Handle transmit result (branch to cleanup at &9034).
 ;
 ; On Entry:
 ;     A: 0=set up and transmit, >=1=handle TX result
@@ -6949,9 +6952,9 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ;
-; Sets up a buffer at &7F25 (length #&01FC) for the machine type query response, then
-; jumps to the query handler at set_tx_reply_flag. Returns system identification data to
-; the remote station.
+; Sets up a response buffer (start &25, page &7F, length #&01FC) for the machine-type
+; query, then jumps to the query handler at set_tx_reply_flag. Returns system
+; identification data to the remote station.
 .rx_imm_machine_type
     lda #1                                                            ; 9abe: a9 01       ..       ; Buffer length hi = 1
     sta port_buf_len_hi                                               ; 9ac0: 85 a3       ..       ; Set buffer length hi

@@ -762,7 +762,7 @@ Layout:
 | `&0602` | [`tube_osgbpb`](address:0602) — multi-byte file I/O |
 | `&0626` | [`tube_osbyte_short`](address:0626) — 2-param `OSBYTE` (returns X) |
 | `&063B` | [`tube_osbyte_long`](address:063B) — 3-param `OSBYTE` (returns carry+Y+X) |
-| `&065D` | [`tube_osword`](address:065D) — variable-length `OSWORD` (buffer at `&0130`) |
+| `&065D` | [`tube_osword`](address:065D) — variable-length `OSWORD` (buffer at `&0128`) |
 | `&06A3` | [`tube_osword_rdln`](address:06A3) — `OSWORD 0` (read line, 5-byte params) |
 | `&06BB` | [`tube_rdln_send_line`](address:06BB) — send input line from `&0700` |
 | `&06D0` | [`tube_send_r2`](address:06D0) — poll R2 status, write `A` to R2 data |
@@ -2095,7 +2095,7 @@ d.subroutine(
     title="Initialise TX control block at &00C0 from template",
     description="""Copies 12 bytes from tx_ctrl_template (&8335) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
-station/network from &0E00/&0E01 to &00C2/&00C3.
+station / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).
 The template sets up: control=&80, port=&99 (FS command port),
 command data length=&0F, plus padding bytes.""",
 )
@@ -2124,7 +2124,7 @@ d.subroutine(
     title="TX control block template (TXTAB, 12 bytes)",
     description="""12-byte template copied to &00C0 by init_tx_ctrl. Defines the
 TX control block for FS commands: control flag, port, station/
-network, and data buffer pointers (&0F00-&0FFF). The 4-byte
+network, and data buffer pointers ([`fs_cmd_type`](address:0F00)–`&0FFF`). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""",
 )
 d.byte(0x8378, 1)
@@ -2720,7 +2720,7 @@ d.subroutine(
     "save_fscv_args_with_ptrs",
     title="Save FSCV arguments with text pointers",
     description="""Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.
-Copies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then
+Copies X / Y into the [`os_text_ptr`](address:00F2) and [`fs_cmd_ptr`](address:0E10) 16-bit pointers, then
 falls through to save_fscv_args to store A/X/Y in the FS
 workspace.""",
 )
@@ -5414,7 +5414,7 @@ d.subroutine(
     "econet_tx_rx",
     title="Econet transmit/receive handler",
     description="""A=0: Initialise TX control block from ROM template at &8360
-     (zero entries substituted from NMI workspace &0DE6), transmit
+     (zero entries substituted from NMI workspace [`nmi_sub_table`](address:0DE6)), transmit
      it, set up RX control block, and receive reply.
 A>=1: Handle transmit result (branch to cleanup at &9039).""",
     on_entry={"a": "0=set up and transmit, >=1=handle TX result"},

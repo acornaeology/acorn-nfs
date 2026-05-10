@@ -1062,7 +1062,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; | &0602 | tube_osgbpb — multi-byte file I/O                          |
 ; | &0626 | tube_osbyte_short — 2-param OSBYTE (returns X)             |
 ; | &063B | tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)      |
-; | &065D | tube_osword — variable-length OSWORD (buffer at &0130)     |
+; | &065D | tube_osword — variable-length OSWORD (buffer at &0128)     |
 ; | &06A3 | tube_osword_rdln — OSWORD 0 (read line, 5-byte params)     |
 ; | &06BB | tube_rdln_send_line — send input line from &0700           |
 ; | &06D0 | tube_send_r2 — poll R2 status, write A to R2 data          |
@@ -2193,9 +2193,9 @@ cmd_roff_str = copyright_string+3
 ; Initialise TX control block at &00C0 from template
 ;
 ; Copies 12 bytes from tx_ctrl_template (&8335) to &00C0. For the first 2 bytes (Y=0,1),
-; also copies the fileserver station/network from &0E00/&0E01 to &00C2/&00C3. The
-; template sets up: control=&80, port=&99 (FS command port), command data length=&0F,
-; plus padding bytes.
+; also copies the fileserver station / network from fs_server_stn / fs_server_net to
+; txcb_dest (2 bytes). The template sets up: control=&80, port=&99 (FS command port),
+; command data length=&0F, plus padding bytes.
 ; &8360 referenced 4 times by &8354, &83b4, &8405, &8ff3
 .init_tx_ctrl_block
     pha                                                               ; 8360: 48          H        ; Preserve A across call
@@ -2218,8 +2218,9 @@ cmd_roff_str = copyright_string+3
 ; TX control block template (TXTAB, 12 bytes)
 ;
 ; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the TX control block for FS
-; commands: control flag, port, station/ network, and data buffer pointers (&0F00-&0FFF).
-; The 4-byte Econet addresses use only the low 2 bytes; upper bytes are &FF.
+; commands: control flag, port, station/ network, and data buffer pointers
+; (fs_cmd_type–&0FFF). The 4-byte Econet addresses use only the low 2 bytes; upper bytes
+; are &FF.
 ; &8378 referenced 1 time by &8363
 .tx_ctrl_template
     equb &80                                                          ; 8378: 80          .        ; Control flag
@@ -2749,9 +2750,9 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Save FSCV arguments with text pointers
 ;
-; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X/Y into
-; os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then falls through to save_fscv_args to store
-; A/X/Y in the FS workspace.
+; Extended entry used by FSCV, FINDV, and fscv_3_star_cmd. Copies X / Y into the
+; os_text_ptr and fs_cmd_ptr 16-bit pointers, then falls through to save_fscv_args to
+; store A/X/Y in the FS workspace.
 ; &85a5 referenced 3 times by &80c7, &8978, &8bb4
 .save_fscv_args_with_ptrs
     stx os_text_ptr                                                   ; 85a5: 86 f2       ..       ; X to os_text_ptr (text ptr lo)
@@ -5332,8 +5333,8 @@ osword_12_handler = restore_rx_flags+2
 ; Econet transmit/receive handler
 ;
 ; A=0: Initialise TX control block from ROM template at &8360 (zero entries substituted
-; from NMI workspace &0DE6), transmit it, set up RX control block, and receive reply.
-; A>=1: Handle transmit result (branch to cleanup at &9039).
+; from NMI workspace nmi_sub_table), transmit it, set up RX control block, and receive
+; reply. A>=1: Handle transmit result (branch to cleanup at &9039).
 ;
 ; On Entry:
 ;     A: 0=set up and transmit, >=1=handle TX result

@@ -651,7 +651,7 @@
       "addr": 33685,
       "name": "init_tx_ctrl_block",
       "title": "Initialise TX control block at &00C0 from template",
-      "description": "Copies 12 bytes from tx_ctrl_template (&83AD) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation/network from &0E00/&0E01 to &00C2/&00C3.\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes.",
+      "description": "Copies 12 bytes from tx_ctrl_template (&83AD) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes.",
       "on_exit": {
         "a": "preserved",
         "y": "&FF (decremented past 0)"
@@ -661,7 +661,7 @@
       "addr": 33709,
       "name": "tx_ctrl_template",
       "title": "TX control block template (TXTAB, 12 bytes)",
-      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers (&0F00-&0FFF). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
+      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](address:0F00)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
     },
     {
       "addr": 33721,
@@ -879,7 +879,7 @@
       "addr": 34377,
       "name": "save_fscv_args_with_ptrs",
       "title": "Save FSCV arguments with text pointers",
-      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X/Y into os_text_ptr/&F3 and fs_cmd_ptr/&0E11, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
+      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X / Y into the [`os_text_ptr`](address:00F2) and [`fs_cmd_ptr`](address:0E10) 16-bit pointers, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
       "on_entry": {
         "a": "function code",
         "x": "text pointer low",
@@ -1574,7 +1574,7 @@
       "addr": 36848,
       "name": "econet_tx_rx",
       "title": "Econet transmit/receive handler",
-      "description": "A=0: Initialise TX control block from ROM template at &8395\n     (init_tx_ctrl_block+Y, zero entries substituted from NMI\n     workspace &0DE6), transmit it, set up RX control block,\n     and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &903E).",
+      "description": "A=0: Initialise TX control block from ROM template at &8395\n     (init_tx_ctrl_block+Y, zero entries substituted from NMI\n     workspace [`nmi_sub_table`](address:0DE6)), transmit it, set up RX control block,\n     and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &903E).",
       "on_entry": {
         "a": "0=set up and transmit, >=1=handle TX result"
       },
