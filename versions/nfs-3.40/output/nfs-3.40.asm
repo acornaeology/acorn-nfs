@@ -6847,12 +6847,22 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; Immediate operation handler (port = 0)
 ;
 ; Handles immediate (non-data-transfer) operations received via scout frames with port
-; byte = 0. The control byte (&0D3F) determines the operation type: &81 = PEEK (read
-; memory) &82 = POKE (write memory) &83 = JSR (remote procedure call) &84 = user
-; procedure &85 = OS procedure &86 = HALT &87 = CONTINUE The protection mask (LSTAT at
-; &D63) controls which operations are permitted — each bit enables or disables an
-; operation type. If the operation is not permitted by the mask, it is silently ignored.
-; LSTAT can be read/set via OSWORD &12 sub-functions 4/5.
+; byte = 0. The control byte (&0D3F) determines the operation type:
+;
+; | Ctrl | Operation                   |
+; |------|-----------------------------|
+; | &81  | PEEK (read memory)          |
+; | &82  | POKE (write memory)         |
+; | &83  | JSR (remote procedure call) |
+; | &84  | user procedure              |
+; | &85  | OS procedure                |
+; | &86  | HALT                        |
+; | &87  | CONTINUE                    |
+;
+; The protection mask (LSTAT at &0D63) controls which operations are permitted — each bit
+; enables or disables an operation type. If the operation is not permitted by the mask,
+; it is silently ignored. LSTAT can be read / set via osword_12_dispatch sub-functions 4
+; / 5.
 ; &9a56 referenced 1 time by &9790
 .immediate_op
     ldy rx_ctrl                                                       ; 9a56: ac 3f 0d    .?.      ; Control byte &81-&88 range check

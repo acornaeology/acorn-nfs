@@ -49,7 +49,7 @@ strings in NFS driver scripts to use the inline-Markdown features described in
 | FSCV                  | &80D0–&82FF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | File handle ops       | &8300–&8AFF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Star commands         | &8B00–&92FF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Net protocol          | &9300–&9FFF | . | . | . | . | . | . | . | . |
+| Net protocol          | &9300–&9FFF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Legend: `.` = pending, `~` = in-progress, `✓` = swept + verified.
 

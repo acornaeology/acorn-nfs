@@ -1897,7 +1897,7 @@
       "addr": 39528,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Handles immediate (non-data-transfer) operations received via\nscout frames with port byte = 0. The control byte (&0D3F)\ndetermines the operation type:\n  &81 = PEEK (read memory)\n  &82 = POKE (write memory)\n  &83 = JSR (remote procedure call)\n  &84 = user procedure\n  &85 = OS procedure\n  &86 = HALT\n  &87 = CONTINUE\nThe protection mask (LSTAT at &D63) controls which operations\nare permitted \u2014 each bit enables or disables an operation type.\nIf the operation is not permitted by the mask, it is silently\nignored. LSTAT can be read/set via OSWORD &12 sub-functions 4/5."
+      "description": "Handles immediate (non-data-transfer) operations received via scout\nframes with port byte = 0. The control byte (`&0D3F`) determines the\noperation type:\n\n| Ctrl   | Operation |\n|--------|-----------|\n| `&81`  | PEEK (read memory) |\n| `&82`  | POKE (write memory) |\n| `&83`  | JSR (remote procedure call) |\n| `&84`  | user procedure |\n| `&85`  | OS procedure |\n| `&86`  | HALT |\n| `&87`  | CONTINUE |\n\nThe protection mask (LSTAT at `&0D63`) controls which operations are\npermitted \u2014 each bit enables or disables an operation type. If the\noperation is not permitted by the mask, it is silently ignored.\nLSTAT can be read / set via [`osword_12_dispatch`](address:8F04)\nsub-functions 4 / 5."
     },
     {
       "addr": 39587,
