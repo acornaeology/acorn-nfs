@@ -822,16 +822,28 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
 ;
-; Copied from ROM at reloc_p4_src+&100 during init. Contains: &0500: tube_dispatch_table
-; — 14-entry handler address table &051C: tube_wrch_handler — WRCHV target &051F:
-; tube_send_and_poll — send byte via R2, poll for reply &0527: tube_poll_r1_wrch —
-; service R1 WRCH while waiting for R2 &053D: tube_release_return — restore regs and RTS
-; &0543: tube_osbput — write byte to file &0550: tube_osbget — read byte from file &055B:
-; tube_osrdch — read character &0569: tube_osfind — open file &0580: tube_osfind_close —
-; close file (A=0) &058C: tube_osargs — file argument read/write &05B1: tube_read_string
-; — read CR-terminated string into &0700 &05C5: tube_oscli — execute * command &05CB:
-; tube_reply_ack — send &7F acknowledge &05CD: tube_reply_byte — send byte and return to
-; main loop &05D8: tube_osfile — whole file operation
+; Copied from ROM at reloc_p4_src+&100 during init.
+;
+; Layout:
+;
+; | Range       | Role                                                       |
+; |-------------|------------------------------------------------------------|
+; | &0500–&051B | 14-entry handler dispatch table (low / high address pairs) |
+; | &051C       | tube_wrch_handler — WRCHV target                           |
+; | &051F       | tube_send_and_poll — send byte via R2, poll for reply      |
+; | &0527       | tube_poll_r1_wrch — service R1 WRCH while waiting for R2   |
+; | &053D       | tube_release_return — restore registers and RTS            |
+; | &0543       | tube_osbput — write byte to file                           |
+; | &0550       | tube_osbget — read byte from file                          |
+; | &055B       | tube_osrdch — read character                               |
+; | &0569       | tube_osfind — open file                                    |
+; | &0580       | tube_osfind_close — close file (A=0)                       |
+; | &058C       | tube_osargs — file argument read / write                   |
+; | &05B1       | tube_read_string — read CR-terminated string into &0700    |
+; | &05C5       | tube_oscli — execute * command                             |
+; | &05CB       | tube_reply_ack — send &7F acknowledge                      |
+; | &05CD       | tube_reply_byte — send byte and return to main loop        |
+; | &05D8       | tube_osfile — whole-file operation                         |
 ; &0500 referenced 2 times by &8129, &9353
 .tube_dispatch_table
     equw tube_osrdch                                                  ; 945a: 5b 05       [. :0500[3]         ; cmd 0: OSRDCH
@@ -1031,16 +1043,24 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 6 — reference: NFS13 (GBPB-ESCA)
 ;
-; Copied from ROM at reloc_p4_src+&200 during init. &0600-&0601 is the tail of
-; tube_osfile (BEQ to tube_reply_byte when done). Contains: &0602: tube_osgbpb —
-; multi-byte file I/O &0626: tube_osbyte_short — 2-param OSBYTE (returns X) &063B:
-; tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X) &065D: tube_osword —
-; variable-length OSWORD (buffer at &0130) &06A3: tube_osword_rdln — OSWORD 0 (read line,
-; 5-byte params) &06BB: tube_rdln_send_line — send input line from &0700 &06D0:
-; tube_send_r2 — poll R2 status, write A to R2 data &06D9: tube_send_r4 — poll R4 status,
-; write A to R4 data &06E2: tube_escape_check — check &FF, forward escape to R1 &06E8:
-; tube_event_handler — EVNTV: forward event (A,X,Y) via R1 &06F7: tube_send_r1 — poll R1
-; status, write A to R1 data
+; Copied from ROM at reloc_p4_src+&200 during init. &0600–&0601 is the tail of
+; tube_osfile (BEQ to tube_reply_byte when done).
+;
+; Layout:
+;
+; | Addr  | Role                                                       |
+; |-------|------------------------------------------------------------|
+; | &0602 | tube_osgbpb — multi-byte file I/O                          |
+; | &0626 | tube_osbyte_short — 2-param OSBYTE (returns X)             |
+; | &063B | tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)      |
+; | &065D | tube_osword — variable-length OSWORD (buffer at &0130)     |
+; | &06A3 | tube_osword_rdln — OSWORD 0 (read line, 5-byte params)     |
+; | &06BB | tube_rdln_send_line — send input line from &0700           |
+; | &06D0 | tube_send_r2 — poll R2 status, write A to R2 data          |
+; | &06D9 | tube_send_r4 — poll R4 status, write A to R4 data          |
+; | &06E2 | tube_escape_check — check &FF, forward escape to R1        |
+; | &06E8 | tube_event_handler — EVNTV: forward event (A, X, Y) via R1 |
+; | &06F7 | tube_send_r1 — poll R1 status, write A to R1 data          |
 ; &0600 referenced 1 time by &812f
 .tube_code_page6
     beq mj                                                            ; 955a: f0 d3       .. :0600[4]         ; OSGBPB done: return to main loop

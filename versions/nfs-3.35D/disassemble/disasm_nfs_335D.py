@@ -552,23 +552,28 @@ d.subroutine(
     0x0500,
     "tube_dispatch_table",
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
-    description="""Copied from ROM during init (reloc_p5_src-18). Contains:
-  &0500: tube_dispatch_table — 14-entry handler address table
-  &051C: tube_wrch_handler — WRCHV target
-  &051F: tube_send_and_poll — send byte via R2, poll for reply
-  &0527: tube_poll_r1_wrch — service R1 WRCH while waiting for R2
-  &053D: tube_release_return — restore regs and RTS
-  &0543: tube_osbput — write byte to file
-  &0550: tube_osbget — read byte from file
-  &055B: tube_osrdch — read character
-  &0569: tube_osfind — open file
-  &0580: tube_osfind_close — close file (A=0)
-  &058C: tube_osargs — file argument read/write
-  &05B1: tube_read_string — read CR-terminated string into &0700
-  &05C5: tube_oscli — execute * command
-  &05CB: tube_reply_ack — send &7F acknowledge
-  &05CD: tube_reply_byte — send byte and return to main loop
-  &05D8: tube_osfile — whole file operation""",
+    description="""Copied from ROM at [`reloc_p5_src`](address:945F)−`&18` during init.
+
+Layout:
+
+| Range            | Role |
+|------------------|------|
+| `&0500`–`&051B`  | 14-entry handler dispatch table (low / high address pairs) |
+| `&051C`          | [`tube_wrch_handler`](address:051C) — WRCHV target |
+| `&051F`          | [`tube_send_and_poll`](address:051F) — send byte via R2, poll for reply |
+| `&0527`          | [`tube_poll_r1_wrch`](address:0527) — service R1 WRCH while waiting for R2 |
+| `&053D`          | [`tube_release_return`](address:053D) — restore registers and `RTS` |
+| `&0543`          | [`tube_osbput`](address:0543) — write byte to file |
+| `&0550`          | [`tube_osbget`](address:0550) — read byte from file |
+| `&055B`          | [`tube_osrdch`](address:055B) — read character |
+| `&0569`          | [`tube_osfind`](address:0569) — open file |
+| `&0580`          | [`tube_osfind_close`](address:0580) — close file (`A=0`) |
+| `&058C`          | [`tube_osargs`](address:058C) — file argument read / write |
+| `&05B1`          | [`tube_read_string`](address:05B1) — read CR-terminated string into `&0700` |
+| `&05C5`          | [`tube_oscli`](address:05C5) — execute `*` command |
+| `&05CB`          | [`tube_reply_ack`](address:05CB) — send `&7F` acknowledge |
+| `&05CD`          | [`tube_reply_byte`](address:05CD) — send byte and return to main loop |
+| `&05D8`          | [`tube_osfile`](address:05D8) — whole-file operation |""",
 )
 
 
@@ -746,19 +751,25 @@ d.subroutine(
     0x0600,
     "tube_code_page6",
     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
-    description="""Copied from ROM during init (reloc_p6_src-18). &0600-&0601 is the tail
-of tube_osfile (BEQ to tube_reply_byte when done). Contains:
-  &0602: tube_osgbpb — multi-byte file I/O
-  &0626: tube_osbyte_short — 2-param OSBYTE (returns X)
-  &063B: tube_osbyte_long — 3-param OSBYTE (returns carry+Y+X)
-  &065D: tube_osword — variable-length OSWORD (buffer at &0130)
-  &06A3: tube_osword_rdln — OSWORD 0 (read line, 5-byte params)
-  &06BB: tube_rdln_send_line — send input line from &0700
-  &06D0: tube_send_r2 — poll R2 status, write A to R2 data
-  &06D9: tube_send_r4 — poll R4 status, write A to R4 data
-  &06E2: tube_escape_check — check &FF, forward escape to R1
-  &06E8: tube_event_handler — EVNTV: forward event (A,X,Y) via R1
-  &06F7: tube_send_r1 — poll R1 status, write A to R1 data""",
+    description="""Copied from ROM at [`reloc_p6_src`](address:955F)−`&18` during init.
+`&0600`–`&0601` is the tail of [`tube_osfile`](address:05D8) (`BEQ` to
+[`tube_reply_byte`](address:05CD) when done).
+
+Layout:
+
+| Addr    | Role |
+|---------|------|
+| `&0602` | [`tube_osgbpb`](address:0602) — multi-byte file I/O |
+| `&0626` | [`tube_osbyte_short`](address:0626) — 2-param `OSBYTE` (returns X) |
+| `&063B` | [`tube_osbyte_long`](address:063B) — 3-param `OSBYTE` (returns carry+Y+X) |
+| `&065D` | [`tube_osword`](address:065D) — variable-length `OSWORD` (buffer at `&0130`) |
+| `&06A3` | [`tube_osword_rdln`](address:06A3) — `OSWORD 0` (read line, 5-byte params) |
+| `&06BB` | [`tube_rdln_send_line`](address:06BB) — send input line from `&0700` |
+| `&06D0` | [`tube_send_r2`](address:06D0) — poll R2 status, write `A` to R2 data |
+| `&06D9` | [`tube_send_r4`](address:06D9) — poll R4 status, write `A` to R4 data |
+| `&06E2` | [`tube_escape_check`](address:06E2) — check `&FF`, forward escape to R1 |
+| `&06E8` | [`tube_event_handler`](address:06E8) — EVNTV: forward event (A, X, Y) via R1 |
+| `&06F7` | [`tube_send_r1`](address:06F7) — poll R1 status, write `A` to R1 data |""",
 )
 
 d.comment(0x0600, "OSGBPB done: return to main loop", align=Align.INLINE)

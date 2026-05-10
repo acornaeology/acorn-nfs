@@ -624,22 +624,29 @@ d.subroutine(
     0x0500,
     "tube_dispatch_table",
     title="Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)",
-    description="""Copied from ROM at reloc_p5_src during init. Contains:
-  &0500: 12-entry dispatch table (&0500-&0517)
-  &0518: 8-byte Tube control register value table
-  &0520: tube_osbput — write byte to file
-  &052D: tube_osbget — read byte from file
-  &0537: tube_osrdch — read character
-  &053A: tube_rdch_reply — send carry+data as reply
-  &0542: tube_osfind — open/close file
-  &055E: tube_osargs — file argument read/write
-  &0582: tube_read_string — read string from R2 into &0700
-  &0596: tube_oscli — execute * command
-  &059C: tube_reply_ack — send &7F acknowledge
-  &05A9: tube_osfile — whole file operation
-  &05D1: tube_osgbpb — multi-byte file read/write
-Code continues seamlessly into page 6 (tube_osbyte_short at &05F2
-straddles the page boundary with a BVC at &05FF/&0600).""",
+    description="""Copied from ROM at [`reloc_p5_src`](address:9465) during init.
+
+Layout:
+
+| Range            | Role |
+|------------------|------|
+| `&0500`–`&0517`  | 12-entry handler dispatch table (low / high address pairs) |
+| `&0518`–`&051F`  | [`tube_ctrl_values`](address:0518) — Tube ULA control values per xfer type |
+| `&0520`          | [`tube_osbput`](address:0520) — write byte to file |
+| `&052D`          | [`tube_osbget`](address:052D) — read byte from file |
+| `&0537`          | [`tube_osrdch`](address:0537) — read character |
+| `&053A`          | [`tube_rdch_reply`](address:053A) — send carry+data as reply |
+| `&0542`          | [`tube_osfind`](address:0542) — open / close file |
+| `&055E`          | [`tube_osargs`](address:055E) — file argument read / write |
+| `&0582`          | [`tube_read_string`](address:0582) — read string from R2 into `&0700` |
+| `&0596`          | [`tube_oscli`](address:0596) — execute `*` command |
+| `&059C`          | [`tube_reply_ack`](address:059C) — send `&7F` acknowledge |
+| `&05A9`          | [`tube_osfile`](address:05A9) — whole-file operation |
+| `&05D1`          | [`tube_osgbpb`](address:05D1) — multi-byte file read / write |
+
+Code continues seamlessly into page 6: the 2-param `OSBYTE` handler's
+result-poll loop crosses the page boundary, with a `BVS &05FC` at
+`&05FF`/`&0600`.""",
 )
 
 
@@ -647,12 +654,21 @@ d.label(0x0518, "tube_ctrl_values")
 
 d.comment(
     0x0518,
-    """Tube ULA control register values, indexed by transfer
-type (0-7). Written to &FEE0 after clearing V+M with
-&18. Bit layout: S=set/clear, T=reset regs, P=PRST,
-V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1),
-Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the
-value to set or clear.""",
+    """Tube ULA control register values, indexed by transfer type (0–7).
+Written to `&FEE0` after clearing V+M with `&18`.
+
+Bit layout (bit 0 is the value to set or clear; bits 1–7 are flag selectors):
+
+| Bit | Name | Meaning             |
+|-----|------|---------------------|
+| 7   | Q    | HIRQ (R4)           |
+| 6   | I    | PIRQ (R1)           |
+| 5   | J    | PIRQ (R4)           |
+| 4   | M    | PNMI (R3)           |
+| 3   | V    | 2-byte R3           |
+| 2   | P    | PRST                |
+| 1   | T    | reset registers     |
+| 0   | S    | set / clear value   |""",
 )
 for addr, desc in _tube_ctrl_entries:
     d.byte(addr)
@@ -666,9 +682,9 @@ d.subroutine(
     0x0520,
     "tube_osbput",
     title="Tube OSBPUT handler (R2 cmd 8)",
-    description="""Reads file handle and data byte from R2, then
-calls OSBPUT (&FFD4) to write the byte. Falls through
-to tube_reply_ack to send &7F acknowledgement.""",
+    description="""Reads file handle and data byte from R2, then calls
+`OSBPUT` (`&FFD4`) to write the byte. Falls through to
+[`tube_reply_ack`](address:059C) to send the `&7F` acknowledgement.""",
 )
 
 
@@ -684,10 +700,9 @@ d.subroutine(
     0x052D,
     "tube_osbget",
     title="Tube OSBGET handler (R2 cmd 7)",
-    description="""Reads file handle from R2, calls OSBGET (&FFD7)
-to read a byte, then falls through to tube_rdch_reply
-which encodes the carry flag (error) into bit 7 and
-sends the result byte via R2.""",
+    description="""Reads file handle from R2, calls `OSBGET` (`&FFD7`) to read a
+byte, then falls through to [`tube_rdch_reply`](address:053A) which
+encodes the carry flag (error) into bit 7 and sends the result byte via R2.""",
 )
 
 
@@ -699,10 +714,10 @@ d.subroutine(
     0x0537,
     "tube_osrdch",
     title="Tube OSRDCH handler (R2 cmd 0)",
-    description="""Calls OSRDCH (&FFE0) to read a character from
-the current input stream, then falls through to
-tube_rdch_reply which encodes the carry flag (error)
-into bit 7 and sends the result byte via R2.""",
+    description="""Calls `OSRDCH` (`&FFE0`) to read a character from the current
+input stream, then falls through to [`tube_rdch_reply`](address:053A)
+which encodes the carry flag (error) into bit 7 and sends the result
+byte via R2.""",
 )
 
 
@@ -719,11 +734,14 @@ d.subroutine(
     0x0542,
     "tube_osfind",
     title="Tube OSFIND handler (R2 cmd 9)",
-    description="""Reads open mode from R2. If zero, reads a file
-handle and closes that file. Otherwise saves the mode,
-reads a filename string into &0700 via tube_read_string,
-then calls OSFIND (&FFCE) to open the file. Sends the
-resulting file handle (or &00) via tube_reply_byte.""",
+    description="""Reads open mode from R2.
+
+- Mode `&00`: read a file handle and close that file (via
+  [`tube_osfind_close`](address:0552)).
+- Otherwise: save the mode, read a filename string into `&0700` via
+  [`tube_read_string`](address:0582), then call `OSFIND` (`&FFCE`) to
+  open the file. Send the resulting file handle (or `&00`) via
+  [`tube_reply_byte`](address:059E).""",
 )
 
 
@@ -745,10 +763,9 @@ d.subroutine(
     0x055E,
     "tube_osargs",
     title="Tube OSARGS handler (R2 cmd 6)",
-    description="""Reads file handle from R2 into Y, then reads
-a 4-byte argument and reason code into zero page.
-Calls OSARGS (&FFDA), sends the result A and 4-byte
-return value via R2, then returns to the main loop.""",
+    description="""Reads file handle from R2 into Y, then reads a 4-byte argument
+and reason code into zero page. Calls `OSARGS` (`&FFDA`), sends the
+result `A` and 4-byte return value via R2, then returns to the main loop.""",
 )
 
 
@@ -779,12 +796,12 @@ d.subroutine(
     0x0582,
     "tube_read_string",
     title="Read string from Tube R2 into buffer",
-    description="""Loops reading bytes from tube_read_r2 into the
-string buffer at &0700, storing at string_buf+Y.
-Terminates on CR (&0D) or when Y wraps to zero
-(256-byte overflow). Returns with X=0, Y=7 so that
-XY = &0700, ready for OSCLI or OSFIND dispatch.
-Called by the Tube OSCLI and OSFIND handlers.""",
+    description="""Loops reading bytes from `tube_read_r2` into the string buffer
+at `&0700`, storing at `string_buf+Y`. Terminates on `CR` (`&0D`) or
+when Y wraps to zero (256-byte overflow). Returns with `X=0, Y=7` so
+that `XY = &0700`, ready for `OSCLI` or `OSFIND` dispatch.
+Called by the Tube OSCLI and OSFIND handlers
+([`tube_oscli`](address:0596), [`tube_osfind`](address:0542)).""",
 )
 
 
@@ -808,10 +825,10 @@ d.subroutine(
     0x0596,
     "tube_oscli",
     title="Tube OSCLI handler (R2 cmd 1)",
-    description="""Reads a command string from R2 into &0700 via
-tube_read_string, then calls OSCLI (&FFF7) to execute
-it. Falls through to tube_reply_ack to send &7F
-acknowledgement.""",
+    description="""Reads a command string from R2 into `&0700` via
+[`tube_read_string`](address:0582), then calls `OSCLI` (`&FFF7`) to
+execute it. Falls through to [`tube_reply_ack`](address:059C) to send
+the `&7F` acknowledgement.""",
 )
 
 
@@ -834,11 +851,11 @@ d.subroutine(
     0x05A9,
     "tube_osfile",
     title="Tube OSFILE handler (R2 cmd 10)",
-    description="""Reads a 16-byte control block into zero page,
-a filename string into &0700 via tube_read_string,
-and a reason code from R2. Calls OSFILE (&FFDD),
-then sends the result A and updated 16-byte control
-block back via R2. Returns to the main loop via mj.""",
+    description="""Reads a 16-byte control block into zero page, a filename string
+into `&0700` via [`tube_read_string`](address:0582), and a reason code
+from R2. Calls `OSFILE` (`&FFDD`), then sends the result `A` and updated
+16-byte control block back via R2. Returns to the main loop via
+[`mj`](address:05A6).""",
 )
 
 
@@ -870,10 +887,9 @@ d.subroutine(
     0x05D1,
     "tube_osgbpb",
     title="Tube OSGBPB handler (R2 cmd 11)",
-    description="""Reads a 13-byte control block and reason code
-from R2 into zero page. Calls OSGBPB (&FFD1), then
-sends 12 result bytes and the carry+result byte
-(via tube_rdch_reply) back via R2.""",
+    description="""Reads a 13-byte control block and reason code from R2 into zero
+page. Calls `OSGBPB` (`&FFD1`), then sends 12 result bytes and the
+carry+result byte (via [`tube_rdch_reply`](address:053A)) back via R2.""",
 )
 
 
@@ -901,10 +917,9 @@ d.subroutine(
     0x05F2,
     "tube_osbyte_2param",
     title="Tube OSBYTE 2-param handler (R2 cmd 2)",
-    description="""Reads X and A from R2, calls OSBYTE (&FFF4)
-with Y=0, then sends the result X via
-tube_reply_byte. Used for OSBYTE calls that take
-only A and X parameters.""",
+    description="""Reads X and A from R2, calls `OSBYTE` (`&FFF4`) with `Y=0`,
+then sends the result X via [`tube_reply_byte`](address:059E). Used for
+`OSBYTE` calls that take only A and X parameters.""",
 )
 
 
@@ -933,10 +948,9 @@ d.subroutine(
     0x0607,
     "tube_osbyte_long",
     title="Tube OSBYTE 3-param handler (R2 cmd 3)",
-    description="""Reads X, Y, and A from R2, calls OSBYTE
-(&FFF4), then sends carry+Y and X as result bytes
-via R2. Used for OSBYTE calls needing all three
-parameters and returning both X and Y results.""",
+    description="""Reads X, Y, and A from R2, calls `OSBYTE` (`&FFF4`), then sends
+carry+Y and X as result bytes via R2. Used for `OSBYTE` calls needing
+all three parameters and returning both X and Y results.""",
 )
 
 
@@ -965,11 +979,10 @@ d.subroutine(
     0x0627,
     "tube_osword",
     title="Tube OSWORD handler (R2 cmd 4)",
-    description="""Reads OSWORD number A and in-length from R2,
-then reads the parameter block into &0128. Calls
-OSWORD (&FFF1), then sends the out-length result
-bytes from the parameter block back via R2.
-Returns to the main loop via tube_return_main.""",
+    description="""Reads OSWORD number `A` and in-length from R2, then reads the
+parameter block into `&0128`. Calls `OSWORD` (`&FFF1`), then sends the
+out-length result bytes from the parameter block back via R2. Returns
+to the main loop via `tube_return_main`.""",
 )
 
 
@@ -1025,12 +1038,13 @@ d.subroutine(
     0x0668,
     "tube_osword_rdln",
     title="Tube OSWORD 0 handler (R2 cmd 5)",
-    description="""Handles OSWORD 0 (read line) specially. Reads
-4 parameter bytes from R2 into &0128 (max length,
-min char, max char, flags). Calls OSWORD 0 (&FFF1)
-to read a line, then sends &7F+CR or the input line
-byte-by-byte via R2, followed by &80 (error/escape)
-or &7F (success).""",
+    description="""Handles `OSWORD 0` (read line) specially. Reads 4 parameter bytes
+from R2 into `&0128` (max length, min char, max char, flags). Calls
+`OSWORD 0` (`&FFF1`) to read a line, then sends `&7F`+`CR` or the input
+line byte-by-byte via R2, followed by:
+
+- `&80` — error / escape, or
+- `&7F` — success.""",
 )
 
 
@@ -1068,12 +1082,11 @@ d.subroutine(
     0x0695,
     "tube_send_r2",
     title="Send byte to Tube data register R2",
-    description="""Polls Tube status register 2 until bit 6 (TDRA)
-is set, then writes A to the data register. Uses a
-tight BIT/BVC polling loop. Called by 12 sites
-across the Tube host code for all R2 data
-transmission: command responses, file data, OSBYTE
-results, and control block bytes.""",
+    description="""Polls Tube status register 2 until bit 6 (TDRA) is set, then
+writes `A` to the data register. Uses a tight `BIT`/`BVC` polling loop.
+Called by 12 sites across the Tube host code for all R2 data
+transmission: command responses, file data, `OSBYTE` results, and
+control-block bytes.""",
 )
 
 
@@ -1087,13 +1100,12 @@ d.subroutine(
     0x069E,
     "tube_send_r4",
     title="Send byte to Tube data register R4",
-    description="""Polls Tube status register 4 until bit 6 is set,
-then writes A to the data register. Uses a tight
-BIT/BVC polling loop. R4 is the command/control
-channel used for address claims (ADRR), data transfer
-setup (SENDW), and release commands. Called by 7
-sites, primarily during tube_release_claim and
-tube_transfer_setup sequences.""",
+    description="""Polls Tube status register 4 until bit 6 is set, then writes
+`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R4 is
+the command / control channel used for address claims (ADRR), data
+transfer setup (SENDW), and release commands. Called by 7 sites,
+primarily during [`tube_release_claim`](address:0414) and
+[`tube_transfer_setup`](address:0435) sequences.""",
 )
 
 
@@ -1127,13 +1139,12 @@ d.subroutine(
     0x06BC,
     "tube_send_r1",
     title="Send byte to Tube data register R1",
-    description="""Polls Tube status register 1 until bit 6 is set,
-then writes A to the data register. Uses a tight
-BIT/BVC polling loop. R1 is used for asynchronous
-event and escape notification to the co-processor.
-Called by tube_event_handler to forward event type,
-Y, and X parameters, and reached via BMI from
-tube_escape_check when the escape flag is set.""",
+    description="""Polls Tube status register 1 until bit 6 is set, then writes
+`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R1 is
+used for asynchronous event and escape notification to the co-processor.
+Called by [`tube_event_handler`](address:06AD) to forward event type,
+Y, and X parameters, and reached via `BMI` from
+[`tube_escape_check`](address:06A7) when the escape flag is set.""",
 )
 
 
@@ -1147,10 +1158,9 @@ d.subroutine(
     0x06C5,
     "tube_read_r2",
     title="Read a byte from Tube data register R2",
-    description="""Polls Tube status register 2 until data is available
-(bit 7 set), then loads A from Tube data register 2.
-Called by all Tube dispatch handlers that receive data
-or parameters from the co-processor.""",
+    description="""Polls Tube status register 2 until data is available (bit 7 set),
+then loads `A` from Tube data register 2. Called by all Tube dispatch
+handlers that receive data or parameters from the co-processor.""",
 )
 
 
