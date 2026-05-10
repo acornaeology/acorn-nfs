@@ -74,3 +74,45 @@ Legend: `.` = pending, `~` = in-progress, `✓` = swept + verified.
   &0016 is correct ("polls R4"). Logged as task #11.
 - 3.34 / 3.34B `comments check --strict` HIGH finding: `Y=&85 but LDY #&84`
   at &83F6 / &83F7. Pre-existing on master.
+
+## Final state (all 8 sections complete)
+
+| Check                          | Result |
+|--------------------------------|--------|
+| `fantasm verify` × 8 versions  | all PASSED (8192-byte byte-identical match) |
+| `fantasm lint` × 8 versions    | all clean (no broken refs) |
+| `fantasm comments check --strict` | only the 2 pre-existing HIGH findings on 3.34/3.34B remain |
+| Site rebuild                   | zero warnings |
+
+`address:HEX` link counts per driver (started at 1–3 per version):
+
+| Version | Links | Inline-comment density |
+|---------|-------|------------------------|
+| 3.34    | 60    | 97.2% |
+| 3.34B   | 58    | 97.1% |
+| 3.35D   | 60    | 97.4% |
+| 3.35K   | 60    | 97.4% |
+| 3.40    | 65    | 97.6% |
+| 3.60    | 72    | 97.6% |
+| 3.62    | 72    | 97.6% |
+| 3.65    | 95    | 97.6% |
+
+## What was deliberately NOT done
+
+- Full linkification of every bare `&XXXX` in inline comments. The sweep
+  prioritised descriptions (`title=`, `description=` kwargs of
+  `subroutine()`/`label()`) and the most impactful inline references.
+  Around 330–380 bare-hex occurrences remain per driver — most are
+  immediate values, byte literals (`&80`, `&FF`), or addresses for
+  which adding a link would be lower-value churn.
+- Per-handler `tube_X` polish in 3.34 / 3.34B / 3.35D / 3.35K. Those
+  versions don't carry separate `subroutine()` declarations for handlers
+  like `tube_osbput`, only labels. The page-5 / page-6 banners were
+  upgraded; per-handler descriptions only exist (and were upgraded)
+  from 3.40 onwards.
+- `econet_tx_rx` rewrite for older versions (description references
+  &8383 which is 3.65-specific).
+- Older-version (3.34/B/D/K) `argsv_handler` and `findv_handler`
+  rewrites — those versions used different FS commands (&0A/&14 vs
+  &0C/&0D) so the per-row content needs different protocol details
+  rather than just an address-shift sed.
