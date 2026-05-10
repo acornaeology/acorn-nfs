@@ -1657,6 +1657,32 @@ d.label(0x80F2, "return_1")
 d.comment(0x80F2, "RTS pops address, adds 1, jumps to handler", align=Align.INLINE)
 
 
+d.subroutine(
+    0x80F3,
+    "service_handler",
+    title="Service-call handler",
+    description="""Entry point for MOS service-call dispatch — the `JMP` target
+from [`service_entry`](address:8003).
+
+On service 1 (workspace claim) probes ADLC status registers
+`SR1` (`&FEA0`) and `SR2` (`&FEA1`) to detect whether Econet
+hardware is present. Non-zero reads indicate bus noise from
+absent hardware; sets bit 7 of the per-ROM workspace as a
+disable flag. For services `<&80`, the flag causes an early
+return (disabling this ROM). Services `>=&80` (`&FE`, `&FF`)
+are always handled regardless.
+
+Intercepts three service calls before normal dispatch:
+
+| Svc           | Action |
+|---------------|--------|
+| `&FE`         | Tube init — explode character definitions |
+| `&FF`         | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via
+[`do_svc_dispatch`](address:8186).""",
+)
 d.comment(0x80F3, "Save service call number", align=Align.INLINE)
 d.comment(0x80F4, "Only probe ADLC on service 1 (workspace claim)", align=Align.INLINE)
 d.comment(0x80F6, "Not service 1: skip probe", align=Align.INLINE)
@@ -1681,27 +1707,6 @@ d.comment(0x8114, "C=1 (no ADLC): disable ROM, skip", align=Align.INLINE)
 d.label(0x8116, "check_svc_high")
 
 d.comment(0x8116, "Service >= &FE?", align=Align.INLINE)
-d.subroutine(
-    0x8116,
-    "service_handler_entry",
-    title="Service handler entry",
-    description="""On service 1 only, probes ADLC status registers SR1 (`&FEA0`)
-and SR2 (`&FEA1`) to detect whether Econet hardware is present.
-Non-zero reads indicate bus noise from absent hardware; sets bit 7
-of the per-ROM workspace as a disable flag. For services `<&80`,
-the flag causes an early return (disabling this ROM). Services
-`>=&80` (`&FE`, `&FF`) are always handled regardless.
-
-Intercepts three service calls before normal dispatch:
-
-| Svc        | Action |
-|------------|--------|
-| `&FE`      | Tube init — explode character definitions |
-| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
-| `&12` (`Y=5`) | Select NFS as active filing system |
-
-All other service calls `<&0D` dispatch via [`do_svc_dispatch`](address:8186).""",
-)
 
 d.comment(0x8118, "Service < &FE: skip to &12/dispatch check", align=Align.INLINE)
 d.comment(0x811A, "Service &FF: full init (vectors + RAM copy)", align=Align.INLINE)

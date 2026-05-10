@@ -1359,9 +1359,12 @@ d.comment(0x80AE, "RTS pops address, adds 1, jumps to handler", align=Align.INLI
 
 d.subroutine(
     0x80AF,
-    "service_handler_entry",
-    title="Service handler entry",
-    description="""Intercepts three special service calls before normal dispatch:
+    "service_handler",
+    title="Service-call handler",
+    description="""Entry point for MOS service-call dispatch — the `JMP` target
+from [`service_entry`](address:8003).
+
+Intercepts three special service calls before normal dispatch:
 
 | Svc        | Action |
 |------------|--------|

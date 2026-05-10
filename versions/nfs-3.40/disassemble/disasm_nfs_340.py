@@ -1580,6 +1580,33 @@ d.label(0x80F6, "return_1")
 d.comment(0x80F6, "RTS pops address, adds 1, jumps to handler", align=Align.INLINE)
 
 
+d.subroutine(
+    0x80F7,
+    "service_handler",
+    title="Service-call handler",
+    description="""Entry point for MOS service-call dispatch — the `JMP` target
+from [`service_entry`](address:8003).
+
+Begins with 9 `NOP`s for bus settling, then probes for Econet
+hardware on the first call by reading the station-ID register
+twice and comparing the two reads (a stable value indicates
+ADLC presence; mismatched or zero reads indicate bus noise from
+absent hardware). Sets bit 7 of the per-ROM workspace as a
+disable flag when no ADLC is found. For services `<&80`, the
+flag causes an early return (disabling this ROM). Services
+`>=&80` (`&FE`, `&FF`) are always handled regardless.
+
+Intercepts three service calls before normal dispatch:
+
+| Svc           | Action |
+|---------------|--------|
+| `&FE`         | Tube init — explode character definitions |
+| `&FF`         | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via
+[`dispatch`](address:80E7).""",
+)
 d.comment(0x80F7, "9 NOPs: bus settling time for ADLC probe", align=Align.INLINE)
 d.comment(0x80F8, "(bus settling continued)", align=Align.INLINE)
 d.comment(0x80F9, "(bus settling continued)", align=Align.INLINE)
@@ -1609,21 +1636,6 @@ d.comment(0x8119, "C into bit 7 of A", align=Align.INLINE)
 d.comment(0x811A, "Restore service call number", align=Align.INLINE)
 d.comment(0x811B, "Service >= &80: always handle (Tube/init)", align=Align.INLINE)
 d.comment(0x811D, "C=1 (no ADLC): disable ROM, skip", align=Align.INLINE)
-
-d.subroutine(
-    0x811F,
-    "service_handler_entry",
-    title="Service handler entry",
-    description="""Intercepts three service calls before normal dispatch:
-
-| Svc        | Action |
-|------------|--------|
-| `&FE`      | Tube init — explode character definitions |
-| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
-| `&12` (`Y=5`) | Select NFS as active filing system |
-
-All other service calls `<&0D` dispatch via [`dispatch`](address:80E7).""",
-)
 
 d.label(0x811F, "check_svc_high")
 d.comment(0x811F, "Service >= &FE?", align=Align.INLINE)

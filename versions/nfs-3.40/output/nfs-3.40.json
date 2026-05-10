@@ -467,14 +467,13 @@
       "addr": 32999,
       "name": "dispatch",
       "title": "PHA/PHA/RTS computed dispatch",
-      "description": "On entry:\n\n- `X` = command index within the caller's group (e.g. service number).\n- `Y` = base offset into the dispatch table (`0`, `&0E`, `&13`, `&21`, \u2026).\n\nThe loop adds `Y+1` to `X`, so the final `X = command index + base + 1`.\nThe high and low bytes of `(handler \u2212 1)` are then pushed onto the\nstack, and `RTS` pops them and jumps to the handler.\n\nThis is a standard 6502 trick: `RTS` increments the popped address by\n1 before jumping, so the table stores `(address \u2212 1)` to compensate.\nMultiple callers share one table via different `Y` base offsets \u2014 see\n[`dispatch_0_lo`](address:8025) for the low-byte table and the caller\ngroups.",
-      "fall_through": true
+      "description": "On entry:\n\n- `X` = command index within the caller's group (e.g. service number).\n- `Y` = base offset into the dispatch table (`0`, `&0E`, `&13`, `&21`, \u2026).\n\nThe loop adds `Y+1` to `X`, so the final `X = command index + base + 1`.\nThe high and low bytes of `(handler \u2212 1)` are then pushed onto the\nstack, and `RTS` pops them and jumps to the handler.\n\nThis is a standard 6502 trick: `RTS` increments the popped address by\n1 before jumping, so the table stores `(address \u2212 1)` to compensate.\nMultiple callers share one table via different `Y` base offsets \u2014 see\n[`dispatch_0_lo`](address:8025) for the low-byte table and the caller\ngroups."
     },
     {
-      "addr": 33055,
-      "name": "service_handler_entry",
-      "title": "Service handler entry",
-      "description": "Intercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80E7).",
+      "addr": 33015,
+      "name": "service_handler",
+      "title": "Service-call handler",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nBegins with 9 `NOP`s for bus settling, then probes for Econet\nhardware on the first call by reading the station-ID register\ntwice and comparing the two reads (a stable value indicates\nADLC presence; mismatched or zero reads indicate bus noise from\nabsent hardware). Sets bit 7 of the per-ROM workspace as a\ndisable flag when no ADLC is found. For services `<&80`, the\nflag causes an early return (disabling this ROM). Services\n`>=&80` (`&FE`, `&FF`) are always handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`dispatch`](address:80E7).",
       "fall_through": true
     },
     {
@@ -4891,9 +4890,9 @@
       "comment_inline": "Service >= &80: always handle (Tube/init)",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "service_handler_entry",
+      "operand": "check_svc_high",
       "target": 33055,
-      "target_label": "service_handler_entry"
+      "target_label": "check_svc_high"
     },
     {
       "addr": 33053,
@@ -4915,7 +4914,6 @@
         254
       ],
       "labels": [
-        "service_handler_entry",
         "check_svc_high"
       ],
       "comment_inline": "Service >= &FE?",

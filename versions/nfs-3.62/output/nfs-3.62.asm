@@ -1756,6 +1756,26 @@ cmd_roff_str = copyright_string+3
 ; &80f6 referenced 3 times by &80cb, &80d9, &80e3
 .return_1
     rts                                                               ; 80f6: 60          `        ; RTS pops address, adds 1, jumps to handler
+; ***************************************************************************************
+; Service-call handler
+;
+; Entry point for MOS service-call dispatch — the JMP target from service_entry.
+;
+; Begins with 9 NOPs for bus settling, then on service 1 (workspace claim) probes ADLC
+; status registers SR1 (&FEA0) and SR2 (&FEA1) to detect whether Econet hardware is
+; present. Non-zero reads indicate bus noise from absent hardware; sets bit 7 of the
+; per-ROM workspace as a disable flag. For services <&80, the flag causes an early return
+; (disabling this ROM). Services >=&80 (&FE, &FF) are always handled regardless.
+;
+; Intercepts three service calls before normal dispatch:
+;
+; | Svc       | Action                                                 |
+; |-----------|--------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions              |
+; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                     |
+;
+; All other service calls <&0D dispatch via do_svc_dispatch.
 ; &80f7 referenced 1 time by &8003
 .service_handler
     nop                                                               ; 80f7: ea          .        ; 9 NOPs: bus settling time for ADLC probe
@@ -1788,28 +1808,8 @@ cmd_roff_str = copyright_string+3
     pla                                                               ; 811e: 68          h        ; Restore service call number
     bmi check_svc_high                                                ; 811f: 30 02       0.       ; Service >= &80: always handle (Tube/init)
     bcs svc_unhandled_return                                          ; 8121: b0 6e       .n       ; C=1 (no ADLC): disable ROM, skip
-; ***************************************************************************************
-; Service handler entry
-;
-; Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only, probes ADLC status
-; registers SR1 (&FEA0) and SR2 (&FEA1) to detect whether Econet hardware is present.
-; Non-zero reads indicate bus noise from absent hardware; sets bit 7 of the per-ROM
-; workspace as a disable flag. For services <&80, the flag causes an early return
-; (disabling this ROM). Services >=&80 (&FE, &FF) are always handled regardless. The 9
-; NOPs at &80F7 provide bus settling time after register access.
-;
-; Intercepts three service calls before normal dispatch:
-;
-; | Svc       | Action                                                 |
-; |-----------|--------------------------------------------------------|
-; | &FE       | Tube init — explode character definitions              |
-; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
-; | &12 (Y=5) | Select NFS as active filing system                     |
-;
-; All other service calls <&0D dispatch via do_svc_dispatch.
 ; &8123 referenced 1 time by &811f
 .check_svc_high
-.service_handler_entry
     cmp #&fe                                                          ; 8123: c9 fe       ..       ; Service >= &FE?
     bcc check_svc_12                                                  ; 8125: 90 5c       .\       ; Service < &FE: skip to &12/dispatch check
     bne init_vectors_and_copy                                         ; 8127: d0 1b       ..       ; Service &FF: full init (vectors + RAM copy)
@@ -9035,7 +9035,6 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
-;     service_handler_entry:                    1
 ;     service_handler_lo:                       1
 ;     set_adlc_disable:                         1
 ;     set_listen_offset:                        1

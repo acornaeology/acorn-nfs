@@ -1407,11 +1407,14 @@ d.comment(0x80E9, "RTS pops address, adds 1, jumps to handler", align=Align.INLI
 
 d.subroutine(
     0x80EA,
-    "service_handler_entry",
-    title="Service handler entry",
-    description="""Checks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If
-bit 7 is set, returns immediately; service calls `&FE`/`&FF` bypass
-this check.
+    "service_handler",
+    title="Service-call handler",
+    description="""Entry point for MOS service-call dispatch — the `JMP` target
+from [`service_entry`](address:8003).
+
+Checks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If
+bit 7 is set, returns immediately; service calls `&FE` / `&FF`
+bypass this check.
 
 Intercepts three service calls:
 

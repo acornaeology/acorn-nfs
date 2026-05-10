@@ -1601,7 +1601,9 @@ cmd_roff_str = copyright_string+3
 .return_1
     rts                                                               ; 80e9: 60          `        ; RTS pops address, adds 1, jumps to handler
 ; ***************************************************************************************
-; Service handler entry
+; Service-call handler
+;
+; Entry point for MOS service-call dispatch — the JMP target from service_entry.
 ;
 ; Intercepts three service calls before normal dispatch:
 ;
@@ -1615,7 +1617,6 @@ cmd_roff_str = copyright_string+3
 ; flag check that 3.35D has.
 ; &80ea referenced 1 time by &8003
 .service_handler
-.service_handler_entry
 .check_svc_high
     cmp #&fe                                                          ; 80ea: c9 fe       ..       ; Service >= &FE?
     bcc check_svc_12                                                  ; 80ec: 90 58       .X       ; Service < &FE: skip to &12/dispatch check
@@ -8725,7 +8726,6 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
-;     service_handler_entry:                    1
 ;     set_eof_flag:                             1
 ;     set_gbpb_error_ptr:                       1
 ;     set_listen_offset:                        1

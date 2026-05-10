@@ -490,14 +490,13 @@
       "addr": 32999,
       "name": "dispatch",
       "title": "PHA/PHA/RTS computed dispatch",
-      "description": "On entry:\n\n- `X` = command index within the caller's group (e.g. service number).\n- `Y` = base offset into the dispatch table (`0`, `&0E`, `&13`, `&21`, \u2026).\n\nThe loop adds `Y+1` to `X`, so the final `X = command index + base + 1`.\nThe high and low bytes of `(handler \u2212 1)` are then pushed onto the\nstack, and `RTS` pops them and jumps to the handler.\n\nThis is a standard 6502 trick: `RTS` increments the popped address by\n1 before jumping, so the table stores `(address \u2212 1)` to compensate.\nMultiple callers share one table via different `Y` base offsets \u2014 see\n[`dispatch_0_lo`](address:8025) for the low-byte table and the caller\ngroups.",
-      "fall_through": true
+      "description": "On entry:\n\n- `X` = command index within the caller's group (e.g. service number).\n- `Y` = base offset into the dispatch table (`0`, `&0E`, `&13`, `&21`, \u2026).\n\nThe loop adds `Y+1` to `X`, so the final `X = command index + base + 1`.\nThe high and low bytes of `(handler \u2212 1)` are then pushed onto the\nstack, and `RTS` pops them and jumps to the handler.\n\nThis is a standard 6502 trick: `RTS` increments the popped address by\n1 before jumping, so the table stores `(address \u2212 1)` to compensate.\nMultiple callers share one table via different `Y` base offsets \u2014 see\n[`dispatch_0_lo`](address:8025) for the low-byte table and the caller\ngroups."
     },
     {
-      "addr": 33059,
-      "name": "service_handler_entry",
-      "title": "Service handler entry",
-      "description": "Preamble at `&80F7` (9 `NOP`s + ADLC probe): on service 1 only,\nprobes ADLC status registers SR1 (`&FEA0`) and SR2 (`&FEA1`) to detect\nwhether Econet hardware is present. Non-zero reads indicate bus noise\nfrom absent hardware; sets bit 7 of the per-ROM workspace as a disable\nflag. For services `<&80`, the flag causes an early return (disabling\nthis ROM). Services `>=&80` (`&FE`, `&FF`) are always handled\nregardless. The 9 `NOP`s at `&80F7` provide bus settling time after\nregister access.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`do_svc_dispatch`](address:8193).",
+      "addr": 33015,
+      "name": "service_handler",
+      "title": "Service-call handler",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nBegins with 9 `NOP`s for bus settling, then on service 1\n(workspace claim) probes ADLC status registers `SR1` (`&FEA0`)\nand `SR2` (`&FEA1`) to detect whether Econet hardware is\npresent. Non-zero reads indicate bus noise from absent\nhardware; sets bit 7 of the per-ROM workspace as a disable\nflag. For services `<&80`, the flag causes an early return\n(disabling this ROM). Services `>=&80` (`&FE`, `&FF`) are\nalways handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`do_svc_dispatch`](address:8193).",
       "fall_through": true
     },
     {
@@ -5151,8 +5150,7 @@
         254
       ],
       "labels": [
-        "check_svc_high",
-        "service_handler_entry"
+        "check_svc_high"
       ],
       "comment_inline": "Service >= &FE?",
       "xref_summaries": [

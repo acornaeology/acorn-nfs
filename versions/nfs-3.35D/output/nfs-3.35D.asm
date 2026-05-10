@@ -1610,10 +1610,12 @@ cmd_roff_str = copyright_string+3
 .return_1
     rts                                                               ; 80e9: 60          `        ; RTS pops address, adds 1, jumps to handler
 ; ***************************************************************************************
-; Service handler entry
+; Service-call handler
+;
+; Entry point for MOS service-call dispatch — the JMP target from service_entry.
 ;
 ; Checks the per-ROM disable flag at &0DF0+X (new in 3.35D). If bit 7 is set, returns
-; immediately; service calls &FE/&FF bypass this check.
+; immediately; service calls &FE / &FF bypass this check.
 ;
 ; Intercepts three service calls:
 ;
@@ -1626,7 +1628,6 @@ cmd_roff_str = copyright_string+3
 ; All other service calls <&0D dispatch via dispatch.
 ; &80ea referenced 1 time by &8003
 .service_handler
-.service_handler_entry
     pha                                                               ; 80ea: 48          H        ; Save A (service number) on stack
     lda rom_ws_table,x                                                ; 80eb: bd f0 0d    ...      ; Load per-ROM workspace flag
     asl a                                                             ; 80ee: 0a          .        ; Test bit 7 (ROM disabled flag)
@@ -8769,7 +8770,6 @@ save pydis_start, pydis_end
 ;     send_xfer_addr_bytes:                     1
 ;     service_entry:                            1
 ;     service_handler:                          1
-;     service_handler_entry:                    1
 ;     set_listen_offset:                        1
 ;     set_tx_reply_flag:                        1
 ;     set_workspace_page:                       1

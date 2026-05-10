@@ -370,9 +370,9 @@
     },
     {
       "addr": 33002,
-      "name": "service_handler_entry",
-      "title": "Service handler entry",
-      "description": "Checks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If\nbit 7 is set, returns immediately; service calls `&FE`/`&FF` bypass\nthis check.\n\nIntercepts three service calls:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80DA).",
+      "name": "service_handler",
+      "title": "Service-call handler",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nChecks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If\nbit 7 is set, returns immediately; service calls `&FE` / `&FF`\nbypass this check.\n\nIntercepts three service calls:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80DA).",
       "fall_through": true
     },
     {
@@ -4529,8 +4529,7 @@
         72
       ],
       "labels": [
-        "service_handler",
-        "service_handler_entry"
+        "service_handler"
       ],
       "comment_inline": "Save A (service number) on stack",
       "xref_summaries": [

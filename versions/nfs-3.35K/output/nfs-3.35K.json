@@ -370,9 +370,9 @@
     },
     {
       "addr": 33002,
-      "name": "service_handler_entry",
-      "title": "Service handler entry",
-      "description": "Intercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80DA).\n3.35K removes the per-ROM disable flag check that 3.35D has.",
+      "name": "service_handler",
+      "title": "Service-call handler",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80DA).\n3.35K removes the per-ROM disable flag check that 3.35D has.",
       "fall_through": true
     },
     {
@@ -4505,7 +4505,6 @@
       ],
       "labels": [
         "service_handler",
-        "service_handler_entry",
         "check_svc_high"
       ],
       "comment_inline": "Service >= &FE?",

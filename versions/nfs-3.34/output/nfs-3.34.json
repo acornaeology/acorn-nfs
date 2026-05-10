@@ -363,9 +363,9 @@
     },
     {
       "addr": 32943,
-      "name": "service_handler_entry",
-      "title": "Service handler entry",
-      "description": "Intercepts three special service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions (`OSBYTE &14`, `X=6`) |\n| `&FF`      | Full init \u2014 set up `WRCHV` / `RDCHV` / `BRKV` / `EVNTV`, copy NMI handler code from ROM to RAM pages `&04`\u2013`&06`, copy workspace init to `&0016`\u2013`&0076`, then fall through to select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls dispatch via\n[`dispatch_service`](address:8127).",
+      "name": "service_handler",
+      "title": "Service-call handler",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nIntercepts three special service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions (`OSBYTE &14`, `X=6`) |\n| `&FF`      | Full init \u2014 set up `WRCHV` / `RDCHV` / `BRKV` / `EVNTV`, copy NMI handler code from ROM to RAM pages `&04`\u2013`&06`, copy workspace init to `&0016`\u2013`&0076`, then fall through to select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls dispatch via\n[`dispatch_service`](address:8127).",
       "fall_through": true
     },
     {
@@ -4129,7 +4129,6 @@
       ],
       "labels": [
         "service_handler",
-        "service_handler_entry",
         "check_svc_high"
       ],
       "comment_inline": "Service >= &FE?",
