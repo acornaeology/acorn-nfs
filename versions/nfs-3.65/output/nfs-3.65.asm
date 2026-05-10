@@ -1437,15 +1437,15 @@ cmd_roff_str = copyright_string+3
 ; the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8014 referenced 1 time by &8503
 .error_offsets
-    equb &00                                                          ; 8014: 00          .        ; NUL terminator  "Line Jammed"
-    equb &0d                                                          ; 8015: 0d          .        ; "Net Error"
-    equb &18                                                          ; 8016: 18          .        ; "Not listening"
-    equb &27                                                          ; 8017: 27          '        ; "No Clock"
-    equb &31                                                          ; 8018: 31          1        ; "Escape"
-    equb &31                                                          ; 8019: 31          1        ; "Escape"
-    equb &31                                                          ; 801a: 31          1        ; "Escape"
-    equb &39                                                          ; 801b: 39          9        ; "Bad Option"
-    equb &45                                                          ; 801c: 45          E        ; "No reply"
+    equb msg_line_jammed - error_msg_table                            ; 8014: 00          .        ; NUL terminator  "Line Jammed"
+    equb msg_net_error - error_msg_table                              ; 8015: 0d          .        ; "Net Error"
+    equb msg_not_listening - error_msg_table                          ; 8016: 18          .        ; "Not listening"
+    equb msg_no_clock - error_msg_table                               ; 8017: 27          '        ; "No Clock"
+    equb msg_escape - error_msg_table                                 ; 8018: 31          1        ; "Escape"
+    equb msg_escape - error_msg_table                                 ; 8019: 31          1        ; "Escape"
+    equb msg_escape - error_msg_table                                 ; 801a: 31          1        ; "Escape"
+    equb msg_bad_option - error_msg_table                             ; 801b: 39          9        ; "Bad Option"
+    equb msg_no_reply - error_msg_table                               ; 801c: 45          E        ; "No reply"
 ; Four bytes with unknown purpose.
     equb &01                                                          ; 801d: 01          .        ; Purpose unknown
     equb &00                                                          ; 801e: 00          .        ; Purpose unknown
@@ -2857,23 +2857,48 @@ error_table_base = bgetv_shared_jsr+1
 ; &856d referenced 1 time by &855b
 .return_4
     rts                                                               ; 856d: 60          `        ; Return with handle mask in A
-; Econet error message table (ERRTAB, 7 entries). Each entry: error number byte followed by NUL-terminated string. &A0: "Line Jammed"     &A1: "Net Error" &A2: "Not listening"   &A3: "No Clock" &11: "Escape"           &CB: "Bad Option" &A5: "No reply" Indexed by the low 3 bits of the TXCB flag byte (AND #&07), which encode the specific Econet failure reason. The NREPLY and NLISTN routines build a MOS BRK error block at &100 on the stack page: NREPLY fires when the fileserver does not respond within the timeout period; NLISTN fires when the destination station actively refused the connection. Indexed via c84FA/nlistn/nlisne at &84FA-&850B.
+; ***************************************************************************************
+; Econet error message table (ERRTAB, 7 entries)
+;
+; Each entry is an error-number byte followed by a NUL-terminated message string, ready
+; to drop straight into a MOS BRK error block at &0100.
+;
+; | Error | Message       |
+; |-------|---------------|
+; | &A0   | Line Jammed   |
+; | &A1   | Net Error     |
+; | &A2   | Not listening |
+; | &A3   | No Clock      |
+; | &11   | Escape        |
+; | &CB   | Bad Option    |
+; | &A5   | No reply      |
+;
+; Consumed via a two-step lookup driven by nlistn / nlisne: the TXCB status byte is
+; masked with AND #&07 to give a 3-bit slot, which selects a Y offset from error_offsets;
+; the entry at error_msg_table + Y is then copied byte-by-byte to &0101+ by
+; copy_error_message until the trailing NUL terminates the copy and the assembled BRK
+; block at &0100 is executed.
 ; &856e referenced 1 time by &850b
 .error_msg_table
+.msg_line_jammed
     equb &a0                                                          ; 856e: a0          .        ; Error &A0: Line Jammed
-    equs "Line Jamme"                                                 ; 856f: 4c 69 6e... Lin...   ; "Line Jammed" string
-    equb &64                                                          ; 8579: 64          d        ; Terminator + error &A1
-    equb &00                                                          ; 857a: 00          .        ; NUL terminator
+    equs "Line Jammed", &00                                           ; 856f: 4c 69 6e... Lin...   ; "Line Jammed" string
+.msg_net_error
     equb &a1                                                          ; 857b: a1          .        ; Error &A1: Net Error
     equs "Net Error", &00                                             ; 857c: 4e 65 74... Net...   ; "Net Error" string
+.msg_not_listening
     equb &a2                                                          ; 8586: a2          .        ; Error &A2: Not listening
     equs "Not listening", &00                                         ; 8587: 4e 6f 74... Not...   ; "Not listening" string
+.msg_no_clock
     equb &a3                                                          ; 8595: a3          .        ; Error &A3: No Clock
     equs "No Clock", &00                                              ; 8596: 4e 6f 20... No ...   ; "No Clock" string
+.msg_escape
     equb &11                                                          ; 859f: 11          .        ; Error &11: Escape
     equs "Escape", &00                                                ; 85a0: 45 73 63... Esc...   ; "Escape" string
+.msg_bad_option
     equb &cb                                                          ; 85a7: cb          .        ; Error &CB: Bad Option
     equs "Bad Option", &00                                            ; 85a8: 42 61 64... Bad...   ; "Bad Option" string
+.msg_no_reply
     equb &a5                                                          ; 85b3: a5          .        ; Error &A5: No reply
     equs "No reply", &00                                              ; 85b4: 4e 6f 20... No ...   ; "No reply" string
 ; ***************************************************************************************
@@ -8812,6 +8837,7 @@ save pydis_start, pydis_end
 ;     match_cmd_chars:                          1
 ;     match_net_cmd:                            1
 ;     mj:                                       1
+;     msg_line_jammed:                          1
 ;     nbyte1:                                   1
 ;     nbyte4:                                   1
 ;     nbyte5:                                   1
@@ -9091,7 +9117,7 @@ save pydis_start, pydis_end
 ;     Data                     = 682 bytes (8%)
 ;
 ;     Number of instructions   = 3635
-;     Number of data bytes     = 409 bytes
+;     Number of data bytes     = 408 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 221 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 222 bytes
+;     Number of strings        = 35

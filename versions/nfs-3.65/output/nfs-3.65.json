@@ -436,12 +436,6 @@
       "description": "Polls Tube status register 2 until data is available (bit 7 set),\nthen loads `A` from Tube data register 2. Called by all Tube dispatch\nhandlers that receive data or parameters from the co-processor."
     },
     {
-      "addr": 32788,
-      "name": "error_offsets",
-      "title": "Error-message offset table (9 entries)",
-      "description": "Each byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
-    },
-    {
       "addr": 32801,
       "name": "dispatch_0_lo",
       "title": "Dispatch table: handler-address low bytes (37 entries)",
@@ -2185,6 +2179,20 @@
       "title": "ROM type byte",
       "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |",
       "align": "after_label"
+    },
+    {
+      "addr": 32788,
+      "name": "error_offsets",
+      "title": "Error-message offset table (9 entries)",
+      "description": "Each byte is a Y offset into [`error_msg_table`](address:856E).\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8.",
+      "align": "before_label"
+    },
+    {
+      "addr": 34158,
+      "name": "error_msg_table",
+      "title": "Econet error message table (ERRTAB, 7 entries)",
+      "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](address:84FE) / [`nlisne`](address:8500): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](address:8014); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](address:850B) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -2682,6 +2690,9 @@
       "type": "byte",
       "values": [
         0
+      ],
+      "expressions": [
+        "msg_line_jammed - error_msg_table"
       ]
     },
     {
@@ -2693,6 +2704,9 @@
       "type": "byte",
       "values": [
         13
+      ],
+      "expressions": [
+        "msg_net_error - error_msg_table"
       ]
     },
     {
@@ -2704,6 +2718,9 @@
       "type": "byte",
       "values": [
         24
+      ],
+      "expressions": [
+        "msg_not_listening - error_msg_table"
       ]
     },
     {
@@ -2715,6 +2732,9 @@
       "type": "byte",
       "values": [
         39
+      ],
+      "expressions": [
+        "msg_no_clock - error_msg_table"
       ]
     },
     {
@@ -2726,6 +2746,9 @@
       "type": "byte",
       "values": [
         49
+      ],
+      "expressions": [
+        "msg_escape - error_msg_table"
       ]
     },
     {
@@ -2737,6 +2760,9 @@
       "type": "byte",
       "values": [
         49
+      ],
+      "expressions": [
+        "msg_escape - error_msg_table"
       ]
     },
     {
@@ -2748,6 +2774,9 @@
       "type": "byte",
       "values": [
         49
+      ],
+      "expressions": [
+        "msg_escape - error_msg_table"
       ]
     },
     {
@@ -2759,6 +2788,9 @@
       "type": "byte",
       "values": [
         57
+      ],
+      "expressions": [
+        "msg_bad_option - error_msg_table"
       ]
     },
     {
@@ -2770,6 +2802,9 @@
       "type": "byte",
       "values": [
         69
+      ],
+      "expressions": [
+        "msg_no_reply - error_msg_table"
       ]
     },
     {
@@ -12277,10 +12312,8 @@
         160
       ],
       "labels": [
-        "error_msg_table"
-      ],
-      "comments_before_label": [
-        "Econet error message table (ERRTAB, 7 entries).\nEach entry: error number byte followed by NUL-terminated string.\n  &A0: \"Line Jammed\"     &A1: \"Net Error\"\n  &A2: \"Not listening\"   &A3: \"No Clock\"\n  &11: \"Escape\"           &CB: \"Bad Option\"\n  &A5: \"No reply\"\nIndexed by the low 3 bits of the TXCB flag byte (AND #&07),\nwhich encode the specific Econet failure reason. The NREPLY\nand NLISTN routines build a MOS BRK error block at &100 on the\nstack page: NREPLY fires when the fileserver does not respond\nwithin the timeout period; NLISTN fires when the destination\nstation actively refused the connection.\nIndexed via c84FA/nlistn/nlisne at &84FA-&850B."
+        "error_msg_table",
+        "msg_line_jammed"
       ],
       "comment_inline": "Error &A0: Line Jammed",
       "xref_summaries": [
@@ -12306,36 +12339,21 @@
         97,
         109,
         109,
-        101
+        101,
+        100,
+        0
       ],
       "comment_inline": "\"Line Jammed\" string",
       "type": "string",
-      "string": "Line Jamme"
-    },
-    {
-      "addr": 34169,
-      "bytes": [
-        100
-      ],
-      "comment_inline": "Terminator + error &A1",
-      "type": "byte",
-      "values": [
-        100
-      ]
-    },
-    {
-      "addr": 34170,
-      "bytes": [
-        0
-      ],
-      "comment_inline": "NUL terminator",
-      "type": "string",
-      "string": "."
+      "string": "Line Jammed."
     },
     {
       "addr": 34171,
       "bytes": [
         161
+      ],
+      "labels": [
+        "msg_net_error"
       ],
       "comment_inline": "Error &A1: Net Error",
       "type": "byte",
@@ -12365,6 +12383,9 @@
       "addr": 34182,
       "bytes": [
         162
+      ],
+      "labels": [
+        "msg_not_listening"
       ],
       "comment_inline": "Error &A2: Not listening",
       "type": "byte",
@@ -12399,6 +12420,9 @@
       "bytes": [
         163
       ],
+      "labels": [
+        "msg_no_clock"
+      ],
       "comment_inline": "Error &A3: No Clock",
       "type": "byte",
       "values": [
@@ -12427,6 +12451,9 @@
       "bytes": [
         17
       ],
+      "labels": [
+        "msg_escape"
+      ],
       "comment_inline": "Error &11: Escape",
       "type": "byte",
       "values": [
@@ -12452,6 +12479,9 @@
       "addr": 34215,
       "bytes": [
         203
+      ],
+      "labels": [
+        "msg_bad_option"
       ],
       "comment_inline": "Error &CB: Bad Option",
       "type": "byte",
@@ -12482,6 +12512,9 @@
       "addr": 34227,
       "bytes": [
         165
+      ],
+      "labels": [
+        "msg_no_reply"
       ],
       "comment_inline": "Error &A5: No reply",
       "type": "byte",

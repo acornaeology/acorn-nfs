@@ -379,7 +379,7 @@ fs_putb_buf                            = &0fdc
 fs_getb_buf                            = &0fdd
 ; &0fdd referenced 3 times by &8441, &844b, &8477
 fs_handle_mask                         = &0fde
-; &0fde referenced 1 time by &8425
+; &0fde referenced 2 times by &8425, &857c
 fs_error_flags                         = &0fdf
 ; &0fdf referenced 2 times by &8418, &856a
 fs_error_buf                           = &0fe0
@@ -1456,15 +1456,15 @@ cmd_roff_str = copyright_string+3
 ; the copyright string null terminator. Indexed by TXCB status (AND #7), or hardcoded 8.
 ; &8018 referenced 1 time by &8515
 .error_offsets
-    equb &00                                                          ; 8018: 00          .        ; NUL terminator  "Line Jammed"
-    equb &0d                                                          ; 8019: 0d          .        ; "Net Error"
-    equb &18                                                          ; 801a: 18          .        ; "Not listening"
-    equb &27                                                          ; 801b: 27          '        ; "No Clock"
-    equb &31                                                          ; 801c: 31          1        ; "Escape"
-    equb &31                                                          ; 801d: 31          1        ; "Escape"
-    equb &31                                                          ; 801e: 31          1        ; "Escape"
-    equb &39                                                          ; 801f: 39          9        ; "Bad Option"
-    equb &45                                                          ; 8020: 45          E        ; "No reply"
+    equb msg_line_jammed - error_msg_table                            ; 8018: 00          .        ; NUL terminator  "Line Jammed"
+    equb msg_net_error - error_msg_table                              ; 8019: 0d          .        ; "Net Error"
+    equb msg_not_listening - error_msg_table                          ; 801a: 18          .        ; "Not listening"
+    equb msg_no_clock - error_msg_table                               ; 801b: 27          '        ; "No Clock"
+    equb msg_escape - error_msg_table                                 ; 801c: 31          1        ; "Escape"
+    equb msg_escape - error_msg_table                                 ; 801d: 31          1        ; "Escape"
+    equb msg_escape - error_msg_table                                 ; 801e: 31          1        ; "Escape"
+    equb msg_bad_option - error_msg_table                             ; 801f: 39          9        ; "Bad Option"
+    equb msg_no_reply - error_msg_table                               ; 8020: 45          E        ; "No reply"
 ; Four bytes with unknown purpose.
     equb &01                                                          ; 8021: 01          .        ; Purpose unknown
     equb &00                                                          ; 8022: 00          .        ; Purpose unknown
@@ -2890,27 +2890,57 @@ cmd_roff_str = copyright_string+3
     jsr clear_fs_flag                                                 ; 8576: 20 d5 86     ..      ; Clear FS flag for handle
 ; &8579 referenced 1 time by &8574
 .bgetv_shared_jsr
-    equb &20                                                          ; 8579: 20                   ; Set EOF flag for this handle
-.error_table_base
-load_handle_mask = error_table_base+2
+error_table_base = bgetv_shared_jsr+1
+    jsr set_fs_flag                                                   ; 8579: 20 d0 86     ..      ; Set EOF flag for this handle
+.load_handle_mask
+    lda fs_handle_mask                                                ; 857c: ad de 0f    ...      ; Load handle bitmask for caller
 ; &857f referenced 1 time by &856d
-return_4 = error_table_base+5
+.return_4
+    rts                                                               ; 857f: 60          `        ; Return with handle mask in A
+; ***************************************************************************************
+; Econet error message table (ERRTAB, 7 entries)
+;
+; Each entry is an error-number byte followed by a NUL-terminated message string, ready
+; to drop straight into a MOS BRK error block at &0100.
+;
+; | Error | Message       |
+; |-------|---------------|
+; | &A0   | Line Jammed   |
+; | &A1   | Net Error     |
+; | &A2   | Not listening |
+; | &A3   | No Clock      |
+; | &11   | Escape        |
+; | &CB   | Bad Option    |
+; | &A5   | No reply      |
+;
+; Consumed via a two-step lookup driven by nlistn / nlisne: the TXCB status byte is
+; masked with AND #&07 to give a 3-bit slot, which selects a Y offset from error_offsets;
+; the entry at error_msg_table + Y is then copied byte-by-byte to &0101+ by
+; copy_error_message until the trailing NUL terminates the copy and the assembled BRK
+; block at &0100 is executed.
 ; &8580 referenced 1 time by &851d
-; Econet error message table (ERRTAB, 7 entries). Each entry: error number byte followed by NUL-terminated string. &A0: "Line Jammed"     &A1: "Net Error" &A2: "Not listening"   &A3: "No Clock" &11: "Escape"           &CB: "Bad Option" &A5: "No reply" Indexed by the low 3 bits of the TXCB flag byte (AND #&07), which encode the specific Econet failure reason. The NREPLY and NLISTN routines build a MOS BRK error block at &100 on the stack page: NREPLY fires when the fileserver does not respond within the timeout period; NLISTN fires when the destination station actively refused the connection. Indexed via c850c/nlistn/nlisne at &850C-&8514.
-error_msg_table = error_table_base+6
-    equb &d0, &86, &ad, &de, &0f, "`", &a0, "Line Jammed", &00        ; 857a: d0 86 ad... ......   ; Load handle bitmask for caller  Return with handle mask in A
+.error_msg_table
+.msg_line_jammed
+    equb &a0                                                          ; 8580: a0          .        ; Error &A0: Line Jammed
+    equs "Line Jammed", &00                                           ; 8581: 4c 69 6e... Lin...   ; "Line Jammed" string
+.msg_net_error
     equb &a1                                                          ; 858d: a1          .        ; Error &A1: Net Error
-    equs "Net Error", &00                                             ; 858e: 4e 65 74... Net...   ; Error string "Net Error"
+    equs "Net Error", &00                                             ; 858e: 4e 65 74... Net...   ; "Net Error" string
+.msg_not_listening
     equb &a2                                                          ; 8598: a2          .        ; Error &A2: Not listening
-    equs "Not listening", &00                                         ; 8599: 4e 6f 74... Not...   ; Error string "Not listening"
+    equs "Not listening", &00                                         ; 8599: 4e 6f 74... Not...   ; "Not listening" string
+.msg_no_clock
     equb &a3                                                          ; 85a7: a3          .        ; Error &A3: No Clock
-    equs "No Clock", &00                                              ; 85a8: 4e 6f 20... No ...   ; Error string "No Clock"
+    equs "No Clock", &00                                              ; 85a8: 4e 6f 20... No ...   ; "No Clock" string
+.msg_escape
     equb &11                                                          ; 85b1: 11          .        ; Error &11: Escape
-    equs "Escape", &00                                                ; 85b2: 45 73 63... Esc...   ; Error string "Escape"
+    equs "Escape", &00                                                ; 85b2: 45 73 63... Esc...   ; "Escape" string
+.msg_bad_option
     equb &cb                                                          ; 85b9: cb          .        ; Error &CB: Bad Option
-    equs "Bad Option", &00                                            ; 85ba: 42 61 64... Bad...   ; Error string "Bad Option"
+    equs "Bad Option", &00                                            ; 85ba: 42 61 64... Bad...   ; "Bad Option" string
+.msg_no_reply
     equb &a5                                                          ; 85c5: a5          .        ; Error &A5: No reply
-    equs "No reply", &00                                              ; 85c6: 4e 6f 20... No ...   ; Error string "No reply"
+    equs "No reply", &00                                              ; 85c6: 4e 6f 20... No ...   ; "No reply" string
 ; ***************************************************************************************
 ; Decode file attributes: FS → BBC format (FSBBC, 6-bit variant)
 ;
@@ -3353,7 +3383,7 @@ error_msg_table = error_table_base+6
 ;
 ; On Exit:
 ;     A: updated fs_eof_flags value
-; &86d0 referenced 4 times by &89b0, &8a07, &8a27, &8b08
+; &86d0 referenced 5 times by &8579, &89b0, &8a07, &8a27, &8b08
 .set_fs_flag
     ora fs_eof_flags                                                  ; 86d0: 0d 07 0e    ...      ; Merge new bits into flags
     bne store_fs_flag                                                 ; 86d3: d0 05       ..       ; Store updated flags (always taken)
@@ -8393,6 +8423,7 @@ save pydis_start, pydis_end
 ;     rx_port:                                  5
 ;     scout_error:                              5
 ;     scout_status:                             5
+;     set_fs_flag:                              5
 ;     stk_frame_p:                              5
 ;     system_via_acr:                           5
 ;     tube_flag:                                5
@@ -8424,7 +8455,6 @@ save pydis_start, pydis_end
 ;     return_a_zero:                            4
 ;     romsel_copy:                              4
 ;     rx_src_net:                               4
-;     set_fs_flag:                              4
 ;     tube_reply_byte:                          4
 ;     tx_done_exit:                             4
 ;     tx_length:                                4
@@ -8525,6 +8555,7 @@ save pydis_start, pydis_end
 ;     fs_error_flags:                           2
 ;     fs_file_len_3:                            2
 ;     fs_filename_buf:                          2
+;     fs_handle_mask:                           2
 ;     fs_last_error:                            2
 ;     fs_lib_handle:                            2
 ;     fs_obj_type:                              2
@@ -8789,7 +8820,6 @@ save pydis_start, pydis_end
 ;     fs_error_buf:                             1
 ;     fs_file_attrs:                            1
 ;     fs_file_len:                              1
-;     fs_handle_mask:                           1
 ;     fs_len_clear:                             1
 ;     fs_load_upper:                            1
 ;     fs_load_vector:                           1
@@ -8866,6 +8896,7 @@ save pydis_start, pydis_end
 ;     match_cmd_chars:                          1
 ;     match_net_cmd:                            1
 ;     mj:                                       1
+;     msg_line_jammed:                          1
 ;     nbyte1:                                   1
 ;     nbyte4:                                   1
 ;     nbyte5:                                   1
@@ -9132,11 +9163,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7549 bytes (92%)
-;     Data                     = 643 bytes (8%)
+;     Code                     = 7556 bytes (92%)
+;     Data                     = 636 bytes (8%)
 ;
-;     Number of instructions   = 3662
+;     Number of instructions   = 3665
 ;     Number of data bytes     = 354 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 237 bytes
+;     Number of string bytes   = 230 bytes
 ;     Number of strings        = 36

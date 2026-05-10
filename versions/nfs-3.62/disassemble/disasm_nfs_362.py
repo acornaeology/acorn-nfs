@@ -1392,18 +1392,25 @@ copyright string and the star command table.""",
 
 d.label(0x8011, "copyright_string")
 d.label(0x8014, "cmd_roff_str")
-d.subroutine(
+d.label(0x8018, "error_offsets")
+d.banner(
     0x8018,
-    "error_offsets",
     title="Error-message offset table (9 entries)",
-    description="""Each byte is a Y offset into error_msg_table.
+    description="""Each byte is a Y offset into [`error_msg_table`](address:8580).
 Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""",
 )
+d.expr(0x8018, "msg_line_jammed - error_msg_table")
+d.expr(0x8019, "msg_net_error - error_msg_table")
+d.expr(0x801A, "msg_not_listening - error_msg_table")
+d.expr(0x801B, "msg_no_clock - error_msg_table")
+d.expr(0x801C, "msg_escape - error_msg_table")
+d.expr(0x801D, "msg_escape - error_msg_table")
+d.expr(0x801E, "msg_escape - error_msg_table")
+d.expr(0x801F, "msg_bad_option - error_msg_table")
+d.expr(0x8020, "msg_no_reply - error_msg_table")
 d.comment(0x8018, '"Line Jammed"', align=Align.INLINE)
-for addr in range(0x8019, 0x8021):
-    d.byte(addr)
 d.comment(0x8019, '"Net Error"', align=Align.INLINE)
 d.comment(0x801A, '"Not listening"', align=Align.INLINE)
 d.comment(0x801B, '"No Clock"', align=Align.INLINE)
@@ -2915,40 +2922,58 @@ d.label(0x857F, "return_4")
 
 d.comment(0x857F, "Return with handle mask in A", align=Align.INLINE)
 d.label(0x8580, "error_msg_table")
-d.comment(
+d.banner(
     0x8580,
-    """Econet error message table (ERRTAB, 7 entries).
-Each entry: error number byte followed by NUL-terminated string.
-  &A0: "Line Jammed"     &A1: "Net Error"
-  &A2: "Not listening"   &A3: "No Clock"
-  &11: "Escape"           &CB: "Bad Option"
-  &A5: "No reply"
-Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
-which encode the specific Econet failure reason. The NREPLY
-and NLISTN routines build a MOS BRK error block at &100 on the
-stack page: NREPLY fires when the fileserver does not respond
-within the timeout period; NLISTN fires when the destination
-station actively refused the connection.
-Indexed via c850c/nlistn/nlisne at &850C-&8514.""",
+    title="Econet error message table (ERRTAB, 7 entries)",
+    description="""Each entry is an error-number byte followed by a NUL-terminated
+message string, ready to drop straight into a MOS `BRK` error
+block at `&0100`.
+
+| Error | Message        |
+|-------|----------------|
+| `&A0` | Line Jammed    |
+| `&A1` | Net Error      |
+| `&A2` | Not listening  |
+| `&A3` | No Clock       |
+| `&11` | Escape         |
+| `&CB` | Bad Option     |
+| `&A5` | No reply       |
+
+Consumed via a two-step lookup driven by
+[`nlistn`](address:8510) / [`nlisne`](address:8512): the TXCB
+status byte is masked with `AND #&07` to give a 3-bit slot,
+which selects a `Y` offset from
+[`error_offsets`](address:8018); the entry at
+`error_msg_table + Y` is then copied byte-by-byte to `&0101+`
+by [`copy_error_message`](address:851D) until the trailing NUL
+terminates the copy and the assembled `BRK` block at `&0100`
+is executed.""",
 )
-addr = 0x8579
+addr = 0x8580
 for _ in range(7):
     d.byte(addr, 1)
     addr = d.stringz(addr + 1)
-
-
+d.label(0x8580, "msg_line_jammed")
+d.label(0x858D, "msg_net_error")
+d.label(0x8598, "msg_not_listening")
+d.label(0x85A7, "msg_no_clock")
+d.label(0x85B1, "msg_escape")
+d.label(0x85B9, "msg_bad_option")
+d.label(0x85C5, "msg_no_reply")
+d.comment(0x8580, "Error &A0: Line Jammed", align=Align.INLINE)
+d.comment(0x8581, '"Line Jammed" string', align=Align.INLINE)
 d.comment(0x858D, "Error &A1: Net Error", align=Align.INLINE)
-d.comment(0x858E, 'Error string "Net Error"', align=Align.INLINE)
+d.comment(0x858E, '"Net Error" string', align=Align.INLINE)
 d.comment(0x8598, "Error &A2: Not listening", align=Align.INLINE)
-d.comment(0x8599, 'Error string "Not listening"', align=Align.INLINE)
+d.comment(0x8599, '"Not listening" string', align=Align.INLINE)
 d.comment(0x85A7, "Error &A3: No Clock", align=Align.INLINE)
-d.comment(0x85A8, 'Error string "No Clock"', align=Align.INLINE)
+d.comment(0x85A8, '"No Clock" string', align=Align.INLINE)
 d.comment(0x85B1, "Error &11: Escape", align=Align.INLINE)
-d.comment(0x85B2, 'Error string "Escape"', align=Align.INLINE)
+d.comment(0x85B2, '"Escape" string', align=Align.INLINE)
 d.comment(0x85B9, "Error &CB: Bad Option", align=Align.INLINE)
-d.comment(0x85BA, 'Error string "Bad Option"', align=Align.INLINE)
+d.comment(0x85BA, '"Bad Option" string', align=Align.INLINE)
 d.comment(0x85C5, "Error &A5: No reply", align=Align.INLINE)
-d.comment(0x85C6, 'Error string "No reply"', align=Align.INLINE)
+d.comment(0x85C6, '"No reply" string', align=Align.INLINE)
 d.subroutine(
     0x85CF,
     "decode_attribs_6bit",

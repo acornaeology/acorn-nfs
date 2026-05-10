@@ -1386,18 +1386,25 @@ The `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just th
 
 d.label(0x800D, "copyright_string")
 d.label(0x8010, "cmd_roff_str")
-d.subroutine(
+d.label(0x8014, "error_offsets")
+d.banner(
     0x8014,
-    "error_offsets",
     title="Error-message offset table (9 entries)",
-    description="""Each byte is a Y offset into error_msg_table.
+    description="""Each byte is a Y offset into [`error_msg_table`](address:856E).
 Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""",
 )
+d.expr(0x8014, "msg_line_jammed - error_msg_table")
+d.expr(0x8015, "msg_net_error - error_msg_table")
+d.expr(0x8016, "msg_not_listening - error_msg_table")
+d.expr(0x8017, "msg_no_clock - error_msg_table")
+d.expr(0x8018, "msg_escape - error_msg_table")
+d.expr(0x8019, "msg_escape - error_msg_table")
+d.expr(0x801A, "msg_escape - error_msg_table")
+d.expr(0x801B, "msg_bad_option - error_msg_table")
+d.expr(0x801C, "msg_no_reply - error_msg_table")
 d.comment(0x8014, '"Line Jammed"', align=Align.INLINE)
-for addr in range(0x8015, 0x801D):
-    d.byte(addr)
 d.comment(0x8015, '"Net Error"', align=Align.INLINE)
 d.comment(0x8016, '"Not listening"', align=Align.INLINE)
 d.comment(0x8017, '"No Clock"', align=Align.INLINE)
@@ -2871,30 +2878,46 @@ d.label(0x856D, "return_4")
 
 d.comment(0x856D, "Return with handle mask in A", align=Align.INLINE)
 d.label(0x856E, "error_msg_table")
-d.comment(
+d.banner(
     0x856E,
-    """Econet error message table (ERRTAB, 7 entries).
-Each entry: error number byte followed by NUL-terminated string.
-  &A0: "Line Jammed"     &A1: "Net Error"
-  &A2: "Not listening"   &A3: "No Clock"
-  &11: "Escape"           &CB: "Bad Option"
-  &A5: "No reply"
-Indexed by the low 3 bits of the TXCB flag byte (AND #&07),
-which encode the specific Econet failure reason. The NREPLY
-and NLISTN routines build a MOS BRK error block at &100 on the
-stack page: NREPLY fires when the fileserver does not respond
-within the timeout period; NLISTN fires when the destination
-station actively refused the connection.
-Indexed via c84FA/nlistn/nlisne at &84FA-&850B.""",
+    title="Econet error message table (ERRTAB, 7 entries)",
+    description="""Each entry is an error-number byte followed by a NUL-terminated
+message string, ready to drop straight into a MOS `BRK` error
+block at `&0100`.
+
+| Error | Message        |
+|-------|----------------|
+| `&A0` | Line Jammed    |
+| `&A1` | Net Error      |
+| `&A2` | Not listening  |
+| `&A3` | No Clock       |
+| `&11` | Escape         |
+| `&CB` | Bad Option     |
+| `&A5` | No reply       |
+
+Consumed via a two-step lookup driven by
+[`nlistn`](address:84FE) / [`nlisne`](address:8500): the TXCB
+status byte is masked with `AND #&07` to give a 3-bit slot,
+which selects a `Y` offset from
+[`error_offsets`](address:8014); the entry at
+`error_msg_table + Y` is then copied byte-by-byte to `&0101+`
+by [`copy_error_message`](address:850B) until the trailing NUL
+terminates the copy and the assembled `BRK` block at `&0100`
+is executed.""",
 )
-addr = 0x8579
+addr = 0x856E
 for _ in range(7):
     d.byte(addr, 1)
     addr = d.stringz(addr + 1)
+d.label(0x856E, "msg_line_jammed")
+d.label(0x857B, "msg_net_error")
+d.label(0x8586, "msg_not_listening")
+d.label(0x8595, "msg_no_clock")
+d.label(0x859F, "msg_escape")
+d.label(0x85A7, "msg_bad_option")
+d.label(0x85B3, "msg_no_reply")
 d.comment(0x856E, "Error &A0: Line Jammed", align=Align.INLINE)
 d.comment(0x856F, '"Line Jammed" string', align=Align.INLINE)
-d.comment(0x8579, "Terminator + error &A1", align=Align.INLINE)
-d.comment(0x857A, "NUL terminator", align=Align.INLINE)
 d.comment(0x857B, "Error &A1: Net Error", align=Align.INLINE)
 d.comment(0x857C, '"Net Error" string', align=Align.INLINE)
 d.comment(0x8586, "Error &A2: Not listening", align=Align.INLINE)
