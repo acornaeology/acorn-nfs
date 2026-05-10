@@ -2397,8 +2397,8 @@ cmd_roff_str = copyright_string+3
     cpy fs_spool0                                                     ; 83f0: c4 cf       ..       ; Compare SPOOL mask with file mask
     bne dispatch_fs_error                                             ; 83f2: d0 07       ..       ; Not SPOOL file: dispatch FS error
     ldx #&44 ; 'D'                                                    ; 83f4: a2 44       .D       ; Load '*SP.' command string low
-    ldy #&84                                                          ; 83f6: a0 84       ..       ; Y=&85: high byte of OSCLI string in ROM
-    jsr oscli                                                         ; 83f8: 20 f7 ff     ..      ; Close SPOOL/EXEC via "*SP." or "*E."
+    ldy #&84                                                          ; 83f6: a0 84       ..       ; Y=&84: high byte of sp_dot_string
+    jsr oscli                                                         ; 83f8: 20 f7 ff     ..      ; Close SPOOL via *SP.
 ; &83fb referenced 1 time by &83f2
 .dispatch_fs_error
     lda #&e0                                                          ; 83fb: a9 e0       ..       ; Reset CB pointer to error buffer at &0FE0

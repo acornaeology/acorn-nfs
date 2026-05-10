@@ -9611,7 +9611,7 @@
         160,
         132
       ],
-      "comment_inline": "Y=&85: high byte of OSCLI string in ROM",
+      "comment_inline": "Y=`&84`: high byte of [`sp_dot_string`](address:8445)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&84"
@@ -9623,7 +9623,7 @@
         247,
         255
       ],
-      "comment_inline": "Close SPOOL/EXEC via \"*SP.\" or \"*E.\"",
+      "comment_inline": "Close SPOOL via `*SP.`",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oscli",
@@ -35781,7 +35781,7 @@
         6
       ],
       "binary_addr": 37679,
-      "comment_inline": "R1 not ready: check R2 instead",
+      "comment_inline": "R4 not ready: check R2 instead",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_poll_r2",
@@ -35857,7 +35857,7 @@
         240
       ],
       "binary_addr": 37690,
-      "comment_inline": "R2 not ready: loop back to R1 check",
+      "comment_inline": "R2 not ready: loop back to R4 check",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_main_loop",
@@ -35886,7 +35886,7 @@
         240
       ],
       "binary_addr": 37695,
-      "comment_inline": "R1 ready: handle WRCH first",
+      "comment_inline": "R4 ready: handle WRCH first",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "tube_handle_wrch",

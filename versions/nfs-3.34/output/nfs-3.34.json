@@ -9610,7 +9610,7 @@
         160,
         132
       ],
-      "comment_inline": "Y=&85: high byte of OSCLI string in ROM",
+      "comment_inline": "Y=`&84`: high byte of [`sp_dot_string`](address:8444)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&84"
@@ -9622,7 +9622,7 @@
         247,
         255
       ],
-      "comment_inline": "Close SPOOL/EXEC via \"*SP.\" or \"*E.\"",
+      "comment_inline": "Close SPOOL via `*SP.`",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oscli",

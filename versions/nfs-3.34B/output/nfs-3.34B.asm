@@ -524,7 +524,7 @@ oscli                                  = &fff7
 ; &3a referenced 7 times by &933a, &94fb, &9522, &9570, &9585, &95ed, &961a
 .tube_main_loop
     bit tube_status_register_4_and_cpu_control                        ; 932c: 2c e6 fe    ,.. :003a[1]        ; BIT R4 status: check WRCH request
-    bpl tube_poll_r2                                                  ; 932f: 10 06       .. :003d[1]         ; R1 not ready: check R2 instead
+    bpl tube_poll_r2                                                  ; 932f: 10 06       .. :003d[1]         ; R4 not ready: check R2 instead
 ; &3f referenced 1 time by &933f
 .tube_handle_wrch
     lda tube_data_register_4                                          ; 9331: ad e7 fe    ... :003f[1]        ; Read character from Tube R4 data
@@ -532,9 +532,9 @@ oscli                                  = &fff7
 ; &45 referenced 1 time by &932f
 .tube_poll_r2
     bit tube_status_register_2                                        ; 9337: 2c e2 fe    ,.. :0045[1]        ; BIT R2 status: check command byte
-    bpl tube_main_loop                                                ; 933a: 10 f0       .. :0048[1]         ; R2 not ready: loop back to R1 check
+    bpl tube_main_loop                                                ; 933a: 10 f0       .. :0048[1]         ; R2 not ready: loop back to R4 check
     bit tube_status_register_4_and_cpu_control                        ; 933c: 2c e6 fe    ,.. :004a[1]        ; Re-check R4: WRCH has priority over R2
-    bmi tube_handle_wrch                                              ; 933f: 30 f0       0. :004d[1]         ; R1 ready: handle WRCH first
+    bmi tube_handle_wrch                                              ; 933f: 30 f0       0. :004d[1]         ; R4 ready: handle WRCH first
     ldx tube_data_register_2                                          ; 9341: ae e3 fe    ... :004f[1]        ; Read command byte from Tube R2 data
     stx tube_dispatch_ptr_lo                                          ; 9344: 86 55       .U :0052[1]         ; Self-modify JMP low byte for dispatch
 .tube_dispatch_cmd
@@ -2398,8 +2398,8 @@ cmd_roff_str = copyright_string+3
     cpy fs_spool0                                                     ; 83f1: c4 cf       ..       ; Compare SPOOL mask with file mask
     bne dispatch_fs_error                                             ; 83f3: d0 07       ..       ; Not SPOOL file: dispatch FS error
     ldx #&45 ; 'E'                                                    ; 83f5: a2 45       .E       ; Load '*SP.' command string low
-    ldy #&84                                                          ; 83f7: a0 84       ..       ; Y=&85: high byte of OSCLI string in ROM
-    jsr oscli                                                         ; 83f9: 20 f7 ff     ..      ; Close SPOOL/EXEC via "*SP." or "*E."
+    ldy #&84                                                          ; 83f7: a0 84       ..       ; Y=&84: high byte of sp_dot_string
+    jsr oscli                                                         ; 83f9: 20 f7 ff     ..      ; Close SPOOL via *SP.
 ; &83fc referenced 1 time by &83f3
 .dispatch_fs_error
     lda #&e0                                                          ; 83fc: a9 e0       ..       ; Reset CB pointer to error buffer at &0FE0

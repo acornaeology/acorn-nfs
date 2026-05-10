@@ -67,13 +67,27 @@ Legend: `.` = pending, `~` = in-progress, `✓` = swept + verified.
   with the bare hex if needed (`` `&FFCB` ``). Confirmed via site rebuild —
   `address:FFCB` produced "no memory-map entry and not in ROM range".
 
-## Known pre-existing issues (out of scope)
+## Drive-by correctness fixes (now resolved)
 
-- 3.34B's inline comments at &003A/&003D/&003F say "R1" but the code reads
-  Tube R4 (this variant wired WRCH to R4). The subroutine description at
-  &0016 is correct ("polls R4"). Logged as task #11.
-- 3.34 / 3.34B `comments check --strict` HIGH finding: `Y=&85 but LDY #&84`
-  at &83F6 / &83F7. Pre-existing on master.
+- **3.34B Tube WRCH register comments** — inline comments at &003D
+  (`R1 not ready: check R2 instead`), &0048 (`loop back to R1 check`)
+  and &004D (`R1 ready: handle WRCH first`) all said "R1" but 3.34B
+  wires WRCH to R4 (the BIT at &003A and LDA at &003F target
+  `tube_status_register_4_and_cpu_control` and `tube_data_register_4`).
+  The subroutine description at &0016 was already correct ("polls R4").
+  Fixed: replaced "R1" → "R4" in those three inline comments.
+- **3.34 / 3.34B SPOOL-close comments** — inline comments at &83F6
+  (3.34) / &83F7 (3.34B) said `Y=&85` but the instruction is
+  `LDY #&84`. The string lives at &8444 / &8445 (`sp_dot_string`),
+  not &85xx. Comment value was carried from the modern 3.65 version
+  where the string IS at &85xx. Also: the next-instruction comment
+  said `Close SPOOL/EXEC via "*SP." or "*E."` but 3.34 / 3.34B only
+  have a SPOOL-close path (no EXEC handle is read or compared);
+  the dual-path code only appears from 3.35D onwards. Fixed: comment
+  now says `Y=&84: high byte of sp_dot_string` and
+  `Close SPOOL via *SP.`. The 3.65 / 3.62 / 3.60 / 3.40 / 3.35K /
+  3.35D versions are unchanged — their `Y=&85` comments correctly
+  describe their `LDY #&85` instructions.
 
 ## Final state (all 8 sections complete)
 
