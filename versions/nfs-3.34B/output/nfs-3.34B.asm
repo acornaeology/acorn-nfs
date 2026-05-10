@@ -1564,11 +1564,15 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Service handler entry
 ;
-; Intercepts three special service calls before normal dispatch: &FE: Tube init — explode
-; character definitions (OSBYTE &14, X=6) &FF: Full init — set up WRCHV/RDCHV/BRKV/EVNTV,
-; copy NMI handler code from ROM to RAM pages &04-&06, copy workspace init to
-; &0016-&0076, then fall through to select NFS. &12 with Y=5: Select NFS as active filing
-; system. All other service calls dispatch via dispatch_service (&8127).
+; Intercepts three special service calls before normal dispatch:
+;
+; | Svc       | Action                                                                                                                                                                    |
+; |-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions (OSBYTE &14, X=6)                                                                                                               |
+; | &FF       | Full init — set up WRCHV / RDCHV / BRKV / EVNTV, copy NMI handler code from ROM to RAM pages &04–&06, copy workspace init to &0016–&0076, then fall through to select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                                                                                                                                        |
+;
+; All other service calls dispatch via dispatch_service.
 ; &80af referenced 1 time by &8003
 .service_handler
 .service_handler_entry
@@ -1691,10 +1695,12 @@ cmd_roff_str = copyright_string+3
 ; Resume after remote operation / *ROFF handler (NROFF)
 ;
 ; Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was disabled during a remote
-; operation (peek/poke/boot). Clears the flag, re-enables the keyboard via OSBYTE &C9,
-; and sends function &0A to notify completion. Also handles *ROFF and the triple-plus
-; escape sequence (+++), which resets system masks via OSBYTE &CE and returns control to
-; the MOS, providing an escape route when a remote session becomes unresponsive.
+; operation (peek / poke / boot). Clears the flag, re-enables the keyboard via OSBYTE
+; &C9, and sends function &0A to notify completion.
+;
+; Also handles *ROFF and the triple-plus escape sequence (+++), which resets system masks
+; via OSBYTE &CE / &CF and returns control to the MOS, providing an escape route when a
+; remote session becomes unresponsive.
 ; &8146 referenced 2 times by &817b, &8df3
 .resume_after_remote
     ldy #4                                                            ; 8146: a0 04       ..       ; Y=4: offset of keyboard disable flag

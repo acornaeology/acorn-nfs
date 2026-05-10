@@ -1728,10 +1728,15 @@ got_station_num = sub_c8096+2
 ; ***************************************************************************************
 ; Service handler entry
 ;
-; Intercepts three service calls before normal dispatch: &FE: Tube init -- explode
-; character definitions &FF: Full init -- vector setup, copy code to RAM, select NFS &12
-; (Y=5): Select NFS as active filing system All other service calls < &0D dispatch via
-; dispatch.
+; Intercepts three service calls before normal dispatch:
+;
+; | Svc       | Action                                                 |
+; |-----------|--------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions              |
+; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                     |
+;
+; All other service calls <&0D dispatch via dispatch.
 ; &811f referenced 1 time by &811b
 .service_handler_entry
 .check_svc_high
@@ -1855,10 +1860,12 @@ got_station_num = sub_c8096+2
 ; Resume after remote operation / *ROFF handler (NROFF)
 ;
 ; Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was disabled during a remote
-; operation (peek/poke/boot). Clears the flag, re-enables the keyboard via OSBYTE &C9,
-; and sends function &0A to notify completion. Also handles *ROFF and the triple-plus
-; escape sequence (+++), which resets system masks via OSBYTE &CE and returns control to
-; the MOS, providing an escape route when a remote session becomes unresponsive.
+; operation (peek / poke / boot). Clears the flag, re-enables the keyboard via OSBYTE
+; &C9, and sends function &0A to notify completion.
+;
+; Also handles *ROFF and the triple-plus escape sequence (+++), which resets system masks
+; via OSBYTE &CE / &CF and returns control to the MOS, providing an escape route when a
+; remote session becomes unresponsive.
 .net_4_resume_remote
     ldy #4                                                            ; 81b8: a0 04       ..       ; Y=4: offset of keyboard disable flag
     lda (net_rx_ptr),y                                                ; 81ba: b1 9c       ..       ; Read flag from RX buffer

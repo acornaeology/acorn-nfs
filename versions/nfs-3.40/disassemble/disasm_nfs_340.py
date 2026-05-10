@@ -1608,10 +1608,14 @@ d.subroutine(
     "service_handler_entry",
     title="Service handler entry",
     description="""Intercepts three service calls before normal dispatch:
-  &FE: Tube init -- explode character definitions
-  &FF: Full init -- vector setup, copy code to RAM, select NFS
-  &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via dispatch.""",
+
+| Svc        | Action |
+|------------|--------|
+| `&FE`      | Tube init — explode character definitions |
+| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via [`dispatch`](address:80E7).""",
 )
 
 d.label(0x811F, "check_svc_high")
@@ -1746,13 +1750,15 @@ d.subroutine(
     0x81B8,
     "net_4_resume_remote",
     title="Resume after remote operation / *ROFF handler (NROFF)",
-    description="""Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
-disabled during a remote operation (peek/poke/boot). Clears
-the flag, re-enables the keyboard via OSBYTE &C9, and sends
-function &0A to notify completion. Also handles *ROFF and the
-triple-plus escape sequence (+++), which resets system masks
-via OSBYTE &CE and returns control to the MOS, providing an
-escape route when a remote session becomes unresponsive.""",
+    description="""Checks byte 4 of `(net_rx_ptr)`: if non-zero, the keyboard was
+disabled during a remote operation (peek / poke / boot). Clears the
+flag, re-enables the keyboard via `OSBYTE &C9`, and sends function
+`&0A` to notify completion.
+
+Also handles `*ROFF` and the triple-plus escape sequence (`+++`), which
+resets system masks via `OSBYTE &CE` / `&CF` and returns control to the
+MOS, providing an escape route when a remote session becomes
+unresponsive.""",
 )
 
 

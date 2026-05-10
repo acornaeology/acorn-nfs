@@ -1402,13 +1402,19 @@ d.subroutine(
     0x80EA,
     "service_handler_entry",
     title="Service handler entry",
-    description="""Checks per-ROM disable flag at &0DF0+X (new in 3.35D). If
-bit 7 is set, returns immediately; service calls &FE/&FF
-bypass this check. Intercepts three service calls:
-  &FE: Tube init -- explode character definitions
-  &FF: Full init -- vector setup, copy code to RAM, select NFS
-  &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8150.""",
+    description="""Checks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If
+bit 7 is set, returns immediately; service calls `&FE`/`&FF` bypass
+this check.
+
+Intercepts three service calls:
+
+| Svc        | Action |
+|------------|--------|
+| `&FE`      | Tube init — explode character definitions |
+| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via [`dispatch`](address:80DA).""",
 )
 
 
@@ -1563,13 +1569,15 @@ d.subroutine(
     0x818A,
     "net_4_resume_remote",
     title="Resume after remote operation / *ROFF handler (NROFF)",
-    description="""Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
-disabled during a remote operation (peek/poke/boot). Clears
-the flag, re-enables the keyboard via OSBYTE &C9, and sends
-function &0A to notify completion. Also handles *ROFF and the
-triple-plus escape sequence (+++), which resets system masks
-via OSBYTE &CE and returns control to the MOS, providing an
-escape route when a remote session becomes unresponsive.""",
+    description="""Checks byte 4 of `(net_rx_ptr)`: if non-zero, the keyboard was
+disabled during a remote operation (peek / poke / boot). Clears the
+flag, re-enables the keyboard via `OSBYTE &C9`, and sends function
+`&0A` to notify completion.
+
+Also handles `*ROFF` and the triple-plus escape sequence (`+++`), which
+resets system masks via `OSBYTE &CE` / `&CF` and returns control to the
+MOS, providing an escape route when a remote session becomes
+unresponsive.""",
 )
 
 

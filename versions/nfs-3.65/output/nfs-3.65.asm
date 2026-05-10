@@ -1763,14 +1763,19 @@ cmd_roff_str = copyright_string+3
 ;
 ; On service 1 only, probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1) to detect
 ; whether Econet hardware is present. Non-zero reads indicate bus noise from absent
-; hardware; sets bit 7 of per-ROM workspace as a disable flag. For services < &80, the
-; flag causes an early return (disabling this ROM). Services >= &80 (&FE, &FF) are always
+; hardware; sets bit 7 of the per-ROM workspace as a disable flag. For services <&80, the
+; flag causes an early return (disabling this ROM). Services >=&80 (&FE, &FF) are always
 ; handled regardless.
 ;
-; Intercepts three service calls before normal dispatch: &FE: Tube init — explode
-; character definitions &FF: Full init — vector setup, copy code to RAM, select NFS &12
-; (Y=5): Select NFS as active filing system All other service calls < &0D dispatch via
-; c8146.
+; Intercepts three service calls before normal dispatch:
+;
+; | Svc       | Action                                                 |
+; |-----------|--------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions              |
+; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                     |
+;
+; All other service calls <&0D dispatch via do_svc_dispatch.
 ; &8116 referenced 1 time by &8112
 .check_svc_high
 .service_handler_entry
@@ -1793,13 +1798,13 @@ cmd_roff_str = copyright_string+3
 ; &8137 referenced 1 time by &811a
 .init_vectors_and_copy
     lda #&ad                                                          ; 8137: a9 ad       ..       ; EVNTV low = &AD (event handler address)
-    sta evntv                                                         ; 8139: 8d 20 02    . .      ; Set EVNTV low byte at &0220
+    sta evntv                                                         ; 8139: 8d 20 02    . .      ; Set EVNTV low byte
     lda #6                                                            ; 813c: a9 06       ..       ; EVNTV high = &06 (page 6)
-    sta evntv+1                                                       ; 813e: 8d 21 02    .!.      ; Set EVNTV high byte at &0221
+    sta evntv+1                                                       ; 813e: 8d 21 02    .!.      ; Set EVNTV high byte (at &0221)
     lda #&16                                                          ; 8141: a9 16       ..       ; BRKV low = &16 (NMI workspace)
-    sta brkv                                                          ; 8143: 8d 02 02    ...      ; Set BRKV low byte at &0202
+    sta brkv                                                          ; 8143: 8d 02 02    ...      ; Set BRKV low byte
     lda #0                                                            ; 8146: a9 00       ..       ; BRKV high = &00 (zero page)
-    sta brkv+1                                                        ; 8148: 8d 03 02    ...      ; Set BRKV high byte at &0203
+    sta brkv+1                                                        ; 8148: 8d 03 02    ...      ; Set BRKV high byte (at &0203)
     lda #&8e                                                          ; 814b: a9 8e       ..       ; Tube control register init value &8E
     sta tube_status_1_and_tube_control                                ; 814d: 8d e0 fe    ...      ; Write to Tube control register
     ldy #0                                                            ; 8150: a0 00       ..       ; Y=0: copy 256 bytes per page
@@ -1877,10 +1882,12 @@ cmd_roff_str = copyright_string+3
 ; Resume after remote operation / *ROFF handler (NROFF)
 ;
 ; Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was disabled during a remote
-; operation (peek/poke/boot). Clears the flag, re-enables the keyboard via OSBYTE &C9,
-; and sends function &0A to notify completion. Also handles *ROFF and the triple-plus
-; escape sequence (+++), which resets system masks via OSBYTE &CE and returns control to
-; the MOS, providing an escape route when a remote session becomes unresponsive.
+; operation (peek / poke / boot). Clears the flag, re-enables the keyboard via OSBYTE
+; &C9, and sends function &0A to notify completion.
+;
+; Also handles *ROFF and the triple-plus escape sequence (+++), which resets system masks
+; via OSBYTE &CE / &CF and returns control to the MOS, providing an escape route when a
+; remote session becomes unresponsive.
 .net_4_resume_remote
     ldy #4                                                            ; 81aa: a0 04       ..       ; Y=4: offset of keyboard disable flag
     lda (net_rx_ptr),y                                                ; 81ac: b1 9c       ..       ; Read flag from RX buffer
@@ -1921,14 +1928,18 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Select NFS as active filing system (INIT)
 ;
-; Reached from service &12 (select FS) with Y=5, or when *NET command selects NFS.
+; Reached from service &12 (select FS) with Y=5, or when a *NET command selects NFS.
 ; Notifies the current FS of shutdown via FSCV A=6 — this triggers the outgoing FS to
 ; save its context back to its workspace page, allowing restoration if re-selected later
-; (the FSDIE handoff mechanism). Then sets up the standard OS vector indirections (FILEV
-; through FSCV) to NFS entry points, claims the extended vector table entries, and issues
-; service &0F (vectors claimed) to notify other ROMs. If nfs_temp is zero (auto-boot not
-; inhibited), injects the synthetic command "I .BOOT" through the command decoder to
-; trigger auto-boot login.
+; (the FSDIE handoff mechanism). Then:
+;
+; 1. Sets up the standard OS vector indirections (FILEV through FSCV) to NFS entry
+;    points.
+; 2. Claims the extended vector table entries.
+; 3. Issues service &0F (vectors claimed) to notify other ROMs.
+;
+; If nfs_temp is zero (auto-boot not inhibited), injects the synthetic command "I .BOOT"
+; through the command decoder to trigger auto-boot login.
 .svc_13_select_nfs
     jsr call_fscv_shutdown                                            ; 81df: 20 06 82     ..      ; Notify current FS of shutdown (FSCV A=6)
     sec                                                               ; 81e2: 38          8        ; C=1 for ROR
@@ -2018,11 +2029,13 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
-; Copies 14 bytes from l8288 (&8288) into FILEV-FSCV (&0212), setting all 7 filing system
-; vectors to the extended vector dispatch addresses (&FF1B-&FF2D). Calls
-; setup_rom_ptrs_netv to install the ROM pointer table entries with the actual NFS
-; handler addresses. Also reached directly from svc_13_select_nfs, bypassing the station
-; display. Falls through to issue_vectors_claimed.
+; Copies 14 bytes from fs_vector_addrs+2 (= &8288) into FILEV–FSCV at &0212, setting all
+; 7 filing-system vectors to the extended-vector dispatch addresses (&FF1B–&FF2D). Calls
+; setup_rom_ptrs_netv to install the ROM pointer-table entries with the actual NFS
+; handler addresses.
+;
+; Also reached directly from svc_13_select_nfs, bypassing the station display. Falls
+; through to issue_vectors_claimed.
 ; &8252 referenced 1 time by &81f4
 .init_fs_vectors
     ldy #&0d                                                          ; 8252: a0 0d       ..       ; Copy 14 bytes: FS vector addresses to FILEV-FSCV
@@ -2041,9 +2054,9 @@ cmd_roff_str = copyright_string+3
 ; Issue 'vectors claimed' service and optionally auto-boot
 ;
 ; Issues service &0F (vectors claimed) via OSBYTE &8F, then service &0A. If l00a8 is zero
-; (soft break — RXCBs already initialised), sets up the command string "I .BOOT" at &828E
-; and jumps to the FSCV 3 unrecognised-command handler (which matches against the command
-; table at &8C4B). The "I." prefix triggers the catch-all entry which forwards the
+; (soft break — RXCBs already initialised), sets up the command string "I .BOOT" near
+; &828E and jumps to the FSCV 3 unrecognised-command handler (which matches against
+; fs_cmd_match_table). The "I." prefix triggers the catch-all entry which forwards the
 ; command to the fileserver. Falls through to run_fscv_cmd.
 ; &8269 referenced 1 time by &81e5
 .issue_vectors_claimed
@@ -2070,11 +2083,13 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
-; Bytes 0-13: extended vector dispatch addresses, copied to FILEV-FSCV (&0212) by
-; init_fs_vectors. Each 2-byte pair is a dispatch address (&FF1B-&FF2D) that the MOS uses
+; Two contiguous tables:
+;
+; Bytes 0–13: extended-vector dispatch addresses, copied to FILEV–FSCV at &0212 by
+; init_fs_vectors. Each 2-byte pair is a dispatch address (&FF1B–&FF2D) that the MOS uses
 ; to look up the handler in the ROM pointer table.
 ;
-; Bytes 14-33: handler address pairs read by store_rom_ptr_pair. Each entry has addr_lo,
+; Bytes 14–33: handler address pairs read by store_rom_ptr_pair. Each entry has addr_lo,
 ; addr_hi, then a padding byte that is not read at runtime (store_rom_ptr_pair writes the
 ; current ROM bank number without reading). The last entry (FSCV) has no padding byte.
 .fs_vector_addrs

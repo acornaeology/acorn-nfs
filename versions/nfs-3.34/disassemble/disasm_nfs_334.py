@@ -1350,12 +1350,15 @@ d.subroutine(
     "service_handler_entry",
     title="Service handler entry",
     description="""Intercepts three special service calls before normal dispatch:
-  &FE: Tube init — explode character definitions (OSBYTE &14, X=6)
-  &FF: Full init — set up WRCHV/RDCHV/BRKV/EVNTV, copy NMI handler
-       code from ROM to RAM pages &04-&06, copy workspace init to
-       &0016-&0076, then fall through to select NFS.
-  &12 with Y=5: Select NFS as active filing system.
-All other service calls dispatch via dispatch_service (&8127).""",
+
+| Svc        | Action |
+|------------|--------|
+| `&FE`      | Tube init — explode character definitions (`OSBYTE &14`, `X=6`) |
+| `&FF`      | Full init — set up `WRCHV` / `RDCHV` / `BRKV` / `EVNTV`, copy NMI handler code from ROM to RAM pages `&04`–`&06`, copy workspace init to `&0016`–`&0076`, then fall through to select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls dispatch via
+[`dispatch_service`](address:8127).""",
 )
 
 
@@ -1496,13 +1499,15 @@ d.subroutine(
     0x8146,
     "resume_after_remote",
     title="Resume after remote operation / *ROFF handler (NROFF)",
-    description="""Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
-disabled during a remote operation (peek/poke/boot). Clears
-the flag, re-enables the keyboard via OSBYTE &C9, and sends
-function &0A to notify completion. Also handles *ROFF and the
-triple-plus escape sequence (+++), which resets system masks
-via OSBYTE &CE and returns control to the MOS, providing an
-escape route when a remote session becomes unresponsive.""",
+    description="""Checks byte 4 of `(net_rx_ptr)`: if non-zero, the keyboard was
+disabled during a remote operation (peek / poke / boot). Clears the
+flag, re-enables the keyboard via `OSBYTE &C9`, and sends function
+`&0A` to notify completion.
+
+Also handles `*ROFF` and the triple-plus escape sequence (`+++`), which
+resets system masks via `OSBYTE &CE` / `&CF` and returns control to the
+MOS, providing an escape route when a remote session becomes
+unresponsive.""",
 )
 
 

@@ -1603,10 +1603,16 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Service handler entry
 ;
-; Intercepts three service calls before normal dispatch: &FE: Tube init -- explode
-; character definitions &FF: Full init -- vector setup, copy code to RAM, select NFS &12
-; (Y=5): Select NFS as active filing system All other service calls < &0D dispatch via
-; c8146. 3.35K removes the per-ROM disable flag check that 3.35D has.
+; Intercepts three service calls before normal dispatch:
+;
+; | Svc       | Action                                                 |
+; |-----------|--------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions              |
+; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                     |
+;
+; All other service calls <&0D dispatch via dispatch. 3.35K removes the per-ROM disable
+; flag check that 3.35D has.
 ; &80ea referenced 1 time by &8003
 .service_handler
 .service_handler_entry
@@ -1723,10 +1729,12 @@ cmd_roff_str = copyright_string+3
 ; Resume after remote operation / *ROFF handler (NROFF)
 ;
 ; Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was disabled during a remote
-; operation (peek/poke/boot). Clears the flag, re-enables the keyboard via OSBYTE &C9,
-; and sends function &0A to notify completion. Also handles *ROFF and the triple-plus
-; escape sequence (+++), which resets system masks via OSBYTE &CE and returns control to
-; the MOS, providing an escape route when a remote session becomes unresponsive.
+; operation (peek / poke / boot). Clears the flag, re-enables the keyboard via OSBYTE
+; &C9, and sends function &0A to notify completion.
+;
+; Also handles *ROFF and the triple-plus escape sequence (+++), which resets system masks
+; via OSBYTE &CE / &CF and returns control to the MOS, providing an escape route when a
+; remote session becomes unresponsive.
 .net_4_resume_remote
     ldy #4                                                            ; 8180: a0 04       ..       ; Y=4: offset of keyboard disable flag
     lda (net_rx_ptr),y                                                ; 8182: b1 9c       ..       ; Read flag from RX buffer

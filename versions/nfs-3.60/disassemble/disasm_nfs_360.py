@@ -1700,24 +1700,24 @@ d.subroutine(
     0x8123,
     "service_handler_entry",
     title="Service handler entry",
-    description="""Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only,
-probes ADLC status registers &FEA0/&FEA1 to detect whether
-Econet hardware is present. Non-zero reads indicate bus noise
-from absent hardware; sets bit 7 of per-ROM workspace as a
-disable flag. For services < &80, the flag causes an early
-return (disabling this ROM). Services >= &80 (&FE, &FF) are
-always handled regardless of flag.
+    description="""Preamble at `&80F7` (9 `NOP`s + ADLC probe): on service 1 only,
+probes ADLC status registers SR1 (`&FEA0`) and SR2 (`&FEA1`) to detect
+whether Econet hardware is present. Non-zero reads indicate bus noise
+from absent hardware; sets bit 7 of the per-ROM workspace as a disable
+flag. For services `<&80`, the flag causes an early return (disabling
+this ROM). Services `>=&80` (`&FE`, `&FF`) are always handled
+regardless. The 9 `NOP`s at `&80F7` provide bus settling time after
+register access.
 
 Intercepts three service calls before normal dispatch:
-  &FE: Tube init — explode character definitions
-  &FF: Full init — vector setup, copy code to RAM, select NFS
-  &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8146.
 
-Probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1)
-to detect whether Econet hardware is present. Sets bit 7 of
-per-ROM workspace as a disable flag if not found. The 9 NOPs
-at &80F7 provide bus settling time after register access.""",
+| Svc        | Action |
+|------------|--------|
+| `&FE`      | Tube init — explode character definitions |
+| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via [`do_svc_dispatch`](address:8193).""",
 )
 
 d.comment(0x8125, "Service < &FE: skip to &12/dispatch check", align=Align.INLINE)
@@ -1851,13 +1851,15 @@ d.subroutine(
     0x81BC,
     "net_4_resume_remote",
     title="Resume after remote operation / *ROFF handler (NROFF)",
-    description="""Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
-disabled during a remote operation (peek/poke/boot). Clears
-the flag, re-enables the keyboard via OSBYTE &C9, and sends
-function &0A to notify completion. Also handles *ROFF and the
-triple-plus escape sequence (+++), which resets system masks
-via OSBYTE &CE and returns control to the MOS, providing an
-escape route when a remote session becomes unresponsive.""",
+    description="""Checks byte 4 of `(net_rx_ptr)`: if non-zero, the keyboard was
+disabled during a remote operation (peek / poke / boot). Clears the
+flag, re-enables the keyboard via `OSBYTE &C9`, and sends function
+`&0A` to notify completion.
+
+Also handles `*ROFF` and the triple-plus escape sequence (`+++`), which
+resets system masks via `OSBYTE &CE` / `&CF` and returns control to the
+MOS, providing an escape route when a remote session becomes
+unresponsive.""",
 )
 d.comment(0x81BC, "Y=4: offset of keyboard disable flag", align=Align.INLINE)
 d.comment(0x81BE, "Read flag from RX buffer", align=Align.INLINE)

@@ -1792,19 +1792,21 @@ cmd_roff_str = copyright_string+3
 ; Service handler entry
 ;
 ; Preamble at &80F7 (9 NOPs + ADLC probe): on service 1 only, probes ADLC status
-; registers &FEA0/&FEA1 to detect whether Econet hardware is present. Non-zero reads
-; indicate bus noise from absent hardware; sets bit 7 of per-ROM workspace as a disable
-; flag. For services < &80, the flag causes an early return (disabling this ROM).
-; Services >= &80 (&FE, &FF) are always handled regardless of flag.
+; registers SR1 (&FEA0) and SR2 (&FEA1) to detect whether Econet hardware is present.
+; Non-zero reads indicate bus noise from absent hardware; sets bit 7 of the per-ROM
+; workspace as a disable flag. For services <&80, the flag causes an early return
+; (disabling this ROM). Services >=&80 (&FE, &FF) are always handled regardless. The 9
+; NOPs at &80F7 provide bus settling time after register access.
 ;
-; Intercepts three service calls before normal dispatch: &FE: Tube init — explode
-; character definitions &FF: Full init — vector setup, copy code to RAM, select NFS &12
-; (Y=5): Select NFS as active filing system All other service calls < &0D dispatch via
-; c8146.
+; Intercepts three service calls before normal dispatch:
 ;
-; Probes ADLC status registers SR1 (&FEA0) and SR2 (&FEA1) to detect whether Econet
-; hardware is present. Sets bit 7 of per-ROM workspace as a disable flag if not found.
-; The 9 NOPs at &80F7 provide bus settling time after register access.
+; | Svc       | Action                                                 |
+; |-----------|--------------------------------------------------------|
+; | &FE       | Tube init — explode character definitions              |
+; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
+; | &12 (Y=5) | Select NFS as active filing system                     |
+;
+; All other service calls <&0D dispatch via do_svc_dispatch.
 ; &8123 referenced 1 time by &811f
 .check_svc_high
 .service_handler_entry
@@ -1927,10 +1929,12 @@ cmd_roff_str = copyright_string+3
 ; Resume after remote operation / *ROFF handler (NROFF)
 ;
 ; Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was disabled during a remote
-; operation (peek/poke/boot). Clears the flag, re-enables the keyboard via OSBYTE &C9,
-; and sends function &0A to notify completion. Also handles *ROFF and the triple-plus
-; escape sequence (+++), which resets system masks via OSBYTE &CE and returns control to
-; the MOS, providing an escape route when a remote session becomes unresponsive.
+; operation (peek / poke / boot). Clears the flag, re-enables the keyboard via OSBYTE
+; &C9, and sends function &0A to notify completion.
+;
+; Also handles *ROFF and the triple-plus escape sequence (+++), which resets system masks
+; via OSBYTE &CE / &CF and returns control to the MOS, providing an escape route when a
+; remote session becomes unresponsive.
 .net_4_resume_remote
     ldy #4                                                            ; 81bc: a0 04       ..       ; Y=4: offset of keyboard disable flag
     lda (net_rx_ptr),y                                                ; 81be: b1 9c       ..       ; Read flag from RX buffer

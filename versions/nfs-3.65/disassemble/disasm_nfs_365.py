@@ -1678,18 +1678,22 @@ d.subroutine(
     0x8116,
     "service_handler_entry",
     title="Service handler entry",
-    description="""On service 1 only, probes ADLC status registers SR1 (&FEA0)
-and SR2 (&FEA1) to detect whether Econet hardware is present.
-Non-zero reads indicate bus noise from absent hardware; sets
-bit 7 of per-ROM workspace as a disable flag. For services
-< &80, the flag causes an early return (disabling this ROM).
-Services >= &80 (&FE, &FF) are always handled regardless.
+    description="""On service 1 only, probes ADLC status registers SR1 (`&FEA0`)
+and SR2 (`&FEA1`) to detect whether Econet hardware is present.
+Non-zero reads indicate bus noise from absent hardware; sets bit 7
+of the per-ROM workspace as a disable flag. For services `<&80`,
+the flag causes an early return (disabling this ROM). Services
+`>=&80` (`&FE`, `&FF`) are always handled regardless.
 
 Intercepts three service calls before normal dispatch:
-  &FE: Tube init — explode character definitions
-  &FF: Full init — vector setup, copy code to RAM, select NFS
-  &12 (Y=5): Select NFS as active filing system
-All other service calls < &0D dispatch via c8146.""",
+
+| Svc        | Action |
+|------------|--------|
+| `&FE`      | Tube init — explode character definitions |
+| `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
+| `&12` (`Y=5`) | Select NFS as active filing system |
+
+All other service calls `<&0D` dispatch via [`do_svc_dispatch`](address:8186).""",
 )
 
 d.comment(0x8118, "Service < &FE: skip to &12/dispatch check", align=Align.INLINE)
@@ -1710,13 +1714,13 @@ d.comment(0x8137, "EVNTV low = &AD (event handler address)", align=Align.INLINE)
 d.label(0x8137, "init_vectors_and_copy")
 
 
-d.comment(0x8139, "Set EVNTV low byte at &0220", align=Align.INLINE)
+d.comment(0x8139, "Set [`EVNTV`](address:0220) low byte", align=Align.INLINE)
 d.comment(0x813C, "EVNTV high = &06 (page 6)", align=Align.INLINE)
-d.comment(0x813E, "Set EVNTV high byte at &0221", align=Align.INLINE)
+d.comment(0x813E, "Set `EVNTV` high byte (at `&0221`)", align=Align.INLINE)
 d.comment(0x8141, "BRKV low = &16 (NMI workspace)", align=Align.INLINE)
-d.comment(0x8143, "Set BRKV low byte at &0202", align=Align.INLINE)
+d.comment(0x8143, "Set [`BRKV`](address:0202) low byte", align=Align.INLINE)
 d.comment(0x8146, "BRKV high = &00 (zero page)", align=Align.INLINE)
-d.comment(0x8148, "Set BRKV high byte at &0203", align=Align.INLINE)
+d.comment(0x8148, "Set `BRKV` high byte (at `&0203`)", align=Align.INLINE)
 d.comment(0x814B, "Tube control register init value &8E", align=Align.INLINE)
 d.comment(0x814D, "Write to Tube control register", align=Align.INLINE)
 d.comment(0x8150, "Y=0: copy 256 bytes per page", align=Align.INLINE)
@@ -1802,13 +1806,15 @@ d.subroutine(
     0x81AA,
     "net_4_resume_remote",
     title="Resume after remote operation / *ROFF handler (NROFF)",
-    description="""Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was
-disabled during a remote operation (peek/poke/boot). Clears
-the flag, re-enables the keyboard via OSBYTE &C9, and sends
-function &0A to notify completion. Also handles *ROFF and the
-triple-plus escape sequence (+++), which resets system masks
-via OSBYTE &CE and returns control to the MOS, providing an
-escape route when a remote session becomes unresponsive.""",
+    description="""Checks byte 4 of `(net_rx_ptr)`: if non-zero, the keyboard was
+disabled during a remote operation (peek / poke / boot). Clears the
+flag, re-enables the keyboard via `OSBYTE &C9`, and sends function
+`&0A` to notify completion.
+
+Also handles `*ROFF` and the triple-plus escape sequence (`+++`), which
+resets system masks via `OSBYTE &CE` / `&CF` and returns control to the
+MOS, providing an escape route when a remote session becomes
+unresponsive.""",
 )
 d.comment(0x81AA, "Y=4: offset of keyboard disable flag", align=Align.INLINE)
 d.comment(0x81AC, "Read flag from RX buffer", align=Align.INLINE)
@@ -1853,16 +1859,20 @@ d.subroutine(
     0x81DF,
     "svc_13_select_nfs",
     title="Select NFS as active filing system (INIT)",
-    description="""Reached from service &12 (select FS) with Y=5, or when *NET command
-selects NFS. Notifies the current FS of shutdown via FSCV A=6 —
-this triggers the outgoing FS to save its context back to its
-workspace page, allowing restoration if re-selected later (the
-FSDIE handoff mechanism). Then sets up the standard OS vector
-indirections (FILEV through FSCV) to NFS entry points, claims the
-extended vector table entries, and issues service &0F (vectors
-claimed) to notify other ROMs. If nfs_temp is zero (auto-boot
-not inhibited), injects the synthetic command "I .BOOT" through
-the command decoder to trigger auto-boot login.""",
+    description="""Reached from service `&12` (select FS) with `Y=5`, or when a `*NET`
+command selects NFS. Notifies the current FS of shutdown via
+`FSCV A=6` — this triggers the outgoing FS to save its context back
+to its workspace page, allowing restoration if re-selected later (the
+FSDIE handoff mechanism). Then:
+
+1. Sets up the standard OS vector indirections (`FILEV` through `FSCV`)
+   to NFS entry points.
+2. Claims the extended vector table entries.
+3. Issues service `&0F` (vectors claimed) to notify other ROMs.
+
+If `nfs_temp` is zero (auto-boot not inhibited), injects the synthetic
+command `"I .BOOT"` through the command decoder to trigger auto-boot
+login.""",
 )
 d.comment(0x81DF, "Notify current FS of shutdown (FSCV A=6)", align=Align.INLINE)
 d.comment(0x81E2, "C=1 for ROR", align=Align.INLINE)
@@ -1968,12 +1978,15 @@ d.subroutine(
     0x8252,
     "init_fs_vectors",
     title="Initialise filing system vectors",
-    description="""Copies 14 bytes from l8288 (&8288) into FILEV-FSCV (&0212),
-setting all 7 filing system vectors to the extended vector dispatch
-addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
-ROM pointer table entries with the actual NFS handler addresses. Also
-reached directly from svc_13_select_nfs, bypassing the station display.
-Falls through to issue_vectors_claimed.""",
+    description="""Copies 14 bytes from [`fs_vector_addrs`](address:8286)+`2` (= `&8288`)
+into `FILEV`–`FSCV` at `&0212`, setting all 7 filing-system vectors to
+the extended-vector dispatch addresses (`&FF1B`–`&FF2D`). Calls
+`setup_rom_ptrs_netv` to install the ROM pointer-table entries with
+the actual NFS handler addresses.
+
+Also reached directly from [`svc_13_select_nfs`](address:81DF),
+bypassing the station display. Falls through to
+[`issue_vectors_claimed`](address:8269).""",
 )
 d.comment(0x8252, "Copy 14 bytes: FS vector addresses to FILEV-FSCV", align=Align.INLINE)
 d.label(0x8254, "copy_fs_vectors")
@@ -1991,13 +2004,13 @@ d.subroutine(
     0x8269,
     "issue_vectors_claimed",
     title="Issue 'vectors claimed' service and optionally auto-boot",
-    description="""Issues service &0F (vectors claimed) via OSBYTE &8F, then
-service &0A. If l00a8 is zero (soft break — RXCBs already
-initialised), sets up the command string "I .BOOT" at &828E
-and jumps to the FSCV 3 unrecognised-command handler (which
-matches against the command table at &8C4B). The "I." prefix
-triggers the catch-all entry which forwards the command to
-the fileserver. Falls through to run_fscv_cmd.""",
+    description="""Issues service `&0F` (vectors claimed) via `OSBYTE &8F`, then
+service `&0A`. If `l00a8` is zero (soft break — RXCBs already
+initialised), sets up the command string `"I .BOOT"` near `&828E` and
+jumps to the FSCV 3 unrecognised-command handler (which matches
+against [`fs_cmd_match_table`](address:8C39)). The `"I."` prefix
+triggers the catch-all entry which forwards the command to the
+fileserver. Falls through to [`run_fscv_cmd`](address:827B).""",
 )
 d.comment(0x8269, "A=&8F: issue service request", align=Align.INLINE)
 d.comment(0x826B, "X=&0F: 'vectors claimed' service", align=Align.INLINE)
@@ -2038,16 +2051,17 @@ d.subroutine(
     0x8286,
     "fs_vector_addrs",
     title="FS vector dispatch and handler addresses (34 bytes)",
-    description="""Bytes 0-13: extended vector dispatch addresses, copied to
-FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
-a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
-the handler in the ROM pointer table.
+    description="""Two contiguous tables:
 
-Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
-Each entry has addr_lo, addr_hi, then a padding byte that is
-not read at runtime (store_rom_ptr_pair writes the current ROM
-bank number without reading). The last entry (FSCV) has no
-padding byte.""",
+**Bytes 0–13**: extended-vector dispatch addresses, copied to
+`FILEV`–`FSCV` at `&0212` by [`init_fs_vectors`](address:8252). Each
+2-byte pair is a dispatch address (`&FF1B`–`&FF2D`) that the MOS uses
+to look up the handler in the ROM pointer table.
+
+**Bytes 14–33**: handler address pairs read by `store_rom_ptr_pair`.
+Each entry has `addr_lo`, `addr_hi`, then a padding byte that is not
+read at runtime (`store_rom_ptr_pair` writes the current ROM bank
+number without reading). The last entry (FSCV) has no padding byte.""",
 )
 d.byte(0x8286, 2)
 d.comment(0x8286, "Auto-boot string tail / vector table header", align=Align.INLINE)
