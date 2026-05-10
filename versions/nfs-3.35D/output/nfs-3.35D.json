@@ -963,7 +963,7 @@
       "addr": 34933,
       "name": "filev_attrib_dispatch",
       "title": "FILEV attribute dispatch (A=1-6)",
-      "description": "Dispatches OSFILE operations by function code:\n  A=1: write catalogue info (load/exec/length/attrs) \u2014 FS &14\n  A=2: write load address only\n  A=3: write exec address only\n  A=4: write file attributes\n  A=5: read catalogue info, returns type in A \u2014 FS &12\n  A=6: delete named object \u2014 FS &14 (FCDEL)\n  A>=7: falls through to restore_args_return (no-op)\nEach handler builds the appropriate FS command, sends it to\nthe fileserver, and copies the reply into the parameter block.\nThe control block layout uses dual-purpose fields: the 'data\nstart' field doubles as 'length' and 'data end' doubles as\n'protection' depending on whether reading or writing attrs.",
+      "description": "Dispatches `OSFILE` operations by function code:\n\n| `A`   | Action | FS cmd |\n|-------|--------|--------|\n| 1     | Write catalogue info (load / exec / length / attrs) | `&14` |\n| 2     | Write load address only | \u2014 |\n| 3     | Write exec address only | \u2014 |\n| 4     | Write file attributes | \u2014 |\n| 5     | Read catalogue info, returns type in `A` | `&12` |\n| 6     | Delete named object | `&14` (FCDEL) |\n| \u22657    | Fall through to `restore_args_return` (no-op) | \u2014 |\n\nEach handler builds the appropriate FS command, sends it to the\nfileserver, and copies the reply into the parameter block. The\ncontrol-block layout uses dual-purpose fields: the *data start* field\ndoubles as *length* and *data end* doubles as *protection* depending\non whether reading or writing attrs.",
       "on_entry": {
         "a": "function code (1-6)"
       },
@@ -1033,7 +1033,7 @@
       "addr": 35276,
       "name": "fscv_0_opt",
       "title": "FSCV 0: *OPT handler (OPTION)",
-      "description": "Handles *OPT X,Y to set filing system options:\n  *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)\n  *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)\nOther combinations generate error &CB (OPTER: \"bad option\").",
+      "description": "Handles `*OPT X,Y` to set filing system options:\n\n| Form         | Effect |\n|--------------|--------|\n| `*OPT 1,Y` (`Y=0`/`1`) | Set local user option in `&0E06` (OPT) |\n| `*OPT 4,Y` (`Y=0`\u2013`3`) | Set boot option via FS command `&16` (FCOPT) |\n\nOther combinations generate error `&CB` (OPTER: *\"bad option\"*).",
       "on_entry": {
         "x": "option number (1 or 4)",
         "y": "option value"
@@ -1058,7 +1058,7 @@
       "addr": 35344,
       "name": "gbpbv_handler",
       "title": "GBPBV handler (OSGBPB entry point)",
-      "description": "  A=1-4: file read/write operations (handle-based)\n  A=5-8: info queries (disc title, current dir, lib, filenames)\nCalls 1-4 are standard file data transfers via the fileserver.\nCalls 5-8 were a late addition to the MOS spec and are the only\nNFS operations requiring Tube data transfer -- described in the\noriginal source as \"untidy but useful in theory.\" The data format\nuses length-prefixed strings (<name length><object name>) rather\nthan the CR-terminated strings used elsewhere in the FS.",
+      "description": "Reason codes:\n\n| `A` | Action |\n|-----|--------|\n| 1\u20134 | File read / write operations (handle-based) |\n| 5\u20138 | Info queries (disc title, current dir, lib, filenames) |\n\nCalls 1\u20134 are standard file data transfers via the fileserver.\nCalls 5\u20138 were a late addition to the MOS spec and are the only NFS\noperations requiring Tube data transfer \u2014 described in the original\nsource as *\"untidy but useful in theory.\"* The data format uses\nlength-prefixed strings (`<name length><object name>`) rather than the\nCR-terminated strings used elsewhere in the FS.",
       "on_entry": {
         "a": "call number (1-8)",
         "x": "parameter block address low byte",

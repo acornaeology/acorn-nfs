@@ -3892,19 +3892,23 @@ d.subroutine(
     0x88D1,
     "filev_attrib_dispatch",
     title="FILEV attribute dispatch (A=1-6)",
-    description="""Dispatches OSFILE operations by function code:
-  A=1: write catalogue info (load/exec/length/attrs) — FS &14
-  A=2: write load address only
-  A=3: write exec address only
-  A=4: write file attributes
-  A=5: read catalogue info, returns type in A — FS &12
-  A=6: delete named object — FS &14 (FCDEL)
-  A>=7: falls through to restore_args_return (no-op)
-Each handler builds the appropriate FS command, sends it to
-the fileserver, and copies the reply into the parameter block.
-The control block layout uses dual-purpose fields: the 'data
-start' field doubles as 'length' and 'data end' doubles as
-'protection' depending on whether reading or writing attrs.""",
+    description="""Dispatches `OSFILE` operations by function code:
+
+| `A`   | Action | FS cmd |
+|-------|--------|--------|
+| 1     | Write catalogue info (load / exec / length / attrs) | `&14` |
+| 2     | Write load address only | — |
+| 3     | Write exec address only | — |
+| 4     | Write file attributes | — |
+| 5     | Read catalogue info, returns type in `A` | `&12` |
+| 6     | Delete named object | `&14` (FCDEL) |
+| ≥7    | Fall through to `restore_args_return` (no-op) | — |
+
+Each handler builds the appropriate FS command, sends it to the
+fileserver, and copies the reply into the parameter block. The
+control-block layout uses dual-purpose fields: the *data start* field
+doubles as *length* and *data end* doubles as *protection* depending
+on whether reading or writing attrs.""",
     on_entry={"a": "function code (1-6)"},
     on_exit={"a": "object type (A=5 read info) or restored"},
 )
@@ -4008,15 +4012,19 @@ d.subroutine(
     0x8968,
     "argsv_handler",
     title="ARGSV handler (OSARGS entry point)",
-    description="""  A=0, Y=0: return filing system number (5 = network FS)
-  A=0, Y>0: read file pointer via FS command &0C (FCRDSE)
-  A=1, Y>0: write file pointer via FS command &0D (FCWRSE)
-  A=2, Y=0: return &01 (command-line tail supported)
-  A>=3 (ensure): silently returns -- NFS has no local write buffer
-     to flush, since all data is sent to the fileserver immediately
-The handle in Y is converted via handle_to_mask_clc. For writes
-(A=1), the carry flag from the mask conversion is used to branch
-to save_args_handle, which records the handle for later use.""",
+    description="""Reason codes:
+
+| A | Y | Action |
+|---|---|--------|
+| 0 | 0 | Return filing system number (`5` = network FS) |
+| 0 | >0 | Read file pointer via FS command `&0C` (FCRDSE) |
+| 1 | >0 | Write file pointer via FS command `&0D` (FCWRSE) |
+| 2 | 0 | Return `&01` (command-line tail supported) |
+| ≥3 | — | Silently returns — NFS has no local write buffer to flush, since all data is sent to the fileserver immediately |
+
+The handle in `Y` is converted via [`handle_to_mask_clc`](address:869B).
+For writes (`A=1`), the carry flag from the mask conversion is used to
+branch to `save_args_handle`, which records the handle for later use.""",
     on_entry={
         "a": "function code (0=query, 1=write ptr, >=3=ensure)",
         "y": "file handle (0=FS-level query, >0=per-file)",
@@ -4130,15 +4138,22 @@ d.subroutine(
     0x89D8,
     "findv_handler",
     title="FINDV handler (OSFIND entry point)",
-    description="""  A=0: close file -- delegates to close_handle (&8A10)
-  A>0: open file -- modes &40=read, &80=write/update, &C0=read/write
+    description="""Mode dispatch:
+
+| `A`     | Action |
+|---------|--------|
+| `&00`   | Close file — delegates to [`close_handle`](address:8A10) |
+| `&40`   | Open for **read** |
+| `&80`   | Open for **write / update** |
+| `&C0`   | Open for **read / write** |
+
 For open: the mode byte is converted to the fileserver's two-flag
-format by flipping bit 7 (EOR #&80) and shifting. This produces
-Flag 1 (read/write direction) and Flag 2 (create/existing),
-matching the fileserver protocol. After a successful open, the
-new handle's bit is OR'd into the EOF hint byte (marks it as
-"might be at EOF, query the server"), and into the sequence
-number tracking byte for the byte-stream protocol.""",
+format by flipping bit 7 (`EOR #&80`) and shifting. This produces
+Flag 1 (read / write direction) and Flag 2 (create / existing),
+matching the fileserver protocol. After a successful open, the new
+handle's bit is OR'd into the EOF hint byte (marks it as "might be
+at EOF, query the server"), and into the sequence-number tracking
+byte for the byte-stream protocol.""",
     on_entry={
         "a": "operation (0=close, &40=read, &80=write, &C0=R/W)",
         "x": "filename pointer low (open)",
@@ -4216,10 +4231,14 @@ d.subroutine(
     0x8A2E,
     "fscv_0_opt",
     title="FSCV 0: *OPT handler (OPTION)",
-    description="""Handles *OPT X,Y to set filing system options:
-  *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)
-  *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)
-Other combinations generate error &CB (OPTER: "bad option").""",
+    description="""Handles `*OPT X,Y` to set filing system options:
+
+| Form         | Effect |
+|--------------|--------|
+| `*OPT 1,Y` (`Y=0`/`1`) | Set local user option in `&0E06` (OPT) |
+| `*OPT 4,Y` (`Y=0`–`3`) | Set boot option via FS command `&16` (FCOPT) |
+
+Other combinations generate error `&CB` (OPTER: *"bad option"*).""",
     on_entry={"x": "option number (1 or 4)", "y": "option value"},
 )
 d.comment(0x8A2E, "Is it *OPT 4,Y?", align=Align.INLINE)
@@ -4296,14 +4315,19 @@ d.subroutine(
     0x8A72,
     "gbpbv_handler",
     title="GBPBV handler (OSGBPB entry point)",
-    description="""  A=1-4: file read/write operations (handle-based)
-  A=5-8: info queries (disc title, current dir, lib, filenames)
-Calls 1-4 are standard file data transfers via the fileserver.
-Calls 5-8 were a late addition to the MOS spec and are the only
-NFS operations requiring Tube data transfer -- described in the
-original source as "untidy but useful in theory." The data format
-uses length-prefixed strings (<name length><object name>) rather
-than the CR-terminated strings used elsewhere in the FS.""",
+    description="""Reason codes:
+
+| `A` | Action |
+|-----|--------|
+| 1–4 | File read / write operations (handle-based) |
+| 5–8 | Info queries (disc title, current dir, lib, filenames) |
+
+Calls 1–4 are standard file data transfers via the fileserver.
+Calls 5–8 were a late addition to the MOS spec and are the only NFS
+operations requiring Tube data transfer — described in the original
+source as *"untidy but useful in theory."* The data format uses
+length-prefixed strings (`<name length><object name>`) rather than the
+CR-terminated strings used elsewhere in the FS.""",
     on_entry={
         "a": "call number (1-8)",
         "x": "parameter block address low byte",

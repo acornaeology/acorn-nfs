@@ -47,7 +47,7 @@ strings in NFS driver scripts to use the inline-Markdown features described in
 | Reloc p5/p6           | &0500–&06FF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | ROM header / service  | &8000–&80CF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | FSCV                  | &80D0–&82FF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| File handle ops       | &8300–&8AFF | . | . | . | . | . | . | . | . |
+| File handle ops       | &8300–&8AFF | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Star commands         | &8B00–&92FF | . | . | . | . | . | . | . | . |
 | Net protocol          | &9300–&9FFF | . | . | . | . | . | . | . | . |
 
