@@ -332,17 +332,26 @@ d.subroutine(
     0x0400,
     "tube_code_page4",
     title="Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)",
-    description="""Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)
-overlap with the end of the ZP block (the same ROM bytes serve both
-the ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:
-  &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
-  &0403: JMP &06E2 (tube_escape_check)
-  &0406: tube_addr_claim — Tube address claim protocol (ADRR)
-  &0414: tube_post_init — called after ROM→RAM copy
-  &0473: BEGIN — startup/CLI entry, break type check
-  &04E7: tube_rdch_handler — RDCHV target
-  &04EF: tube_restore_regs — restore X,Y, dispatch entry 6
-  &04F7: tube_read_r2 — poll R2 status, read data byte to A""",
+    description="""Copied from ROM at [`reloc_p4_src`](address:935A) during init. The first 28
+bytes (`&0400`–`&041B`) overlap with the end of the ZP block — the same
+ROM bytes serve both the ZP copy at `&005B`–`&0076` and this page at
+`&0400`–`&041B`.
+
+Layout:
+
+| Addr    | Role |
+|---------|------|
+| `&0400` | `JMP` to [`tube_begin`](address:0473) (BEGIN — CLI parser / startup entry) |
+| `&0403` | `JMP` to [`tube_escape_check`](address:06E2) |
+| `&0406` | [`tube_addr_claim`](address:0406) — Tube address claim (ADRR protocol) |
+| `&0414` | [`tube_post_init`](address:0414) — clear claimed-address state to `&80` |
+| `&0426` | [`setup_data_transfer`](address:0426) — data transfer setup (SENDW), `&0426`–`&0472` |
+| `&0473` | [`tube_begin`](address:0473) — startup entry, sends ROM contents to Tube |
+| `&047A` | [`tube_init_reloc`](address:047A) — extract relocation address from ROM |
+| `&04E0` | [`tube_setup_transfer`](address:04E0) — claim Tube and start transfer |
+| `&04E7` | [`tube_rdch_handler`](address:04E7) — RDCHV target |
+| `&04EF` | [`tube_restore_regs`](address:04EF) — restore X, Y; dispatch entry 6 |
+| `&04F7` | [`tube_read_r2`](address:04F7) — poll R2 status, read data byte to `A` |""",
 )
 
 
@@ -350,7 +359,7 @@ d.comment(0x0400, "JMP to BEGIN startup entry", align=Align.INLINE)
 d.label(0x0403, "tube_escape_entry")
 
 d.entry(0x0403)
-d.comment(0x0403, "JMP to tube_escape_check (&06A7)", align=Align.INLINE)
+d.comment(0x0403, "`JMP` to [`tube_escape_check`](address:06E2)", align=Align.INLINE)
 d.label(0x0406, "tube_addr_claim")
 
 d.entry(0x0406)
@@ -443,10 +452,10 @@ d.subroutine(
     0x047A,
     "tube_init_reloc",
     title="Initialise relocation address for ROM transfer",
-    description="""Sets source page to &8000 and page counter to &80. Checks
-ROM type bit 5 for a relocation address in the ROM header;
-if present, extracts the 4-byte address from after the
-copyright string. Otherwise uses default &8000 start.""",
+    description="""Sets source page to `&8000` and page counter to `&80`. Checks
+ROM-type bit 5 for a relocation address in the ROM header; if present,
+extracts the 4-byte address from after the copyright string. Otherwise
+uses the default `&8000` start.""",
 )
 d.label(0x047A, "tube_init_reloc")
 

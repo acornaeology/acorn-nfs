@@ -274,7 +274,7 @@
       "binary_addr": 37733,
       "name": "tube_code_page4",
       "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
-      "description": "Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)\noverlap with the end of the ZP block (the same ROM bytes serve both\nthe ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:\n  &0400: JMP &0484 (BEGIN \u2014 startup/CLI entry, break type check)\n  &0403: JMP &06E2 (tube_escape_check)\n  &0406: tube_addr_claim \u2014 Tube address claim (ADRR protocol)\n  &0414: tube_release_claim \u2014 release address claim via R4 cmd 5\n  &0421: tube_post_init \u2014 reset claimed-address state to &80\n  &0435: data transfer setup (SENDW protocol) \u2014 &0435-&0483\n  &0484: BEGIN \u2014 startup entry, sends ROM contents to Tube\n  &04CB: tube_claim_default \u2014 claim default transfer address\n  &04D2: tube_init_reloc \u2014 extract relocation address from ROM",
+      "description": "Copied from ROM at [`reloc_p4_src`](address:9365) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](address:0484) (BEGIN \u2014 startup / CLI entry, break-type check) |\n| `&0403` | `JMP` to [`tube_escape_check`](address:06A7) |\n| `&0406` | [`tube_addr_claim`](address:0406) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_release_claim`](address:0414) \u2014 release address claim via R4 cmd 5 |\n| `&0421` | [`tube_post_init`](address:0421) \u2014 reset claimed-address state to `&80` |\n| `&0435` | [`tube_transfer_setup`](address:0435) \u2014 data transfer setup (SENDW), `&0435`\u2013`&0483` |\n| `&0484` | [`tube_begin`](address:0484) \u2014 startup entry, sends ROM contents to Tube |\n| `&04CB` | [`tube_claim_default`](address:04CB) \u2014 claim default transfer address |\n| `&04D2` | [`tube_init_reloc`](address:04D2) \u2014 extract relocation address from ROM |",
       "fall_through": true
     },
     {
@@ -282,14 +282,14 @@
       "binary_addr": 37753,
       "name": "tube_release_claim",
       "title": "Release Tube address claim via R4 command 5",
-      "description": "Saves interrupt state (PHP/SEI), sends R4 command 5 (release)\nfollowed by the currently-claimed address, then restores\ninterrupts. Falls through to tube_post_init to reset the\nclaimed-address state to &80."
+      "description": "Saves interrupt state (`PHP`/`SEI`), sends R4 command 5 (release)\nfollowed by the currently-claimed address, then restores\ninterrupts. Falls through to [`tube_post_init`](address:0421) to\nreset the claimed-address state to `&80`."
     },
     {
       "addr": 1156,
       "binary_addr": 37865,
       "name": "tube_begin",
       "title": "Tube host startup entry (BEGIN)",
-      "description": "Entry point via JMP from &0400. Enables interrupts, checks\nbreak type via OSBYTE &FD: soft break re-initialises Tube and\nrestarts, hard break claims address &FF. Sends ROM contents\nto co-processor page by page via SENDW, then claims the final\ntransfer address.",
+      "description": "Entry point via `JMP` from [`tube_code_page4`](address:0400).\nEnables interrupts, then checks the break type via `OSBYTE &FD`:\n\n- Soft break: re-initialise Tube and restart.\n- Hard break: claim address `&FF`.\n\nSends ROM contents to the co-processor page by page via `SENDW`, then\nclaims the final transfer address via [`tube_claim_default`](address:04CB).",
       "fall_through": true
     },
     {
@@ -297,14 +297,14 @@
       "binary_addr": 37936,
       "name": "tube_claim_default",
       "title": "Claim default Tube transfer address",
-      "description": "Sets Y=0, X=&53 (address &0053), then JMP tube_addr_claim\nto initiate a Tube address claim for the default transfer\naddress. Called from the BEGIN startup path and after the\npage transfer loop completes."
+      "description": "Sets `Y=0`, `X=&53` (pointing at [`tube_transfer_addr`](address:0053)),\nthen `JMP` [`tube_addr_claim`](address:0406) to initiate a Tube address\nclaim for the default transfer address. Called from the\n[`tube_begin`](address:0484) startup path and after the page-transfer\nloop completes."
     },
     {
       "addr": 1234,
       "binary_addr": 37943,
       "name": "tube_init_reloc",
       "title": "Initialise relocation address for ROM transfer",
-      "description": "Sets source page to &8000 and page counter to &80. Checks\nROM type bit 5 for a relocation address in the ROM header;\nif present, extracts the 4-byte address from after the\ncopyright string. Otherwise uses default &8000 start."
+      "description": "Sets source page to `&8000` and page counter to `&80`. Checks\nROM-type bit 5 for a relocation address in the ROM header; if present,\nextracts the 4-byte address from after the copyright string. Otherwise\nuses the default `&8000` start."
     },
     {
       "addr": 1280,
@@ -36512,7 +36512,7 @@
       "labels": [
         "tube_escape_entry"
       ],
-      "comment_inline": "JMP to tube_escape_check (&06A7)",
+      "comment_inline": "`JMP` to [`tube_escape_check`](address:06A7)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_escape_check",

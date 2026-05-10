@@ -286,7 +286,7 @@
       "binary_addr": 37722,
       "name": "tube_code_page4",
       "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
-      "description": "Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400-&041B)\noverlap with the end of the ZP block (the same ROM bytes serve both\nthe ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:\n  &0400: JMP &0473 (BEGIN \u2014 CLI parser / startup entry)\n  &0403: JMP &06E2 (tube_escape_check)\n  &0406: tube_addr_claim \u2014 Tube address claim protocol (ADRR)\n  &0414: tube_post_init \u2014 called after ROM\u2192RAM copy\n  &0473: BEGIN \u2014 startup/CLI entry, break type check\n  &04E7: tube_rdch_handler \u2014 RDCHV target\n  &04EF: tube_restore_regs \u2014 restore X,Y, dispatch entry 6\n  &04F7: tube_read_r2 \u2014 poll R2 status, read data byte to A",
+      "description": "Copied from ROM at [`reloc_p4_src`](address:935A) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](address:0473) (BEGIN \u2014 CLI parser / startup entry) |\n| `&0403` | `JMP` to [`tube_escape_check`](address:06E2) |\n| `&0406` | [`tube_addr_claim`](address:0406) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_post_init`](address:0414) \u2014 clear claimed-address state to `&80` |\n| `&0426` | [`setup_data_transfer`](address:0426) \u2014 data transfer setup (SENDW), `&0426`\u2013`&0472` |\n| `&0473` | [`tube_begin`](address:0473) \u2014 startup entry, sends ROM contents to Tube |\n| `&047A` | [`tube_init_reloc`](address:047A) \u2014 extract relocation address from ROM |\n| `&04E0` | [`tube_setup_transfer`](address:04E0) \u2014 claim Tube and start transfer |\n| `&04E7` | [`tube_rdch_handler`](address:04E7) \u2014 RDCHV target |\n| `&04EF` | [`tube_restore_regs`](address:04EF) \u2014 restore X, Y; dispatch entry 6 |\n| `&04F7` | [`tube_read_r2`](address:04F7) \u2014 poll R2 status, read data byte to `A` |",
       "fall_through": true
     },
     {
@@ -294,7 +294,7 @@
       "binary_addr": 37844,
       "name": "tube_init_reloc",
       "title": "Initialise relocation address for ROM transfer",
-      "description": "Sets source page to &8000 and page counter to &80. Checks\nROM type bit 5 for a relocation address in the ROM header;\nif present, extracts the 4-byte address from after the\ncopyright string. Otherwise uses default &8000 start."
+      "description": "Sets source page to `&8000` and page counter to `&80`. Checks\nROM-type bit 5 for a relocation address in the ROM header; if present,\nextracts the 4-byte address from after the copyright string. Otherwise\nuses the default `&8000` start."
     },
     {
       "addr": 1280,
@@ -36124,7 +36124,7 @@
       "labels": [
         "tube_escape_entry"
       ],
-      "comment_inline": "JMP to tube_escape_check (&06A7)",
+      "comment_inline": "`JMP` to [`tube_escape_check`](address:06E2)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_escape_check",

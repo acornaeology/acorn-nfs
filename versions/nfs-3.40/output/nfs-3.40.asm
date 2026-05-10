@@ -540,15 +540,25 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ;
-; Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B) overlap with the
-; end of the ZP block (the same ROM bytes serve both the ZP copy at &005B-&0076 and this
-; page at &0400-&041B). Contains: &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
-; &0403: JMP &06E2 (tube_escape_check) &0406: tube_addr_claim — Tube address claim
-; protocol (ADRR) &0414: tube_post_init — called after ROM→RAM copy &0473: BEGIN —
-; startup/CLI entry, break type check &04CB: tube_init_reloc — initialise relocation
-; address for ROM transfer
+; Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400–&041B) overlap
+; with the end of the ZP block — the same ROM bytes serve both the ZP copy at &005B–&0076
+; and this page at &0400–&041B.
+;
+; Layout:
+;
+; | Addr  | Role                                                              |
+; |-------|-------------------------------------------------------------------|
+; | &0400 | JMP to tube_begin (BEGIN — startup / CLI entry, break-type check) |
+; | &0403 | JMP to tube_escape_check                                          |
+; | &0406 | tube_addr_claim — Tube address claim (ADRR protocol)              |
+; | &0414 | tube_send_release — send R4 release-request to co-processor       |
+; | &041E | tube_post_init — reset claimed-address state to &80               |
+; | &0430 | tube_transfer_setup — data transfer setup (SENDW), &0430–&047C    |
+; | &047D | tube_begin — startup entry, sends ROM contents to Tube            |
+; | &04C4 | tube_claim_default — claim default transfer address               |
+; | &04CB | tube_init_reloc — extract relocation address from ROM             |
     jmp tube_begin                                                    ; 935d: 4c 7d 04    L}. :0057[1]        ; JMP to BEGIN startup entry
-    jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :005a[1]        ; JMP to tube_escape_check (&06A7)
+    jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :005a[1]        ; JMP to tube_escape_check
     cmp #&80                                                          ; 9363: c9 80       .. :005d[1]         ; A>=&80: address claim; A<&80: data transfer
 .zp_63
     bcc &0087                                                         ; 9365: 90 26       .& :005f[1]         ; A<&80: data transfer setup (SENDW)
@@ -587,18 +597,28 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Tube host code page 4 — reference: NFS12 (BEGIN, ADRR, SENDW)
 ;
-; Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B) overlap with the
-; end of the ZP block (the same ROM bytes serve both the ZP copy at &005B-&0076 and this
-; page at &0400-&041B). Contains: &0400: JMP &0473 (BEGIN — CLI parser / startup entry)
-; &0403: JMP &06E2 (tube_escape_check) &0406: tube_addr_claim — Tube address claim
-; protocol (ADRR) &0414: tube_post_init — called after ROM→RAM copy &0473: BEGIN —
-; startup/CLI entry, break type check &04CB: tube_init_reloc — initialise relocation
-; address for ROM transfer
+; Copied from ROM at reloc_p4_src during init. The first 28 bytes (&0400–&041B) overlap
+; with the end of the ZP block — the same ROM bytes serve both the ZP copy at &005B–&0076
+; and this page at &0400–&041B.
+;
+; Layout:
+;
+; | Addr  | Role                                                              |
+; |-------|-------------------------------------------------------------------|
+; | &0400 | JMP to tube_begin (BEGIN — startup / CLI entry, break-type check) |
+; | &0403 | JMP to tube_escape_check                                          |
+; | &0406 | tube_addr_claim — Tube address claim (ADRR protocol)              |
+; | &0414 | tube_send_release — send R4 release-request to co-processor       |
+; | &041E | tube_post_init — reset claimed-address state to &80               |
+; | &0430 | tube_transfer_setup — data transfer setup (SENDW), &0430–&047C    |
+; | &047D | tube_begin — startup entry, sends ROM contents to Tube            |
+; | &04C4 | tube_claim_default — claim default transfer address               |
+; | &04CB | tube_init_reloc — extract relocation address from ROM             |
 ; &0400 referenced 1 time by &815e
 .tube_code_page4
     jmp tube_begin                                                    ; 935d: 4c 7d 04    L}. :0400[2]        ; JMP to BEGIN startup entry
 .tube_escape_entry
-    jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :0403[2]        ; JMP to tube_escape_check (&06A7)
+    jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :0403[2]        ; JMP to tube_escape_check
 ; &0406 referenced 10 times by &8b5d, &8b74, &8bd1, &8e19, &93f0, &9425, &99d1, &9a3a, &9f75, &9f7d
 .tube_addr_claim
     cmp #&80                                                          ; 9363: c9 80       .. :0406[2]         ; A>=&80: address claim; A<&80: data transfer
@@ -737,9 +757,9 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; ***************************************************************************************
 ; Initialise relocation address for ROM transfer
 ;
-; Sets source page to &8000 and page counter to &80. Checks ROM type bit 5 for a
+; Sets source page to &8000 and page counter to &80. Checks ROM-type bit 5 for a
 ; relocation address in the ROM header; if present, extracts the 4-byte address from
-; after the copyright string. Otherwise uses default &8000 start.
+; after the copyright string. Otherwise uses the default &8000 start.
 ; &04cb referenced 2 times by &93f5, &941c
 .tube_init_reloc
     lda #&80                                                          ; 9428: a9 80       .. :04cb[2]         ; Init: start sending from &8000
