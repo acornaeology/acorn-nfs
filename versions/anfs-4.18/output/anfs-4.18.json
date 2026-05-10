@@ -295,6 +295,43 @@
       "description": "Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.\n\nFire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:858C) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:8702?hex) \u2192 `tx_last_data` \u2192 [`nmi_tx_complete`](address:8732) \u2192 [`nmi_reply_scout`](address:874E)). This bypasses [`send_net_packet`](address:983F) and [`poll_adlc_tx_status`](address:98C9), which poll synchronously for completion \u2013 there is no retry loop here.\n\nSequence:\n\n1. `ASL tx_complete_flag` \u2013 tests bit 7 (TX-in-progress). On busy, store 0 to PB and return immediately.\n2. Set `ws_ptr_lo`/`nmi_tx_block_hi` from `net_rx_ptr_hi`, point the buffer at `&xx6F`.\n3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](address:A6F8).\n4. `JMP tx_begin`.\n\nCalled from service call 8 in interrupt context, never foreground."
     },
     {
+      "addr": 32808,
+      "name": "svc5_irq_check",
+      "title": "Service 5: unrecognised interrupt (SR dispatch)",
+      "description": "Tests IFR bit 2 (SR complete) to check for a\nshift register transfer complete. If SR is not set,\nreturns A=5 to pass the service call on. If SR is\nset, saves registers, reads the VIA ACR, clears and\nrestores the SR mode bits from ws_0d64, then dispatches\nthe TX completion callback via the operation type stored\nin tx_op_type. The indexed handler performs the completion\naction (e.g. resuming background print spooling) before\nreturning with A=0 to claim the service call.",
+      "on_entry": {
+        "a": "5 (service call number)",
+        "x": "ROM slot",
+        "y": "parameter"
+      }
+    },
+    {
+      "addr": 32858,
+      "name": "generate_event",
+      "title": "Generate event via event vector",
+      "description": "Dispatches through the event vector (EVNTV)\nto notify event handlers. Called with the event\nnumber in A.",
+      "on_entry": {
+        "A": "event number"
+      },
+      "on_exit": {
+        "A": "preserved",
+        "X": "preserved",
+        "Y": "preserved"
+      }
+    },
+    {
+      "addr": 35349,
+      "name": "service_handler",
+      "title": "Service call dispatch",
+      "description": "Handles service calls 1, 4, 8, 9, 13, 14, and 15.\nService 1: absolute workspace claim.\nService 4: unrecognised star command.\nService 8: unrecognised OSWORD.\nService 9: *HELP.\nService 13: ROM initialisation.\nService 14: ROM initialisation complete.\nService 15: vectors claimed.",
+      "on_entry": {
+        "a": "service call number",
+        "x": "ROM slot",
+        "y": "parameter"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 1030,
       "binary_addr": 48906,
       "name": "tube_addr_data_dispatch",
@@ -352,41 +389,6 @@
       "description": "Sets the Tube transfer source page to &8000\n(tube_xfer_page = &80) and the page counter to &80.\nChecks ROM type bit 5 for a relocation address in the\nROM header. If set, scans past the null-terminated\ncopyright string and extracts the 4-byte relocation\naddress into tube_transfer_addr (&53), tube_xfer_page\n(&54), tube_xfer_addr_2 (&55), and tube_xfer_addr_3\n(&56). If clear, uses the default &8000 start address.\nCalled twice during tube_begin: once for initial setup\nand once after each page transfer completes."
     },
     {
-      "addr": 1312,
-      "binary_addr": 48308,
-      "name": "tube_osbput",
-      "title": "Tube OSBPUT handler (R2 cmd 8)",
-      "description": "Reads file handle and data byte from R2, then\ncalls OSBPUT (&FFD4) to write the byte. Falls through\nto tube_reply_ack to send &7F acknowledgement."
-    },
-    {
-      "addr": 1325,
-      "binary_addr": 48321,
-      "name": "tube_osbget",
-      "title": "Tube OSBGET handler (R2 cmd 7)",
-      "description": "Reads file handle from R2, calls OSBGET (&FFD7)\nto read a byte, then falls through to tube_rdch_reply\nwhich encodes the carry flag (error) into bit 7 and\nsends the result byte via R2."
-    },
-    {
-      "addr": 1335,
-      "binary_addr": 48331,
-      "name": "tube_osrdch",
-      "title": "Tube OSRDCH handler (R2 cmd 0)",
-      "description": "Calls OSRDCH (&FFE0) to read a character from\nthe current input stream, then falls through to\ntube_rdch_reply which encodes the carry flag (error)\ninto bit 7 and sends the result byte via R2."
-    },
-    {
-      "addr": 1346,
-      "binary_addr": 48342,
-      "name": "tube_osfind",
-      "title": "Tube OSFIND handler (R2 cmd 9)",
-      "description": "Reads open mode from R2. If zero, reads a file\nhandle and closes that file. Otherwise saves the mode,\nreads a filename string into &0700 via tube_read_string,\nthen calls OSFIND (&FFCE) to open the file. Sends the\nresulting file handle (or &00) via tube_reply_byte."
-    },
-    {
-      "addr": 1374,
-      "binary_addr": 48370,
-      "name": "tube_osargs",
-      "title": "Tube OSARGS handler (R2 cmd 6)",
-      "description": "Reads file handle from R2 into Y, then reads\na 4-byte argument and reason code into zero page.\nCalls OSARGS (&FFDA), sends the result A and 4-byte\nreturn value via R2, then returns to the main loop."
-    },
-    {
       "addr": 1410,
       "binary_addr": 48406,
       "name": "tube_read_string",
@@ -396,57 +398,6 @@
         "x": "0 (low byte of &0700)",
         "y": "7 (high byte of &0700)"
       }
-    },
-    {
-      "addr": 1430,
-      "binary_addr": 48426,
-      "name": "tube_oscli",
-      "title": "Tube OSCLI handler (R2 cmd 1)",
-      "description": "Reads a command string from R2 into &0700 via\ntube_read_string, then calls OSCLI (&FFF7) to execute\nit. Falls through to tube_reply_ack to send &7F\nacknowledgement."
-    },
-    {
-      "addr": 1449,
-      "binary_addr": 48445,
-      "name": "tube_osfile",
-      "title": "Tube OSFILE handler (R2 cmd 10)",
-      "description": "Reads a 16-byte control block into zero page,\na filename string into &0700 via tube_read_string,\nand a reason code from R2. Calls OSFILE (&FFDD),\nthen sends the result A and updated 16-byte control\nblock back via R2. Returns to the main loop via mj.",
-      "fall_through": true
-    },
-    {
-      "addr": 1489,
-      "binary_addr": 48485,
-      "name": "tube_osgbpb",
-      "title": "Tube OSGBPB handler (R2 cmd 11)",
-      "description": "Reads a 13-byte control block and reason code\nfrom R2 into zero page. Calls OSGBPB (&FFD1), then\nsends 12 result bytes and the carry+result byte\n(via tube_rdch_reply) back via R2."
-    },
-    {
-      "addr": 1522,
-      "binary_addr": 48518,
-      "name": "tube_osbyte_2param",
-      "title": "Tube OSBYTE 2-param handler (R2 cmd 2)",
-      "description": "Reads X and A from R2, calls OSBYTE (&FFF4)\nwith Y=0, then sends the result X via\ntube_reply_byte. Used for OSBYTE calls that take\nonly A and X parameters."
-    },
-    {
-      "addr": 1543,
-      "binary_addr": 48539,
-      "name": "tube_osbyte_long",
-      "title": "Tube OSBYTE 3-param handler (R2 cmd 3)",
-      "description": "Reads X, Y, and A from R2, calls OSBYTE\n(&FFF4), then sends carry+Y and X as result bytes\nvia R2. Used for OSBYTE calls needing all three\nparameters and returning both X and Y results.",
-      "fall_through": true
-    },
-    {
-      "addr": 1575,
-      "binary_addr": 48571,
-      "name": "tube_osword",
-      "title": "Tube OSWORD handler (R2 cmd 4)",
-      "description": "Reads OSWORD number A and in-length from R2,\nthen reads the parameter block into &0128. Calls\nOSWORD (&FFF1), then sends the out-length result\nbytes from the parameter block back via R2.\nReturns to the main loop via tube_return_main."
-    },
-    {
-      "addr": 1640,
-      "binary_addr": 48636,
-      "name": "tube_osword_rdln",
-      "title": "Tube OSWORD 0 handler (R2 cmd 5)",
-      "description": "Handles OSWORD 0 (read line) specially. Reads\n4 parameter bytes from R2 into &0128 (max length,\nmin char, max char, flags). Calls OSWORD 0 (&FFF1)\nto read a line, then sends &7F+CR or the input line\nbyte-by-byte via R2, followed by &80 (error/escape)\nor &7F (success)."
     },
     {
       "addr": 1685,
@@ -499,31 +450,6 @@
       }
     },
     {
-      "addr": 32808,
-      "name": "svc5_irq_check",
-      "title": "Service 5: unrecognised interrupt (SR dispatch)",
-      "description": "Tests IFR bit 2 (SR complete) to check for a\nshift register transfer complete. If SR is not set,\nreturns A=5 to pass the service call on. If SR is\nset, saves registers, reads the VIA ACR, clears and\nrestores the SR mode bits from ws_0d64, then dispatches\nthe TX completion callback via the operation type stored\nin tx_op_type. The indexed handler performs the completion\naction (e.g. resuming background print spooling) before\nreturning with A=0 to claim the service call.",
-      "on_entry": {
-        "a": "5 (service call number)",
-        "x": "ROM slot",
-        "y": "parameter"
-      }
-    },
-    {
-      "addr": 32858,
-      "name": "generate_event",
-      "title": "Generate event via event vector",
-      "description": "Dispatches through the event vector (EVNTV)\nto notify event handlers. Called with the event\nnumber in A.",
-      "on_entry": {
-        "A": "event number"
-      },
-      "on_exit": {
-        "A": "preserved",
-        "X": "preserved",
-        "Y": "preserved"
-      }
-    },
-    {
       "addr": 32861,
       "name": "set_jsr_protection",
       "title": "Set JSR protection and dispatch via table",
@@ -531,6 +457,92 @@
       "on_entry": {
         "y": "TX operation type (dispatch index)"
       }
+    },
+    {
+      "addr": 1312,
+      "binary_addr": 48308,
+      "name": "tube_osbput",
+      "title": "Tube OSBPUT handler (R2 cmd 8)",
+      "description": "Reads file handle and data byte from R2, then\ncalls OSBPUT (&FFD4) to write the byte. Falls through\nto tube_reply_ack to send &7F acknowledgement."
+    },
+    {
+      "addr": 1325,
+      "binary_addr": 48321,
+      "name": "tube_osbget",
+      "title": "Tube OSBGET handler (R2 cmd 7)",
+      "description": "Reads file handle from R2, calls OSBGET (&FFD7)\nto read a byte, then falls through to tube_rdch_reply\nwhich encodes the carry flag (error) into bit 7 and\nsends the result byte via R2."
+    },
+    {
+      "addr": 1335,
+      "binary_addr": 48331,
+      "name": "tube_osrdch",
+      "title": "Tube OSRDCH handler (R2 cmd 0)",
+      "description": "Calls OSRDCH (&FFE0) to read a character from\nthe current input stream, then falls through to\ntube_rdch_reply which encodes the carry flag (error)\ninto bit 7 and sends the result byte via R2."
+    },
+    {
+      "addr": 1346,
+      "binary_addr": 48342,
+      "name": "tube_osfind",
+      "title": "Tube OSFIND handler (R2 cmd 9)",
+      "description": "Reads open mode from R2. If zero, reads a file\nhandle and closes that file. Otherwise saves the mode,\nreads a filename string into &0700 via tube_read_string,\nthen calls OSFIND (&FFCE) to open the file. Sends the\nresulting file handle (or &00) via tube_reply_byte."
+    },
+    {
+      "addr": 1374,
+      "binary_addr": 48370,
+      "name": "tube_osargs",
+      "title": "Tube OSARGS handler (R2 cmd 6)",
+      "description": "Reads file handle from R2 into Y, then reads\na 4-byte argument and reason code into zero page.\nCalls OSARGS (&FFDA), sends the result A and 4-byte\nreturn value via R2, then returns to the main loop."
+    },
+    {
+      "addr": 1430,
+      "binary_addr": 48426,
+      "name": "tube_oscli",
+      "title": "Tube OSCLI handler (R2 cmd 1)",
+      "description": "Reads a command string from R2 into &0700 via\ntube_read_string, then calls OSCLI (&FFF7) to execute\nit. Falls through to tube_reply_ack to send &7F\nacknowledgement."
+    },
+    {
+      "addr": 1449,
+      "binary_addr": 48445,
+      "name": "tube_osfile",
+      "title": "Tube OSFILE handler (R2 cmd 10)",
+      "description": "Reads a 16-byte control block into zero page,\na filename string into &0700 via tube_read_string,\nand a reason code from R2. Calls OSFILE (&FFDD),\nthen sends the result A and updated 16-byte control\nblock back via R2. Returns to the main loop via mj.",
+      "fall_through": true
+    },
+    {
+      "addr": 1489,
+      "binary_addr": 48485,
+      "name": "tube_osgbpb",
+      "title": "Tube OSGBPB handler (R2 cmd 11)",
+      "description": "Reads a 13-byte control block and reason code\nfrom R2 into zero page. Calls OSGBPB (&FFD1), then\nsends 12 result bytes and the carry+result byte\n(via tube_rdch_reply) back via R2."
+    },
+    {
+      "addr": 1522,
+      "binary_addr": 48518,
+      "name": "tube_osbyte_2param",
+      "title": "Tube OSBYTE 2-param handler (R2 cmd 2)",
+      "description": "Reads X and A from R2, calls OSBYTE (&FFF4)\nwith Y=0, then sends the result X via\ntube_reply_byte. Used for OSBYTE calls that take\nonly A and X parameters."
+    },
+    {
+      "addr": 1543,
+      "binary_addr": 48539,
+      "name": "tube_osbyte_long",
+      "title": "Tube OSBYTE 3-param handler (R2 cmd 3)",
+      "description": "Reads X, Y, and A from R2, calls OSBYTE\n(&FFF4), then sends carry+Y and X as result bytes\nvia R2. Used for OSBYTE calls needing all three\nparameters and returning both X and Y results.",
+      "fall_through": true
+    },
+    {
+      "addr": 1575,
+      "binary_addr": 48571,
+      "name": "tube_osword",
+      "title": "Tube OSWORD handler (R2 cmd 4)",
+      "description": "Reads OSWORD number A and in-length from R2,\nthen reads the parameter block into &0128. Calls\nOSWORD (&FFF1), then sends the out-length result\nbytes from the parameter block back via R2.\nReturns to the main loop via tube_return_main."
+    },
+    {
+      "addr": 1640,
+      "binary_addr": 48636,
+      "name": "tube_osword_rdln",
+      "title": "Tube OSWORD 0 handler (R2 cmd 5)",
+      "description": "Handles OSWORD 0 (read line) specially. Reads\n4 parameter bytes from R2 into &0128 (max length,\nmin char, max char, flags). Calls OSWORD 0 (&FFF1)\nto read a line, then sends &7F+CR or the input line\nbyte-by-byte via R2, followed by &80 (error/escape)\nor &7F (success)."
     },
     {
       "addr": 32884,
@@ -664,18 +676,6 @@
       "description": "Checks the control byte at l0d30 for immediate\noperation codes (&81-&88). Codes below &81 or above\n&88 are out of range and discarded. Codes &87-&88\n(HALT/CONTINUE) bypass the protection mask check.\nFor &81-&86, converts to a 0-based index and tests\nagainst the immediate operation mask at &0D61 to\ndetermine if this station accepts the operation.\nIf accepted, dispatches via the immediate operation\ntable. Builds the reply by storing data length,\nstation/network, and control byte into the RX buffer."
     },
     {
-      "addr": 35349,
-      "name": "service_handler",
-      "title": "Service call dispatch",
-      "description": "Handles service calls 1, 4, 8, 9, 13, 14, and 15.\nService 1: absolute workspace claim.\nService 4: unrecognised star command.\nService 8: unrecognised OSWORD.\nService 9: *HELP.\nService 13: ROM initialisation.\nService 14: ROM initialisation complete.\nService 15: vectors claimed.",
-      "on_entry": {
-        "a": "service call number",
-        "x": "ROM slot",
-        "y": "parameter"
-      },
-      "fall_through": true
-    },
-    {
       "addr": 33936,
       "name": "rx_imm_exec",
       "title": "RX immediate: JSR/UserProc/OSProc setup",
@@ -701,16 +701,16 @@
       "description": "Writes &0D2E to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send\nthe PEEK response data back to the requesting station."
     },
     {
-      "addr": 34038,
-      "name": "imm_op_build_reply",
-      "title": "Build immediate operation reply header",
-      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
-    },
-    {
       "addr": 34095,
       "name": "advance_buffer_ptr",
       "title": "Increment 4-byte receive buffer pointer",
       "description": "Adds one to the counter at &A2-&A5 (port_buf_len\nlow/high, open_port_buf low/high), cascading\noverflow through all four bytes. Called after each\nbyte is stored during scout data copy and data\nframe reception to track the current write position\nin the receive buffer."
+    },
+    {
+      "addr": 34038,
+      "name": "imm_op_build_reply",
+      "title": "Build immediate operation reply header",
+      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
     },
     {
       "addr": 34115,
@@ -1733,6 +1733,35 @@
       }
     },
     {
+      "addr": 43237,
+      "name": "store_osword_pb_ptr",
+      "title": "Store workspace pointer+1 to NFS workspace",
+      "description": "Computes ws_ptr_hi + 1 and stores the resulting\n16-bit address at workspace offset &1C via\nstore_ptr_at_ws_y. Then reads PB byte 1 (the\ntransfer length) and adds ws_ptr_hi to compute\nthe buffer end pointer, stored at workspace\noffset &20."
+    },
+    {
+      "addr": 43307,
+      "name": "store_ptr_at_ws_y",
+      "title": "Store 16-bit pointer at workspace offset Y",
+      "description": "Writes a 16-bit address to (nfs_workspace)+Y.\nThe low byte comes from A; the high byte is\ncomputed from table_idx plus carry,\nsupporting pointer arithmetic across page\nboundaries.",
+      "on_entry": {
+        "a": "pointer low byte",
+        "y": "workspace offset",
+        "c": "carry for high byte addition"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 42744,
+      "name": "copy_pb_byte_to_ws",
+      "title": "Conditionally copy parameter block byte to workspace",
+      "description": "If carry is set, loads a byte from the OSWORD\nparameter block at offset Y; if clear, uses\nthe value already in A. Stores the result to\nworkspace at the current offset. Decrements X\nand loops until the requested byte count is\ntransferred.",
+      "on_entry": {
+        "c": "set to load from PB, clear to use A",
+        "x": "byte count",
+        "y": "PB source offset"
+      }
+    },
+    {
       "addr": 42592,
       "name": "osword_13_read_station",
       "title": "OSWORD &13 sub 0: read file server station",
@@ -1757,17 +1786,6 @@
       "title": "OSWORD &13 sub 13: write CSD path",
       "description": "Writes 5 current selected directory path bytes\nfrom PB[1..5] into the RX workspace at offset\n&17. Sets carry to select the PB-to-workspace\ncopy direction.",
       "fall_through": true
-    },
-    {
-      "addr": 42744,
-      "name": "copy_pb_byte_to_ws",
-      "title": "Conditionally copy parameter block byte to workspace",
-      "description": "If carry is set, loads a byte from the OSWORD\nparameter block at offset Y; if clear, uses\nthe value already in A. Stores the result to\nworkspace at the current offset. Decrements X\nand loops until the requested byte count is\ntransferred.",
-      "on_entry": {
-        "c": "set to load from PB, clear to use A",
-        "x": "byte count",
-        "y": "PB source offset"
-      }
     },
     {
       "addr": 42759,
@@ -1888,24 +1906,6 @@
       "fall_through": true
     },
     {
-      "addr": 43237,
-      "name": "store_osword_pb_ptr",
-      "title": "Store workspace pointer+1 to NFS workspace",
-      "description": "Computes ws_ptr_hi + 1 and stores the resulting\n16-bit address at workspace offset &1C via\nstore_ptr_at_ws_y. Then reads PB byte 1 (the\ntransfer length) and adds ws_ptr_hi to compute\nthe buffer end pointer, stored at workspace\noffset &20."
-    },
-    {
-      "addr": 43307,
-      "name": "store_ptr_at_ws_y",
-      "title": "Store 16-bit pointer at workspace offset Y",
-      "description": "Writes a 16-bit address to (nfs_workspace)+Y.\nThe low byte comes from A; the high byte is\ncomputed from table_idx plus carry,\nsupporting pointer arithmetic across page\nboundaries.",
-      "on_entry": {
-        "a": "pointer low byte",
-        "y": "workspace offset",
-        "c": "carry for high byte addition"
-      },
-      "fall_through": true
-    },
-    {
       "addr": 43382,
       "name": "enable_irq_and_poll",
       "title": "Enable interrupts and send Econet packet",
@@ -1990,17 +1990,17 @@
       "fall_through": true
     },
     {
-      "addr": 43746,
-      "name": "reset_spool_buf_state",
-      "title": "Reset spool buffer to initial state",
-      "description": "Sets the spool buffer pointer to &25 (first\navailable data position) and the control state\nbyte to &41 (ready for new data). Called after\nprocessing a complete spool data block."
-    },
-    {
       "addr": 43757,
       "name": "netv_print_data",
       "title": "OSWORD 1-3 handler: drain printer buffer",
       "description": "Handles OSWORDs 1-3 intercepted via NETV.\nWhen X=1, drains the printer buffer (OSBYTE\n&91, buffer 3) into the receive buffer, sending\npackets via process_spool_data when the buffer\nexceeds &6E bytes. When X>1, routes to\nhandle_spool_ctrl_byte for spool state control.",
       "fall_through": true
+    },
+    {
+      "addr": 43746,
+      "name": "reset_spool_buf_state",
+      "title": "Reset spool buffer to initial state",
+      "description": "Sets the spool buffer pointer to &25 (first\navailable data position) and the control state\nbyte to &41 (ready for new data). Called after\nprocessing a complete spool data block."
     },
     {
       "addr": 43794,
@@ -2558,18 +2558,6 @@
       }
     },
     {
-      "addr": 47886,
-      "name": "parse_dump_range",
-      "title": "Parse hex address for dump range",
-      "description": "Reads up to 4 hex digits from the command line\ninto a 4-byte accumulator, stopping at CR or\nspace. Each digit shifts the accumulator left\nby 4 bits before ORing in the new nybble."
-    },
-    {
-      "addr": 47991,
-      "name": "init_dump_buffer",
-      "title": "Initialise dump buffer and parse address range",
-      "description": "Parses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent."
-    },
-    {
       "addr": 48189,
       "name": "close_ws_file",
       "title": "Close file handle stored in workspace",
@@ -2580,6 +2568,18 @@
       "name": "open_file_for_read",
       "title": "Open file for reading via OSFIND",
       "description": "Computes the filename address from the command text\npointer plus the Y offset, calls OSFIND with A=&40\n(open for input). Stores the handle in ws_page.\nRaises 'Not found' if the returned handle is zero."
+    },
+    {
+      "addr": 47886,
+      "name": "parse_dump_range",
+      "title": "Parse hex address for dump range",
+      "description": "Reads up to 4 hex digits from the command line\ninto a 4-byte accumulator, stopping at CR or\nspace. Each digit shifts the accumulator left\nby 4 bits before ORing in the new nybble."
+    },
+    {
+      "addr": 47991,
+      "name": "init_dump_buffer",
+      "title": "Initialise dump buffer and parse address range",
+      "description": "Parses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent."
     },
     {
       "addr": 48262,
@@ -2639,47 +2639,6 @@
       "description": "Copied by [`loop_init_txcb`](address:9476?hex) into the TXCB\nworkspace at &00C0. For offsets 0-1, the destination station\nbytes are also copied from `l0e00` into `txcb_dest`.\n\nThe &FF byte at offset 6\n([`bit_test_ff`](address:9491?hex)) serves double duty: it is\npart of this template **and** a `BIT` target used by 22\ncallers to set the `V` and `N` flags without clobbering `A`."
     },
     {
-      "addr": 35597,
-      "name": "svc_18_fs_select",
-      "title": "Service 18: filing system selection request",
-      "description": "Checks if Y=5 (Econet filing system number);\nreturns unclaimed if not. Also returns if bit 7\nof &0D6C is already set, indicating the FS is\nalready selected. Otherwise falls through to\ncmd_net_fs to perform the full network filing\nsystem selection sequence.",
-      "on_entry": {
-        "y": "filing system number requested"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 35918,
-      "name": "svc_4_star_command",
-      "title": "Service 4: unrecognised star command",
-      "description": "Saves the OS text pointer, then calls match_fs_cmd\nto search the command table starting at offset 0\n(all command sub-tables). If no match is found (carry\nset), returns with the service call unclaimed. On\na match, JMPs to cmd_fs_reentry to execute the\nmatched command handler via the PHA/PHA/RTS\ndispatch mechanism.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      }
-    },
-    {
-      "addr": 35933,
-      "name": "svc_9_help",
-      "title": "Service 9: *HELP",
-      "description": "Handles MOS service call 9 (*HELP). First checks\nfor the credits Easter egg. For bare *HELP (CR\nat text pointer), prints the version header and\nfull command list starting at table offset &C4.\nFor *HELP with an argument, handles '.' as a\nshortcut to list all NFS commands, otherwise\niterates through help topics using PHA/PHA/RTS\ndispatch to print matching command groups.\nReturns with Y = ws_page (unclaimed).",
-      "fall_through": true
-    },
-    {
-      "addr": 36042,
-      "name": "svc_3_autoboot",
-      "title": "Service 3: auto-boot on reset",
-      "description": "Scans the keyboard via OSBYTE &7A for the 'N' key\n(&19 or &55 EOR'd with &55). If pressed, records\nthe key state via OSBYTE &78. Selects the network\nfiling system by calling cmd_net_fs, prints the\nstation ID, then checks if this is the first boot\n(ws_page = 0). If so, sets the auto-boot flag in\n&1071 and JMPs to cmd_fs_entry to execute the boot\nfile."
-    },
-    {
-      "addr": 36498,
-      "name": "svc_7_osbyte",
-      "title": "Service 7: unrecognised OSBYTE",
-      "description": "Maps Econet OSBYTE codes &32-&35 to dispatch\nindices 0-3 by subtracting &31 (with carry from\na preceding SBC). Returns unclaimed if the OSBYTE\nnumber is outside this range. For valid codes,\nclaims the service (sets svc_state to 0) and\nJMPs to svc_dispatch with Y=&21 to reach the\nEconet OSBYTE handler table.",
-      "on_entry": {
-        "a": "OSBYTE number (from osbyte_a_copy at &EF)"
-      }
-    },
-    {
       "addr": 36517,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: absolute workspace claim",
@@ -2702,17 +2661,66 @@
       "fall_through": true
     },
     {
+      "addr": 36042,
+      "name": "svc_3_autoboot",
+      "title": "Service 3: auto-boot on reset",
+      "description": "Scans the keyboard via OSBYTE &7A for the 'N' key\n(&19 or &55 EOR'd with &55). If pressed, records\nthe key state via OSBYTE &78. Selects the network\nfiling system by calling cmd_net_fs, prints the\nstation ID, then checks if this is the first boot\n(ws_page = 0). If so, sets the auto-boot flag in\n&1071 and JMPs to cmd_fs_entry to execute the boot\nfile."
+    },
+    {
+      "addr": 35918,
+      "name": "svc_4_star_command",
+      "title": "Service 4: unrecognised star command",
+      "description": "Saves the OS text pointer, then calls match_fs_cmd\nto search the command table starting at offset 0\n(all command sub-tables). If no match is found (carry\nset), returns with the service call unclaimed. On\na match, JMPs to cmd_fs_reentry to execute the\nmatched command handler via the PHA/PHA/RTS\ndispatch mechanism.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
+    },
+    {
+      "addr": 36498,
+      "name": "svc_7_osbyte",
+      "title": "Service 7: unrecognised OSBYTE",
+      "description": "Maps Econet OSBYTE codes &32-&35 to dispatch\nindices 0-3 by subtracting &31 (with carry from\na preceding SBC). Returns unclaimed if the OSBYTE\nnumber is outside this range. For valid codes,\nclaims the service (sets svc_state to 0) and\nJMPs to svc_dispatch with Y=&21 to reach the\nEconet OSBYTE handler table.",
+      "on_entry": {
+        "a": "OSBYTE number (from osbyte_a_copy at &EF)"
+      }
+    },
+    {
       "addr": 42222,
       "name": "svc_8_osword",
       "title": "Filing system OSWORD entry",
       "description": "Handles MOS service call 8 (unrecognised OSWORD).\nFilters OSWORD codes &0E-&14 by subtracting &0E (via\nCLC/SBC &0D) and rejecting values outside 0-6. For\nvalid codes, calls osword_setup_handler to push the\ndispatch address, then copies 3 bytes from the RX\nbuffer to osword_flag workspace."
     },
     {
-      "addr": 35540,
-      "name": "cmd_roff",
-      "title": "*ROFF command handler",
-      "description": "Disables remote operation by clearing the flag at\noffset 0 in the receive block. If remote operation\nwas active, re-enables the keyboard via OSBYTE &C9\n(with X=0, Y=0) and calls tx_econet_abort with\nA=&0A to reinitialise the workspace area. Falls\nthrough to scan_remote_keys which clears svc_state\nand nfs_workspace.",
+      "addr": 35933,
+      "name": "svc_9_help",
+      "title": "Service 9: *HELP",
+      "description": "Handles MOS service call 9 (*HELP). First checks\nfor the credits Easter egg. For bare *HELP (CR\nat text pointer), prints the version header and\nfull command list starting at table offset &C4.\nFor *HELP with an argument, handles '.' as a\nshortcut to list all NFS commands, otherwise\niterates through help topics using PHA/PHA/RTS\ndispatch to print matching command groups.\nReturns with Y = ws_page (unclaimed).",
       "fall_through": true
+    },
+    {
+      "addr": 35597,
+      "name": "svc_18_fs_select",
+      "title": "Service 18: filing system selection request",
+      "description": "Checks if Y=5 (Econet filing system number);\nreturns unclaimed if not. Also returns if bit 7\nof &0D6C is already set, indicating the FS is\nalready selected. Otherwise falls through to\ncmd_net_fs to perform the full network filing\nsystem selection sequence.",
+      "on_entry": {
+        "y": "filing system number requested"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 47508,
+      "name": "cmd_close",
+      "title": "*Close command handler",
+      "description": "Loads A=0 and Y=0, then jumps to OSFIND to close\nall open files on the current file server (equivalent\nto CLOSE#0). Files open on other file servers are\nnot affected."
+    },
+    {
+      "addr": 47643,
+      "name": "cmd_dump",
+      "title": "*Dump command handler",
+      "description": "Opens the file via open_file_for_read, allocates a\n21-byte buffer on the stack, and parses the address\nrange via init_dump_buffer. Loops reading 16 bytes\nper line, printing each as a 4-byte hex address,\n16 hex bytes with spaces, and a 16-character ASCII\ncolumn (non-printable chars shown as '.'). Prints\na column header at every 256-byte boundary.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
     },
     {
       "addr": 35610,
@@ -2722,31 +2730,67 @@
       "fall_through": true
     },
     {
-      "addr": 35730,
-      "name": "help_utils",
-      "title": "*HELP UTILS topic handler",
-      "description": "Sets X=0 to select the utility command sub-table\nand branches to print_cmd_table to display the\ncommand list. Prints the version header followed\nby all utility commands.",
+      "addr": 45507,
+      "name": "cmd_pollps",
+      "title": "*Pollps command handler",
+      "description": "Initialises the spool drive, copies the PS name to\nthe TX buffer, and parses an optional station number\nor PS name argument. Sends a poll request, then\nprints the server address and name. Iterates through\nPS slots, displaying each station's status as\n'ready', 'busy' (with client station), or 'jammed'.\nMarks processed slots with &3F.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
+    },
+    {
+      "addr": 47517,
+      "name": "cmd_print",
+      "title": "*Print command handler",
+      "description": "Sets V flag (distinguishing from *Type which clears V),\nthen opens the file for reading. Loops reading bytes\nvia OSBGET, checking for escape between each. In type\nmode (V clear), normalises CR/LF pairs to single\nnewlines by tracking the previous character. In print\nmode (V set), outputs all bytes raw via OSWRCH. Closes\nthe file and prints a final newline on EOF.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      },
       "fall_through": true
     },
     {
-      "addr": 35734,
-      "name": "help_net",
-      "title": "*HELP NET topic handler",
-      "description": "Sets X to &4A (the NFS command sub-table offset)\nand falls through to print_cmd_table to display\nthe NFS command list with version header.",
+      "addr": 45836,
+      "name": "cmd_prot",
+      "title": "*Prot command handler",
+      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses attribute keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in ws_0d68 and\nws_0d69.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
+    },
+    {
+      "addr": 45038,
+      "name": "cmd_ps",
+      "title": "*PS command handler",
+      "description": "Checks the printer server availability flag; raises\n'Printer busy' if unavailable. Initialises the spool\ndrive and buffer pointer, then dispatches on argument\ntype: no argument branches to no_ps_name_given, a\nleading digit branches to save_ps_cmd_ptr as a station\nnumber, otherwise parses a named PS address via\nload_ps_server_addr and parse_fs_ps_args.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
+    },
+    {
+      "addr": 47514,
+      "name": "cmd_type",
+      "title": "*Type command handler",
+      "description": "Clears V and branches to the shared open_and_read_file\nentry in cmd_print. The V-clear state selects line-\nending normalisation mode: CR, LF, CR+LF, and LF+CR\nare all treated as a single newline. Designed for\ndisplaying text files.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      },
       "fall_through": true
     },
     {
-      "addr": 36217,
-      "name": "cmd_iam",
-      "title": "*I AM command handler (file server logon)",
-      "description": "Closes any *SPOOL/*EXEC files via OSBYTE &77,\nresets all file control blocks via\nprocess_all_fcbs, then parses the command line\nfor an optional station number and file server\naddress. If a station number is present, stores\nit and calls clear_if_station_match to validate.\nCopies the logon command template from\ncmd_table_nfs_iam into the transmit buffer and\nsends via copy_arg_validated. Falls through to\ncmd_pass for password entry.",
+      "addr": 45885,
+      "name": "cmd_unprot",
+      "title": "*Unprot command handler",
+      "description": "With no arguments, clears all protection bits (EOR\nyields 0). Otherwise parses attribute keywords, clearing\nbits via AND with the complement. Shares the protection\nmask storage path with cmd_prot. Falls through to\ncmd_wipe.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      },
       "fall_through": true
     },
     {
-      "addr": 36284,
-      "name": "cmd_pass",
-      "title": "*PASS command handler (change password)",
-      "description": "Builds the FS command packet via copy_arg_to_buf_x0,\nthen scans the reply buffer for a ':' separator\nindicating a password prompt. If found, reads\ncharacters from the keyboard without echo, handling\nDelete (&7F) for backspace and NAK (&15) to restart\nfrom the colon position. Sends the completed\npassword to the file server via save_net_tx_cb and\nbranches to send_cmd_and_dispatch for the reply.",
+      "addr": 35540,
+      "name": "cmd_roff",
+      "title": "*ROFF command handler",
+      "description": "Disables remote operation by clearing the flag at\noffset 0 in the receive block. If remote operation\nwas active, re-enables the keyboard via OSBYTE &C9\n(with X=0, Y=0) and calls tx_econet_abort with\nA=&0A to reinitialise the workspace area. Falls\nthrough to scan_remote_keys which clears svc_state\nand nfs_workspace.",
       "fall_through": true
     },
     {
@@ -2757,10 +2801,20 @@
       "fall_through": true
     },
     {
-      "addr": 37771,
-      "name": "cmd_rename",
-      "title": "*Rename command handler",
-      "description": "Parses two space-separated filenames from the\ncommand line, each with its own access prefix.\nSets the owner-only access mask before parsing each\nname. Validates that both names resolve to the same\nfile server by comparing the FS options word \u2014\nraises 'Bad rename' if they differ. Falls through\nto read_filename_char to copy the second filename\ninto the TX buffer and send the request."
+      "addr": 38046,
+      "name": "cmd_bye",
+      "title": "*Bye command handler",
+      "description": "Closes all open file control blocks via\nprocess_all_fcbs, shuts down any *SPOOL/*EXEC files\nwith OSBYTE &77, and closes all network channels.\nFalls through to save_net_tx_cb with function code\n&17 to send the bye request to the file server.",
+      "fall_through": true
+    },
+    {
+      "addr": 44304,
+      "name": "cmd_cdir",
+      "title": "*CDir command handler",
+      "description": "Parses an optional allocation size argument: if absent,\ndefaults to index 2 (standard 19-entry directory, &200\nbytes); if present, parses the decimal value and searches\na 26-entry threshold table to find the matching allocation\nsize index. Parses the directory name via parse_filename_arg,\ncopies it to the TX buffer, and sends FS command code &1B\nto create the directory.",
+      "on_entry": {
+        "y": "command line offset in text pointer"
+      }
     },
     {
       "addr": 37853,
@@ -2769,17 +2823,10 @@
       "description": "Handles three argument syntaxes: a plain path\n(delegates to pass_send_cmd), '&' alone for the root\ndirectory, and '&N.dir' for cross-filesystem directory\nchanges. The cross-FS form sends a file server\nselection command (code &12) to locate the target\nserver, raising 'Not found' on failure, then sends\nthe directory change (code 6) and calls\nfind_fs_and_exit to update the active FS context."
     },
     {
-      "addr": 38046,
-      "name": "cmd_bye",
-      "title": "*Bye command handler",
-      "description": "Closes all open file control blocks via\nprocess_all_fcbs, shuts down any *SPOOL/*EXEC files\nwith OSBYTE &77, and closes all network channels.\nFalls through to save_net_tx_cb with function code\n&17 to send the bye request to the file server.",
-      "fall_through": true
-    },
-    {
-      "addr": 41083,
-      "name": "cmd_fs",
-      "title": "*FS command handler",
-      "description": "Saves the current file server station address, then\nchecks for a command-line argument. With no argument,\nfalls through to print_current_fs to display the active\nserver. With an argument, parses the station number via\nparse_fs_ps_args and issues OSWORD &13 (sub-function 1)\nto select the new file server.",
+      "addr": 44395,
+      "name": "cmd_ex",
+      "title": "*Ex command handler",
+      "description": "Unified handler for *Ex, *LCat, and *LEx. Sets the\nlibrary flag from carry (CLC for current, SEC for library).\nConfigures column format: 1 entry per line for Ex\n(command 3), 3 per column for Cat (command &0B). Sends the\nexamine request (code &12), then prints the directory\nheader: title, cycle number, Owner/Public label, option\nname, Dir. and Lib. paths. Paginates through entries,\nprinting each via ex_print_col_sep until the server\nreturns zero entries.",
       "on_entry": {
         "y": "command line offset in text pointer"
       },
@@ -2796,13 +2843,21 @@
       "fall_through": true
     },
     {
-      "addr": 44304,
-      "name": "cmd_cdir",
-      "title": "*CDir command handler",
-      "description": "Parses an optional allocation size argument: if absent,\ndefaults to index 2 (standard 19-entry directory, &200\nbytes); if present, parses the decimal value and searches\na 26-entry threshold table to find the matching allocation\nsize index. Parses the directory name via parse_filename_arg,\ncopies it to the TX buffer, and sends FS command code &1B\nto create the directory.",
+      "addr": 41083,
+      "name": "cmd_fs",
+      "title": "*FS command handler",
+      "description": "Saves the current file server station address, then\nchecks for a command-line argument. With no argument,\nfalls through to print_current_fs to display the active\nserver. With an argument, parses the station number via\nparse_fs_ps_args and issues OSWORD &13 (sub-function 1)\nto select the new file server.",
       "on_entry": {
         "y": "command line offset in text pointer"
-      }
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36217,
+      "name": "cmd_iam",
+      "title": "*I AM command handler (file server logon)",
+      "description": "Closes any *SPOOL/*EXEC files via OSBYTE &77,\nresets all file control blocks via\nprocess_all_fcbs, then parses the command line\nfor an optional station number and file server\naddress. If a station number is present, stores\nit and calls clear_if_station_match to validate.\nCopies the logon command template from\ncmd_table_nfs_iam into the transmit buffer and\nsends via copy_arg_validated. Falls through to\ncmd_pass for password entry.",
+      "fall_through": true
     },
     {
       "addr": 44383,
@@ -2825,13 +2880,10 @@
       "fall_through": true
     },
     {
-      "addr": 44395,
-      "name": "cmd_ex",
-      "title": "*Ex command handler",
-      "description": "Unified handler for *Ex, *LCat, and *LEx. Sets the\nlibrary flag from carry (CLC for current, SEC for library).\nConfigures column format: 1 entry per line for Ex\n(command 3), 3 per column for Cat (command &0B). Sends the\nexamine request (code &12), then prints the directory\nheader: title, cycle number, Owner/Public label, option\nname, Dir. and Lib. paths. Paginates through entries,\nprinting each via ex_print_col_sep until the server\nreturns zero entries.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      },
+      "addr": 36284,
+      "name": "cmd_pass",
+      "title": "*PASS command handler (change password)",
+      "description": "Builds the FS command packet via copy_arg_to_buf_x0,\nthen scans the reply buffer for a ':' separator\nindicating a password prompt. If found, reads\ncharacters from the keyboard without echo, handling\nDelete (&7F) for backspace and NAK (&15) to restart\nfrom the colon position. Sends the completed\npassword to the file server via save_net_tx_cb and\nbranches to send_cmd_and_dispatch for the reply.",
       "fall_through": true
     },
     {
@@ -2844,41 +2896,10 @@
       }
     },
     {
-      "addr": 45038,
-      "name": "cmd_ps",
-      "title": "*PS command handler",
-      "description": "Checks the printer server availability flag; raises\n'Printer busy' if unavailable. Initialises the spool\ndrive and buffer pointer, then dispatches on argument\ntype: no argument branches to no_ps_name_given, a\nleading digit branches to save_ps_cmd_ptr as a station\nnumber, otherwise parses a named PS address via\nload_ps_server_addr and parse_fs_ps_args.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      }
-    },
-    {
-      "addr": 45507,
-      "name": "cmd_pollps",
-      "title": "*Pollps command handler",
-      "description": "Initialises the spool drive, copies the PS name to\nthe TX buffer, and parses an optional station number\nor PS name argument. Sends a poll request, then\nprints the server address and name. Iterates through\nPS slots, displaying each station's status as\n'ready', 'busy' (with client station), or 'jammed'.\nMarks processed slots with &3F.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      }
-    },
-    {
-      "addr": 45836,
-      "name": "cmd_prot",
-      "title": "*Prot command handler",
-      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses attribute keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in ws_0d68 and\nws_0d69.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      }
-    },
-    {
-      "addr": 45885,
-      "name": "cmd_unprot",
-      "title": "*Unprot command handler",
-      "description": "With no arguments, clears all protection bits (EOR\nyields 0). Otherwise parses attribute keywords, clearing\nbits via AND with the complement. Shares the protection\nmask storage path with cmd_prot. Falls through to\ncmd_wipe.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      },
-      "fall_through": true
+      "addr": 37771,
+      "name": "cmd_rename",
+      "title": "*Rename command handler",
+      "description": "Parses two space-separated filenames from the\ncommand line, each with its own access prefix.\nSets the owner-only access mask before parsing each\nname. Validates that both names resolve to the same\nfile server by comparing the FS options word \u2014\nraises 'Bad rename' if they differ. Falls through\nto read_filename_char to copy the second filename\ninto the TX buffer and send the request."
     },
     {
       "addr": 45913,
@@ -2901,54 +2922,24 @@
       "fall_through": true
     },
     {
-      "addr": 47508,
-      "name": "cmd_close",
-      "title": "*Close command handler",
-      "description": "Loads A=0 and Y=0, then jumps to OSFIND to close\nall open files on the current file server (equivalent\nto CLOSE#0). Files open on other file servers are\nnot affected."
-    },
-    {
-      "addr": 47514,
-      "name": "cmd_type",
-      "title": "*Type command handler",
-      "description": "Clears V and branches to the shared open_and_read_file\nentry in cmd_print. The V-clear state selects line-\nending normalisation mode: CR, LF, CR+LF, and LF+CR\nare all treated as a single newline. Designed for\ndisplaying text files.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      },
+      "addr": 35734,
+      "name": "help_net",
+      "title": "*HELP NET topic handler",
+      "description": "Sets X to &4A (the NFS command sub-table offset)\nand falls through to print_cmd_table to display\nthe NFS command list with version header.",
       "fall_through": true
     },
     {
-      "addr": 47517,
-      "name": "cmd_print",
-      "title": "*Print command handler",
-      "description": "Sets V flag (distinguishing from *Type which clears V),\nthen opens the file for reading. Loops reading bytes\nvia OSBGET, checking for escape between each. In type\nmode (V clear), normalises CR/LF pairs to single\nnewlines by tracking the previous character. In print\nmode (V set), outputs all bytes raw via OSWRCH. Closes\nthe file and prints a final newline on EOF.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      },
+      "addr": 35730,
+      "name": "help_utils",
+      "title": "*HELP UTILS topic handler",
+      "description": "Sets X=0 to select the utility command sub-table\nand branches to print_cmd_table to display the\ncommand list. Prints the version header followed\nby all utility commands.",
       "fall_through": true
-    },
-    {
-      "addr": 47643,
-      "name": "cmd_dump",
-      "title": "*Dump command handler",
-      "description": "Opens the file via open_file_for_read, allocates a\n21-byte buffer on the stack, and parses the address\nrange via init_dump_buffer. Loops reading 16 bytes\nper line, printing each as a 4-byte hex address,\n16 hex bytes with spaces, and a 16-character ASCII\ncolumn (non-printable chars shown as '.'). Prints\na column header at every 256-byte boundary.",
-      "on_entry": {
-        "y": "command line offset in text pointer"
-      }
     },
     {
       "addr": 36449,
       "name": "fs_vector_table",
       "title": "FS vector dispatch and handler addresses (34 bytes)",
       "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte."
-    },
-    {
-      "addr": 35488,
-      "name": "read_paged_rom",
-      "title": "Read next byte from paged ROM via OSRDSC",
-      "description": "Increments the read pointer at osrdsc_ptr (&F6)\nfirst, then calls OSRDSC (&FFB9) with the ROM\nnumber from error_block (&0100) in Y. Called\nthree times by service_handler during ROM\nidentification to read the copyright string and\nROM type byte.",
-      "on_exit": {
-        "a": "byte read from ROM"
-      }
     },
     {
       "addr": 36425,
@@ -2961,6 +2952,15 @@
       },
       "on_exit": {
         "x": "fs_options value"
+      }
+    },
+    {
+      "addr": 35488,
+      "name": "read_paged_rom",
+      "title": "Read next byte from paged ROM via OSRDSC",
+      "description": "Increments the read pointer at osrdsc_ptr (&F6)\nfirst, then calls OSRDSC (&FFB9) with the ROM\nnumber from error_block (&0100) in Y. Called\nthree times by service_handler during ROM\nidentification to read the copyright string and\nROM type byte.",
+      "on_exit": {
+        "a": "byte read from ROM"
       }
     },
     {
@@ -3002,16 +3002,10 @@
       }
     },
     {
-      "addr": 37510,
-      "name": "prot_bit_encode_table",
-      "title": "Protection/access bit encode table (11 entries)",
-      "description": "11-entry lookup table used by\n[`get_prot_bits`](address:9273?hex) and\n[`get_access_bits`](address:9269?hex) to remap attribute bits\nbetween the file-server protocol format and the local\nrepresentation. The encoding loop shifts out each source bit;\nfor each set bit, the corresponding table entry is `ORA`-ed\ninto the result.\n\n| Indices | Used by             | Notes                                       |\n|---------|---------------------|---------------------------------------------|\n| 0-4     | `get_prot_bits`     | 5-bit input. Some entries expand to 2 bits. |\n| 5-10    | `get_access_bits`   | 6-bit input (dir entry offset &0E). Pure permutation \u2013 one output bit per entry. |"
-    },
-    {
-      "addr": 38584,
-      "name": "error_bad_inline",
-      "title": "Generate 'Bad ...' BRK error from inline string",
-      "description": "Like error_inline, but prepends 'Bad ' to the error message. Copies\nthe prefix from a lookup table, then appends the null-terminated\ninline string. The error number is passed in A. Never returns.",
+      "addr": 38612,
+      "name": "error_inline",
+      "title": "Generate BRK error from inline string",
+      "description": "Pops the return address from the stack and copies the null-terminated\ninline string into the error block at &0100. The error number is\npassed in A. Never returns \u2014 triggers the error via JMP error_block.",
       "on_entry": {
         "a": "error number"
       },
@@ -3028,14 +3022,20 @@
       "fall_through": true
     },
     {
-      "addr": 38612,
-      "name": "error_inline",
-      "title": "Generate BRK error from inline string",
-      "description": "Pops the return address from the stack and copies the null-terminated\ninline string into the error block at &0100. The error number is\npassed in A. Never returns \u2014 triggers the error via JMP error_block.",
+      "addr": 38584,
+      "name": "error_bad_inline",
+      "title": "Generate 'Bad ...' BRK error from inline string",
+      "description": "Like error_inline, but prepends 'Bad ' to the error message. Copies\nthe prefix from a lookup table, then appends the null-terminated\ninline string. The error number is passed in A. Never returns.",
       "on_entry": {
         "a": "error number"
       },
       "fall_through": true
+    },
+    {
+      "addr": 37510,
+      "name": "prot_bit_encode_table",
+      "title": "Protection/access bit encode table (11 entries)",
+      "description": "11-entry lookup table used by\n[`get_prot_bits`](address:9273?hex) and\n[`get_access_bits`](address:9269?hex) to remap attribute bits\nbetween the file-server protocol format and the local\nrepresentation. The encoding loop shifts out each source bit;\nfor each set bit, the corresponding table entry is `ORA`-ed\ninto the result.\n\n| Indices | Used by             | Notes                                       |\n|---------|---------------------|---------------------------------------------|\n| 0-4     | `get_prot_bits`     | 5-bit input. Some entries expand to 2 bits. |\n| 5-10    | `get_access_bits`   | 6-bit input (dir entry offset &0E). Pure permutation \u2013 one output bit per entry. |"
     },
     {
       "addr": 38829,

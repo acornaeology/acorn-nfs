@@ -391,10 +391,79 @@
       "description": "Each byte is a Y offset into error_msg_table.\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8."
     },
     {
-      "addr": 32805,
-      "name": "dispatch_0_lo",
-      "title": "Dispatch table: handler-address low bytes (37 entries)",
-      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0-12     | 0-13    |\n| `&0E`  | Language entry reasons | 14-18   |\n| `&13`  | FSCV codes 0-7         | 19-26   |\n| `&17`  | FS reply handlers      | 27-32   |\n| `&21`  | *NET1-4 sub-commands   | 33-36   |\n\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
+      "addr": 39573,
+      "name": "rx_imm_exec",
+      "title": "RX immediate: JSR/UserProc/OSProc setup",
+      "description": "Sets up the port buffer to receive remote procedure data.\nCopies the 4-byte remote address from rx_remote_addr into\nthe execution address workspace at &0D58, then jumps to\nthe common receive path at c9826. Used for operation types\n&83 (JSR), &84 (UserProc), and &85 (OSProc)."
+    },
+    {
+      "addr": 39603,
+      "name": "rx_imm_poke",
+      "title": "RX immediate: POKE setup",
+      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&3D, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at ack_scout_match."
+    },
+    {
+      "addr": 39614,
+      "name": "rx_imm_machine_type",
+      "title": "RX immediate: machine type query",
+      "description": "Sets up a buffer at &7F25 (length #&01FC) for the machine\ntype query response, then jumps to the query handler at\nset_tx_reply_flag. Returns system identification data to the remote\nstation."
+    },
+    {
+      "addr": 39633,
+      "name": "rx_imm_peek",
+      "title": "RX immediate: PEEK setup",
+      "description": "Writes &0D3D to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send the\nPEEK response data back to the requesting station.\nUses workspace offsets (&A6/&A7) for nmi_tx_block."
+    },
+    {
+      "addr": 39806,
+      "name": "tx_done_jsr",
+      "title": "TX done: remote JSR execution",
+      "description": "Pushes address &9BEB on the stack (so RTS returns to\ntx_done_exit), then does JMP (l0d58) to call the remote\nJSR target routine. When that routine returns via RTS,\ncontrol resumes at tx_done_exit."
+    },
+    {
+      "addr": 39815,
+      "name": "tx_done_user_proc",
+      "title": "TX done: UserProc event",
+      "description": "Generates a network event (event 8) via OSEVEN with\nX=l0d58, A=l0d59 (the remote address). This notifies\nthe user program that a UserProc operation has completed."
+    },
+    {
+      "addr": 39829,
+      "name": "tx_done_os_proc",
+      "title": "TX done: OSProc call",
+      "description": "Calls the ROM entry point at &8000 (rom_header) with\nX=l0d58, Y=l0d59. This invokes an OS-level procedure\non behalf of the remote station."
+    },
+    {
+      "addr": 39841,
+      "name": "tx_done_halt",
+      "title": "TX done: HALT",
+      "description": "Sets bit 2 of rx_flags (&0D64), enables interrupts, and\nspin-waits until bit 2 is cleared (by a CONTINUE from the\nremote station). If bit 2 is already set, skips to exit.",
+      "fall_through": true
+    },
+    {
+      "addr": 39864,
+      "name": "tx_done_continue",
+      "title": "TX done: CONTINUE",
+      "description": "Clears bit 2 of rx_flags (&0D64), releasing any station\nthat is halted and spinning in tx_done_halt."
+    },
+    {
+      "addr": 40143,
+      "name": "tx_ctrl_peek",
+      "title": "TX ctrl: PEEK transfer setup",
+      "description": "Sets scout_status=3, then performs a 4-byte addition of\nbytes from the TX block into the transfer parameter\nworkspace at &0D1E-&0D21 (with carry propagation).\nCalls tx_calc_transfer to finalise, then exits via\ntx_ctrl_exit.",
+      "fall_through": true
+    },
+    {
+      "addr": 40147,
+      "name": "tx_ctrl_poke",
+      "title": "TX ctrl: POKE transfer setup",
+      "description": "Sets scout_status=2 and shares the 4-byte addition and\ntransfer calculation path with tx_ctrl_peek.",
+      "fall_through": true
+    },
+    {
+      "addr": 40167,
+      "name": "tx_ctrl_proc",
+      "title": "TX ctrl: JSR/UserProc/OSProc setup",
+      "description": "Sets scout_status=2 and calls tx_calc_transfer directly\n(no 4-byte address addition needed for procedure calls).\nShared by operation types &83-&85."
     },
     {
       "addr": 34248,
@@ -432,17 +501,6 @@
       "on_exit": {
         "a": "FS attribute bitmask (5-bit)",
         "x": "corrupted"
-      }
-    },
-    {
-      "addr": 34309,
-      "name": "print_inline",
-      "title": "Print inline string, high-bit terminated (VSTRNG)",
-      "description": "Pops the return address from the stack, prints each byte via OSASCI\nuntil a byte with bit 7 set is found, then jumps to that address.\nThe high-bit byte serves as both the string terminator and the opcode\nof the first instruction after the string. N.B. Cannot be used for\nBRK error messages -- the stack manipulation means a BRK in the\ninline data would corrupt the stack rather than invoke the error\nhandler.",
-      "on_exit": {
-        "a": "terminator byte (bit 7 set, also next opcode)",
-        "x": "corrupted (by OSASCI)",
-        "y": "0"
       }
     },
     {
@@ -519,6 +577,34 @@
       }
     },
     {
+      "addr": 36272,
+      "name": "print_decimal",
+      "title": "Print byte as 3-digit decimal number",
+      "description": "Prints A as a decimal number using repeated subtraction\nfor each digit position (100, 10, 1). Leading zeros are\nprinted (no suppression). Used to display station numbers.",
+      "on_entry": {
+        "a": "byte value to print"
+      },
+      "on_exit": {
+        "a": "last digit character",
+        "x": "corrupted",
+        "y": "0 (remainder after last division)"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36285,
+      "name": "print_decimal_digit",
+      "title": "Print one decimal digit by repeated subtraction",
+      "description": "Divides Y by A using repeated subtraction. Prints the\nquotient as an ASCII digit ('0'-'9') via OSASCI. Returns\nwith the remainder in Y. X starts at &2F ('0'-1) and\nincrements once per subtraction, giving the ASCII digit\ndirectly.",
+      "on_entry": {
+        "a": "divisor (stored to &B8)",
+        "y": "dividend"
+      },
+      "on_exit": {
+        "y": "remainder"
+      }
+    },
+    {
       "addr": 34408,
       "name": "compare_addresses",
       "title": "Compare two 4-byte addresses",
@@ -555,6 +641,33 @@
       }
     },
     {
+      "addr": 36132,
+      "name": "print_file_info",
+      "title": "Print file catalogue line",
+      "description": "Displays a formatted catalogue entry: filename (padded to 12\nchars with spaces), load address (4 hex bytes at offset 5-2),\nexec address (4 hex bytes at offset 9-6), and file length\n(3 hex bytes at offset &0C-&0A), followed by a newline.\nData is read from (fs_crc_lo) for the filename and from\n(fs_options) for the numeric fields. Returns immediately\nif fs_messages_flag is zero (no info available).",
+      "fall_through": true
+    },
+    {
+      "addr": 40928,
+      "name": "print_hex",
+      "title": "Print byte as two hex digits",
+      "description": "Prints the high nibble first (via 4x LSR), then the low\nnibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'\nand output via OSASCI. Returns with carry set.",
+      "on_entry": {
+        "a": "byte to print as two hex digits"
+      },
+      "on_exit": {
+        "a": "preserved (original byte)",
+        "x": "corrupted (by OSASCI)"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 40937,
+      "name": "print_hex_nibble",
+      "title": "Print single hex nibble",
+      "description": "Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')\nand prints via OSASCI. Returns with carry set."
+    },
+    {
       "addr": 34439,
       "name": "setup_tx_ptr_c0",
       "title": "Set up TX pointer to control block at &00C0",
@@ -584,134 +697,21 @@
       }
     },
     {
-      "addr": 36132,
-      "name": "print_file_info",
-      "title": "Print file catalogue line",
-      "description": "Displays a formatted catalogue entry: filename (padded to 12\nchars with spaces), load address (4 hex bytes at offset 5-2),\nexec address (4 hex bytes at offset 9-6), and file length\n(3 hex bytes at offset &0C-&0A), followed by a newline.\nData is read from (fs_crc_lo) for the filename and from\n(fs_options) for the numeric fields. Returns immediately\nif fs_messages_flag is zero (no info available).",
-      "fall_through": true
-    },
-    {
-      "addr": 36272,
-      "name": "print_decimal",
-      "title": "Print byte as 3-digit decimal number",
-      "description": "Prints A as a decimal number using repeated subtraction\nfor each digit position (100, 10, 1). Leading zeros are\nprinted (no suppression). Used to display station numbers.",
-      "on_entry": {
-        "a": "byte value to print"
-      },
+      "addr": 34309,
+      "name": "print_inline",
+      "title": "Print inline string, high-bit terminated (VSTRNG)",
+      "description": "Pops the return address from the stack, prints each byte via OSASCI\nuntil a byte with bit 7 set is found, then jumps to that address.\nThe high-bit byte serves as both the string terminator and the opcode\nof the first instruction after the string. N.B. Cannot be used for\nBRK error messages -- the stack manipulation means a BRK in the\ninline data would corrupt the stack rather than invoke the error\nhandler.",
       "on_exit": {
-        "a": "last digit character",
-        "x": "corrupted",
-        "y": "0 (remainder after last division)"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 36285,
-      "name": "print_decimal_digit",
-      "title": "Print one decimal digit by repeated subtraction",
-      "description": "Divides Y by A using repeated subtraction. Prints the\nquotient as an ASCII digit ('0'-'9') via OSASCI. Returns\nwith the remainder in Y. X starts at &2F ('0'-1) and\nincrements once per subtraction, giving the ASCII digit\ndirectly.",
-      "on_entry": {
-        "a": "divisor (stored to &B8)",
-        "y": "dividend"
-      },
-      "on_exit": {
-        "y": "remainder"
+        "a": "terminator byte (bit 7 set, also next opcode)",
+        "x": "corrupted (by OSASCI)",
+        "y": "0"
       }
     },
     {
-      "addr": 39573,
-      "name": "rx_imm_exec",
-      "title": "RX immediate: JSR/UserProc/OSProc setup",
-      "description": "Sets up the port buffer to receive remote procedure data.\nCopies the 4-byte remote address from rx_remote_addr into\nthe execution address workspace at &0D58, then jumps to\nthe common receive path at c9826. Used for operation types\n&83 (JSR), &84 (UserProc), and &85 (OSProc)."
-    },
-    {
-      "addr": 39603,
-      "name": "rx_imm_poke",
-      "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&3D, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at ack_scout_match."
-    },
-    {
-      "addr": 39614,
-      "name": "rx_imm_machine_type",
-      "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer at &7F25 (length #&01FC) for the machine\ntype query response, then jumps to the query handler at\nset_tx_reply_flag. Returns system identification data to the remote\nstation."
-    },
-    {
-      "addr": 39633,
-      "name": "rx_imm_peek",
-      "title": "RX immediate: PEEK setup",
-      "description": "Writes &0D3D to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send the\nPEEK response data back to the requesting station.\nUses workspace offsets (&A6/&A7) for nmi_tx_block."
-    },
-    {
-      "addr": 39806,
-      "name": "tx_done_jsr",
-      "title": "TX done: remote JSR execution",
-      "description": "Pushes address &9BEB on the stack (so RTS returns to\ntx_done_exit), then does JMP (l0d58) to call the remote\nJSR target routine. When that routine returns via RTS,\ncontrol resumes at tx_done_exit."
-    },
-    {
-      "addr": 39815,
-      "name": "tx_done_user_proc",
-      "title": "TX done: UserProc event",
-      "description": "Generates a network event (event 8) via OSEVEN with\nX=l0d58, A=l0d59 (the remote address). This notifies\nthe user program that a UserProc operation has completed."
-    },
-    {
-      "addr": 39829,
-      "name": "tx_done_os_proc",
-      "title": "TX done: OSProc call",
-      "description": "Calls the ROM entry point at &8000 (rom_header) with\nX=l0d58, Y=l0d59. This invokes an OS-level procedure\non behalf of the remote station."
-    },
-    {
-      "addr": 39841,
-      "name": "tx_done_halt",
-      "title": "TX done: HALT",
-      "description": "Sets bit 2 of rx_flags (&0D64), enables interrupts, and\nspin-waits until bit 2 is cleared (by a CONTINUE from the\nremote station). If bit 2 is already set, skips to exit.",
-      "fall_through": true
-    },
-    {
-      "addr": 39864,
-      "name": "tx_done_continue",
-      "title": "TX done: CONTINUE",
-      "description": "Clears bit 2 of rx_flags (&0D64), releasing any station\nthat is halted and spinning in tx_done_halt."
-    },
-    {
-      "addr": 40143,
-      "name": "tx_ctrl_peek",
-      "title": "TX ctrl: PEEK transfer setup",
-      "description": "Sets scout_status=3, then performs a 4-byte addition of\nbytes from the TX block into the transfer parameter\nworkspace at &0D1E-&0D21 (with carry propagation).\nCalls tx_calc_transfer to finalise, then exits via\ntx_ctrl_exit.",
-      "fall_through": true
-    },
-    {
-      "addr": 40147,
-      "name": "tx_ctrl_poke",
-      "title": "TX ctrl: POKE transfer setup",
-      "description": "Sets scout_status=2 and shares the 4-byte addition and\ntransfer calculation path with tx_ctrl_peek.",
-      "fall_through": true
-    },
-    {
-      "addr": 40167,
-      "name": "tx_ctrl_proc",
-      "title": "TX ctrl: JSR/UserProc/OSProc setup",
-      "description": "Sets scout_status=2 and calls tx_calc_transfer directly\n(no 4-byte address addition needed for procedure calls).\nShared by operation types &83-&85."
-    },
-    {
-      "addr": 40928,
-      "name": "print_hex",
-      "title": "Print byte as two hex digits",
-      "description": "Prints the high nibble first (via 4x LSR), then the low\nnibble. Each nibble is converted to ASCII '0'-'9' or 'A'-'F'\nand output via OSASCI. Returns with carry set.",
-      "on_entry": {
-        "a": "byte to print as two hex digits"
-      },
-      "on_exit": {
-        "a": "preserved (original byte)",
-        "x": "corrupted (by OSASCI)"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 40937,
-      "name": "print_hex_nibble",
-      "title": "Print single hex nibble",
-      "description": "Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')\nand prints via OSASCI. Returns with carry set."
+      "addr": 32805,
+      "name": "dispatch_0_lo",
+      "title": "Dispatch table: handler-address low bytes (37 entries)",
+      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the PHA/PHA/RTS dispatch trick at &80E7.\nSee dispatch_0_hi (&804A) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0-12     | 0-13    |\n| `&0E`  | Language entry reasons | 14-18   |\n| `&13`  | FSCV codes 0-7         | 19-26   |\n| `&17`  | FS reply handlers      | 27-32   |\n| `&21`  | *NET1-4 sub-commands   | 33-36   |\n\n\nLo bytes for the last 6 entries (indices 31-36) occupy\n&8044-&8049, immediately before the hi bytes. Their hi\nbytes are at &8069-&806E, after dispatch_0_hi."
     },
     {
       "addr": 32879,
@@ -721,17 +721,17 @@
       "fall_through": true
     },
     {
-      "addr": 32993,
-      "name": "lang_entry_dispatch",
-      "title": "Language entry dispatcher",
-      "description": "Called when the NFS ROM is entered as a language. Although rom_type\n(&82) does not set the language bit, the MOS enters this point\nafter NFS claims service &FE (Tube post-init). X = reason code\n(0-4). Dispatches via table indices 15-19 (base offset Y=&0E).",
-      "fall_through": true
-    },
-    {
       "addr": 32999,
       "name": "dispatch",
       "title": "PHA/PHA/RTS computed dispatch",
       "description": "X = command index within caller's group (e.g. service number)\nY = base offset into dispatch table (0, &0E, &13, &21, etc.)\nThe loop adds Y+1 to X, so final X = command index + base + 1.\nThen high and low bytes of (handler-1) are pushed onto the stack,\nand RTS pops them and jumps to handler_address.\n\nThis is a standard 6502 trick: RTS increments the popped address\nby 1 before jumping, so the table stores (address - 1) to\ncompensate. Multiple callers share one table via different Y\nbase offsets.",
+      "fall_through": true
+    },
+    {
+      "addr": 32993,
+      "name": "lang_entry_dispatch",
+      "title": "Language entry dispatcher",
+      "description": "Called when the NFS ROM is entered as a language. Although rom_type\n(&82) does not set the language bit, the MOS enters this point\nafter NFS claims service &FE (Tube post-init). X = reason code\n(0-4). Dispatches via table indices 15-19 (base offset Y=&0E).",
       "fall_through": true
     },
     {
@@ -776,45 +776,6 @@
       "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the ROM pointer table.\n\nBytes 14-33: handler address pairs read by store_rom_ptr_pair.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (store_rom_ptr_pair writes the current ROM\nbank number without reading). The last entry (FSCV) has no\npadding byte."
     },
     {
-      "addr": 33189,
-      "name": "svc_star_command",
-      "title": "Service 4: unrecognised * command",
-      "description": "The first 7 bytes (&81A5-&81AB) are the service handler epilogue:\nPLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.\nThis is the return path reached after any dispatched service\nhandler completes.\n\nThe service 4 handler itself is dispatched via the table to\n&81B1 (after 5 NOPs of padding). It makes two match_rom_string\ncalls against the ROM header, reusing header bytes as command\nstrings:\n\n  X=&0C: matches \"ROFF\" at &8014 \u2014 the suffix of the\n         copyright string \"(C)ROFF\" \u2192 *ROFF (Remote Off,\n         end remote session) \u2014 falls through to net_4_resume_remote\n\n  X=5: matches \"NET\" at &800D \u2014 the ROM title suffix\n       \u2192 *NET (select NFS) \u2014 falls through to svc_13_select_nfs\n\nIf neither matches, returns with the service call\nunclaimed.",
-      "fall_through": true
-    },
-    {
-      "addr": 33284,
-      "name": "svc_9_help",
-      "title": "Service 9: *HELP",
-      "description": "Prints the ROM identification string using print_inline."
-    },
-    {
-      "addr": 33300,
-      "name": "call_fscv_shutdown",
-      "title": "Notify filing system of shutdown",
-      "description": "Loads A=6 (FS shutdown notification) and JMP (FSCV).\nThe FSCV handler's RTS returns to the caller of this routine\n(JSR/JMP trick saves one level of stack)."
-    },
-    {
-      "addr": 33305,
-      "name": "svc_3_autoboot",
-      "title": "Service 3: auto-boot",
-      "description": "Notifies current FS of shutdown via FSCV A=6. Scans keyboard\n(OSBYTE &7A): if no key is pressed, auto-boot proceeds directly\nvia print_station_info. If a key is pressed, falls through to\ncheck_boot_key: the 'N' key (matrix address &55) proceeds with\nauto-boot, any other key causes the auto-boot to be declined.",
-      "fall_through": true
-    },
-    {
-      "addr": 33399,
-      "name": "issue_vectors_claimed",
-      "title": "Issue 'vectors claimed' service and optionally auto-boot",
-      "description": "Issues service &0F (vectors claimed) via OSBYTE &8F, then\nservice &0A. If nfs_temp is zero (auto-boot not inhibited),\nsets up the command string \"I .BOOT\" at &828E and jumps to\nthe FSCV 3 unrecognised-command handler (which matches against\nthe command table at &8C05). The \"I.\" prefix triggers the\ncatch-all entry which forwards the command to the fileserver.\nFalls through to run_fscv_cmd.",
-      "fall_through": true
-    },
-    {
-      "addr": 33417,
-      "name": "run_fscv_cmd",
-      "title": "Run FSCV command from ROM",
-      "description": "Sets Y to the ROM page high byte (&82) and jumps to fscv_3_star_cmd\nto execute the command string at (X, Y). X is pre-loaded by the\ncaller with the low byte of the string address. Also used as a\ndata base address by store_rom_ptr_pair for Y-indexed access to\nthe handler address table."
-    },
-    {
       "addr": 33464,
       "name": "svc_1_abs_workspace",
       "title": "Service 1: claim absolute workspace",
@@ -838,6 +799,45 @@
         "y": "next available workspace page after NFS (input + 2)"
       },
       "fall_through": true
+    },
+    {
+      "addr": 33305,
+      "name": "svc_3_autoboot",
+      "title": "Service 3: auto-boot",
+      "description": "Notifies current FS of shutdown via FSCV A=6. Scans keyboard\n(OSBYTE &7A): if no key is pressed, auto-boot proceeds directly\nvia print_station_info. If a key is pressed, falls through to\ncheck_boot_key: the 'N' key (matrix address &55) proceeds with\nauto-boot, any other key causes the auto-boot to be declined.",
+      "fall_through": true
+    },
+    {
+      "addr": 33189,
+      "name": "svc_star_command",
+      "title": "Service 4: unrecognised * command",
+      "description": "The first 7 bytes (&81A5-&81AB) are the service handler epilogue:\nPLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.\nThis is the return path reached after any dispatched service\nhandler completes.\n\nThe service 4 handler itself is dispatched via the table to\n&81B1 (after 5 NOPs of padding). It makes two match_rom_string\ncalls against the ROM header, reusing header bytes as command\nstrings:\n\n  X=&0C: matches \"ROFF\" at &8014 \u2014 the suffix of the\n         copyright string \"(C)ROFF\" \u2192 *ROFF (Remote Off,\n         end remote session) \u2014 falls through to net_4_resume_remote\n\n  X=5: matches \"NET\" at &800D \u2014 the ROM title suffix\n       \u2192 *NET (select NFS) \u2014 falls through to svc_13_select_nfs\n\nIf neither matches, returns with the service call\nunclaimed.",
+      "fall_through": true
+    },
+    {
+      "addr": 33284,
+      "name": "svc_9_help",
+      "title": "Service 9: *HELP",
+      "description": "Prints the ROM identification string using print_inline."
+    },
+    {
+      "addr": 33300,
+      "name": "call_fscv_shutdown",
+      "title": "Notify filing system of shutdown",
+      "description": "Loads A=6 (FS shutdown notification) and JMP (FSCV).\nThe FSCV handler's RTS returns to the caller of this routine\n(JSR/JMP trick saves one level of stack)."
+    },
+    {
+      "addr": 33399,
+      "name": "issue_vectors_claimed",
+      "title": "Issue 'vectors claimed' service and optionally auto-boot",
+      "description": "Issues service &0F (vectors claimed) via OSBYTE &8F, then\nservice &0A. If nfs_temp is zero (auto-boot not inhibited),\nsets up the command string \"I .BOOT\" at &828E and jumps to\nthe FSCV 3 unrecognised-command handler (which matches against\nthe command table at &8C05). The \"I.\" prefix triggers the\ncatch-all entry which forwards the command to the fileserver.\nFalls through to run_fscv_cmd.",
+      "fall_through": true
+    },
+    {
+      "addr": 33417,
+      "name": "run_fscv_cmd",
+      "title": "Run FSCV command from ROM",
+      "description": "Sets Y to the ROM page high byte (&82) and jumps to fscv_3_star_cmd\nto execute the command string at (X, Y). X is pre-loaded by the\ncaller with the low byte of the string address. Also used as a\ndata base address by store_rom_ptr_pair for Y-indexed access to\nthe handler address table."
     },
     {
       "addr": 33569,
@@ -898,6 +898,12 @@
       "fall_through": true
     },
     {
+      "addr": 33907,
+      "name": "store_fs_error",
+      "title": "Handle fileserver error replies (FSERR)",
+      "description": "The fileserver returns errors as: zero command code + error number +\nCR-terminated message string. This routine converts the reply buffer\nin-place to a standard MOS BRK error packet by:\n  1. Storing the error code at fs_last_error (&0E09)\n  2. Normalizing error codes below &A8 to &A8 (the standard FS error\n     number), since the MOS error space below &A8 has other meanings\n  3. Scanning for the CR terminator and replacing it with &00\n  4. JMPing indirect through (l00c4) to execute the buffer as a BRK\n     instruction \u2014 the zero command code serves as the BRK opcode\nN.B. This relies on the fileserver always returning a zero command\ncode in position 0 of the reply buffer."
+    },
+    {
       "addr": 33808,
       "name": "handle_bput_bget",
       "title": "Handle BPUT/BGET file byte I/O",
@@ -915,12 +921,6 @@
       "fall_through": true
     },
     {
-      "addr": 33907,
-      "name": "store_fs_error",
-      "title": "Handle fileserver error replies (FSERR)",
-      "description": "The fileserver returns errors as: zero command code + error number +\nCR-terminated message string. This routine converts the reply buffer\nin-place to a standard MOS BRK error packet by:\n  1. Storing the error code at fs_last_error (&0E09)\n  2. Normalizing error codes below &A8 to &A8 (the standard FS error\n     number), since the MOS error space below &A8 has other meanings\n  3. Scanning for the CR terminator and replacing it with &00\n  4. JMPing indirect through (l00c4) to execute the buffer as a BRK\n     instruction \u2014 the zero command code serves as the BRK opcode\nN.B. This relies on the fileserver always returning a zero command\ncode in position 0 of the reply buffer."
-    },
-    {
       "addr": 34077,
       "name": "send_to_fs",
       "title": "Send command to fileserver and handle reply (WAITFS)",
@@ -933,10 +933,10 @@
       "description": "Tests MOS escape flag (&FF bit 7). If escape is pending:\nacknowledges via OSBYTE &7E, writes &3F (deleted marker) into\nthe control block via (net_tx_ptr),Y, and branches to the\nNLISTN error path. If no escape, returns immediately."
     },
     {
-      "addr": 32961,
-      "name": "forward_star_cmd",
-      "title": "Forward unrecognised * command to fileserver (COMERR)",
-      "description": "Copies command text from (fs_crc_lo) to &0F05+ via copy_filename,\nprepares an FS command with function code 0, and sends it to the\nfileserver to request decoding. The server returns a command code\nindicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,\n5=load-as-command). This mechanism allows the fileserver to extend\nthe client's command set without ROM updates. Called from the \"I.\"\nand catch-all entries in the command match table at &8C05, and\nfrom FSCV 2/3/4 indirectly. If CSD handle is zero (not logged\nin), returns without sending.",
+      "addr": 33208,
+      "name": "net_4_resume_remote",
+      "title": "Resume after remote operation / *ROFF handler (NROFF)",
+      "description": "Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was\ndisabled during a remote operation (peek/poke/boot). Clears\nthe flag, re-enables the keyboard via OSBYTE &C9, and sends\nfunction &0A to notify completion. Also handles *ROFF and the\ntriple-plus escape sequence (+++), which resets system masks\nvia OSBYTE &CE and returns control to the MOS, providing an\nescape route when a remote session becomes unresponsive.",
       "fall_through": true
     },
     {
@@ -954,20 +954,6 @@
         "x": "depends on handler (preserved if A >= 8)",
         "y": "depends on handler (preserved if A >= 8)"
       },
-      "fall_through": true
-    },
-    {
-      "addr": 33208,
-      "name": "net_4_resume_remote",
-      "title": "Resume after remote operation / *ROFF handler (NROFF)",
-      "description": "Checks byte 4 of (net_rx_ptr): if non-zero, the keyboard was\ndisabled during a remote operation (peek/poke/boot). Clears\nthe flag, re-enables the keyboard via OSBYTE &C9, and sends\nfunction &0A to notify completion. Also handles *ROFF and the\ntriple-plus escape sequence (+++), which resets system masks\nvia OSBYTE &CE and returns control to the MOS, providing an\nescape route when a remote session becomes unresponsive.",
-      "fall_through": true
-    },
-    {
-      "addr": 33724,
-      "name": "bye_handler",
-      "title": "*BYE handler (logoff)",
-      "description": "Closes any open *SPOOL and *EXEC files via OSBYTE &77 (FXSPEX),\nthen falls into prepare_fs_cmd with Y=&17 (FCBYE: logoff code).\nDispatched from the command match table at &8C05 for \"BYE\".",
       "fall_through": true
     },
     {
@@ -1072,6 +1058,38 @@
       "fall_through": true
     },
     {
+      "addr": 35183,
+      "name": "restore_args_return",
+      "title": "Restore arguments and return",
+      "description": "Common exit point for FS vector handlers. Reloads A from\nfs_last_byte_flag (&BD), X from fs_options (&BB), and Y from\nfs_block_offset (&BC) \u2014 the values saved at entry by\nsave_fscv_args \u2014 and returns to the caller.",
+      "fall_through": true
+    },
+    {
+      "addr": 35306,
+      "name": "fscv_0_opt",
+      "title": "FSCV 0: *OPT handler (OPTION)",
+      "description": "Handles *OPT X,Y to set filing system options:\n  *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)\n  *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)\nOther combinations generate error &CB (OPTER: \"bad option\").",
+      "on_entry": {
+        "x": "option number (1 or 4)",
+        "y": "option value"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 35350,
+      "name": "adjust_addrs",
+      "title": "Bidirectional 4-byte address adjustment",
+      "description": "Adjusts a 4-byte value in the parameter block at (fs_options)+Y:\n  If fs_load_addr_2 (&B2) is positive: adds fs_lib_handle+X values\n  If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X\nStarting offset X=&FC means it reads from &0E06-&0E09 area.\nUsed to convert between absolute and relative file positions.",
+      "on_entry": {
+        "y": "starting offset into (fs_options) parameter block"
+      },
+      "on_exit": {
+        "a": "corrupted (last adjusted byte)",
+        "x": "0",
+        "y": "entry Y + 4"
+      }
+    },
+    {
       "addr": 35108,
       "name": "argsv_handler",
       "title": "ARGSV handler (OSARGS entry point)",
@@ -1085,13 +1103,6 @@
         "x": "restored",
         "y": "restored"
       },
-      "fall_through": true
-    },
-    {
-      "addr": 35183,
-      "name": "restore_args_return",
-      "title": "Restore arguments and return",
-      "description": "Common exit point for FS vector handlers. Reloads A from\nfs_last_byte_flag (&BD), X from fs_options (&BB), and Y from\nfs_block_offset (&BC) \u2014 the values saved at entry by\nsave_fscv_args \u2014 and returns to the caller.",
       "fall_through": true
     },
     {
@@ -1122,31 +1133,6 @@
       "fall_through": true
     },
     {
-      "addr": 35306,
-      "name": "fscv_0_opt",
-      "title": "FSCV 0: *OPT handler (OPTION)",
-      "description": "Handles *OPT X,Y to set filing system options:\n  *OPT 1,Y (Y=0/1): set local user option in &0E06 (OPT)\n  *OPT 4,Y (Y=0-3): set boot option via FS command &16 (FCOPT)\nOther combinations generate error &CB (OPTER: \"bad option\").",
-      "on_entry": {
-        "x": "option number (1 or 4)",
-        "y": "option value"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 35350,
-      "name": "adjust_addrs",
-      "title": "Bidirectional 4-byte address adjustment",
-      "description": "Adjusts a 4-byte value in the parameter block at (fs_options)+Y:\n  If fs_load_addr_2 (&B2) is positive: adds fs_lib_handle+X values\n  If fs_load_addr_2 (&B2) is negative: subtracts fs_lib_handle+X\nStarting offset X=&FC means it reads from &0E06-&0E09 area.\nUsed to convert between absolute and relative file positions.",
-      "on_entry": {
-        "y": "starting offset into (fs_options) parameter block"
-      },
-      "on_exit": {
-        "a": "corrupted (last adjusted byte)",
-        "x": "0",
-        "y": "entry Y + 4"
-      }
-    },
-    {
       "addr": 35374,
       "name": "gbpbv_handler",
       "title": "GBPBV handler (OSGBPB entry point)",
@@ -1168,6 +1154,20 @@
       "name": "osgbpb_info",
       "title": "OSGBPB 5-8 info handler (OSINFO)",
       "description": "Handles the \"messy interface tacked onto OSGBPB\" (original source).\nChecks whether the destination address is in Tube space by comparing\nthe high bytes against TBFLAG. If in Tube space, data must be\ncopied via the Tube FIFO registers (with delays to accommodate the\nslow 16032 co-processor) instead of direct memory access."
+    },
+    {
+      "addr": 32961,
+      "name": "forward_star_cmd",
+      "title": "Forward unrecognised * command to fileserver (COMERR)",
+      "description": "Copies command text from (fs_crc_lo) to &0F05+ via copy_filename,\nprepares an FS command with function code 0, and sends it to the\nfileserver to request decoding. The server returns a command code\nindicating what action to take (e.g. code 4=INFO, 7=DIR, 9=LIB,\n5=load-as-command). This mechanism allows the fileserver to extend\nthe client's command set without ROM updates. Called from the \"I.\"\nand catch-all entries in the command match table at &8C05, and\nfrom FSCV 2/3/4 indirectly. If CSD handle is zero (not logged\nin), returns without sending.",
+      "fall_through": true
+    },
+    {
+      "addr": 33724,
+      "name": "bye_handler",
+      "title": "*BYE handler (logoff)",
+      "description": "Closes any open *SPOOL and *EXEC files via OSBYTE &77 (FXSPEX),\nthen falls into prepare_fs_cmd with Y=&17 (FCBYE: logoff code).\nDispatched from the command match table at &8C05 for \"BYE\".",
+      "fall_through": true
     },
     {
       "addr": 35799,
@@ -1202,151 +1202,11 @@
       "fall_through": true
     },
     {
-      "addr": 22,
-      "binary_addr": 37660,
-      "name": "tube_brk_handler",
-      "title": "Tube BRK handler (BRKV target) \u2014 reference: NFS11 NEWBR",
-      "description": "Sends error information to the Tube co-processor via R2 and R4:\n  1. Sends &FF to R4 (WRIFOR) to signal error\n  2. Reads R2 data (flush any pending byte)\n  3. Sends &00 via R2, then error number from (&FD),0\n  4. Loops sending error string bytes via R2 until zero terminator\n  5. Falls through to tube_reset_stack \u2192 tube_main_loop\nThe main loop continuously polls R1 for WRCH requests (forwarded\nto OSWRITCH &FFCB) and R2 for command bytes (dispatched via the\n12-entry table at &0500). The R2 command byte is stored at &55\nbefore dispatch via JMP (&0500)."
-    },
-    {
-      "addr": 1024,
-      "binary_addr": 37725,
-      "name": "tube_code_page4",
-      "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
-      "description": "Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B)\noverlap with the end of the ZP block (the same ROM bytes serve both\nthe ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:\n  &0400: JMP &0473 (BEGIN \u2014 CLI parser / startup entry)\n  &0403: JMP &06E2 (tube_escape_check)\n  &0406: tube_addr_claim \u2014 Tube address claim protocol (ADRR)\n  &0414: tube_post_init \u2014 called after ROM\u2192RAM copy\n  &0473: BEGIN \u2014 startup/CLI entry, break type check\n  &04CB: tube_init_reloc \u2014 initialise relocation address for ROM transfer"
-    },
-    {
-      "addr": 1227,
-      "binary_addr": 37928,
-      "name": "tube_init_reloc",
-      "title": "Initialise relocation address for ROM transfer",
-      "description": "Sets source page to &8000 and page counter to &80. Checks\nROM type bit 5 for a relocation address in the ROM header;\nif present, extracts the 4-byte address from after the\ncopyright string. Otherwise uses default &8000 start."
-    },
-    {
-      "addr": 1280,
-      "binary_addr": 37974,
-      "name": "tube_dispatch_table",
-      "title": "Tube host code page 5 \u2014 reference: NFS13 (TASKS, BPUT-FILE)",
-      "description": "Copied from ROM at &9456 during init. Contains:\n  &0500: tube_dispatch_table \u2014 12-entry handler address table\n  &0518: R2 command byte table \u2014 8 even command bytes (&00-&0E)\n  &0520: tube_osbput \u2014 write byte to file\n  &052D: tube_osbget \u2014 read byte from file\n  &0537: tube_osrdch \u2014 read character\n  &053A: tube_rdch_reply \u2014 ROR carry into byte, send via R2\n  &053D: tube_release_return \u2014 dead code (unreferenced)\n  &0542: tube_osfind \u2014 open file\n  &0552: tube_osfind_close \u2014 close file (A=0)\n  &055E: tube_osargs \u2014 file argument read/write\n  &0582: tube_read_string \u2014 read CR-terminated string into &0700\n  &0596: tube_oscli \u2014 execute * command\n  &059C: tube_reply_ack \u2014 send &7F acknowledge\n  &059E: tube_reply_byte \u2014 send byte and return to main loop\n  &05A9: tube_osfile \u2014 whole file operation"
-    },
-    {
       "addr": 32898,
       "name": "i_am_handler",
       "title": "\"I AM\" command handler",
       "description": "Dispatched from the command match table when the user types\n\"*I AM <station>\" or \"*I AM <network>.<station>\". Also used as\nthe station number parser for \"*NET <network>.<station>\".\nSkips leading spaces, then calls parse_decimal for the first\nnumber. If a dot separator was found (carry set), it stores the\nresult directly as the network (&0E01) and calls parse_decimal\nagain for the station (&0E00). With a single number, it is stored\nas the station and the network defaults to 0 (local). If a colon\nfollows, reads interactive input via OSRDCH and appends it to\nthe command buffer. Finally jumps to forward_star_cmd.",
       "fall_through": true
-    },
-    {
-      "addr": 33667,
-      "name": "init_tx_reply_port",
-      "title": "Initialise TX control block for FS reply on port &90",
-      "description": "Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set\nup the TX control block, stores the port and control bytes, then\ndecrements the control flag. Used by send_fs_reply_cmd to prepare\nfor receiving the fileserver's reply."
-    },
-    {
-      "addr": 33717,
-      "name": "prepare_cmd_with_flag",
-      "title": "Prepare FS command with carry set",
-      "description": "Alternate entry to prepare_fs_cmd that pushes A, loads &2A\ninto fs_error_ptr, and enters with carry set (SEC). The carry\nflag is later tested by build_send_fs_cmd to select the\nbyte-stream (BSXMIT) transmission path.",
-      "on_entry": {
-        "a": "flag byte to include in FS command",
-        "y": "function code for FS header"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 33946,
-      "name": "lang_1_remote_boot",
-      "title": "Remote boot/execute handler",
-      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns.",
-      "fall_through": true
-    },
-    {
-      "addr": 33992,
-      "name": "lang_3_execute_at_0100",
-      "title": "Execute code at &0100",
-      "description": "Clears JSR protection, zeroes &0100-&0102 (creating a BRK\ninstruction at &0100 as a safe default), then JMP &0100 to\nexecute code received over the network. If no code was loaded,\nthe BRK triggers an error handler."
-    },
-    {
-      "addr": 34008,
-      "name": "lang_4_remote_validated",
-      "title": "Remote operation with source validation",
-      "description": "Validates that the source station in the received packet matches\nthe controlling station stored in the NFS workspace. If byte 4 of\nthe RX control block is zero (not currently remoted), allows the\nnew remote session via remot1. If non-zero, compares the source\nstation at RX offset &80 against workspace offset &0E -- rejects\nmismatched stations via clear_jsr_protection, accepts matching\nstations by falling through to lang_0_insert_remote_key.",
-      "fall_through": true
-    },
-    {
-      "addr": 34024,
-      "name": "lang_0_insert_remote_key",
-      "title": "Insert remote keypress",
-      "description": "Reads a character from RX block offset &82 and inserts it into\nkeyboard input buffer 0 via OSBYTE &99.",
-      "fall_through": true
-    },
-    {
-      "addr": 34519,
-      "name": "copy_filename_ptr",
-      "title": "Copy filename pointer to os_text_ptr and parse",
-      "description": "Copies the 2-byte filename pointer from (fs_options),Y into\nos_text_ptr (&F2/&F3), then falls through to parse_filename_gs\nto parse the filename via GSINIT/GSREAD into the &0E30 buffer.",
-      "fall_through": true
-    },
-    {
-      "addr": 34531,
-      "name": "parse_filename_gs_y",
-      "title": "Parse filename via GSINIT/GSREAD from offset Y",
-      "description": "Sub-entry of parse_filename_gs that accepts a non-zero Y offset\ninto the (os_text_ptr) string. Initialises GSINIT, reads chars\nvia GSREAD into &0E30, CR-terminates the result, and sets up\nfs_crc_lo/hi to point at the buffer."
-    },
-    {
-      "addr": 35216,
-      "name": "return_a_zero",
-      "title": "Return with A=0 via register restore",
-      "description": "Loads A=0 and branches (always taken) to the common register\nrestore exit at restore_args_return. Used as a shared exit\npoint by ARGSV, FINDV, and GBPBV when an operation is\nunsupported or should return zero.",
-      "fall_through": true
-    },
-    {
-      "addr": 36213,
-      "name": "copy_filename",
-      "title": "Copy filename to FS command buffer",
-      "description": "Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.\nUsed to place a filename into the FS command buffer before\nsending to the fileserver. Falls through to copy_string_to_cmd.",
-      "fall_through": true
-    },
-    {
-      "addr": 36215,
-      "name": "copy_string_to_cmd",
-      "title": "Copy string to FS command buffer",
-      "description": "Entry with X and Y specified: copies bytes from (fs_crc_lo),Y\nto &0F05+X, stopping when a CR (&0D) is encountered. The CR\nitself is also copied. Returns with X pointing past the last\nbyte written.",
-      "on_entry": {
-        "x": "destination offset in fs_cmd_data (&0F05+X)"
-      },
-      "on_exit": {
-        "x": "next free position past CR",
-        "y": "string length (incl CR)",
-        "a": "0 (from EOR &0D with final CR)"
-      }
-    },
-    {
-      "addr": 36233,
-      "name": "fsreply_0_print_dir",
-      "title": "Print directory name from reply buffer",
-      "description": "Prints characters from the FS reply buffer (&0F05+X onwards).\nNull bytes (&00) are replaced with CR (&0D) for display.\nStops when a byte with bit 7 set is encountered (high-bit\nterminator). Used by fscv_5_cat to display Dir. and Lib. paths.",
-      "fall_through": true
-    },
-    {
-      "addr": 36242,
-      "name": "cat_column_separator",
-      "title": "Print catalogue column separator or newline",
-      "description": "Handles column formatting for *CAT display. On a null byte\nseparator, advances the column counter modulo 4: prints a\n2-space separator between columns, or a CR at column 0.\nCalled from fsreply_0_print_dir.",
-      "fall_through": true
-    },
-    {
-      "addr": 36303,
-      "name": "fscv_2_star_run",
-      "title": "FSCV 2/4: */ (run) and *RUN handler",
-      "description": "Parses the filename via parse_filename_gs and calls infol2,\nthen falls through to fsreply_4_notify_exec to set up and\nsend the FS load-as-command request.",
-      "fall_through": true
-    },
-    {
-      "addr": 36309,
-      "name": "fsreply_4_notify_exec",
-      "title": "FS reply 4: send FS load-as-command and execute response",
-      "description": "Initialises a GS reader to skip past the filename and\ncalculate the command context address, then sets up an FS\ncommand with function code &05 (FCCMND: load as command)\nusing send_fs_examine. If a Tube co-processor is present\n(tx_in_progress != 0), transfers the response data to the\nTube via tube_addr_claim. Otherwise jumps via the indirect\npointer at (&0F09) to execute at the load address."
     },
     {
       "addr": 36383,
@@ -1382,17 +1242,51 @@
       "fall_through": true
     },
     {
+      "addr": 36213,
+      "name": "copy_filename",
+      "title": "Copy filename to FS command buffer",
+      "description": "Entry with X=0: copies from (fs_crc_lo),Y to &0F05+X until CR.\nUsed to place a filename into the FS command buffer before\nsending to the fileserver. Falls through to copy_string_to_cmd.",
+      "fall_through": true
+    },
+    {
+      "addr": 36215,
+      "name": "copy_string_to_cmd",
+      "title": "Copy string to FS command buffer",
+      "description": "Entry with X and Y specified: copies bytes from (fs_crc_lo),Y\nto &0F05+X, stopping when a CR (&0D) is encountered. The CR\nitself is also copied. Returns with X pointing past the last\nbyte written.",
+      "on_entry": {
+        "x": "destination offset in fs_cmd_data (&0F05+X)"
+      },
+      "on_exit": {
+        "x": "next free position past CR",
+        "y": "string length (incl CR)",
+        "a": "0 (from EOR &0D with final CR)"
+      }
+    },
+    {
+      "addr": 36233,
+      "name": "fsreply_0_print_dir",
+      "title": "Print directory name from reply buffer",
+      "description": "Prints characters from the FS reply buffer (&0F05+X onwards).\nNull bytes (&00) are replaced with CR (&0D) for display.\nStops when a byte with bit 7 set is encountered (high-bit\nterminator). Used by fscv_5_cat to display Dir. and Lib. paths.",
+      "fall_through": true
+    },
+    {
+      "addr": 36303,
+      "name": "fscv_2_star_run",
+      "title": "FSCV 2/4: */ (run) and *RUN handler",
+      "description": "Parses the filename via parse_filename_gs and calls infol2,\nthen falls through to fsreply_4_notify_exec to set up and\nsend the FS load-as-command request.",
+      "fall_through": true
+    },
+    {
+      "addr": 36309,
+      "name": "fsreply_4_notify_exec",
+      "title": "FS reply 4: send FS load-as-command and execute response",
+      "description": "Initialises a GS reader to skip past the filename and\ncalculate the command context address, then sets up an FS\ncommand with function code &05 (FCCMND: load as command)\nusing send_fs_examine. If a Tube co-processor is present\n(tx_in_progress != 0), transfers the response data to the\nTube via tube_addr_claim. Otherwise jumps via the indirect\npointer at (&0F09) to execute at the load address."
+    },
+    {
       "addr": 36410,
       "name": "boot_cmd_execute",
       "title": "Execute boot command via OSCLI",
       "description": "Reached from fsreply_1_copy_handles_boot when carry is set (LOGIN\npath). Reads the boot option from fs_boot_option (&0E05),\nlooks up the OSCLI command string offset from boot_option_offsets+1,\nand executes the boot command via JMP oscli with page &8D."
-    },
-    {
-      "addr": 36421,
-      "name": "load_handle_calc_offset",
-      "title": "Load handle from &F0 and calculate workspace offset",
-      "description": "Loads the file handle byte from &F0, then falls through to\ncalc_handle_offset which converts handle * 12 to a workspace\nbyte offset. Validates offset < &48.",
-      "fall_through": true
     },
     {
       "addr": 36423,
@@ -1429,16 +1323,85 @@
       "fall_through": true
     },
     {
-      "addr": 36485,
-      "name": "osword_12_handler",
-      "title": "OSWORD &12 handler: read/set state information (RS)",
-      "description": "Dispatches on the sub-function code (0-9):\n  0: read FS station (FSLOCN at &0E00)\n  1: set FS station\n  2: read printer server station (PSLOCN)\n  3: set printer server station\n  4: read protection masks (LSTAT at &D63)\n  5: set protection masks\n  6: read context handles (URD/CSD/LIB, converted from\n     internal single-bit form back to handle numbers)\n  7: set context handles (converted to internal form)\n  8: read local station number\n  9: read JSR arguments buffer size\nEven-numbered sub-functions read; odd-numbered ones write.\nUses the bidirectional copy at &8EB1 for station read/set."
-    },
-    {
       "addr": 36503,
       "name": "fs_osword_dispatch",
       "title": "PHA/PHA/RTS dispatch for filing system OSWORDs",
       "description": "X = OSWORD number - &0F (0-4). Dispatches via the 5-entry table\nat &8EB0 (low) / &8EB5 (high)."
+    },
+    {
+      "addr": 36840,
+      "name": "econet_tx_rx",
+      "title": "Econet transmit/receive handler",
+      "description": "A=0: Initialise TX control block from ROM template at &8391\n     (zero entries substituted from NMI workspace &0DDA), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &9034).",
+      "on_entry": {
+        "a": "0=set up and transmit, >=1=handle TX result"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36982,
+      "name": "osword_dispatch",
+      "title": "NETVEC dispatch handler (ENTRY)",
+      "description": "Indirected from NETVEC at &0224. Saves all registers and flags,\nretrieves the reason code from the stacked A, and dispatches to\none of 9 handlers (codes 0-8) via the PHA/PHA/RTS trampoline at\n&908D. Reason codes >= 9 are ignored.\n\nDispatch targets (from NFS09):\n  0:   no-op (RTS)\n  1-3: PRINT -- chars in printer buffer / Ctrl-B / Ctrl-C\n  4:   NWRCH -- write character to screen (net write char)\n  5:   SELECT -- printer selection changed\n  6:   no-op (net read char -- not implemented)\n  7:   NBYTE -- remote OSBYTE call\n  8:   NWORD -- remote OSWORD call",
+      "on_entry": {
+        "a": "reason code (0-8)"
+      },
+      "on_exit": {
+        "a": "preserved",
+        "x": "preserved",
+        "y": "preserved"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36921,
+      "name": "net_write_char",
+      "title": "Fn 4: net write character (NWRCH)",
+      "description": "Writes a character (passed in Y) to the screen via OSWRITCH.\nBefore the write, uses TSX to reach into the stack and zero the\ncarry flag in the caller's saved processor status byte -- ROR\nfollowed by ASL on the stacked P byte (&0106,X) shifts carry\nout and back in as zero. This ensures the calling code's PLP\nrestores carry=0, signalling \"character accepted\" without needing\na separate CLC/PHP sequence. A classic 6502 trick for modifying\nreturn flags without touching the actual processor status.",
+      "on_entry": {
+        "y": "character to write"
+      },
+      "on_exit": {
+        "a": "&3F",
+        "x": "0",
+        "y": "0"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 37050,
+      "name": "setup_tx_and_send",
+      "title": "Set up TX control block and send",
+      "description": "Builds a TX control block at (nfs_workspace)+&0C from the current\nworkspace state, then initiates transmission via the ADLC TX path.\nThis is the common send routine used after command data has been\nprepared. The exact control block layout and field mapping need\nfurther analysis.",
+      "on_entry": {
+        "a": "command type byte"
+      }
+    },
+    {
+      "addr": 37235,
+      "name": "ctrl_block_setup_alt",
+      "title": "Alternate entry into control block setup",
+      "description": "Sets X=&0D, Y=&7C. Tests bit 6 of &83AF to choose target:\n  V=0 (bit 6 clear): stores to (nfs_workspace)\n  V=1 (bit 6 set):   stores to (net_rx_ptr)",
+      "fall_through": true
+    },
+    {
+      "addr": 37244,
+      "name": "ctrl_block_setup",
+      "title": "Control block setup \u2014 main entry",
+      "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &91A8 indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer",
+      "fall_through": true
+    },
+    {
+      "addr": 37288,
+      "name": "ctrl_block_template",
+      "title": "Control block initialisation template",
+      "description": "Read by the loop at &9181, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &83AF\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)"
+    },
+    {
+      "addr": 36636,
+      "name": "copy_param_block",
+      "title": "Bidirectional block copy between OSWORD param block and workspace.",
+      "description": "C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)\nC=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)"
     },
     {
       "addr": 36538,
@@ -1463,10 +1426,10 @@
       "fall_through": true
     },
     {
-      "addr": 36636,
-      "name": "copy_param_block",
-      "title": "Bidirectional block copy between OSWORD param block and workspace.",
-      "description": "C=1: copy X+1 bytes from (&F0),Y to (fs_crc_lo),Y (param to workspace)\nC=0: copy X+1 bytes from (fs_crc_lo),Y to (&F0),Y (workspace to param)"
+      "addr": 36485,
+      "name": "osword_12_handler",
+      "title": "OSWORD &12 handler: read/set state information (RS)",
+      "description": "Dispatches on the sub-function code (0-9):\n  0: read FS station (FSLOCN at &0E00)\n  1: set FS station\n  2: read printer server station (PSLOCN)\n  3: set printer server station\n  4: read protection masks (LSTAT at &D63)\n  5: set protection masks\n  6: read context handles (URD/CSD/LIB, converted from\n     internal single-bit form back to handle numbers)\n  7: set context handles (converted to internal form)\n  8: read local station number\n  9: read JSR arguments buffer size\nEven-numbered sub-functions read; odd-numbered ones write.\nUses the bidirectional copy at &8EB1 for station read/set."
     },
     {
       "addr": 36724,
@@ -1484,67 +1447,39 @@
       }
     },
     {
+      "addr": 33946,
+      "name": "lang_1_remote_boot",
+      "title": "Remote boot/execute handler",
+      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns.",
+      "fall_through": true
+    },
+    {
+      "addr": 33992,
+      "name": "lang_3_execute_at_0100",
+      "title": "Execute code at &0100",
+      "description": "Clears JSR protection, zeroes &0100-&0102 (creating a BRK\ninstruction at &0100 as a safe default), then JMP &0100 to\nexecute code received over the network. If no code was loaded,\nthe BRK triggers an error handler."
+    },
+    {
+      "addr": 34008,
+      "name": "lang_4_remote_validated",
+      "title": "Remote operation with source validation",
+      "description": "Validates that the source station in the received packet matches\nthe controlling station stored in the NFS workspace. If byte 4 of\nthe RX control block is zero (not currently remoted), allows the\nnew remote session via remot1. If non-zero, compares the source\nstation at RX offset &80 against workspace offset &0E -- rejects\nmismatched stations via clear_jsr_protection, accepts matching\nstations by falling through to lang_0_insert_remote_key.",
+      "fall_through": true
+    },
+    {
+      "addr": 34024,
+      "name": "lang_0_insert_remote_key",
+      "title": "Insert remote keypress",
+      "description": "Reads a character from RX block offset &82 and inserts it into\nkeyboard input buffer 0 via OSBYTE &99.",
+      "fall_through": true
+    },
+    {
       "addr": 36813,
       "name": "setup_rx_buffer_ptrs",
       "title": "Set up RX buffer pointers in NFS workspace",
       "description": "Calculates the start address of the RX data area (&F0+1) and stores\nit at workspace offset &28. Also reads the data length from (&F0)+1\nand adds it to &F0 to compute the end address at offset &2C.",
       "on_entry": {
         "c": "clear for ADC"
-      }
-    },
-    {
-      "addr": 36840,
-      "name": "econet_tx_rx",
-      "title": "Econet transmit/receive handler",
-      "description": "A=0: Initialise TX control block from ROM template at &8391\n     (zero entries substituted from NMI workspace &0DDA), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &9034).",
-      "on_entry": {
-        "a": "0=set up and transmit, >=1=handle TX result"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 36921,
-      "name": "net_write_char",
-      "title": "Fn 4: net write character (NWRCH)",
-      "description": "Writes a character (passed in Y) to the screen via OSWRITCH.\nBefore the write, uses TSX to reach into the stack and zero the\ncarry flag in the caller's saved processor status byte -- ROR\nfollowed by ASL on the stacked P byte (&0106,X) shifts carry\nout and back in as zero. This ensures the calling code's PLP\nrestores carry=0, signalling \"character accepted\" without needing\na separate CLC/PHP sequence. A classic 6502 trick for modifying\nreturn flags without touching the actual processor status.",
-      "on_entry": {
-        "y": "character to write"
-      },
-      "on_exit": {
-        "a": "&3F",
-        "x": "0",
-        "y": "0"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 36978,
-      "name": "enable_irq_and_tx",
-      "title": "Enable interrupts and transmit via tx_poll_ff",
-      "description": "CLI to enable interrupts, then JMP tx_poll_ff. A short\ntail-call wrapper used after building the TX control block."
-    },
-    {
-      "addr": 36982,
-      "name": "osword_dispatch",
-      "title": "NETVEC dispatch handler (ENTRY)",
-      "description": "Indirected from NETVEC at &0224. Saves all registers and flags,\nretrieves the reason code from the stacked A, and dispatches to\none of 9 handlers (codes 0-8) via the PHA/PHA/RTS trampoline at\n&908D. Reason codes >= 9 are ignored.\n\nDispatch targets (from NFS09):\n  0:   no-op (RTS)\n  1-3: PRINT -- chars in printer buffer / Ctrl-B / Ctrl-C\n  4:   NWRCH -- write character to screen (net write char)\n  5:   SELECT -- printer selection changed\n  6:   no-op (net read char -- not implemented)\n  7:   NBYTE -- remote OSBYTE call\n  8:   NWORD -- remote OSWORD call",
-      "on_entry": {
-        "a": "reason code (0-8)"
-      },
-      "on_exit": {
-        "a": "preserved",
-        "x": "preserved",
-        "y": "preserved"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 37050,
-      "name": "setup_tx_and_send",
-      "title": "Set up TX control block and send",
-      "description": "Builds a TX control block at (nfs_workspace)+&0C from the current\nworkspace state, then initiates transmission via the ADLC TX path.\nThis is the common send routine used after command data has been\nprepared. The exact control block layout and field mapping need\nfurther analysis.",
-      "on_entry": {
-        "a": "command type byte"
       }
     },
     {
@@ -1560,26 +1495,6 @@
       "title": "Fn 8: remote OSWORD handler (NWORD)",
       "description": "Only intercepts OSWORD 7 (make a sound) and OSWORD 8 (define an\nenvelope). Unlike NBYTE which returns results, NWORD is entirely\nfire-and-forget -- no return path is implemented. The developer\nexplicitly noted this was acceptable since sound/envelope commands\ndon't return meaningful results. Copies up to 14 parameter bytes\nfrom the RX buffer to workspace, tags the message as RWORD, and\ntransmits.",
       "fall_through": true
-    },
-    {
-      "addr": 37235,
-      "name": "ctrl_block_setup_alt",
-      "title": "Alternate entry into control block setup",
-      "description": "Sets X=&0D, Y=&7C. Tests bit 6 of &83AF to choose target:\n  V=0 (bit 6 clear): stores to (nfs_workspace)\n  V=1 (bit 6 set):   stores to (net_rx_ptr)",
-      "fall_through": true
-    },
-    {
-      "addr": 37244,
-      "name": "ctrl_block_setup",
-      "title": "Control block setup \u2014 main entry",
-      "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &91A8 indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer",
-      "fall_through": true
-    },
-    {
-      "addr": 37288,
-      "name": "ctrl_block_template",
-      "title": "Control block initialisation template",
-      "description": "Read by the loop at &9181, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &83AF\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)"
     },
     {
       "addr": 37327,
@@ -1621,23 +1536,6 @@
       "fall_through": true
     },
     {
-      "addr": 37473,
-      "name": "econet_tx_retry",
-      "title": "Transmit with retry loop (XMITFS/XMITFY)",
-      "description": "Calls the low-level transmit routine (BRIANX) with FSTRY (&FF = 255)\nretries and FSDELY (&60 = 96) ms delay between attempts. On each\niteration, checks the result code: zero means success, non-zero\nmeans retry. After all retries exhausted, reports a 'Net error'.\nEntry point XMITFY allows a custom delay in Y.",
-      "on_entry": {
-        "a": "handle bitmask (0=printer, non-zero=file)",
-        "x": "TX control block address low",
-        "y": "TX control block address high"
-      }
-    },
-    {
-      "addr": 37542,
-      "name": "lang_2_save_palette_vdu",
-      "title": "Save palette and VDU state (CVIEW)",
-      "description": "Part of the VIEW facility (second iteration, started 27/7/82).\nUses dynamically allocated buffer store. The WORKP1 pointer\n(&9E,&9F) serves double duty: non-zero indicates data ready AND\nprovides the buffer address \u2014 an efficient use of scarce zero-\npage space. This code must be user-transparent as the NFS may not\nbe the dominant filing system.\nReads all 16 palette entries using OSWORD &0B (read palette) and\nstores the results. Then reads cursor position (OSBYTE &85),\nshadow RAM allocation (OSBYTE &C2), and screen start address\n(OSBYTE &C3) using the 3-entry table at &9319.\nOn completion, restores the JSR buffer protection bits (LSTAT)\nfrom OLDJSR to re-enable JSR reception, which was disabled during\nthe screen data capture to prevent interference."
-    },
-    {
       "addr": 37618,
       "name": "save_vdu_state",
       "title": "Save VDU workspace state",
@@ -1658,17 +1556,92 @@
       "fall_through": true
     },
     {
-      "addr": 38541,
-      "name": "init_nmi_workspace",
-      "title": "Initialise NMI workspace (skip service request)",
-      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\n&0D00, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs.",
-      "fall_through": true
-    },
-    {
       "addr": 38600,
       "name": "save_econet_state",
       "title": "Save Econet state to RX control block",
       "description": "Stores rx_status_flags, protection_mask, and tx_in_progress\nto (net_rx_ptr) at offsets 8-10. INTOFF side effect on entry."
+    },
+    {
+      "addr": 22,
+      "binary_addr": 37660,
+      "name": "tube_brk_handler",
+      "title": "Tube BRK handler (BRKV target) \u2014 reference: NFS11 NEWBR",
+      "description": "Sends error information to the Tube co-processor via R2 and R4:\n  1. Sends &FF to R4 (WRIFOR) to signal error\n  2. Reads R2 data (flush any pending byte)\n  3. Sends &00 via R2, then error number from (&FD),0\n  4. Loops sending error string bytes via R2 until zero terminator\n  5. Falls through to tube_reset_stack \u2192 tube_main_loop\nThe main loop continuously polls R1 for WRCH requests (forwarded\nto OSWRITCH &FFCB) and R2 for command bytes (dispatched via the\n12-entry table at &0500). The R2 command byte is stored at &55\nbefore dispatch via JMP (&0500)."
+    },
+    {
+      "addr": 1024,
+      "binary_addr": 37725,
+      "name": "tube_code_page4",
+      "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
+      "description": "Copied from ROM at &935D during init. The first 28 bytes (&0400-&041B)\noverlap with the end of the ZP block (the same ROM bytes serve both\nthe ZP copy at &005B-&0076 and this page at &0400-&041B). Contains:\n  &0400: JMP &0473 (BEGIN \u2014 CLI parser / startup entry)\n  &0403: JMP &06E2 (tube_escape_check)\n  &0406: tube_addr_claim \u2014 Tube address claim protocol (ADRR)\n  &0414: tube_post_init \u2014 called after ROM\u2192RAM copy\n  &0473: BEGIN \u2014 startup/CLI entry, break type check\n  &04CB: tube_init_reloc \u2014 initialise relocation address for ROM transfer"
+    },
+    {
+      "addr": 1280,
+      "binary_addr": 37974,
+      "name": "tube_dispatch_table",
+      "title": "Tube host code page 5 \u2014 reference: NFS13 (TASKS, BPUT-FILE)",
+      "description": "Copied from ROM at &9456 during init. Contains:\n  &0500: tube_dispatch_table \u2014 12-entry handler address table\n  &0518: R2 command byte table \u2014 8 even command bytes (&00-&0E)\n  &0520: tube_osbput \u2014 write byte to file\n  &052D: tube_osbget \u2014 read byte from file\n  &0537: tube_osrdch \u2014 read character\n  &053A: tube_rdch_reply \u2014 ROR carry into byte, send via R2\n  &053D: tube_release_return \u2014 dead code (unreferenced)\n  &0542: tube_osfind \u2014 open file\n  &0552: tube_osfind_close \u2014 close file (A=0)\n  &055E: tube_osargs \u2014 file argument read/write\n  &0582: tube_read_string \u2014 read CR-terminated string into &0700\n  &0596: tube_oscli \u2014 execute * command\n  &059C: tube_reply_ack \u2014 send &7F acknowledge\n  &059E: tube_reply_byte \u2014 send byte and return to main loop\n  &05A9: tube_osfile \u2014 whole file operation"
+    },
+    {
+      "addr": 37473,
+      "name": "econet_tx_retry",
+      "title": "Transmit with retry loop (XMITFS/XMITFY)",
+      "description": "Calls the low-level transmit routine (BRIANX) with FSTRY (&FF = 255)\nretries and FSDELY (&60 = 96) ms delay between attempts. On each\niteration, checks the result code: zero means success, non-zero\nmeans retry. After all retries exhausted, reports a 'Net error'.\nEntry point XMITFY allows a custom delay in Y.",
+      "on_entry": {
+        "a": "handle bitmask (0=printer, non-zero=file)",
+        "x": "TX control block address low",
+        "y": "TX control block address high"
+      }
+    },
+    {
+      "addr": 37542,
+      "name": "lang_2_save_palette_vdu",
+      "title": "Save palette and VDU state (CVIEW)",
+      "description": "Part of the VIEW facility (second iteration, started 27/7/82).\nUses dynamically allocated buffer store. The WORKP1 pointer\n(&9E,&9F) serves double duty: non-zero indicates data ready AND\nprovides the buffer address \u2014 an efficient use of scarce zero-\npage space. This code must be user-transparent as the NFS may not\nbe the dominant filing system.\nReads all 16 palette entries using OSWORD &0B (read palette) and\nstores the results. Then reads cursor position (OSBYTE &85),\nshadow RAM allocation (OSBYTE &C2), and screen start address\n(OSBYTE &C3) using the 3-entry table at &9319.\nOn completion, restores the JSR buffer protection bits (LSTAT)\nfrom OLDJSR to re-enable JSR reception, which was disabled during\nthe screen data capture to prevent interference."
+    },
+    {
+      "addr": 39314,
+      "name": "post_ack_scout",
+      "title": "Post-ACK scout processing",
+      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the buffer at &0D3D-&0D48.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
+    },
+    {
+      "addr": 39510,
+      "name": "immediate_op",
+      "title": "Immediate operation handler (port = 0)",
+      "description": "Handles immediate (non-data-transfer) operations received via\nscout frames with port byte = 0. The control byte (&0D3F)\ndetermines the operation type:\n  &81 = PEEK (read memory)\n  &82 = POKE (write memory)\n  &83 = JSR (remote procedure call)\n  &84 = user procedure\n  &85 = OS procedure\n  &86 = HALT\n  &87 = CONTINUE\nThe protection mask (LSTAT at &D63) controls which operations\nare permitted \u2014 each bit enables or disables an operation type.\nIf the operation is not permitted by the mask, it is silently\nignored. LSTAT can be read/set via OSWORD &12 sub-functions 4/5."
+    },
+    {
+      "addr": 39470,
+      "name": "discard_reset_listen",
+      "title": "Discard with full ADLC reset",
+      "description": "Performs adlc_full_reset (CR1=&C1, reset both TX and RX sections),\nthen falls through to install_rx_scout_handler. Used when the ADLC is\nin an unexpected state and needs a hard reset before returning\nto idle listen mode. 5 references \u2014 the main error recovery path.",
+      "fall_through": true
+    },
+    {
+      "addr": 39485,
+      "name": "discard_listen",
+      "title": "Discard frame (gentle)",
+      "description": "Sends RX_DISCONTINUE (CR1=&A2: RIE|RX_DISCONTINUE) to abort the\ncurrent frame reception without a full reset, then falls through\nto install_rx_scout_handler. Used for clean rejection of frames\nthat are correctly formatted but not for us (wrong station/network).",
+      "fall_through": true
+    },
+    {
+      "addr": 40760,
+      "name": "tx_calc_transfer",
+      "title": "Calculate transfer size",
+      "description": "Computes the number of bytes actually transferred during a data\nframe reception. Subtracts the low pointer (LPTR, offset 4 in\nthe RXCB) from the current buffer position to get the byte count,\nand stores it back into the RXCB's high pointer field (HPTR,\noffset 8). This tells the caller how much data was received."
+    },
+    {
+      "addr": 40872,
+      "name": "nmi_bootstrap_entry",
+      "title": "Bootstrap NMI entry point (in ROM)",
+      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at &0D00. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96F2). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96F2."
+    },
+    {
+      "addr": 40886,
+      "name": "rom_set_nmi_vector",
+      "title": "ROM copy of set_nmi_vector + nmi_rti",
+      "description": "A version of the NMI vector-setting subroutine and RTI sequence\nthat lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the\none normally used at runtime; this ROM copy is used during early\ninitialisation before the RAM workspace has been set up, and as\nthe source for the initial copy to RAM."
     },
     {
       "addr": 38616,
@@ -1721,18 +1694,6 @@
       "fall_through": true
     },
     {
-      "addr": 39000,
-      "name": "install_data_rx_handler",
-      "title": "Install data RX bulk or Tube handler",
-      "description": "Selects either the normal bulk RX handler (&9880) or the Tube\nRX handler (&98DD) based on the Tube transfer flag in tx_flags,\nand installs the appropriate NMI handler."
-    },
-    {
-      "addr": 39026,
-      "name": "nmi_error_dispatch",
-      "title": "NMI error handler dispatch",
-      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path)."
-    },
-    {
       "addr": 39040,
       "name": "nmi_data_rx_bulk",
       "title": "Data frame bulk read loop",
@@ -1759,69 +1720,10 @@
       "fall_through": true
     },
     {
-      "addr": 39314,
-      "name": "post_ack_scout",
-      "title": "Post-ACK scout processing",
-      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the buffer at &0D3D-&0D48.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
-    },
-    {
-      "addr": 39332,
-      "name": "advance_rx_buffer_ptr",
-      "title": "Advance RX buffer pointer after transfer",
-      "description": "Adds the transfer count to the RXCB buffer pointer (4-byte\naddition). If a Tube transfer is active, re-claims the Tube\naddress and sends the extra RX byte via R3, incrementing the\nTube pointer by 1.",
-      "fall_through": true
-    },
-    {
-      "addr": 39470,
-      "name": "discard_reset_listen",
-      "title": "Discard with full ADLC reset",
-      "description": "Performs adlc_full_reset (CR1=&C1, reset both TX and RX sections),\nthen falls through to install_rx_scout_handler. Used when the ADLC is\nin an unexpected state and needs a hard reset before returning\nto idle listen mode. 5 references \u2014 the main error recovery path.",
-      "fall_through": true
-    },
-    {
-      "addr": 39485,
-      "name": "discard_listen",
-      "title": "Discard frame (gentle)",
-      "description": "Sends RX_DISCONTINUE (CR1=&A2: RIE|RX_DISCONTINUE) to abort the\ncurrent frame reception without a full reset, then falls through\nto install_rx_scout_handler. Used for clean rejection of frames\nthat are correctly formatted but not for us (wrong station/network).",
-      "fall_through": true
-    },
-    {
-      "addr": 39488,
-      "name": "install_rx_scout_handler",
-      "title": "Install RX scout NMI handler",
-      "description": "Installs nmi_rx_scout (&96F2) as the NMI handler via\nset_nmi_vector, without first calling adlc_rx_listen.\nUsed when the ADLC is already in the correct RX mode."
-    },
-    {
-      "addr": 39510,
-      "name": "immediate_op",
-      "title": "Immediate operation handler (port = 0)",
-      "description": "Handles immediate (non-data-transfer) operations received via\nscout frames with port byte = 0. The control byte (&0D3F)\ndetermines the operation type:\n  &81 = PEEK (read memory)\n  &82 = POKE (write memory)\n  &83 = JSR (remote procedure call)\n  &84 = user procedure\n  &85 = OS procedure\n  &86 = HALT\n  &87 = CONTINUE\nThe protection mask (LSTAT at &D63) controls which operations\nare permitted \u2014 each bit enables or disables an operation type.\nIf the operation is not permitted by the mask, it is silently\nignored. LSTAT can be read/set via OSWORD &12 sub-functions 4/5."
-    },
-    {
-      "addr": 39676,
-      "name": "imm_op_build_reply",
-      "title": "Build immediate operation reply header",
-      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
-    },
-    {
-      "addr": 39879,
-      "name": "tx_begin",
-      "title": "Begin TX operation",
-      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen enters the INACTIVE polling loop.",
-      "fall_through": true
-    },
-    {
       "addr": 39983,
       "name": "inactive_poll",
       "title": "INACTIVE polling loop",
       "description": "Polls SR2 for INACTIVE (bit2) to confirm the network line is idle before\nattempting transmission. Uses a 3-byte timeout counter on the stack.\nThe timeout (~256^3 iterations) generates \"Line Jammed\" if INACTIVE\nnever appears.\nThe CTS check at &9C4D-&9C52 works because CR2=&67 has RTS=0, so\ncts_input_ is always true, and SR1_CTS reflects presence of clock hardware.",
-      "fall_through": true
-    },
-    {
-      "addr": 39994,
-      "name": "intoff_test_inactive",
-      "title": "Disable NMIs and test INACTIVE",
-      "description": "Mid-instruction label within the INACTIVE polling loop. The\naddress &9BE2 is referenced as a constant for self-modifying\ncode. Disables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.",
       "fall_through": true
     },
     {
@@ -1912,6 +1814,12 @@
       "fall_through": true
     },
     {
+      "addr": 40732,
+      "name": "tx_store_result",
+      "title": "TX error handler",
+      "description": "Stores error code (A) into the TX control block, sets &0D3A bit7\nfor completion, and returns to idle via &9A2E.\nError codes: &00=success, &40=line jammed, &41=not listening,\n&42=net error."
+    },
+    {
       "addr": 40730,
       "name": "tx_result_fail",
       "title": "TX failure: not listening",
@@ -1919,28 +1827,120 @@
       "fall_through": true
     },
     {
-      "addr": 40732,
-      "name": "tx_store_result",
-      "title": "TX error handler",
-      "description": "Stores error code (A) into the TX control block, sets &0D3A bit7\nfor completion, and returns to idle via &9A2E.\nError codes: &00=success, &40=line jammed, &41=not listening,\n&42=net error."
+      "addr": 1227,
+      "binary_addr": 37928,
+      "name": "tube_init_reloc",
+      "title": "Initialise relocation address for ROM transfer",
+      "description": "Sets source page to &8000 and page counter to &80. Checks\nROM type bit 5 for a relocation address in the ROM header;\nif present, extracts the 4-byte address from after the\ncopyright string. Otherwise uses default &8000 start."
     },
     {
-      "addr": 40760,
-      "name": "tx_calc_transfer",
-      "title": "Calculate transfer size",
-      "description": "Computes the number of bytes actually transferred during a data\nframe reception. Subtracts the low pointer (LPTR, offset 4 in\nthe RXCB) from the current buffer position to get the byte count,\nand stores it back into the RXCB's high pointer field (HPTR,\noffset 8). This tells the caller how much data was received."
+      "addr": 33667,
+      "name": "init_tx_reply_port",
+      "title": "Initialise TX control block for FS reply on port &90",
+      "description": "Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set\nup the TX control block, stores the port and control bytes, then\ndecrements the control flag. Used by send_fs_reply_cmd to prepare\nfor receiving the fileserver's reply."
     },
     {
-      "addr": 40872,
-      "name": "nmi_bootstrap_entry",
-      "title": "Bootstrap NMI entry point (in ROM)",
-      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at &0D00. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96F2). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96F2."
+      "addr": 33717,
+      "name": "prepare_cmd_with_flag",
+      "title": "Prepare FS command with carry set",
+      "description": "Alternate entry to prepare_fs_cmd that pushes A, loads &2A\ninto fs_error_ptr, and enters with carry set (SEC). The carry\nflag is later tested by build_send_fs_cmd to select the\nbyte-stream (BSXMIT) transmission path.",
+      "on_entry": {
+        "a": "flag byte to include in FS command",
+        "y": "function code for FS header"
+      },
+      "fall_through": true
     },
     {
-      "addr": 40886,
-      "name": "rom_set_nmi_vector",
-      "title": "ROM copy of set_nmi_vector + nmi_rti",
-      "description": "A version of the NMI vector-setting subroutine and RTI sequence\nthat lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the\none normally used at runtime; this ROM copy is used during early\ninitialisation before the RAM workspace has been set up, and as\nthe source for the initial copy to RAM."
+      "addr": 34519,
+      "name": "copy_filename_ptr",
+      "title": "Copy filename pointer to os_text_ptr and parse",
+      "description": "Copies the 2-byte filename pointer from (fs_options),Y into\nos_text_ptr (&F2/&F3), then falls through to parse_filename_gs\nto parse the filename via GSINIT/GSREAD into the &0E30 buffer.",
+      "fall_through": true
+    },
+    {
+      "addr": 34531,
+      "name": "parse_filename_gs_y",
+      "title": "Parse filename via GSINIT/GSREAD from offset Y",
+      "description": "Sub-entry of parse_filename_gs that accepts a non-zero Y offset\ninto the (os_text_ptr) string. Initialises GSINIT, reads chars\nvia GSREAD into &0E30, CR-terminates the result, and sets up\nfs_crc_lo/hi to point at the buffer."
+    },
+    {
+      "addr": 35216,
+      "name": "return_a_zero",
+      "title": "Return with A=0 via register restore",
+      "description": "Loads A=0 and branches (always taken) to the common register\nrestore exit at restore_args_return. Used as a shared exit\npoint by ARGSV, FINDV, and GBPBV when an operation is\nunsupported or should return zero.",
+      "fall_through": true
+    },
+    {
+      "addr": 36242,
+      "name": "cat_column_separator",
+      "title": "Print catalogue column separator or newline",
+      "description": "Handles column formatting for *CAT display. On a null byte\nseparator, advances the column counter modulo 4: prints a\n2-space separator between columns, or a CR at column 0.\nCalled from fsreply_0_print_dir.",
+      "fall_through": true
+    },
+    {
+      "addr": 36421,
+      "name": "load_handle_calc_offset",
+      "title": "Load handle from &F0 and calculate workspace offset",
+      "description": "Loads the file handle byte from &F0, then falls through to\ncalc_handle_offset which converts handle * 12 to a workspace\nbyte offset. Validates offset < &48.",
+      "fall_through": true
+    },
+    {
+      "addr": 36978,
+      "name": "enable_irq_and_tx",
+      "title": "Enable interrupts and transmit via tx_poll_ff",
+      "description": "CLI to enable interrupts, then JMP tx_poll_ff. A short\ntail-call wrapper used after building the TX control block."
+    },
+    {
+      "addr": 38541,
+      "name": "init_nmi_workspace",
+      "title": "Initialise NMI workspace (skip service request)",
+      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\n&0D00, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs.",
+      "fall_through": true
+    },
+    {
+      "addr": 39000,
+      "name": "install_data_rx_handler",
+      "title": "Install data RX bulk or Tube handler",
+      "description": "Selects either the normal bulk RX handler (&9880) or the Tube\nRX handler (&98DD) based on the Tube transfer flag in tx_flags,\nand installs the appropriate NMI handler."
+    },
+    {
+      "addr": 39026,
+      "name": "nmi_error_dispatch",
+      "title": "NMI error handler dispatch",
+      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path)."
+    },
+    {
+      "addr": 39332,
+      "name": "advance_rx_buffer_ptr",
+      "title": "Advance RX buffer pointer after transfer",
+      "description": "Adds the transfer count to the RXCB buffer pointer (4-byte\naddition). If a Tube transfer is active, re-claims the Tube\naddress and sends the extra RX byte via R3, incrementing the\nTube pointer by 1.",
+      "fall_through": true
+    },
+    {
+      "addr": 39488,
+      "name": "install_rx_scout_handler",
+      "title": "Install RX scout NMI handler",
+      "description": "Installs nmi_rx_scout (&96F2) as the NMI handler via\nset_nmi_vector, without first calling adlc_rx_listen.\nUsed when the ADLC is already in the correct RX mode."
+    },
+    {
+      "addr": 39676,
+      "name": "imm_op_build_reply",
+      "title": "Build immediate operation reply header",
+      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
+    },
+    {
+      "addr": 39879,
+      "name": "tx_begin",
+      "title": "Begin TX operation",
+      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen enters the INACTIVE polling loop.",
+      "fall_through": true
+    },
+    {
+      "addr": 39994,
+      "name": "intoff_test_inactive",
+      "title": "Disable NMIs and test INACTIVE",
+      "description": "Mid-instruction label within the INACTIVE polling loop. The\naddress &9BE2 is referenced as a constant for self-modifying\ncode. Disables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.",
+      "fall_through": true
     }
   ],
   "banners": [
