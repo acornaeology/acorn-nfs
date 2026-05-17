@@ -2741,11 +2741,11 @@ cmd_roff_str = copyright_string+3
 ; &854a referenced 1 time by &8546
 .print_next_char
     lda (fs_load_addr),y                                              ; 854a: b1 b0       ..       ; Load next byte from inline string
-    bmi filev_attrib_code_check                                       ; 854c: 30 05       0.       ; Bit 7 set? Done — this byte is the next opcode
+    bmi print_inline_resume                                           ; 854c: 30 05       0.       ; Bit 7 set? Done — this byte is the next opcode
     jsr osasci                                                        ; 854e: 20 e3 ff     ..   
     bne print_inline_char                                             ; 8551: d0 f1       ..       ; Continue printing loop
 ; &8553 referenced 1 time by &854c
-.filev_attrib_code_check
+.print_inline_resume
     jmp (fs_load_addr)                                                ; 8553: 6c b0 00    l..      ; Jump to address of high-bit byte (resumes code after string)
 ; ***************************************************************************************
 ; Skip leading spaces in parameter block
@@ -8466,7 +8466,6 @@ save pydis_start, pydis_end
 ;     execute_brk_error:                        1
 ;     file1:                                    1
 ;     filev:                                    1
-;     filev_attrib_code_check:                  1
 ;     filev_attrib_dispatch:                    1
 ;     filev_save:                               1
 ;     findv_eof_check:                          1
@@ -8625,6 +8624,7 @@ save pydis_start, pydis_end
 ;     print_filename_loop:                      1
 ;     print_hex_nibble:                         1
 ;     print_inline_char:                        1
+;     print_inline_resume:                      1
 ;     print_next_char:                          1
 ;     print_option_char:                        1
 ;     print_public:                             1

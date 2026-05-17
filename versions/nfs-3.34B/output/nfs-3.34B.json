@@ -11763,9 +11763,9 @@
       "comment_inline": "Bit 7 set? Done \u2014 this byte is the next opcode",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "filev_attrib_code_check",
+      "operand": "print_inline_resume",
       "target": 34131,
-      "target_label": "filev_attrib_code_check"
+      "target_label": "print_inline_resume"
     },
     {
       "addr": 34126,
@@ -11801,7 +11801,7 @@
         0
       ],
       "labels": [
-        "filev_attrib_code_check"
+        "print_inline_resume"
       ],
       "comment_inline": "Jump to address of high-bit byte (resumes code after string)",
       "xref_summaries": [

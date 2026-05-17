@@ -2704,7 +2704,7 @@ d.comment(0x854B, "Bit 7 set? Done — this byte is the next opcode", align=Alig
 d.comment(0x8550, "Continue printing loop", align=Align.INLINE)
 
 d.comment(0x8552, "Jump to address of high-bit byte (resumes code after string)", align=Align.INLINE)
-d.label(0x8552, "filev_attrib_code_check")
+d.label(0x8552, "print_inline_resume")
 d.subroutine(
     0x8555,
     "skip_spaces",
