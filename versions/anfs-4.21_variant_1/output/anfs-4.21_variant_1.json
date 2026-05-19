@@ -2996,7 +2996,13 @@
       "on_entry": {
         "a": "boot-type byte (pushed by fsreply_1_boot when arriving via fall-through; ignored on direct-dispatch C-clear path)",
         "carry": "set when boot processing should follow (only legal via fsreply_1_boot fall-through)"
-      },
+      }
+    },
+    {
+      "addr": 42763,
+      "name": "boot_try_findlib",
+      "title": "If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
+      "description": "Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1\n(the auto-CLI / auto-run-FindLib flag). If clear, returns\nimmediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)\n(`-NET-FindLib<CR>`). Falls through to\n[`boot_make_fs_permanent_maybe`](address:A71C) in either case.\n\n#### Why the `-NET-` prefix\n\n`-NET-` is MOS's hyphen-bracketed filing-system selector. The\ngeneral form is `-FS-COMMAND`: a leading hyphen-bracketed name\nin the first token of an OSCLI line tells MOS \"route this\ncommand to the ROM that registered FS as its name, but don't\nchange the currently-selected filing system.\" `NET` is the\nshort name registered by the NFS / ANFS ROM (others register\n`DISC`, `ADFS`, `TAPE`).\n\nTwo reasons it's needed at this site rather than a plain\n`*FindLib`:\n\n1. **Make the command resolvable.** This OSCLI fires while\n   the boot service is processing the I-AM reply. The\n   currently-selected filing system at that point isn't\n   guaranteed to be NFS \u2014 on cold boot it can still be DFS or\n   ADFS while the user is logging on. `*FindLib` would dispatch\n   to whatever the current FS is and likely fail; `-NET-FindLib`\n   forces the lookup through NFS regardless.\n2. **Avoid switching the default FS.** `*NET` would make NET\n   permanent \u2014 but the decision to make NET the default is\n   made *later*, by OSBYTE `&6D` in\n   [`boot_make_fs_permanent_maybe`](address:A71C), gated on the\n   boot-type byte from the FS reply. The hyphen form does the\n   FindLib lookup one-shot and leaves the current default\n   unchanged, so the subsequent boot-type test can make that\n   call cleanly.\n\nThe same convention is used by\n[`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and\n[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`) \u2014 both\nroute via NFS without committing the default FS.",
       "fall_through": true
     },
     {
@@ -4622,6 +4628,13 @@
       "name": "cmos_opt_mask_table",
       "title": "CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
       "description": "Used by the OSARGS-via-FSCV / *OPT 4 path\n([`osopt_check_cmos_protect`](address:A0DF)) to read or update bit\nfields inside CMOS RAM byte `&11` (the Econet status byte holding\nthe auto-boot type and printer/messages flags).\n\n- **Indices 0-3** are extraction masks: `AND CMOS_&11` with\n  `&01`, `&02`, `&04`, `&06` returns bit 0, bit 1, bit 2 or\n  bits 1+2 respectively.\n- **Indices 4-7** are clear masks: `AND CMOS_&11` with `&FD`,\n  `&F3`, `&CF`, `&3F` zeroes bits 1, 2-3, 4-5 or 6-7 in turn,\n  before OR-ing the new value back in.\n\nA second indexed-base trick reads the same eight bytes through\n[`cmos_attr_table`](address:A0FF) (this label - 4): for write\nsub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double\nas the bit-shift counts that left-align the new value into its\ntarget field.",
+      "align": "before_label"
+    },
+    {
+      "addr": 42750,
+      "name": "findlib_oscli_cmd",
+      "title": "OSCLI command string '-NET-FindLib'<CR>",
+      "description": "Passed to OSCLI by [`boot_try_findlib`](address:A70B). The\n`-NET-` prefix is the MOS hyphen-bracketed FS-selector form \u2014\nsee that subroutine's description for the convention and why\nit's used here rather than a plain `*FindLib`.",
       "align": "before_label"
     },
     {
@@ -70630,7 +70643,7 @@
         247,
         255
       ],
-      "comment_inline": "OSCLI '-NET-FindLib': run library FindLib via NFS",
+      "comment_inline": "OSCLI '-NET-FindLib': route FindLib via NFS without switching default FS",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oscli",
@@ -70906,7 +70919,7 @@
       "labels": [
         "boot_cmd_load_str"
       ],
-      "comment_inline": "Boot command 'L.-NET-!Boot' (Load !Boot)",
+      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS without switching default FS \u2014 see boot_try_findlib)",
       "type": "string",
       "string": "L.-NET-!Boot"
     },
@@ -70940,7 +70953,7 @@
       "labels": [
         "boot_cmd_exec_str"
       ],
-      "comment_inline": "Boot command 'E.-NET-!Boot' (Exec !Boot)",
+      "comment_inline": "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS without switching default FS \u2014 see boot_try_findlib)",
       "type": "string",
       "string": "E.-NET-!Boot"
     },

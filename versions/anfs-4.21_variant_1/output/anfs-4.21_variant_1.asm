@@ -10685,9 +10685,45 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     plp                                                               ; a6f8: 28          (        ; Restore processor status
     bcs boot_try_findlib                                              ; a6f9: b0 10       ..       ; Carry set: proceed with boot
     jmp return_with_last_flag                                         ; a6fb: 4c b4 9f    L..      ; Return with last flag
+; ***************************************************************************************
+; OSCLI command string '-NET-FindLib'<CR>
+;
+; Passed to OSCLI by boot_try_findlib. The -NET- prefix is the MOS hyphen-bracketed
+; FS-selector form — see that subroutine's description for the convention and why it's
+; used here rather than a plain *FindLib.
 .findlib_oscli_cmd
     equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE...
     equb &0d                                                          ; a70a: 0d          .     
+; ***************************************************************************************
+; If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'
+;
+; Reads CMOS byte &11 via OSBYTE &A1 and tests bit 1 (the auto-CLI / auto-run-FindLib
+; flag). If clear, returns immediately; if set, OSCLIs findlib_oscli_cmd
+; (-NET-FindLib<CR>). Falls through to boot_make_fs_permanent_maybe in either case.
+;
+; Why the -NET- prefix
+;
+; -NET- is MOS's hyphen-bracketed filing-system selector. The general form is
+; -FS-COMMAND: a leading hyphen-bracketed name in the first token of an OSCLI line tells
+; MOS "route this command to the ROM that registered FS as its name, but don't change the
+; currently-selected filing system." NET is the short name registered by the NFS / ANFS
+; ROM (others register DISC, ADFS, TAPE).
+;
+; Two reasons it's needed at this site rather than a plain *FindLib:
+;
+; 1. Make the command resolvable. This OSCLI fires while the boot service is processing
+;    the I-AM reply. The currently-selected filing system at that point isn't guaranteed
+;    to be NFS — on cold boot it can still be DFS or ADFS while the user is logging on.
+;    *FindLib would dispatch to whatever the current FS is and likely fail; -NET-FindLib
+;    forces the lookup through NFS regardless.
+; 2. Avoid switching the default FS. *NET would make NET permanent — but the decision to
+;    make NET the default is made later, by OSBYTE &6D in boot_make_fs_permanent_maybe,
+;    gated on the boot-type byte from the FS reply. The hyphen form does the FindLib
+;    lookup one-shot and leaves the current default unchanged, so the subsequent
+;    boot-type test can make that call cleanly.
+;
+; The same convention is used by boot_cmd_load_str (L.-NET-!Boot) and boot_cmd_exec_str
+; (E.-NET-!Boot) — both route via NFS without committing the default FS.
 ; &a70b referenced 1 time by &a6f9
 .boot_try_findlib
     ldx #&11                                                          ; a70b: a2 11       ..       ; X=&11: CMOS RAM byte index
@@ -10697,7 +10733,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     beq boot_make_fs_permanent_maybe                                  ; a713: f0 07       ..       ; Bit clear: skip auto-CLI
     ldx #<findlib_oscli_cmd                                           ; a715: a2 fe       ..    
     ldy #>findlib_oscli_cmd                                           ; a717: a0 a6       ..    
-    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': run library FindLib via NFS
+    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': route FindLib via NFS without switching default FS
 ; &a71c referenced 1 time by &a713
 .boot_make_fs_permanent_maybe
     pla                                                               ; a71c: 68          h        ; Pop saved A
@@ -10725,10 +10761,10 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .boot_cancel_rts
     rts                                                               ; a740: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
 .boot_cmd_load_str
-    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-...   ; Boot command 'L.-NET-!Boot' (Load !Boot)
+    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS without switching default FS — see boot_try_findlib)
     equb &0d                                                          ; a74d: 0d          .        ; CR terminator
 .boot_cmd_exec_str
-    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot command 'E.-NET-!Boot' (Exec !Boot)
+    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS without switching default FS — see boot_try_findlib)
     equb &0d                                                          ; a75a: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Boot-command low-byte index table (3-way dispatch via overlapping CR-terminated strings)

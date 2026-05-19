@@ -12408,17 +12408,70 @@ d.comment(0xA6F8, "Restore processor status", align=Align.INLINE)
 d.comment(0xA6F9, "Carry set: proceed with boot", align=Align.INLINE)
 d.comment(0xA6FB, "Return with last flag", align=Align.INLINE)
 d.label(0xA6FE, "findlib_oscli_cmd")
+d.banner(
+    0xA6FE,
+    title="OSCLI command string '-NET-FindLib'<CR>",
+    description="""Passed to OSCLI by [`boot_try_findlib`](address:A70B). The
+`-NET-` prefix is the MOS hyphen-bracketed FS-selector form —
+see that subroutine's description for the convention and why
+it's used here rather than a plain `*FindLib`.""",
+)
+
+
+d.subroutine(
+    0xA70B,
+    "boot_try_findlib",
+    title="If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
+    description="""Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1
+(the auto-CLI / auto-run-FindLib flag). If clear, returns
+immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
+(`-NET-FindLib<CR>`). Falls through to
+[`boot_make_fs_permanent_maybe`](address:A71C) in either case.
+
+#### Why the `-NET-` prefix
+
+`-NET-` is MOS's hyphen-bracketed filing-system selector. The
+general form is `-FS-COMMAND`: a leading hyphen-bracketed name
+in the first token of an OSCLI line tells MOS "route this
+command to the ROM that registered FS as its name, but don't
+change the currently-selected filing system." `NET` is the
+short name registered by the NFS / ANFS ROM (others register
+`DISC`, `ADFS`, `TAPE`).
+
+Two reasons it's needed at this site rather than a plain
+`*FindLib`:
+
+1. **Make the command resolvable.** This OSCLI fires while
+   the boot service is processing the I-AM reply. The
+   currently-selected filing system at that point isn't
+   guaranteed to be NFS — on cold boot it can still be DFS or
+   ADFS while the user is logging on. `*FindLib` would dispatch
+   to whatever the current FS is and likely fail; `-NET-FindLib`
+   forces the lookup through NFS regardless.
+2. **Avoid switching the default FS.** `*NET` would make NET
+   permanent — but the decision to make NET the default is
+   made *later*, by OSBYTE `&6D` in
+   [`boot_make_fs_permanent_maybe`](address:A71C), gated on the
+   boot-type byte from the FS reply. The hyphen form does the
+   FindLib lookup one-shot and leaves the current default
+   unchanged, so the subsequent boot-type test can make that
+   call cleanly.
+
+The same convention is used by
+[`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and
+[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`) — both
+route via NFS without committing the default FS.""",
+)
+
 
 d.comment(0xA70B, "X=&11: CMOS RAM byte index", align=Align.INLINE)
-d.label(0xA70B, "boot_try_findlib")
-
 d.comment(0xA70D, "Read CMOS &11 via osbyte_a1", align=Align.INLINE)
 d.comment(0xA710, "Result to A", align=Align.INLINE)
 d.comment(0xA711, "Mask bit 1 (auto-CLI flag)", align=Align.INLINE)
 d.comment(0xA713, "Bit clear: skip auto-CLI", align=Align.INLINE)
 d.expr(0xA716, "<findlib_oscli_cmd")
 d.expr(0xA718, ">findlib_oscli_cmd")
-d.comment(0xA719, "OSCLI '-NET-FindLib': run library FindLib via NFS", align=Align.INLINE)
+d.comment(0xA719, "OSCLI '-NET-FindLib': route FindLib via NFS without switching default FS", align=Align.INLINE)
 d.comment(0xA71C, "Pop saved A", align=Align.INLINE)
 d.label(0xA71C, "boot_make_fs_permanent_maybe")
 
@@ -12444,9 +12497,9 @@ d.label(0xA74E, "boot_cmd_exec_str")
 
 
 d.comment(0xA740, "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)", align=Align.INLINE)
-d.comment(0xA741, "Boot command 'L.-NET-!Boot' (Load !Boot)", align=Align.INLINE)
+d.comment(0xA741, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS without switching default FS — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA74D, "CR terminator", align=Align.INLINE)
-d.comment(0xA74E, "Boot command 'E.-NET-!Boot' (Exec !Boot)", align=Align.INLINE)
+d.comment(0xA74E, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS without switching default FS — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA75A, "CR terminator", align=Align.INLINE)
 d.label(0xA75B, "boot_cmd_lo_table")
 
