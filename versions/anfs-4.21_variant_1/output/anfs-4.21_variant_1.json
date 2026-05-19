@@ -3009,7 +3009,13 @@
       "addr": 42790,
       "name": "check_auto_boot_flag",
       "title": "Test+clear bit 2 of fs_lib_flags; on CTRL, bail out",
-      "description": "Atomically tests and clears bit 2 of\n[`hazel_fs_lib_flags`](address:C271) \u2014 the auto-boot flag \u2014 then\ndispatches based on the test result:\n\n- **Bit 2 was set**: skip the CTRL-key check and `BNE` straight\n  into [`boot_select_cmd`](address:A75F) to issue the boot OSCLI.\n- **Bit 2 was clear**: fall through and test for the CTRL key via\n  OSBYTE `&79`. CTRL held \u2192 fall into\n  [`boot_cancel_rts`](address:A740) (boot cancelled). CTRL not\n  held \u2192 `BPL` into [`boot_select_cmd`](address:A75F) anyway.\n\nThe body uses the classic 6502 \"test bit, modify, restore test\nresult\" idiom: load the flags, copy to X, `AND` with the bit to\nisolate it, `PHP` to stash the Z flag from that test, then `TXA`\nback, `AND` with the complement mask to clear the bit, store the\nmodified flags, `PLP` to recover the original Z. This way the\nflag byte is updated unconditionally but the dispatch decision is\nmade on the *pre-update* state \u2014 saving a separate read-modify\nsequence.",
+      "description": "Atomically tests and clears bit 2 of\n[`hazel_fs_lib_flags`](address:C271) \u2014 the auto-boot flag \u2014 then\ndispatches based on the test result:\n\n- **Bit 2 was set**: skip the CTRL-key check and `BNE` straight\n  into [`boot_select_cmd`](address:A75F) to issue the boot OSCLI.\n- **Bit 2 was clear**: fall through and test for the CTRL key via\n  OSBYTE `&79`. CTRL held \u2192 fall into\n  [`boot_cancel_rts`](address:A740) (boot cancelled). CTRL not\n  held \u2192 `BPL` into [`boot_select_cmd`](address:A75F) anyway.\n\nThe body uses the classic 6502 \"test bit, modify, restore test\nresult\" idiom: load the flags, copy to X, `AND` with the bit to\nisolate it, `PHP` to stash the Z flag from that test, then `TXA`\nback, `AND` with the complement mask to clear the bit, store the\nmodified flags, `PLP` to recover the original Z. This way the\nflag byte is updated unconditionally but the dispatch decision is\nmade on the *pre-update* state \u2014 saving a separate read-modify\nsequence."
+    },
+    {
+      "addr": 42847,
+      "name": "boot_select_cmd",
+      "title": "Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
+      "description": "Two-instruction gate at the head of the boot-OSCLI dispatch.\nLoads `Y` from [`hazel_fs_flags`](address:C005) (the boot-type\nbyte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,\n`BEQ`s into [`boot_cancel_rts`](address:A740) \u2014 the empty / no-op\nboot case. Otherwise falls through into\n[`boot_cmd_oscli`](address:A764) with `Y` already loaded as the\nindex into [`boot_cmd_lo_table`](address:A75B).\n\nTwo callers, both from [`check_auto_boot_flag`](address:A726):\nthe `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)\nand the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).",
       "fall_through": true
     },
     {
@@ -71007,7 +71013,7 @@
       "labels": [
         "boot_select_cmd"
       ],
-      "comment_inline": "Read hazel_fs_flags (boot-state flag)",
+      "comment_inline": "Y = boot-type byte from FS reply (0..3)",
       "xref_summaries": [
         "&a75f referenced 2 times by &a734, &a73e"
       ],

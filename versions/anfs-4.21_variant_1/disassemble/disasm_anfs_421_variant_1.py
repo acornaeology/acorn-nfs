@@ -12555,9 +12555,27 @@ at the CR terminator of [`boot_cmd_exec_str`](address:A74E) and
 is unreachable in practice because [`boot_select_cmd`](address:A75F)
 `BEQ`s out when `hazel_fs_flags` is zero.""",
 )
-d.comment(0xA75F, "Read hazel_fs_flags (boot-state flag)", align=Align.INLINE)
 d.label(0xA75F, "boot_select_cmd")
 
+d.subroutine(
+    0xA75F,
+    "boot_select_cmd",
+    title="Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
+    description="""Two-instruction gate at the head of the boot-OSCLI dispatch.
+Loads `Y` from [`hazel_fs_flags`](address:C005) (the boot-type
+byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
+`BEQ`s into [`boot_cancel_rts`](address:A740) — the empty / no-op
+boot case. Otherwise falls through into
+[`boot_cmd_oscli`](address:A764) with `Y` already loaded as the
+index into [`boot_cmd_lo_table`](address:A75B).
+
+Two callers, both from [`check_auto_boot_flag`](address:A726):
+the `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)
+and the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).""",
+)
+
+
+d.comment(0xA75F, "Y = boot-type byte from FS reply (0..3)", align=Align.INLINE)
 d.comment(0xA762, "Z (boot type 0): cancel boot via boot_cancel_rts", align=Align.INLINE)
 d.label(0xA764, "boot_cmd_oscli")
 

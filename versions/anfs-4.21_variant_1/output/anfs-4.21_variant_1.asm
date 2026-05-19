@@ -10807,9 +10807,19 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; &a75b referenced 1 time by &a764
 .boot_cmd_lo_table
     equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH...
+; ***************************************************************************************
+; Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli
+;
+; Two-instruction gate at the head of the boot-OSCLI dispatch. Loads Y from
+; hazel_fs_flags (the boot-type byte the FS reply stashed in fsreply_1_boot at &A6E1); if
+; zero, BEQs into boot_cancel_rts — the empty / no-op boot case. Otherwise falls through
+; into boot_cmd_oscli with Y already loaded as the index into boot_cmd_lo_table.
+;
+; Two callers, both from check_auto_boot_flag: the BNE at &A734 (auto-boot flag was set,
+; skip CTRL check) and the BPL at &A73E (CTRL not pressed, proceed to boot).
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_select_cmd
-    ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Read hazel_fs_flags (boot-state flag)
+    ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Y = boot-type byte from FS reply (0..3)
     beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
 ; Look up boot command in boot_cmd_lo_table and OSCLI it
