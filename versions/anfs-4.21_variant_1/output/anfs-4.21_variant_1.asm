@@ -10656,7 +10656,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Carry is set it continues into the boot path at boot_try_findlib, which OSCLIs
 ; -NET-FindLib, optionally calls OSBYTE &6D to make the filing system permanent, clears
 ; the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls through to
-; boot_suffix_string to execute the !Boot command. Reached only via the FS reply dispatch
+; boot_select_cmd to execute the !Boot command. Reached only via the FS reply dispatch
 ; table.
 ;
 ; On Entry:
@@ -10703,12 +10703,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     and #&fb                                                          ; a72e: 29 fb       ).       ; Clear bit 2 (consume flag)
     sta hazel_fs_lib_flags                                            ; a730: 8d 71 c2    .q.      ; Store cleared flags
     plp                                                               ; a733: 28          (        ; Restore bit 2 test result
-    bne boot_suffix_string                                            ; a734: d0 29       .)       ; Bit 2 was set: skip to boot cmd
+    bne boot_select_cmd                                               ; a734: d0 29       .)       ; Bit 2 was set: skip to boot cmd
     lda #osbyte_scan_keyboard                                         ; a736: a9 79       .y       ; OSBYTE &79: scan keyboard
     ldx #(255 - inkey_key_ctrl) EOR 128                               ; a738: a2 81       ..    
     jsr osbyte                                                        ; a73a: 20 f4 ff     ..      ; Test for ctrl key pressed
     txa                                                               ; a73d: 8a          .     
-    bpl boot_suffix_string                                            ; a73e: 10 1f       ..       ; CTRL not pressed: proceed to boot
+    bpl boot_select_cmd                                               ; a73e: 10 1f       ..       ; CTRL not pressed: proceed to boot
 ; &a740 referenced 1 time by &a762
 .boot_cancel_rts
     rts                                                               ; a740: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
@@ -10722,7 +10722,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .boot_prefix_string
     equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH...   ; Boot command low-byte index table -- 4 bytes spelling 'ZAHN', each the low byte of a boot-command address in the &A7xx page (Z=&5A, A=&41, H=&48, N=&4E)
 ; &a75f referenced 2 times by &a734, &a73e
-.boot_suffix_string
+.boot_select_cmd
     ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Read hazel_fs_flags (boot-state flag)
     beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
@@ -16686,7 +16686,7 @@ save pydis_start, pydis_end
 ;     append_drv_dot_num:              2
 ;     append_error_number:             2
 ;     append_space_and_num:            2
-;     boot_suffix_string:              2
+;     boot_select_cmd:                 2
 ;     build_error_block:               2
 ;     build_simple_error:              2
 ;     check_adlc_flag:                 2

@@ -2992,7 +2992,7 @@
       "addr": 42725,
       "name": "fsreply_2_copy_handles",
       "title": "FS reply 2: install handles and (optionally) boot",
-      "description": "Records the file-server / printer-server / library handles from\nthe I-AM reply into the station table by calling\n[`find_station_bit2`](address:A644),\n[`find_station_bit3`](address:A66F), and\n[`flip_set_station_boot`](address:A6A6) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](address:C105),\n[`hazel_txcb_flag`](address:C106),\n[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](address:9FB4); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](address:A70B), which OSCLIs\n`-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing\nsystem permanent, clears the auto-boot flag in\n[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)\nfalls through to [`boot_suffix_string`](address:A75F) to execute\nthe !Boot command. Reached only via the FS reply dispatch\ntable.",
+      "description": "Records the file-server / printer-server / library handles from\nthe I-AM reply into the station table by calling\n[`find_station_bit2`](address:A644),\n[`find_station_bit3`](address:A66F), and\n[`flip_set_station_boot`](address:A6A6) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](address:C105),\n[`hazel_txcb_flag`](address:C106),\n[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](address:9FB4); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](address:A70B), which OSCLIs\n`-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing\nsystem permanent, clears the auto-boot flag in\n[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)\nfalls through to [`boot_select_cmd`](address:A75F) to execute\nthe !Boot command. Reached only via the FS reply dispatch\ntable.",
       "on_entry": {
         "a": "boot-type byte (saved on stack at entry)",
         "carry": "set when boot processing should follow"
@@ -70801,9 +70801,9 @@
       "comment_inline": "Bit 2 was set: skip to boot cmd",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "boot_suffix_string",
+      "operand": "boot_select_cmd",
       "target": 42847,
-      "target_label": "boot_suffix_string"
+      "target_label": "boot_select_cmd"
     },
     {
       "addr": 42806,
@@ -70858,9 +70858,9 @@
       "comment_inline": "CTRL not pressed: proceed to boot",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "boot_suffix_string",
+      "operand": "boot_select_cmd",
       "target": 42847,
-      "target_label": "boot_suffix_string"
+      "target_label": "boot_select_cmd"
     },
     {
       "addr": 42816,
@@ -70977,7 +70977,7 @@
         192
       ],
       "labels": [
-        "boot_suffix_string"
+        "boot_select_cmd"
       ],
       "comment_inline": "Read hazel_fs_flags (boot-state flag)",
       "xref_summaries": [

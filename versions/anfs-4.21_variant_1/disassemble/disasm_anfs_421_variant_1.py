@@ -12371,7 +12371,7 @@ continues into the boot path at
 `-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing
 system permanent, clears the auto-boot flag in
 [`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
-falls through to [`boot_suffix_string`](address:A75F) to execute
+falls through to [`boot_select_cmd`](address:A75F) to execute
 the !Boot command. Reached only via the FS reply dispatch
 table.""",
     on_entry={"a": "boot-type byte (saved on stack at entry)", "carry": "set when boot processing should follow"},
@@ -12438,7 +12438,7 @@ d.comment(
     align=Align.INLINE,
 )
 d.comment(0xA75F, "Read hazel_fs_flags (boot-state flag)", align=Align.INLINE)
-d.label(0xA75F, "boot_suffix_string")
+d.label(0xA75F, "boot_select_cmd")
 
 d.comment(0xA762, "Z (boot type 0): cancel boot via boot_cancel_rts", align=Align.INLINE)
 d.label(0xA764, "boot_cmd_oscli")
