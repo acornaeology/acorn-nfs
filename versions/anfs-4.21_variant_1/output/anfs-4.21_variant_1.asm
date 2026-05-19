@@ -10710,18 +10710,22 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Why the -NET- prefix
 ;
 ; -NET- is MOS's hyphen-bracketed filing-system selector. The general form is
-; -FS-COMMAND: a leading hyphen-bracketed name in the first token of an OSCLI line tells
-; MOS "route this command to the ROM that registered FS as its name, but don't change the
-; currently-selected filing system." NET is the short name registered by the NFS / ANFS
-; ROM (others register DISC, ADFS, TAPE).
+; -FS-COMMAND: MOS matches FS against the registered ROM names, makes that FS the
+; temporary active FS without changing the currently-selected default, then parses
+; COMMAND. If COMMAND matches an internal MOS command it runs normally; the temp-FS
+; routing only takes effect on the unknown-command fallthrough, where it suppresses the
+; usual service-4 ROM broadcast and dispatches via FSCV,3 directly to the selected FS.
+; NET is the short name registered by the NFS / ANFS ROM (others register DISC, ADFS,
+; TAPE).
 ;
 ; Two reasons it's needed at this site rather than a plain *FindLib:
 ;
 ; 1. Make the command resolvable. This OSCLI fires while the boot service is processing
 ;    the I-AM reply. The currently-selected filing system at that point isn't guaranteed
 ;    to be NFS — on cold boot it can still be DFS or ADFS while the user is logging on.
-;    *FindLib would dispatch to whatever the current FS is and likely fail; -NET-FindLib
-;    forces the lookup through NFS regardless.
+;    FindLib isn't a MOS builtin, so it lands on the unknown-command fallthrough — where
+;    the -NET- prefix sends it straight to NFS via FSCV,3 instead of broadcasting
+;    service-4 to all ROMs.
 ; 2. Avoid switching the default FS. *NET would make NET permanent — but the decision to
 ;    make NET the default is made later, by OSBYTE &6D in boot_make_fs_permanent_maybe,
 ;    gated on the boot-type byte from the FS reply. The hyphen form does the FindLib
