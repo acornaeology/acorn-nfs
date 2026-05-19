@@ -12402,7 +12402,7 @@ d.expr(0xA716, "<findlib_oscli_cmd")
 d.expr(0xA718, ">findlib_oscli_cmd")
 d.comment(0xA719, "OSCLI '-NET-FindLib': run library FindLib via NFS", align=Align.INLINE)
 d.comment(0xA71C, "Pop saved A", align=Align.INLINE)
-d.label(0xA71C, "fsreply_2_store_handle")
+d.label(0xA71C, "boot_make_fs_permanent_maybe")
 
 d.comment(0xA71D, "Compare with 2", align=Align.INLINE)
 d.comment(0xA71F, "Below: skip making FS permanent", align=Align.INLINE)

@@ -10682,12 +10682,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     jsr osbyte_a1                                                     ; a70d: 20 9a 8e     ..      ; Read CMOS &11 via osbyte_a1
     tya                                                               ; a710: 98          .        ; Result to A
     and #2                                                            ; a711: 29 02       ).       ; Mask bit 1 (auto-CLI flag)
-    beq fsreply_2_store_handle                                        ; a713: f0 07       ..       ; Bit clear: skip auto-CLI
+    beq boot_make_fs_permanent_maybe                                  ; a713: f0 07       ..       ; Bit clear: skip auto-CLI
     ldx #<findlib_oscli_cmd                                           ; a715: a2 fe       ..    
     ldy #>findlib_oscli_cmd                                           ; a717: a0 a6       ..    
     jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': run library FindLib via NFS
 ; &a71c referenced 1 time by &a713
-.fsreply_2_store_handle
+.boot_make_fs_permanent_maybe
     pla                                                               ; a71c: 68          h        ; Pop saved A
     cmp #2                                                            ; a71d: c9 02       ..       ; Compare with 2
     bcc check_auto_boot_flag                                          ; a71f: 90 05       ..       ; Below: skip making FS permanent
@@ -16944,6 +16944,7 @@ save pydis_start, pydis_end
 ;     begin_prot_encode:               1
 ;     boot_cmd_oscli:                  1
 ;     boot_load_cmd:                   1
+;     boot_make_fs_permanent_maybe:    1
 ;     boot_prefix_string:              1
 ;     boot_try_findlib:                1
 ;     bra_target_svc_return:           1
@@ -17141,7 +17142,6 @@ save pydis_start, pydis_end
 ;     fscv:                            1
 ;     fscv_2_star_run:                 1
 ;     fscv_3_star_cmd:                 1
-;     fsreply_2_store_handle:          1
 ;     fsreply_3_set_csd:               1
 ;     generate_event:                  1
 ;     get_ws_page_loop:                1

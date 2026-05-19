@@ -70592,9 +70592,9 @@
       "comment_inline": "Bit clear: skip auto-CLI",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "fsreply_2_store_handle",
+      "operand": "boot_make_fs_permanent_maybe",
       "target": 42780,
-      "target_label": "fsreply_2_store_handle"
+      "target_label": "boot_make_fs_permanent_maybe"
     },
     {
       "addr": 42773,
@@ -70636,7 +70636,7 @@
         104
       ],
       "labels": [
-        "fsreply_2_store_handle"
+        "boot_make_fs_permanent_maybe"
       ],
       "comment_inline": "Pop saved A",
       "xref_summaries": [
