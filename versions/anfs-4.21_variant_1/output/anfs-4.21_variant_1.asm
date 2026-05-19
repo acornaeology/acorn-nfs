@@ -10718,17 +10718,37 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .boot_cmd_exec_str
     equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot command 'E.-NET-!Boot' (Exec !Boot)
     equb &0d                                                          ; a75a: 0d          .        ; CR terminator
+; ***************************************************************************************
+; Boot-command low-byte index table (3-way dispatch via overlapping CR-terminated strings)
+;
+; Indexed by hazel_fs_flags (1..3) in boot_cmd_oscli, yielding an OSCLI pointer &A7xx
+; where xx is the table byte. Three reachable entries:
+;
+; | Y | Byte | Ptr   | OSCLI command                     |
+; |---|------|-------|-----------------------------------|
+; | 1 | &41  | &A741 | L.-NET-!Boot (load !Boot via NFS) |
+; | 2 | &48  | &A748 | !Boot (run *!Boot on current FS)  |
+; | 3 | &4E  | &A74E | E.-NET-!Boot (exec !Boot via NFS) |
+;
+; The clever bit is index 2: &A748 lands inside boot_cmd_load_str — specifically on its !
+; byte — so OSCLI reads "!Boot<CR>" from the middle of the same string used at index 1,
+; saving a third CR-terminated string.
+;
+; Encoded as equs "ZAHN"; the four bytes happen to read as ASCII but the mnemonic is
+; incidental. The Z (&5A) at index 0 points at the CR terminator of boot_cmd_exec_str and
+; is unreachable in practice because boot_select_cmd BEQs out when hazel_fs_flags is
+; zero.
 ; &a75b referenced 1 time by &a764
-.boot_prefix_string
-    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH...   ; Boot command low-byte index table -- 4 bytes spelling 'ZAHN', each the low byte of a boot-command address in the &A7xx page (Z=&5A, A=&41, H=&48, N=&4E)
+.boot_cmd_lo_table
+    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH...
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_select_cmd
     ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Read hazel_fs_flags (boot-state flag)
     beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
-; Look up boot command in boot_prefix_string table and OSCLI it
+; Look up boot command in boot_cmd_lo_table table and OSCLI it
 ;
-; Loads X = boot_prefix_string,Y (the low byte of the boot-command address), sets Y=&A7
+; Loads X = boot_cmd_lo_table,Y (the low byte of the boot-command address), sets Y=&A7
 ; (high byte = &A7xx area where the boot strings live), then JMPs to oscli with (X,Y)
 ; pointing at a CR-terminated command string. Single caller (&A5D4 in the RUN-then- boot
 ; dispatch).
@@ -10737,7 +10757,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;     Y: boot-command index
 ; &a764 referenced 1 time by &a5d4
 .boot_cmd_oscli
-    ldx boot_prefix_string,y                                          ; a764: be 5b a7    .[.      ; Load boot-command low byte from boot_prefix_string[Y]
+    ldx boot_cmd_lo_table,y                                           ; a764: be 5b a7    .[.      ; Load boot-command low byte from boot_cmd_lo_table[Y]
     ldy #&a7                                                          ; a767: a0 a7       ..       ; Y=&A7: high byte (boot strings live in &A7xx)
     jmp oscli                                                         ; a769: 4c f7 ff    L..      ; Tail-jump to OSCLI to execute the boot command
 ; ***************************************************************************************
@@ -16945,9 +16965,9 @@ save pydis_start, pydis_end
 ;     bad_prefix_table:                1
 ;     begin_prot_encode:               1
 ;     boot_cancel_rts:                 1
+;     boot_cmd_lo_table:               1
 ;     boot_cmd_oscli:                  1
 ;     boot_make_fs_permanent_maybe:    1
-;     boot_prefix_string:              1
 ;     boot_try_findlib:                1
 ;     bra_target_svc_return:           1
 ;     bridge_err_table:                1
