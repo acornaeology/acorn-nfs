@@ -12442,40 +12442,38 @@ immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
 #### Why the `-NET-` prefix
 
 `-NET-` is MOS's hyphen-bracketed filing-system selector. The
-general form is `-FS-COMMAND`: MOS matches `FS` against the
-registered ROM names, makes that FS the temporary *active* FS
-without changing the currently-selected default, then parses
-`COMMAND`. If `COMMAND` matches an internal MOS command it
-runs normally; the temp-FS routing only takes effect on the
-unknown-command fallthrough, where it suppresses the usual
-service-4 ROM broadcast and dispatches via FSCV,3 directly to
-the selected FS. `NET` is the short name registered by the
-NFS / ANFS ROM (others register `DISC`, `ADFS`, `TAPE`).
+general form `-FS-COMMAND` matches `FS` against the registered
+ROM names, makes that FS the temporary *active* FS for this
+OSCLI without touching the currently-selected default, then
+parses `COMMAND`. If `COMMAND` matches an internal MOS command
+it runs normally; on the unknown-command fallthrough the
+temp-FS bit suppresses MOS's usual service-4 ROM broadcast and
+dispatches via FSCV,3 directly to the selected FS. `NET` is
+the short name registered by the NFS / ANFS ROM (others
+register `DISC`, `ADFS`, `TAPE`).
 
-Two reasons it's needed at this site rather than a plain
-`*FindLib`:
+NFS is in fact already the current FS by the time this code
+runs. [`svc_3_autoboot`](address:8CC7) calls
+[`select_fs_via_cmd_net_fs`](address:8B52) on the cold-boot
+path before the synchronous `*I AM` exchange, and the
+user-typed `*I AM` route requires `*NET` first because *I AM*
+is an ANFS *command (try `*ADFS` then `*I AM SYST` on a real
+machine — `Bad command`). So why not just `*FindLib`?
 
-1. **Make the command resolvable.** This OSCLI fires while
-   the boot service is processing the I-AM reply. The
-   currently-selected filing system at that point isn't
-   guaranteed to be NFS — on cold boot it can still be DFS or
-   ADFS while the user is logging on. `FindLib` isn't a MOS
-   builtin, so it lands on the unknown-command fallthrough —
-   where the `-NET-` prefix sends it straight to NFS via
-   FSCV,3 instead of broadcasting service-4 to all ROMs.
-2. **Avoid switching the default FS.** `*NET` would make NET
-   permanent — but the decision to make NET the default is
-   made *later*, by OSBYTE `&6D` in
-   [`boot_make_fs_permanent_maybe`](address:A71C), gated on the
-   boot-type byte from the FS reply. The hyphen form does the
-   FindLib lookup one-shot and leaves the current default
-   unchanged, so the subsequent boot-type test can make that
-   call cleanly.
+Because `*FindLib` would go through the normal unknown-command
+dispatch, which **broadcasts service-4 to every sideways ROM
+first**. Any ROM that has claimed `FindLib` — even by
+abbreviation — would intercept the command before NFS sees it.
+`-NET-FindLib` sets the temp-FS bit, which suppresses the
+broadcast and dispatches via FSCV,3 directly to NFS, so the
+lookup deterministically hits NFS's *RUN-from-library path
+regardless of what other ROMs are installed.
 
-The same convention is used by
+The same defensive routing is used by
 [`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and
-[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`) — both
-route via NFS without committing the default FS.""",
+[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`) — `*!Boot`
+could be intercepted by ADFS, DFS, or any other ROM that
+claims the name; `-NET-!Boot` can't.""",
 )
 
 
@@ -12486,7 +12484,7 @@ d.comment(0xA711, "Mask bit 1 (auto-CLI flag)", align=Align.INLINE)
 d.comment(0xA713, "Bit clear: skip auto-CLI", align=Align.INLINE)
 d.expr(0xA716, "<findlib_oscli_cmd")
 d.expr(0xA718, ">findlib_oscli_cmd")
-d.comment(0xA719, "OSCLI '-NET-FindLib': route FindLib via NFS without switching default FS", align=Align.INLINE)
+d.comment(0xA719, "OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)", align=Align.INLINE)
 d.comment(0xA71C, "Pop saved A", align=Align.INLINE)
 d.label(0xA71C, "boot_make_fs_permanent_maybe")
 
@@ -12539,9 +12537,9 @@ d.label(0xA74E, "boot_cmd_exec_str")
 
 
 d.comment(0xA740, "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)", align=Align.INLINE)
-d.comment(0xA741, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS without switching default FS — see boot_try_findlib)", align=Align.INLINE)
+d.comment(0xA741, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA74D, "CR terminator", align=Align.INLINE)
-d.comment(0xA74E, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS without switching default FS — see boot_try_findlib)", align=Align.INLINE)
+d.comment(0xA74E, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA75A, "CR terminator", align=Align.INLINE)
 d.label(0xA75B, "boot_cmd_lo_table")
 

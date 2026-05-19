@@ -10709,31 +10709,29 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;
 ; Why the -NET- prefix
 ;
-; -NET- is MOS's hyphen-bracketed filing-system selector. The general form is
-; -FS-COMMAND: MOS matches FS against the registered ROM names, makes that FS the
-; temporary active FS without changing the currently-selected default, then parses
-; COMMAND. If COMMAND matches an internal MOS command it runs normally; the temp-FS
-; routing only takes effect on the unknown-command fallthrough, where it suppresses the
-; usual service-4 ROM broadcast and dispatches via FSCV,3 directly to the selected FS.
-; NET is the short name registered by the NFS / ANFS ROM (others register DISC, ADFS,
-; TAPE).
+; -NET- is MOS's hyphen-bracketed filing-system selector. The general form -FS-COMMAND
+; matches FS against the registered ROM names, makes that FS the temporary active FS for
+; this OSCLI without touching the currently-selected default, then parses COMMAND. If
+; COMMAND matches an internal MOS command it runs normally; on the unknown-command
+; fallthrough the temp-FS bit suppresses MOS's usual service-4 ROM broadcast and
+; dispatches via FSCV,3 directly to the selected FS. NET is the short name registered by
+; the NFS / ANFS ROM (others register DISC, ADFS, TAPE).
 ;
-; Two reasons it's needed at this site rather than a plain *FindLib:
+; NFS is in fact already the current FS by the time this code runs. svc_3_autoboot calls
+; select_fs_via_cmd_net_fs on the cold-boot path before the synchronous *I AM exchange,
+; and the user-typed *I AM route requires *NET first because I AM is an ANFS *command
+; (try *ADFS then *I AM SYST on a real machine — Bad command). So why not just *FindLib?
 ;
-; 1. Make the command resolvable. This OSCLI fires while the boot service is processing
-;    the I-AM reply. The currently-selected filing system at that point isn't guaranteed
-;    to be NFS — on cold boot it can still be DFS or ADFS while the user is logging on.
-;    FindLib isn't a MOS builtin, so it lands on the unknown-command fallthrough — where
-;    the -NET- prefix sends it straight to NFS via FSCV,3 instead of broadcasting
-;    service-4 to all ROMs.
-; 2. Avoid switching the default FS. *NET would make NET permanent — but the decision to
-;    make NET the default is made later, by OSBYTE &6D in boot_make_fs_permanent_maybe,
-;    gated on the boot-type byte from the FS reply. The hyphen form does the FindLib
-;    lookup one-shot and leaves the current default unchanged, so the subsequent
-;    boot-type test can make that call cleanly.
+; Because *FindLib would go through the normal unknown-command dispatch, which broadcasts
+; service-4 to every sideways ROM first. Any ROM that has claimed FindLib — even by
+; abbreviation — would intercept the command before NFS sees it. -NET-FindLib sets the
+; temp-FS bit, which suppresses the broadcast and dispatches via FSCV,3 directly to NFS,
+; so the lookup deterministically hits NFS's *RUN-from-library path regardless of what
+; other ROMs are installed.
 ;
-; The same convention is used by boot_cmd_load_str (L.-NET-!Boot) and boot_cmd_exec_str
-; (E.-NET-!Boot) — both route via NFS without committing the default FS.
+; The same defensive routing is used by boot_cmd_load_str (L.-NET-!Boot) and
+; boot_cmd_exec_str (E.-NET-!Boot) — *!Boot could be intercepted by ADFS, DFS, or any
+; other ROM that claims the name; -NET-!Boot can't.
 ; &a70b referenced 1 time by &a6f9
 .boot_try_findlib
     ldx #&11                                                          ; a70b: a2 11       ..       ; X=&11: CMOS RAM byte index
@@ -10743,7 +10741,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     beq boot_make_fs_permanent_maybe                                  ; a713: f0 07       ..       ; Bit clear: skip auto-CLI
     ldx #<findlib_oscli_cmd                                           ; a715: a2 fe       ..    
     ldy #>findlib_oscli_cmd                                           ; a717: a0 a6       ..    
-    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': route FindLib via NFS without switching default FS
+    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)
 ; &a71c referenced 1 time by &a713
 .boot_make_fs_permanent_maybe
     pla                                                               ; a71c: 68          h        ; Pop saved A
@@ -10789,10 +10787,10 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .boot_cancel_rts
     rts                                                               ; a740: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
 .boot_cmd_load_str
-    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS without switching default FS — see boot_try_findlib)
+    equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
     equb &0d                                                          ; a74d: 0d          .        ; CR terminator
 .boot_cmd_exec_str
-    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS without switching default FS — see boot_try_findlib)
+    equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
     equb &0d                                                          ; a75a: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Boot-command low-byte index table (3-way dispatch via overlapping CR-terminated strings)
