@@ -12478,7 +12478,7 @@ d.label(0xA71C, "boot_make_fs_permanent_maybe")
 
 d.comment(0xA71D, "Compare with 2", align=Align.INLINE)
 d.comment(0xA71F, "Below: skip making FS permanent", align=Align.INLINE)
-d.comment(0xA721, "OSBYTE &6D: make filing system permanent", align=Align.INLINE)
+d.comment(0xA721, "Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS", align=Align.INLINE)
 d.label(0xA726, "check_auto_boot_flag")
 
 d.subroutine(

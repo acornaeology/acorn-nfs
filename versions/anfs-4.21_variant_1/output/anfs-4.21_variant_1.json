@@ -70712,7 +70712,7 @@
         169,
         109
       ],
-      "comment_inline": "OSBYTE &6D: make filing system permanent",
+      "comment_inline": "Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#osbyte_make_temporary_filing_system_permanent"

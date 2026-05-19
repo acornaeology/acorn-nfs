@@ -10739,7 +10739,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     pla                                                               ; a71c: 68          h        ; Pop saved A
     cmp #2                                                            ; a71d: c9 02       ..       ; Compare with 2
     bcc check_auto_boot_flag                                          ; a71f: 90 05       ..       ; Below: skip making FS permanent
-    lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m       ; OSBYTE &6D: make filing system permanent
+    lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m       ; Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS
     jsr osbyte                                                        ; a723: 20 f4 ff     ..      ; Make temporary filing system permanent
 ; ***************************************************************************************
 ; Test+clear bit 2 of fs_lib_flags; on CTRL, bail out
