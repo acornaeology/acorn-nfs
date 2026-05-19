@@ -70868,9 +70868,9 @@
         96
       ],
       "labels": [
-        "boot_load_cmd"
+        "boot_cancel_rts"
       ],
-      "comment_inline": "CTRL pressed: cancel boot, return",
+      "comment_inline": "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)",
       "xref_summaries": [
         "&a740 referenced 1 time by &a762"
       ],
@@ -70895,6 +70895,9 @@
         111,
         111,
         116
+      ],
+      "labels": [
+        "boot_cmd_load_str"
       ],
       "comment_inline": "Boot command 'L.-NET-!Boot' (Load !Boot)",
       "type": "string",
@@ -70926,6 +70929,9 @@
         111,
         111,
         116
+      ],
+      "labels": [
+        "boot_cmd_exec_str"
       ],
       "comment_inline": "Boot command 'E.-NET-!Boot' (Exec !Boot)",
       "type": "string",
@@ -70993,12 +70999,12 @@
         240,
         220
       ],
-      "comment_inline": "Z: take boot_load_cmd path",
+      "comment_inline": "Z (boot type 0): cancel boot via boot_cancel_rts",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_load_cmd",
+      "operand": "boot_cancel_rts",
       "target": 42816,
-      "target_label": "boot_load_cmd"
+      "target_label": "boot_cancel_rts"
     },
     {
       "addr": 42852,

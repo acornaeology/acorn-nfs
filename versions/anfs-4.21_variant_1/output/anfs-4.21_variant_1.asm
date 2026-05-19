@@ -10710,10 +10710,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     txa                                                               ; a73d: 8a          .     
     bpl boot_suffix_string                                            ; a73e: 10 1f       ..       ; CTRL not pressed: proceed to boot
 ; &a740 referenced 1 time by &a762
-.boot_load_cmd
-    rts                                                               ; a740: 60          `        ; CTRL pressed: cancel boot, return
+.boot_cancel_rts
+    rts                                                               ; a740: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
+.boot_cmd_load_str
     equs "L.-NET-!Boot"                                               ; a741: 4c 2e 2d... L.-...   ; Boot command 'L.-NET-!Boot' (Load !Boot)
     equb &0d                                                          ; a74d: 0d          .        ; CR terminator
+.boot_cmd_exec_str
     equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot command 'E.-NET-!Boot' (Exec !Boot)
     equb &0d                                                          ; a75a: 0d          .        ; CR terminator
 ; &a75b referenced 1 time by &a764
@@ -10722,7 +10724,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_suffix_string
     ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Read hazel_fs_flags (boot-state flag)
-    beq boot_load_cmd                                                 ; a762: f0 dc       ..       ; Z: take boot_load_cmd path
+    beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
 ; Look up boot command in boot_prefix_string table and OSCLI it
 ;
@@ -16942,8 +16944,8 @@ save pydis_start, pydis_end
 ;     assign_handle_3:                 1
 ;     bad_prefix_table:                1
 ;     begin_prot_encode:               1
+;     boot_cancel_rts:                 1
 ;     boot_cmd_oscli:                  1
-;     boot_load_cmd:                   1
 ;     boot_make_fs_permanent_maybe:    1
 ;     boot_prefix_string:              1
 ;     boot_try_findlib:                1

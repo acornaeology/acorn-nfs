@@ -12420,10 +12420,12 @@ d.comment(0xA733, "Restore bit 2 test result", align=Align.INLINE)
 d.comment(0xA734, "Bit 2 was set: skip to boot cmd", align=Align.INLINE)
 d.comment(0xA736, "OSBYTE &79: scan keyboard", align=Align.INLINE)
 d.comment(0xA73E, "CTRL not pressed: proceed to boot", align=Align.INLINE)
-d.label(0xA740, "boot_load_cmd")
+d.label(0xA740, "boot_cancel_rts")
+d.label(0xA741, "boot_cmd_load_str")
+d.label(0xA74E, "boot_cmd_exec_str")
 
 
-d.comment(0xA740, "CTRL pressed: cancel boot, return", align=Align.INLINE)
+d.comment(0xA740, "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)", align=Align.INLINE)
 d.comment(0xA741, "Boot command 'L.-NET-!Boot' (Load !Boot)", align=Align.INLINE)
 d.comment(0xA74D, "CR terminator", align=Align.INLINE)
 d.comment(0xA74E, "Boot command 'E.-NET-!Boot' (Exec !Boot)", align=Align.INLINE)
@@ -12438,7 +12440,7 @@ d.comment(
 d.comment(0xA75F, "Read hazel_fs_flags (boot-state flag)", align=Align.INLINE)
 d.label(0xA75F, "boot_suffix_string")
 
-d.comment(0xA762, "Z: take boot_load_cmd path", align=Align.INLINE)
+d.comment(0xA762, "Z (boot type 0): cancel boot via boot_cancel_rts", align=Align.INLINE)
 d.label(0xA764, "boot_cmd_oscli")
 
 d.subroutine(
