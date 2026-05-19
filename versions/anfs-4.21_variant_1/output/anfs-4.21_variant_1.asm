@@ -10639,12 +10639,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; fsreply_2_copy_handles which copies the per-handle table.
 .fsreply_1_boot
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..      ; Close all network channels
-    lda #&40 ; '@'                                                    ; a6d8: a9 40       .@       ; A=&40: protection-level marker
-    tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.   
-    sec                                                               ; a6dd: 38          8        ; Mark this path as 'success' for the caller
-    lda hazel_txcb_result                                             ; a6de: ad 08 c1    ...      ; Load TX result code from hazel_txcb_result
-    sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...      ; Store as hazel_fs_flags
-    pha                                                               ; a6e4: 48          H        ; Save state
+    lda #&40 ; '@'                                                    ; a6d8: a9 40       .@       ; A=&40: bit-6 mask for fs_flags (boot-pending flag)
+    tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.      ; Set boot-pending bit on fs_flags (TSB = test-and-set)
+    sec                                                               ; a6dd: 38          8        ; C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)
+    lda hazel_txcb_result                                             ; a6de: ad 08 c1    ...      ; Load boot-type byte from FS reply (hazel_txcb_result)
+    sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...      ; Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)
+    pha                                                               ; a6e4: 48          H        ; Push boot-type byte (popped later by boot_make_fs_permanent_maybe at &A71C)
 ; ***************************************************************************************
 ; FS reply 2: install handles and (optionally) boot
 ;

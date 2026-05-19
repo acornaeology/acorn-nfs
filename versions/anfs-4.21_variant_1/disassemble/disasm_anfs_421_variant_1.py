@@ -12344,11 +12344,12 @@ which copies the per-handle table.""",
 
 d.entry(0xA6D5)
 d.comment(0xA6D5, "Close all network channels", align=Align.INLINE)
-d.comment(0xA6D8, "A=&40: protection-level marker", align=Align.INLINE)
-d.comment(0xA6DD, "Mark this path as 'success' for the caller", align=Align.INLINE)
-d.comment(0xA6DE, "Load TX result code from hazel_txcb_result", align=Align.INLINE)
-d.comment(0xA6E1, "Store as hazel_fs_flags", align=Align.INLINE)
-d.comment(0xA6E4, "Save state", align=Align.INLINE)
+d.comment(0xA6D8, "A=&40: bit-6 mask for fs_flags (boot-pending flag)", align=Align.INLINE)
+d.comment(0xA6DA, "Set boot-pending bit on fs_flags (TSB = test-and-set)", align=Align.INLINE)
+d.comment(0xA6DD, "C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)", align=Align.INLINE)
+d.comment(0xA6DE, "Load boot-type byte from FS reply (hazel_txcb_result)", align=Align.INLINE)
+d.comment(0xA6E1, "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)", align=Align.INLINE)
+d.comment(0xA6E4, "Push boot-type byte (popped later by boot_make_fs_permanent_maybe at &A71C)", align=Align.INLINE)
 d.label(0xA6E5, "fsreply_2_copy_handles")
 
 d.subroutine(

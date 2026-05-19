@@ -70321,7 +70321,7 @@
         169,
         64
       ],
-      "comment_inline": "A=&40: protection-level marker",
+      "comment_inline": "A=&40: bit-6 mask for fs_flags (boot-pending flag)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&40"
@@ -70333,6 +70333,7 @@
         108,
         13
       ],
+      "comment_inline": "Set boot-pending bit on fs_flags (TSB = test-and-set)",
       "type": "code",
       "mnemonic": "tsb",
       "operand": "fs_flags",
@@ -70344,7 +70345,7 @@
       "bytes": [
         56
       ],
-      "comment_inline": "Mark this path as 'success' for the caller",
+      "comment_inline": "C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)",
       "type": "code",
       "mnemonic": "sec"
     },
@@ -70355,7 +70356,7 @@
         8,
         193
       ],
-      "comment_inline": "Load TX result code from hazel_txcb_result",
+      "comment_inline": "Load boot-type byte from FS reply (hazel_txcb_result)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "hazel_txcb_result",
@@ -70369,7 +70370,7 @@
         5,
         192
       ],
-      "comment_inline": "Store as hazel_fs_flags",
+      "comment_inline": "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fs_flags",
@@ -70381,7 +70382,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Save state",
+      "comment_inline": "Push boot-type byte (popped later by boot_make_fs_permanent_maybe at &A71C)",
       "type": "code",
       "mnemonic": "pha"
     },
