@@ -3002,10 +3002,10 @@
     {
       "addr": 42852,
       "name": "boot_cmd_oscli",
-      "title": "Look up boot command in boot_cmd_lo_table table and OSCLI it",
-      "description": "Loads X = boot_cmd_lo_table,Y (the low byte of the boot-command address),\nsets Y=&A7 (high byte = &A7xx area where the boot strings live),\nthen JMPs to oscli with (X,Y) pointing at a CR-terminated command\nstring. Single caller (&A5D4 in the *RUN-then-* boot dispatch).",
+      "title": "Look up boot command in boot_cmd_lo_table and OSCLI it",
+      "description": "Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command\naddress), sets `Y=&A7` (high byte \u2014 boot strings live in `&A7xx`),\nthen `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated\ncommand string.\n\nTwo entry paths:\n\n- `JMP` tail-call from `&A5D4` with `Y=3` hardcoded \u2014 forces the\n  exec-via-NFS boot ([`boot_cmd_exec_str`](address:A74E)).\n- Fall-through from [`boot_select_cmd`](address:A75F) with `Y` already\n  loaded from [`hazel_fs_flags`](address:C005) \u2014 the normal logon-boot\n  path, dispatching on the FS-supplied boot type.",
       "on_entry": {
-        "y": "boot-command index"
+        "y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"
       }
     },
     {

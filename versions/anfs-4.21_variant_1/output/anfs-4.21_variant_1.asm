@@ -10746,15 +10746,21 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Read hazel_fs_flags (boot-state flag)
     beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
-; Look up boot command in boot_cmd_lo_table table and OSCLI it
+; Look up boot command in boot_cmd_lo_table and OSCLI it
 ;
-; Loads X = boot_cmd_lo_table,Y (the low byte of the boot-command address), sets Y=&A7
-; (high byte = &A7xx area where the boot strings live), then JMPs to oscli with (X,Y)
-; pointing at a CR-terminated command string. Single caller (&A5D4 in the RUN-then- boot
-; dispatch).
+; Loads X = boot_cmd_lo_table,Y (low byte of the boot-command address), sets Y=&A7 (high
+; byte — boot strings live in &A7xx), then JMPs to oscli with (X,Y) pointing at a
+; CR-terminated command string.
+;
+; Two entry paths:
+;
+; - JMP tail-call from &A5D4 with Y=3 hardcoded — forces the exec-via-NFS boot
+;   (boot_cmd_exec_str).
+; - Fall-through from boot_select_cmd with Y already loaded from hazel_fs_flags — the
+;   normal logon-boot path, dispatching on the FS-supplied boot type.
 ;
 ; On Entry:
-;     Y: boot-command index
+;     Y: boot-command index (1=load, 2=run-on-current-FS, 3=exec)
 ; &a764 referenced 1 time by &a5d4
 .boot_cmd_oscli
     ldx boot_cmd_lo_table,y                                           ; a764: be 5b a7    .[.      ; Load boot-command low byte from boot_cmd_lo_table[Y]

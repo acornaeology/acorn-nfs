@@ -12465,12 +12465,20 @@ d.label(0xA764, "boot_cmd_oscli")
 d.subroutine(
     0xA764,
     "boot_cmd_oscli",
-    title="Look up boot command in boot_cmd_lo_table table and OSCLI it",
-    description="""Loads X = boot_cmd_lo_table,Y (the low byte of the boot-command address),
-sets Y=&A7 (high byte = &A7xx area where the boot strings live),
-then JMPs to oscli with (X,Y) pointing at a CR-terminated command
-string. Single caller (&A5D4 in the *RUN-then-* boot dispatch).""",
-    on_entry={"y": "boot-command index"},
+    title="Look up boot command in boot_cmd_lo_table and OSCLI it",
+    description="""Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command
+address), sets `Y=&A7` (high byte — boot strings live in `&A7xx`),
+then `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated
+command string.
+
+Two entry paths:
+
+- `JMP` tail-call from `&A5D4` with `Y=3` hardcoded — forces the
+  exec-via-NFS boot ([`boot_cmd_exec_str`](address:A74E)).
+- Fall-through from [`boot_select_cmd`](address:A75F) with `Y` already
+  loaded from [`hazel_fs_flags`](address:C005) — the normal logon-boot
+  path, dispatching on the FS-supplied boot type.""",
+    on_entry={"y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"},
 )
 
 
