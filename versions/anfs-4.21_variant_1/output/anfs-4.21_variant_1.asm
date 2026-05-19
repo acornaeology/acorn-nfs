@@ -10654,14 +10654,26 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; (hazel_txcb_data, hazel_txcb_flag, hazel_txcb_count). PHP/PLP carry a flag across the
 ; calls: when Carry is clear on entry the routine returns via return_with_last_flag; when
 ; Carry is set it continues into the boot path at boot_try_findlib, which OSCLIs
-; -NET-FindLib, optionally calls OSBYTE &6D to make the filing system permanent, clears
-; the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls through to
-; boot_select_cmd to execute the !Boot command. Reached only via the FS reply dispatch
-; table.
+; -NET-FindLib, then falls into boot_make_fs_permanent_maybe (OSBYTE &6D when boot type ≥
+; 2), clears the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls
+; through to boot_select_cmd to execute the !Boot command.
+;
+; Two entry contracts:
+;
+; - Direct dispatch via the FS-reply table entry at &2C — the dispatcher arrives with
+;   Carry clear, so BCS at &A6F9 is not taken and the routine exits via JMP
+;   return_with_last_flag without ever reaching the PLA at &A71C. The stack contract is
+;   satisfied trivially.
+; - Fall-through from fsreply_1_boot — fsreply_1_boot pushes A (the boot-type byte) and
+;   SECs before falling in, so BCS is taken and the boot path runs; the PLA at &A71C then
+;   pops the boot-type byte cleanly.
+;
+; Direct dispatch with Carry set is not part of the contract; the boot path requires the
+; pre-pushed A from fsreply_1_boot.
 ;
 ; On Entry:
-;     A: boot-type byte (saved on stack at entry)
-;     CARRY: set when boot processing should follow
+;     A: boot-type byte (pushed by fsreply_1_boot when arriving via fall-through; ignored on direct-dispatch C-clear path)
+;     CARRY: set when boot processing should follow (only legal via fsreply_1_boot fall-through)
 .fsreply_2_copy_handles
     php                                                               ; a6e5: 08          .        ; Save processor status
     ldy hazel_txcb_data                                               ; a6e6: ac 05 c1    ...      ; Load station number from reply

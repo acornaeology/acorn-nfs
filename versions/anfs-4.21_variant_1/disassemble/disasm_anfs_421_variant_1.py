@@ -12368,13 +12368,31 @@ the calls: when Carry is clear on entry the routine returns via
 [`return_with_last_flag`](address:9FB4); when Carry is set it
 continues into the boot path at
 [`boot_try_findlib`](address:A70B), which OSCLIs
-`-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing
-system permanent, clears the auto-boot flag in
+`-NET-FindLib`, then falls into
+[`boot_make_fs_permanent_maybe`](address:A71C) (OSBYTE `&6D`
+when boot type ≥ 2), clears the auto-boot flag in
 [`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
-falls through to [`boot_select_cmd`](address:A75F) to execute
-the !Boot command. Reached only via the FS reply dispatch
-table.""",
-    on_entry={"a": "boot-type byte (saved on stack at entry)", "carry": "set when boot processing should follow"},
+falls through to [`boot_select_cmd`](address:A75F) to execute the
+`!Boot` command.
+
+Two entry contracts:
+
+- **Direct dispatch** via the FS-reply table entry at `&2C` —
+  the dispatcher arrives with Carry clear, so `BCS` at `&A6F9`
+  is not taken and the routine exits via
+  `JMP return_with_last_flag` without ever reaching the `PLA`
+  at `&A71C`. The stack contract is satisfied trivially.
+- **Fall-through from [`fsreply_1_boot`](address:A6D5)** —
+  fsreply_1_boot pushes A (the boot-type byte) and `SEC`s
+  before falling in, so `BCS` is taken and the boot path runs;
+  the `PLA` at `&A71C` then pops the boot-type byte cleanly.
+
+Direct dispatch with Carry set is not part of the contract;
+the boot path requires the pre-pushed A from fsreply_1_boot.""",
+    on_entry={
+        "a": "boot-type byte (pushed by fsreply_1_boot when arriving via fall-through; ignored on direct-dispatch C-clear path)",
+        "carry": "set when boot processing should follow (only legal via fsreply_1_boot fall-through)",
+    },
 )
 
 
