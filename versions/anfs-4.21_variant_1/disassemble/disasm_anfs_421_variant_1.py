@@ -12367,7 +12367,7 @@ handle bytes loaded from the TXCB reply
 the calls: when Carry is clear on entry the routine returns via
 [`return_with_last_flag`](address:9FB4); when Carry is set it
 continues into the boot path at
-[`fsreply_2_handle_loop`](address:A70B), which OSCLIs
+[`boot_try_findlib`](address:A70B), which OSCLIs
 `-NET-FindLib`, optionally calls OSBYTE `&6D` to make the filing
 system permanent, clears the auto-boot flag in
 [`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
@@ -12392,7 +12392,7 @@ d.comment(0xA6FB, "Return with last flag", align=Align.INLINE)
 d.label(0xA6FE, "findlib_oscli_cmd")
 
 d.comment(0xA70B, "X=&11: CMOS RAM byte index", align=Align.INLINE)
-d.label(0xA70B, "fsreply_2_handle_loop")
+d.label(0xA70B, "boot_try_findlib")
 
 d.comment(0xA70D, "Read CMOS &11 via osbyte_a1", align=Align.INLINE)
 d.comment(0xA710, "Result to A", align=Align.INLINE)

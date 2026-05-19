@@ -10653,7 +10653,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; flip_set_station_boot in turn with the three handle bytes loaded from the TXCB reply
 ; (hazel_txcb_data, hazel_txcb_flag, hazel_txcb_count). PHP/PLP carry a flag across the
 ; calls: when Carry is clear on entry the routine returns via return_with_last_flag; when
-; Carry is set it continues into the boot path at fsreply_2_handle_loop, which OSCLIs
+; Carry is set it continues into the boot path at boot_try_findlib, which OSCLIs
 ; -NET-FindLib, optionally calls OSBYTE &6D to make the filing system permanent, clears
 ; the auto-boot flag in hazel_fs_lib_flags, and (unless CTRL is held) falls through to
 ; boot_suffix_string to execute the !Boot command. Reached only via the FS reply dispatch
@@ -10671,13 +10671,13 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     ldy hazel_txcb_count                                              ; a6f2: ac 07 c1    ...      ; Load boot type from reply
     jsr flip_set_station_boot                                         ; a6f5: 20 a6 a6     ..      ; Set boot config for station
     plp                                                               ; a6f8: 28          (        ; Restore processor status
-    bcs fsreply_2_handle_loop                                         ; a6f9: b0 10       ..       ; Carry set: proceed with boot
+    bcs boot_try_findlib                                              ; a6f9: b0 10       ..       ; Carry set: proceed with boot
     jmp return_with_last_flag                                         ; a6fb: 4c b4 9f    L..      ; Return with last flag
 .findlib_oscli_cmd
     equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE...
     equb &0d                                                          ; a70a: 0d          .     
 ; &a70b referenced 1 time by &a6f9
-.fsreply_2_handle_loop
+.boot_try_findlib
     ldx #&11                                                          ; a70b: a2 11       ..       ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; a70d: 20 9a 8e     ..      ; Read CMOS &11 via osbyte_a1
     tya                                                               ; a710: 98          .        ; Result to A
@@ -16945,6 +16945,7 @@ save pydis_start, pydis_end
 ;     boot_cmd_oscli:                  1
 ;     boot_load_cmd:                   1
 ;     boot_prefix_string:              1
+;     boot_try_findlib:                1
 ;     bra_target_svc_return:           1
 ;     bridge_err_table:                1
 ;     bridge_found:                    1
@@ -17140,7 +17141,6 @@ save pydis_start, pydis_end
 ;     fscv:                            1
 ;     fscv_2_star_run:                 1
 ;     fscv_3_star_cmd:                 1
-;     fsreply_2_handle_loop:           1
 ;     fsreply_2_store_handle:          1
 ;     fsreply_3_set_csd:               1
 ;     generate_event:                  1
