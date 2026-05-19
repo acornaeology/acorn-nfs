@@ -70832,7 +70832,7 @@
         208,
         41
       ],
-      "comment_inline": "Bit 2 was set: skip to boot cmd",
+      "comment_inline": "Auto-boot flag was set: skip CTRL check, dispatch boot via boot_select_cmd",
       "type": "code",
       "mnemonic": "bne",
       "operand": "boot_select_cmd",
