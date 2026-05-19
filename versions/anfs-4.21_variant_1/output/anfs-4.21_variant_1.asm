@@ -10741,6 +10741,24 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     bcc check_auto_boot_flag                                          ; a71f: 90 05       ..       ; Below: skip making FS permanent
     lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m       ; OSBYTE &6D: make filing system permanent
     jsr osbyte                                                        ; a723: 20 f4 ff     ..      ; Make temporary filing system permanent
+; ***************************************************************************************
+; Test+clear bit 2 of fs_lib_flags; on CTRL, bail out
+;
+; Atomically tests and clears bit 2 of hazel_fs_lib_flags — the auto-boot flag — then
+; dispatches based on the test result:
+;
+; - Bit 2 was set: skip the CTRL-key check and BNE straight into boot_select_cmd to issue
+;   the boot OSCLI.
+; - Bit 2 was clear: fall through and test for the CTRL key via OSBYTE &79. CTRL held →
+;   fall into boot_cancel_rts (boot cancelled). CTRL not held → BPL into boot_select_cmd
+;   anyway.
+;
+; The body uses the classic 6502 "test bit, modify, restore test result" idiom: load the
+; flags, copy to X, AND with the bit to isolate it, PHP to stash the Z flag from that
+; test, then TXA back, AND with the complement mask to clear the bit, store the modified
+; flags, PLP to recover the original Z. This way the flag byte is updated unconditionally
+; but the dispatch decision is made on the pre-update state — saving a separate
+; read-modify sequence.
 ; &a726 referenced 1 time by &a71f
 .check_auto_boot_flag
     lda hazel_fs_lib_flags                                            ; a726: ad 71 c2    .q.      ; Load config flags

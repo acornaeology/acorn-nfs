@@ -12481,6 +12481,32 @@ d.comment(0xA71F, "Below: skip making FS permanent", align=Align.INLINE)
 d.comment(0xA721, "OSBYTE &6D: make filing system permanent", align=Align.INLINE)
 d.label(0xA726, "check_auto_boot_flag")
 
+d.subroutine(
+    0xA726,
+    "check_auto_boot_flag",
+    title="Test+clear bit 2 of fs_lib_flags; on CTRL, bail out",
+    description="""Atomically tests and clears bit 2 of
+[`hazel_fs_lib_flags`](address:C271) — the auto-boot flag — then
+dispatches based on the test result:
+
+- **Bit 2 was set**: skip the CTRL-key check and `BNE` straight
+  into [`boot_select_cmd`](address:A75F) to issue the boot OSCLI.
+- **Bit 2 was clear**: fall through and test for the CTRL key via
+  OSBYTE `&79`. CTRL held → fall into
+  [`boot_cancel_rts`](address:A740) (boot cancelled). CTRL not
+  held → `BPL` into [`boot_select_cmd`](address:A75F) anyway.
+
+The body uses the classic 6502 "test bit, modify, restore test
+result" idiom: load the flags, copy to X, `AND` with the bit to
+isolate it, `PHP` to stash the Z flag from that test, then `TXA`
+back, `AND` with the complement mask to clear the bit, store the
+modified flags, `PLP` to recover the original Z. This way the
+flag byte is updated unconditionally but the dispatch decision is
+made on the *pre-update* state — saving a separate read-modify
+sequence.""",
+)
+
+
 d.comment(0xA726, "Load config flags", align=Align.INLINE)
 d.comment(0xA729, "Save copy in X", align=Align.INLINE)
 d.comment(0xA72A, "Test bit 2 (auto-boot flag)", align=Align.INLINE)
