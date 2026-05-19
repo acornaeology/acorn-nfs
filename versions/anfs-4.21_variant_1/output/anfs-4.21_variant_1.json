@@ -2984,8 +2984,8 @@
     {
       "addr": 42709,
       "name": "fsreply_1_boot",
-      "title": "FS reply 1: copy boot handles + flag boot pending",
-      "description": "Closes all network channels via\n[`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), then loads the\nboot type from the FS reply at `hazel_txcb_result` and stores it into both the\ncurrent-boot-type slot (`hazel_fs_flags`) and the FCB-flags table. Pushes\nthe boot type for the fall-through into `fsreply_2_copy_handles`\nwhich copies the per-handle table.",
+      "title": "FS reply 1: flag boot pending, then fall into handle-copy",
+      "description": "Closes all network channels via\n[`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal\nboot-pending downstream, loads the boot-type byte from the FS\nreply ([`hazel_txcb_result`](address:C108)) into\n[`hazel_fs_flags`](address:C005), pushes it on the stack, and\nfalls through into [`fsreply_2_copy_handles`](address:A6E5).\n\nThe pushed byte is **not** consumed by `fsreply_2_copy_handles`\nitself \u2014 that routine only copies the per-handle table and uses\n`PHP`/`PLP` for its own Carry handling. The matching `PLA` lives\nmuch further down the boot chain, in\n[`boot_make_fs_permanent_maybe`](address:A71C) at `&A71C`, which\ntests the recovered boot-type byte against `2` to decide whether\nto call OSBYTE `&6D`. Anyone following the stack across this\nfall-through should look past `fsreply_2_copy_handles` and\n`boot_try_findlib` to find the pop.",
       "fall_through": true
     },
     {

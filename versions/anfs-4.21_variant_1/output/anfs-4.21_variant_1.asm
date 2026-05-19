@@ -10630,13 +10630,19 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .jmp_restore_fs_ctx
     jmp restore_fs_context                                            ; a6d2: 4c 64 90    Ld.      ; Restore FS context and return
 ; ***************************************************************************************
-; FS reply 1: copy boot handles + flag boot pending
+; FS reply 1: flag boot pending, then fall into handle-copy
 ;
 ; Closes all network channels via close_all_net_chans, sets bit 6 of fs_flags (TSB &0D6C,
-; marking the boot-pending state), then loads the boot type from the FS reply at
-; hazel_txcb_result and stores it into both the current-boot-type slot (hazel_fs_flags)
-; and the FCB-flags table. Pushes the boot type for the fall-through into
-; fsreply_2_copy_handles which copies the per-handle table.
+; marking the boot-pending state), SECs to signal boot-pending downstream, loads the
+; boot-type byte from the FS reply (hazel_txcb_result) into hazel_fs_flags, pushes it on
+; the stack, and falls through into fsreply_2_copy_handles.
+;
+; The pushed byte is not consumed by fsreply_2_copy_handles itself — that routine only
+; copies the per-handle table and uses PHP/PLP for its own Carry handling. The matching
+; PLA lives much further down the boot chain, in boot_make_fs_permanent_maybe at &A71C,
+; which tests the recovered boot-type byte against 2 to decide whether to call OSBYTE
+; &6D. Anyone following the stack across this fall-through should look past
+; fsreply_2_copy_handles and boot_try_findlib to find the pop.
 .fsreply_1_boot
     jsr close_all_net_chans                                           ; a6d5: 20 f8 b8     ..      ; Close all network channels
     lda #&40 ; '@'                                                    ; a6d8: a9 40       .@       ; A=&40: bit-6 mask for fs_flags (boot-pending flag)
