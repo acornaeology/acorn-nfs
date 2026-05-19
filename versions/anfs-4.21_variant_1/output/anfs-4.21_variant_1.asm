@@ -10771,7 +10771,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     plp                                                               ; a733: 28          (        ; Restore bit 2 test result
     bne boot_select_cmd                                               ; a734: d0 29       .)       ; Bit 2 was set: skip to boot cmd
     lda #osbyte_scan_keyboard                                         ; a736: a9 79       .y       ; OSBYTE &79: scan keyboard
-    ldx #(255 - inkey_key_ctrl) EOR 128                               ; a738: a2 81       ..    
+    ldx #(255 - inkey_key_ctrl) EOR 128                               ; a738: a2 81       ..       ; X = CTRL key scan code (negative-X INKEY form for OSBYTE &79)
     jsr osbyte                                                        ; a73a: 20 f4 ff     ..      ; Test for ctrl key pressed
     txa                                                               ; a73d: 8a          .     
     bpl boot_select_cmd                                               ; a73e: 10 1f       ..       ; CTRL not pressed: proceed to boot
