@@ -10673,7 +10673,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     plp                                                               ; a6f8: 28          (        ; Restore processor status
     bcs fsreply_2_handle_loop                                         ; a6f9: b0 10       ..       ; Carry set: proceed with boot
     jmp return_with_last_flag                                         ; a6fb: 4c b4 9f    L..      ; Return with last flag
-.fsreply_2_skip_handles
+.findlib_oscli_cmd
     equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE...
     equb &0d                                                          ; a70a: 0d          .     
 ; &a70b referenced 1 time by &a6f9
@@ -10683,9 +10683,9 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     tya                                                               ; a710: 98          .        ; Result to A
     and #2                                                            ; a711: 29 02       ).       ; Mask bit 1 (auto-CLI flag)
     beq fsreply_2_store_handle                                        ; a713: f0 07       ..       ; Bit clear: skip auto-CLI
-    ldx #&fe                                                          ; a715: a2 fe       ..       ; X = lo of fsreply_2_skip_handles (boot-cmd string ptr)
-    ldy #&a6                                                          ; a717: a0 a6       ..       ; Y = hi of fsreply_2_skip_handles
-    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI to execute boot command
+    ldx #<findlib_oscli_cmd                                           ; a715: a2 fe       ..    
+    ldy #>findlib_oscli_cmd                                           ; a717: a0 a6       ..    
+    jsr oscli                                                         ; a719: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': run library FindLib via NFS
 ; &a71c referenced 1 time by &a713
 .fsreply_2_store_handle
     pla                                                               ; a71c: 68          h        ; Pop saved A

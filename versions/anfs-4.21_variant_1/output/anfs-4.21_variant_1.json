@@ -70514,7 +70514,7 @@
         98
       ],
       "labels": [
-        "fsreply_2_skip_handles"
+        "findlib_oscli_cmd"
       ],
       "type": "string",
       "string": "-NET-FindLib"
@@ -70602,10 +70602,9 @@
         162,
         254
       ],
-      "comment_inline": "X = lo of fsreply_2_skip_handles (boot-cmd string ptr)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&fe"
+      "operand": "#<findlib_oscli_cmd"
     },
     {
       "addr": 42775,
@@ -70613,10 +70612,9 @@
         160,
         166
       ],
-      "comment_inline": "Y = hi of fsreply_2_skip_handles",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&a6"
+      "operand": "#>findlib_oscli_cmd"
     },
     {
       "addr": 42777,
@@ -70625,7 +70623,7 @@
         247,
         255
       ],
-      "comment_inline": "OSCLI to execute boot command",
+      "comment_inline": "OSCLI '-NET-FindLib': run library FindLib via NFS",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oscli",
