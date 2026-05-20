@@ -13017,7 +13017,7 @@ net_channel_err_string = err_net_chan_not_found+2
     sta fcb_buf_page                                                  ; b6bd: 8d cc 10    ...      ; Store buffer address high byte
     plp                                                               ; b6c0: 28          (        ; Restore flags
     bvc done_init_wipe                                                ; b6c1: 50 03       P.       ; V clear: skip directory request
-    jsr flush_fcb_if_station_known                                    ; b6c3: 20 da b8     ..      ; Send directory request to server
+    jsr flush_fcb_if_stn_known                                        ; b6c3: 20 da b8     ..      ; Send directory request to server
 ; &b6c6 referenced 1 time by &b6c1
 .done_init_wipe
     jsr init_wipe_counters                                            ; b6c6: 20 d8 b5     ..      ; Reset transfer counters
@@ -13362,7 +13362,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ;     X: preserved
 ;     Y: preserved
 ; &b8da referenced 1 time by &b6c3
-.flush_fcb_if_station_known
+.flush_fcb_if_stn_known
     pha                                                               ; b8da: 48          H        ; Save A
     txa                                                               ; b8db: 8a          .        ; Transfer X to A
     pha                                                               ; b8dc: 48          H        ; Save X
@@ -14960,7 +14960,7 @@ save pydis_start, pydis_end
 ;     filev:                                    1
 ;     find_station_bit2:                        1
 ;     fixup_reply_status_a:                     1
-;     flush_fcb_if_station_known:               1
+;     flush_fcb_if_stn_known:                   1
 ;     flush_fcb_with_init:                      1
 ;     fs_addr_check:                            1
 ;     fs_boot_data:                             1

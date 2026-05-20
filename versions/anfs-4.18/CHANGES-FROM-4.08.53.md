@@ -315,7 +315,7 @@ context, flush the FCB byte count to the file server, and restore context.
 4.18 extracts this into two subroutines:
 
 - `flush_fcb_with_init` (&B8E4): full context save, flush, and restore
-- `flush_fcb_if_station_known` (&B8DA): wrapper that checks if the FCB
+- `flush_fcb_if_stn_known` (&B8DA): wrapper that checks if the FCB
   already has a known station, skipping the context save when it does
 
 The factoring saves ~70 bytes in `done_find_write_fcb` (replaced by a single

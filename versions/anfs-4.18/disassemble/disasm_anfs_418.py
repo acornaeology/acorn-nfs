@@ -14883,7 +14883,7 @@ d.comment(0xB8D6, "Restore channel attribute", align=Align.INLINE)
 d.comment(0xB8D9, "Return", align=Align.INLINE)
 d.subroutine(
     0xB8DA,
-    "flush_fcb_if_station_known",
+    "flush_fcb_if_stn_known",
     title="Flush FCB byte count to server if station is set",
     description="""Saves all registers, checks if the FCB has a
 known station. If yes, sends the accumulated byte

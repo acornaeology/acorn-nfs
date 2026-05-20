@@ -220,7 +220,7 @@ future annotation passes.
 | &A5DF | `ca5df` | `library_path_string` |
 | &A6FE | `la6fe` | `findlib_oscli_cmd` |
 | &A70B | `ca70b` | `boot_try_findlib` |
-| &A71C | `ca71c` | `boot_make_fs_permanent_maybe` |
+| &A71C | `ca71c` | `boot_persist_fs_maybe` |
 | &A75B | `la75b` | `boot_cmd_lo_table` |
 | &A75F | `ca75f` | `boot_select_cmd` |
 | &A855 | `ca855` | `osword_store_svc_state` |
@@ -277,18 +277,18 @@ for all 31 with semantic names.
 | &96E7 | `loop_c96e7` | label | `loop_copy_topic_name` | Copy help topic name from buffer |
 | &96EB | `loop_c96eb` | label | `loop_store_topic_char` | Store topic char and continue copy loop |
 | &9FEE | `sub_c9fee` | subroutine | `send_open_file_request` | Send file open request with V flag (dir check) |
-| &A0F2 | `loop_ca0f2` | label | `loop_extract_attribute_bits` | Shift CMOS value, extract attribute bits |
+| &A0F2 | `loop_ca0f2` | label | `loop_extract_attr_bits` | Shift CMOS value, extract attribute bits |
 | &A0FE | `sub_ca0fe` | subroutine | `store_carry_to_workspace` | Store carry flag to workspace via OSBYTE A2 |
-| &A84A | `loop_ca84a` | label | `loop_save_osword_workspace` | Save and reload OSWORD workspace bytes |
-| &A85C | `loop_ca85c` | label | `loop_restore_osword_workspace` | Restore OSWORD workspace bytes from stack |
+| &A84A | `loop_ca84a` | label | `loop_save_osword_ws` | Save and reload OSWORD workspace bytes |
+| &A85C | `loop_ca85c` | label | `loop_restore_osword_ws` | Restore OSWORD workspace bytes from stack |
 | &A877 | `sub_ca877` | subroutine | `extract_osword_subcode` | Extract and dispatch OSWORD sub-code |
-| &A8EC | `loop_ca8ec` | label | `loop_copy_pbytes_to_workspace` | Copy parameter-block bytes to workspace |
+| &A8EC | `loop_ca8ec` | label | `loop_copy_pbytes_to_ws` | Copy parameter-block bytes to workspace |
 | &B0A0 | `sub_cb0a0` | label | `cmd_cdir_indirect_dispatch` | Dead `JMP (l4898,X)` at cmd_cdir boundary; never executed |
 | &B1B4 | `loop_cb1b4` | label | `loop_print_dir_format` | Print directory listing format chars |
 | &B2B9 | `loop_cb2b9` | label | `loop_trim_trailing_spaces` | Trim trailing spaces from cmd-arg buffer |
 | &B316 | `loop_cb316` | label | `loop_divide_decimal_digit` | Extract one decimal digit by repeated subtraction |
 | &BB3C | `loop_cbb3c` | label | `loop_save_fcb_workspace` | Save FCB workspace bytes to stack |
-| &BB5F | `loop_cbb5f` | label | `loop_restore_fcb_workspace` | Restore FCB workspace bytes from stack |
+| &BB5F | `loop_cbb5f` | label | `loop_restore_fcb_ws` | Restore FCB workspace bytes from stack |
 | &BE16 | `loop_cbe16` | label | `loop_print_hex_row` | Print 16 hex bytes per row with column numbering |
 
 Note: `loop_help_skip_spaces` (&96C8) was the agent's `loop_skip_spaces`

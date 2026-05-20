@@ -244,7 +244,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xBAB7` `loop_restore_workspace` - description matches body's 13-byte stack-pop loop
 - [x] `0xBAC0` `restore_catalog_entry` - description had stale pre-HAZEL addresses (&10D9 source, &0F00 dest); 4.21 uses HAZEL hazel_ctx_buffer (&C2D9) and hazel_txcb_port (&C100). Rewrote
 - [x] `0xBB2A` `inc_fcb_byte_count` - description matches body's 3-byte cascade increment
-- [x] `0xBC74` `flush_fcb_if_station_known` - description matches body
+- [x] `0xBC74` `flush_fcb_if_stn_known` - description matches body
 - [x] `0xBD1B` `read_rx_attribute` - description matches body
 - [x] `0xBD20` `store_rx_attribute` - description matches body
 - [x] `0xBE42` `parse_dump_range` - description matches body's hex-digit accumulator
@@ -331,7 +331,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB0F8` `cmd_lex` - description matches body (already updated for the SEC-after-ROR ordering)
 - [x] `0xB21C` `print_chars_from_buf` - description matches body
 - [x] `0xB22C` `parse_filename_arg` - description had stale '&0E30' (pre-HAZEL); body's gsread_to_buf reads into hazel_parse_buf at &C030. Rewrote, also tightened gsread_to_buf's title/description
-- [x] `0xB310` `print_decimal_digit_no_spool` - description matches body
+- [x] `0xB310` `print_dec_digit_no_spool` - description matches body
 - [x] `0xB39E` `init_spool_drive` - description matches body
 - [x] `0xB483` `print_file_server_is` - description matches body
 - [x] `0xB48D` `print_printer_server_is` - description matches body
@@ -375,7 +375,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xB01A` `lang_2_save_palette_vdu` -- duplicate inlines for entire routine (B01A-B05D) collapsed; deliberate review block kept
 - [x] `0xB0A1` `cmd_cdir` -- deleted ~70-line stale 4.18 inline block at lines 14172-14240 (PS-scan / PS-template / print-station inlines) misapplied to addresses now in cmd_cdir/cmd_lcat/cmd_lex/cmd_ex/fscv_5_cat -- removed 59 dupe-inlines from the count
 - [x] `0xB2E4` `ex_print_col_sep` -- duplicate inline block at &B2E0..&B2F0 collapsed (10-line older block deleted)
-- [x] `0xB303` `print_decimal_3dig_no_spool` -- description matches body, no dupes -- confirmed clean
+- [x] `0xB303` `print_dec_3dig_no_spool` -- description matches body, no dupes -- confirmed clean
 - [x] `0xB338` `print_decimal_digit` -- description matches body; declared cmd_info_dispatch (&B357) as a new subroutine to fix the print_decimal_digit extent (was running into cmd_info_dispatch)
 - [x] `0xB6F3` `cmd_wipe` -- description claimed routine 'loops sending examine requests' (actually only the setup phase) and bogus 'falls through to flush_and_read_char'; rewrote to describe setup + fall-through to request_next_wipe; deduped 7 inline duplicates
 - [x] `0xB7CB` `prompt_yn` -- deleted misplaced 4.18 'Force lower-case' inline at &B7D1 (instruction no longer exists at that address) + dedupe

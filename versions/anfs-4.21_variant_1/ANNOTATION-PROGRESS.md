@@ -108,7 +108,7 @@ Higher-level routines (depth 1-7+):
   &A3C4 parse_fs_ps_args (full body, was just declaration)
   &AD40 tx_econet_abort     &AD64 netv_claim_release
   &ADD3 osword_8_handler
-  &B303 print_decimal_3dig_no_spool + &B310 _digit_no_spool (NEW
+  &B303 print_dec_3dig_no_spool + &B310 _digit_no_spool (NEW
         4.21 routines named & annotated)
   &BE01 print_dump_header   &BE42 parse_dump_range
   &BF78 open_file_for_read

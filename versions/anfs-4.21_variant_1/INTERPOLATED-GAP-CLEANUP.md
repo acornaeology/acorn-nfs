@@ -88,7 +88,7 @@ Status: `[ ]` todo, `[x]` done, `[~]` partial / blocked.
 | [x] | `&8FBB..&903B` | 35 | 25 | Tail of nfs_init_body and entry into `init_adlc_and_vectors`. |
 | [x] | `&A0CF..&A103` | 31 | full | osargs_store_ptr_lo dispatcher walked. Removed 5 stale comments at &A0FF/&A105/&A109/&A10E/&A110 and &A120 that landed on data bytes / wrong instructions. Added 19 instruction-level comments. The `cmos_attr_table` overlap with the JSR osbyte_a2 operand bytes is suspicious -- noted for the rename pass. |
 | [x] | `&A74D..&A7A0` | 32 | 5 | `cmd_table_fs` data tail — likely all data-banner-only now; verify. |
-| [x] | `&B2F5..&B326` | 27 | 27 | `print_decimal_digit_no_spool` and dividers. |
+| [x] | `&B2F5..&B326` | 27 | 27 | `print_dec_digit_no_spool` and dividers. |
 | [x] | `&928A..&92B2` | 23 | 23 | `print_inline_no_spool` body. |
 | [x] | `&8E71..&8E9C` | 20 | 18 | `noop_dey_rts`, `copy_template_to_zp` and friends. |
 | [x] | `&8B38..&8B5F` | 19 | 19 | `cmd_net_check_hw` / `select_fs_cmd_net_fs`. |

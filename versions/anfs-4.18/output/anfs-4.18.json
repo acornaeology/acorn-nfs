@@ -2872,7 +2872,7 @@
     },
     {
       "addr": 47322,
-      "name": "flush_fcb_if_station_known",
+      "name": "flush_fcb_if_stn_known",
       "title": "Flush FCB byte count to server if station is set",
       "description": "Saves all registers, checks if the FCB has a\nknown station. If yes, sends the accumulated byte\ncount as a flush request to the file server. If no\nstation is set, falls through to flush_fcb_with_init\nwhich saves FCB context first.",
       "on_entry": {
@@ -94807,9 +94807,9 @@
       "comment_inline": "Send directory request to server",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "flush_fcb_if_station_known",
+      "operand": "flush_fcb_if_stn_known",
       "target": 47322,
-      "target_label": "flush_fcb_if_station_known"
+      "target_label": "flush_fcb_if_stn_known"
     },
     {
       "addr": 46790,
@@ -97947,7 +97947,7 @@
         72
       ],
       "labels": [
-        "flush_fcb_if_station_known"
+        "flush_fcb_if_stn_known"
       ],
       "comment_inline": "Save A",
       "xref_summaries": [

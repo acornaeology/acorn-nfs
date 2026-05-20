@@ -455,8 +455,8 @@ enrichments).
 | 370 | &B2A3 | `copy_arg_validated` | kept | already accurate |
 | 371 | &B2CF | `mask_owner_access` | kept | already accurate |
 | 372 | &B2E4 | `ex_print_col_sep` | kept | already accurate |
-| 373 | &B303 | `print_decimal_3dig_no_spool` | kept | already accurate |
-| 374 | &B310 | `print_decimal_digit_no_spool` | kept | already accurate |
+| 373 | &B303 | `print_dec_3dig_no_spool` | kept | already accurate |
+| 374 | &B310 | `print_dec_digit_no_spool` | kept | already accurate |
 | 375 | &B327 | `print_num_no_leading` | kept | already accurate |
 | 376 | &B32A | `print_decimal_3dig` | kept | already accurate |
 | 377 | &B338 | `print_decimal_digit` | kept | already accurate |
@@ -512,7 +512,7 @@ enrichments).
 | 427 | &BB68 | `bgetv_handler` | kept | already accurate |
 | 428 | &BBE7 | `bputv_handler` | kept | already accurate |
 | 429 | &BC65 | `done_inc_byte_count` | kept | already accurate |
-| 430 | &BC74 | `flush_fcb_if_station_known` | kept | already accurate |
+| 430 | &BC74 | `flush_fcb_if_stn_known` | kept | already accurate |
 | 431 | &BC7C | `flush_fcb_with_init` | kept | already accurate |
 | 432 | &BCBC | `send_wipe_request` | kept | already accurate |
 | 433 | &BD15 | `send_and_receive` | kept | already accurate |

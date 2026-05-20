@@ -6576,7 +6576,7 @@ is at `&8DE6`.""",
 
 d.comment(0x9201, "Alt entry: save caller's flags BEFORE forcing V=0", align=Align.INLINE)
 d.comment(0x9202, "Force V=0 -> OSWRCH path at &9220 (raw byte)", align=Align.INLINE)
-d.label(0x9203, "save_regs_for_print_no_spool")
+d.label(0x9203, "save_regs_print_no_spool")
 
 d.comment(0x9203, "Save X", align=Align.INLINE)
 d.comment(0x9204, "Save Y", align=Align.INLINE)
@@ -10760,7 +10760,7 @@ d.comment(0xA0ED, "Load shift count from cmos_attr_table[X]", align=Align.INLINE
 d.comment(0xA0F0, "Value to X", align=Align.INLINE)
 d.comment(0xA0F1, "Caller's Y back to A as the value to shift", align=Align.INLINE)
 d.comment(0xA0F2, "Shift CMOS bits", align=Align.INLINE)
-d.label(0xA0F2, "loop_extract_attribute_bits")
+d.label(0xA0F2, "loop_extract_attr_bits")
 
 d.comment(0xA0F3, "Count down shift iterations", align=Align.INLINE)
 d.comment(0xA0F4, "Loop until X reaches 0", align=Align.INLINE)
@@ -12344,7 +12344,7 @@ The pushed byte is **not** consumed by `fsreply_2_copy_handles`
 itself — that routine only copies the per-handle table and uses
 `PHP`/`PLP` for its own Carry handling. The matching `PLA` lives
 much further down the boot chain, in
-[`boot_make_fs_permanent_maybe`](address:A71C) at `&A71C`, which
+[`boot_persist_fs_maybe`](address:A71C) at `&A71C`, which
 tests the recovered boot-type byte against `2` to decide whether
 to call OSBYTE `&6D`. Anyone following the stack across this
 fall-through should look past `fsreply_2_copy_handles` and
@@ -12359,7 +12359,7 @@ d.comment(0xA6DA, "Set boot-pending bit on fs_flags (TSB = test-and-set)", align
 d.comment(0xA6DD, "C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)", align=Align.INLINE)
 d.comment(0xA6DE, "Load boot-type byte from FS reply (hazel_txcb_result)", align=Align.INLINE)
 d.comment(0xA6E1, "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)", align=Align.INLINE)
-d.comment(0xA6E4, "Push boot-type byte (popped later by boot_make_fs_permanent_maybe at &A71C)", align=Align.INLINE)
+d.comment(0xA6E4, "Push boot-type byte (popped later by boot_persist_fs_maybe at &A71C)", align=Align.INLINE)
 d.label(0xA6E5, "fsreply_2_copy_handles")
 
 d.subroutine(
@@ -12380,7 +12380,7 @@ the calls: when Carry is clear on entry the routine returns via
 continues into the boot path at
 [`boot_try_findlib`](address:A70B), which OSCLIs
 `-NET-FindLib`, then falls into
-[`boot_make_fs_permanent_maybe`](address:A71C) (OSBYTE `&6D`
+[`boot_persist_fs_maybe`](address:A71C) (OSBYTE `&6D`
 when boot type ≥ 2), clears the auto-boot flag in
 [`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
 falls through to [`boot_select_cmd`](address:A75F) to execute the
@@ -12437,7 +12437,7 @@ d.subroutine(
 (the auto-CLI / auto-run-FindLib flag). If clear, returns
 immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
 (`-NET-FindLib<CR>`). Falls through to
-[`boot_make_fs_permanent_maybe`](address:A71C) in either case.
+[`boot_persist_fs_maybe`](address:A71C) in either case.
 
 #### Why the `-NET-` prefix
 
@@ -12482,7 +12482,7 @@ d.expr(0xA716, "<findlib_oscli_cmd")
 d.expr(0xA718, ">findlib_oscli_cmd")
 d.comment(0xA719, "OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)", align=Align.INLINE)
 d.comment(0xA71C, "Pop saved A", align=Align.INLINE)
-d.label(0xA71C, "boot_make_fs_permanent_maybe")
+d.label(0xA71C, "boot_persist_fs_maybe")
 
 d.comment(0xA71D, "Compare with 2", align=Align.INLINE)
 d.comment(0xA71F, "Below: skip making FS permanent", align=Align.INLINE)
@@ -12700,7 +12700,7 @@ d.comment(0xA845, "Above &14: not ours, return", align=Align.INLINE)
 d.comment(0xA847, "X=OSWORD handler index (0-6)", align=Align.INLINE)
 d.comment(0xA848, "Y=6: save 6 workspace bytes", align=Align.INLINE)
 d.comment(0xA84A, "Read svc_state[Y] (frame slot)", align=Align.INLINE)
-d.label(0xA84A, "loop_save_osword_workspace")
+d.label(0xA84A, "loop_save_osword_ws")
 
 d.comment(0xA84D, "Save on stack", align=Align.INLINE)
 d.comment(0xA84E, "Load OSWORD parameter byte", align=Align.INLINE)
@@ -12711,7 +12711,7 @@ d.label(0xA855, "osword_store_svc_state")
 
 d.comment(0xA857, "Set up dispatch and save state", align=Align.INLINE)
 d.comment(0xA85A, "Y=&FA: restore 6 workspace bytes", align=Align.INLINE)
-d.label(0xA85C, "loop_restore_osword_workspace")
+d.label(0xA85C, "loop_restore_osword_ws")
 
 
 d.comment(0xA85C, "Restore saved workspace byte", align=Align.INLINE)
@@ -12843,7 +12843,7 @@ d.label(0xA8E7, "save_txcb_done")
 
 d.comment(0xA8EA, "Y=7: copy 8 bytes (Y=7 down to 0)", align=Align.INLINE)
 d.comment(0xA8EC, "Load BCD byte from TXCB area (hazel_txcb_lib + Y)", align=Align.INLINE)
-d.label(0xA8EC, "loop_copy_pbytes_to_workspace")
+d.label(0xA8EC, "loop_copy_pbytes_to_ws")
 
 d.comment(0xA8EF, "Store to PB[Y]", align=Align.INLINE)
 d.comment(0xA8F1, "Decrement Y (advance backwards)", align=Align.INLINE)
@@ -15600,7 +15600,7 @@ d.comment(0xB2FD, "Loop until X wraps", align=Align.INLINE)
 d.comment(0xB303, "Y = value to convert (digits read off via successive divisions)", align=Align.INLINE)
 d.subroutine(
     0xB303,
-    "print_decimal_3dig_no_spool",
+    "print_dec_3dig_no_spool",
     title="Print 3-digit decimal via *SPOOL-bypassing print",
     description="As print_decimal_3dig (&B32A) but each digit is emitted via print_char_no_spool, which closes the *SPOOL handle around OSASCI so the digit doesn't appear in any active capture. Always prints all three digits (no leading-zero suppression).",
     on_entry={"a": "value 0-255"},
@@ -15617,7 +15617,7 @@ d.comment(
 d.comment(0xB310, "Stash divisor in fs_error_ptr (the SBC target below)", align=Align.INLINE)
 d.subroutine(
     0xB310,
-    "print_decimal_digit_no_spool",
+    "print_dec_digit_no_spool",
     title="Print one decimal digit, *SPOOL-bypassing",
     description="As print_decimal_digit (&B338) but emits via print_char_no_spool. fs_error_ptr is used as scratch storage for the divisor and is preserved across the print.",
     on_entry={"a": "divisor (100, 10, or 1)", "y": "value to divide"},
@@ -17670,7 +17670,7 @@ d.label(0xBB58, "done_advance_fcb")
 d.comment(0xBB58, "Previous FCB index", align=Align.INLINE)
 d.comment(0xBB5B, "More slots: continue loop", align=Align.INLINE)
 d.comment(0xBB5D, "X=8: restore 9 workspace bytes", align=Align.INLINE)
-d.label(0xBB5F, "loop_restore_fcb_workspace")
+d.label(0xBB5F, "loop_restore_fcb_ws")
 
 d.comment(0xBB5F, "Restore fs_block_offset", align=Align.INLINE)
 d.comment(0xBB60, "Restore workspace byte", align=Align.INLINE)
@@ -17853,7 +17853,7 @@ d.comment(0xBC70, "Restore channel attribute", align=Align.INLINE)
 d.comment(0xBC73, "Return", align=Align.INLINE)
 d.subroutine(
     0xBC74,
-    "flush_fcb_if_station_known",
+    "flush_fcb_if_stn_known",
     title="Flush FCB byte count to server if station is set",
     description="""Saves all registers, checks if the FCB has a
 known station. If yes, sends the accumulated byte

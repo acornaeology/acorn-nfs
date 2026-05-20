@@ -57,7 +57,7 @@ Status legend: ✅ verified accurate, 🔧 fixed, ⚠️ partial, ❌ replaced/g
 | &91FB | print_char_no_spool    | 🔧 | renamed from auto `c91fb`; A->OSASCI, BIT &9769 forces V=1 |
 | &9201 | print_byte_no_spool    | 🔧 | renamed from auto `sub_c9201`; A->OSWRCH (raw), CLV forces V=0 |
 | &9769 | always_set_v_byte      | 🔧 | named the &FF byte used by 21 BIT-test callers to set V |
-| &9203 | save_regs_for_print_no_spool | 🔧 | shared body label |
+| &9203 | save_regs_print_no_spool | 🔧 | shared body label |
 | &921D | do_print_no_spool      | 🔧 | OSASCI/OSWRCH branch point |
 | &9227 | print_via_oswrch       | 🔧 | OSWRCH branch label |
 | &922A | restore_spool_and_return | 🔧 | epilogue label |

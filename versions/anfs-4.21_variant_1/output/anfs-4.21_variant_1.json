@@ -2985,14 +2985,14 @@
       "addr": 42709,
       "name": "fsreply_1_boot",
       "title": "FS reply 1: flag boot pending, then fall into handle-copy",
-      "description": "Closes all network channels via\n[`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal\nboot-pending downstream, loads the boot-type byte from the FS\nreply ([`hazel_txcb_result`](address:C108)) into\n[`hazel_fs_flags`](address:C005), pushes it on the stack, and\nfalls through into [`fsreply_2_copy_handles`](address:A6E5).\n\nThe pushed byte is **not** consumed by `fsreply_2_copy_handles`\nitself \u2014 that routine only copies the per-handle table and uses\n`PHP`/`PLP` for its own Carry handling. The matching `PLA` lives\nmuch further down the boot chain, in\n[`boot_make_fs_permanent_maybe`](address:A71C) at `&A71C`, which\ntests the recovered boot-type byte against `2` to decide whether\nto call OSBYTE `&6D`. Anyone following the stack across this\nfall-through should look past `fsreply_2_copy_handles` and\n`boot_try_findlib` to find the pop.",
+      "description": "Closes all network channels via\n[`close_all_net_chans`](address:B8F8), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal\nboot-pending downstream, loads the boot-type byte from the FS\nreply ([`hazel_txcb_result`](address:C108)) into\n[`hazel_fs_flags`](address:C005), pushes it on the stack, and\nfalls through into [`fsreply_2_copy_handles`](address:A6E5).\n\nThe pushed byte is **not** consumed by `fsreply_2_copy_handles`\nitself \u2014 that routine only copies the per-handle table and uses\n`PHP`/`PLP` for its own Carry handling. The matching `PLA` lives\nmuch further down the boot chain, in\n[`boot_persist_fs_maybe`](address:A71C) at `&A71C`, which\ntests the recovered boot-type byte against `2` to decide whether\nto call OSBYTE `&6D`. Anyone following the stack across this\nfall-through should look past `fsreply_2_copy_handles` and\n`boot_try_findlib` to find the pop.",
       "fall_through": true
     },
     {
       "addr": 42725,
       "name": "fsreply_2_copy_handles",
       "title": "FS reply 2: install handles and (optionally) boot",
-      "description": "Records the file-server / printer-server / library handles from\nthe I-AM reply into the station table by calling\n[`find_station_bit2`](address:A644),\n[`find_station_bit3`](address:A66F), and\n[`flip_set_station_boot`](address:A6A6) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](address:C105),\n[`hazel_txcb_flag`](address:C106),\n[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](address:9FB4); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](address:A70B), which OSCLIs\n`-NET-FindLib`, then falls into\n[`boot_make_fs_permanent_maybe`](address:A71C) (OSBYTE `&6D`\nwhen boot type \u2265 2), clears the auto-boot flag in\n[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)\nfalls through to [`boot_select_cmd`](address:A75F) to execute the\n`!Boot` command.\n\nTwo entry contracts:\n\n- **Direct dispatch** via the FS-reply table entry at `&2C` \u2014\n  the dispatcher arrives with Carry clear, so `BCS` at `&A6F9`\n  is not taken and the routine exits via\n  `JMP return_with_last_flag` without ever reaching the `PLA`\n  at `&A71C`. The stack contract is satisfied trivially.\n- **Fall-through from [`fsreply_1_boot`](address:A6D5)** \u2014\n  fsreply_1_boot pushes A (the boot-type byte) and `SEC`s\n  before falling in, so `BCS` is taken and the boot path runs;\n  the `PLA` at `&A71C` then pops the boot-type byte cleanly.\n\nDirect dispatch with Carry set is not part of the contract;\nthe boot path requires the pre-pushed A from fsreply_1_boot.",
+      "description": "Records the file-server / printer-server / library handles from\nthe I-AM reply into the station table by calling\n[`find_station_bit2`](address:A644),\n[`find_station_bit3`](address:A66F), and\n[`flip_set_station_boot`](address:A6A6) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](address:C105),\n[`hazel_txcb_flag`](address:C106),\n[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](address:9FB4); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](address:A70B), which OSCLIs\n`-NET-FindLib`, then falls into\n[`boot_persist_fs_maybe`](address:A71C) (OSBYTE `&6D`\nwhen boot type \u2265 2), clears the auto-boot flag in\n[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)\nfalls through to [`boot_select_cmd`](address:A75F) to execute the\n`!Boot` command.\n\nTwo entry contracts:\n\n- **Direct dispatch** via the FS-reply table entry at `&2C` \u2014\n  the dispatcher arrives with Carry clear, so `BCS` at `&A6F9`\n  is not taken and the routine exits via\n  `JMP return_with_last_flag` without ever reaching the `PLA`\n  at `&A71C`. The stack contract is satisfied trivially.\n- **Fall-through from [`fsreply_1_boot`](address:A6D5)** \u2014\n  fsreply_1_boot pushes A (the boot-type byte) and `SEC`s\n  before falling in, so `BCS` is taken and the boot path runs;\n  the `PLA` at `&A71C` then pops the boot-type byte cleanly.\n\nDirect dispatch with Carry set is not part of the contract;\nthe boot path requires the pre-pushed A from fsreply_1_boot.",
       "on_entry": {
         "a": "boot-type byte (pushed by fsreply_1_boot when arriving via fall-through; ignored on direct-dispatch C-clear path)",
         "carry": "set when boot processing should follow (only legal via fsreply_1_boot fall-through)"
@@ -3002,7 +3002,7 @@
       "addr": 42763,
       "name": "boot_try_findlib",
       "title": "If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
-      "description": "Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1\n(the auto-CLI / auto-run-FindLib flag). If clear, returns\nimmediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)\n(`-NET-FindLib<CR>`). Falls through to\n[`boot_make_fs_permanent_maybe`](address:A71C) in either case.\n\n#### Why the `-NET-` prefix\n\n`-NET-` is MOS's hyphen-bracketed filing-system selector. The\ngeneral form `-FS-COMMAND` makes `FS` the temporary *active* FS\nfor this OSCLI without touching the currently-selected default,\nthen parses `COMMAND`. If `COMMAND` matches an internal MOS\ncommand it runs normally; on the unknown-command fallthrough\nthe temp-FS bit suppresses the service-4 ROM broadcast and\ndispatches via FSCV,3 directly to the selected FS. `NET` is\nthe short name registered by the NFS / ANFS ROM (others\nregister `DISC`, `ADFS`, `TAPE`).\n\nNFS is already the current FS by the time this code runs.\n[`svc_3_autoboot`](address:8CC7) selects it via\n[`select_fs_via_cmd_net_fs`](address:8B52) before the\nsynchronous `*I AM` exchange on the cold-boot path, and the\nuser-typed `*I AM` route requires `*NET` first because `*I AM`\nis itself an NFS `*` command.\n\nThe prefix therefore provides defensive routing, not FS\nselection. A plain `*FindLib` would broadcast service-4 to all\nsideways ROMs before falling through to FSCV,3, exposing the\ncommand to interception by any ROM that has claimed `FindLib`\n(including by abbreviation). The `-NET-` form sets the temp-FS\nbit, which suppresses the broadcast and dispatches via FSCV,3\ndirectly to NFS, so the lookup deterministically hits NFS's\n`*RUN`-from-library path.\n\nThe same routing is used by\n[`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and\n[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`).",
+      "description": "Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1\n(the auto-CLI / auto-run-FindLib flag). If clear, returns\nimmediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)\n(`-NET-FindLib<CR>`). Falls through to\n[`boot_persist_fs_maybe`](address:A71C) in either case.\n\n#### Why the `-NET-` prefix\n\n`-NET-` is MOS's hyphen-bracketed filing-system selector. The\ngeneral form `-FS-COMMAND` makes `FS` the temporary *active* FS\nfor this OSCLI without touching the currently-selected default,\nthen parses `COMMAND`. If `COMMAND` matches an internal MOS\ncommand it runs normally; on the unknown-command fallthrough\nthe temp-FS bit suppresses the service-4 ROM broadcast and\ndispatches via FSCV,3 directly to the selected FS. `NET` is\nthe short name registered by the NFS / ANFS ROM (others\nregister `DISC`, `ADFS`, `TAPE`).\n\nNFS is already the current FS by the time this code runs.\n[`svc_3_autoboot`](address:8CC7) selects it via\n[`select_fs_via_cmd_net_fs`](address:8B52) before the\nsynchronous `*I AM` exchange on the cold-boot path, and the\nuser-typed `*I AM` route requires `*NET` first because `*I AM`\nis itself an NFS `*` command.\n\nThe prefix therefore provides defensive routing, not FS\nselection. A plain `*FindLib` would broadcast service-4 to all\nsideways ROMs before falling through to FSCV,3, exposing the\ncommand to interception by any ROM that has claimed `FindLib`\n(including by abbreviation). The `-NET-` form sets the temp-FS\nbit, which suppresses the broadcast and dispatches via FSCV,3\ndirectly to NFS, so the lookup deterministically hits NFS's\n`*RUN`-from-library path.\n\nThe same routing is used by\n[`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and\n[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`).",
       "fall_through": true
     },
     {
@@ -3727,7 +3727,7 @@
     },
     {
       "addr": 45827,
-      "name": "print_decimal_3dig_no_spool",
+      "name": "print_dec_3dig_no_spool",
       "title": "Print 3-digit decimal via *SPOOL-bypassing print",
       "description": "As print_decimal_3dig (&B32A) but each digit is emitted via print_char_no_spool, which closes the *SPOOL handle around OSASCI so the digit doesn't appear in any active capture. Always prints all three digits (no leading-zero suppression).",
       "on_entry": {
@@ -3737,7 +3737,7 @@
     },
     {
       "addr": 45840,
-      "name": "print_decimal_digit_no_spool",
+      "name": "print_dec_digit_no_spool",
       "title": "Print one decimal digit, *SPOOL-bypassing",
       "description": "As print_decimal_digit (&B338) but emits via print_char_no_spool. fs_error_ptr is used as scratch storage for the divisor and is preserved across the print.",
       "on_entry": {
@@ -4303,7 +4303,7 @@
     },
     {
       "addr": 48244,
-      "name": "flush_fcb_if_station_known",
+      "name": "flush_fcb_if_stn_known",
       "title": "Flush FCB byte count to server if station is set",
       "description": "Saves all registers, checks if the FCB has a\nknown station. If yes, sends the accumulated byte\ncount as a flush request to the file server. If no\nstation is set, falls through to flush_fcb_with_init\nwhich saves FCB context first.",
       "on_entry": {
@@ -35392,9 +35392,9 @@
       "comment_inline": "V=1 always, branch always taken (skips the CLV path)",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "save_regs_for_print_no_spool",
+      "operand": "save_regs_print_no_spool",
       "target": 37379,
-      "target_label": "save_regs_for_print_no_spool"
+      "target_label": "save_regs_print_no_spool"
     },
     {
       "addr": 37377,
@@ -35430,7 +35430,7 @@
         218
       ],
       "labels": [
-        "save_regs_for_print_no_spool"
+        "save_regs_print_no_spool"
       ],
       "comment_inline": "Save X",
       "xref_summaries": [
@@ -60548,7 +60548,7 @@
         10
       ],
       "labels": [
-        "loop_extract_attribute_bits"
+        "loop_extract_attr_bits"
       ],
       "comment_inline": "Shift CMOS bits",
       "xref_summaries": [
@@ -60578,9 +60578,9 @@
       "comment_inline": "Loop until X reaches 0",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_extract_attribute_bits",
+      "operand": "loop_extract_attr_bits",
       "target": 41202,
-      "target_label": "loop_extract_attribute_bits"
+      "target_label": "loop_extract_attr_bits"
     },
     {
       "addr": 41206,
@@ -70395,7 +70395,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Push boot-type byte (popped later by boot_make_fs_permanent_maybe at &A71C)",
+      "comment_inline": "Push boot-type byte (popped later by boot_persist_fs_maybe at &A71C)",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -70626,9 +70626,9 @@
       "comment_inline": "Bit clear: skip auto-CLI",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_make_fs_permanent_maybe",
+      "operand": "boot_persist_fs_maybe",
       "target": 42780,
-      "target_label": "boot_make_fs_permanent_maybe"
+      "target_label": "boot_persist_fs_maybe"
     },
     {
       "addr": 42773,
@@ -70670,7 +70670,7 @@
         104
       ],
       "labels": [
-        "boot_make_fs_permanent_maybe"
+        "boot_persist_fs_maybe"
       ],
       "comment_inline": "Pop saved A",
       "xref_summaries": [
@@ -72433,7 +72433,7 @@
         0
       ],
       "labels": [
-        "loop_save_osword_workspace"
+        "loop_save_osword_ws"
       ],
       "comment_inline": "Read svc_state[Y] (frame slot)",
       "xref_summaries": [
@@ -72512,9 +72512,9 @@
       ],
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_save_osword_workspace",
+      "operand": "loop_save_osword_ws",
       "target": 43082,
-      "target_label": "loop_save_osword_workspace"
+      "target_label": "loop_save_osword_ws"
     },
     {
       "addr": 43095,
@@ -72547,7 +72547,7 @@
         104
       ],
       "labels": [
-        "loop_restore_osword_workspace"
+        "loop_restore_osword_ws"
       ],
       "comment_inline": "Restore saved workspace byte",
       "xref_summaries": [
@@ -72591,9 +72591,9 @@
       "comment_inline": "Loop until all 6 restored",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_restore_osword_workspace",
+      "operand": "loop_restore_osword_ws",
       "target": 43100,
-      "target_label": "loop_restore_osword_workspace"
+      "target_label": "loop_restore_osword_ws"
     },
     {
       "addr": 43107,
@@ -73427,7 +73427,7 @@
         193
       ],
       "labels": [
-        "loop_copy_pbytes_to_workspace"
+        "loop_copy_pbytes_to_ws"
       ],
       "comment_inline": "Load BCD byte from TXCB area (hazel_txcb_lib + Y)",
       "xref_summaries": [
@@ -73473,9 +73473,9 @@
       "comment_inline": "Loop until Y wraps",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_copy_pbytes_to_workspace",
+      "operand": "loop_copy_pbytes_to_ws",
       "target": 43244,
-      "target_label": "loop_copy_pbytes_to_workspace"
+      "target_label": "loop_copy_pbytes_to_ws"
     },
     {
       "addr": 43252,
@@ -88766,9 +88766,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "print_decimal_3dig_no_spool",
+      "operand": "print_dec_3dig_no_spool",
       "target": 45827,
-      "target_label": "print_decimal_3dig_no_spool"
+      "target_label": "print_dec_3dig_no_spool"
     },
     {
       "addr": 45410,
@@ -91315,7 +91315,7 @@
         168
       ],
       "labels": [
-        "print_decimal_3dig_no_spool"
+        "print_dec_3dig_no_spool"
       ],
       "comment_inline": "Y = value to convert (digits read off via successive divisions)",
       "xref_summaries": [
@@ -91348,9 +91348,9 @@
       "comment_inline": "Print hundreds digit",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "print_decimal_digit_no_spool",
+      "operand": "print_dec_digit_no_spool",
       "target": 45840,
-      "target_label": "print_decimal_digit_no_spool"
+      "target_label": "print_dec_digit_no_spool"
     },
     {
       "addr": 45833,
@@ -91373,9 +91373,9 @@
       "comment_inline": "Print tens digit",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "print_decimal_digit_no_spool",
+      "operand": "print_dec_digit_no_spool",
       "target": 45840,
-      "target_label": "print_decimal_digit_no_spool"
+      "target_label": "print_dec_digit_no_spool"
     },
     {
       "addr": 45838,
@@ -91395,7 +91395,7 @@
         184
       ],
       "labels": [
-        "print_decimal_digit_no_spool"
+        "print_dec_digit_no_spool"
       ],
       "comment_inline": "Stash divisor in fs_error_ptr (the SBC target below)",
       "xref_summaries": [
@@ -103353,9 +103353,9 @@
       "comment_inline": "Command byte = 0",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "flush_fcb_if_station_known",
+      "operand": "flush_fcb_if_stn_known",
       "target": 48244,
-      "target_label": "flush_fcb_if_station_known"
+      "target_label": "flush_fcb_if_stn_known"
     },
     {
       "addr": 47717,
@@ -104932,7 +104932,7 @@
         104
       ],
       "labels": [
-        "loop_restore_fcb_workspace"
+        "loop_restore_fcb_ws"
       ],
       "comment_inline": "Restore fs_block_offset",
       "xref_summaries": [
@@ -104975,9 +104975,9 @@
       "comment_inline": "More bytes: continue restoring",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "loop_restore_fcb_workspace",
+      "operand": "loop_restore_fcb_ws",
       "target": 47967,
-      "target_label": "loop_restore_fcb_workspace"
+      "target_label": "loop_restore_fcb_ws"
     },
     {
       "addr": 47973,
@@ -106451,7 +106451,7 @@
         72
       ],
       "labels": [
-        "flush_fcb_if_station_known"
+        "flush_fcb_if_stn_known"
       ],
       "comment_inline": "Save A",
       "xref_summaries": [
