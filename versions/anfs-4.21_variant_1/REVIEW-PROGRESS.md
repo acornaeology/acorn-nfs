@@ -116,7 +116,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x9255` `print_hex_nybble_no_spool` - description matches body; tail-jumps to print_char_no_spool
 - [x] `0x9261` `print_inline` - description matches high-bit-terminated string protocol
 - [x] `0x9269` `loop_next_char` - description matches body's INC lo / on-zero INC hi pointer advance
-- [x] `0x939A` `is_decimal_digit` - description claimed return_12 was the shared exit but the actual label is return_from_digit_test (return_12 is a stale auto-name); fixed
+- [x] `0x939A` `is_decimal_digit` - description claimed return_12 was the shared exit but the actual label is rts_digit_test (return_12 is a stale auto-name); fixed
 - [x] `0x93A2` `is_dec_digit_only` - description matches body's CMP #&3A / CMP #&30 bracket test
 - [x] `0x93AB` `get_access_bits` - description matches body
 - [x] `0x93B5` `get_prot_bits` - description matches body

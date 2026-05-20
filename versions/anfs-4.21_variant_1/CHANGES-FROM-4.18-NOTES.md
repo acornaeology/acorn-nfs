@@ -147,7 +147,7 @@ in 4.18 use direct PHX / PHY in 4.21. Examples:
 ### Removed code (vs 4.08.53 carry forward)
 4.18 already had these removed; 4.21 inherits the absence:
 - loop_copy_osword_flag (the OSWORD copy-back loop)
-- return_from_flush_read
+- rts_flush_read
 - unused_clear_ws_78
 - The dead code at 4.18 &B42F is gone in 4.21 too.
 

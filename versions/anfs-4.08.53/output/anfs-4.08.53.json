@@ -9562,9 +9562,9 @@
       "comment_inline": "No Tube transfer active -- skip release",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_discard_reset",
+      "operand": "rts_discard_reset",
       "target": 33797,
-      "target_label": "return_from_discard_reset"
+      "target_label": "rts_discard_reset"
     },
     {
       "addr": 33794,
@@ -9586,7 +9586,7 @@
         96
       ],
       "labels": [
-        "return_from_discard_reset"
+        "rts_discard_reset"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -11556,9 +11556,9 @@
       "comment_inline": "No overflow: done",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_advance_buf",
+      "operand": "rts_advance_buf",
       "target": 34099,
-      "target_label": "return_from_advance_buf"
+      "target_label": "rts_advance_buf"
     },
     {
       "addr": 34089,
@@ -11582,9 +11582,9 @@
       "comment_inline": "No overflow: done",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_advance_buf",
+      "operand": "rts_advance_buf",
       "target": 34099,
-      "target_label": "return_from_advance_buf"
+      "target_label": "rts_advance_buf"
     },
     {
       "addr": 34093,
@@ -11608,9 +11608,9 @@
       "comment_inline": "No overflow: done",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_advance_buf",
+      "operand": "rts_advance_buf",
       "target": 34099,
-      "target_label": "return_from_advance_buf"
+      "target_label": "rts_advance_buf"
     },
     {
       "addr": 34097,
@@ -11631,7 +11631,7 @@
         96
       ],
       "labels": [
-        "return_from_advance_buf"
+        "rts_advance_buf"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -21925,7 +21925,7 @@
         96
       ],
       "labels": [
-        "return_from_save_text_ptr"
+        "rts_save_text_ptr"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -21961,9 +21961,9 @@
       "comment_inline": "No: not ours, return unclaimed",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_save_text_ptr",
+      "operand": "rts_save_text_ptr",
       "target": 35588,
-      "target_label": "return_from_save_text_ptr"
+      "target_label": "rts_save_text_ptr"
     },
     {
       "addr": 35593,
@@ -21988,9 +21988,9 @@
       "comment_inline": "Yes (bit 7 set): return unclaimed",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "return_from_save_text_ptr",
+      "operand": "rts_save_text_ptr",
       "target": 35588,
-      "target_label": "return_from_save_text_ptr"
+      "target_label": "rts_save_text_ptr"
     },
     {
       "addr": 35598,
@@ -23873,9 +23873,9 @@
       "comment_inline": "Stream 0 (VDU): no wrapping",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_help_wrap",
+      "operand": "rts_help_wrap",
       "target": 35906,
-      "target_label": "return_from_help_wrap"
+      "target_label": "rts_help_wrap"
     },
     {
       "addr": 35885,
@@ -23897,9 +23897,9 @@
       "comment_inline": "Yes: no wrapping",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_help_wrap",
+      "operand": "rts_help_wrap",
       "target": 35906,
-      "target_label": "return_from_help_wrap"
+      "target_label": "rts_help_wrap"
     },
     {
       "addr": 35889,
@@ -24022,7 +24022,7 @@
         96
       ],
       "labels": [
-        "return_from_help_wrap"
+        "rts_help_wrap"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -24759,7 +24759,7 @@
         96
       ],
       "labels": [
-        "return_from_setup_ws_ptr"
+        "rts_setup_ws_ptr"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -24982,9 +24982,9 @@
       "comment_inline": "Non-zero: already initialised, return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_setup_ws_ptr",
+      "operand": "rts_setup_ws_ptr",
       "target": 36030,
-      "target_label": "return_from_setup_ws_ptr"
+      "target_label": "rts_setup_ws_ptr"
     },
     {
       "addr": 36066,
@@ -25361,9 +25361,9 @@
       "comment_inline": "No: keyword not fully matched, return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_credits_check",
+      "operand": "rts_credits_check",
       "target": 36140,
-      "target_label": "return_from_credits_check"
+      "target_label": "rts_credits_check"
     },
     {
       "addr": 36127,
@@ -25408,9 +25408,9 @@
       "comment_inline": "Zero terminator: done printing",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_credits_check",
+      "operand": "rts_credits_check",
       "target": 36140,
-      "target_label": "return_from_credits_check"
+      "target_label": "rts_credits_check"
     },
     {
       "addr": 36134,
@@ -25453,7 +25453,7 @@
         96
       ],
       "labels": [
-        "return_from_credits_check"
+        "rts_credits_check"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -26621,9 +26621,9 @@
       "comment_inline": "Different: return without clearing",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_station_match",
+      "operand": "rts_station_match",
       "target": 36361,
-      "target_label": "return_from_station_match"
+      "target_label": "rts_station_match"
     },
     {
       "addr": 36358,
@@ -26645,7 +26645,7 @@
         96
       ],
       "labels": [
-        "return_from_station_match"
+        "rts_station_match"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -27518,9 +27518,9 @@
       "comment_inline": "No: not ours, return unclaimed",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_svc_1_workspace",
+      "operand": "rts_svc_1_workspace",
       "target": 36501,
-      "target_label": "return_from_svc_1_workspace"
+      "target_label": "rts_svc_1_workspace"
     },
     {
       "addr": 36484,
@@ -27612,9 +27612,9 @@
       "comment_inline": "Already enough: return",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_svc_1_workspace",
+      "operand": "rts_svc_1_workspace",
       "target": 36501,
-      "target_label": "return_from_svc_1_workspace"
+      "target_label": "rts_svc_1_workspace"
     },
     {
       "addr": 36499,
@@ -27633,7 +27633,7 @@
         96
       ],
       "labels": [
-        "return_from_svc_1_workspace"
+        "rts_svc_1_workspace"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -29174,9 +29174,9 @@
       "comment_inline": "No (bit 7 clear): return",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_fs_shutdown",
+      "operand": "rts_fs_shutdown",
       "target": 36785,
-      "target_label": "return_from_fs_shutdown"
+      "target_label": "rts_fs_shutdown"
     },
     {
       "addr": 36741,
@@ -29453,7 +29453,7 @@
         96
       ],
       "labels": [
-        "return_from_fs_shutdown"
+        "rts_fs_shutdown"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -32619,9 +32619,9 @@
       "comment_inline": "Yes: return C set (not decimal)",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_digit_test",
+      "operand": "rts_digit_test",
       "target": 37458,
-      "target_label": "return_from_digit_test"
+      "target_label": "rts_digit_test"
     },
     {
       "addr": 37448,
@@ -32643,9 +32643,9 @@
       "comment_inline": "Yes: return C set (not decimal)",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_digit_test",
+      "operand": "rts_digit_test",
       "target": 37458,
-      "target_label": "return_from_digit_test"
+      "target_label": "rts_digit_test"
     },
     {
       "addr": 37452,
@@ -32697,7 +32697,7 @@
         96
       ],
       "labels": [
-        "return_from_digit_test"
+        "rts_digit_test"
       ],
       "comment_inline": "Return: C set if '0'-'9'",
       "xref_summaries": [
@@ -33330,9 +33330,9 @@
       "comment_inline": "Mismatch: return Z=0",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_cmp_handle",
+      "operand": "rts_cmp_handle",
       "target": 37531,
-      "target_label": "return_from_cmp_handle"
+      "target_label": "rts_cmp_handle"
     },
     {
       "addr": 37528,
@@ -33362,7 +33362,7 @@
         96
       ],
       "labels": [
-        "return_from_cmp_handle"
+        "rts_cmp_handle"
       ],
       "comment_inline": "Return: Z=1 if all 5 matched",
       "xref_summaries": [
@@ -34371,7 +34371,7 @@
         96
       ],
       "labels": [
-        "return_from_copy_cmd_name"
+        "rts_copy_cmd_name"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -34738,9 +34738,9 @@
       "comment_inline": "Balanced: return OK",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_copy_cmd_name",
+      "operand": "rts_copy_cmd_name",
       "target": 37684,
-      "target_label": "return_from_copy_cmd_name"
+      "target_label": "rts_copy_cmd_name"
     },
     {
       "addr": 37739,
@@ -37198,9 +37198,9 @@
       "comment_inline": "Zero: no more replies, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_recv_reply",
+      "operand": "rts_recv_reply",
       "target": 38128,
-      "target_label": "return_from_recv_reply"
+      "target_label": "rts_recv_reply"
     },
     {
       "addr": 38122,
@@ -37254,7 +37254,7 @@
         96
       ],
       "labels": [
-        "return_from_recv_reply"
+        "rts_recv_reply"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -37968,9 +37968,9 @@
       "comment_inline": "No escape: return",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_recv_reply",
+      "operand": "rts_recv_reply",
       "target": 38128,
-      "target_label": "return_from_recv_reply"
+      "target_label": "rts_recv_reply"
     },
     {
       "addr": 38240,
@@ -38969,9 +38969,9 @@
       "comment_inline": "Bit 7 clear: skip save",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_cond_save_err",
+      "operand": "rts_cond_save_err",
       "target": 38403,
-      "target_label": "return_from_cond_save_err"
+      "target_label": "rts_cond_save_err"
     },
     {
       "addr": 38400,
@@ -38993,7 +38993,7 @@
         96
       ],
       "labels": [
-        "return_from_cond_save_err"
+        "rts_cond_save_err"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -41701,9 +41701,9 @@
       "comment_inline": "V set (suppress leading zeros): skip",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "return_from_store_digit",
+      "operand": "rts_store_digit",
       "target": 38807,
-      "target_label": "return_from_store_digit"
+      "target_label": "rts_store_digit"
     },
     {
       "addr": 38799,
@@ -41769,7 +41769,7 @@
         96
       ],
       "labels": [
-        "return_from_store_digit"
+        "rts_store_digit"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -44972,9 +44972,9 @@
       "comment_inline": "Match: no need to send, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_txcb_swap",
+      "operand": "rts_txcb_swap",
       "target": 39342,
-      "target_label": "return_from_txcb_swap"
+      "target_label": "rts_txcb_swap"
     },
     {
       "addr": 39305,
@@ -45230,7 +45230,7 @@
         96
       ],
       "labels": [
-        "return_from_txcb_swap"
+        "rts_txcb_swap"
       ],
       "comment_inline": "Return (all bytes match)",
       "xref_summaries": [
@@ -46022,9 +46022,9 @@
       "comment_inline": "Zero: skip display, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_advance_y",
+      "operand": "rts_advance_y",
       "target": 39537,
-      "target_label": "return_from_advance_y"
+      "target_label": "rts_advance_y"
     },
     {
       "addr": 39466,
@@ -46517,7 +46517,7 @@
         96
       ],
       "labels": [
-        "return_from_advance_y"
+        "rts_advance_y"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -57098,9 +57098,9 @@
       "comment_inline": "In range: return",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "return_from_2bit_index",
+      "operand": "rts_2bit_index",
       "target": 41163,
-      "target_label": "return_from_2bit_index"
+      "target_label": "rts_2bit_index"
     },
     {
       "addr": 41160,
@@ -57128,7 +57128,7 @@
         96
       ],
       "labels": [
-        "return_from_2bit_index"
+        "rts_2bit_index"
       ],
       "comment_inline": "Return with A=index, Y=index",
       "xref_summaries": [
@@ -63719,9 +63719,9 @@
       "comment_inline": "Below &0E: not ours, return",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "return_from_osword_setup",
+      "operand": "rts_osword_setup",
       "target": 42247,
-      "target_label": "return_from_osword_setup"
+      "target_label": "rts_osword_setup"
     },
     {
       "addr": 42205,
@@ -63743,9 +63743,9 @@
       "comment_inline": "Above &14: not ours, return",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_osword_setup",
+      "operand": "rts_osword_setup",
       "target": 42247,
-      "target_label": "return_from_osword_setup"
+      "target_label": "rts_osword_setup"
     },
     {
       "addr": 42209,
@@ -64013,7 +64013,7 @@
         96
       ],
       "labels": [
-        "return_from_osword_setup"
+        "rts_osword_setup"
       ],
       "comment_inline": "RTS dispatches to pushed handler",
       "xref_summaries": [
@@ -64063,7 +64063,7 @@
         6
       ],
       "expressions": [
-        "<(return_from_osword_setup-1)"
+        "<(rts_osword_setup-1)"
       ]
     },
     {
@@ -64170,7 +64170,7 @@
         165
       ],
       "expressions": [
-        ">(return_from_osword_setup-1)"
+        ">(rts_osword_setup-1)"
       ]
     },
     {
@@ -64278,9 +64278,9 @@
       "comment_inline": "Not active: just return",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_osword_0e",
+      "operand": "rts_osword_0e",
       "target": 42277,
-      "target_label": "return_from_osword_0e"
+      "target_label": "rts_osword_0e"
     },
     {
       "addr": 42268,
@@ -64345,7 +64345,7 @@
         96
       ],
       "labels": [
-        "return_from_osword_0e"
+        "rts_osword_0e"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -66147,9 +66147,9 @@
       "comment_inline": "Out of range: return",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_osword_13",
+      "operand": "rts_osword_13",
       "target": 42558,
-      "target_label": "return_from_osword_13"
+      "target_label": "rts_osword_13"
     },
     {
       "addr": 42550,
@@ -66203,7 +66203,7 @@
         96
       ],
       "labels": [
-        "return_from_osword_13"
+        "rts_osword_13"
       ],
       "comment_inline": "RTS dispatches to handler",
       "xref_summaries": [
@@ -68078,9 +68078,9 @@
       "comment_inline": "Different: leave unchanged",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_write_ws_pair",
+      "operand": "rts_write_ws_pair",
       "target": 42794,
-      "target_label": "return_from_write_ws_pair"
+      "target_label": "rts_write_ws_pair"
     },
     {
       "addr": 42792,
@@ -68101,7 +68101,7 @@
         96
       ],
       "labels": [
-        "return_from_write_ws_pair"
+        "rts_write_ws_pair"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -70040,9 +70040,9 @@
       "comment_inline": "Different: return unchanged",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_bridge_query",
+      "operand": "rts_bridge_query",
       "target": 43087,
-      "target_label": "return_from_bridge_query"
+      "target_label": "rts_bridge_query"
     },
     {
       "addr": 43080,
@@ -70108,7 +70108,7 @@
         96
       ],
       "labels": [
-        "return_from_bridge_query"
+        "rts_bridge_query"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -70393,9 +70393,9 @@
       "comment_inline": "No: bridge already active, return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_bridge_poll",
+      "operand": "rts_bridge_poll",
       "target": 43215,
-      "target_label": "return_from_bridge_poll"
+      "target_label": "rts_bridge_poll"
     },
     {
       "addr": 43119,
@@ -71007,9 +71007,9 @@
       "comment_inline": "Status was &FF: return (no bridge)",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_bridge_poll",
+      "operand": "rts_bridge_poll",
       "target": 43215,
-      "target_label": "return_from_bridge_poll"
+      "target_label": "rts_bridge_poll"
     },
     {
       "addr": 43214,
@@ -71026,7 +71026,7 @@
         96
       ],
       "labels": [
-        "return_from_bridge_poll"
+        "rts_bridge_poll"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -71091,9 +71091,9 @@
       "comment_inline": "Not active: return",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_bridge_poll",
+      "operand": "rts_bridge_poll",
       "target": 43215,
-      "target_label": "return_from_bridge_poll"
+      "target_label": "rts_bridge_poll"
     },
     {
       "addr": 43225,
@@ -71809,9 +71809,9 @@
       "comment_inline": "Zero: end of data, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_bridge_poll",
+      "operand": "rts_bridge_poll",
       "target": 43215,
-      "target_label": "return_from_bridge_poll"
+      "target_label": "rts_bridge_poll"
     },
     {
       "addr": 43333,
@@ -73121,9 +73121,9 @@
       "comment_inline": "Zero: not found, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_claim_release",
+      "operand": "rts_claim_release",
       "target": 43555,
-      "target_label": "return_from_claim_release"
+      "target_label": "rts_claim_release"
     },
     {
       "addr": 43502,
@@ -73285,9 +73285,9 @@
       "comment_inline": "Positive: return without poll",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "return_from_claim_release",
+      "operand": "rts_claim_release",
       "target": 43555,
-      "target_label": "return_from_claim_release"
+      "target_label": "rts_claim_release"
     },
     {
       "addr": 43525,
@@ -73509,7 +73509,7 @@
         96
       ],
       "labels": [
-        "return_from_claim_release"
+        "rts_claim_release"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -73556,9 +73556,9 @@
       "comment_inline": "Match: return with Z set",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_match_rx_code",
+      "operand": "rts_match_rx_code",
       "target": 43564,
-      "target_label": "return_from_match_rx_code"
+      "target_label": "rts_match_rx_code"
     },
     {
       "addr": 43561,
@@ -73588,7 +73588,7 @@
         96
       ],
       "labels": [
-        "return_from_match_rx_code"
+        "rts_match_rx_code"
       ],
       "comment_inline": "Return (Z clear = not found)",
       "xref_summaries": [
@@ -73869,9 +73869,9 @@
       "comment_inline": "No: return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_match_rx_code",
+      "operand": "rts_match_rx_code",
       "target": 43564,
-      "target_label": "return_from_match_rx_code"
+      "target_label": "rts_match_rx_code"
     },
     {
       "addr": 43593,
@@ -74988,9 +74988,9 @@
       "comment_inline": "No: return (not our PB)",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_spool_reset",
+      "operand": "rts_spool_reset",
       "target": 43738,
-      "target_label": "return_from_spool_reset"
+      "target_label": "rts_spool_reset"
     },
     {
       "addr": 43723,
@@ -75023,9 +75023,9 @@
       "comment_inline": "C=1: already active, return",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_spool_reset",
+      "operand": "rts_spool_reset",
       "target": 43738,
-      "target_label": "return_from_spool_reset"
+      "target_label": "rts_spool_reset"
     },
     {
       "addr": 43728,
@@ -75093,7 +75093,7 @@
         96
       ],
       "labels": [
-        "return_from_spool_reset"
+        "rts_spool_reset"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -75131,9 +75131,9 @@
       "comment_inline": "No: return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_spool_reset",
+      "operand": "rts_spool_reset",
       "target": 43738,
-      "target_label": "return_from_spool_reset"
+      "target_label": "rts_spool_reset"
     },
     {
       "addr": 43743,
@@ -75258,9 +75258,9 @@
       "comment_inline": "C=1: buffer empty, return",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "return_from_spool_reset",
+      "operand": "rts_spool_reset",
       "target": 43738,
-      "target_label": "return_from_spool_reset"
+      "target_label": "rts_spool_reset"
     },
     {
       "addr": 43763,
@@ -81493,7 +81493,7 @@
         96
       ],
       "labels": [
-        "return_from_strip_prefix"
+        "rts_strip_prefix"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -81536,9 +81536,9 @@
       "comment_inline": "Yes: '#' prefix accepted",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_strip_prefix",
+      "operand": "rts_strip_prefix",
       "target": 44744,
-      "target_label": "return_from_strip_prefix"
+      "target_label": "rts_strip_prefix"
     },
     {
       "addr": 44749,
@@ -81592,9 +81592,9 @@
       "comment_inline": "Neither '&' nor ':': no prefix",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_strip_prefix",
+      "operand": "rts_strip_prefix",
       "target": 44744,
-      "target_label": "return_from_strip_prefix"
+      "target_label": "rts_strip_prefix"
     },
     {
       "addr": 44756,
@@ -81654,9 +81654,9 @@
       "comment_inline": "No: no FS prefix, return",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_strip_prefix",
+      "operand": "rts_strip_prefix",
       "target": 44744,
-      "target_label": "return_from_strip_prefix"
+      "target_label": "rts_strip_prefix"
     },
     {
       "addr": 44767,
@@ -82014,7 +82014,7 @@
         96
       ],
       "labels": [
-        "return_from_copy_arg"
+        "rts_copy_arg"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -82162,9 +82162,9 @@
       "comment_inline": "High bit set: end of entries",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "return_from_copy_arg",
+      "operand": "rts_copy_arg",
       "target": 44813,
-      "target_label": "return_from_copy_arg"
+      "target_label": "rts_copy_arg"
     },
     {
       "addr": 44837,
@@ -82877,9 +82877,9 @@
       "comment_inline": "Yes: suppress leading zero",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_print_digit",
+      "operand": "rts_print_digit",
       "target": 44948,
-      "target_label": "return_from_print_digit"
+      "target_label": "rts_print_digit"
     },
     {
       "addr": 44941,
@@ -82935,7 +82935,7 @@
         96
       ],
       "labels": [
-        "return_from_print_digit"
+        "rts_print_digit"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -83127,9 +83127,9 @@
       "comment_inline": "Yes: return (at end)",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_skip_arg",
+      "operand": "rts_skip_arg",
       "target": 44980,
-      "target_label": "return_from_skip_arg"
+      "target_label": "rts_skip_arg"
     },
     {
       "addr": 44971,
@@ -83205,7 +83205,7 @@
         96
       ],
       "labels": [
-        "return_from_skip_arg"
+        "rts_skip_arg"
       ],
       "comment_inline": "Return (at next argument)",
       "xref_summaries": [
@@ -87599,9 +87599,9 @@
       "comment_inline": "Zero: all slots done, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_poll_slots",
+      "operand": "rts_poll_slots",
       "target": 45763,
-      "target_label": "return_from_poll_slots"
+      "target_label": "rts_poll_slots"
     },
     {
       "addr": 45638,
@@ -88288,7 +88288,7 @@
         96
       ],
       "labels": [
-        "return_from_poll_slots"
+        "rts_poll_slots"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -90547,9 +90547,9 @@
       "comment_inline": "C clear: character read OK",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "return_from_flush_read",
+      "operand": "rts_flush_read",
       "target": 46126,
-      "target_label": "return_from_flush_read"
+      "target_label": "rts_flush_read"
     },
     {
       "addr": 46123,
@@ -90571,7 +90571,7 @@
         96
       ],
       "labels": [
-        "return_from_flush_read"
+        "rts_flush_read"
       ],
       "comment_inline": "Return with character in A",
       "xref_summaries": [
@@ -91723,9 +91723,9 @@
       "comment_inline": "Not a directory: return OK",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_from_dir_check",
+      "operand": "rts_dir_check",
       "target": 46329,
-      "target_label": "return_from_dir_check"
+      "target_label": "rts_dir_check"
     },
     {
       "addr": 46314,
@@ -91775,7 +91775,7 @@
         96
       ],
       "labels": [
-        "return_from_dir_check"
+        "rts_dir_check"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -92653,9 +92653,9 @@
       "comment_inline": "Different: Z=0, no match",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_match_stn",
+      "operand": "rts_match_stn",
       "target": 46472,
-      "target_label": "return_from_match_stn"
+      "target_label": "rts_match_stn"
     },
     {
       "addr": 46466,
@@ -92691,7 +92691,7 @@
         96
       ],
       "labels": [
-        "return_from_match_stn"
+        "rts_match_stn"
       ],
       "comment_inline": "Return; Z=1 if match, Z=0 if not",
       "xref_summaries": [
@@ -95892,9 +95892,9 @@
       "comment_inline": "No overflow: done",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_inc_fcb_count",
+      "operand": "rts_inc_fcb_count",
       "target": 47006,
-      "target_label": "return_from_inc_fcb_count"
+      "target_label": "rts_inc_fcb_count"
     },
     {
       "addr": 46998,
@@ -95919,9 +95919,9 @@
       "comment_inline": "No overflow: done",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_from_inc_fcb_count",
+      "operand": "rts_inc_fcb_count",
       "target": 47006,
-      "target_label": "return_from_inc_fcb_count"
+      "target_label": "rts_inc_fcb_count"
     },
     {
       "addr": 47003,
@@ -95943,7 +95943,7 @@
         96
       ],
       "labels": [
-        "return_from_inc_fcb_count"
+        "rts_inc_fcb_count"
       ],
       "comment_inline": "Return",
       "xref_summaries": [

@@ -147,7 +147,7 @@ ANFS 4.08.53 (&955A):
 .check_escape
     lda escape_flag          ; Read escape flag
     and escapable            ; Mask with escapable flag
-    bpl return_from_recv_reply
+    bpl rts_recv_reply
 .raise_escape_error
     lda #&7E                 ; OSBYTE &7E: acknowledge escape
     jsr osbyte

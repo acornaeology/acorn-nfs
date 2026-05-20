@@ -2343,7 +2343,7 @@ d.comment(0x83F4, "Check if Tube transfer active", align=Align.INLINE)
 d.comment(0x83F7, "Test tx_flags for Tube transfer", align=Align.INLINE)
 d.comment(0x83FA, "No Tube transfer active -- skip release", align=Align.INLINE)
 d.comment(0x83FC, "Release Tube claim before discarding", align=Align.INLINE)
-d.label(0x83FF, "return_from_discard_reset")
+d.label(0x83FF, "rts_discard_reset")
 
 d.comment(0x83FF, "Return", align=Align.INLINE)
 d.label(0x8400, "copy_scout_to_buffer")
@@ -2779,7 +2779,7 @@ d.comment(0x8532, "No overflow: done", align=Align.INLINE)
 d.comment(0x8534, "Increment buffer pointer low byte", align=Align.INLINE)
 d.comment(0x8536, "No overflow: done", align=Align.INLINE)
 d.comment(0x8538, "Increment buffer pointer high byte", align=Align.INLINE)
-d.label(0x853A, "return_from_advance_buf")
+d.label(0x853A, "rts_advance_buf")
 
 d.comment(0x853A, "Return", align=Align.INLINE)
 d.subroutine(
@@ -4603,7 +4603,7 @@ d.comment(0x8B1B, "to fs_crc_lo", align=Align.INLINE)
 d.comment(0x8B1D, "Copy OS text pointer high", align=Align.INLINE)
 d.comment(0x8B1F, "to fs_crc_hi", align=Align.INLINE)
 d.comment(0x8B21, "Restore A", align=Align.INLINE)
-d.label(0x8B22, "return_from_save_text_ptr")
+d.label(0x8B22, "rts_save_text_ptr")
 
 d.comment(0x8B22, "Return", align=Align.INLINE)
 d.comment(0x8B23, "Get workspace page for this ROM slot", align=Align.INLINE)
@@ -4682,7 +4682,7 @@ d.subroutine(
     "ensure_fs_selected",
     title="Ensure ANFS is the active filing system",
     description="""If bit 7 of `fs_flags` is set (ANFS already active), `RTS` via
-`return_from_save_text_ptr`. Otherwise calls `cmd_net_fs` to select
+`rts_save_text_ptr`. Otherwise calls `cmd_net_fs` to select
 ANFS now; on failure, `JMP`s to
 [`error_net_checksum`](address:90B5) to raise the `net checksum`
 error. After successful selection, falls through to the body at
@@ -4999,7 +4999,7 @@ d.label(0x8C3A, "loop_indent_spaces")
 
 d.comment(0x8C3D, "Decrement indent counter", align=Align.INLINE)
 d.comment(0x8C3E, "More spaces needed: loop", align=Align.INLINE)
-d.label(0x8C41, "return_from_help_wrap")
+d.label(0x8C41, "rts_help_wrap")
 
 d.comment(0x8C41, "Return", align=Align.INLINE)
 d.comment(0x8C42, "X=0: start of utility command table", align=Align.INLINE)
@@ -5185,7 +5185,7 @@ d.comment(0x8CBD, "Get workspace page for ROM slot", align=Align.INLINE)
 d.comment(0x8CC0, "Store page in nfs_temp", align=Align.INLINE)
 d.comment(0x8CC2, "A=0", align=Align.INLINE)
 d.comment(0x8CC4, "Clear low byte of pointer", align=Align.INLINE)
-d.label(0x8CC6, "return_from_setup_ws_ptr")
+d.label(0x8CC6, "rts_setup_ws_ptr")
 
 d.comment(0x8CC6, "Return", align=Align.INLINE)
 d.comment(0x8CC7, "OSBYTE &7A: scan keyboard from key 16", align=Align.INLINE)
@@ -5351,7 +5351,7 @@ d.comment(0x8D39, "Load character from credits string", align=Align.INLINE)
 d.comment(0x8D3C, "Zero terminator: done printing", align=Align.INLINE)
 d.comment(0x8D41, "Advance string pointer", align=Align.INLINE)
 d.comment(0x8D42, "Continue printing", align=Align.INLINE)
-d.label(0x8D44, "return_from_credits_check")
+d.label(0x8D44, "rts_credits_check")
 
 d.comment(0x8D44, "Return", align=Align.INLINE)
 d.label(0x8D45, "credits_keyword_start")
@@ -5527,7 +5527,7 @@ d.comment(0x8E21, "Ensure bridge initialised; A=spool_control_flag (bridge statu
 d.comment(0x8E24, "EOR with hazel_fs_network: zero result if equal", align=Align.INLINE)
 d.comment(0x8E27, "Different: return without clearing", align=Align.INLINE)
 d.comment(0x8E29, "Same: clear station byte", align=Align.INLINE)
-d.label(0x8E2C, "return_from_station_match")
+d.label(0x8E2C, "rts_station_match")
 
 d.comment(0x8E2C, "Return", align=Align.INLINE)
 d.subroutine(
@@ -5914,7 +5914,7 @@ previous ROM hasn't already.""",
 
 d.comment(0x8EEB, "Yes: return Y unchanged", align=Align.INLINE)
 d.comment(0x8EED, "No: raise Y to &C8", align=Align.INLINE)
-d.label(0x8EEF, "return_from_raise_y_to_c8")
+d.label(0x8EEF, "rts_raise_y_to_c8")
 
 d.comment(0x8EEF, "Return", align=Align.INLINE)
 d.label(0x8EF0, "store_ws_page_count")
@@ -6319,7 +6319,7 @@ d.comment(0x9093, "Loop until all bytes copied", align=Align.INLINE)
 d.comment(0x9095, "Load FS flags", align=Align.INLINE)
 d.comment(0x9098, "Clear bit 7 (FS no longer selected)", align=Align.INLINE)
 d.comment(0x909A, "Store updated flags", align=Align.INLINE)
-d.label(0x909D, "return_from_fs_shutdown")
+d.label(0x909D, "rts_fs_shutdown")
 
 d.comment(0x909D, "Return", align=Align.INLINE)
 d.label(0x909E, "verify_ws_checksum")
@@ -6977,7 +6977,7 @@ d.subroutine(
     "is_decimal_digit",
     title="Test for digit, '&', or '.' separator",
     description="""Compares `A` against `'&'` and `'.'` first; if either matches,
-returns with carry set via the shared `return_from_digit_test` exit.
+returns with carry set via the shared `rts_digit_test` exit.
 Otherwise falls through to
 [`is_dec_digit_only`](address:93A2) for the `'0'`..`'9'`
 range test.
@@ -7017,7 +7017,7 @@ The net effect: carry set only for `'0'..'9'`. Called by
 d.comment(0x93A2, "Above '9'? (CMP #':')", align=Align.INLINE)
 d.comment(0x93A4, "Yes: not a digit -- jump to clear-carry exit", align=Align.INLINE)
 d.comment(0x93A6, "Below '0'? (CMP sets carry if A >= '0')", align=Align.INLINE)
-d.label(0x93A8, "return_from_digit_test")
+d.label(0x93A8, "rts_digit_test")
 
 d.comment(0x93A8, "Carry now reflects '0'-'9' membership; return", align=Align.INLINE)
 d.label(0x93A9, "not_a_digit")
@@ -7235,7 +7235,7 @@ d.comment(0x93EA, "EOR with parsed handle byte; Z set iff bytes match", align=Al
 d.comment(0x93EC, "Mismatch: bail out with Z clear", align=Align.INLINE)
 d.comment(0x93EE, "Decrement to next byte", align=Align.INLINE)
 d.comment(0x93EF, "Loop while X != 0 (offset 0 is intentionally not compared)", align=Align.INLINE)
-d.label(0x93F1, "return_from_cmp_handle")
+d.label(0x93F1, "rts_cmp_handle")
 
 d.comment(0x93F1, "Return; Z reflects last EOR (set = match, clear = mismatch)", align=Align.INLINE)
 d.label(0x93F2, "fscv_7_read_handles")
@@ -7473,7 +7473,7 @@ d.comment(0x947B, "Append space after command name", align=Align.INLINE)
 d.comment(0x947E, "Advance buffer pointer", align=Align.INLINE)
 d.comment(0x947F, "Transfer length to A", align=Align.INLINE)
 d.comment(0x9480, "And to X (buffer position)", align=Align.INLINE)
-d.label(0x9482, "return_from_copy_cmd_name")
+d.label(0x9482, "rts_copy_cmd_name")
 
 d.comment(0x9482, "Return", align=Align.INLINE)
 d.label(0x9483, "parse_quoted_arg")
@@ -8455,7 +8455,7 @@ d.comment(0x97DD, "V set: shift the code by +&2A (extended-error mapping)", alig
 d.label(0x97DF, "process_reply_code")
 
 d.comment(0x97DF, "Non-zero: dispatch as an error", align=Align.INLINE)
-d.label(0x97E1, "return_from_recv_reply")
+d.label(0x97E1, "rts_recv_reply")
 
 d.comment(0x97E1, "Return", align=Align.INLINE)
 d.label(0x97E2, "handle_disconnect")
@@ -8748,7 +8748,7 @@ and by `error_inline_log`.""",
 d.comment(0x9900, "Test bit 7 of fs_flags (FS-active flag)", align=Align.INLINE)
 d.comment(0x9903, "FS not active: skip the save", align=Align.INLINE)
 d.comment(0x9905, "FS active: store error code at &C009 (last-error byte)", align=Align.INLINE)
-d.label(0x9908, "return_from_cond_save_err")
+d.label(0x9908, "rts_cond_save_err")
 
 d.comment(0x9908, "Return", align=Align.INLINE)
 d.label(0x9909, "build_no_reply_error")
@@ -9172,7 +9172,7 @@ d.comment(0x9A91, "Clear V: first non-zero digit seen", align=Align.INLINE)
 d.comment(0x9A92, "Load current text position", align=Align.INLINE)
 d.comment(0x9A94, "Store ASCII digit in error text", align=Align.INLINE)
 d.comment(0x9A97, "Advance text position", align=Align.INLINE)
-d.label(0x9A99, "return_from_store_digit")
+d.label(0x9A99, "rts_store_digit")
 
 d.comment(0x9A99, "Return", align=Align.INLINE)
 d.label(0x9A9A, "net_error_lookup_data")
@@ -9755,7 +9755,7 @@ d.comment(0x9CA7, "Compare with expected end address", align=Align.INLINE)
 d.comment(0x9CAA, "Mismatch: resend from start", align=Align.INLINE)
 d.comment(0x9CAC, "Decrement counter", align=Align.INLINE)
 d.comment(0x9CAD, "Loop until all 4 bytes match", align=Align.INLINE)
-d.label(0x9CAF, "return_from_txcb_swap")
+d.label(0x9CAF, "rts_txcb_swap")
 
 d.comment(0x9CAF, "Return (all bytes match)", align=Align.INLINE)
 d.label(0x9CB0, "check_display_type")
@@ -9982,7 +9982,7 @@ d.comment(0x9D6C, "Y += 4", align=Align.INLINE)
 d.comment(0x9D6D, "(continued)", align=Align.INLINE)
 d.comment(0x9D6E, "(continued)", align=Align.INLINE)
 d.comment(0x9D6F, "(continued)", align=Align.INLINE)
-d.label(0x9D70, "return_from_advance_y")
+d.label(0x9D70, "rts_advance_y")
 
 d.comment(0x9D70, "Return", align=Align.INLINE)
 d.label(0x9D71, "copy_workspace_to_fsopts")
@@ -11606,7 +11606,7 @@ d.comment(0xA3F7, "Above &48 (i.e. A_orig * 4 >= 72, A_orig >= 18)?", align=Alig
 d.comment(0xA3F9, "No: keep computed Y", align=Align.INLINE)
 d.comment(0xA3FB, "Yes: clamp Y to 0 (out of range)", align=Align.INLINE)
 d.comment(0xA3FD, "Mirror Y -> A so callers can test Z", align=Align.INLINE)
-d.label(0xA3FE, "return_from_2bit_index")
+d.label(0xA3FE, "rts_2bit_index")
 
 d.comment(0xA3FE, "Return; Y holds 12-byte-aligned offset, A is non-zero on success", align=Align.INLINE)
 d.label(0xA3FF, "net_1_read_handle")
@@ -12742,7 +12742,7 @@ d.comment(0xA868, "Load handler address low byte", align=Align.INLINE)
 d.comment(0xA86B, "Push again", align=Align.INLINE)
 d.comment(0xA86C, "Copy 3 bytes (Y=2,1,0)", align=Align.INLINE)
 d.comment(0xA86E, "Load from osword_flag workspace", align=Align.INLINE)
-d.label(0xA870, "return_from_osword_setup")
+d.label(0xA870, "rts_osword_setup")
 
 d.comment(0xA870, "RTS dispatches to pushed handler", align=Align.INLINE)
 d.comment(
@@ -12793,7 +12793,7 @@ d.comment(0xA888, "Restore A (OSWORD sub-code)", align=Align.INLINE)
 d.comment(0xA88A, "Equal: take save_txcb_done path", align=Align.INLINE)
 d.comment(0xA88C, "Other sub-codes: set state = 8", align=Align.INLINE)
 d.comment(0xA88E, "Store service state", align=Align.INLINE)
-d.label(0xA890, "return_from_osword_0e")
+d.label(0xA890, "rts_osword_0e")
 
 d.comment(0xA890, "Return", align=Align.INLINE)
 d.label(0xA891, "save_txcb_and_convert")
@@ -13037,7 +13037,7 @@ d.comment(0xA99F, "Read dispatch hi from osword_13_dispatch_hi+X", align=Align.I
 d.comment(0xA9A2, "Push hi for RTS dispatch", align=Align.INLINE)
 d.comment(0xA9A3, "Read dispatch lo from osword_13_dispatch_lo+X", align=Align.INLINE)
 d.comment(0xA9A6, "Push lo for RTS dispatch", align=Align.INLINE)
-d.label(0xA9A7, "return_from_osword_13")
+d.label(0xA9A7, "rts_osword_13")
 d.comment(0xA9A7, "RTS -> dispatched OSWORD &13 sub-handler", align=Align.INLINE)
 d.label(0xA9A8, "osword_13_dispatch_lo")
 d.banner(
@@ -13300,7 +13300,7 @@ d.comment(0xAAA8, "Reinitialise bridge routing", align=Align.INLINE)
 d.comment(0xAAAB, "Compare result with workspace", align=Align.INLINE)
 d.comment(0xAAAD, "Different: leave unchanged", align=Align.INLINE)
 d.comment(0xAAAF, "Same: clear workspace byte", align=Align.INLINE)
-d.label(0xAAB1, "return_from_write_ws_pair")
+d.label(0xAAB1, "rts_write_ws_pair")
 
 d.comment(0xAAB1, "Return", align=Align.INLINE)
 d.subroutine(
@@ -13658,7 +13658,7 @@ d.comment(0xABCB, "Load default from fs_server_net", align=Align.INLINE)
 d.label(0xABCE, "store_bridge_station")
 
 d.comment(0xABCE, "Store to PB[3]", align=Align.INLINE)
-d.label(0xABD0, "return_from_bridge_query")
+d.label(0xABD0, "rts_bridge_query")
 
 d.comment(0xABD0, "Return", align=Align.INLINE)
 d.label(0xABD1, "bridge_txcb_init_table")
@@ -13749,7 +13749,7 @@ d.comment(0xAC40, "X = bridge status", align=Align.INLINE)
 d.comment(0xAC41, "Invert (presence -> absence)", align=Align.INLINE)
 d.comment(0xAC43, "Status was &FF: return (no bridge)", align=Align.INLINE)
 d.comment(0xAC45, "Return bridge station in A", align=Align.INLINE)
-d.label(0xAC46, "return_from_bridge_poll")
+d.label(0xAC46, "rts_bridge_poll")
 
 d.comment(0xAC46, "Return", align=Align.INLINE)
 d.label(0xAC47, "osword_14_handler")
@@ -14199,7 +14199,7 @@ d.label(0xADB0, "store_stack_byte")
 d.comment(0xADB0, "Patch caller's stack frame at &106+X", align=Align.INLINE)
 d.comment(0xADB3, "Reached &DA (lower workspace bound)?", align=Align.INLINE)
 d.comment(0xADB5, "No: keep restoring", align=Align.INLINE)
-d.label(0xADB7, "return_from_claim_release")
+d.label(0xADB7, "rts_claim_release")
 
 d.comment(0xADB7, "Return", align=Align.INLINE)
 d.subroutine(
@@ -14219,7 +14219,7 @@ d.comment(0xADB8, "Compare A with table entry at index X", align=Align.INLINE)
 d.comment(0xADBB, "Match: return with Z set", align=Align.INLINE)
 d.comment(0xADBD, "Step to next earlier table entry", align=Align.INLINE)
 d.comment(0xADBE, "Loop while X >= 0 (table walked top-down)", align=Align.INLINE)
-d.label(0xADC0, "return_from_match_rx_code")
+d.label(0xADC0, "rts_match_rx_code")
 
 d.comment(0xADC0, "Return; Z reflects last CMP", align=Align.INLINE)
 d.label(0xADC1, "osword_claim_codes")
@@ -14465,7 +14465,7 @@ d.comment(0xAE64, "Buffer start offset = &21", align=Align.INLINE)
 d.comment(0xAE66, "Store as buffer pointer", align=Align.INLINE)
 d.comment(0xAE69, "Control state &41", align=Align.INLINE)
 d.comment(0xAE6B, "Store as spool control state", align=Align.INLINE)
-d.label(0xAE6E, "return_from_spool_reset")
+d.label(0xAE6E, "rts_spool_reset")
 
 d.comment(0xAE6E, "Return", align=Align.INLINE)
 d.label(0xAE6F, "netv_print_data")
@@ -15417,7 +15417,7 @@ d.label(0xB272, "done_strip_prefix")
 
 d.comment(0xB272, "Restore caller's TX buffer offset", align=Align.INLINE)
 d.comment(0xB273, "Transfer back to X", align=Align.INLINE)
-d.label(0xB274, "return_from_strip_prefix")
+d.label(0xB274, "rts_strip_prefix")
 
 d.comment(0xB274, "Return", align=Align.INLINE)
 d.label(0xB275, "check_hash_prefix")
@@ -15535,7 +15535,7 @@ d.label(0xB2C8, "done_trim_spaces")
 
 
 d.comment(0xB2C8, "All trailing spaces consumed (or none present)", align=Align.INLINE)
-d.label(0xB2CA, "return_from_copy_arg")
+d.label(0xB2CA, "rts_copy_arg")
 
 d.comment(0xB2CA, "Return", align=Align.INLINE)
 d.subroutine(
@@ -15719,7 +15719,7 @@ d.label(0xB34F, "print_nonzero_digit")
 
 d.comment(0xB34F, "Save divisor across OSASCI call", align=Align.INLINE)
 d.comment(0xB354, "Restore divisor", align=Align.INLINE)
-d.label(0xB356, "return_from_print_digit")
+d.label(0xB356, "rts_print_digit")
 
 d.comment(0xB356, "Return", align=Align.INLINE)
 d.subroutine(
@@ -15806,7 +15806,7 @@ d.comment(0xB38B, "Advance past space", align=Align.INLINE)
 d.comment(0xB38C, "Load next character", align=Align.INLINE)
 d.comment(0xB38E, "Still a space?", align=Align.INLINE)
 d.comment(0xB390, "Yes: skip multiple spaces", align=Align.INLINE)
-d.label(0xB392, "return_from_skip_arg")
+d.label(0xB392, "rts_skip_arg")
 
 d.comment(0xB392, "Return (at next argument)", align=Align.INLINE)
 d.label(0xB393, "save_ptr_to_spool_buf")
@@ -16530,7 +16530,7 @@ d.comment(0xB69D, "Retrieve slot offset", align=Align.INLINE)
 d.comment(0xB69E, "Transfer to Y", align=Align.INLINE)
 d.comment(0xB69F, "Mark slot as processed (&3F)", align=Align.INLINE)
 d.comment(0xB6A1, "Write marker to workspace", align=Align.INLINE)
-d.label(0xB6A5, "return_from_poll_slots")
+d.label(0xB6A5, "rts_poll_slots")
 
 d.comment(0xB6A5, "Return", align=Align.INLINE)
 d.label(0xB6A6, "init_ps_slot_from_rx")
@@ -17204,7 +17204,7 @@ d.comment(0xB928, "Compare with current station", align=Align.INLINE)
 d.comment(0xB92B, "Different: Z=0, no match", align=Align.INLINE)
 d.comment(0xB92D, "Load FCB network number", align=Align.INLINE)
 d.comment(0xB930, "Compare with current network", align=Align.INLINE)
-d.label(0xB933, "return_from_match_stn")
+d.label(0xB933, "rts_match_stn")
 
 d.comment(0xB933, "Return; Z=1 if match, Z=0 if not", align=Align.INLINE)
 d.label(0xB934, "find_open_fcb")
@@ -17623,7 +17623,7 @@ d.comment(0xBB2D, "No overflow: done", align=Align.INLINE)
 d.comment(0xBB2F, "Increment byte count mid", align=Align.INLINE)
 d.comment(0xBB32, "No overflow: done", align=Align.INLINE)
 d.comment(0xBB34, "Increment byte count high", align=Align.INLINE)
-d.label(0xBB37, "return_from_inc_fcb_count")
+d.label(0xBB37, "rts_inc_fcb_count")
 
 d.comment(0xBB37, "Return", align=Align.INLINE)
 d.subroutine(

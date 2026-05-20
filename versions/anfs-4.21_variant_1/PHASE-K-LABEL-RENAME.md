@@ -141,7 +141,7 @@ Groups labels by enclosing named routine. Status: blank = TODO,
 | 44 | `fsreply_2_copy_handles`        | `la6fe`, `ca70b`, `ca71c`         | done |
 | 45 | `boot_load_cmd`                 | `la75b`, `ca75f`                  | done |
 | 46 | `loop_ca84a`                    | `ca855`                           | done |
-| 47 | `return_from_osword_setup`      | `la871`                           | done |
+| 47 | `rts_osword_setup`      | `la871`                           | done |
 | 48 | `loop_copy_bcd_to_pb`           | `ca8e7`                           | done |
 | 49 | `err_printer_busy`              | `caf92`                           | done |
 | 50 | `read_osbyte_to_ws`             | `lb097`, `lb099`                  | done |
