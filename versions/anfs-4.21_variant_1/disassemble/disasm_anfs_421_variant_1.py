@@ -12442,38 +12442,34 @@ immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
 #### Why the `-NET-` prefix
 
 `-NET-` is MOS's hyphen-bracketed filing-system selector. The
-general form `-FS-COMMAND` matches `FS` against the registered
-ROM names, makes that FS the temporary *active* FS for this
-OSCLI without touching the currently-selected default, then
-parses `COMMAND`. If `COMMAND` matches an internal MOS command
-it runs normally; on the unknown-command fallthrough the
-temp-FS bit suppresses MOS's usual service-4 ROM broadcast and
+general form `-FS-COMMAND` makes `FS` the temporary *active* FS
+for this OSCLI without touching the currently-selected default,
+then parses `COMMAND`. If `COMMAND` matches an internal MOS
+command it runs normally; on the unknown-command fallthrough
+the temp-FS bit suppresses the service-4 ROM broadcast and
 dispatches via FSCV,3 directly to the selected FS. `NET` is
 the short name registered by the NFS / ANFS ROM (others
 register `DISC`, `ADFS`, `TAPE`).
 
-NFS is in fact already the current FS by the time this code
-runs. [`svc_3_autoboot`](address:8CC7) calls
-[`select_fs_via_cmd_net_fs`](address:8B52) on the cold-boot
-path before the synchronous `*I AM` exchange, and the
-user-typed `*I AM` route requires `*NET` first because *I AM*
-is an ANFS *command (try `*ADFS` then `*I AM SYST` on a real
-machine — `Bad command`). So why not just `*FindLib`?
+NFS is already the current FS by the time this code runs.
+[`svc_3_autoboot`](address:8CC7) selects it via
+[`select_fs_via_cmd_net_fs`](address:8B52) before the
+synchronous `*I AM` exchange on the cold-boot path, and the
+user-typed `*I AM` route requires `*NET` first because `*I AM`
+is itself an NFS `*` command.
 
-Because `*FindLib` would go through the normal unknown-command
-dispatch, which **broadcasts service-4 to every sideways ROM
-first**. Any ROM that has claimed `FindLib` — even by
-abbreviation — would intercept the command before NFS sees it.
-`-NET-FindLib` sets the temp-FS bit, which suppresses the
-broadcast and dispatches via FSCV,3 directly to NFS, so the
-lookup deterministically hits NFS's *RUN-from-library path
-regardless of what other ROMs are installed.
+The prefix therefore provides defensive routing, not FS
+selection. A plain `*FindLib` would broadcast service-4 to all
+sideways ROMs before falling through to FSCV,3, exposing the
+command to interception by any ROM that has claimed `FindLib`
+(including by abbreviation). The `-NET-` form sets the temp-FS
+bit, which suppresses the broadcast and dispatches via FSCV,3
+directly to NFS, so the lookup deterministically hits NFS's
+`*RUN`-from-library path.
 
-The same defensive routing is used by
+The same routing is used by
 [`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and
-[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`) — `*!Boot`
-could be intercepted by ADFS, DFS, or any other ROM that
-claims the name; `-NET-!Boot` can't.""",
+[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`).""",
 )
 
 
