@@ -1,50 +1,50 @@
 ; Constants
-osbyte_explode_chars                          = &14
-osbyte_write_keys_pressed                     = &78
-rx_ready                                      = &7f
-tx_flag                                       = &80
-osbyte_issue_service_request                  = &8f
-port_reply                                    = &90
-port_save_ack                                 = &91
-port_load_data                                = &92
-port_remote                                   = &93
-port_command                                  = &99
-err_line_jammed                               = &a0
-err_net_error                                 = &a1
-err_not_listening                             = &a2
-err_no_clock                                  = &a3
-err_tx_cb_error                               = &a4
-err_no_reply                                  = &a5
-err_fs_cutoff                                 = &a8
-osbyte_read_rom_ptr_table_low                 = &a8
-port_printer                                  = &d1
-cb_fill                                       = &fc
-cb_skip                                       = &fd
-cb_stop                                       = &fe
-event_network_error                           = &08
-osbyte_read_os_version                        = &00
-osbyte_read_write_econet_keyboard_disable     = &c9
-osbyte_read_write_econet_os_call_interception = &ce
-osbyte_scan_keyboard_from_16                  = &7a
-osbyte_close_spool_exec                       = &77
-osbyte_read_cmos_ram                          = &a1
-osbyte_read_write_spool_file_handle           = &c7
-osbyte_write_cmos_ram                         = &a2
-osfind_close                                  = &00
-osbyte_acknowledge_escape                     = &7e
-osbyte_insert_input_buffer                    = &99
-osword_nfs_info                               = &13
-osbyte_make_temporary_filing_system_permanent = &6d
-osbyte_scan_keyboard                          = &79
-inkey_key_ctrl                                = &fe
-osword_read_cmos_clock                        = &0e
-osbyte_vsync                                  = &13
-osbyte_read_buffer                            = &91
-buffer_printer                                = &03
-osword_read_palette                           = &0b
-osbyte_flush_buffer_class                     = &0f
-osfile_read_catalogue_info                    = &05
-osfind_open_input                             = &40
+osbyte_explode_chars           = &14
+osbyte_write_keys_pressed      = &78
+rx_ready                       = &7f
+tx_flag                        = &80
+osbyte_issue_service_request   = &8f
+port_reply                     = &90
+port_save_ack                  = &91
+port_load_data                 = &92
+port_remote                    = &93
+port_command                   = &99
+err_line_jammed                = &a0
+err_net_error                  = &a1
+err_not_listening              = &a2
+err_no_clock                   = &a3
+err_tx_cb_error                = &a4
+err_no_reply                   = &a5
+err_fs_cutoff                  = &a8
+osbyte_read_rom_ptr_table_low  = &a8
+port_printer                   = &d1
+cb_fill                        = &fc
+cb_skip                        = &fd
+cb_stop                        = &fe
+event_network_error            = &08
+osbyte_read_os_version         = &00
+osbyte_econet_kbd_disable      = &c9
+osbyte_econet_oscall_intercept = &ce
+osbyte_scan_keyboard_from_16   = &7a
+osbyte_close_spool_exec        = &77
+osbyte_read_cmos_ram           = &a1
+osbyte_spool_file_handle       = &c7
+osbyte_write_cmos_ram          = &a2
+osfind_close                   = &00
+osbyte_acknowledge_escape      = &7e
+osbyte_insert_input_buffer     = &99
+osword_nfs_info                = &13
+osbyte_make_fs_permanent       = &6d
+osbyte_scan_keyboard           = &79
+inkey_key_ctrl                 = &fe
+osword_read_cmos_clock         = &0e
+osbyte_vsync                   = &13
+osbyte_read_buffer             = &91
+buffer_printer                 = &03
+osword_read_palette            = &0b
+osbyte_flush_buffer_class      = &0f
+osfile_read_catalogue_info     = &05
+osfind_open_input              = &40
 
 ; Memory locations
 zp_ptr_lo                   = &00
@@ -3641,8 +3641,8 @@ nmi_shim_source = reset_enter_listen+2
     tax                                                               ; 8af2: aa          .     
     sta (net_rx_ptr),y                                                ; 8af3: 91 9c       ..       ; Clear remote operation flag
     tay                                                               ; 8af5: a8          .     
-    lda #osbyte_read_write_econet_keyboard_disable                    ; 8af6: a9 c9       ..       ; OSBYTE &C9: keyboard disable
-    jsr osbyte                                                        ; 8af8: 20 f4 ff     ..      ; osbyte: read write econet keyboard disable
+    lda #osbyte_econet_kbd_disable                                    ; 8af6: a9 c9       ..       ; OSBYTE &C9: keyboard disable
+    jsr osbyte                                                        ; 8af8: 20 f4 ff     ..      ; osbyte: econet kbd disable
     lda #&0a                                                          ; 8afb: a9 0a       ..       ; A=&0A: workspace init parameter
     jsr tx_econet_abort                                               ; 8afd: 20 40 ad     @.      ; Initialise workspace area
 ; ***************************************************************************************
@@ -3667,12 +3667,12 @@ nmi_shim_source = reset_enter_listen+2
 ; &8b00 referenced 1 time by &986f
 .scan_remote_keys
     stx nfs_workspace                                                 ; 8b00: 86 9e       ..       ; Save X in workspace
-    lda #osbyte_read_write_econet_os_call_interception                ; 8b02: a9 ce       ..       ; A=&CE: start of key range
+    lda #osbyte_econet_oscall_intercept                               ; 8b02: a9 ce       ..       ; A=&CE: start of key range
 ; &8b04 referenced 1 time by &8b0f
 .loop_scan_key_range
     ldx nfs_workspace                                                 ; 8b04: a6 9e       ..       ; Restore X from workspace
     ldy #&7f                                                          ; 8b06: a0 7f       ..       ; Y=&7F: OSBYTE scan parameter
-    jsr osbyte                                                        ; 8b08: 20 f4 ff     ..      ; OSBYTE: scan keyboard  osbyte: read write econet os call interception
+    jsr osbyte                                                        ; 8b08: 20 f4 ff     ..      ; OSBYTE: scan keyboard  osbyte: econet oscall intercept
     adc #1                                                            ; 8b0b: 69 01       i.       ; Advance to next key code
     cmp #&d0                                                          ; 8b0d: c9 d0       ..       ; Reached &D0?
     beq loop_scan_key_range                                           ; 8b0f: f0 f3       ..       ; No: loop back (scan &CE and &CF)
@@ -5449,15 +5449,15 @@ ps_template_base = load_transfer_params+1
     phy                                                               ; 9204: 5a          Z        ; Save Y
     pha                                                               ; 9205: 48          H        ; Save A (the byte to print)
     php                                                               ; 9206: 08          .        ; Save inner P — V here picks OSASCI vs OSWRCH later
-    lda #osbyte_read_write_spool_file_handle                          ; 9207: a9 c7       ..       ; OSBYTE 199 (read/write *SPOOL file handle)
+    lda #osbyte_spool_file_handle                                     ; 9207: a9 c7       ..       ; OSBYTE 199 (read/write *SPOOL file handle)
     ldx #0                                                            ; 9209: a2 00       ..       ; X=0: handle value to write
     ldy #0                                                            ; 920b: a0 00       ..       ; Y=0: write mode (NEW = (OLD AND 0) EOR X = X = 0)
-    jsr osbyte                                                        ; 920d: 20 f4 ff     ..      ; Closes spool; X returns OLD handle  osbyte: read write spool file handle
+    jsr osbyte                                                        ; 920d: 20 f4 ff     ..      ; Closes spool; X returns OLD handle  osbyte: spool file handle
     cpx #&20 ; ' '                                                    ; 9210: e0 20       .        ; OLD < ' '? (likely 0 = was already closed)
     bcc do_print_no_spool                                             ; 9212: 90 09       ..       ; Yes: leave spool closed for the print
     cpx #&30 ; '0'                                                    ; 9214: e0 30       .0       ; OLD >= '0'?
     bcs do_print_no_spool                                             ; 9216: b0 05       ..       ; Yes (>= &30): leave spool closed
-    jsr osbyte                                                        ; 9218: 20 f4 ff     ..      ; OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD  osbyte: read write spool file handle
+    jsr osbyte                                                        ; 9218: 20 f4 ff     ..      ; OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD  osbyte: spool file handle
     ldx #0                                                            ; 921b: a2 00       ..       ; Clear X for the post-print restore
 ; &921d referenced 2 times by &9212, &9216
 .do_print_no_spool
@@ -5472,9 +5472,9 @@ ps_template_base = load_transfer_params+1
     jsr oswrch                                                        ; 9227: 20 ee ff     ..      ; OSWRCH: writes A as a raw byte
 ; &922a referenced 1 time by &9225
 .restore_spool_and_return
-    lda #osbyte_read_write_spool_file_handle                          ; 922a: a9 c7       ..       ; OSBYTE 199 again to restore spool state
+    lda #osbyte_spool_file_handle                                     ; 922a: a9 c7       ..       ; OSBYTE 199 again to restore spool state
     ldy #&ff                                                          ; 922c: a0 ff       ..       ; Y=&FF (read mode): NEW = OLD EOR X
-    jsr osbyte                                                        ; 922e: 20 f4 ff     ..      ; X=0 -> no change; X=OLD -> writes OLD back  osbyte: read write spool file handle
+    jsr osbyte                                                        ; 922e: 20 f4 ff     ..      ; X=0 -> no change; X=OLD -> writes OLD back  osbyte: spool file handle
     pla                                                               ; 9231: 68          h        ; Pull A (preserved across the call)
     ply                                                               ; 9232: 7a          z        ; Pull Y
     plx                                                               ; 9233: fa          .        ; Pull X
@@ -7187,8 +7187,8 @@ help_topic_template = dispatch_help_command+1
     jsr init_ws_copy_narrow                                           ; 9872: 20 07 ae     ..      ; Initialise narrow workspace template
     ldx #1                                                            ; 9875: a2 01       ..       ; X=1: enable Econet keyboard
     ldy #0                                                            ; 9877: a0 00       ..       ; Y=0
-    lda #osbyte_read_write_econet_keyboard_disable                    ; 9879: a9 c9       ..       ; OSBYTE &C9: read/write Econet keyboard disable
-    jsr osbyte                                                        ; 987b: 20 f4 ff     ..      ; osbyte: read write econet keyboard disable
+    lda #osbyte_econet_kbd_disable                                    ; 9879: a9 c9       ..       ; OSBYTE &C9: read/write Econet keyboard disable
+    jsr osbyte                                                        ; 987b: 20 f4 ff     ..      ; osbyte: econet kbd disable
 ; ***************************************************************************************
 ; Language reply 3: raise 'Remoted' error at &0100
 ;
@@ -10745,7 +10745,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     pla                                                               ; a71c: 68          h        ; Pop saved A
     cmp #2                                                            ; a71d: c9 02       ..       ; Compare with 2
     bcc check_auto_boot_flag                                          ; a71f: 90 05       ..       ; Below: skip making FS permanent
-    lda #osbyte_make_temporary_filing_system_permanent                ; a721: a9 6d       .m       ; Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS
+    lda #osbyte_make_fs_permanent                                     ; a721: a9 6d       .m       ; Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS
     jsr osbyte                                                        ; a723: 20 f4 ff     ..      ; Make temporary filing system permanent
 ; ***************************************************************************************
 ; Test+clear bit 2 of fs_lib_flags; on CTRL, bail out

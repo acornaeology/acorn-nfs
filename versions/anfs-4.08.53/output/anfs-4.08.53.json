@@ -129,11 +129,11 @@
       "value": 0
     },
     {
-      "name": "osbyte_read_write_econet_keyboard_disable",
+      "name": "osbyte_econet_kbd_disable",
       "value": 201
     },
     {
-      "name": "osbyte_read_write_econet_os_call_interception",
+      "name": "osbyte_econet_oscall_intercept",
       "value": 206
     },
     {
@@ -197,7 +197,7 @@
       "value": 5
     },
     {
-      "name": "osbyte_read_write_last_break_type",
+      "name": "osbyte_last_break_type",
       "value": 253
     }
   ],
@@ -21627,7 +21627,7 @@
       "comment_inline": "OSBYTE &C9: keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 35546,
@@ -21636,7 +21636,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write econet keyboard disable",
+      "comment_inline": "osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -21699,7 +21699,7 @@
       "comment_inline": "A=&CE: start of key range",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_os_call_interception"
+      "operand": "#osbyte_econet_oscall_intercept"
     },
     {
       "addr": 35558,
@@ -21741,7 +21741,7 @@
         244,
         255
       ],
-      "comment_inline": "OSBYTE: scan keyboard osbyte: read write econet os call interception",
+      "comment_inline": "OSBYTE: scan keyboard osbyte: econet oscall intercept",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -38307,7 +38307,7 @@
       "comment_inline": "OSBYTE &C9: Econet keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 38293,
@@ -38316,7 +38316,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write econet keyboard disable",
+      "comment_inline": "osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -109417,7 +109417,7 @@
       "comment_inline": "OSBYTE &FD: what type of reset was this?",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_last_break_type"
+      "operand": "#osbyte_last_break_type"
     },
     {
       "addr": 1170,

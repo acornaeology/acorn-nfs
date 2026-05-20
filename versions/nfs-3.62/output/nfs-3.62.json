@@ -121,11 +121,11 @@
       "value": 65187
     },
     {
-      "name": "osbyte_read_write_econet_keyboard_disable",
+      "name": "osbyte_econet_kbd_disable",
       "value": 201
     },
     {
-      "name": "osbyte_read_write_econet_os_call_interception",
+      "name": "osbyte_econet_oscall_intercept",
       "value": 206
     },
     {
@@ -133,7 +133,7 @@
       "value": 122
     },
     {
-      "name": "osbyte_read_write_last_break_type",
+      "name": "osbyte_last_break_type",
       "value": 253
     },
     {
@@ -141,7 +141,7 @@
       "value": 119
     },
     {
-      "name": "osbyte_read_write_exec_file_handle",
+      "name": "osbyte_exec_file_handle",
       "value": 198
     },
     {
@@ -6241,7 +6241,7 @@
       "comment_inline": "OSBYTE &C9: Econet keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 33226,
@@ -6250,7 +6250,7 @@
         244,
         255
       ],
-      "comment_inline": "Re-enable keyboard (X=0, Y=0) osbyte: read write econet keyboard disable",
+      "comment_inline": "Re-enable keyboard (X=0, Y=0) osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -6313,7 +6313,7 @@
       "comment_inline": "OSBYTE &CE: first system mask to reset",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_os_call_interception"
+      "operand": "#osbyte_econet_oscall_intercept"
     },
     {
       "addr": 33238,
@@ -6355,7 +6355,7 @@
         244,
         255
       ],
-      "comment_inline": "Reset system mask byte osbyte: read write econet os call interception",
+      "comment_inline": "Reset system mask byte osbyte: econet oscall intercept",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -7859,7 +7859,7 @@
       "comment_inline": "OSBYTE &FD: read type of last reset",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_last_break_type"
+      "operand": "#osbyte_last_break_type"
     },
     {
       "addr": 33502,
@@ -10519,7 +10519,7 @@
       "comment_inline": "A=&C6: read *EXEC file handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_exec_file_handle"
+      "operand": "#osbyte_exec_file_handle"
     },
     {
       "addr": 33886,
@@ -10528,7 +10528,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write exec file handle",
+      "comment_inline": "osbyte: exec file handle",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -11348,7 +11348,7 @@
       "comment_inline": "Disable keyboard for remote session",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 34010,
@@ -11357,7 +11357,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write econet keyboard disable",
+      "comment_inline": "osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -37634,7 +37634,7 @@
       "comment_inline": "OSBYTE &FD: what type of reset was this?",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_last_break_type"
+      "operand": "#osbyte_last_break_type"
     },
     {
       "addr": 1170,

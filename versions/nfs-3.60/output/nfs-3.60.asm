@@ -1,47 +1,47 @@
 ; Constants
-osbyte_explode_chars                          = &14
-handle_base                                   = &20
-osbyte_write_keys_pressed                     = &78
-rx_ready                                      = &7f
-tx_flag                                       = &80
-osbyte_issue_service_request                  = &8f
-port_reply                                    = &90
-port_save_ack                                 = &91
-port_load_data                                = &92
-port_remote                                   = &93
-port_command                                  = &99
-err_line_jammed                               = &a0
-err_net_error                                 = &a1
-err_not_listening                             = &a2
-err_no_clock                                  = &a3
-err_tx_cb_error                               = &a4
-err_no_reply                                  = &a5
-err_fs_cutoff                                 = &a8
-osbyte_read_rom_ptr_table_low                 = &a8
-port_printer                                  = &d1
-cb_fill                                       = &fc
-cb_skip                                       = &fd
-cb_stop                                       = &fe
-econet_station_id                             = &fe18
-econet_nmi_enable                             = &fe20
-adlc_cr1                                      = &fea0
-adlc_cr2                                      = &fea1
-adlc_tx                                       = &fea2
-adlc_tx2                                      = &fea3
-osbyte_read_write_econet_keyboard_disable     = &c9
-osbyte_read_write_econet_os_call_interception = &ce
-osbyte_scan_keyboard_from_16                  = &7a
-osbyte_read_write_last_break_type             = &fd
-osbyte_close_spool_exec                       = &77
-osbyte_read_write_exec_file_handle            = &c6
-osbyte_acknowledge_escape                     = &7e
-osbyte_insert_input_buffer                    = &99
-osbyte_read_buffer                            = &91
-buffer_printer                                = &03
-osword_read_palette                           = &0b
-osfind_close                                  = &00
-osbyte_read_tube_presence                     = &ea
-event_network_error                           = &08
+osbyte_explode_chars           = &14
+handle_base                    = &20
+osbyte_write_keys_pressed      = &78
+rx_ready                       = &7f
+tx_flag                        = &80
+osbyte_issue_service_request   = &8f
+port_reply                     = &90
+port_save_ack                  = &91
+port_load_data                 = &92
+port_remote                    = &93
+port_command                   = &99
+err_line_jammed                = &a0
+err_net_error                  = &a1
+err_not_listening              = &a2
+err_no_clock                   = &a3
+err_tx_cb_error                = &a4
+err_no_reply                   = &a5
+err_fs_cutoff                  = &a8
+osbyte_read_rom_ptr_table_low  = &a8
+port_printer                   = &d1
+cb_fill                        = &fc
+cb_skip                        = &fd
+cb_stop                        = &fe
+econet_station_id              = &fe18
+econet_nmi_enable              = &fe20
+adlc_cr1                       = &fea0
+adlc_cr2                       = &fea1
+adlc_tx                        = &fea2
+adlc_tx2                       = &fea3
+osbyte_econet_kbd_disable      = &c9
+osbyte_econet_oscall_intercept = &ce
+osbyte_scan_keyboard_from_16   = &7a
+osbyte_last_break_type         = &fd
+osbyte_close_spool_exec        = &77
+osbyte_exec_file_handle        = &c6
+osbyte_acknowledge_escape      = &7e
+osbyte_insert_input_buffer     = &99
+osbyte_read_buffer             = &91
+buffer_printer                 = &03
+osword_read_palette            = &0b
+osfind_close                   = &00
+osbyte_read_tube_presence      = &ea
+event_network_error            = &08
 
 ; Memory locations
 zp_ptr_lo                              = &00
@@ -745,7 +745,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .check_break_type
     ldx #0                                                            ; 93ee: a2 00       .. :048c[2]         ; X=0 for OSBYTE
     ldy #&ff                                                          ; 93f0: a0 ff       .. :048e[2]         ; Y=&FF for OSBYTE
-    lda #osbyte_read_write_last_break_type                            ; 93f2: a9 fd       .. :0490[2]         ; OSBYTE &FD: what type of reset was this?
+    lda #osbyte_last_break_type                                       ; 93f2: a9 fd       .. :0490[2]         ; OSBYTE &FD: what type of reset was this?
     jsr osbyte                                                        ; 93f4: 20 f4 ff     .. :0492[2]        ; Read/Write last break type
     txa                                                               ; 93f7: 8a          . :0495[2]        
     beq tube_sendw_complete                                           ; 93f8: f0 d9       .. :0496[2]         ; Soft break (X=0): re-init Tube and restart
@@ -1942,19 +1942,19 @@ cmd_roff_str = copyright_string+3
     tax                                                               ; 81c4: aa          .     
     sta (net_rx_ptr),y                                                ; 81c5: 91 9c       ..       ; Clear keyboard disable flag in buffer
     tay                                                               ; 81c7: a8          .     
-    lda #osbyte_read_write_econet_keyboard_disable                    ; 81c8: a9 c9       ..       ; OSBYTE &C9: Econet keyboard disable
-    jsr osbyte                                                        ; 81ca: 20 f4 ff     ..      ; Re-enable keyboard (X=0, Y=0)  osbyte: read write econet keyboard disable
+    lda #osbyte_econet_kbd_disable                                    ; 81c8: a9 c9       ..       ; OSBYTE &C9: Econet keyboard disable
+    jsr osbyte                                                        ; 81ca: 20 f4 ff     ..      ; Re-enable keyboard (X=0, Y=0)  osbyte: econet kbd disable
     lda #&0a                                                          ; 81cd: a9 0a       ..       ; Function &0A: remote operation complete
     jsr setup_tx_and_send                                             ; 81cf: 20 c4 90     ..      ; Send notification to controlling station
 ; &81d2 referenced 1 time by &84ce
 .clear_osbyte_ce_cf
     stx nfs_workspace                                                 ; 81d2: 86 9e       ..       ; Save X (return value from TX)
-    lda #osbyte_read_write_econet_os_call_interception                ; 81d4: a9 ce       ..       ; OSBYTE &CE: first system mask to reset
+    lda #osbyte_econet_oscall_intercept                               ; 81d4: a9 ce       ..       ; OSBYTE &CE: first system mask to reset
 ; &81d6 referenced 1 time by &81e1
 .clear_osbyte_masks
     ldx nfs_workspace                                                 ; 81d6: a6 9e       ..       ; Restore X for OSBYTE call
     ldy #&7f                                                          ; 81d8: a0 7f       ..       ; Y=&7F: AND mask (clear bit 7)
-    jsr osbyte                                                        ; 81da: 20 f4 ff     ..      ; Reset system mask byte  osbyte: read write econet os call interception
+    jsr osbyte                                                        ; 81da: 20 f4 ff     ..      ; Reset system mask byte  osbyte: econet oscall intercept
     adc #1                                                            ; 81dd: 69 01       i.       ; Advance to next OSBYTE (&CE -> &CF)
     cmp #&d0                                                          ; 81df: c9 d0       ..       ; Reached &D0? (past &CF)
 .cmd_name_matched
@@ -2207,7 +2207,7 @@ cmd_roff_str = copyright_string+3
     sta ws_page                                                       ; 82d6: 85 a8       ..       ; Clear RXCB iteration counter
     sta tx_clear_flag                                                 ; 82d8: 8d 62 0d    .b.      ; Clear TX semaphore (no TX in progress)
     tax                                                               ; 82db: aa          .        ; X=0 for OSBYTE
-    lda #osbyte_read_write_last_break_type                            ; 82dc: a9 fd       ..       ; OSBYTE &FD: read type of last reset
+    lda #osbyte_last_break_type                                       ; 82dc: a9 fd       ..       ; OSBYTE &FD: read type of last reset
     jsr osbyte                                                        ; 82de: 20 f4 ff     ..      ; Read/Write last break type
     txa                                                               ; 82e1: 8a          .        ; X = break type from OSBYTE result
     beq read_station_id                                               ; 82e2: f0 32       .2       ; Soft break (X=0): skip FS init
@@ -2622,8 +2622,8 @@ cmd_roff_str = copyright_string+3
     dey                                                               ; 8458: 88          .        ; Next byte (descending)
     bpl error1                                                        ; 8459: 10 f7       ..       ; Loop until all 32 bytes copied
     tax                                                               ; 845b: aa          .     
-    lda #osbyte_read_write_exec_file_handle                           ; 845c: a9 c6       ..       ; A=&C6: read *EXEC file handle
-    jsr osbyte                                                        ; 845e: 20 f4 ff     ..      ; osbyte: read write exec file handle
+    lda #osbyte_exec_file_handle                                      ; 845c: a9 c6       ..       ; A=&C6: read *EXEC file handle
+    jsr osbyte                                                        ; 845e: 20 f4 ff     ..      ; osbyte: exec file handle
     lda #&29 ; ')'                                                    ; 8461: a9 29       .)       ; ')': offset into "SP." string at &8529
     cpy fs_spool_handle                                               ; 8463: c4 ba       ..       ; Y=value of *SPOOL file handle
     beq close_spool_exec                                              ; 8465: f0 06       ..       ; Handle matches SPOOL -- close it
@@ -2734,8 +2734,8 @@ cmd_roff_str = copyright_string+3
     jsr ctrl_block_setup                                              ; 84d1: 20 88 91     ..      ; Set up TX control block
     ldx #1                                                            ; 84d4: a2 01       ..       ; X=1: disable keyboard
     ldy #0                                                            ; 84d6: a0 00       ..       ; Y=0 for OSBYTE
-    lda #osbyte_read_write_econet_keyboard_disable                    ; 84d8: a9 c9       ..       ; Disable keyboard for remote session
-    jsr osbyte                                                        ; 84da: 20 f4 ff     ..      ; osbyte: read write econet keyboard disable
+    lda #osbyte_econet_kbd_disable                                    ; 84d8: a9 c9       ..       ; Disable keyboard for remote session
+    jsr osbyte                                                        ; 84da: 20 f4 ff     ..      ; osbyte: econet kbd disable
 ; ***************************************************************************************
 ; Execute code at &0100
 ;

@@ -101,11 +101,11 @@
       "value": 0
     },
     {
-      "name": "osbyte_read_write_econet_keyboard_disable",
+      "name": "osbyte_econet_kbd_disable",
       "value": 201
     },
     {
-      "name": "osbyte_read_write_econet_os_call_interception",
+      "name": "osbyte_econet_oscall_intercept",
       "value": 206
     },
     {
@@ -121,7 +121,7 @@
       "value": 161
     },
     {
-      "name": "osbyte_read_write_spool_file_handle",
+      "name": "osbyte_spool_file_handle",
       "value": 199
     },
     {
@@ -145,7 +145,7 @@
       "value": 19
     },
     {
-      "name": "osbyte_make_temporary_filing_system_permanent",
+      "name": "osbyte_make_fs_permanent",
       "value": 109
     },
     {
@@ -25263,7 +25263,7 @@
       "comment_inline": "OSBYTE &C9: keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 35576,
@@ -25272,7 +25272,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write econet keyboard disable",
+      "comment_inline": "osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -25335,7 +25335,7 @@
       "comment_inline": "A=&CE: start of key range",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_os_call_interception"
+      "operand": "#osbyte_econet_oscall_intercept"
     },
     {
       "addr": 35588,
@@ -25377,7 +25377,7 @@
         244,
         255
       ],
-      "comment_inline": "OSBYTE: scan keyboard osbyte: read write econet os call interception",
+      "comment_inline": "OSBYTE: scan keyboard osbyte: econet oscall intercept",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -35478,7 +35478,7 @@
       "comment_inline": "OSBYTE 199 (read/write *SPOOL file handle)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_spool_file_handle"
+      "operand": "#osbyte_spool_file_handle"
     },
     {
       "addr": 37385,
@@ -35509,7 +35509,7 @@
         244,
         255
       ],
-      "comment_inline": "Closes spool; X returns OLD handle osbyte: read write spool file handle",
+      "comment_inline": "Closes spool; X returns OLD handle osbyte: spool file handle",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -35571,7 +35571,7 @@
         244,
         255
       ],
-      "comment_inline": "OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD osbyte: read write spool file handle",
+      "comment_inline": "OLD in [&20,&2F] (NFS handle range): re-open spool with X=OLD osbyte: spool file handle",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -35707,7 +35707,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_spool_file_handle"
+      "operand": "#osbyte_spool_file_handle"
     },
     {
       "addr": 37420,
@@ -35727,7 +35727,7 @@
         244,
         255
       ],
-      "comment_inline": "X=0 -> no change; X=OLD -> writes OLD back osbyte: read write spool file handle",
+      "comment_inline": "X=0 -> no change; X=OLD -> writes OLD back osbyte: spool file handle",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -46240,7 +46240,7 @@
       "comment_inline": "OSBYTE &C9: read/write Econet keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_write_econet_keyboard_disable"
+      "operand": "#osbyte_econet_kbd_disable"
     },
     {
       "addr": 39035,
@@ -46249,7 +46249,7 @@
         244,
         255
       ],
-      "comment_inline": "osbyte: read write econet keyboard disable",
+      "comment_inline": "osbyte: econet kbd disable",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbyte",
@@ -70715,7 +70715,7 @@
       "comment_inline": "Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_make_temporary_filing_system_permanent"
+      "operand": "#osbyte_make_fs_permanent"
     },
     {
       "addr": 42787,
