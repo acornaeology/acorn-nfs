@@ -10793,28 +10793,25 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     equs "E.-NET-!Boot"                                               ; a74e: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
     equb &0d                                                          ; a75a: 0d          .        ; CR terminator
 ; ***************************************************************************************
-; Boot-command low-byte index table (3-way dispatch via overlapping CR-terminated strings)
+; Boot-command low-byte index table
 ;
-; Indexed by hazel_fs_flags (1..3) in boot_cmd_oscli, yielding an OSCLI pointer &A7xx
-; where xx is the table byte. Three reachable entries:
+; Four-byte table of OSCLI-pointer low bytes, indexed by Y in boot_cmd_oscli. Combined
+; with Y=&A7 (high byte, supplied by boot_cmd_oscli after the lookup), each entry yields
+; a pointer to a CR-terminated boot command in the &A7xx page.
 ;
-; | Y | Byte | Ptr   | OSCLI command                     |
-; |---|------|-------|-----------------------------------|
-; | 1 | &41  | &A741 | L.-NET-!Boot (load !Boot via NFS) |
-; | 2 | &48  | &A748 | !Boot (run *!Boot on current FS)  |
-; | 3 | &4E  | &A74E | E.-NET-!Boot (exec !Boot via NFS) |
+; Three reachable entries (Y = 1, 2, 3); Y=0 is unreachable because boot_select_cmd BEQs
+; out when hazel_fs_flags is zero.
 ;
-; The clever bit is index 2: &A748 lands inside boot_cmd_load_str — specifically on its !
-; byte — so OSCLI reads "!Boot<CR>" from the middle of the same string used at index 1,
+; Index 2 (&48) lands inside boot_cmd_load_str — at offset 7, on its ! byte — so OSCLI
+; reads "!Boot<CR>" from the middle of the same string used at index 1. This packs the
+; "run *!Boot on the current FS" variant into the same data as the load-via-NFS form,
 ; saving a third CR-terminated string.
-;
-; Encoded as equs "ZAHN"; the four bytes happen to read as ASCII but the mnemonic is
-; incidental. The Z (&5A) at index 0 points at the CR terminator of boot_cmd_exec_str and
-; is unreachable in practice because boot_select_cmd BEQs out when hazel_fs_flags is
-; zero.
 ; &a75b referenced 1 time by &a764
 .boot_cmd_lo_table
-    equs "ZAHN"                                                       ; a75b: 5a 41 48... ZAH...
+    equb &5a                                                          ; a75b: 5a          Z        ; Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead
+    equb <boot_cmd_load_str                                           ; a75c: 41          A        ; Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'
+    equb <(boot_cmd_load_str + 7)                                     ; a75d: 48          H        ; Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS
+    equb <boot_cmd_exec_str                                           ; a75e: 4e          N        ; Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'
 ; ***************************************************************************************
 ; Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli
 ;
@@ -17922,7 +17919,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1953 bytes (12%)
 ;
 ;     Number of instructions   = 7108
-;     Number of data bytes     = 589 bytes
+;     Number of data bytes     = 593 bytes
 ;     Number of data words     = 86 bytes
-;     Number of string bytes   = 1278 bytes
-;     Number of strings        = 152
+;     Number of string bytes   = 1274 bytes
+;     Number of strings        = 151

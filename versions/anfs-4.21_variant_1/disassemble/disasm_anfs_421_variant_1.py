@@ -12545,28 +12545,36 @@ d.label(0xA75B, "boot_cmd_lo_table")
 
 d.banner(
     0xA75B,
-    title="Boot-command low-byte index table (3-way dispatch via overlapping CR-terminated strings)",
-    description="""Indexed by `hazel_fs_flags` (1..3) in
-[`boot_cmd_oscli`](address:A764), yielding an OSCLI pointer
-`&A7xx` where `xx` is the table byte. Three reachable entries:
+    title="Boot-command low-byte index table",
+    description="""Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in
+[`boot_cmd_oscli`](address:A764). Combined with `Y=&A7` (high
+byte, supplied by `boot_cmd_oscli` after the lookup), each entry
+yields a pointer to a CR-terminated boot command in the `&A7xx`
+page.
 
-| Y | Byte | Ptr   | OSCLI command                          |
-|---|------|-------|----------------------------------------|
-| 1 | &41  | &A741 | `L.-NET-!Boot` (load `!Boot` via NFS)  |
-| 2 | &48  | &A748 | `!Boot` (run `*!Boot` on current FS)   |
-| 3 | &4E  | &A74E | `E.-NET-!Boot` (exec `!Boot` via NFS)  |
+Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
+because [`boot_select_cmd`](address:A75F) `BEQ`s out when
+`hazel_fs_flags` is zero.
 
-The clever bit is index 2: `&A748` lands inside
-[`boot_cmd_load_str`](address:A741) — specifically on its `!`
+Index 2 (`&48`) lands inside
+[`boot_cmd_load_str`](address:A741) — at offset 7, on its `!`
 byte — so OSCLI reads `"!Boot<CR>"` from the middle of the same
-string used at index 1, saving a third CR-terminated string.
-
-Encoded as `equs "ZAHN"`; the four bytes happen to read as ASCII
-but the mnemonic is incidental. The `Z` (`&5A`) at index 0 points
-at the CR terminator of [`boot_cmd_exec_str`](address:A74E) and
-is unreachable in practice because [`boot_select_cmd`](address:A75F)
-`BEQ`s out when `hazel_fs_flags` is zero.""",
+string used at index 1. This packs the "run `*!Boot` on the
+current FS" variant into the same data as the load-via-NFS
+form, saving a third CR-terminated string.""",
 )
+
+d.byte(0xA75B)
+d.byte(0xA75C)
+d.byte(0xA75D)
+d.byte(0xA75E)
+d.comment(0xA75B, "Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead", align=Align.INLINE)
+d.expr(0xA75C, "<boot_cmd_load_str")
+d.comment(0xA75C, "Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'", align=Align.INLINE)
+d.expr(0xA75D, "<(boot_cmd_load_str + 7)")
+d.comment(0xA75D, "Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS", align=Align.INLINE)
+d.expr(0xA75E, "<boot_cmd_exec_str")
+d.comment(0xA75E, "Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'", align=Align.INLINE)
 d.label(0xA75F, "boot_select_cmd")
 
 d.subroutine(
