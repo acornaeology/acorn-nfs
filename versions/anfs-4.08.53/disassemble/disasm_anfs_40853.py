@@ -10064,7 +10064,7 @@ d.comment(0xA3F6, "*Print", align=Align.INLINE)
 d.comment(0xA3FB, "V no arg; syn 12: <filename>", align=Align.INLINE)
 d.comment(0xA3FC, "Dispatch addr-1", align=Align.INLINE)
 d.comment(0xA3FE, "*Prot", align=Align.INLINE)
-d.comment(0xA402, "Syn 14: (attribute keywords)", align=Align.INLINE)
+d.comment(0xA402, "Syn 14: (protection-type keywords)", align=Align.INLINE)
 d.comment(0xA403, "Dispatch addr-1", align=Align.INLINE)
 d.string(0xA405, 2)
 d.comment(0xA405, "*PS; syn 8: (<stn. id.>|<ps type>)", align=Align.INLINE)
@@ -10077,7 +10077,7 @@ d.comment(0xA411, "*Type", align=Align.INLINE)
 d.comment(0xA415, "V no arg; syn 12: <filename>", align=Align.INLINE)
 d.comment(0xA416, "Dispatch addr-1", align=Align.INLINE)
 d.comment(0xA418, "*Unprot", align=Align.INLINE)
-d.comment(0xA41E, "Syn 14: (attribute keywords)", align=Align.INLINE)
+d.comment(0xA41E, "Syn 14: (protection-type keywords)", align=Align.INLINE)
 d.comment(0xA41F, "Dispatch addr-1", align=Align.INLINE)
 d.comment(0xA421, "End of utility sub-table", align=Align.INLINE)
 d.label(0xA422, "cmd_table_nfs")
@@ -10151,10 +10151,12 @@ d.comment(0xA4AA, "End of help topic sub-table", align=Align.INLINE)
 d.label(0xA4AB, "cmd_table_copro")
 d.comment(
     0xA4AB,
-    """Protection attribute keyword table. Each entry:
-ASCII name + flag byte (&80+) + OR mask + AND mask.
-Used by *Prot (ORA lo byte) and *Unprot (AND hi
-byte) to set/clear individual protection bits.
+    """*Prot/*Unprot protection-type keyword table. The
+names are protection types (Halt, Peek, Poke, Jsr,
+Proc, Utils), not *Access file attributes. Each
+entry: ASCII name + flag byte (&80+) + OR mask +
+AND mask. *Prot ORs the lo byte, *Unprot ANDs the
+hi byte, to set/clear individual protection bits.
 Also listed by *HELP Prot/*HELP Unprot via the
 shared commands handler (syntax index 14).
 Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt""",
@@ -10188,7 +10190,7 @@ d.comment(0xA4D2, "Flag &A9: syn 9 (unused)", align=Align.INLINE)
 d.comment(0xA4D3, "*Prot OR mask: bit 4", align=Align.INLINE)
 d.comment(0xA4D4, "*Unprot AND mask: ~bit 4", align=Align.INLINE)
 d.byte(0xA4D5)
-d.comment(0xA4D5, "End of attribute keyword table", align=Align.INLINE)
+d.comment(0xA4D5, "End of protection-type keyword table", align=Align.INLINE)
 
 d.entry(0xA4D6)
 d.label(0xA4D6, "svc_8_osword")
@@ -13773,7 +13775,7 @@ d.subroutine(
     "cmd_prot",
     title="*Prot command handler",
     description="""With no arguments, sets all protection bits (&FF).
-Otherwise parses attribute keywords via match_fs_cmd
+Otherwise parses protection-type keywords via match_fs_cmd
 with table offset &D3, accumulating bits via ORA.
 Stores the final protection mask in ws_0d68 and
 ws_0d69.""",
@@ -13783,7 +13785,7 @@ ws_0d69.""",
 
 d.comment(0xB2F0, "Get next char from command line", align=Align.INLINE)
 d.comment(0xB2F2, "Compare with CR (end of line)", align=Align.INLINE)
-d.comment(0xB2F4, "Not CR: attribute keywords follow", align=Align.INLINE)
+d.comment(0xB2F4, "Not CR: protection-type keywords follow", align=Align.INLINE)
 d.comment(0xB2F6, "A=&FF: protect all attributes", align=Align.INLINE)
 d.label(0xB2FA, "parse_prot_keywords")
 
@@ -13791,10 +13793,10 @@ d.comment(0xB2FA, "Load current protection mask", align=Align.INLINE)
 d.comment(0xB2FD, "Save as starting value", align=Align.INLINE)
 d.label(0xB2FE, "loop_match_prot_attr")
 
-d.comment(0xB2FE, "X=&D3: attribute keyword table offset", align=Align.INLINE)
+d.comment(0xB2FE, "X=&D3: protection-type keyword table offset", align=Align.INLINE)
 d.comment(0xB300, "Get next char from command line", align=Align.INLINE)
 d.comment(0xB302, "Save for end-of-args check", align=Align.INLINE)
-d.comment(0xB304, "Match attribute keyword in table", align=Align.INLINE)
+d.comment(0xB304, "Match protection-type keyword in table", align=Align.INLINE)
 d.comment(0xB307, "No match: check if end of arguments", align=Align.INLINE)
 d.comment(0xB309, "Retrieve accumulated mask", align=Align.INLINE)
 d.comment(0xB30A, "OR in attribute bit for keyword", align=Align.INLINE)
@@ -13805,7 +13807,7 @@ d.label(0xB310, "prot_check_arg_end")
 d.comment(0xB310, "Get the unmatched character", align=Align.INLINE)
 d.comment(0xB312, "Is it CR?", align=Align.INLINE)
 d.comment(0xB314, "Yes: arguments ended correctly", align=Align.INLINE)
-d.comment(0xB316, "No: invalid attribute keyword", align=Align.INLINE)
+d.comment(0xB316, "No: invalid protection-type keyword", align=Align.INLINE)
 d.label(0xB319, "done_prot_args")
 
 d.comment(0xB319, "Retrieve final protection mask", align=Align.INLINE)
@@ -13822,7 +13824,7 @@ d.subroutine(
     "cmd_unprot",
     title="*Unprot command handler",
     description="""With no arguments, clears all protection bits (EOR
-yields 0). Otherwise parses attribute keywords, clearing
+yields 0). Otherwise parses protection-type keywords, clearing
 bits via AND with the complement. Shares the protection
 mask storage path with cmd_prot. Falls through to
 cmd_wipe.""",
@@ -13837,10 +13839,10 @@ d.comment(0xB327, "Load current protection mask", align=Align.INLINE)
 d.comment(0xB32A, "Save as starting value", align=Align.INLINE)
 d.label(0xB32B, "loop_match_unprot_attr")
 
-d.comment(0xB32B, "X=&D3: attribute keyword table offset", align=Align.INLINE)
+d.comment(0xB32B, "X=&D3: protection-type keyword table offset", align=Align.INLINE)
 d.comment(0xB32D, "Get next char from command line", align=Align.INLINE)
 d.comment(0xB32F, "Save for end-of-args check", align=Align.INLINE)
-d.comment(0xB331, "Match attribute keyword in table", align=Align.INLINE)
+d.comment(0xB331, "Match protection-type keyword in table", align=Align.INLINE)
 d.comment(0xB334, "No match: check if end of arguments", align=Align.INLINE)
 d.comment(0xB336, "Retrieve accumulated mask", align=Align.INLINE)
 d.comment(0xB337, "AND to clear matched attribute bit", align=Align.INLINE)

@@ -216,11 +216,13 @@ error, never a confusable success with a misleading payload.
 
 ## Protection moves into CMOS
 
-`*PROT` and `*UNPROT` in 4.18 took attribute keywords (`L`, `W`,
-`R`, `WR`, …) and accumulated the parsed bits into a workspace
-mask. The keyword-parser table and the per-keyword bit-encoding
-ran fifty-odd bytes; the parser body itself was more. The mask was
-lost on `BREAK`.
+`*PROT` and `*UNPROT` in 4.18 took protection-type keywords
+(`Halt`, `Peek`, `Poke`, `Jsr`, `Proc`, `Utils`) and accumulated
+the parsed bits into a workspace mask – one bit per remote
+operation the station would refuse over Econet, with no keyword
+meaning "protect against all of them". The keyword-parser table
+and the per-keyword bit-encoding ran to fifty-odd bytes; the parser
+body itself was more. The mask was lost on `BREAK`.
 
 [`cmd_prot`](address:B6D2) and [`cmd_unprot`](address:B6D6) in
 4.21 take **no arguments**. They're each a four-instruction toggle

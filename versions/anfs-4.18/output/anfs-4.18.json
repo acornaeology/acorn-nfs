@@ -2660,7 +2660,7 @@
       "addr": 45836,
       "name": "cmd_prot",
       "title": "*Prot command handler",
-      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses attribute keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in ws_0d68 and\nws_0d69.",
+      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses protection-type keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in ws_0d68 and\nws_0d69.",
       "on_entry": {
         "y": "command line offset in text pointer"
       }
@@ -2669,7 +2669,7 @@
       "addr": 45885,
       "name": "cmd_unprot",
       "title": "*Unprot command handler",
-      "description": "With no arguments, clears all protection bits (EOR\nyields 0). Otherwise parses attribute keywords, clearing\nbits via AND with the complement. Shares the protection\nmask storage path with cmd_prot. Falls through to\ncmd_wipe.",
+      "description": "With no arguments, clears all protection bits (EOR\nyields 0). Otherwise parses protection-type keywords, clearing\nbits via AND with the complement. Shares the protection\nmask storage path with cmd_prot. Falls through to\ncmd_wipe.",
       "on_entry": {
         "y": "command line offset in text pointer"
       },
@@ -62751,7 +62751,7 @@
       "bytes": [
         142
       ],
-      "comment_inline": "Syn 14: (attribute keywords)",
+      "comment_inline": "Syn 14: (protection-type keywords)",
       "type": "byte",
       "values": [
         142
@@ -62898,7 +62898,7 @@
       "bytes": [
         142
       ],
-      "comment_inline": "Syn 14: (attribute keywords)",
+      "comment_inline": "Syn 14: (protection-type keywords)",
       "type": "byte",
       "values": [
         142
@@ -63699,7 +63699,7 @@
         "cmd_table_copro"
       ],
       "comments_before_label": [
-        "Protection attribute keyword table. Each entry:\nASCII name + flag byte (&80+) + OR mask + AND mask.\nUsed by *Prot (ORA lo byte) and *Unprot (AND hi\nbyte) to set/clear individual protection bits.\nAlso listed by *HELP Prot/*HELP Unprot via the\nshared commands handler (syntax index 14).\nBits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt"
+        "*Prot/*Unprot protection-type keyword table. The\nnames are protection types (Halt, Peek, Poke, Jsr,\nProc, Utils), not *Access file attributes. Each\nentry: ASCII name + flag byte (&80+) + OR mask +\nAND mask. *Prot ORs the lo byte, *Unprot ANDs the\nhi byte, to set/clear individual protection bits.\nAlso listed by *HELP Prot/*HELP Unprot via the\nshared commands handler (syntax index 14).\nBits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt"
       ],
       "comment_inline": "Halt",
       "type": "string",
@@ -63968,7 +63968,7 @@
       "bytes": [
         128
       ],
-      "comment_inline": "End of attribute keyword table",
+      "comment_inline": "End of protection-type keyword table",
       "type": "byte",
       "values": [
         128
@@ -89003,7 +89003,7 @@
         208,
         4
       ],
-      "comment_inline": "Not CR: attribute keywords follow",
+      "comment_inline": "Not CR: protection-type keywords follow",
       "type": "code",
       "mnemonic": "bne",
       "operand": "parse_prot_keywords",
@@ -89074,7 +89074,7 @@
       "labels": [
         "loop_match_prot_attr"
       ],
-      "comment_inline": "X=&D3: attribute keyword table offset",
+      "comment_inline": "X=&D3: protection-type keyword table offset",
       "xref_summaries": [
         "&b31a referenced 1 time by &b32a"
       ],
@@ -89118,7 +89118,7 @@
         64,
         161
       ],
-      "comment_inline": "Match attribute keyword in table",
+      "comment_inline": "Match protection-type keyword in table",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_fs_cmd",
@@ -89237,7 +89237,7 @@
         93,
         162
       ],
-      "comment_inline": "No: invalid attribute keyword",
+      "comment_inline": "No: invalid protection-type keyword",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "error_bad_command",
@@ -89382,7 +89382,7 @@
       "labels": [
         "loop_match_unprot_attr"
       ],
-      "comment_inline": "X=&D3: attribute keyword table offset",
+      "comment_inline": "X=&D3: protection-type keyword table offset",
       "xref_summaries": [
         "&b347 referenced 1 time by &b357"
       ],
@@ -89426,7 +89426,7 @@
         64,
         161
       ],
-      "comment_inline": "Match attribute keyword in table",
+      "comment_inline": "Match protection-type keyword in table",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_fs_cmd",

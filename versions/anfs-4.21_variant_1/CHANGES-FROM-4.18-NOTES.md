@@ -89,8 +89,10 @@ strings "Close", "Type", "Print" do not appear anywhere in the
 ### Protection state moved to CMOS RAM (cmd_prot / cmd_unprot)
 
 4.18's `cmd_prot` / `cmd_unprot` (4.18 &B30C / &B33D) parsed
-attribute keywords ("L", "W", "R", etc.) and accumulated bits into
-a workspace mask at `ws_0d68` / `ws_0d69`. 4.21's `cmd_prot`
+protection-type keywords ("Halt", "Peek", "Poke", "Jsr", "Proc",
+"Utils" -- the keyword table at `cmd_table_copro` &A4C3, bits
+0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt) and accumulated bits
+into a workspace mask at `ws_0d68` / `ws_0d69`. 4.21's `cmd_prot`
 (&B6D2) and `cmd_unprot` (&B6D6) take **no arguments** -- they
 just toggle bit 6 of CMOS RAM byte `&11` (the Econet
 station-flags byte) via OSBYTE `&A1` (read) / OSBYTE `&A2` (write),

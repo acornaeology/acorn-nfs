@@ -9057,7 +9057,7 @@ bad_prefix = bad_str_anchor+1
     equb &cc                                                          ; a413: cc          .        ; V no arg; syn 12: <filename>
     equw cmd_print-1                                                  ; a414: 9c b9       ..    
     equs "Prot"                                                       ; a416: 50 72 6f... Pro...   ; *Prot
-    equb &8e                                                          ; a41a: 8e          .        ; Syn 14: (attribute keywords)
+    equb &8e                                                          ; a41a: 8e          .        ; Syn 14: (protection-type keywords)
     equw cmd_prot-1                                                   ; a41b: 0b b3       ..    
     equs "PS"                                                         ; a41d: 50 53       PS       ; *PS; syn 8: (<stn. id.>|<ps type>)
     equb &88                                                          ; a41f: 88          .     
@@ -9069,7 +9069,7 @@ bad_prefix = bad_str_anchor+1
     equb &cc                                                          ; a42d: cc          .        ; V no arg; syn 12: <filename>
     equw cmd_type-1                                                   ; a42e: 99 b9       ..    
     equs "Unprot"                                                     ; a430: 55 6e 70... Unp...   ; *Unprot
-    equb &8e                                                          ; a436: 8e          .        ; Syn 14: (attribute keywords)
+    equb &8e                                                          ; a436: 8e          .        ; Syn 14: (protection-type keywords)
     equw cmd_unprot-1                                                 ; a437: 3c b3       <.    
     equb &80                                                          ; a439: 80          .        ; End of utility sub-table
 .cmd_table_nfs
@@ -9137,7 +9137,7 @@ bad_prefix = bad_str_anchor+1
     equb &80                                                          ; a4bf: 80          .        ; No syntax
     equw help_utils-1                                                 ; a4c0: 91 8b       ..    
     equb &80                                                          ; a4c2: 80          .        ; End of help topic sub-table
-; Protection attribute keyword table. Each entry: ASCII name + flag byte (&80+) + OR mask + AND mask. Used by *Prot (ORA lo byte) and *Unprot (AND hi byte) to set/clear individual protection bits. Also listed by *HELP Prot/*HELP Unprot via the shared commands handler (syntax index 14). Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt
+; *Prot/*Unprot protection-type keyword table. The names are protection types (Halt, Peek, Poke, Jsr, Proc, Utils), not *Access file attributes. Each entry: ASCII name + flag byte (&80+) + OR mask + AND mask. *Prot ORs the lo byte, *Unprot ANDs the hi byte, to set/clear individual protection bits. Also listed by *HELP Prot/*HELP Unprot via the shared commands handler (syntax index 14). Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt
 .cmd_table_copro
     equs "Halt"                                                       ; a4c3: 48 61 6c... Hal...   ; Halt
     equb &fc                                                          ; a4c7: fc          .        ; Flag &FC: V no arg, syn 28 (unused)
@@ -9163,7 +9163,7 @@ bad_prefix = bad_str_anchor+1
     equb &a9                                                          ; a4ea: a9          .        ; Flag &A9: syn 9 (unused)
     equb &10                                                          ; a4eb: 10          .        ; *Prot OR mask: bit 4
     equb &ef                                                          ; a4ec: ef          .        ; *Unprot AND mask: ~bit 4
-    equb &80                                                          ; a4ed: 80          .        ; End of attribute keyword table
+    equb &80                                                          ; a4ed: 80          .        ; End of protection-type keyword table
 ; ***************************************************************************************
 ; Filing system OSWORD entry
 ;
@@ -12287,16 +12287,16 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; ***************************************************************************************
 ; *Prot command handler
 ;
-; With no arguments, sets all protection bits (&FF). Otherwise parses attribute keywords
-; via match_fs_cmd with table offset &D3, accumulating bits via ORA. Stores the final
-; protection mask in ws_0d68 and ws_0d69.
+; With no arguments, sets all protection bits (&FF). Otherwise parses protection-type
+; keywords via match_fs_cmd with table offset &D3, accumulating bits via ORA. Stores the
+; final protection mask in ws_0d68 and ws_0d69.
 ;
 ; On Entry:
 ;     Y: command line offset in text pointer
 .cmd_prot
     lda (fs_crc_lo),y                                                 ; b30c: b1 be       ..       ; Get next char from command line
     eor #&0d                                                          ; b30e: 49 0d       I.       ; Compare with CR (end of line)
-    bne parse_prot_keywords                                           ; b310: d0 04       ..       ; Not CR: attribute keywords follow
+    bne parse_prot_keywords                                           ; b310: d0 04       ..       ; Not CR: protection-type keywords follow
     lda #&ff                                                          ; b312: a9 ff       ..       ; A=&FF: protect all attributes
     bne store_prot_mask                                               ; b314: d0 20       .     
 ; &b316 referenced 1 time by &b310
@@ -12305,10 +12305,10 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     pha                                                               ; b319: 48          H        ; Save as starting value
 ; &b31a referenced 1 time by &b32a
 .loop_match_prot_attr
-    ldx #&d3                                                          ; b31a: a2 d3       ..       ; X=&D3: attribute keyword table offset
+    ldx #&d3                                                          ; b31a: a2 d3       ..       ; X=&D3: protection-type keyword table offset
     lda (fs_crc_lo),y                                                 ; b31c: b1 be       ..       ; Get next char from command line
     sta ws_page                                                       ; b31e: 85 a8       ..       ; Save for end-of-args check
-    jsr match_fs_cmd                                                  ; b320: 20 40 a1     @.      ; Match attribute keyword in table
+    jsr match_fs_cmd                                                  ; b320: 20 40 a1     @.      ; Match protection-type keyword in table
     bcs prot_check_arg_end                                            ; b323: b0 07       ..       ; No match: check if end of arguments
     pla                                                               ; b325: 68          h        ; Retrieve accumulated mask
     ora cmd_table_fs_lo,x                                             ; b326: 1d f1 a3    ...      ; OR in attribute bit for keyword
@@ -12319,7 +12319,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     lda ws_page                                                       ; b32c: a5 a8       ..       ; Get the unmatched character
     eor #&0d                                                          ; b32e: 49 0d       I.       ; Is it CR?
     beq done_prot_args                                                ; b330: f0 03       ..       ; Yes: arguments ended correctly
-    jmp error_bad_command                                             ; b332: 4c 5d a2    L].      ; No: invalid attribute keyword
+    jmp error_bad_command                                             ; b332: 4c 5d a2    L].      ; No: invalid protection-type keyword
 ; &b335 referenced 1 time by &b330
 .done_prot_args
     pla                                                               ; b335: 68          h        ; Retrieve final protection mask
@@ -12332,8 +12332,8 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; *Unprot command handler
 ;
 ; With no arguments, clears all protection bits (EOR yields 0). Otherwise parses
-; attribute keywords, clearing bits via AND with the complement. Shares the protection
-; mask storage path with cmd_prot. Falls through to cmd_wipe.
+; protection-type keywords, clearing bits via AND with the complement. Shares the
+; protection mask storage path with cmd_prot. Falls through to cmd_wipe.
 ;
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -12345,10 +12345,10 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     pha                                                               ; b346: 48          H        ; Save as starting value
 ; &b347 referenced 1 time by &b357
 .loop_match_unprot_attr
-    ldx #&d3                                                          ; b347: a2 d3       ..       ; X=&D3: attribute keyword table offset
+    ldx #&d3                                                          ; b347: a2 d3       ..       ; X=&D3: protection-type keyword table offset
     lda (fs_crc_lo),y                                                 ; b349: b1 be       ..       ; Get next char from command line
     sta ws_page                                                       ; b34b: 85 a8       ..       ; Save for end-of-args check
-    jsr match_fs_cmd                                                  ; b34d: 20 40 a1     @.      ; Match attribute keyword in table
+    jsr match_fs_cmd                                                  ; b34d: 20 40 a1     @.      ; Match protection-type keyword in table
     bcs prot_check_arg_end                                            ; b350: b0 da       ..       ; No match: check if end of arguments
     pla                                                               ; b352: 68          h        ; Retrieve accumulated mask
     and cmd_table_fs_hi,x                                             ; b353: 3d f2 a3    =..      ; AND to clear matched attribute bit
