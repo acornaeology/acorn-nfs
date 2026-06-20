@@ -537,7 +537,7 @@
       "addr": 33876,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by [`econet_flags`](address:0D61) immediate-op mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the immediate-op mask at\n[`econet_flags`](address:0D61) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`ws_0d68`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`ws_0d68`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 33931,
@@ -6973,7 +6973,7 @@
         52,
         254
       ],
-      "comment_inline": "Clear ACCCON bit 7 (release IRR mask)",
+      "comment_inline": "Clear ACCCON bit 7 (drop the software IRQ)",
       "type": "code",
       "mnemonic": "trb",
       "operand": "acccon",

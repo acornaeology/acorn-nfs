@@ -772,7 +772,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8032 referenced 1 time by &802d
 .irq_check_dispatch
     lda #&80                                                          ; 8032: a9 80       ..       ; A=&80: bit 7 -- the bit to clear in ACCCON
-    trb acccon                                                        ; 8034: 1c 34 fe    .4.      ; Clear ACCCON bit 7 (release IRR mask)
+    trb acccon                                                        ; 8034: 1c 34 fe    .4.      ; Clear ACCCON bit 7 (drop the software IRQ)
     stz tx_op_type                                                    ; 8037: 9c 65 0d    .e.      ; Zero the deferred-work flag (we're handling it now)
     tya                                                               ; 803a: 98          .        ; Copy to A for sign test
     bmi dispatch_svc5                                                 ; 803b: 30 0b       0.       ; Bit 7 set: dispatch via table
@@ -1814,14 +1814,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Checks the control byte at scout_ctrl for immediate-operation codes:
 ;
-; | Range          | Op                                           | Treatment                               |
-; |----------------|----------------------------------------------|-----------------------------------------|
-; | < &81 or > &88 | –                                            | out of range; discarded                 |
-; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by econet_flags immediate-op mask |
-; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                   |
+; | Range          | Op                                           | Treatment                            |
+; |----------------|----------------------------------------------|--------------------------------------|
+; | < &81 or > &88 | –                                            | out of range; discarded              |
+; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the ws_0d68 protection mask |
+; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                |
 ;
-; For &81..&86, converts the code to a 0-based index and tests against the immediate-op
-; mask at econet_flags to determine whether this station accepts the operation. If
+; For &81..&86, converts the code to a 0-based index and tests against the per-station
+; protection mask ws_0d68 to determine whether this station accepts the operation. If
 ; accepted, dispatches via imm_op_dispatch_lo (PHA/PHA/RTS).
 ;
 ; The execute-class operations (&83 JSR, &84 UserProc, &85 OSProc, &86 HALT, &87

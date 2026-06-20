@@ -2375,10 +2375,9 @@ service_handler_lo = service_entry+1
 ; POKE, &83 JSR (Remote Subroutine Jump), &84 user procedure call, &85 OS procedure call,
 ; &86 HALT, &87 CONTINUE, &88 machine-type query. Codes below &81 or above &88 are out of
 ; range and discarded. Codes &87-&88 (CONTINUE/machine-type) bypass the protection mask
-; check. For &81-&86, converts to a 0-based index and tests against the immediate
-; operation mask at &0D61 (the per-station protection mask) to determine if this station
-; accepts the operation. If accepted, dispatches via the immediate operation table
-; (imm_op_dispatch_lo).
+; check. For &81-&86, converts to a 0-based index and tests against the per-station
+; protection mask ws_0d68 (&0D68) to determine if this station accepts the operation. If
+; accepted, dispatches via the immediate operation table (imm_op_dispatch_lo).
 ;
 ; The execute-class operations (&83-&87) cannot run inside the NMI receive handler — a
 ; JSR into user code or an OS call is unsafe there — so they are not run inline. They are

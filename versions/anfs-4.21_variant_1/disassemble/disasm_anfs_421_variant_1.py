@@ -1240,7 +1240,7 @@ d.comment(0x8031, "Return to MOS (service unclaimed)", align=Align.INLINE)
 d.comment(0x8032, "A=&80: bit 7 -- the bit to clear in ACCCON", align=Align.INLINE)
 d.label(0x8032, "irq_check_dispatch")
 
-d.comment(0x8034, "Clear ACCCON bit 7 (release IRR mask)", align=Align.INLINE)
+d.comment(0x8034, "Clear ACCCON bit 7 (drop the software IRQ)", align=Align.INLINE)
 d.comment(0x8037, "Zero the deferred-work flag (we're handling it now)", align=Align.INLINE)
 d.comment(0x803A, "Copy to A for sign test", align=Align.INLINE)
 d.comment(0x803B, "Bit 7 set: dispatch via table", align=Align.INLINE)
@@ -2497,12 +2497,12 @@ immediate-operation codes:
 | Range | Op | Treatment |
 |---|---|---|
 | `< &81` or `> &88` | – | out of range; discarded |
-| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by [`econet_flags`](address:0D61) immediate-op mask |
+| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`ws_0d68`](address:0D68) protection mask |
 | `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |
 
 For `&81`..`&86`, converts the code to a 0-based index and tests
-against the immediate-op mask at
-[`econet_flags`](address:0D61) to determine whether this
+against the per-station protection mask
+[`ws_0d68`](address:0D68) to determine whether this
 station accepts the operation. If accepted, dispatches via
 [`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).
 

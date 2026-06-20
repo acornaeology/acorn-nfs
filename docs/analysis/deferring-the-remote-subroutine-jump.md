@@ -56,7 +56,8 @@ the receive path, so they run there and never arm the delayed IRQ. Only
 the execute-class operations `&83`–`&87` take the slow road.
 
 A station can also *refuse* remote calls. Each holds a protection mask
-(at `&0D61`) saying which immediate operations it will accept; the
+(`ws_0d68` at `&0D68` in the ANFS examples here; `&0D63` in the NFS
+ROMs) saying which immediate operations it will accept; the
 `immediate_op` handler tests the incoming control byte against it and
 silently discards an operation the user has disabled. This is the
 "protection against Remote Subroutine Jump" a careful operator would

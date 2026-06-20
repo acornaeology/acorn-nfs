@@ -2568,9 +2568,9 @@ call, &85 OS procedure call, &86 HALT, &87 CONTINUE,
 are out of range and discarded. Codes &87-&88
 (CONTINUE/machine-type) bypass the protection mask
 check. For &81-&86, converts to a 0-based index and
-tests against the immediate operation mask at &0D61
-(the per-station protection mask) to determine if
-this station accepts the operation. If accepted,
+tests against the per-station protection mask ws_0d68
+(&0D68) to determine if this station accepts the
+operation. If accepted,
 dispatches via the immediate operation table
 (imm_op_dispatch_lo).
 
