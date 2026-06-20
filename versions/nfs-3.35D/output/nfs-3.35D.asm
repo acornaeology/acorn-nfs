@@ -6806,8 +6806,8 @@ osword_12_handler = restore_rx_flags+2
     lda rx_port                                                       ; 99c5: ad 40 0d    .@.      ; Check port byte from scout
     bne advance_rx_buffer_ptr                                         ; 99c8: d0 0a       ..       ; Non-zero port: advance RX buffer
     ldy rx_ctrl                                                       ; 99ca: ac 3f 0d    .?.      ; Load control byte from scout
-    cpy #&82                                                          ; 99cd: c0 82       ..       ; Is ctrl &82 (immediate peek)?
-    beq advance_rx_buffer_ptr                                         ; 99cf: f0 03       ..       ; Yes: advance RX buffer for peek
+    cpy #&82                                                          ; 99cd: c0 82       ..       ; Is ctrl &82 (POKE)?
+    beq advance_rx_buffer_ptr                                         ; 99cf: f0 03       ..       ; Yes: advance RX buffer for POKE
 .dispatch_nmi_error
     jmp imm_op_build_reply                                            ; 99d1: 4c 28 9b    L(.      ; Jump to error handler
 ; ***************************************************************************************
@@ -6954,20 +6954,30 @@ rx_port_operand = skip_buf_ptr_update+2
 ; Handles immediate (non-data-transfer) operations received via scout frames with port
 ; byte = 0. The control byte (&0D3F) determines the operation type:
 ;
-; | Ctrl | Operation                   |
-; |------|-----------------------------|
-; | &81  | PEEK (read memory)          |
-; | &82  | POKE (write memory)         |
-; | &83  | JSR (remote procedure call) |
-; | &84  | user procedure              |
-; | &85  | OS procedure                |
-; | &86  | HALT                        |
-; | &87  | CONTINUE                    |
+; | Ctrl | Operation                    |
+; |------|------------------------------|
+; | &81  | PEEK (read memory)           |
+; | &82  | POKE (write memory)          |
+; | &83  | JSR (Remote Subroutine Jump) |
+; | &84  | user procedure call          |
+; | &85  | OS procedure call            |
+; | &86  | HALT                         |
+; | &87  | CONTINUE                     |
+; | &88  | machine-type query           |
 ;
 ; The protection mask (LSTAT at &0D63) controls which operations are permitted — each bit
 ; enables or disables an operation type. If the operation is not permitted by the mask,
 ; it is silently ignored. LSTAT can be read / set via osword_12_dispatch sub-functions 4
 ; / 5.
+;
+; The execute-class operations — &83 JSR (the Remote Subroutine Jump), &84 user procedure
+; call, &85 OS procedure call, &86 HALT and &87 CONTINUE — cannot run inside the NMI
+; handler that receives the network frame: a JSR into user code or an OS call is unsafe
+; there. So they are not run here. They are deferred: the operation type is saved and
+; imm_op_build_reply arms the system VIA shift register as a one-shot delayed interrupt,
+; which surfaces later in the ordinary IRQ path and is serviced by check_sr_irq (deferred
+; dispatch table at &9BA0). PEEK, POKE and machine-type (&81/&82/&88) only touch memory
+; and reply immediately, so they complete inline here.
 ; &9a6f referenced 1 time by &979e
 .immediate_op
     ldy rx_ctrl                                                       ; 9a6f: ac 3f 0d    .?.      ; Control byte &81-&88 range check
@@ -6975,7 +6985,7 @@ rx_port_operand = skip_buf_ptr_update+2
     bcc imm_op_out_of_range                                           ; 9a74: 90 2c       .,       ; Out of range low: jump to discard
     cpy #&89                                                          ; 9a76: c0 89       ..       ; Above &88: not an immediate op
     bcs imm_op_out_of_range                                           ; 9a78: b0 28       .(       ; Out of range high: jump to discard
-    cpy #&87                                                          ; 9a7a: c0 87       ..       ; HALT(&87)/CONTINUE(&88) skip protection
+    cpy #&87                                                          ; 9a7a: c0 87       ..       ; CONTINUE(&87)/machine-type(&88) skip mask
     bcs imm_op_dispatch                                               ; 9a7c: b0 18       ..       ; Ctrl >= &87: dispatch without mask check
     lda rx_src_stn                                                    ; 9a7e: ad 3d 0d    .=.      ; Load source station number
     cmp #&f0                                                          ; 9a81: c9 f0       ..       ; Station >= &F0? (privileged)
@@ -7123,8 +7133,15 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; Build immediate operation reply header
 ;
 ; Stores data length, source station/network, and control byte into the RX buffer header
-; area for port-0 immediate operations. Then disables SR interrupts and configures the
-; VIA shift register for shift-in mode before returning to idle listen.
+; area for port-0 immediate operations. Then arms the deferred-dispatch interrupt: saves
+; the operation type, disables SR interrupts and switches the system VIA shift register
+; to φ2 shift-in mode.
+;
+; Free-running, the shift register sets the SR-complete flag (IFR bit 2) a fixed, short
+; number of cycles later — by which time the NMI receive handler has already returned —
+; raising an ordinary IRQ that check_sr_irq picks up to run the deferred execute-class
+; operation (remote JSR, user/OS procedure call, HALT or CONTINUE) in safe foreground IRQ
+; context. Returns to idle listen.
 ; &9b28 referenced 1 time by &99d1
 .imm_op_build_reply
     lda port_buf_len                                                  ; 9b28: a5 a2       ..       ; Get buffer position for reply header
@@ -7153,6 +7170,23 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; &9b5e referenced 2 times by &9a93, &9b0d
 .imm_op_discard
     jmp discard_listen                                                ; 9b5e: 4c 56 9a    LV.      ; Return to idle listen mode
+; ***************************************************************************************
+; Service 5: unrecognised interrupt (SR dispatch)
+;
+; Delivers work deferred out of the Econet NMI handler. imm_op_build_reply arms the
+; system VIA shift register as a one-shot delayed interrupt source: free-running in φ2
+; shift-in mode it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles
+; after arming — by which time the NMI receive handler has already returned — and that
+; raises an ordinary IRQ which reaches the ROM here as service call &05 (unrecognised
+; interrupt). This is how an execute-class immediate operation is bounced out of NMI
+; context into the normal IRQ path, where it is safe to JSR into user code or call OS
+; routines.
+;
+; Tests IFR bit 2 (SR complete) to confirm the shift-register transfer completed. If SR
+; is not set, returns A=5 to pass the service call on. If SR is set, saves registers,
+; restores the original SR mode bits in the ACR, then dispatches via the saved operation
+; type. The indexed handler performs the deferred action — a remote JSR, user/OS
+; procedure call, HALT or CONTINUE.
 ; &9b61 referenced 1 time by &966c
 .check_sr_irq
     lda #4                                                            ; 9b61: a9 04       ..       ; A=&04: IFR bit 2 (SR) mask
@@ -7201,9 +7235,11 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
-; Pushes tx_done_exit-1 on the stack (so RTS returns to tx_done_exit), then does JMP
-; (l0d58) to call the remote JSR target routine. When that routine returns via RTS,
-; control resumes at tx_done_exit.
+; Executes the Econet Remote Subroutine Jump (immediate operation &83), now running in
+; deferred IRQ context after check_sr_irq picked up the shift-register interrupt — so the
+; JSR happens safely outside the NMI handler. Pushes tx_done_exit-1 on the stack (so RTS
+; returns to tx_done_exit), then does JMP (l0d58) to call the remote JSR target routine.
+; When that routine returns via RTS, control resumes at tx_done_exit.
 .tx_done_jsr
     lda #&9b                                                          ; 9baa: a9 9b       ..       ; Push hi of (tx_done_exit-1)
     pha                                                               ; 9bac: 48          H        ; Push hi byte on stack

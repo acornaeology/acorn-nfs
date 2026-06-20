@@ -6645,7 +6645,30 @@ d.label(0x9636, "econet_save")
 d.label(0x9639, "econet_restore")
 
 d.entry(0x9639)
-d.label(0x963C, "svc5_irq_check")
+d.subroutine(
+    0x963C,
+    "svc5_irq_check",
+    title="Service 5: unrecognised interrupt (SR dispatch)",
+    description="""Delivers work deferred out of the Econet NMI
+handler. imm_op_build_reply arms the system VIA shift
+register as a one-shot delayed interrupt source: free-running
+in φ2 shift-in mode it sets the SR-complete flag (IFR bit 2)
+a fixed, short number of cycles after arming — by which time
+the NMI receive handler has already returned — and that raises
+an ordinary IRQ which reaches the ROM here as service call &05
+(unrecognised interrupt). This is how a remote operation is
+bounced out of NMI context into the normal IRQ path, where it
+is safe to JSR into user code or call OS routines.
+
+Tests IFR bit 2 (SR complete) to confirm the shift register
+transfer completed. If SR is not set, returns A=5 to pass the
+service call on. If SR is set, raises the JSR protection mask
+(bits 2-4, saved to saved_jsr_mask and restored by
+clear_jsr_protection) and dispatches via svc5_dispatch_lo to
+the deferred handler — a remote JSR, user/OS procedure call,
+halt or continue.""",
+    on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter"},
+)
 
 d.comment(0x9662, "CR terminator for VDU state data", align=Align.INLINE)
 d.comment(0x9663, "Y >= &86: above dispatch range", align=Align.INLINE)
@@ -7540,16 +7563,25 @@ operation type:
 |--------|-----------|
 | `&81`  | PEEK (read memory) |
 | `&82`  | POKE (write memory) |
-| `&83`  | JSR (remote procedure call) |
+| `&83`  | JSR (Remote Subroutine Jump) |
 | `&84`  | user procedure |
 | `&85`  | OS procedure |
 | `&86`  | HALT |
 | `&87`  | CONTINUE |
+| `&88`  | machine-type query |
 
 The protection mask (LSTAT at `&0D63`) controls which operations are
 permitted — each bit enables or disables an operation type. If the
 operation is not permitted by the mask, it is silently ignored.
-LSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5.""",
+LSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5.
+
+The execute-class operations (&83-&87) cannot run inside the NMI
+receive handler — a JSR into user code or an OS call is unsafe there
+— so they are not run inline. They are completed later from normal
+IRQ context via the shift-register delayed interrupt armed in
+imm_op_build_reply and serviced by svc5_irq_check (dispatch table
+svc5_dispatch_lo). PEEK, POKE and machine-type (&81/&82/&88) only
+touch memory and reply immediately, so they run here.""",
 )
 
 
@@ -7558,7 +7590,7 @@ d.comment(0x9A49, "Below &81: not an immediate op", align=Align.INLINE)
 d.comment(0x9A4B, "Out of range low: jump to discard", align=Align.INLINE)
 d.comment(0x9A4D, "Above &88: not an immediate op", align=Align.INLINE)
 d.comment(0x9A4F, "Out of range high: jump to discard", align=Align.INLINE)
-d.comment(0x9A51, "HALT(&87)/CONTINUE(&88) skip protection", align=Align.INLINE)
+d.comment(0x9A51, "CONTINUE(&87)/mc-type(&88) skip protection", align=Align.INLINE)
 d.comment(0x9A53, "Ctrl >= &87: dispatch without mask check", align=Align.INLINE)
 d.comment(0x9A55, "Convert ctrl byte to 0-based index for mask", align=Align.INLINE)
 d.comment(0x9A56, "SEC for subtract", align=Align.INLINE)
@@ -7726,9 +7758,12 @@ d.subroutine(
     title="Build immediate operation reply header",
     description="""Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables SR interrupts and configures the VIA shift
-register for shift-in mode before returning to
-idle listen.""",
+Then arms the deferred-dispatch interrupt: disables SR interrupts
+and switches the system VIA shift register to φ2 shift-in mode.
+Free-running, the register sets the SR-complete flag a fixed
+number of cycles later — after the NMI handler has returned —
+raising an IRQ that svc5_irq_check picks up to run the deferred
+operation. Returns to idle listen.""",
 )
 d.comment(0x9AE7, "Get buffer position for reply header", align=Align.INLINE)
 d.comment(0x9AE9, "Clear carry for offset addition", align=Align.INLINE)
@@ -7759,10 +7794,14 @@ d.subroutine(
     0x9B25,
     "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="""Pushes tx_done_exit-1 on the stack (so RTS returns to
-tx_done_exit), then does JMP (l0d58) to call the remote
-JSR target routine. When that routine returns via RTS,
-control resumes at tx_done_exit.""",
+    description="""Executes the Econet Remote Subroutine Jump (immediate
+operation &83), now running in deferred IRQ context after
+svc5_irq_check picked up the shift-register interrupt — so
+the JSR happens safely outside the NMI handler. Pushes
+tx_done_exit-1 on the stack (so RTS returns to tx_done_exit),
+then does JMP (l0d58) to call the remote JSR target routine.
+When that routine returns via RTS, control resumes at
+tx_done_exit.""",
 )
 
 

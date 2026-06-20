@@ -1682,7 +1682,7 @@
       "addr": 39535,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Handles immediate (non-data-transfer) operations received via scout\nframes with port byte = 0. The control byte (`&0D3F`) determines the\noperation type:\n\n| Ctrl   | Operation |\n|--------|-----------|\n| `&81`  | PEEK (read memory) |\n| `&82`  | POKE (write memory) |\n| `&83`  | JSR (remote procedure call) |\n| `&84`  | user procedure |\n| `&85`  | OS procedure |\n| `&86`  | HALT |\n| `&87`  | CONTINUE |\n\nThe protection mask (LSTAT at `&0D63`) controls which operations are\npermitted \u2014 each bit enables or disables an operation type. If the\noperation is not permitted by the mask, it is silently ignored.\nLSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5."
+      "description": "Handles immediate (non-data-transfer) operations received via scout\nframes with port byte = 0. The control byte (`&0D3F`) determines the\noperation type:\n\n| Ctrl   | Operation |\n|--------|-----------|\n| `&81`  | PEEK (read memory) |\n| `&82`  | POKE (write memory) |\n| `&83`  | JSR (Remote Subroutine Jump) |\n| `&84`  | user procedure call |\n| `&85`  | OS procedure call |\n| `&86`  | HALT |\n| `&87`  | CONTINUE |\n| `&88`  | machine-type query |\n\nThe protection mask (LSTAT at `&0D63`) controls which operations are\npermitted \u2014 each bit enables or disables an operation type. If the\noperation is not permitted by the mask, it is silently ignored.\nLSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5.\n\nThe execute-class operations \u2014 `&83` JSR (the Remote Subroutine\nJump), `&84` user procedure call, `&85` OS procedure call, `&86`\nHALT and `&87` CONTINUE \u2014 cannot run inside the NMI handler that\nreceives the network frame: a JSR into user code or an OS call is\nunsafe there. So they are not run here. They are deferred: the\noperation type is saved and `imm_op_build_reply` arms the system\nVIA shift register as a one-shot delayed interrupt, which surfaces\nlater in the ordinary IRQ path and is serviced by `check_sr_irq`\n(deferred dispatch table at `&9BA0`). PEEK, POKE and machine-type\n(`&81`/`&82`/`&88`) only touch memory and reply immediately, so\nthey complete inline here."
     },
     {
       "addr": 39605,
@@ -1719,13 +1719,19 @@
       "addr": 39720,
       "name": "imm_op_build_reply",
       "title": "Build immediate operation reply header",
-      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
+      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen arms the deferred-dispatch interrupt: saves the operation\ntype, disables SR interrupts and switches the system VIA shift\nregister to \u03c62 shift-in mode.\n\nFree-running, the shift register sets the SR-complete flag (IFR\nbit 2) a fixed, short number of cycles later \u2014 by which time the\nNMI receive handler has already returned \u2014 raising an ordinary\nIRQ that check_sr_irq picks up to run the deferred execute-class\noperation (remote JSR, user/OS procedure call, HALT or CONTINUE)\nin safe foreground IRQ context. Returns to idle listen."
+    },
+    {
+      "addr": 39777,
+      "name": "check_sr_irq",
+      "title": "Service 5: unrecognised interrupt (SR dispatch)",
+      "description": "Delivers work deferred out of the Econet NMI handler.\nimm_op_build_reply arms the system VIA shift register as a\none-shot delayed interrupt source: free-running in \u03c62 shift-in\nmode it sets the SR-complete flag (IFR bit 2) a fixed, short\nnumber of cycles after arming \u2014 by which time the NMI receive\nhandler has already returned \u2014 and that raises an ordinary IRQ\nwhich reaches the ROM here as service call &05 (unrecognised\ninterrupt). This is how an execute-class immediate operation is\nbounced out of NMI context into the normal IRQ path, where it is\nsafe to JSR into user code or call OS routines.\n\nTests IFR bit 2 (SR complete) to confirm the shift-register\ntransfer completed. If SR is not set, returns A=5 to pass the\nservice call on. If SR is set, saves registers, restores the\noriginal SR mode bits in the ACR, then dispatches via the saved\noperation type. The indexed handler performs the deferred action\n\u2014 a remote JSR, user/OS procedure call, HALT or CONTINUE."
     },
     {
       "addr": 39850,
       "name": "tx_done_jsr",
       "title": "TX done: remote JSR execution",
-      "description": "Pushes address tx_done_exit-1 on the stack (so RTS returns\nto tx_done_exit), then does JMP (l0d58) to call the remote\nJSR target routine. When that routine returns via RTS,\ncontrol resumes at tx_done_exit."
+      "description": "Executes the Econet Remote Subroutine Jump (immediate\noperation &83), now running in deferred IRQ context after\ncheck_sr_irq picked up the shift-register interrupt \u2014 so the\nJSR happens safely outside the NMI handler. Pushes address\ntx_done_exit-1 on the stack (so RTS returns to tx_done_exit),\nthen does JMP (l0d58) to call the remote JSR target routine.\nWhen that routine returns via RTS, control resumes at\ntx_done_exit."
     },
     {
       "addr": 39859,
@@ -46900,7 +46906,7 @@
         192,
         130
       ],
-      "comment_inline": "Is ctrl &82 (immediate peek)?",
+      "comment_inline": "Is ctrl &82 (POKE)?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&82"
@@ -46911,7 +46917,7 @@
         240,
         3
       ],
-      "comment_inline": "Yes: advance RX buffer for peek",
+      "comment_inline": "Yes: advance RX buffer for POKE",
       "type": "code",
       "mnemonic": "beq",
       "operand": "advance_rx_buffer_ptr",
@@ -48056,7 +48062,7 @@
         192,
         135
       ],
-      "comment_inline": "HALT(&87)/CONTINUE(&88) skip protection",
+      "comment_inline": "CONTINUE(&87)/machine-type(&88) skip mask",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&87"

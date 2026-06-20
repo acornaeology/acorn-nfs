@@ -278,7 +278,7 @@
       "addr": 32808,
       "name": "svc5_irq_check",
       "title": "Service 5: unrecognised interrupt (Master 128 dispatch)",
-      "description": "Reads the deferred-work flag at `&0D65`; if zero, returns early via\n`PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`\nregister at `&FE34` (`TRB`), zeros `&0D65`, then dispatches one of\ntwo ways depending on bit 7 of the saved `Y`:\n\n| Caller `Y` bit 7 | Action |\n|---|---|\n| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](address:8048) |\n| Clear | Fire Econet RX event `&FE` via [`generate_event`](address:8045), then `JMP` to [`tx_done_exit`](address:8582) |",
+      "description": "Delivers work deferred out of the Econet NMI receive handler.\nAn execute-class immediate operation -- a remote JSR, a user/OS\nprocedure call, halt or continue -- cannot safely JSR into user\ncode or call an OS routine from NMI context, so the NMI handler\nrecords it instead: [`setup_sr_tx`](address:8512) stores the\noperation type in [`tx_op_type`](address:0D65) and sets the\nMaster 128 ACCCON IRR latch (bit 7 at `&FE34`) via `TSB`. The\nlatch raises an ordinary IRQ once the NMI handler has returned,\nwhich reaches the ROM here as service call `&05` (unrecognised\ninterrupt) -- the normal IRQ path, where it is safe to run the\ndeferred operation.\n\nReads the deferred-work flag at `&0D65`; if zero, returns early via\n`PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`\nregister at `&FE34` (`TRB`), zeros `&0D65`, then dispatches one of\ntwo ways depending on bit 7 of the saved `Y`:\n\n| Caller `Y` bit 7 | Action |\n|---|---|\n| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](address:8048) |\n| Clear | Fire Econet RX event `&FE` via [`generate_event`](address:8045), then `JMP` to [`tx_done_exit`](address:8582) |",
       "on_entry": {
         "a": "5 (service call number)",
         "x": "ROM slot",
@@ -537,7 +537,7 @@
       "addr": 33876,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by [`econet_flags`](address:0D61) immediate-op mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the immediate-op mask at\n[`econet_flags`](address:0D61) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by [`econet_flags`](address:0D61) immediate-op mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the immediate-op mask at\n[`econet_flags`](address:0D61) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 33931,
@@ -574,7 +574,7 @@
       "addr": 34041,
       "name": "imm_op_build_reply",
       "title": "Build immediate-operation reply header",
-      "description": "Writes the reply-frame header for a port-0 immediate operation\ninto the RX buffer at offsets `&7F..&81`:\n\n| RX offset | Source | Meaning |\n|---|---|---|\n| `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |\n| `&80` | [`scout_buf`](address:0D2E) | requesting station |\n| `&81` | [`scout_src_net`](address:0D2F) | requesting network |\n\nThen loads the control byte from\n[`scout_ctrl`](address:0D30) into `A` and falls through into\n[`setup_sr_tx`](address:8512), which stores `A` as\n[`tx_op_type`](address:0D65) and configures the ADLC for the SR\nphase of the reply. Reached via the immediate-op dispatch path.",
+      "description": "Writes the reply-frame header for a port-0 immediate operation\ninto the RX buffer at offsets `&7F..&81`:\n\n| RX offset | Source | Meaning |\n|---|---|---|\n| `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |\n| `&80` | [`scout_buf`](address:0D2E) | requesting station |\n| `&81` | [`scout_src_net`](address:0D2F) | requesting network |\n\nThen loads the control byte from\n[`scout_ctrl`](address:0D30) into `A` and falls through into\n[`setup_sr_tx`](address:8512), which records `A` as\n[`tx_op_type`](address:0D65) and (for execute-class ops) arms the\ndeferred dispatch by setting the Master 128 ACCCON IRR latch so the\noperation completes from normal IRQ context. Reached via the\nimmediate-op dispatch path.",
       "fall_through": true
     },
     {
@@ -605,7 +605,7 @@
       "addr": 34112,
       "name": "tx_done_jsr",
       "title": "TX done: remote JSR execution",
-      "description": "Pushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so\n`RTS` returns to [`tx_done_exit`](address:8582) when the remote\nroutine completes, then does `JMP` indirect through\n[`exec_addr_lo`](address:0D66) to call the remote-supplied JSR\ntarget. When that routine returns via `RTS`, control resumes at\n[`tx_done_exit`](address:8582) which tidies up TX state."
+      "description": "Executes the Econet Remote Subroutine Jump (immediate operation\n`&83`), now running in deferred IRQ context after\n[`svc5_irq_check`](address:8028) picked up the ACCCON IRR latch --\nso the JSR happens safely outside the NMI handler.\n\nPushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so\n`RTS` returns to [`tx_done_exit`](address:8582) when the remote\nroutine completes, then does `JMP` indirect through\n[`exec_addr_lo`](address:0D66) to call the remote-supplied JSR\ntarget. When that routine returns via `RTS`, control resumes at\n[`tx_done_exit`](address:8582) which tidies up TX state."
     },
     {
       "addr": 34121,
@@ -13643,7 +13643,7 @@
         192,
         135
       ],
-      "comment_inline": "HALT(&87)/CONTINUE(&88) skip protection",
+      "comment_inline": "CONTINUE(&87)/mc-type(&88) skip protection",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&87"

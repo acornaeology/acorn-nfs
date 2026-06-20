@@ -562,6 +562,37 @@ byte count for an outgoing data transfer.
   a transmission fails (0=Line Jammed, 2=Not listening, 3=No Clock,
   etc.). NFS masks these bits to select the appropriate error message.
 
+**immediate operation**
+: An Econet transfer sent to port 0 that acts on the remote machine
+directly, without a filing-system request. The control byte selects the
+function: &81 PEEK, &82 POKE, &83 JSR (Remote Subroutine Jump), &84 user
+procedure call, &85 OS procedure call, &86 HALT, &87 CONTINUE, &88
+machine-type query.
+
+  Each station holds a protection mask that decides which immediate
+  operations it will accept; a station can refuse remote calls while
+  still allowing, for example, a machine-type query. PEEK, POKE and
+  machine-type only touch memory and reply at once, so NFS handles them
+  in the receive path. The execute-class operations (JSR, user/OS
+  procedure call, HALT, CONTINUE) must run user or OS code, which is
+  unsafe inside the NMI receive handler — see Remote Subroutine Jump.
+
+**RSJ** (Remote Subroutine Jump)
+: Econet immediate operation &83: a remote machine asks the local machine
+to call (JSR) a routine at a given address. The reply is sent when that
+routine returns.
+
+  A JSR into arbitrary code cannot be made from inside the NMI handler
+  that receives the network frame, so NFS defers it: it arms the system
+  VIA shift register in φ2 shift-in mode as a one-shot delayed interrupt.
+  Free-running, the register sets its SR-complete flag a fixed, short
+  number of cycles later — after the NMI handler has returned — raising
+  an ordinary IRQ. That IRQ surfaces as service call &05, where the
+  pending call is finally made in normal IRQ context. The same deferral
+  carries the user/OS procedure call, HALT and CONTINUE operations.
+  (Master 128 ANFS reaches the same service call by a different route: it
+  sets the ACCCON IRR latch rather than the shift-register flag.)
+
 ## Miscellaneous
 
 **MOS** (Machine Operating System)

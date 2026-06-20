@@ -494,7 +494,7 @@
       "addr": 32803,
       "name": "svc5_irq_check",
       "title": "Service 5: unrecognised interrupt (SR dispatch)",
-      "description": "Tests IFR bit 2 (SR complete) to check for a\nshift register transfer complete. If SR is not set,\nreturns A=5 to pass the service call on. If SR is\nset, saves registers, reads the VIA ACR, clears and\nrestores the SR mode bits from ws_0d64, then dispatches\nthe TX completion callback via the operation type stored\nin tx_op_type. The indexed handler performs the completion\naction (e.g. resuming background print spooling) before\nreturning with A=0 to claim the service call.",
+      "description": "Delivers work deferred out of the Econet NMI\nhandler. setup_sr_tx arms the system VIA shift register\nas a one-shot delayed interrupt source: free-running in\n\u03c62 shift-in mode it sets the SR-complete flag (IFR bit 2)\na fixed, short number of cycles after arming \u2014 by which\ntime the NMI receive handler has already returned \u2014 and\nthat raises an ordinary IRQ which reaches the ROM here as\nservice call &05 (unrecognised interrupt). This is how a\nremote operation is bounced out of NMI context into the\nnormal IRQ path, where it is safe to JSR into user code\nor call OS routines.\n\nTests IFR bit 2 (SR complete) to confirm the shift\nregister transfer completed. If SR is not set, returns\nA=5 to pass the service call on. If SR is set, saves\nregisters, reads the VIA ACR, clears and restores the SR\nmode bits from ws_0d64, then dispatches via the operation\ntype stored in tx_op_type. The indexed handler performs\nthe deferred action \u2014 a remote JSR, user/OS procedure\ncall, halt or continue, or a TX/RX completion event such\nas resuming background print spooling \u2014 before returning\nwith A=0 to claim the service call.",
       "on_entry": {
         "a": "5 (service call number)",
         "x": "ROM slot",
@@ -639,7 +639,7 @@
       "addr": 33867,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at l0d30 for immediate\noperation codes (&81-&88). Codes below &81 or above\n&88 are out of range and discarded. Codes &87-&88\n(HALT/CONTINUE) bypass the protection mask check.\nFor &81-&86, converts to a 0-based index and tests\nagainst the immediate operation mask at &0D61 to\ndetermine if this station accepts the operation.\nIf accepted, dispatches via the immediate operation\ntable. Builds the reply by storing data length,\nstation/network, and control byte into the RX buffer."
+      "description": "Checks the control byte at l0d30 for an Econet\nimmediate operation code: &81 PEEK, &82 POKE,\n&83 JSR (Remote Subroutine Jump), &84 user procedure\ncall, &85 OS procedure call, &86 HALT, &87 CONTINUE,\n&88 machine-type query. Codes below &81 or above &88\nare out of range and discarded. Codes &87-&88\n(CONTINUE/machine-type) bypass the protection mask\ncheck. For &81-&86, converts to a 0-based index and\ntests against the immediate operation mask at &0D61\n(the per-station protection mask) to determine if\nthis station accepts the operation. If accepted,\ndispatches via the immediate operation table\n(imm_op_dispatch_lo).\n\nThe execute-class operations (&83-&87) cannot run\ninside the NMI receive handler \u2014 a JSR into user code\nor an OS call is unsafe there \u2014 so they are not run\ninline. They are completed later from normal IRQ\ncontext via the shift-register delayed interrupt armed\nin setup_sr_tx and serviced by svc5_irq_check\n(dispatch table tx_done_dispatch_lo). PEEK, POKE and\nmachine-type (&81/&82/&88) only touch memory and reply\nimmediately, so they run here. Builds the reply by\nstoring data length, station/network, and control byte\ninto the RX buffer."
     },
     {
       "addr": 33926,
@@ -670,7 +670,7 @@
       "addr": 34028,
       "name": "imm_op_build_reply",
       "title": "Build immediate operation reply header",
-      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen disables SR interrupts and configures the VIA shift\nregister for shift-in mode before returning to\nidle listen."
+      "description": "Stores data length, source station/network, and control byte\ninto the RX buffer header area for port-0 immediate operations.\nThen (at setup_sr_tx) arms the deferred-dispatch interrupt:\nsaves the operation type in tx_op_type, disables SR interrupts\nand switches the system VIA shift register to \u03c62 shift-in mode.\nFree-running, the register sets the SR-complete flag a fixed\nnumber of cycles later \u2014 after the NMI handler has returned \u2014\nraising an IRQ that svc5_irq_check picks up to run the deferred\noperation. Returns to idle listen."
     },
     {
       "addr": 34085,
@@ -682,7 +682,7 @@
       "addr": 34105,
       "name": "tx_done_jsr",
       "title": "TX done: remote JSR execution",
-      "description": "Pushes (tx_done_exit - 1) on the stack so RTS returns\nto tx_done_exit, then does JMP (l0d66) to call the remote\nJSR target routine. When that routine returns via RTS,\ncontrol resumes at tx_done_exit."
+      "description": "Executes the Econet Remote Subroutine Jump (immediate\noperation &83), now running in deferred IRQ context after\nsvc5_irq_check picked up the shift-register interrupt \u2014 so\nthe JSR happens safely outside the NMI handler. Pushes\n(tx_done_exit - 1) on the stack so RTS returns to\ntx_done_exit, then does JMP (l0d66) to call the remote JSR\ntarget routine. When that routine returns via RTS, control\nresumes at tx_done_exit."
     },
     {
       "addr": 34114,
@@ -10163,7 +10163,7 @@
         192,
         135
       ],
-      "comment_inline": "HALT(&87)/CONTINUE(&88) skip protection",
+      "comment_inline": "CONTINUE(&87)/mc-type(&88) skip protection",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&87"

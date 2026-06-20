@@ -1583,15 +1583,28 @@ d.subroutine(
     0x8028,
     "svc5_irq_check",
     title="Service 5: unrecognised interrupt (SR dispatch)",
-    description="""Tests IFR bit 2 (SR complete) to check for a
-shift register transfer complete. If SR is not set,
-returns A=5 to pass the service call on. If SR is
-set, saves registers, reads the VIA ACR, clears and
-restores the SR mode bits from ws_0d64, then dispatches
-the TX completion callback via the operation type stored
-in tx_op_type. The indexed handler performs the completion
-action (e.g. resuming background print spooling) before
-returning with A=0 to claim the service call.""",
+    description="""Delivers work deferred out of the Econet NMI
+handler. setup_sr_tx arms the system VIA shift register
+as a one-shot delayed interrupt source: free-running in
+φ2 shift-in mode it sets the SR-complete flag (IFR bit 2)
+a fixed, short number of cycles after arming — by which
+time the NMI receive handler has already returned — and
+that raises an ordinary IRQ which reaches the ROM here as
+service call &05 (unrecognised interrupt). This is how a
+remote operation is bounced out of NMI context into the
+normal IRQ path, where it is safe to JSR into user code
+or call OS routines.
+
+Tests IFR bit 2 (SR complete) to confirm the shift
+register transfer completed. If SR is not set, returns
+A=5 to pass the service call on. If SR is set, saves
+registers, reads the VIA ACR, clears and restores the SR
+mode bits from ws_0d64, then dispatches via the operation
+type stored in tx_op_type. The indexed handler performs
+the deferred action — a remote JSR, user/OS procedure
+call, halt or continue, or a TX/RX completion event such
+as resuming background print spooling — before returning
+with A=0 to claim the service call.""",
     on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter"},
 )
 
@@ -2547,16 +2560,31 @@ d.subroutine(
     0x8455,
     "immediate_op",
     title="Immediate operation handler (port = 0)",
-    description="""Checks the control byte at l0d30 for immediate
-operation codes (&81-&88). Codes below &81 or above
-&88 are out of range and discarded. Codes &87-&88
-(HALT/CONTINUE) bypass the protection mask check.
-For &81-&86, converts to a 0-based index and tests
-against the immediate operation mask at &0D61 to
-determine if this station accepts the operation.
-If accepted, dispatches via the immediate operation
-table. Builds the reply by storing data length,
-station/network, and control byte into the RX buffer.""",
+    description="""Checks the control byte at l0d30 for an Econet
+immediate operation code: &81 PEEK, &82 POKE,
+&83 JSR (Remote Subroutine Jump), &84 user procedure
+call, &85 OS procedure call, &86 HALT, &87 CONTINUE,
+&88 machine-type query. Codes below &81 or above &88
+are out of range and discarded. Codes &87-&88
+(CONTINUE/machine-type) bypass the protection mask
+check. For &81-&86, converts to a 0-based index and
+tests against the immediate operation mask at &0D61
+(the per-station protection mask) to determine if
+this station accepts the operation. If accepted,
+dispatches via the immediate operation table
+(imm_op_dispatch_lo).
+
+The execute-class operations (&83-&87) cannot run
+inside the NMI receive handler — a JSR into user code
+or an OS call is unsafe there — so they are not run
+inline. They are completed later from normal IRQ
+context via the shift-register delayed interrupt armed
+in setup_sr_tx and serviced by svc5_irq_check
+(dispatch table tx_done_dispatch_lo). PEEK, POKE and
+machine-type (&81/&82/&88) only touch memory and reply
+immediately, so they run here. Builds the reply by
+storing data length, station/network, and control byte
+into the RX buffer.""",
 )
 
 d.comment(0x8455, "Control byte &81-&88 range check", align=Align.INLINE)
@@ -2564,7 +2592,7 @@ d.comment(0x8458, "Below &81: not an immediate op", align=Align.INLINE)
 d.comment(0x845A, "Out of range low: jump to discard", align=Align.INLINE)
 d.comment(0x845C, "Above &88: not an immediate op", align=Align.INLINE)
 d.comment(0x845E, "Out of range high: jump to discard", align=Align.INLINE)
-d.comment(0x8460, "HALT(&87)/CONTINUE(&88) skip protection", align=Align.INLINE)
+d.comment(0x8460, "CONTINUE(&87)/mc-type(&88) skip protection", align=Align.INLINE)
 d.comment(0x8462, "Ctrl >= &87: dispatch without mask check", align=Align.INLINE)
 d.comment(0x8464, "Convert ctrl byte to 0-based index for mask", align=Align.INLINE)
 d.comment(0x8465, "SEC for subtract", align=Align.INLINE)
@@ -2726,9 +2754,13 @@ d.subroutine(
     title="Build immediate operation reply header",
     description="""Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables SR interrupts and configures the VIA shift
-register for shift-in mode before returning to
-idle listen.""",
+Then (at setup_sr_tx) arms the deferred-dispatch interrupt:
+saves the operation type in tx_op_type, disables SR interrupts
+and switches the system VIA shift register to φ2 shift-in mode.
+Free-running, the register sets the SR-complete flag a fixed
+number of cycles later — after the NMI handler has returned —
+raising an IRQ that svc5_irq_check picks up to run the deferred
+operation. Returns to idle listen.""",
 )
 
 
@@ -2808,10 +2840,14 @@ d.subroutine(
     0x8543,
     "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="""Pushes (tx_done_exit - 1) on the stack so RTS returns
-to tx_done_exit, then does JMP (l0d66) to call the remote
-JSR target routine. When that routine returns via RTS,
-control resumes at tx_done_exit.""",
+    description="""Executes the Econet Remote Subroutine Jump (immediate
+operation &83), now running in deferred IRQ context after
+svc5_irq_check picked up the shift-register interrupt — so
+the JSR happens safely outside the NMI handler. Pushes
+(tx_done_exit - 1) on the stack so RTS returns to
+tx_done_exit, then does JMP (l0d66) to call the remote JSR
+target routine. When that routine returns via RTS, control
+resumes at tx_done_exit.""",
 )
 
 

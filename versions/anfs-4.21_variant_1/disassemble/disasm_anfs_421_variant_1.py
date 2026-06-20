@@ -1205,7 +1205,19 @@ d.subroutine(
     0x8028,
     "svc5_irq_check",
     title="Service 5: unrecognised interrupt (Master 128 dispatch)",
-    description="""Reads the deferred-work flag at `&0D65`; if zero, returns early via
+    description="""Delivers work deferred out of the Econet NMI receive handler.
+An execute-class immediate operation -- a remote JSR, a user/OS
+procedure call, halt or continue -- cannot safely JSR into user
+code or call an OS routine from NMI context, so the NMI handler
+records it instead: [`setup_sr_tx`](address:8512) stores the
+operation type in [`tx_op_type`](address:0D65) and sets the
+Master 128 ACCCON IRR latch (bit 7 at `&FE34`) via `TSB`. The
+latch raises an ordinary IRQ once the NMI handler has returned,
+which reaches the ROM here as service call `&05` (unrecognised
+interrupt) -- the normal IRQ path, where it is safe to run the
+deferred operation.
+
+Reads the deferred-work flag at `&0D65`; if zero, returns early via
 `PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`
 register at `&FE34` (`TRB`), zeros `&0D65`, then dispatches one of
 two ways depending on bit 7 of the saved `Y`:
@@ -2494,6 +2506,19 @@ against the immediate-op mask at
 station accepts the operation. If accepted, dispatches via
 [`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).
 
+The execute-class operations (`&83` JSR, `&84` UserProc, `&85`
+OSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI
+receive handler -- a JSR into user code or an OS call is unsafe
+there -- so they are not run inline. They are completed later
+from normal IRQ context: [`setup_sr_tx`](address:8512) records the
+operation in [`tx_op_type`](address:0D65) and sets the Master 128
+ACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the
+ROM picks up as service call `&05`
+([`svc5_irq_check`](address:8028)) and dispatches via the
+[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and
+machine-type (`&81` / `&82` / `&88`) only touch memory and reply
+immediately, so they run here.
+
 Builds the reply by storing data length, station / network, and
 control byte into the RX buffer header.""",
 )
@@ -2504,7 +2529,7 @@ d.comment(0x8457, "Below &81: not an immediate op", align=Align.INLINE)
 d.comment(0x8459, "Out of range low: jump to discard", align=Align.INLINE)
 d.comment(0x845B, "Above &88: not an immediate op", align=Align.INLINE)
 d.comment(0x845D, "Out of range high: jump to discard", align=Align.INLINE)
-d.comment(0x845F, "HALT(&87)/CONTINUE(&88) skip protection", align=Align.INLINE)
+d.comment(0x845F, "CONTINUE(&87)/mc-type(&88) skip protection", align=Align.INLINE)
 d.comment(0x8461, "Ctrl >= &87: dispatch without mask check", align=Align.INLINE)
 d.comment(0x8463, "Convert ctrl byte to 0-based index for mask", align=Align.INLINE)
 d.comment(0x8464, "For subtract", align=Align.INLINE)
@@ -2706,9 +2731,11 @@ into the RX buffer at offsets `&7F..&81`:
 
 Then loads the control byte from
 [`scout_ctrl`](address:0D30) into `A` and falls through into
-[`setup_sr_tx`](address:8512), which stores `A` as
-[`tx_op_type`](address:0D65) and configures the ADLC for the SR
-phase of the reply. Reached via the immediate-op dispatch path.""",
+[`setup_sr_tx`](address:8512), which records `A` as
+[`tx_op_type`](address:0D65) and (for execute-class ops) arms the
+deferred dispatch by setting the Master 128 ACCCON IRR latch so the
+operation completes from normal IRQ context. Reached via the
+immediate-op dispatch path.""",
 )
 d.comment(0x84F9, "Get buffer position for reply header", align=Align.INLINE)
 d.comment(0x84FB, "Clear carry for offset addition", align=Align.INLINE)
@@ -2815,7 +2842,12 @@ d.subroutine(
     0x8540,
     "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="""Pushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so
+    description="""Executes the Econet Remote Subroutine Jump (immediate operation
+`&83`), now running in deferred IRQ context after
+[`svc5_irq_check`](address:8028) picked up the ACCCON IRR latch --
+so the JSR happens safely outside the NMI handler.
+
+Pushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so
 `RTS` returns to [`tx_done_exit`](address:8582) when the remote
 routine completes, then does `JMP` indirect through
 [`exec_addr_lo`](address:0D66) to call the remote-supplied JSR

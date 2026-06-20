@@ -739,6 +739,15 @@ rom_header_byte2 = rom_header_byte1+1
 ; ***************************************************************************************
 ; Service 5: unrecognised interrupt (Master 128 dispatch)
 ;
+; Delivers work deferred out of the Econet NMI receive handler. An execute-class
+; immediate operation -- a remote JSR, a user/OS procedure call, halt or continue --
+; cannot safely JSR into user code or call an OS routine from NMI context, so the NMI
+; handler records it instead: setup_sr_tx stores the operation type in tx_op_type and
+; sets the Master 128 ACCCON IRR latch (bit 7 at &FE34) via TSB. The latch raises an
+; ordinary IRQ once the NMI handler has returned, which reaches the ROM here as service
+; call &05 (unrecognised interrupt) -- the normal IRQ path, where it is safe to run the
+; deferred operation.
+;
 ; Reads the deferred-work flag at &0D65; if zero, returns early via PLX/PLY/RTS.
 ; Otherwise clears bit 7 of the Master 128 ACCCON register at &FE34 (TRB), zeros &0D65,
 ; then dispatches one of two ways depending on bit 7 of the saved Y:
@@ -1815,6 +1824,15 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; mask at econet_flags to determine whether this station accepts the operation. If
 ; accepted, dispatches via imm_op_dispatch_lo (PHA/PHA/RTS).
 ;
+; The execute-class operations (&83 JSR, &84 UserProc, &85 OSProc, &86 HALT, &87
+; CONTINUE) cannot run inside the NMI receive handler -- a JSR into user code or an OS
+; call is unsafe there -- so they are not run inline. They are completed later from
+; normal IRQ context: setup_sr_tx records the operation in tx_op_type and sets the Master
+; 128 ACCCON IRR latch (bit 7 at &FE34), which raises an IRQ that the ROM picks up as
+; service call &05 (svc5_irq_check) and dispatches via the tx_done_dispatch_lo table.
+; PEEK, POKE and machine-type (&81 / &82 / &88) only touch memory and reply immediately,
+; so they run here.
+;
 ; Builds the reply by storing data length, station / network, and control byte into the
 ; RX buffer header.
 ; &8454 referenced 1 time by &8138
@@ -1824,7 +1842,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bcc imm_op_out_of_range                                           ; 8459: 90 2d       .-       ; Out of range low: jump to discard
     cpy #&89                                                          ; 845b: c0 89       ..       ; Above &88: not an immediate op
     bcs imm_op_out_of_range                                           ; 845d: b0 29       .)       ; Out of range high: jump to discard
-    cpy #&87                                                          ; 845f: c0 87       ..       ; HALT(&87)/CONTINUE(&88) skip protection
+    cpy #&87                                                          ; 845f: c0 87       ..       ; CONTINUE(&87)/mc-type(&88) skip protection
     bcs dispatch_imm_op                                               ; 8461: b0 0e       ..       ; Ctrl >= &87: dispatch without mask check
     tya                                                               ; 8463: 98          .        ; Convert ctrl byte to 0-based index for mask
     sec                                                               ; 8464: 38          8        ; For subtract
@@ -1975,8 +1993,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; | &81       | scout_src_net      | requesting network                            |
 ;
 ; Then loads the control byte from scout_ctrl into A and falls through into setup_sr_tx,
-; which stores A as tx_op_type and configures the ADLC for the SR phase of the reply.
-; Reached via the immediate-op dispatch path.
+; which records A as tx_op_type and (for execute-class ops) arms the deferred dispatch by
+; setting the Master 128 ACCCON IRR latch so the operation completes from normal IRQ
+; context. Reached via the immediate-op dispatch path.
 ; &84f9 referenced 1 time by &8392
 .imm_op_build_reply
     lda port_buf_len                                                  ; 84f9: a5 a2       ..       ; Get buffer position for reply header
@@ -2065,6 +2084,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     equb <(tx_done_continue-1)                                        ; 853f: 79          y        ; op &87: CONTINUE
 ; ***************************************************************************************
 ; TX done: remote JSR execution
+;
+; Executes the Econet Remote Subroutine Jump (immediate operation &83), now running in
+; deferred IRQ context after svc5_irq_check picked up the ACCCON IRR latch -- so the JSR
+; happens safely outside the NMI handler.
 ;
 ; Pushes (tx_done_exit  - 1) on the stack so RTS returns to tx_done_exit when the remote
 ; routine completes, then does JMP indirect through exec_addr_lo to call the

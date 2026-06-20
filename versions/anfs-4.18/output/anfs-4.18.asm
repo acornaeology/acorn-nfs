@@ -1534,12 +1534,21 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Service 5: unrecognised interrupt (SR dispatch)
 ;
-; Tests IFR bit 2 (SR complete) to check for a shift register transfer complete. If SR is
-; not set, returns A=5 to pass the service call on. If SR is set, saves registers, reads
-; the VIA ACR, clears and restores the SR mode bits from ws_0d64, then dispatches the TX
-; completion callback via the operation type stored in tx_op_type. The indexed handler
-; performs the completion action (e.g. resuming background print spooling) before
-; returning with A=0 to claim the service call.
+; Delivers work deferred out of the Econet NMI handler. setup_sr_tx arms the system VIA
+; shift register as a one-shot delayed interrupt source: free-running in φ2 shift-in mode
+; it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles after arming —
+; by which time the NMI receive handler has already returned — and that raises an
+; ordinary IRQ which reaches the ROM here as service call &05 (unrecognised interrupt).
+; This is how a remote operation is bounced out of NMI context into the normal IRQ path,
+; where it is safe to JSR into user code or call OS routines.
+;
+; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
+; is not set, returns A=5 to pass the service call on. If SR is set, saves registers,
+; reads the VIA ACR, clears and restores the SR mode bits from ws_0d64, then dispatches
+; via the operation type stored in tx_op_type. The indexed handler performs the deferred
+; action — a remote JSR, user/OS procedure call, halt or continue, or a TX/RX completion
+; event such as resuming background print spooling — before returning with A=0 to claim
+; the service call.
 ;
 ; On Entry:
 ;     A: 5 (service call number)
@@ -2362,12 +2371,22 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Immediate operation handler (port = 0)
 ;
-; Checks the control byte at l0d30 for immediate operation codes (&81-&88). Codes below
-; &81 or above &88 are out of range and discarded. Codes &87-&88 (HALT/CONTINUE) bypass
-; the protection mask check. For &81-&86, converts to a 0-based index and tests against
-; the immediate operation mask at &0D61 to determine if this station accepts the
-; operation. If accepted, dispatches via the immediate operation table. Builds the reply
-; by storing data length, station/network, and control byte into the RX buffer.
+; Checks the control byte at l0d30 for an Econet immediate operation code: &81 PEEK, &82
+; POKE, &83 JSR (Remote Subroutine Jump), &84 user procedure call, &85 OS procedure call,
+; &86 HALT, &87 CONTINUE, &88 machine-type query. Codes below &81 or above &88 are out of
+; range and discarded. Codes &87-&88 (CONTINUE/machine-type) bypass the protection mask
+; check. For &81-&86, converts to a 0-based index and tests against the immediate
+; operation mask at &0D61 (the per-station protection mask) to determine if this station
+; accepts the operation. If accepted, dispatches via the immediate operation table
+; (imm_op_dispatch_lo).
+;
+; The execute-class operations (&83-&87) cannot run inside the NMI receive handler — a
+; JSR into user code or an OS call is unsafe there — so they are not run inline. They are
+; completed later from normal IRQ context via the shift-register delayed interrupt armed
+; in setup_sr_tx and serviced by svc5_irq_check (dispatch table tx_done_dispatch_lo).
+; PEEK, POKE and machine-type (&81/&82/&88) only touch memory and reply immediately, so
+; they run here. Builds the reply by storing data length, station/network, and control
+; byte into the RX buffer.
 ; &8455 referenced 1 time by &815d
 .immediate_op
     ldy scout_ctrl                                                    ; 8455: ac 30 0d    .0.      ; Control byte &81-&88 range check
@@ -2375,7 +2394,7 @@ service_handler_lo = service_entry+1
     bcc imm_op_out_of_range                                           ; 845a: 90 29       .)       ; Out of range low: jump to discard
     cpy #&89                                                          ; 845c: c0 89       ..       ; Above &88: not an immediate op
     bcs imm_op_out_of_range                                           ; 845e: b0 25       .%       ; Out of range high: jump to discard
-    cpy #&87                                                          ; 8460: c0 87       ..       ; HALT(&87)/CONTINUE(&88) skip protection
+    cpy #&87                                                          ; 8460: c0 87       ..       ; CONTINUE(&87)/mc-type(&88) skip protection
     bcs dispatch_imm_op                                               ; 8462: b0 0e       ..       ; Ctrl >= &87: dispatch without mask check
     tya                                                               ; 8464: 98          .        ; Convert ctrl byte to 0-based index for mask
     sec                                                               ; 8465: 38          8        ; SEC for subtract
@@ -2505,8 +2524,12 @@ service_handler_lo = service_entry+1
 ; Build immediate operation reply header
 ;
 ; Stores data length, source station/network, and control byte into the RX buffer header
-; area for port-0 immediate operations. Then disables SR interrupts and configures the
-; VIA shift register for shift-in mode before returning to idle listen.
+; area for port-0 immediate operations. Then (at setup_sr_tx) arms the deferred-dispatch
+; interrupt: saves the operation type in tx_op_type, disables SR interrupts and switches
+; the system VIA shift register to φ2 shift-in mode. Free-running, the register sets the
+; SR-complete flag a fixed number of cycles later — after the NMI handler has returned —
+; raising an IRQ that svc5_irq_check picks up to run the deferred operation. Returns to
+; idle listen.
 ; &84f6 referenced 1 time by &83a2
 .imm_op_build_reply
     lda port_buf_len                                                  ; 84f6: a5 a2       ..       ; Get buffer position for reply header
@@ -2575,9 +2598,11 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
-; Pushes (tx_done_exit - 1) on the stack so RTS returns to tx_done_exit, then does JMP
-; (l0d66) to call the remote JSR target routine. When that routine returns via RTS,
-; control resumes at tx_done_exit.
+; Executes the Econet Remote Subroutine Jump (immediate operation &83), now running in
+; deferred IRQ context after svc5_irq_check picked up the shift-register interrupt — so
+; the JSR happens safely outside the NMI handler. Pushes (tx_done_exit - 1) on the stack
+; so RTS returns to tx_done_exit, then does JMP (l0d66) to call the remote JSR target
+; routine. When that routine returns via RTS, control resumes at tx_done_exit.
 .tx_done_jsr
     lda #&85                                                          ; 8543: a9 85       ..       ; Hi byte of tx_done_exit-1
     pha                                                               ; 8545: 48          H        ; Push hi byte on stack

@@ -7088,16 +7088,29 @@ operation type:
 |--------|-----------|
 | `&81`  | PEEK (read memory) |
 | `&82`  | POKE (write memory) |
-| `&83`  | JSR (remote procedure call) |
-| `&84`  | user procedure |
-| `&85`  | OS procedure |
+| `&83`  | JSR (Remote Subroutine Jump) |
+| `&84`  | user procedure call |
+| `&85`  | OS procedure call |
 | `&86`  | HALT |
 | `&87`  | CONTINUE |
+| `&88`  | machine-type query |
 
 The protection mask (LSTAT at `&0D63`) controls which operations are
 permitted — each bit enables or disables an operation type. If the
 operation is not permitted by the mask, it is silently ignored.
-LSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5.""",
+LSTAT can be read / set via `osword_12_dispatch` sub-functions 4 / 5.
+
+The execute-class operations — `&83` JSR (the Remote Subroutine
+Jump), `&84` user procedure call, `&85` OS procedure call, `&86`
+HALT and `&87` CONTINUE — cannot run inside the NMI handler that
+receives the network frame: a JSR into user code or an OS call is
+unsafe there. So they are not run here. They are deferred: the
+operation type is saved and `imm_op_build_reply` arms the system
+VIA shift register as a one-shot delayed interrupt, which surfaces
+later in the ordinary IRQ path and is serviced by `check_sr_irq`
+(deferred dispatch table at `&9B91`). PEEK, POKE and machine-type
+(`&81`/`&82`/`&88`) only touch memory and reply immediately, so
+they complete inline here.""",
 )
 
 
@@ -7106,7 +7119,7 @@ d.comment(0x9A5C, "Below &81: not an immediate op", align=Align.INLINE)
 d.comment(0x9A5E, "Out of range low: jump to discard", align=Align.INLINE)
 d.comment(0x9A60, "Above &88: not an immediate op", align=Align.INLINE)
 d.comment(0x9A62, "Out of range high: jump to discard", align=Align.INLINE)
-d.comment(0x9A64, "HALT(&87)/CONTINUE(&88) skip protection", align=Align.INLINE)
+d.comment(0x9A64, "CONTINUE(&87)/machine-type(&88) skip mask", align=Align.INLINE)
 d.comment(0x9A66, "Ctrl >= &87: dispatch without mask check", align=Align.INLINE)
 d.comment(0x9A68, "Load source station number", align=Align.INLINE)
 d.comment(0x9A6B, "Station >= &F0? (privileged)", align=Align.INLINE)
@@ -7267,15 +7280,15 @@ d.subroutine(
     "check_imm_op_ctrl",
     title="Check control byte for immediate operation type",
     description="""Loads the RX control byte and compares against &82
-(immediate HALT). If HALT, discards the frame via
+(POKE). If POKE, discards the frame via
 imm_op_discard. Otherwise falls through to
 imm_op_build_reply.""",
 )
 d.comment(0x9B12, "Load RX control byte", align=Align.INLINE)
 d.label(0x9B13, "rx_ctrl_operand")
 
-d.comment(0x9B15, "Compare against &82 (HALT)", align=Align.INLINE)
-d.comment(0x9B17, "HALT: discard frame", align=Align.INLINE)
+d.comment(0x9B15, "Compare against &82 (POKE)", align=Align.INLINE)
+d.comment(0x9B17, "POKE: discard frame", align=Align.INLINE)
 
 
 d.comment(0x9B19, "Get buffer position for reply header", align=Align.INLINE)
@@ -7285,9 +7298,16 @@ d.subroutine(
     title="Build immediate operation reply header",
     description="""Stores data length, source station/network, and control byte
 into the RX buffer header area for port-0 immediate operations.
-Then disables SR interrupts and configures the VIA shift
-register for shift-in mode before returning to
-idle listen.""",
+Then arms the deferred-dispatch interrupt: saves the operation
+type, disables SR interrupts and switches the system VIA shift
+register to φ2 shift-in mode.
+
+Free-running, the shift register sets the SR-complete flag (IFR
+bit 2) a fixed, short number of cycles later — by which time the
+NMI receive handler has already returned — raising an ordinary
+IRQ that check_sr_irq picks up to run the deferred execute-class
+operation (remote JSR, user/OS procedure call, HALT or CONTINUE)
+in safe foreground IRQ context. Returns to idle listen.""",
 )
 
 d.comment(0x9B1B, "Clear carry for offset addition", align=Align.INLINE)
@@ -7314,7 +7334,28 @@ d.comment(0x9B4C, "Read SR to clear pending interrupt", align=Align.INLINE)
 d.comment(0x9B4F, "Return to idle listen mode", align=Align.INLINE)
 d.label(0x9B4F, "imm_op_discard")
 
-d.label(0x9B52, "check_sr_irq")
+d.subroutine(
+    0x9B52,
+    "check_sr_irq",
+    title="Service 5: unrecognised interrupt (SR dispatch)",
+    description="""Delivers work deferred out of the Econet NMI handler.
+imm_op_build_reply arms the system VIA shift register as a
+one-shot delayed interrupt source: free-running in φ2 shift-in
+mode it sets the SR-complete flag (IFR bit 2) a fixed, short
+number of cycles after arming — by which time the NMI receive
+handler has already returned — and that raises an ordinary IRQ
+which reaches the ROM here as service call &05 (unrecognised
+interrupt). This is how an execute-class immediate operation is
+bounced out of NMI context into the normal IRQ path, where it is
+safe to JSR into user code or call OS routines.
+
+Tests IFR bit 2 (SR complete) to confirm the shift-register
+transfer completed. If SR is not set, returns A=5 to pass the
+service call on. If SR is set, saves registers, restores the
+original SR mode bits in the ACR, then dispatches via the saved
+operation type. The indexed handler performs the deferred action
+— a remote JSR, user/OS procedure call, HALT or CONTINUE.""",
+)
 d.comment(0x9B52, "A=&04: IFR bit 2 (SR) mask", align=Align.INLINE)
 d.comment(0x9B54, "Test SR interrupt pending", align=Align.INLINE)
 d.comment(0x9B57, "SR fired: handle TX completion", align=Align.INLINE)
@@ -7353,10 +7394,13 @@ d.subroutine(
     0x9B9B,
     "tx_done_jsr",
     title="TX done: remote JSR execution",
-    description="""Pushes a return address on the stack (pointing to
-tx_done_exit), then does JMP indirect to call the remote
-JSR target routine. When that routine returns via RTS,
-control resumes at tx_done_exit.""",
+    description="""Executes the Econet Remote Subroutine Jump (immediate
+operation &83), now running in deferred IRQ context after
+check_sr_irq picked up the shift-register interrupt — so the
+JSR happens safely outside the NMI handler. Pushes a return
+address on the stack (pointing to tx_done_exit), then does
+JMP indirect to call the remote JSR target routine. When that
+routine returns via RTS, control resumes at tx_done_exit.""",
 )
 
 
