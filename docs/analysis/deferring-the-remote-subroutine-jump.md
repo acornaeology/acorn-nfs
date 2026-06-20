@@ -153,20 +153,21 @@ pulls the CPU's /IRQ pin low directly; the interrupt is held off only by
 the 6502's I flag. (See the references: this is not, as one might guess
 from the name, a VSYNC-related mask — writing 1 simply asserts IRQ.)
 
-So the deferral collapses to two instructions in the arming routine and
-one in the handler. `setup_sr_tx` (`&8512`) — the routine keeps the Model
-B name — reaches here from the NMI handler with the operation type in
-`A`:
+So the deferral itself collapses to one instruction each side — `TSB`
+to arm, `TRB` to clear. `setup_sr_tx` (`&8512`) — the routine keeps the
+Model B name — reaches here from the NMI handler with the operation type
+in `A`, and for an execute-class op it also raises the protection mask
+first:
 
 ```
 .setup_sr_tx
     sta tx_op_type        ; &8512  remember WHAT to do
-    cmp #&86              ; &8515  HALT/CONTINUE/machine-type (>= &86)?
-    bcs enable_irq_pending; &8517  ... if so, skip the ACR fiddling
-    lda ws_0d68           ; &8519  (execute-class only) read workspace ACR byte
-    sta ws_0d69           ; &851C  save a copy
-    ora #&1c              ; &851F  set shift-register mode-2 bits ...
-    sta ws_0d68           ; &8521  ... back into WORKSPACE (see below)
+    cmp #&86              ; &8515  JSR/UserProc/OSProc are < &86
+    bcs enable_irq_pending; &8517  HALT/CONTINUE/m-type: skip protection
+    lda prot_status       ; &8519  (execute-class only) the LSTAT mask
+    sta prot_status_save  ; &851C  save it, to restore after the call
+    ora #&1c              ; &851F  set bits 2-4: bar JSR/UserProc/OSProc
+    sta prot_status       ; &8521  write the raised mask back
 .enable_irq_pending
     lda #&80              ; &8524  ACCCON bit 7 (IRR)
     tsb acccon            ; &8526  set it -> assert a software IRQ
@@ -200,21 +201,30 @@ trigger is no longer self-timing: on the Master the IRQ is *pending the
 instant* `TSB` runs and fires the moment the I flag allows, rather than
 after a fixed shift interval.
 
-### A fossil of the Model B mechanism
+### Two registers, one constant
 
-Look again at `&8519`–`&8521` above. For an execute-class operation the
-Master code still computes a **shift-register mode-2 control byte** —
-`ORA #&1C` is the same bit pattern the Model B writes to the VIA's
-ACR — and stores it. But it stores it into a *workspace* byte (`&0D68`),
-and **nothing in the 4.21 ROM ever flushes that byte to the live VIA.**
-The shift register is never armed; the computed value is dead.
+It is tempting to read the `ORA #&1C` at `&851F` as left-over
+shift-register code, because `&1C` is the bit pattern for the
+shift-register mode field in the VIA's ACR. It isn't. `prot_status`
+(the byte at `&0D68`) is the station's **LSTAT protection mask** — the
+very byte `immediate_op` tested earlier to decide whether to accept the
+request. Setting bits 2–4 *disables* the JSR, user-procedure and
+OS-procedure operations, so while the remote routine runs the station
+will not accept another remote execute. It is re-entrancy protection: a
+remote JSR cannot itself invite a second one. The previous mask is held
+in `prot_status_save` and restored when the call completes. (`&851F`
+writes to the LSTAT byte, not the VIA — `setup_sr_tx` in 4.21 never
+touches the shift register at all.)
 
-It is a fossil. ANFS for the Master was derived from the Model B code
-base, and when the deferral was rewritten to use ACCCON IRR, the old
-shift-register-mode bookkeeping was left in place — harmlessly writing a
-value that is now never used. It is a small, concrete sign of the
-lineage between the two implementations, visible only in the
-disassembly: the Master ROM still remembers how the BBC did it.
+The Model B does exactly the same guarding, but in a different place: it
+raises those bits in a separate `set_jsr_protection` step on the
+*dispatch* side, immediately before the `JMP (exec_addr)`, rather than
+in the NMI handler. So the two ROMs differ twice over — the Master
+trades the shift-register timer for ACCCON IRR, *and* it moves the
+protection raise from dispatch time to NMI time. The shared constant
+`&1C` — the SR-mode-field mask in one register, "bar the execute-class
+ops" in another, unrelated one — is the kind of coincidence that makes
+an annotation easy to get wrong.
 
 ## Why this is worth recording
 

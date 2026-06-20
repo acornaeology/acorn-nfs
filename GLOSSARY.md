@@ -569,13 +569,27 @@ function: &81 PEEK, &82 POKE, &83 JSR (Remote Subroutine Jump), &84 user
 procedure call, &85 OS procedure call, &86 HALT, &87 CONTINUE, &88
 machine-type query.
 
-  Each station holds a protection mask that decides which immediate
-  operations it will accept; a station can refuse remote calls while
-  still allowing, for example, a machine-type query. PEEK, POKE and
+  Each station holds a protection mask (LSTAT) that decides which
+  immediate operations it will accept; a station can refuse remote calls
+  while still allowing, for example, a machine-type query. PEEK, POKE and
   machine-type only touch memory and reply at once, so NFS handles them
   in the receive path. The execute-class operations (JSR, user/OS
   procedure call, HALT, CONTINUE) must run user or OS code, which is
   unsafe inside the NMI receive handler — see Remote Subroutine Jump.
+
+**LSTAT**
+: The per-station Econet protection mask — the byte that records which
+immediate operations this station will accept. One bit per operation
+(PEEK, POKE, JSR, …); a clear bit means a request for that operation is
+silently ignored. NFS holds it at &0D63; ANFS at &0D68 (`prot_status`).
+
+  `*PROTECT` / OSWORD &13 read and set it, so a user can, for example,
+  bar remote Remote Subroutine Jumps while still permitting a
+  machine-type query. While a deferred execute-class operation runs, NFS
+  temporarily raises the LSTAT bits so the remote routine cannot itself
+  trigger a further remote execute (re-entrancy protection), saving the
+  previous value (called OLDJSR in the original Acorn source) to restore
+  afterwards. The name is inherited from Acorn's DNFS source.
 
 **RSJ** (Remote Subroutine Jump)
 : Econet immediate operation &83: a remote machine asks the local machine

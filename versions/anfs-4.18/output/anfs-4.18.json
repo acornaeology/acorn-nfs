@@ -515,7 +515,7 @@
       "addr": 32861,
       "name": "set_jsr_protection",
       "title": "Set JSR protection and dispatch via table",
-      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current JSR protection\nmask, sets protection bits 2-4, then dispatches through\nthe PHA/RTS trampoline using the table at\nset_rx_buf_len_hi. If Y >= &86, skips the protection\nsetup and dispatches directly.",
+      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current protection mask\n(prot_status -> prot_status_save), sets protection bits\n2-4, then dispatches through the PHA/RTS trampoline using\nthe table at set_rx_buf_len_hi. If Y >= &86, skips the\nprotection setup and dispatches directly.\n\nSetting bits 2-4 of prot_status disables the JSR, user-\nprocedure and OS-procedure immediate operations: while\nthis deferred remote call runs it cannot itself trigger\nanother remote execute (re-entrancy protection). The\nsaved mask is restored once the call completes. HALT,\nCONTINUE and machine-type (>= &86) run no caller code, so\nthey need no such guard.",
       "on_entry": {
         "y": "TX operation type (dispatch index)"
       }
@@ -649,7 +649,7 @@
       "addr": 33877,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at l0d30 for an Econet\nimmediate operation code: &81 PEEK, &82 POKE,\n&83 JSR (Remote Subroutine Jump), &84 user procedure\ncall, &85 OS procedure call, &86 HALT, &87 CONTINUE,\n&88 machine-type query. Codes below &81 or above &88\nare out of range and discarded. Codes &87-&88\n(CONTINUE/machine-type) bypass the protection mask\ncheck. For &81-&86, converts to a 0-based index and\ntests against the per-station protection mask ws_0d68\n(&0D68) to determine if this station accepts the\noperation. If accepted,\ndispatches via the immediate operation table\n(imm_op_dispatch_lo).\n\nThe execute-class operations (&83-&87) cannot run\ninside the NMI receive handler \u2014 a JSR into user code\nor an OS call is unsafe there \u2014 so they are not run\ninline. They are completed later from normal IRQ\ncontext via the shift-register delayed interrupt armed\nin setup_sr_tx and serviced by svc5_irq_check\n(dispatch table tx_done_dispatch_lo). PEEK, POKE and\nmachine-type (&81/&82/&88) only touch memory and reply\nimmediately, so they run here. Builds the reply by\nstoring data length, station/network, and control byte\ninto the RX buffer."
+      "description": "Checks the control byte at l0d30 for an Econet\nimmediate operation code: &81 PEEK, &82 POKE,\n&83 JSR (Remote Subroutine Jump), &84 user procedure\ncall, &85 OS procedure call, &86 HALT, &87 CONTINUE,\n&88 machine-type query. Codes below &81 or above &88\nare out of range and discarded. Codes &87-&88\n(CONTINUE/machine-type) bypass the protection mask\ncheck. For &81-&86, converts to a 0-based index and\ntests against the per-station protection mask prot_status\n(&0D68) to determine if this station accepts the\noperation. If accepted,\ndispatches via the immediate operation table\n(imm_op_dispatch_lo).\n\nThe execute-class operations (&83-&87) cannot run\ninside the NMI receive handler \u2014 a JSR into user code\nor an OS call is unsafe there \u2014 so they are not run\ninline. They are completed later from normal IRQ\ncontext via the shift-register delayed interrupt armed\nin setup_sr_tx and serviced by svc5_irq_check\n(dispatch table tx_done_dispatch_lo). PEEK, POKE and\nmachine-type (&81/&82/&88) only touch memory and reply\nimmediately, so they run here. Builds the reply by\nstoring data length, station/network, and control byte\ninto the RX buffer."
     },
     {
       "addr": 33936,
@@ -661,20 +661,20 @@
       "addr": 33966,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at c81af."
+      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&2E, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at c81af. POKE (&82) only\nwrites memory and replies, so it is serviced inline in\nthe receive path \u2014 not deferred like the execute-class\noperations &83-&87."
     },
     {
       "addr": 33977,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer at &88C1 (length #&01FC) for the\nmachine type query response. Falls through to\nset_rx_buf_len_hi to configure buffer dimensions,\nthen branches to set_tx_reply_flag.",
+      "description": "Sets up a buffer at &88C1 (length #&01FC) for the\nmachine type query response. Falls through to\nset_rx_buf_len_hi to configure buffer dimensions,\nthen branches to set_tx_reply_flag. The machine-type\nquery (&88) just returns fixed identity data, so it is\nserviced inline here \u2014 not deferred like the execute-\nclass operations &83-&87.",
       "fall_through": true
     },
     {
       "addr": 33995,
       "name": "rx_imm_peek",
       "title": "RX immediate: PEEK setup",
-      "description": "Writes &0D2E to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send\nthe PEEK response data back to the requesting station."
+      "description": "Writes &0D2E to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send\nthe PEEK response data back to the requesting station.\nPEEK (&81) only reads memory and replies, so it is\nserviced inline in the receive path \u2014 not deferred like\nthe execute-class operations &83-&87."
     },
     {
       "addr": 34038,
@@ -2088,7 +2088,7 @@
       "addr": 42792,
       "name": "osword_13_read_prot",
       "title": "OSWORD &13 sub 4: read protection mask",
-      "description": "Returns the current protection mask (ws_0d68)\nin PB[1]."
+      "description": "Returns the current protection mask (prot_status)\nin PB[1]."
     },
     {
       "addr": 42798,
@@ -2660,7 +2660,7 @@
       "addr": 45836,
       "name": "cmd_prot",
       "title": "*Prot command handler",
-      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses protection-type keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in ws_0d68 and\nws_0d69.",
+      "description": "With no arguments, sets all protection bits (&FF).\nOtherwise parses protection-type keywords via match_fs_cmd\nwith table offset &D3, accumulating bits via ORA.\nStores the final protection mask in prot_status and\nprot_status_save.",
       "on_entry": {
         "y": "command line offset in text pointer"
       }
@@ -3236,8 +3236,8 @@
     "tx_op_type": 3429,
     "exec_addr_lo": 3430,
     "exec_addr_hi": 3431,
-    "ws_0d68": 3432,
-    "ws_0d69": 3433,
+    "prot_status": 3432,
+    "prot_status_save": 3433,
     "ws_0d6a": 3434,
     "spool_buf_idx": 3435,
     "fs_flags": 3436,
@@ -4003,9 +4003,9 @@
       "comment_inline": "Save current JSR protection mask",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 32868,
@@ -4017,9 +4017,9 @@
       "comment_inline": "Backup to saved_jsr_mask",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 32871,
@@ -4042,9 +4042,9 @@
       "comment_inline": "Apply protection during dispatch",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 32876,
@@ -10433,9 +10433,9 @@
       "comment_inline": "Load protection mask from LSTAT",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 33900,
@@ -28642,9 +28642,9 @@
       "comment_inline": "Clear workspace flag",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 36644,
@@ -68211,9 +68211,9 @@
       "comment_inline": "Load protection mask",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 42795,
@@ -78629,9 +78629,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 44256,
@@ -78643,9 +78643,9 @@
       "comment_inline": "Store as committed state",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 44259,
@@ -89052,9 +89052,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 45849,
@@ -89283,9 +89283,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 45881,
@@ -89297,9 +89297,9 @@
       "comment_inline": "Store protection mask copy",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 45884,
@@ -89360,9 +89360,9 @@
       "comment_inline": "Load current protection mask",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 45894,

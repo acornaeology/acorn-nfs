@@ -9,7 +9,7 @@
             "label": "Deferring the Remote Subroutine Jump",
             "url": "docs/analysis/deferring-the-remote-subroutine-jump.md",
             "icon": "doc",
-            "note": "An Econet Remote Subroutine Jump (and its execute-class siblings) cannot be run from the NMI receive handler, so NFS defers the call into a later IRQ via service call &05. On the Model B it arms the system VIA shift register as a one-shot timer (ANFS 4.08.53, shared with NFS 3.34-3.65 and ANFS 4.18); on the Master 128 it sets ACCCON bit 7 (IRR) to assert a software IRQ (ANFS 4.21). The Master code still computes a now-dead shift-register mode byte -- a fossil of the Model B mechanism."
+            "note": "An Econet Remote Subroutine Jump (and its execute-class siblings) cannot be run from the NMI receive handler, so NFS defers the call into a later IRQ via service call &05. On the Model B it arms the system VIA shift register as a one-shot timer (ANFS 4.08.53, shared with NFS 3.34-3.65 and ANFS 4.18); on the Master 128 it sets ACCCON bit 7 (IRR) to assert a software IRQ (ANFS 4.21). The two ROMs also differ in where they raise the LSTAT re-entrancy protection -- dispatch side on the Model B, NMI side on the Master -- a difference disguised by the constant &1C meaning different things in the VIA ACR and the LSTAT mask."
         },
         {
             "label": "The *HELP authors easter egg",

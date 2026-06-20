@@ -537,7 +537,7 @@
       "addr": 33876,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`ws_0d68`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`ws_0d68`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 33931,
@@ -555,20 +555,20 @@
       "addr": 33969,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\ncommon data-receive path at `&81AF`."
+      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\ncommon data-receive path at `&81AF`. POKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
     },
     {
       "addr": 33980,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine-type query",
-      "description": "Sets up the response buffer for a machine-type query immediate\noperation (4-byte response: machine code + version digits). Falls\nthrough to [`set_rx_buf_len_hi`](address:84BE) to configure\nthe buffer dimensions, then branches to `set_tx_reply_flag`.",
+      "description": "Sets up the response buffer for a machine-type query immediate\noperation (4-byte response: machine code + version digits). Falls\nthrough to [`set_rx_buf_len_hi`](address:84BE) to configure\nthe buffer dimensions, then branches to `set_tx_reply_flag`. The\nmachine-type query (`&88`) just returns fixed identity data, so it is\nserviced inline here -- not deferred like the execute-class operations\n`&83`-`&87`.",
       "fall_through": true
     },
     {
       "addr": 33998,
       "name": "rx_imm_peek",
       "title": "RX immediate: PEEK setup",
-      "description": "Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets\n`scout_status = 2`, then calls\n[`tx_calc_transfer`](address:8900) to send the PEEK response\ndata back to the requesting station."
+      "description": "Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets\n`scout_status = 2`, then calls\n[`tx_calc_transfer`](address:8900) to send the PEEK response\ndata back to the requesting station. PEEK (`&81`) only reads memory\nand replies, so it is serviced inline in the receive path -- not\ndeferred like the execute-class operations `&83`-`&87`."
     },
     {
       "addr": 34041,
@@ -580,8 +580,8 @@
     {
       "addr": 34066,
       "name": "setup_sr_tx",
-      "title": "Save TX op type and update workspace ACR-format byte",
-      "description": "Stores the TX operation type in [`tx_op_type`](address:0D65).\n\n| Op code | Path |\n|---|---|\n| `\u2265 &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the workspace byte is left untouched |\n| `< &86` | load [`ws_0d68`](address:0D68), copy it to [`ws_0d69`](address:0D69) (preserved for later restore), `ORA` in bits 2-4 (the SR-mode-2 mask in System-VIA ACR layout), write the modified value back to `ws_0d68` |\n\nThe byte at `ws_0d68` carries an ACR-format flag layout left over\nfrom 4.18, which used the same op-code dispatch to update the\n*live* System VIA ACR. In 4.21 the byte stays in workspace --\nnothing in this ROM flushes it to the live VIA. Single caller\n(`&83E2` in [`scout_complete`](address:8112)).",
+      "title": "Save TX op type and raise JSR re-entrancy protection",
+      "description": "Stores the TX operation type in [`tx_op_type`](address:0D65),\nthen (at [`enable_irq_pending`](address:8524)) sets the ACCCON IRR\nlatch to arm the deferred dispatch -- see [`svc5_irq_check`](address:8028).\n\n| Op code | Path |\n|---|---|\n| `\u2265 &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the protection mask is left untouched |\n| `< &86` (JSR / UserProc / OSProc) | load the [`prot_status`](address:0D68) protection mask, copy it to [`prot_status_save`](address:0D69), `ORA` in bits 2-4 to *disable* further JSR / UserProc / OSProc, then write the raised mask back to `prot_status` |\n\nRaising bits 2-4 of the LSTAT protection mask is re-entrancy\nprotection: while the deferred remote routine runs (it is a JSR into\nuser code, or an OS call), the station will not accept another remote\nexecute operation. The previous mask is preserved in\n`prot_status_save` so it can be restored once the call returns. (The\nbit pattern `&1C` happens to equal the System VIA ACR\nshift-register mode-field mask, but here it is applied to the LSTAT\nmask, not the VIA -- the Model B ROMs raise the same bits in a\nseparate step on the dispatch side.) Single caller (`&83E2` in\n[`scout_complete`](address:8112)).",
       "on_entry": {
         "a": "TX operation type"
       }
@@ -3146,7 +3146,7 @@
       "addr": 43698,
       "name": "osword_13_read_prot",
       "title": "OSWORD &13 sub 4: read protection mask",
-      "description": "Returns the current protection mask (ws_0d68)\nin PB[1]."
+      "description": "Returns the current protection mask (prot_status)\nin PB[1]."
     },
     {
       "addr": 43704,
@@ -3158,8 +3158,8 @@
     {
       "addr": 43707,
       "name": "set_ws_pair_0d68_0d69",
-      "title": "Store A in both ws_0d68 and ws_0d69",
-      "description": "Copies `A` to both [`ws_0d68`](address:0D68) and\n[`ws_0d69`](address:0D69), then `RTS`. The bytes carry ACR/SR-style\nflag layouts that ANFS uses internally; nothing in this ROM flushes\nthem to the live System VIA. Two callers:\n[`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or\n`&FF` based on FS-options bit 6) and\n[`cmd_prot`](address:B6D2) at `&B6D9` (the *Prot path).\nA 2-store-and-return convenience to keep both call sites flat.",
+      "title": "Store A in both prot_status and prot_status_save",
+      "description": "Copies `A` to both [`prot_status`](address:0D68) and\n[`prot_status_save`](address:0D69), then `RTS`. The bytes carry ACR/SR-style\nflag layouts that ANFS uses internally; nothing in this ROM flushes\nthem to the live System VIA. Two callers:\n[`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or\n`&FF` based on FS-options bit 6) and\n[`cmd_prot`](address:B6D2) at `&B6D9` (the *Prot path).\nA 2-store-and-return convenience to keep both call sites flat.",
       "on_entry": {
         "a": "value to mirror into both workspace bytes"
       }
@@ -3997,7 +3997,7 @@
       "addr": 46802,
       "name": "cmd_prot",
       "title": "*Prot command handler",
-      "description": "Loads `A=&FF` (full protection mask) and falls through (via an\nalways-taken `BNE`) to the shared protection-update body at\n`&B6D8`, which:\n\n1. Saves the new flag (`Z=0` for *Prot, `Z=1` for *Unprot) on the\n   stack via `PHP`.\n2. Calls [`set_via_shadow_pair`](address:AABB) to mirror `A` into\n   the workspace shadow ACR (`ws_0d68`) and shadow IER\n   (`ws_0d69`).\n3. Reads CMOS RAM byte `&11` (Econet station/protection flags)\n   via [`osbyte_a1`](address:8E9A) into `Y`, copies to `A`.\n4. Restores the saved flag and selects:\n   - *Prot path: `ORA #&40` (set bit 6 = protection on).\n   - *Unprot path: `AND #&BF` (clear bit 6).\n5. Writes the updated byte back to CMOS via OSBYTE `&A2`\n   (write CMOS RAM).\n\nThe ANFS protection state lives in CMOS bit 6 of byte `&11`, so it\nsurvives BREAK and power-cycle until explicitly toggled.",
+      "description": "Loads `A=&FF` (full protection mask) and falls through (via an\nalways-taken `BNE`) to the shared protection-update body at\n`&B6D8`, which:\n\n1. Saves the new flag (`Z=0` for *Prot, `Z=1` for *Unprot) on the\n   stack via `PHP`.\n2. Calls [`set_via_shadow_pair`](address:AABB) to mirror `A` into\n   the workspace shadow ACR (`prot_status`) and shadow IER\n   (`prot_status_save`).\n3. Reads CMOS RAM byte `&11` (Econet station/protection flags)\n   via [`osbyte_a1`](address:8E9A) into `Y`, copies to `A`.\n4. Restores the saved flag and selects:\n   - *Prot path: `ORA #&40` (set bit 6 = protection on).\n   - *Unprot path: `AND #&BF` (clear bit 6).\n5. Writes the updated byte back to CMOS via OSBYTE `&A2`\n   (write CMOS RAM).\n\nThe ANFS protection state lives in CMOS bit 6 of byte `&11`, so it\nsurvives BREAK and power-cycle until explicitly toggled.",
       "on_entry": {
         "y": "command line offset (unused; *Prot takes no args)"
       },
@@ -4923,8 +4923,8 @@
     "tx_op_type": 3429,
     "exec_addr_lo": 3430,
     "exec_addr_hi": 3431,
-    "ws_0d68": 3432,
-    "ws_0d69": 3433,
+    "prot_status": 3432,
+    "prot_status_save": 3433,
     "ws_0d6a": 3434,
     "spool_buf_idx": 3435,
     "fs_flags": 3436,
@@ -6165,19 +6165,19 @@
     },
     {
       "addr": 3432,
-      "name": "ws_0d68",
+      "name": "prot_status",
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "ANFS workspace byte (role TBD)."
+      "description": "Econet per-station protection mask (LSTAT): one bit per immediate operation; a set bit bars that operation. Tested by immediate_op; bits 2-4 (JSR/UserProc/OSProc) are raised during a deferred remote call for re-entrancy protection."
     },
     {
       "addr": 3433,
-      "name": "ws_0d69",
+      "name": "prot_status_save",
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "ANFS workspace byte (role TBD)."
+      "description": "Saved copy of the prot_status protection mask (OLDJSR in Acorn's DNFS source), preserved while bits 2-4 are raised during a deferred remote call so the original mask can be restored afterwards."
     },
     {
       "addr": 3434,
@@ -13709,9 +13709,9 @@
       "comment_inline": "Load protection mask from LSTAT",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 33899,
@@ -14881,7 +14881,7 @@
         201,
         134
       ],
-      "comment_inline": "Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup",
+      "comment_inline": "Ops >= &86 run no code: skip JSR protection",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&86"
@@ -14906,12 +14906,12 @@
         104,
         13
       ],
-      "comment_inline": "Load workspace ACR-format byte",
+      "comment_inline": "Load LSTAT protection mask",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 34076,
@@ -14920,12 +14920,12 @@
         105,
         13
       ],
-      "comment_inline": "Stash a copy in ws_0d69 for later restore",
+      "comment_inline": "Save old mask in prot_status_save for restore",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 34079,
@@ -14933,7 +14933,7 @@
         9,
         28
       ],
-      "comment_inline": "In shift-register mode-2 control bits",
+      "comment_inline": "Set bits 2-4: disable JSR/UserProc/OSProc",
       "type": "code",
       "mnemonic": "ora",
       "operand": "#&1c"
@@ -14945,12 +14945,12 @@
         104,
         13
       ],
-      "comment_inline": "Write updated workspace byte back to ws_0d68",
+      "comment_inline": "Write raised protection mask back",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 34084,
@@ -32863,7 +32863,7 @@
       "labels": [
         "init_copy_skip_cmos"
       ],
-      "comment_inline": "Set ws_0d68/ws_0d69 pair",
+      "comment_inline": "Set prot_status/prot_status_save pair",
       "xref_summaries": [
         "&8fa6 referenced 1 time by &8fa2"
       ],
@@ -76796,9 +76796,9 @@
       "comment_inline": "Load protection mask",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 43701,
@@ -76849,7 +76849,7 @@
       "labels": [
         "set_ws_pair_0d68_0d69"
       ],
-      "comment_inline": "Mirror A into ws_0d68 (ACR-format byte)",
+      "comment_inline": "Mirror A into prot_status (ACR-format byte)",
       "xref_summaries": [
         "&aabb referenced 2 times by &8fa6, &b6d9"
       ],
@@ -76859,9 +76859,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 43710,
@@ -76870,12 +76870,12 @@
         105,
         13
       ],
-      "comment_inline": "Mirror A into ws_0d69 (IER-format byte)",
+      "comment_inline": "Mirror A into prot_status_save (IER-format byte)",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 43713,
@@ -87069,7 +87069,7 @@
       "labels": [
         "commit_state_byte"
       ],
-      "comment_inline": "Read saved copy of ws_0d68 from ws_0d69",
+      "comment_inline": "Read saved copy of prot_status from prot_status_save",
       "xref_summaries": [
         "&b05f referenced 4 times by &9856, &987e, &98b6, &a997"
       ],
@@ -87081,9 +87081,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "ws_0d69",
+      "operand": "prot_status_save",
       "target": 3433,
-      "target_label": "ws_0d69"
+      "target_label": "prot_status_save"
     },
     {
       "addr": 45154,
@@ -87092,12 +87092,12 @@
         104,
         13
       ],
-      "comment_inline": "Store back to ws_0d68",
+      "comment_inline": "Store back to prot_status",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "ws_0d68",
+      "operand": "prot_status",
       "target": 3432,
-      "target_label": "ws_0d68"
+      "target_label": "prot_status"
     },
     {
       "addr": 45157,
@@ -97855,7 +97855,7 @@
         187,
         170
       ],
-      "comment_inline": "Mirror A into ws_0d68 / ws_0d69 pair",
+      "comment_inline": "Mirror A into prot_status / prot_status_save pair",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "set_ws_pair_0d68_0d69",

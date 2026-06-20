@@ -1380,9 +1380,9 @@ d.label(0x0D66, "exec_addr_lo")
 
 d.label(0x0D67, "exec_addr_hi")
 
-d.label(0x0D68, "ws_0d68")
+d.label(0x0D68, "prot_status")
 
-d.label(0x0D69, "ws_0d69")
+d.label(0x0D69, "prot_status_save")
 
 d.label(0x0D6A, "ws_0d6a")
 
@@ -1654,11 +1654,19 @@ d.subroutine(
     "set_jsr_protection",
     title="Set JSR protection and dispatch via table",
     description="""Validates the TX operation type in Y against the
-dispatch table range, saves the current JSR protection
-mask, sets protection bits 2-4, then dispatches through
-the PHA/RTS trampoline using the table at
-set_rx_buf_len_hi. If Y >= &86, skips the protection
-setup and dispatches directly.""",
+dispatch table range, saves the current protection mask
+(prot_status -> prot_status_save), sets protection bits
+2-4, then dispatches through the PHA/RTS trampoline using
+the table at set_rx_buf_len_hi. If Y >= &86, skips the
+protection setup and dispatches directly.
+
+Setting bits 2-4 of prot_status disables the JSR, user-
+procedure and OS-procedure immediate operations: while
+this deferred remote call runs it cannot itself trigger
+another remote execute (re-entrancy protection). The
+saved mask is restored once the call completes. HALT,
+CONTINUE and machine-type (>= &86) run no caller code, so
+they need no such guard.""",
     on_entry={"y": "TX operation type (dispatch index)"},
 )
 
@@ -2568,7 +2576,7 @@ call, &85 OS procedure call, &86 HALT, &87 CONTINUE,
 are out of range and discarded. Codes &87-&88
 (CONTINUE/machine-type) bypass the protection mask
 check. For &81-&86, converts to a 0-based index and
-tests against the per-station protection mask ws_0d68
+tests against the per-station protection mask prot_status
 (&0D68) to determine if this station accepts the
 operation. If accepted,
 dispatches via the immediate operation table
@@ -2677,7 +2685,10 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&2E, rx_buf_offset=&0D, then jumps to
-the common data-receive path at c81af.""",
+the common data-receive path at c81af. POKE (&82) only
+writes memory and replies, so it is serviced inline in
+the receive path — not deferred like the execute-class
+operations &83-&87.""",
 )
 
 
@@ -2693,7 +2704,10 @@ d.subroutine(
     description="""Sets up a buffer at &88C1 (length #&01FC) for the
 machine type query response. Falls through to
 set_rx_buf_len_hi to configure buffer dimensions,
-then branches to set_tx_reply_flag.""",
+then branches to set_tx_reply_flag. The machine-type
+query (&88) just returns fixed identity data, so it is
+serviced inline here — not deferred like the execute-
+class operations &83-&87.""",
 )
 
 
@@ -2714,7 +2728,10 @@ d.subroutine(
     title="RX immediate: PEEK setup",
     description="""Writes &0D2E to port_ws_offset/rx_buf_offset, sets
 scout_status=2, then calls tx_calc_transfer to send
-the PEEK response data back to the requesting station.""",
+the PEEK response data back to the requesting station.
+PEEK (&81) only reads memory and replies, so it is
+serviced inline in the receive path — not deferred like
+the execute-class operations &83-&87.""",
 )
 
 
@@ -10769,7 +10786,7 @@ d.subroutine(
     0xA728,
     "osword_13_read_prot",
     title="OSWORD &13 sub 4: read protection mask",
-    description="""Returns the current protection mask (ws_0d68)
+    description="""Returns the current protection mask (prot_status)
 in PB[1].""",
 )
 
@@ -13782,8 +13799,8 @@ d.subroutine(
     description="""With no arguments, sets all protection bits (&FF).
 Otherwise parses protection-type keywords via match_fs_cmd
 with table offset &D3, accumulating bits via ORA.
-Stores the final protection mask in ws_0d68 and
-ws_0d69.""",
+Stores the final protection mask in prot_status and
+prot_status_save.""",
     on_entry={"y": "command line offset in text pointer"},
 )
 

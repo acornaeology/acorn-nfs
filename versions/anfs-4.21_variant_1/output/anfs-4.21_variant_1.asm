@@ -315,9 +315,9 @@ exec_addr_lo                = &0d66  ; Remote execution address (low byte). Stor
 ; &0d66 referenced 4 times by &84a8, &8546, &8549, &8557
 exec_addr_hi                = &0d67  ; Remote execution address (high byte). Paired with exec_addr_lo.
 ; &0d67 referenced 2 times by &854c, &855a
-ws_0d68                     = &0d68  ; ANFS workspace byte (role TBD).
+prot_status                 = &0d68  ; Econet per-station protection mask (LSTAT): one bit per immediate operation; a set bit bars that operation. Tested by immediate_op; bits 2-4 (JSR/UserProc/OSProc) are raised during a deferred remote call for re-entrancy protection.
 ; &0d68 referenced 6 times by &8468, &8519, &8521, &aab2, &aabb, &b062
-ws_0d69                     = &0d69  ; ANFS workspace byte (role TBD).
+prot_status_save            = &0d69  ; Saved copy of the prot_status protection mask (OLDJSR in Acorn's DNFS source), preserved while bits 2-4 are raised during a deferred remote call so the original mask can be restored afterwards.
 ; &0d69 referenced 3 times by &851c, &aabe, &b05f
 ws_0d6a                     = &0d6a  ; ANFS workspace byte (role TBD).
 ; &0d6a referenced 9 times by &ae6b, &aea0, &aeaa, &aed0, &aed8, &aef7, &af6c, &af71, &b3ae
@@ -1814,14 +1814,14 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Checks the control byte at scout_ctrl for immediate-operation codes:
 ;
-; | Range          | Op                                           | Treatment                            |
-; |----------------|----------------------------------------------|--------------------------------------|
-; | < &81 or > &88 | –                                            | out of range; discarded              |
-; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the ws_0d68 protection mask |
-; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                |
+; | Range          | Op                                           | Treatment                                |
+; |----------------|----------------------------------------------|------------------------------------------|
+; | < &81 or > &88 | –                                            | out of range; discarded                  |
+; | &81..&86       | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the prot_status protection mask |
+; | &87..&88       | CONTINUE / machine-type                      | bypass the mask check                    |
 ;
 ; For &81..&86, converts the code to a 0-based index and tests against the per-station
-; protection mask ws_0d68 to determine whether this station accepts the operation. If
+; protection mask prot_status to determine whether this station accepts the operation. If
 ; accepted, dispatches via imm_op_dispatch_lo (PHA/PHA/RTS).
 ;
 ; The execute-class operations (&83 JSR, &84 UserProc, &85 OSProc, &86 HALT, &87
@@ -1848,7 +1848,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sec                                                               ; 8464: 38          8        ; For subtract
     sbc #&81                                                          ; 8465: e9 81       ..       ; A = ctrl - &81 (0-based operation index)
     tay                                                               ; 8467: a8          .        ; Y = index for mask rotation count
-    lda ws_0d68                                                       ; 8468: ad 68 0d    .h.      ; Load protection mask from LSTAT
+    lda prot_status                                                   ; 8468: ad 68 0d    .h.      ; Load protection mask from LSTAT
 ; &846b referenced 1 time by &846d
 .rotate_prot_mask
     ror a                                                             ; 846b: 6a          j        ; Rotate mask right by control byte index
@@ -1926,7 +1926,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: POKE setup
 ;
 ; Sets up workspace offsets for receiving POKE data: port_ws_offset = &2E, rx_buf_offset
-; = &0D. Jumps to the common data-receive path at &81AF.
+; = &0D. Jumps to the common data-receive path at &81AF. POKE (&82) only writes memory
+; and replies, so it is serviced inline in the receive path -- not deferred like the
+; execute-class operations &83-&87.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e ; '.'                                                    ; 84b1: a9 2e       ..       ; Port workspace offset = &2E
@@ -1939,7 +1941,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Sets up the response buffer for a machine-type query immediate operation (4-byte
 ; response: machine code + version digits). Falls through to set_rx_buf_len_hi to
-; configure the buffer dimensions, then branches to set_tx_reply_flag.
+; configure the buffer dimensions, then branches to set_tx_reply_flag. The machine-type
+; query (&88) just returns fixed identity data, so it is serviced inline here -- not
+; deferred like the execute-class operations &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 84bc: a9 01       ..       ; Buffer length hi = 1
 .set_rx_buf_len_hi
@@ -1955,7 +1959,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: PEEK setup
 ;
 ; Writes &0D2E to port_ws_offset / rx_buf_offset, sets scout_status = 2, then calls
-; tx_calc_transfer to send the PEEK response data back to the requesting station.
+; tx_calc_transfer to send the PEEK response data back to the requesting station. PEEK
+; (&81) only reads memory and replies, so it is serviced inline in the receive path --
+; not deferred like the execute-class operations &83-&87.
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84ce: a9 2e       ..       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84d0: 85 a6       ..       ; Store workspace offset lo
@@ -2011,31 +2017,35 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta (net_rx_ptr),y                                                ; 850d: 91 9c       ..       ; Store source network in reply header
     lda scout_ctrl                                                    ; 850f: ad 30 0d    .0.      ; Load control byte from received frame
 ; ***************************************************************************************
-; Save TX op type and update workspace ACR-format byte
+; Save TX op type and raise JSR re-entrancy protection
 ;
-; Stores the TX operation type in tx_op_type.
+; Stores the TX operation type in tx_op_type, then (at enable_irq_pending) sets the
+; ACCCON IRR latch to arm the deferred dispatch -- see svc5_irq_check.
 ;
-; | Op code                                | Path                                                                                                                                                                    |
-; |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the workspace byte is left untouched                                                                                              |
-; | < &86                                  | load ws_0d68, copy it to ws_0d69 (preserved for later restore), ORA in bits 2-4 (the SR-mode-2 mask in System-VIA ACR layout), write the modified value back to ws_0d68 |
+; | Op code                                | Path                                                                                                                                                                          |
+; |----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | ≥ &86 (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the protection mask is left untouched                                                                                                   |
+; | < &86 (JSR / UserProc / OSProc)        | load the prot_status protection mask, copy it to prot_status_save, ORA in bits 2-4 to disable further JSR / UserProc / OSProc, then write the raised mask back to prot_status |
 ;
-; The byte at ws_0d68 carries an ACR-format flag layout left over from 4.18, which used
-; the same op-code dispatch to update the live System VIA ACR. In 4.21 the byte stays in
-; workspace -- nothing in this ROM flushes it to the live VIA. Single caller (&83E2 in
-; scout_complete).
+; Raising bits 2-4 of the LSTAT protection mask is re-entrancy protection: while the
+; deferred remote routine runs (it is a JSR into user code, or an OS call), the station
+; will not accept another remote execute operation. The previous mask is preserved in
+; prot_status_save so it can be restored once the call returns. (The bit pattern &1C
+; happens to equal the System VIA ACR shift-register mode-field mask, but here it is
+; applied to the LSTAT mask, not the VIA -- the Model B ROMs raise the same bits in a
+; separate step on the dispatch side.) Single caller (&83E2 in scout_complete).
 ;
 ; On Entry:
 ;     A: TX operation type
 ; &8512 referenced 1 time by &83e2
 .setup_sr_tx
     sta tx_op_type                                                    ; 8512: 8d 65 0d    .e.      ; Save TX operation type for SR dispatch
-    cmp #&86                                                          ; 8515: c9 86       ..       ; Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup
+    cmp #&86                                                          ; 8515: c9 86       ..       ; Ops >= &86 run no code: skip JSR protection
     bcs enable_irq_pending                                            ; 8517: b0 0b       ..       ; Skip ahead to the ACCCON IRR set
-    lda ws_0d68                                                       ; 8519: ad 68 0d    .h.      ; Load workspace ACR-format byte
-    sta ws_0d69                                                       ; 851c: 8d 69 0d    .i.      ; Stash a copy in ws_0d69 for later restore
-    ora #&1c                                                          ; 851f: 09 1c       ..       ; In shift-register mode-2 control bits
-    sta ws_0d68                                                       ; 8521: 8d 68 0d    .h.      ; Write updated workspace byte back to ws_0d68
+    lda prot_status                                                   ; 8519: ad 68 0d    .h.      ; Load LSTAT protection mask
+    sta prot_status_save                                              ; 851c: 8d 69 0d    .i.      ; Save old mask in prot_status_save for restore
+    ora #&1c                                                          ; 851f: 09 1c       ..       ; Set bits 2-4: disable JSR/UserProc/OSProc
+    sta prot_status                                                   ; 8521: 8d 68 0d    .h.      ; Write raised protection mask back
 ; &8524 referenced 1 time by &8517
 .enable_irq_pending
     lda #&80                                                          ; 8524: a9 80       ..       ; A=&80: ACCCON bit 7 (IRR -- raise interrupt)
@@ -5080,7 +5090,7 @@ ps_template_base = load_transfer_params+1
     lda #&ff                                                          ; 8fa4: a9 ff       ..       ; A=&FF -- enable protection
 ; &8fa6 referenced 1 time by &8fa2
 .init_copy_skip_cmos
-    jsr set_ws_pair_0d68_0d69                                         ; 8fa6: 20 bb aa     ..      ; Set ws_0d68/ws_0d69 pair
+    jsr set_ws_pair_0d68_0d69                                         ; 8fa6: 20 bb aa     ..      ; Set prot_status/prot_status_save pair
 ; &8fa9 referenced 1 time by &8fb6
 .loop_alloc_handles
     lda ws_page                                                       ; 8fa9: a5 a8       ..       ; Get current workspace page
@@ -11553,9 +11563,9 @@ osword_subcode_dispatch = extract_osword_subcode+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 4: read protection mask
 ;
-; Returns the current protection mask (ws_0d68) in PB[1].
+; Returns the current protection mask (prot_status) in PB[1].
 .osword_13_read_prot
-    lda ws_0d68                                                       ; aab2: ad 68 0d    .h.      ; Load protection mask
+    lda prot_status                                                   ; aab2: ad 68 0d    .h.      ; Load protection mask
     jmp store_a_to_pb_1                                               ; aab5: 4c 82 ab    L..      ; Store to PB[1] and return
 ; ***************************************************************************************
 ; OSWORD &13 sub 5: write protection mask
@@ -11567,20 +11577,20 @@ osword_subcode_dispatch = extract_osword_subcode+1
     iny                                                               ; aab8: c8          .        ; Y=1: PB data offset
     lda (ws_ptr_hi),y                                                 ; aab9: b1 ac       ..       ; Load new mask from PB[1]
 ; ***************************************************************************************
-; Store A in both ws_0d68 and ws_0d69
+; Store A in both prot_status and prot_status_save
 ;
-; Copies A to both ws_0d68 and ws_0d69, then RTS. The bytes carry ACR/SR-style flag
-; layouts that ANFS uses internally; nothing in this ROM flushes them to the live System
-; VIA. Two callers: nfs_init_body at &8FA6 (where A is 0 or &FF based on FS-options bit
-; 6) and cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return convenience to keep
-; both call sites flat.
+; Copies A to both prot_status and prot_status_save, then RTS. The bytes carry
+; ACR/SR-style flag layouts that ANFS uses internally; nothing in this ROM flushes them
+; to the live System VIA. Two callers: nfs_init_body at &8FA6 (where A is 0 or &FF based
+; on FS-options bit 6) and cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return
+; convenience to keep both call sites flat.
 ;
 ; On Entry:
 ;     A: value to mirror into both workspace bytes
 ; &aabb referenced 2 times by &8fa6, &b6d9
 .set_ws_pair_0d68_0d69
-    sta ws_0d68                                                       ; aabb: 8d 68 0d    .h.      ; Mirror A into ws_0d68 (ACR-format byte)
-    sta ws_0d69                                                       ; aabe: 8d 69 0d    .i.      ; Mirror A into ws_0d69 (IER-format byte)
+    sta prot_status                                                   ; aabb: 8d 68 0d    .h.      ; Mirror A into prot_status (ACR-format byte)
+    sta prot_status_save                                              ; aabe: 8d 69 0d    .i.      ; Mirror A into prot_status_save (IER-format byte)
     rts                                                               ; aac1: 60          `        ; Return
 ; ***************************************************************************************
 ; OSWORD &13 sub 6: read FCB handle info
@@ -12986,8 +12996,8 @@ bridge_err_table = compare_bridge_status+1
 ;     A: = the committed value
 ; &b05f referenced 4 times by &9856, &987e, &98b6, &a997
 .commit_state_byte
-    lda ws_0d69                                                       ; b05f: ad 69 0d    .i.      ; Read saved copy of ws_0d68 from ws_0d69
-    sta ws_0d68                                                       ; b062: 8d 68 0d    .h.      ; Store back to ws_0d68
+    lda prot_status_save                                              ; b05f: ad 69 0d    .i.      ; Read saved copy of prot_status from prot_status_save
+    sta prot_status                                                   ; b062: 8d 68 0d    .h.      ; Store back to prot_status
     rts                                                               ; b065: 60          `        ; Return
 ; ***************************************************************************************
 ; Serialise palette register to workspace
@@ -14541,8 +14551,8 @@ ps_print_template = write_ps_slot_hi_link+1
 ; shared protection-update body at &B6D8, which:
 ;
 ; 1. Saves the new flag (Z=0 for *Prot, Z=1 for *Unprot) on the stack via PHP.
-; 2. Calls set_via_shadow_pair to mirror A into the workspace shadow ACR (ws_0d68) and
-;    shadow IER (ws_0d69).
+; 2. Calls set_via_shadow_pair to mirror A into the workspace shadow ACR (prot_status)
+;    and shadow IER (prot_status_save).
 ; 3. Reads CMOS RAM byte &11 (Econet station/protection flags) via osbyte_a1 into Y,
 ;    copies to A.
 ; 4. Restores the saved flag and selects:
@@ -14573,7 +14583,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b6d8 referenced 1 time by &b6d4
 .unprot_clear
     php                                                               ; b6d8: 08          .        ; Save Z flag (1 = unprot, 0 = prot) for later
-    jsr set_ws_pair_0d68_0d69                                         ; b6d9: 20 bb aa     ..      ; Mirror A into ws_0d68 / ws_0d69 pair
+    jsr set_ws_pair_0d68_0d69                                         ; b6d9: 20 bb aa     ..      ; Mirror A into prot_status / prot_status_save pair
     ldx #&11                                                          ; b6dc: a2 11       ..       ; X=&11: CMOS offset for Econet flags
     jsr osbyte_a1                                                     ; b6de: 20 9a 8e     ..      ; OSBYTE &A1 reads CMOS byte &11 -> Y
     tya                                                               ; b6e1: 98          .        ; A = current CMOS byte
@@ -16642,6 +16652,7 @@ save pydis_start, pydis_end
 ;     master_intoff:                 6
 ;     nmi_rti:                       6
 ;     print_newline_no_spool:        6
+;     prot_status:                   6
 ;     pydis_end:                     6
 ;     send_net_packet:               6
 ;     set_xfer_params:               6
@@ -16649,7 +16660,6 @@ save pydis_start, pydis_end
 ;     spool_control_flag:            6
 ;     table_idx:                     6
 ;     wait_net_tx_ack:               6
-;     ws_0d68:                       6
 ;     attr_to_chan_index:            5
 ;     close_ws_file:                 5
 ;     copy_arg_to_buf_x0:            5
@@ -16776,6 +16786,7 @@ save pydis_start, pydis_end
 ;     poll_adlc_tx_status:           3
 ;     print_10_chars:                3
 ;     process_match_result:          3
+;     prot_status_save:              3
 ;     read_filename_char:            3
 ;     read_last_rx_byte:             3
 ;     reload_inactive_mask:          3
@@ -16797,7 +16808,6 @@ save pydis_start, pydis_end
 ;     update_fcb_flag_bits:          3
 ;     vdu_mode:                      3
 ;     write_second_tube_byte:        3
-;     ws_0d69:                       3
 ;     zp_work_2:                     3
 ;     ack_tx:                        2
 ;     ack_tx_write_dest:             2

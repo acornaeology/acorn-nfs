@@ -908,9 +908,9 @@ Paired with [`exec_addr_lo`](address:0D66).""",
     access="rw",
 )
 
-d.label(0x0D68, "ws_0d68", description="ANFS workspace byte (role TBD).", length=1, group="ram_workspace", access="rw")
+d.label(0x0D68, "prot_status", description="Econet per-station protection mask (LSTAT): one bit per immediate operation; a set bit bars that operation. Tested by immediate_op; bits 2-4 (JSR/UserProc/OSProc) are raised during a deferred remote call for re-entrancy protection.", length=1, group="ram_workspace", access="rw")
 
-d.label(0x0D69, "ws_0d69", description="ANFS workspace byte (role TBD).", length=1, group="ram_workspace", access="rw")
+d.label(0x0D69, "prot_status_save", description="Saved copy of the prot_status protection mask (OLDJSR in Acorn's DNFS source), preserved while bits 2-4 are raised during a deferred remote call so the original mask can be restored afterwards.", length=1, group="ram_workspace", access="rw")
 
 d.label(0x0D6A, "ws_0d6a", description="ANFS workspace byte (role TBD).", length=1, group="ram_workspace", access="rw")
 
@@ -2497,12 +2497,12 @@ immediate-operation codes:
 | Range | Op | Treatment |
 |---|---|---|
 | `< &81` or `> &88` | – | out of range; discarded |
-| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`ws_0d68`](address:0D68) protection mask |
+| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |
 | `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |
 
 For `&81`..`&86`, converts the code to a 0-based index and tests
 against the per-station protection mask
-[`ws_0d68`](address:0D68) to determine whether this
+[`prot_status`](address:0D68) to determine whether this
 station accepts the operation. If accepted, dispatches via
 [`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).
 
@@ -2644,7 +2644,10 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data:
 `port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the
-common data-receive path at `&81AF`.""",
+common data-receive path at `&81AF`. POKE (`&82`) only writes
+memory and replies, so it is serviced inline in the receive
+path -- not deferred like the execute-class operations
+`&83`-`&87`.""",
 )
 
 
@@ -2661,7 +2664,10 @@ d.subroutine(
     description="""Sets up the response buffer for a machine-type query immediate
 operation (4-byte response: machine code + version digits). Falls
 through to [`set_rx_buf_len_hi`](address:84BE) to configure
-the buffer dimensions, then branches to `set_tx_reply_flag`.""",
+the buffer dimensions, then branches to `set_tx_reply_flag`. The
+machine-type query (`&88`) just returns fixed identity data, so it is
+serviced inline here -- not deferred like the execute-class operations
+`&83`-`&87`.""",
 )
 
 
@@ -2682,7 +2688,9 @@ d.subroutine(
     description="""Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets
 `scout_status = 2`, then calls
 [`tx_calc_transfer`](address:8900) to send the PEEK response
-data back to the requesting station.""",
+data back to the requesting station. PEEK (`&81`) only reads memory
+and replies, so it is serviced inline in the receive path -- not
+deferred like the execute-class operations `&83`-`&87`.""",
 )
 
 
@@ -2753,30 +2761,37 @@ d.label(0x8512, "setup_sr_tx")
 d.subroutine(
     0x8512,
     "setup_sr_tx",
-    title="Save TX op type and update workspace ACR-format byte",
-    description="""Stores the TX operation type in [`tx_op_type`](address:0D65).
+    title="Save TX op type and raise JSR re-entrancy protection",
+    description="""Stores the TX operation type in [`tx_op_type`](address:0D65),
+then (at [`enable_irq_pending`](address:8524)) sets the ACCCON IRR
+latch to arm the deferred dispatch -- see [`svc5_irq_check`](address:8028).
 
 | Op code | Path |
 |---|---|
-| `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the workspace byte is left untouched |
-| `< &86` | load [`ws_0d68`](address:0D68), copy it to [`ws_0d69`](address:0D69) (preserved for later restore), `ORA` in bits 2-4 (the SR-mode-2 mask in System-VIA ACR layout), write the modified value back to `ws_0d68` |
+| `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the protection mask is left untouched |
+| `< &86` (JSR / UserProc / OSProc) | load the [`prot_status`](address:0D68) protection mask, copy it to [`prot_status_save`](address:0D69), `ORA` in bits 2-4 to *disable* further JSR / UserProc / OSProc, then write the raised mask back to `prot_status` |
 
-The byte at `ws_0d68` carries an ACR-format flag layout left over
-from 4.18, which used the same op-code dispatch to update the
-*live* System VIA ACR. In 4.21 the byte stays in workspace --
-nothing in this ROM flushes it to the live VIA. Single caller
-(`&83E2` in [`scout_complete`](address:8112)).""",
+Raising bits 2-4 of the LSTAT protection mask is re-entrancy
+protection: while the deferred remote routine runs (it is a JSR into
+user code, or an OS call), the station will not accept another remote
+execute operation. The previous mask is preserved in
+`prot_status_save` so it can be restored once the call returns. (The
+bit pattern `&1C` happens to equal the System VIA ACR
+shift-register mode-field mask, but here it is applied to the LSTAT
+mask, not the VIA -- the Model B ROMs raise the same bits in a
+separate step on the dispatch side.) Single caller (`&83E2` in
+[`scout_complete`](address:8112)).""",
     on_entry={"a": "TX operation type"},
 )
 
 
 d.comment(0x8512, "Save TX operation type for SR dispatch", align=Align.INLINE)
-d.comment(0x8515, "Op codes >= &86 (HALT/CONTINUE/machine-type) skip the SR setup", align=Align.INLINE)
+d.comment(0x8515, "Ops >= &86 run no code: skip JSR protection", align=Align.INLINE)
 d.comment(0x8517, "Skip ahead to the ACCCON IRR set", align=Align.INLINE)
-d.comment(0x8519, "Load workspace ACR-format byte", align=Align.INLINE)
-d.comment(0x851C, "Stash a copy in ws_0d69 for later restore", align=Align.INLINE)
-d.comment(0x851F, "In shift-register mode-2 control bits", align=Align.INLINE)
-d.comment(0x8521, "Write updated workspace byte back to ws_0d68", align=Align.INLINE)
+d.comment(0x8519, "Load LSTAT protection mask", align=Align.INLINE)
+d.comment(0x851C, "Save old mask in prot_status_save for restore", align=Align.INLINE)
+d.comment(0x851F, "Set bits 2-4: disable JSR/UserProc/OSProc", align=Align.INLINE)
+d.comment(0x8521, "Write raised protection mask back", align=Align.INLINE)
 d.comment(0x8524, "A=&80: ACCCON bit 7 (IRR -- raise interrupt)", align=Align.INLINE)
 d.label(0x8524, "enable_irq_pending")
 
@@ -6158,7 +6173,7 @@ d.comment(0x8F9F, "A = settings byte", align=Align.INLINE)
 d.comment(0x8FA0, "Mask bit 6 (CMOS protection-state flag)", align=Align.INLINE)
 d.comment(0x8FA2, "Bit clear: skip the &FF substitution", align=Align.INLINE)
 d.comment(0x8FA4, "A=&FF -- enable protection", align=Align.INLINE)
-d.comment(0x8FA6, "Set ws_0d68/ws_0d69 pair", align=Align.INLINE)
+d.comment(0x8FA6, "Set prot_status/prot_status_save pair", align=Align.INLINE)
 d.label(0x8FA6, "init_copy_skip_cmos")
 
 d.label(0x8FA9, "loop_alloc_handles")
@@ -13339,7 +13354,7 @@ d.subroutine(
     0xAAB2,
     "osword_13_read_prot",
     title="OSWORD &13 sub 4: read protection mask",
-    description="""Returns the current protection mask (ws_0d68)
+    description="""Returns the current protection mask (prot_status)
 in PB[1].""",
 )
 
@@ -13362,9 +13377,9 @@ d.comment(0xAAB9, "Load new mask from PB[1]", align=Align.INLINE)
 d.subroutine(
     0xAABB,
     "set_ws_pair_0d68_0d69",
-    title="Store A in both ws_0d68 and ws_0d69",
-    description="""Copies `A` to both [`ws_0d68`](address:0D68) and
-[`ws_0d69`](address:0D69), then `RTS`. The bytes carry ACR/SR-style
+    title="Store A in both prot_status and prot_status_save",
+    description="""Copies `A` to both [`prot_status`](address:0D68) and
+[`prot_status_save`](address:0D69), then `RTS`. The bytes carry ACR/SR-style
 flag layouts that ANFS uses internally; nothing in this ROM flushes
 them to the live System VIA. Two callers:
 [`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or
@@ -13373,8 +13388,8 @@ them to the live System VIA. Two callers:
 A 2-store-and-return convenience to keep both call sites flat.""",
     on_entry={"a": "value to mirror into both workspace bytes"},
 )
-d.comment(0xAABB, "Mirror A into ws_0d68 (ACR-format byte)", align=Align.INLINE)
-d.comment(0xAABE, "Mirror A into ws_0d69 (IER-format byte)", align=Align.INLINE)
+d.comment(0xAABB, "Mirror A into prot_status (ACR-format byte)", align=Align.INLINE)
+d.comment(0xAABE, "Mirror A into prot_status_save (IER-format byte)", align=Align.INLINE)
 d.comment(0xAAC1, "Return", align=Align.INLINE)
 d.entry(0xAAC2)
 
@@ -14934,8 +14949,8 @@ workspace fields have been updated.""",
 )
 
 
-d.comment(0xB05F, "Read saved copy of ws_0d68 from ws_0d69", align=Align.INLINE)
-d.comment(0xB062, "Store back to ws_0d68", align=Align.INLINE)
+d.comment(0xB05F, "Read saved copy of prot_status from prot_status_save", align=Align.INLINE)
+d.comment(0xB062, "Store back to prot_status", align=Align.INLINE)
 d.comment(0xB065, "Return", align=Align.INLINE)
 d.label(0xB066, "serialise_palette_entry")
 
@@ -16641,8 +16656,8 @@ always-taken `BNE`) to the shared protection-update body at
 1. Saves the new flag (`Z=0` for *Prot, `Z=1` for *Unprot) on the
    stack via `PHP`.
 2. Calls [`set_via_shadow_pair`](address:AABB) to mirror `A` into
-   the workspace shadow ACR (`ws_0d68`) and shadow IER
-   (`ws_0d69`).
+   the workspace shadow ACR (`prot_status`) and shadow IER
+   (`prot_status_save`).
 3. Reads CMOS RAM byte `&11` (Econet station/protection flags)
    via [`osbyte_a1`](address:8E9A) into `Y`, copies to `A`.
 4. Restores the saved flag and selects:
@@ -16678,7 +16693,7 @@ d.comment(0xB6D6, "Load &00 (unprotect)", align=Align.INLINE)
 d.label(0xB6D8, "unprot_clear")
 
 d.comment(0xB6D8, "Save Z flag (1 = unprot, 0 = prot) for later", align=Align.INLINE)
-d.comment(0xB6D9, "Mirror A into ws_0d68 / ws_0d69 pair", align=Align.INLINE)
+d.comment(0xB6D9, "Mirror A into prot_status / prot_status_save pair", align=Align.INLINE)
 d.comment(0xB6DC, "X=&11: CMOS offset for Econet flags", align=Align.INLINE)
 d.comment(0xB6DE, "OSBYTE &A1 reads CMOS byte &11 -> Y", align=Align.INLINE)
 d.comment(0xB6E1, "A = current CMOS byte", align=Align.INLINE)

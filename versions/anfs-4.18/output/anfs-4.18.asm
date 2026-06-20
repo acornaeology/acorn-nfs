@@ -315,9 +315,9 @@ exec_addr_lo                           = &0d66
 ; &0d66 referenced 4 times by &84a5, &8549, &854c, &855a
 exec_addr_hi                           = &0d67
 ; &0d67 referenced 2 times by &854f, &855d
-ws_0d68                                = &0d68
+prot_status                            = &0d68
 ; &0d68 referenced 9 times by &8061, &8069, &8469, &8f21, &a728, &ace0, &b316, &b336, &b343
-ws_0d69                                = &0d69
+prot_status_save                       = &0d69
 ; &0d69 referenced 3 times by &8064, &acdd, &b339
 ws_0d6a                                = &0d6a
 ; &0d6a referenced 10 times by &8a66, &aae9, &ab1e, &ab28, &ab4e, &ab56, &ab75, &abea, &abef, &aff0
@@ -1600,9 +1600,15 @@ service_handler_lo = service_entry+1
 ; Set JSR protection and dispatch via table
 ;
 ; Validates the TX operation type in Y against the dispatch table range, saves the
-; current JSR protection mask, sets protection bits 2-4, then dispatches through the
-; PHA/RTS trampoline using the table at set_rx_buf_len_hi. If Y >= &86, skips the
-; protection setup and dispatches directly.
+; current protection mask (prot_status -> prot_status_save), sets protection bits 2-4,
+; then dispatches through the PHA/RTS trampoline using the table at set_rx_buf_len_hi. If
+; Y >= &86, skips the protection setup and dispatches directly.
+;
+; Setting bits 2-4 of prot_status disables the JSR, user- procedure and OS-procedure
+; immediate operations: while this deferred remote call runs it cannot itself trigger
+; another remote execute (re-entrancy protection). The saved mask is restored once the
+; call completes. HALT, CONTINUE and machine-type (>= &86) run no caller code, so they
+; need no such guard.
 ;
 ; On Entry:
 ;     Y: TX operation type (dispatch index)
@@ -1610,10 +1616,10 @@ service_handler_lo = service_entry+1
 .set_jsr_protection
     cpy #&86                                                          ; 805d: c0 86       ..       ; Y >= &86: above dispatch range
     bcs dispatch_svc5                                                 ; 805f: b0 0b       ..       ; Out of range: skip protection
-    lda ws_0d68                                                       ; 8061: ad 68 0d    .h.      ; Save current JSR protection mask
-    sta ws_0d69                                                       ; 8064: 8d 69 0d    .i.      ; Backup to saved_jsr_mask
+    lda prot_status                                                   ; 8061: ad 68 0d    .h.      ; Save current JSR protection mask
+    sta prot_status_save                                              ; 8064: 8d 69 0d    .i.      ; Backup to saved_jsr_mask
     ora #&1c                                                          ; 8067: 09 1c       ..       ; Set protection bits 2-4
-    sta ws_0d68                                                       ; 8069: 8d 68 0d    .h.      ; Apply protection during dispatch
+    sta prot_status                                                   ; 8069: 8d 68 0d    .h.      ; Apply protection during dispatch
 ; &806c referenced 1 time by &805f
 .dispatch_svc5
     lda #&85                                                          ; 806c: a9 85       ..       ; Push return addr high (&85)
@@ -2376,8 +2382,8 @@ service_handler_lo = service_entry+1
 ; &86 HALT, &87 CONTINUE, &88 machine-type query. Codes below &81 or above &88 are out of
 ; range and discarded. Codes &87-&88 (CONTINUE/machine-type) bypass the protection mask
 ; check. For &81-&86, converts to a 0-based index and tests against the per-station
-; protection mask ws_0d68 (&0D68) to determine if this station accepts the operation. If
-; accepted, dispatches via the immediate operation table (imm_op_dispatch_lo).
+; protection mask prot_status (&0D68) to determine if this station accepts the operation.
+; If accepted, dispatches via the immediate operation table (imm_op_dispatch_lo).
 ;
 ; The execute-class operations (&83-&87) cannot run inside the NMI receive handler — a
 ; JSR into user code or an OS call is unsafe there — so they are not run inline. They are
@@ -2399,7 +2405,7 @@ service_handler_lo = service_entry+1
     sec                                                               ; 8465: 38          8        ; SEC for subtract
     sbc #&81                                                          ; 8466: e9 81       ..       ; A = ctrl - &81 (0-based operation index)
     tay                                                               ; 8468: a8          .        ; Y = index for mask rotation count
-    lda ws_0d68                                                       ; 8469: ad 68 0d    .h.      ; Load protection mask from LSTAT
+    lda prot_status                                                   ; 8469: ad 68 0d    .h.      ; Load protection mask from LSTAT
 ; &846c referenced 1 time by &846e
 .rotate_prot_mask
     ror a                                                             ; 846c: 6a          j        ; Rotate mask right by control byte index
@@ -2464,7 +2470,9 @@ service_handler_lo = service_entry+1
 ; RX immediate: POKE setup
 ;
 ; Sets up workspace offsets for receiving POKE data. port_ws_offset=&2E,
-; rx_buf_offset=&0D, then jumps to the common data-receive path at c81af.
+; rx_buf_offset=&0D, then jumps to the common data-receive path at c81af. POKE (&82) only
+; writes memory and replies, so it is serviced inline in the receive path — not deferred
+; like the execute-class operations &83-&87.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e ; '.'                                                    ; 84ae: a9 2e       ..       ; Port workspace offset = &3D
@@ -2477,7 +2485,8 @@ service_handler_lo = service_entry+1
 ;
 ; Sets up a buffer at &88C1 (length #&01FC) for the machine type query response. Falls
 ; through to set_rx_buf_len_hi to configure buffer dimensions, then branches to
-; set_tx_reply_flag.
+; set_tx_reply_flag. The machine-type query (&88) just returns fixed identity data, so it
+; is serviced inline here — not deferred like the execute- class operations &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 84b9: a9 01       ..       ; Buffer length hi = 1
 ; &84bb referenced 1 time by &806f
@@ -2494,7 +2503,9 @@ service_handler_lo = service_entry+1
 ; RX immediate: PEEK setup
 ;
 ; Writes &0D2E to port_ws_offset/rx_buf_offset, sets scout_status=2, then calls
-; tx_calc_transfer to send the PEEK response data back to the requesting station.
+; tx_calc_transfer to send the PEEK response data back to the requesting station. PEEK
+; (&81) only reads memory and replies, so it is serviced inline in the receive path — not
+; deferred like the execute-class operations &83-&87.
 .rx_imm_peek
     lda #&2e ; '.'                                                    ; 84cb: a9 2e       ..       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84cd: 85 a6       ..       ; Store workspace offset lo
@@ -4899,7 +4910,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     sta fs_flags,x                                                    ; 8f1b: 9d 6c 0d    .l.      ; Store in workspace
     dex                                                               ; 8f1e: ca          .        ; Decrement counter
     bne loop_copy_init_data                                           ; 8f1f: d0 f7       ..       ; More bytes: loop
-    stx ws_0d68                                                       ; 8f21: 8e 68 0d    .h.      ; Clear workspace flag
+    stx prot_status                                                   ; 8f21: 8e 68 0d    .h.      ; Clear workspace flag
     stx fs_boot_option                                                ; 8f24: 8e 05 0e    ...      ; Clear workspace byte
     jsr reset_spool_buf_state                                         ; 8f27: 20 e2 aa     ..      ; Initialise ADLC protection table
     dex                                                               ; 8f2a: ca          .        ; X=&FF (underflow from X=0)
@@ -9699,9 +9710,9 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; OSWORD &13 sub 4: read protection mask
 ;
-; Returns the current protection mask (ws_0d68) in PB[1].
+; Returns the current protection mask (prot_status) in PB[1].
 .osword_13_read_prot
-    lda ws_0d68                                                       ; a728: ad 68 0d    .h.      ; Load protection mask
+    lda prot_status                                                   ; a728: ad 68 0d    .h.      ; Load protection mask
     jmp store_a_to_pb_1                                               ; a72b: 4c fe a7    L..      ; Store to PB[1] and return
 ; ***************************************************************************************
 ; OSWORD &13 sub 5: write protection mask
@@ -10974,8 +10985,8 @@ bridge_ws_init_data = compare_bridge_status+1
 ; been updated.
 ; &acdd referenced 4 times by &9586, &95ae, &95d5, &a62b
 .commit_state_byte
-    lda ws_0d69                                                       ; acdd: ad 69 0d    .i.      ; Load current state
-    sta ws_0d68                                                       ; ace0: 8d 68 0d    .h.      ; Store as committed state
+    lda prot_status_save                                              ; acdd: ad 69 0d    .i.      ; Load current state
+    sta prot_status                                                   ; ace0: 8d 68 0d    .h.      ; Store as committed state
     rts                                                               ; ace3: 60          `        ; Return
 ; ***************************************************************************************
 ; Serialise palette register to workspace
@@ -12313,7 +12324,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ;
 ; With no arguments, sets all protection bits (&FF). Otherwise parses protection-type
 ; keywords via match_fs_cmd with table offset &D3, accumulating bits via ORA. Stores the
-; final protection mask in ws_0d68 and ws_0d69.
+; final protection mask in prot_status and prot_status_save.
 ;
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -12325,7 +12336,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     bne store_prot_mask                                               ; b314: d0 20       .     
 ; &b316 referenced 1 time by &b310
 .parse_prot_keywords
-    lda ws_0d68                                                       ; b316: ad 68 0d    .h.      ; Load current protection mask
+    lda prot_status                                                   ; b316: ad 68 0d    .h.      ; Load current protection mask
     pha                                                               ; b319: 48          H        ; Save as starting value
 ; &b31a referenced 1 time by &b32a
 .loop_match_prot_attr
@@ -12349,8 +12360,8 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     pla                                                               ; b335: 68          h        ; Retrieve final protection mask
 ; &b336 referenced 3 times by &a731, &b314, &b341
 .store_prot_mask
-    sta ws_0d68                                                       ; b336: 8d 68 0d    .h.      ; Store protection mask
-    sta ws_0d69                                                       ; b339: 8d 69 0d    .i.      ; Store protection mask copy
+    sta prot_status                                                   ; b336: 8d 68 0d    .h.      ; Store protection mask
+    sta prot_status_save                                              ; b339: 8d 69 0d    .i.      ; Store protection mask copy
     rts                                                               ; b33c: 60          `        ; Return
 ; ***************************************************************************************
 ; *Unprot command handler
@@ -12365,7 +12376,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     lda (fs_crc_lo),y                                                 ; b33d: b1 be       ..       ; Get next char from command line
     eor #&0d                                                          ; b33f: 49 0d       I.       ; Compare with CR (end of line)
     beq store_prot_mask                                               ; b341: f0 f3       ..       ; No args: A=0 clears all protection
-    lda ws_0d68                                                       ; b343: ad 68 0d    .h.      ; Load current protection mask
+    lda prot_status                                                   ; b343: ad 68 0d    .h.      ; Load current protection mask
     pha                                                               ; b346: 48          H        ; Save as starting value
 ; &b347 referenced 1 time by &b357
 .loop_match_unprot_attr
@@ -14297,9 +14308,9 @@ save pydis_start, pydis_end
 ;     fcb_station_or_count_hi:                  9
 ;     fs_server_net:                            9
 ;     process_all_fcbs:                         9
+;     prot_status:                              9
 ;     scout_buf:                                9
 ;     txcb_end:                                 9
-;     ws_0d68:                                  9
 ;     addr_work:                                8
 ;     error_msg_table:                          8
 ;     fs_reply_cmd:                             8
@@ -14479,6 +14490,7 @@ save pydis_start, pydis_end
 ;     print_10_chars:                           3
 ;     print_decimal_3dig:                       3
 ;     process_match_result:                     3
+;     prot_status_save:                         3
 ;     read_filename_char:                       3
 ;     read_last_rx_byte:                        3
 ;     read_paged_rom:                           3
@@ -14510,7 +14522,6 @@ save pydis_start, pydis_end
 ;     update_fcb_flag_bits:                     3
 ;     vdu_mode:                                 3
 ;     write_second_tube_byte:                   3
-;     ws_0d69:                                  3
 ;     xfer_pass_count:                          3
 ;     abort_if_escape:                          2
 ;     ack_tx:                                   2
