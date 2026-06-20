@@ -1348,10 +1348,16 @@ tube_page6_start = tube_poll_r2_result_branch+1
 ; normal IRQ path, where it is safe to JSR into user code or call OS routines.
 ;
 ; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
-; is not set, returns A=5 to pass the service call on. If SR is set, raises the JSR
-; protection mask (bits 2-4, saved to saved_jsr_mask and restored by
-; clear_jsr_protection) and dispatches via svc5_dispatch_lo to the deferred handler — a
-; remote JSR, user/OS procedure call, halt or continue.
+; is not set, returns A=5 to pass the service call on. If SR is set, it dispatches via
+; svc5_dispatch_lo to the deferred handler — a remote JSR, user/OS procedure call, halt
+; or continue.
+;
+; For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the current LSTAT
+; protection mask (prot_status at &0D63) to saved_jsr_mask (the OLDJSR copy) and ORs in
+; bits 2-4 (ORA #&1C). Raising these bits means that while the deferred remote routine
+; runs it cannot itself trigger another remote execute operation — re-entrancy
+; protection. clear_jsr_protection restores the saved OLDJSR mask once the call returns.
+; HALT/CONTINUE (&86/&87) run no caller code, so they skip the save/raise.
 ;
 ; On Entry:
 ;     A: 5 (service call number)
@@ -6372,6 +6378,16 @@ boot_string_offsets = boot_option_offsets+1
     inc nfs_workspace                                                 ; 92ee: e6 9e       ..       ; Advance workspace past VDU state data
     pla                                                               ; 92f0: 68          h        ; Recover saved table index
     sta table_idx                                                     ; 92f1: 85 ad       ..       ; Restore table index
+; ***************************************************************************************
+; Restore LSTAT after a deferred remote operation
+;
+; Restores the LSTAT protection mask (prot_status at &0D63) from the saved OLDJSR copy
+; held in saved_jsr_mask.
+;
+; svc5_irq_check raises LSTAT bits 2-4 before dispatching an execute- class immediate
+; operation (remote JSR / user / OS procedure call), so the executing remote routine
+; cannot itself trigger another remote execute operation — re-entrancy protection. This
+; restores the saved OLDJSR mask once that call returns.
 ; &92f3 referenced 4 times by &84a3, &84cb, &84f2, &8ef1
 .clear_jsr_protection
     lda saved_jsr_mask                                                ; 92f3: ad 65 0d    .e.      ; Restore LSTAT from saved OLDJSR value
@@ -7291,6 +7307,10 @@ svc5_dispatch_lo = sub_c9abe+1
 ;
 ; Sets up workspace offsets for receiving POKE data. port_ws_offset=&3D,
 ; rx_buf_offset=&0D, then jumps to the common data-receive path at port_match_found.
+;
+; POKE (&82) is handled inline in the NMI receive path — it only writes memory and posts
+; an immediate reply — and is NOT deferred via the shift-register interrupt, unlike the
+; execute-class ops &83-&87.
 .rx_imm_poke
     lda #&3d ; '='                                                    ; 9ac1: a9 3d       .=       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 9ac3: 85 a6       ..       ; Store workspace offset lo
@@ -7303,6 +7323,10 @@ svc5_dispatch_lo = sub_c9abe+1
 ; Sets up a reply buffer (open_port_buf=&21, page &7F, length &01FC) for the machine type
 ; query response, then branches to set_tx_reply_flag. Returns system identification data
 ; to the remote station.
+;
+; The machine-type query (&88) is handled inline in the NMI receive path — it only reads
+; memory and posts an immediate reply — and is NOT deferred via the shift-register
+; interrupt, unlike the execute-class ops &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 9acc: a9 01       ..       ; Buffer length hi = 1
     sta port_buf_len_hi                                               ; 9ace: 85 a3       ..       ; Set buffer length hi
@@ -7319,6 +7343,10 @@ svc5_dispatch_lo = sub_c9abe+1
 ; Writes &0D3D to port_ws_offset/rx_buf_offset, sets scout_status=2, then calls
 ; tx_calc_transfer to send the PEEK response data back to the requesting station. Uses
 ; workspace offsets (&A6/&A7) for nmi_tx_block.
+;
+; PEEK (&81) is handled inline in the NMI receive path — it only reads memory and posts
+; an immediate reply — and is NOT deferred via the shift-register interrupt, unlike the
+; execute-class ops &83-&87.
 .rx_imm_peek
     lda #&3d ; '='                                                    ; 9ade: a9 3d       .=       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 9ae0: 85 a6       ..       ; Store workspace offset lo

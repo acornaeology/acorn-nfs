@@ -6582,7 +6582,19 @@ d.comment(0x92E8, "Save cursor pos and OSBYTE state values", align=Align.INLINE)
 d.comment(0x92EB, "Advance workspace past VDU state data", align=Align.INLINE)
 d.comment(0x92ED, "Recover saved table index", align=Align.INLINE)
 d.comment(0x92EE, "Restore table index", align=Align.INLINE)
-d.label(0x92F0, "clear_jsr_protection")
+d.subroutine(
+    0x92F0,
+    "clear_jsr_protection",
+    title="Restore LSTAT after a deferred remote operation",
+    description="""Restores the LSTAT protection mask (`prot_status` at &0D63) from
+the saved OLDJSR copy held in `saved_jsr_mask`.
+
+svc5_irq_check raises LSTAT bits 2-4 before dispatching an execute-
+class immediate operation (remote JSR / user / OS procedure call),
+so the executing remote routine cannot itself trigger another remote
+execute operation — re-entrancy protection. This restores the saved
+OLDJSR mask once that call returns.""",
+)
 
 d.comment(0x92F0, "Restore LSTAT from saved OLDJSR value", align=Align.INLINE)
 d.comment(0x92F3, "Write to protection status", align=Align.INLINE)
@@ -6662,11 +6674,18 @@ is safe to JSR into user code or call OS routines.
 
 Tests IFR bit 2 (SR complete) to confirm the shift register
 transfer completed. If SR is not set, returns A=5 to pass the
-service call on. If SR is set, raises the JSR protection mask
-(bits 2-4, saved to saved_jsr_mask and restored by
-clear_jsr_protection) and dispatches via svc5_dispatch_lo to
-the deferred handler — a remote JSR, user/OS procedure call,
-halt or continue.""",
+service call on. If SR is set, it dispatches via svc5_dispatch_lo
+to the deferred handler — a remote JSR, user/OS procedure call,
+halt or continue.
+
+For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the
+current LSTAT protection mask (`prot_status` at &0D63) to
+saved_jsr_mask (the OLDJSR copy) and ORs in bits 2-4 (`ORA #&1C`).
+Raising these bits means that while the deferred remote routine runs
+it cannot itself trigger another remote execute operation —
+re-entrancy protection. clear_jsr_protection restores the saved
+OLDJSR mask once the call returns. HALT/CONTINUE (&86/&87) run no
+caller code, so they skip the save/raise.""",
     on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter"},
 )
 
@@ -7683,7 +7702,11 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-the common data-receive path at port_match_found.""",
+the common data-receive path at port_match_found.
+
+POKE (`&82`) is handled inline in the NMI receive path — it only
+writes memory and posts an immediate reply — and is NOT deferred via
+the shift-register interrupt, unlike the execute-class ops `&83`-`&87`.""",
 )
 
 
@@ -7699,7 +7722,12 @@ d.subroutine(
     description="""Sets up a buffer at page &7F offset &25 (length &01FC) for
 the machine type query response, then branches to
 set_tx_reply_flag. Returns system identification data to
-the remote station.""",
+the remote station.
+
+The machine-type query (`&88`) is handled inline in the NMI receive
+path — it only reads memory and posts an immediate reply — and is NOT
+deferred via the shift-register interrupt, unlike the execute-class
+ops `&83`-`&87`.""",
 )
 
 
@@ -7718,7 +7746,11 @@ d.subroutine(
     description="""Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 scout_status=2, then calls tx_calc_transfer to send the
 PEEK response data back to the requesting station.
-Uses workspace offsets (&A6/&A7) for nmi_tx_block.""",
+Uses workspace offsets (&A6/&A7) for nmi_tx_block.
+
+PEEK (`&81`) is handled inline in the NMI receive path — it only
+reads memory and posts an immediate reply — and is NOT deferred via
+the shift-register interrupt, unlike the execute-class ops `&83`-`&87`.""",
 )
 
 

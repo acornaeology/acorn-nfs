@@ -49805,7 +49805,7 @@
         9,
         28
       ],
-      "comment_inline": "Enable bits 2-4 (allow JSR ops)",
+      "comment_inline": "Set bits 2-4: block re-entrant exec ops",
       "type": "code",
       "mnemonic": "ora",
       "operand": "#&1c"

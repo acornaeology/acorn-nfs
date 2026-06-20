@@ -6211,7 +6211,19 @@ d.comment(0x92E3, "Save cursor pos and OSBYTE state values", align=Align.INLINE)
 d.comment(0x92E6, "Advance workspace past VDU state data", align=Align.INLINE)
 d.comment(0x92E8, "Recover saved table index", align=Align.INLINE)
 d.comment(0x92E9, "Restore table index", align=Align.INLINE)
-d.label(0x92EB, "clear_jsr_protection")
+d.subroutine(
+    0x92EB,
+    "clear_jsr_protection",
+    title="Restore LSTAT after a deferred remote operation",
+    description="""Restores the LSTAT protection mask (`prot_status` at &0D63) from
+the saved OLDJSR copy held in `rx_ctrl_copy` (&0D3B).
+
+check_sr_irq raises LSTAT bits 2-4 before dispatching an execute-
+class immediate operation (remote JSR / user / OS procedure call),
+so the executing remote routine cannot itself trigger another remote
+execute operation — re-entrancy protection. This restores the saved
+OLDJSR mask once that call returns.""",
+)
 
 d.comment(0x92EB, "Restore LSTAT from saved OLDJSR value", align=Align.INLINE)
 d.comment(0x92EE, "Write to protection status", align=Align.INLINE)
@@ -7227,7 +7239,11 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data.
 port_ws_offset=&3D, rx_buf_offset=&0D, then jumps to
-the common data-receive path at ack_scout_match.""",
+the common data-receive path at ack_scout_match.
+
+POKE (`&82`) is handled inline in the NMI receive path — it only
+writes memory and posts an immediate reply — and is NOT deferred via
+the shift-register interrupt, unlike the execute-class ops `&83`-`&87`.""",
 )
 
 
@@ -7244,7 +7260,12 @@ d.subroutine(
     description="""Sets up a response buffer (start `&25`, page `&7F`, length `#&01FC`)
 for the machine-type query, then jumps to the query handler at
 `set_tx_reply_flag`. Returns system identification data to the remote
-station.""",
+station.
+
+The machine-type query (`&88`) is handled inline in the NMI receive
+path — it only reads memory and posts an immediate reply — and is NOT
+deferred via the shift-register interrupt, unlike the execute-class
+ops `&83`-`&87`.""",
 )
 
 
@@ -7265,7 +7286,11 @@ d.subroutine(
     description="""Writes &0D3D to port_ws_offset/rx_buf_offset, sets
 scout_status=2, then calls tx_calc_transfer to send the
 PEEK response data back to the requesting station.
-Uses workspace offsets (&A6/&A7) for nmi_tx_block.""",
+Uses workspace offsets (&A6/&A7) for nmi_tx_block.
+
+PEEK (`&81`) is handled inline in the NMI receive path — it only
+reads memory and posts an immediate reply — and is NOT deferred via
+the shift-register interrupt, unlike the execute-class ops `&83`-`&87`.""",
 )
 
 
@@ -7363,7 +7388,16 @@ transfer completed. If SR is not set, returns A=5 to pass the
 service call on. If SR is set, saves registers, restores the
 original SR mode bits in the ACR, then dispatches via the saved
 operation type. The indexed handler performs the deferred action
-— a remote JSR, user/OS procedure call, HALT or CONTINUE.""",
+— a remote JSR, user/OS procedure call, HALT or CONTINUE.
+
+Before dispatching an execute-class op (ctrl < &86: &83/&84/&85),
+the current LSTAT protection mask (`prot_status` at &0D63) is saved
+to `rx_ctrl_copy` (&0D3B, the OLDJSR copy) and bits 2-4 are OR'd in
+(`ORA #&1C`). Raising these bits means that while the deferred remote
+routine runs it cannot itself trigger another remote execute
+operation — re-entrancy protection. `clear_jsr_protection` restores
+the saved OLDJSR mask once the call returns. HALT/CONTINUE (&86/&87)
+skip the save/raise.""",
 )
 d.comment(0x9B35, "A=&04: IFR bit 2 (SR) mask", align=Align.INLINE)
 
@@ -7390,7 +7424,7 @@ d.comment(0x9B5C, "Ctrl >= &86? (HALT/CONTINUE)", align=Align.INLINE)
 d.comment(0x9B5E, "Yes: skip protection mask save", align=Align.INLINE)
 d.comment(0x9B60, "Load current protection mask", align=Align.INLINE)
 d.comment(0x9B63, "Save mask before JSR modification", align=Align.INLINE)
-d.comment(0x9B66, "Enable bits 2-4 (allow JSR ops)", align=Align.INLINE)
+d.comment(0x9B66, "Set bits 2-4: block re-entrant exec ops", align=Align.INLINE)
 d.comment(0x9B68, "Store modified protection mask", align=Align.INLINE)
 d.comment(0x9B6B, "Load handler addr hi from table", align=Align.INLINE)
 d.label(0x9B6B, "tx_done_classify")

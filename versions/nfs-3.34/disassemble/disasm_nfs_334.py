@@ -7414,7 +7414,7 @@ d.comment(0x9B79, "Ctrl >= &86? (HALT/CONTINUE)", align=Align.INLINE)
 d.comment(0x9B7B, "Yes: skip protection mask save", align=Align.INLINE)
 d.comment(0x9B7D, "Load current protection mask", align=Align.INLINE)
 d.comment(0x9B80, "Save mask before JSR modification", align=Align.INLINE)
-d.comment(0x9B83, "Enable bits 2-4 (allow JSR ops)", align=Align.INLINE)
+d.comment(0x9B83, "Set bits 2-4: block re-entrant exec ops", align=Align.INLINE)
 d.comment(0x9B85, "Store modified protection mask", align=Align.INLINE)
 
 d.label(0x9B88, "tx_done_classify")

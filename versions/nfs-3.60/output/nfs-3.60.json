@@ -1718,7 +1718,14 @@
       "addr": 37547,
       "name": "lang_2_save_palette_vdu",
       "title": "Save palette and VDU state (CVIEW)",
-      "description": "Part of the VIEW facility (second iteration, started 27/7/82).\nUses dynamically allocated buffer store. The WORKP1 pointer\n(&9E,&9F) serves double duty: non-zero indicates data ready AND\nprovides the buffer address \u2014 an efficient use of scarce zero-\npage space. This code must be user-transparent as the NFS may not\nbe the dominant filing system.\nReads all 16 palette entries using OSWORD &0B (read palette) and\nstores the results. Then reads cursor position (OSBYTE &85),\nshadow RAM allocation (OSBYTE &C2), and screen start address\n(OSBYTE &C3) using the 3-entry table at &931E.\nOn completion, restores the JSR buffer protection bits (LSTAT)\nfrom OLDJSR to re-enable JSR reception, which was disabled during\nthe screen data capture to prevent interference."
+      "description": "Part of the VIEW facility (second iteration, started 27/7/82).\nUses dynamically allocated buffer store. The WORKP1 pointer\n(&9E,&9F) serves double duty: non-zero indicates data ready AND\nprovides the buffer address \u2014 an efficient use of scarce zero-\npage space. This code must be user-transparent as the NFS may not\nbe the dominant filing system.\nReads all 16 palette entries using OSWORD &0B (read palette) and\nstores the results. Then reads cursor position (OSBYTE &85),\nshadow RAM allocation (OSBYTE &C2), and screen start address\n(OSBYTE &C3) using the 3-entry table at &931E.\nOn completion, restores the JSR buffer protection bits (LSTAT)\nfrom OLDJSR to re-enable JSR reception, which was disabled during\nthe screen data capture to prevent interference.",
+      "fall_through": true
+    },
+    {
+      "addr": 37616,
+      "name": "clear_jsr_protection",
+      "title": "Restore LSTAT after a deferred remote operation",
+      "description": "Restores the LSTAT protection mask (`prot_status` at &0D63) from\nthe saved OLDJSR copy held in `saved_jsr_mask`.\n\nsvc5_irq_check raises LSTAT bits 2-4 before dispatching an execute-\nclass immediate operation (remote JSR / user / OS procedure call),\nso the executing remote routine cannot itself trigger another remote\nexecute operation \u2014 re-entrancy protection. This restores the saved\nOLDJSR mask once that call returns."
     },
     {
       "addr": 37623,
@@ -1730,7 +1737,7 @@
       "addr": 38460,
       "name": "svc5_irq_check",
       "title": "Service 5: unrecognised interrupt (SR dispatch)",
-      "description": "Delivers work deferred out of the Econet NMI\nhandler. imm_op_build_reply arms the system VIA shift\nregister as a one-shot delayed interrupt source: free-running\nin \u03c62 shift-in mode it sets the SR-complete flag (IFR bit 2)\na fixed, short number of cycles after arming \u2014 by which time\nthe NMI receive handler has already returned \u2014 and that raises\nan ordinary IRQ which reaches the ROM here as service call &05\n(unrecognised interrupt). This is how a remote operation is\nbounced out of NMI context into the normal IRQ path, where it\nis safe to JSR into user code or call OS routines.\n\nTests IFR bit 2 (SR complete) to confirm the shift register\ntransfer completed. If SR is not set, returns A=5 to pass the\nservice call on. If SR is set, raises the JSR protection mask\n(bits 2-4, saved to saved_jsr_mask and restored by\nclear_jsr_protection) and dispatches via svc5_dispatch_lo to\nthe deferred handler \u2014 a remote JSR, user/OS procedure call,\nhalt or continue.",
+      "description": "Delivers work deferred out of the Econet NMI\nhandler. imm_op_build_reply arms the system VIA shift\nregister as a one-shot delayed interrupt source: free-running\nin \u03c62 shift-in mode it sets the SR-complete flag (IFR bit 2)\na fixed, short number of cycles after arming \u2014 by which time\nthe NMI receive handler has already returned \u2014 and that raises\nan ordinary IRQ which reaches the ROM here as service call &05\n(unrecognised interrupt). This is how a remote operation is\nbounced out of NMI context into the normal IRQ path, where it\nis safe to JSR into user code or call OS routines.\n\nTests IFR bit 2 (SR complete) to confirm the shift register\ntransfer completed. If SR is not set, returns A=5 to pass the\nservice call on. If SR is set, it dispatches via svc5_dispatch_lo\nto the deferred handler \u2014 a remote JSR, user/OS procedure call,\nhalt or continue.\n\nFor an execute-class op (ctrl < &86: &83/&84/&85) it first saves the\ncurrent LSTAT protection mask (`prot_status` at &0D63) to\nsaved_jsr_mask (the OLDJSR copy) and ORs in bits 2-4 (`ORA #&1C`).\nRaising these bits means that while the deferred remote routine runs\nit cannot itself trigger another remote execute operation \u2014\nre-entrancy protection. clear_jsr_protection restores the saved\nOLDJSR mask once the call returns. HALT/CONTINUE (&86/&87) run no\ncaller code, so they skip the save/raise.",
       "on_entry": {
         "a": "5 (service call number)",
         "x": "ROM slot",
@@ -1906,20 +1913,20 @@
       "addr": 39583,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&3D, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at port_match_found."
+      "description": "Sets up workspace offsets for receiving POKE data.\nport_ws_offset=&3D, rx_buf_offset=&0D, then jumps to\nthe common data-receive path at port_match_found.\n\nPOKE (`&82`) is handled inline in the NMI receive path \u2014 it only\nwrites memory and posts an immediate reply \u2014 and is NOT deferred via\nthe shift-register interrupt, unlike the execute-class ops `&83`-`&87`."
     },
     {
       "addr": 39594,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer at page &7F offset &25 (length &01FC) for\nthe machine type query response, then branches to\nset_tx_reply_flag. Returns system identification data to\nthe remote station.",
+      "description": "Sets up a buffer at page &7F offset &25 (length &01FC) for\nthe machine type query response, then branches to\nset_tx_reply_flag. Returns system identification data to\nthe remote station.\n\nThe machine-type query (`&88`) is handled inline in the NMI receive\npath \u2014 it only reads memory and posts an immediate reply \u2014 and is NOT\ndeferred via the shift-register interrupt, unlike the execute-class\nops `&83`-`&87`.",
       "fall_through": true
     },
     {
       "addr": 39612,
       "name": "rx_imm_peek",
       "title": "RX immediate: PEEK setup",
-      "description": "Writes &0D3D to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send the\nPEEK response data back to the requesting station.\nUses workspace offsets (&A6/&A7) for nmi_tx_block."
+      "description": "Writes &0D3D to port_ws_offset/rx_buf_offset, sets\nscout_status=2, then calls tx_calc_transfer to send the\nPEEK response data back to the requesting station.\nUses workspace offsets (&A6/&A7) for nmi_tx_block.\n\nPEEK (`&81`) is handled inline in the NMI receive path \u2014 it only\nreads memory and posts an immediate reply \u2014 and is NOT deferred via\nthe shift-register interrupt, unlike the execute-class ops `&83`-`&87`."
     },
     {
       "addr": 39655,

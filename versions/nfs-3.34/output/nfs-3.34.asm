@@ -7174,7 +7174,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     bcs tx_done_classify                                              ; 9b7b: b0 0b       ..       ; Yes: skip protection mask save
     lda prot_status                                                   ; 9b7d: ad 63 0d    .c.      ; Load current protection mask
     sta rx_ctrl_copy                                                  ; 9b80: 8d 3b 0d    .;.      ; Save mask before JSR modification
-    ora #&1c                                                          ; 9b83: 09 1c       ..       ; Enable bits 2-4 (allow JSR ops)
+    ora #&1c                                                          ; 9b83: 09 1c       ..       ; Set bits 2-4: block re-entrant exec ops
     sta prot_status                                                   ; 9b85: 8d 63 0d    .c.      ; Store modified protection mask
 ; &9b88 referenced 1 time by &9b7b
 .tx_done_classify

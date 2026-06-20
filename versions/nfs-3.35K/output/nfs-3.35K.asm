@@ -6081,6 +6081,16 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     inc nfs_workspace                                                 ; 92df: e6 9e       ..       ; Advance workspace past VDU state data
     pla                                                               ; 92e1: 68          h        ; Recover saved table index
     sta fs_load_addr_2                                                ; 92e2: 85 b2       ..       ; Restore table index
+; ***************************************************************************************
+; Restore LSTAT after a deferred remote operation
+;
+; Restores the LSTAT protection mask (prot_status at &0D63) from the saved OLDJSR copy
+; held in rx_ctrl_copy (&0D3B).
+;
+; check_sr_irq raises LSTAT bits 2-4 before dispatching an execute- class immediate
+; operation (remote JSR / user / OS procedure call), so the executing remote routine
+; cannot itself trigger another remote execute operation — re-entrancy protection. This
+; restores the saved OLDJSR mask once that call returns.
 ; &92e4 referenced 4 times by &8470, &8498, &84bf, &8ee4
 .clear_jsr_protection
     lda saved_jsr_mask                                                ; 92e4: ad 65 0d    .e.      ; Restore LSTAT from saved OLDJSR value
@@ -7029,6 +7039,10 @@ rx_port_operand = skip_buf_ptr_update+2
 ;
 ; Sets up workspace offsets for receiving POKE data. port_ws_offset=&3D,
 ; rx_buf_offset=&0D, then jumps to the common data-receive path at c9805.
+;
+; POKE (&82) is handled inline in the NMI receive path — it only writes memory and posts
+; an immediate reply — and is NOT deferred via the shift-register interrupt, unlike the
+; execute-class ops &83-&87.
 .rx_imm_poke
     lda #&3d ; '='                                                    ; 9ad3: a9 3d       .=       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 9ad5: 85 a6       ..       ; Store workspace offset lo
@@ -7041,6 +7055,10 @@ rx_port_operand = skip_buf_ptr_update+2
 ; Sets up a buffer just below screen memory (length #&01FC) for the machine type query
 ; response, then jumps to the query handler at set_tx_reply_flag. Returns system
 ; identification data to the remote station.
+;
+; The machine-type query (&88) is handled inline in the NMI receive path — it only reads
+; memory and posts an immediate reply — and is NOT deferred via the shift-register
+; interrupt, unlike the execute-class ops &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 9ade: a9 01       ..       ; Buffer length hi = 1
     sta port_buf_len_hi                                               ; 9ae0: 85 a3       ..       ; Set buffer length hi
@@ -7056,6 +7074,10 @@ rx_port_operand = skip_buf_ptr_update+2
 ;
 ; Saves the current TX block pointer, replaces it with a pointer to &0D3D, and prepares
 ; to send the PEEK response data back to the requesting station.
+;
+; PEEK (&81) is handled inline in the NMI receive path — it only reads memory and posts
+; an immediate reply — and is NOT deferred via the shift-register interrupt, unlike the
+; execute-class ops &83-&87.
 .rx_imm_peek
     lda nmi_tx_block                                                  ; 9af1: a5 a0       ..       ; Save current TX block low byte
     pha                                                               ; 9af3: 48          H        ; Push to stack
@@ -7157,6 +7179,13 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; restores the original SR mode bits in the ACR, then dispatches via the saved operation
 ; type. The indexed handler performs the deferred action — a remote JSR, user/OS
 ; procedure call, HALT or CONTINUE.
+;
+; Before dispatching an execute-class op (ctrl < &86: &83/&84/&85), the current LSTAT
+; protection mask (prot_status at &0D63) is saved to rx_ctrl_copy (&0D3B, the OLDJSR
+; copy) and bits 2-4 are OR'd in (ORA #&1C). Raising these bits means that while the
+; deferred remote routine runs it cannot itself trigger another remote execute operation
+; — re-entrancy protection. clear_jsr_protection restores the saved OLDJSR mask once the
+; call returns. HALT/CONTINUE (&86/&87) skip the save/raise.
 ; &9b61 referenced 1 time by &966c
 .check_sr_irq
     lda #4                                                            ; 9b61: a9 04       ..       ; A=&04: IFR bit 2 (SR) mask
@@ -7183,7 +7212,7 @@ tx_nmi_lo_operand = tx_nmi_setup+1
     bcs tx_done_classify                                              ; 9b8a: b0 0b       ..       ; Yes: skip protection mask save
     lda prot_status                                                   ; 9b8c: ad 63 0d    .c.      ; Load current protection mask
     sta saved_jsr_mask                                                ; 9b8f: 8d 65 0d    .e.      ; Save mask before JSR modification
-    ora #&1c                                                          ; 9b92: 09 1c       ..       ; Enable bits 2-4 (allow JSR ops)
+    ora #&1c                                                          ; 9b92: 09 1c       ..       ; Set bits 2-4: block re-entrant exec ops
     sta prot_status                                                   ; 9b94: 8d 63 0d    .c.      ; Store modified protection mask
 ; &9b97 referenced 1 time by &9b8a
 .tx_done_classify
