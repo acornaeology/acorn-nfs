@@ -19200,7 +19200,7 @@ Bit-by-bit (write-only):
 
 | Bit | Name | Effect when set |
 |---|---|---|
-| 7 | IRR | IRQ-on-VSYNC mask |
+| 7 | IRR | Interrupt Request: setting it asserts the CPU IRQ line (a software-triggered IRQ) |
 | 6 | TST | Test mode |
 | 5 | IFJ | I/O is JIM |
 | 4 | ITU | Internal Tube |

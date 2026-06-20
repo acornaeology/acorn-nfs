@@ -6561,7 +6561,7 @@
       "length": 1,
       "group": "mmio",
       "access": "rw",
-      "description": "Master 128 ACCCON access-control register.\n\nBit-by-bit (write-only):\n\n| Bit | Name | Effect when set |\n|---|---|---|\n| 7 | IRR | IRQ-on-VSYNC mask |\n| 6 | TST | Test mode |\n| 5 | IFJ | I/O is JIM |\n| 4 | ITU | Internal Tube |\n| 3 | Y   | HAZEL paged in (`&C000-&DFFF` is hidden RAM) |\n| 2 | X   | LYNNE paged in (`&3000-&7FFF` is shadow RAM) |\n| 1 | E   | shadow RAM owns screen |\n| 0 | D   | shadow RAM for the OS display |\n\nANFS uses bit 7 (IRR) as a deferred-work latch via `TRB`/`TSB`."
+      "description": "Master 128 ACCCON access-control register.\n\nBit-by-bit (write-only):\n\n| Bit | Name | Effect when set |\n|---|---|---|\n| 7 | IRR | Interrupt Request: setting it asserts the CPU IRQ line (a software-triggered IRQ) |\n| 6 | TST | Test mode |\n| 5 | IFJ | I/O is JIM |\n| 4 | ITU | Internal Tube |\n| 3 | Y   | HAZEL paged in (`&C000-&DFFF` is hidden RAM) |\n| 2 | X   | LYNNE paged in (`&3000-&7FFF` is shadow RAM) |\n| 1 | E   | shadow RAM owns screen |\n| 0 | D   | shadow RAM for the OS display |\n\nANFS uses bit 7 (IRR) as a deferred-work latch via `TRB`/`TSB`."
     },
     {
       "addr": 65080,

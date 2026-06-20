@@ -6,6 +6,12 @@
     "versions": ["3.34", "3.34B", "3.35D", "3.35K", "3.40", "3.60", "3.62", "3.65", "4.08.53", "4.18", "4.21_variant_1"],
     "analyses": [
         {
+            "label": "Deferring the Remote Subroutine Jump",
+            "url": "docs/analysis/deferring-the-remote-subroutine-jump.md",
+            "icon": "doc",
+            "note": "An Econet Remote Subroutine Jump (and its execute-class siblings) cannot be run from the NMI receive handler, so NFS defers the call into a later IRQ via service call &05. On the Model B it arms the system VIA shift register as a one-shot timer (ANFS 4.08.53, shared with NFS 3.34-3.65 and ANFS 4.18); on the Master 128 it sets ACCCON bit 7 (IRR) to assert a software IRQ (ANFS 4.21). The Master code still computes a now-dead shift-register mode byte -- a fossil of the Model B mechanism."
+        },
+        {
             "label": "The *HELP authors easter egg",
             "url": "docs/analysis/authors-easter-egg.md",
             "icon": "doc",
