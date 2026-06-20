@@ -41885,68 +41885,161 @@
     {
       "addr": 38502,
       "bytes": [
-        138,
-        72,
-        152,
-        72,
+        138
+      ],
+      "labels": [
+        "svc5_save_registers"
+      ],
+      "comment_inline": "Save X on stack",
+      "type": "code",
+      "mnemonic": "txa"
+    },
+    {
+      "addr": 38503,
+      "bytes": [
+        72
+      ],
+      "comment_inline": "Push saved X",
+      "type": "code",
+      "mnemonic": "pha"
+    },
+    {
+      "addr": 38504,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "Save Y on stack",
+      "type": "code",
+      "mnemonic": "tya"
+    },
+    {
+      "addr": 38505,
+      "bytes": [
+        72
+      ],
+      "comment_inline": "Push saved Y",
+      "type": "code",
+      "mnemonic": "pha"
+    },
+    {
+      "addr": 38506,
+      "bytes": [
         173,
         75,
-        254,
+        254
+      ],
+      "comment_inline": "Read VIA auxiliary control reg",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "system_via_acr",
+      "target": 65099,
+      "target_label": "system_via_acr"
+    },
+    {
+      "addr": 38509,
+      "bytes": [
         41,
-        227,
+        227
+      ],
+      "comment_inline": "Mask shift register bits",
+      "type": "code",
+      "mnemonic": "and",
+      "operand": "#&e3"
+    },
+    {
+      "addr": 38511,
+      "bytes": [
         13,
         81,
-        13,
+        13
+      ],
+      "comment_inline": "OR in saved SR mode",
+      "type": "code",
+      "mnemonic": "ora",
+      "operand": "tx_work_51",
+      "target": 3409,
+      "target_label": "tx_work_51"
+    },
+    {
+      "addr": 38514,
+      "bytes": [
         141,
         75,
-        254,
+        254
+      ],
+      "comment_inline": "Write back ACR with SR mode",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "system_via_acr",
+      "target": 65099,
+      "target_label": "system_via_acr"
+    },
+    {
+      "addr": 38517,
+      "bytes": [
         173,
         74,
-        254,
+        254
+      ],
+      "comment_inline": "Read SR to clear shift complete",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "system_via_sr",
+      "target": 65098,
+      "target_label": "system_via_sr"
+    },
+    {
+      "addr": 38520,
+      "bytes": [
         169,
-        4,
+        4
+      ],
+      "comment_inline": "A=4: SR interrupt bit",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#4"
+    },
+    {
+      "addr": 38522,
+      "bytes": [
         141,
         77,
-        254,
+        254
+      ],
+      "comment_inline": "Clear SR interrupt flag",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "system_via_ifr",
+      "target": 65101,
+      "target_label": "system_via_ifr"
+    },
+    {
+      "addr": 38525,
+      "bytes": [
         141,
         78,
-        254,
+        254
+      ],
+      "comment_inline": "Disable SR interrupt",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "system_via_ier",
+      "target": 65102,
+      "target_label": "system_via_ier"
+    },
+    {
+      "addr": 38528,
+      "bytes": [
         172,
         87,
         13
       ],
-      "type": "byte",
-      "values": [
-        138,
-        72,
-        152,
-        72,
-        173,
-        75,
-        254,
-        41,
-        227,
-        13,
-        81,
-        13,
-        141,
-        75,
-        254,
-        173,
-        74,
-        254,
-        169,
-        4,
-        141,
-        77,
-        254,
-        141,
-        78,
-        254,
-        172,
-        87,
-        13
-      ]
+      "comment_inline": "Load deferred operation type",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "tx_work_57",
+      "target": 3415,
+      "target_label": "tx_work_57"
     },
     {
       "addr": 38531,
@@ -41955,11 +42048,9 @@
         134
       ],
       "comment_inline": "Y >= &86: above dispatch range",
-      "type": "byte",
-      "values": [
-        192,
-        134
-      ]
+      "type": "code",
+      "mnemonic": "cpy",
+      "operand": "#&86"
     },
     {
       "addr": 38533,
@@ -41968,11 +42059,11 @@
         11
       ],
       "comment_inline": "Out of range: skip protection",
-      "type": "byte",
-      "values": [
-        176,
-        11
-      ]
+      "type": "code",
+      "mnemonic": "bcs",
+      "operand": "dispatch_svc5",
+      "target": 38546,
+      "target_label": "dispatch_svc5"
     },
     {
       "addr": 38535,
@@ -41982,12 +42073,11 @@
         13
       ],
       "comment_inline": "Save current JSR protection mask",
-      "type": "byte",
-      "values": [
-        173,
-        99,
-        13
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "prot_status",
+      "target": 3427,
+      "target_label": "prot_status"
     },
     {
       "addr": 38538,
@@ -41997,12 +42087,11 @@
         13
       ],
       "comment_inline": "Backup to saved_jsr_mask",
-      "type": "byte",
-      "values": [
-        141,
-        101,
-        13
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "saved_jsr_mask",
+      "target": 3429,
+      "target_label": "saved_jsr_mask"
     },
     {
       "addr": 38541,
@@ -42011,11 +42100,9 @@
         28
       ],
       "comment_inline": "Set protection bits 2-4",
-      "type": "byte",
-      "values": [
-        9,
-        28
-      ]
+      "type": "code",
+      "mnemonic": "ora",
+      "operand": "#&1c"
     },
     {
       "addr": 38543,
@@ -42025,12 +42112,11 @@
         13
       ],
       "comment_inline": "Apply protection during dispatch",
-      "type": "byte",
-      "values": [
-        141,
-        99,
-        13
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "prot_status",
+      "target": 3427,
+      "target_label": "prot_status"
     },
     {
       "addr": 38546,
@@ -42042,11 +42128,15 @@
         "dispatch_svc5"
       ],
       "comment_inline": "Push return addr high (&9B)",
-      "type": "byte",
-      "values": [
-        169,
-        155
-      ]
+      "xref_summaries": [
+        "&9692 referenced 1 time by &9685"
+      ],
+      "references": [
+        38533
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&9b"
     },
     {
       "addr": 38548,
@@ -42054,10 +42144,8 @@
         72
       ],
       "comment_inline": "High byte on stack for RTS",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 38549,
@@ -42067,12 +42155,11 @@
         154
       ],
       "comment_inline": "Load dispatch target low byte",
-      "type": "byte",
-      "values": [
-        185,
-        191,
-        154
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "svc5_dispatch_lo,y",
+      "target": 39615,
+      "target_label": "svc5_dispatch_lo"
     },
     {
       "addr": 38552,
@@ -42080,10 +42167,8 @@
         72
       ],
       "comment_inline": "Low byte on stack for RTS",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 38553,
@@ -48829,6 +48914,9 @@
         ]
       },
       "comment_inline": "Enter common data-receive path Svc 5 dispatch table low bytes",
+      "xref_summaries": [
+        "&9abf referenced 1 time by &9695"
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "send_data_rx_ack",
