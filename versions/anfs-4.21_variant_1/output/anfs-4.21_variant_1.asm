@@ -209,14 +209,14 @@ vec_filev                   = &0212  ; FILEV pointer (lo, hi, rom). Patched to A
 ; &0212 referenced 1 time by &8b7b
 argsv                       = &0214  ; ARGSV pointer (lo, hi, rom). Patched to ANFS's ARGS handler at init.
 vec_argsv                   = &0214  ; ARGSV pointer (lo, hi, rom). Patched to ANFS's ARGS handler at init.
-bgetv                       = &0216  ; BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init. Note: standard layout (the alternate vec_bgetv_alt slot is also used by some routines).
-vec_bgetv                   = &0216  ; BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init. Note: standard layout (the alternate vec_bgetv_alt slot is also used by some routines).
+bgetv                       = &0216  ; BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.
+vec_bgetv                   = &0216  ; BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.
 bputv                       = &0218  ; BPUTV pointer (lo, hi, rom). Patched to ANFS's BPUT handler at init.
 vec_bputv                   = &0218  ; BPUTV pointer (lo, hi, rom). Patched to ANFS's BPUT handler at init.
-gbpbv                       = &021a  ; Alternate BGETV slot (lo, hi, rom). Some ANFS routines use this in addition to the standard vec_bgetv at &0216.
-vec_bgetv_alt               = &021a  ; Alternate BGETV slot (lo, hi, rom). Some ANFS routines use this in addition to the standard vec_bgetv at &0216.
-findv                       = &021c  ; GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.
-vec_gbpbv                   = &021c  ; GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.
+gbpbv                       = &021a  ; GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.
+vec_gbpbv                   = &021a  ; GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.
+findv                       = &021c  ; FINDV pointer (lo, hi, rom). Patched to ANFS's FIND handler at init.
+vec_findv                   = &021c  ; FINDV pointer (lo, hi, rom). Patched to ANFS's FIND handler at init.
 fscv                        = &021e  ; FSCV pointer (lo, hi, rom). Patched to ANFS's FSC handler at init.
 ; &021e referenced 1 time by &8cff
 vec_fscv                    = &021e  ; FSCV pointer (lo, hi, rom). Patched to ANFS's FSC handler at init.
@@ -601,9 +601,9 @@ econet_station_id           = &fe18  ; Econet station ID register / INTOFF latch
 station_id_disable_net_nmis = &fe18  ; Econet station ID register / INTOFF latch. Read: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input). On the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with *CONFIGURE STATION nnn); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.) ANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler.
 econet_nmi_enable           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
 video_ula_control           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
-master_romsel_shadow        = &fe28  ; Master 128 ROMSEL shadow register. Read-only mirror of the current sideways-ROM selection (the actual ROMSEL is at &FE30).
+master_fdc_cmd_status       = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
 ; &fe28 referenced 1 time by &8f0a
-master_break_type_shadow    = &fe2b  ; Master 128 last-break-type hardware shadow. Reflects the value left by the last reset (cold / warm / power-on).
+master_fdc_data             = &fe2b  ; Master 128 1770 floppy-disk-controller data register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
 ; &fe2b referenced 1 time by &8f07
 romsel                      = &fe30
 ; &fe30 referenced 2 times by &89d2, &89e0
@@ -831,7 +831,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; init_nmi_workspace to copy the NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
-    bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.      ; INTOFF: read station ID, disable NMIs
+    bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.      ; INTOFF: disable NMIs (Master &FE38)
     jsr adlc_full_reset                                               ; 8053: 20 8c 89     ..      ; Full ADLC hardware reset
     lda #&ea                                                          ; 8056: a9 ea       ..       ; OSBYTE &EA: check Tube co-processor
     ldx #0                                                            ; 8058: a2 00       ..       ; X=0 for OSBYTE
@@ -887,7 +887,7 @@ rom_header_byte2 = rom_header_byte1+1
     lda #&80                                                          ; 808f: a9 80       ..       ; &80 = Econet initialised
     sta tx_complete_flag                                              ; 8091: 8d 60 0d    .`.      ; Mark TX as complete (ready)
     sta econet_init_flag                                              ; 8094: 8d 62 0d    .b.      ; Mark Econet as initialised
-    bit master_inton                                                  ; 8097: 2c 3c fe    ,<.      ; INTON: re-enable NMIs (&FE20 read side effect)
+    bit master_inton                                                  ; 8097: 2c 3c fe    ,<.      ; INTON: re-enable NMIs (Master &FE3C)
 ; &809a referenced 1 time by &806e
 .adlc_init_done
     rts                                                               ; 809a: 60          `        ; Return
@@ -2348,7 +2348,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bne tx_prepare                                                    ; 8614: d0 34       .4       ; CTS set -- clock hardware detected, start TX
 ; &8616 referenced 1 time by &8605
 .inactive_retry
-    bit master_inton                                                  ; 8616: 2c 3c fe    ,<.      ; INTON -- re-enable NMIs (&FE20 read)
+    bit master_inton                                                  ; 8616: 2c 3c fe    ,<.      ; INTON -- re-enable NMIs (Master &FE3C)
     plp                                                               ; 8619: 28          (        ; Restore interrupt state
     tsx                                                               ; 861a: ba          .        ; 3-byte timeout counter on stack
     inc error_text,x                                                  ; 861b: fe 01 01    ...      ; Increment timeout counter byte 1
@@ -2439,7 +2439,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sty nmi_jmp_hi                                                    ; 8659: 8c 0d 0d    ...      ; Write NMI vector high byte directly
     sec                                                               ; 865c: 38          8        ; SEC: prepare carry for ROR into bit 7
     ror prot_flags                                                    ; 865d: 66 99       f.       ; Rotate carry into bit 7 of prot_flags (Tube-claimed)
-    bit master_inton                                                  ; 865f: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (&FE20 read)
+    bit master_inton                                                  ; 865f: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (Master &FE3C)
     lda tx_port                                                       ; 8662: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 8665: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8667: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
@@ -2633,7 +2633,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda #&41 ; 'A'                                                    ; 8716: a9 41       .A       ; Error &41 (TDRA not ready)
 ; &8718 referenced 1 time by &870f
 .tx_store_error
-    ldy tx_src_stn                                                    ; 8718: ac 22 0d    .".      ; INTOFF (also loads station ID)
+    ldy tx_src_stn                                                    ; 8718: ac 22 0d    .".      ; INTOFF: disable NMIs (Master &FE38)
 ; &871b referenced 1 time by &871e
 .delay_nmi_disable
     pha                                                               ; 871b: 48          H        ; PHA/PLA delay loop (256 iterations for NMI disable)
@@ -4933,8 +4933,8 @@ ps_template_base = load_transfer_params+1
     pha                                                               ; 8f01: 48          H        ; Push restored value
     and #&7f                                                          ; 8f02: 29 7f       ).       ; Mask bit 7 (workspace flag)
     sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...      ; Publish page into rom_ws_pages[slot] (bit 7 cleared = workspace claimed)
-    ldy master_break_type_shadow                                      ; 8f07: ac 2b fe    .+.      ; Read Master break-type shadow (&FE2B)
-    ldy master_romsel_shadow                                          ; 8f0a: ac 28 fe    .(.      ; Read &FE28 (Master ROMSEL shadow)
+    ldy master_fdc_data                                               ; 8f07: ac 2b fe    .+.      ; Discarded read of 1770 data reg (&FE2B)
+    ldy master_fdc_cmd_status                                         ; 8f0a: ac 28 fe    .(.      ; Discarded read of 1770 status reg (&FE28)
     ply                                                               ; 8f0d: 7a          z        ; Pop saved Y
     iny                                                               ; 8f0e: c8          .        ; Increment for next page
     rts                                                               ; 8f0f: 60          `        ; Return
@@ -15537,7 +15537,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; BGETV vector handler: read byte from open file
 ;
-; Reached via the BGETV vector at &021A, which the fs_vector_table entries copy into the
+; Reached via the BGETV vector at &0216, which the fs_vector_table entries copy into the
 ; MOS extended vector area. Saves caller's Y in hazel_chan_attr (channel attribute slot),
 ; pushes X, calls store_result_check_dir to validate the channel, then either reads a
 ; byte from the FCB buffer (returning it in A with C=0) or signals end-of-file (C=1).
@@ -17563,8 +17563,8 @@ save pydis_start, pydis_end
 ;     loop_zero_workspace:           1
 ;     mark_ws_uninit:                1
 ;     mask_error_class:              1
-;     master_break_type_shadow:      1
-;     master_romsel_shadow:          1
+;     master_fdc_cmd_status:         1
+;     master_fdc_data:               1
 ;     match_char_found:              1
 ;     match_help_topic:              1
 ;     net_error_close_spool:         1

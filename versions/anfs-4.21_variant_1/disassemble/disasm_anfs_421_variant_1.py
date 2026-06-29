@@ -454,9 +454,7 @@ d.label(
 d.label(
     0x0216,
     "vec_bgetv",
-    description="""BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.
-
-Note: standard layout (the alternate [`vec_bgetv_alt`](address:021A) slot is also used by some routines).""",
+    description="BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.",
     length=2,
     group="ram_workspace",
     access="rw",
@@ -473,9 +471,8 @@ d.label(
 
 d.label(
     0x021A,
-    "vec_bgetv_alt",
-    description="""Alternate BGETV slot (lo, hi, rom).
-Some ANFS routines use this in addition to the standard [`vec_bgetv`](address:0216) at &0216.""",
+    "vec_gbpbv",
+    description="GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.",
     length=2,
     group="ram_workspace",
     access="rw",
@@ -483,8 +480,8 @@ Some ANFS routines use this in addition to the standard [`vec_bgetv`](address:02
 
 d.label(
     0x021C,
-    "vec_gbpbv",
-    description="GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init.",
+    "vec_findv",
+    description="FINDV pointer (lo, hi, rom). Patched to ANFS's FIND handler at init.",
     length=2,
     group="ram_workspace",
     access="rw",
@@ -1309,7 +1306,7 @@ RAM.""",
 )
 
 
-d.comment(0x8050, "INTOFF: read station ID, disable NMIs", align=Align.INLINE)
+d.comment(0x8050, "INTOFF: disable NMIs (Master &FE38)", align=Align.INLINE)
 d.comment(0x8053, "Full ADLC hardware reset", align=Align.INLINE)
 d.comment(0x8056, "OSBYTE &EA: check Tube co-processor", align=Align.INLINE)
 d.comment(0x8058, "X=0 for OSBYTE", align=Align.INLINE)
@@ -1372,7 +1369,7 @@ d.comment(0x808C, "Store as tx_src_stn", align=Align.INLINE)
 d.comment(0x808F, "&80 = Econet initialised", align=Align.INLINE)
 d.comment(0x8091, "Mark TX as complete (ready)", align=Align.INLINE)
 d.comment(0x8094, "Mark Econet as initialised", align=Align.INLINE)
-d.comment(0x8097, "INTON: re-enable NMIs (&FE20 read side effect)", align=Align.INLINE)
+d.comment(0x8097, "INTON: re-enable NMIs (Master &FE3C)", align=Align.INLINE)
 d.label(0x809A, "adlc_init_done")
 
 d.comment(0x809A, "Return", align=Align.INLINE)
@@ -3159,7 +3156,7 @@ d.comment(0x8611, "Test SR1 CTS present", align=Align.INLINE)
 d.comment(0x8614, "CTS set -- clock hardware detected, start TX", align=Align.INLINE)
 d.label(0x8616, "inactive_retry")
 
-d.comment(0x8616, "INTON -- re-enable NMIs (&FE20 read)", align=Align.INLINE)
+d.comment(0x8616, "INTON -- re-enable NMIs (Master &FE3C)", align=Align.INLINE)
 d.comment(0x8619, "Restore interrupt state", align=Align.INLINE)
 d.comment(0x861A, "3-byte timeout counter on stack", align=Align.INLINE)
 d.comment(0x861B, "Increment timeout counter byte 1", align=Align.INLINE)
@@ -3260,7 +3257,7 @@ d.comment(0x8656, "Write NMI vector low byte directly", align=Align.INLINE)
 d.comment(0x8659, "Write NMI vector high byte directly", align=Align.INLINE)
 d.comment(0x865C, "SEC: prepare carry for ROR into bit 7", align=Align.INLINE)
 d.comment(0x865D, "Rotate carry into bit 7 of prot_flags (Tube-claimed)", align=Align.INLINE)
-d.comment(0x865F, "INTON -- NMIs now fire for TDRA (&FE20 read)", align=Align.INLINE)
+d.comment(0x865F, "INTON -- NMIs now fire for TDRA (Master &FE3C)", align=Align.INLINE)
 d.comment(0x8662, "Load destination port number", align=Align.INLINE)
 d.comment(0x8665, "Port != 0: standard data transfer", align=Align.INLINE)
 d.comment(0x8667, "Port 0: load control byte for table lookup", align=Align.INLINE)
@@ -3493,7 +3490,7 @@ d.comment(0x8713, "Write CR2: clear status, idle listen", align=Align.INLINE)
 d.comment(0x8716, "Error &41 (TDRA not ready)", align=Align.INLINE)
 d.label(0x8718, "tx_store_error")
 
-d.comment(0x8718, "INTOFF (also loads station ID)", align=Align.INLINE)
+d.comment(0x8718, "INTOFF: disable NMIs (Master &FE38)", align=Align.INLINE)
 d.label(0x871B, "delay_nmi_disable")
 
 d.comment(0x871B, "PHA/PLA delay loop (256 iterations for NMI disable)", align=Align.INLINE)
@@ -5996,8 +5993,8 @@ d.comment(0x8EFF, "Y = current ROM slot from romsel_copy", align=Align.INLINE)
 d.comment(0x8F01, "Push restored value", align=Align.INLINE)
 d.comment(0x8F02, "Mask bit 7 (workspace flag)", align=Align.INLINE)
 d.comment(0x8F04, "Publish page into rom_ws_pages[slot] (bit 7 cleared = workspace claimed)", align=Align.INLINE)
-d.comment(0x8F07, "Read Master break-type shadow (&FE2B)", align=Align.INLINE)
-d.comment(0x8F0A, "Read &FE28 (Master ROMSEL shadow)", align=Align.INLINE)
+d.comment(0x8F07, "Discarded read of 1770 data reg (&FE2B)", align=Align.INLINE)
+d.comment(0x8F0A, "Discarded read of 1770 status reg (&FE28)", align=Align.INLINE)
 d.comment(0x8F0D, "Pop saved Y", align=Align.INLINE)
 d.comment(0x8F0E, "Increment for next page", align=Align.INLINE)
 d.comment(0x8F0F, "Return", align=Align.INLINE)
@@ -11006,7 +11003,7 @@ d.subroutine(
     "gbpbv_handler",
     title="GBPBV vector handler: OSGBPB",
     description="""Reached via the GBPBV vector at
-[`vec_gbpbv`](address:021C) after the
+[`vec_gbpbv`](address:021A) after the
 [`fs_vector_table`](address:8EA7) has copied the entry.
 Verifies the FS workspace checksum, sets up transfer parameters,
 masks the access prefix, and dispatches the OSGBPB sub-operation
@@ -17728,7 +17725,7 @@ d.subroutine(
     0xBB68,
     "bgetv_handler",
     title="BGETV vector handler: read byte from open file",
-    description="""Reached via the BGETV vector at `&021A`, which the
+    description="""Reached via the BGETV vector at `&0216`, which the
 [`fs_vector_table`](address:8EA7) entries copy into the MOS extended
 vector area. Saves caller's `Y` in `hazel_chan_attr` (channel attribute slot),
 pushes `X`, calls
@@ -19188,9 +19185,11 @@ Used by the NMI-exit shim before `RTI` so the next /NMI edge re-triggers the han
 
 d.label(
     0xFE28,
-    "master_romsel_shadow",
-    description="""Master 128 ROMSEL shadow register.
-Read-only mirror of the current sideways-ROM selection (the actual ROMSEL is at `&FE30`).""",
+    "master_fdc_cmd_status",
+    description="""Master 128 1770 floppy-disk-controller command (write) / status
+(read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not
+do disk I/O; the only access is a discarded read in `set_rom_ws_page`
+(its result is overwritten before use).""",
     length=1,
     group="mmio",
     access="r",
@@ -19198,9 +19197,11 @@ Read-only mirror of the current sideways-ROM selection (the actual ROMSEL is at 
 
 d.label(
     0xFE2B,
-    "master_break_type_shadow",
-    description="""Master 128 last-break-type hardware shadow.
-Reflects the value left by the last reset (cold / warm / power-on).""",
+    "master_fdc_data",
+    description="""Master 128 1770 floppy-disk-controller data register, part of the
+`&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only
+access is a discarded read in `set_rom_ws_page` (its result is
+overwritten before use).""",
     length=1,
     group="mmio",
     access="r",

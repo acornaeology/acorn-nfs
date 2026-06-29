@@ -2673,7 +2673,7 @@
       "addr": 41292,
       "name": "gbpbv_handler",
       "title": "GBPBV vector handler: OSGBPB",
-      "description": "Reached via the GBPBV vector at\n[`vec_gbpbv`](address:021C) after the\n[`fs_vector_table`](address:8EA7) has copied the entry.\nVerifies the FS workspace checksum, sets up transfer parameters,\nmasks the access prefix, and dispatches the OSGBPB sub-operation\nin `A`:\n\n| `A` | Operation |\n|---|---|\n| `1` | PUT bytes with pointer |\n| `2` | PUT bytes |\n| `3` | GET bytes with pointer |\n| `4` | GET bytes |\n| `5` | read disc title |\n| `6` | read CSD |\n| `7` | read library |\n| `8` | read files in CSD |",
+      "description": "Reached via the GBPBV vector at\n[`vec_gbpbv`](address:021A) after the\n[`fs_vector_table`](address:8EA7) has copied the entry.\nVerifies the FS workspace checksum, sets up transfer parameters,\nmasks the access prefix, and dispatches the OSGBPB sub-operation\nin `A`:\n\n| `A` | Operation |\n|---|---|\n| `1` | PUT bytes with pointer |\n| `2` | PUT bytes |\n| `3` | GET bytes with pointer |\n| `4` | GET bytes |\n| `5` | read disc title |\n| `6` | read CSD |\n| `7` | read library |\n| `8` | read files in CSD |",
       "on_entry": {
         "a": "OSGBPB function code (1-8)",
         "x, y": "control-block pointer (low, high)"
@@ -4272,7 +4272,7 @@
       "addr": 47976,
       "name": "bgetv_handler",
       "title": "BGETV vector handler: read byte from open file",
-      "description": "Reached via the BGETV vector at `&021A`, which the\n[`fs_vector_table`](address:8EA7) entries copy into the MOS extended\nvector area. Saves caller's `Y` in `hazel_chan_attr` (channel attribute slot),\npushes `X`, calls\n[`store_result_check_dir`](address:B886) to validate the channel,\nthen either reads a byte from the FCB buffer (returning it in `A`\nwith `C=0`) or signals end-of-file (`C=1`).",
+      "description": "Reached via the BGETV vector at `&0216`, which the\n[`fs_vector_table`](address:8EA7) entries copy into the MOS extended\nvector area. Saves caller's `Y` in `hazel_chan_attr` (channel attribute slot),\npushes `X`, calls\n[`store_result_check_dir`](address:B886) to validate the channel,\nthen either reads a byte from the FCB buffer (returning it in `A`\nwith `C=0`) or signals end-of-file (`C=1`).",
       "on_entry": {
         "y": "channel handle"
       },
@@ -4858,9 +4858,9 @@
     "bputv": 536,
     "vec_bputv": 536,
     "gbpbv": 538,
-    "vec_bgetv_alt": 538,
+    "vec_gbpbv": 538,
     "findv": 540,
-    "vec_gbpbv": 540,
+    "vec_findv": 540,
     "fscv": 542,
     "vec_fscv": 542,
     "evntv": 544,
@@ -5123,8 +5123,8 @@
     "video_ula_palette": 65057,
     "video_ula_border_colour_and_palette_control": 65058,
     "video_ula_palette_selection": 65059,
-    "master_romsel_shadow": 65064,
-    "master_break_type_shadow": 65067,
+    "master_fdc_cmd_status": 65064,
+    "master_fdc_data": 65067,
     "romsel": 65072,
     "acccon": 65076,
     "master_intoff": 65080,
@@ -5785,7 +5785,7 @@
       "length": 2,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init.\n\nNote: standard layout (the alternate [`vec_bgetv_alt`](address:021A) slot is also used by some routines)."
+      "description": "BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init."
     },
     {
       "addr": 536,
@@ -5801,7 +5801,7 @@
       "length": 2,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "Alternate BGETV slot (lo, hi, rom).\nSome ANFS routines use this in addition to the standard [`vec_bgetv`](address:0216) at &0216."
+      "description": "GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init."
     },
     {
       "addr": 540,
@@ -5809,7 +5809,7 @@
       "length": 2,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init."
+      "description": "FINDV pointer (lo, hi, rom). Patched to ANFS's FIND handler at init."
     },
     {
       "addr": 542,
@@ -6541,19 +6541,19 @@
     },
     {
       "addr": 65064,
-      "name": "master_romsel_shadow",
+      "name": "master_fdc_cmd_status",
       "length": 1,
       "group": "mmio",
       "access": "r",
-      "description": "Master 128 ROMSEL shadow register.\nRead-only mirror of the current sideways-ROM selection (the actual ROMSEL is at `&FE30`)."
+      "description": "Master 128 1770 floppy-disk-controller command (write) / status\n(read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not\ndo disk I/O; the only access is a discarded read in `set_rom_ws_page`\n(its result is overwritten before use)."
     },
     {
       "addr": 65067,
-      "name": "master_break_type_shadow",
+      "name": "master_fdc_data",
       "length": 1,
       "group": "mmio",
       "access": "r",
-      "description": "Master 128 last-break-type hardware shadow.\nReflects the value left by the last reset (cold / warm / power-on)."
+      "description": "Master 128 1770 floppy-disk-controller data register, part of the\n`&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only\naccess is a discarded read in `set_rom_ws_page` (its result is\noverwritten before use)."
     },
     {
       "addr": 65076,
@@ -7151,7 +7151,7 @@
       "labels": [
         "adlc_init"
       ],
-      "comment_inline": "INTOFF: read station ID, disable NMIs",
+      "comment_inline": "INTOFF: disable NMIs (Master &FE38)",
       "xref_summaries": [
         "&8050 referenced 1 time by &903c"
       ],
@@ -7541,7 +7541,7 @@
         60,
         254
       ],
-      "comment_inline": "INTON: re-enable NMIs (&FE20 read side effect)",
+      "comment_inline": "INTON: re-enable NMIs (Master &FE3C)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "master_inton",
@@ -16592,7 +16592,7 @@
       "labels": [
         "inactive_retry"
       ],
-      "comment_inline": "INTON -- re-enable NMIs (&FE20 read)",
+      "comment_inline": "INTON -- re-enable NMIs (Master &FE3C)",
       "xref_summaries": [
         "&8616 referenced 1 time by &8605"
       ],
@@ -17068,7 +17068,7 @@
         60,
         254
       ],
-      "comment_inline": "INTON -- NMIs now fire for TDRA (&FE20 read)",
+      "comment_inline": "INTON -- NMIs now fire for TDRA (Master &FE3C)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "master_inton",
@@ -18297,7 +18297,7 @@
       "labels": [
         "tx_store_error"
       ],
-      "comment_inline": "INTOFF (also loads station ID)",
+      "comment_inline": "INTOFF: disable NMIs (Master &FE38)",
       "xref_summaries": [
         "&8718 referenced 1 time by &870f"
       ],
@@ -31889,12 +31889,12 @@
         43,
         254
       ],
-      "comment_inline": "Read Master break-type shadow (&FE2B)",
+      "comment_inline": "Discarded read of 1770 data reg (&FE2B)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "master_break_type_shadow",
+      "operand": "master_fdc_data",
       "target": 65067,
-      "target_label": "master_break_type_shadow"
+      "target_label": "master_fdc_data"
     },
     {
       "addr": 36618,
@@ -31903,12 +31903,12 @@
         40,
         254
       ],
-      "comment_inline": "Read &FE28 (Master ROMSEL shadow)",
+      "comment_inline": "Discarded read of 1770 status reg (&FE28)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "master_romsel_shadow",
+      "operand": "master_fdc_cmd_status",
       "target": 65064,
-      "target_label": "master_romsel_shadow"
+      "target_label": "master_fdc_cmd_status"
     },
     {
       "addr": 36621,
