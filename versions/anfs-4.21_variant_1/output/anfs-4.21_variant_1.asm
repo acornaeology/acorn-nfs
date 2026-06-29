@@ -249,7 +249,7 @@ set_nmi_vector              = &0d0e  ; NMI vector update (both bytes). STY nmi_j
 ; &0d0e referenced 13 times by &81e9, &8207, &820e, &8313, &8336, &83ef, &872c, &87bb, &87d9, &87e0, &8839, &8842, &888f
 install_nmi_handler         = &0d11  ; NMI vector update (low byte only). STA nmi_jmp_lo only, leaving the existing high byte at nmi_jmp_hi in place. Same-page optimisation used when the next handler is in the same page as the current one. Falls through to nmi_rti.
 ; &0d11 referenced 9 times by &80b5, &80d5, &81bf, &81d3, &8748, &875c, &8770, &88a3, &88b7
-nmi_rti                     = &0d14  ; NMI exit shim. Restores the previous ROM bank, pulls Y and A off the stack, reads BIT econet_nmi_enable (INTON, re-enables /NMI), and RTIs. Reached either as a fall-through from set_nmi_vector / install_nmi_handler, or as a direct branch from any NMI handler that has finished early.
+nmi_rti                     = &0d14  ; NMI exit shim. Restores the previous ROM bank, pulls Y and A off the stack, reads BIT enable_net_nmis (INTON, re-enables /NMI), and RTIs. Reached either as a fall-through from set_nmi_vector / install_nmi_handler, or as a direct branch from any NMI handler that has finished early.
 ; &0d14 referenced 6 times by &810f, &8261, &82b1, &870a, &8824, &887b
 imm_param_base              = &0d1a
 ; &0d1a referenced 1 time by &85d8
@@ -597,34 +597,24 @@ hazel_ctx_buffer            = &c2d9  ; HAZEL context buffer (saved register / st
 ; &c2d9 referenced 2 times by &ba0e, &bac2
 hazel_display_buf           = &c2f3
 ; &c2f3 referenced 3 times by &9e8f, &9e97, &9ea5
-econet_nmi_enable           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
-video_ula_control           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
-master_fdc_cmd_status       = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
+fdc_1770_command_or_status  = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
 ; &fe28 referenced 1 time by &8f0a
-master_fdc_data             = &fe2b  ; Master 128 1770 floppy-disk-controller data register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
+fdc_1770_data               = &fe2b  ; Master 128 1770 floppy-disk-controller data register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
 ; &fe2b referenced 1 time by &8f07
 romsel                      = &fe30
 ; &fe30 referenced 2 times by &89d2, &89e0
 acccon                      = &fe34  ; Master 128 ACCCON access-control register. Bit-by-bit (write-only): | Bit | Name | Effect when set | |-----|------|-----------------------------------------------------------------------------------| | 7 | IRR | Interrupt Request: setting it asserts the CPU IRQ line (a software-triggered IRQ) | | 6 | TST | Test mode | | 5 | IFJ | I/O is JIM | | 4 | ITU | Internal Tube | | 3 | Y | HAZEL paged in (&C000-&DFFF is hidden RAM) | | 2 | X | LYNNE paged in (&3000-&7FFF is shadow RAM) | | 1 | E | shadow RAM owns screen | | 0 | D | shadow RAM for the OS display | ANFS uses bit 7 (IRR) as a deferred-work latch via TRB/TSB.
 ; &fe34 referenced 17 times by &8034, &8212, &822a, &8230, &8259, &8265, &840b, &8411, &842c, &847f, &8526, &87f4, &87fa, &881c, &8828, &8900, &8918
-master_intoff               = &fe38  ; Master 128 INTOFF mirror (NMI-disable side effect). Reading any byte here disables /NMI re-entry; the byte value itself is irrelevant.
+disable_net_nmis            = &fe38  ; Master 128 INTOFF mirror (NMI-disable side effect). Reading any byte here disables /NMI re-entry; the byte value itself is irrelevant.
 ; &fe38 referenced 6 times by &8050, &85fc, &85ff, &89b9, &89bc, &89ca
-master_inton                = &fe3c  ; Master 128 INTON mirror (NMI-enable side effect). Reading any byte here re-enables /NMI; the byte value itself is irrelevant.
+enable_net_nmis             = &fe3c  ; Master 128 INTON mirror (NMI-enable side effect). Reading any byte here re-enables /NMI; the byte value itself is irrelevant.
 ; &fe3c referenced 4 times by &8097, &8616, &865f, &89e6
-adlc_cr1                    = &fea0  ; ADLC control register 1 / status register 1. Write: CR1 (or CR3 if AC=1). Read: SR1. SR1 bits: RDA (b0), S2RQ (b1), LOOP (b2), FD (b3), CTS (b4), TUF (b5), TDRA (b6), IRQ (b7).
-; &fea0 referenced 32 times by &80c8, &8114, &812d, &81a9, &81ba, &81e4, &8202, &826f, &82b6, &82ec, &8301, &8319, &84ea, &8607, &8611, &864f, &86ea, &8705, &8731, &876b, &8799, &87a9, &87c1, &87ef, &881f, &8845, &8876, &8888, &88b2, &898e, &899d, &8a93
 econet_control1_or_status1  = &fea0  ; ADLC control register 1 / status register 1. Write: CR1 (or CR3 if AC=1). Read: SR1. SR1 bits: RDA (b0), S2RQ (b1), LOOP (b2), FD (b3), CTS (b4), TUF (b5), TDRA (b6), IRQ (b7).
 ; &fea0 referenced 32 times by &80c8, &8114, &812d, &81a9, &81ba, &81e4, &8202, &826f, &82b6, &82ec, &8301, &8319, &84ea, &8607, &8611, &864f, &86ea, &8705, &8731, &876b, &8799, &87a9, &87c1, &87ef, &881f, &8845, &8876, &8888, &88b2, &898e, &899d, &8a93
-adlc_cr2                    = &fea1  ; ADLC control register 2 / status register 2. Write: CR2 (or CR4 if AC=1). Read: SR2. SR2 bits: AP (b0), FV (b1), RX_IDLE (b2), RX_ABRT (b3), ERR (b4), DCD (b5), OVRN (b6), RDA (b7).
-; &fea1 referenced 46 times by &809d, &80b8, &80d8, &80ea, &80f6, &810a, &8119, &811e, &8142, &81ae, &81c4, &81d6, &81ec, &8225, &8241, &825c, &826a, &8276, &8291, &82ac, &82bb, &82c0, &82f1, &832d, &84ef, &85e2, &8602, &860c, &8632, &864a, &8713, &8725, &874d, &875f, &8776, &878d, &8794, &882d, &8894, &88a6, &88ba, &88d9, &8998, &89a2, &8b3b, &90e2
 econet_control23_or_status2 = &fea1  ; ADLC control register 2 / status register 2. Write: CR2 (or CR4 if AC=1). Read: SR2. SR2 bits: AP (b0), FV (b1), RX_IDLE (b2), RX_ABRT (b3), ERR (b4), DCD (b5), OVRN (b6), RDA (b7).
 ; &fea1 referenced 46 times by &809d, &80b8, &80d8, &80ea, &80f6, &810a, &8119, &811e, &8142, &81ae, &81c4, &81d6, &81ec, &8225, &8241, &825c, &826a, &8276, &8291, &82ac, &82bb, &82c0, &82f1, &832d, &84ef, &85e2, &8602, &860c, &8632, &864a, &8713, &8725, &874d, &875f, &8776, &878d, &8794, &882d, &8894, &88a6, &88ba, &88d9, &8998, &89a2, &8b3b, &90e2
-adlc_tx                     = &fea2  ; ADLC TX FIFO continue / RX FIFO read. Write: byte to TX FIFO with LAST_DATA = 0 (continue frame). Read: next byte from RX FIFO.
-; &fea2 referenced 37 times by &80a2, &80bd, &80ef, &80fd, &8125, &81c9, &81db, &81f1, &81f4, &8233, &8248, &8281, &8296, &82a1, &82d1, &8306, &830c, &831e, &8323, &86f2, &86fd, &8752, &8764, &877b, &8783, &87ae, &87b4, &87c6, &87cb, &87ff, &880d, &884d, &8863, &8899, &88ab, &88bf, &88c7
 econet_data_continue_frame  = &fea2  ; ADLC TX FIFO continue / RX FIFO read. Write: byte to TX FIFO with LAST_DATA = 0 (continue frame). Read: next byte from RX FIFO.
 ; &fea2 referenced 37 times by &80a2, &80bd, &80ef, &80fd, &8125, &81c9, &81db, &81f1, &81f4, &8233, &8248, &8281, &8296, &82a1, &82d1, &8306, &830c, &831e, &8323, &86f2, &86fd, &8752, &8764, &877b, &8783, &87ae, &87b4, &87c6, &87cb, &87ff, &880d, &884d, &8863, &8899, &88ab, &88bf, &88c7
-adlc_tx2                    = &fea3  ; ADLC TX FIFO terminate / RX FIFO read. Write: final byte of frame (LAST_DATA = 1; ADLC appends CRC + closing flag). Read: next byte from RX FIFO.
-; &fea3 referenced 1 time by &8993
 econet_data_terminate_frame = &fea3  ; ADLC TX FIFO terminate / RX FIFO read. Write: final byte of frame (LAST_DATA = 1; ADLC appends CRC + closing flag). Read: next byte from RX FIFO.
 ; &fea3 referenced 1 time by &8993
 tube_data_register_3        = &fee5
@@ -821,14 +811,14 @@ rom_header_byte2 = rom_header_byte1+1
 ; ***************************************************************************************
 ; ADLC initialisation
 ;
-; Initialise ADLC hardware and Econet workspace. Disables NMIs via BIT master_intoff (the
-; Master 128 INTOFF register at &FE38). Performs a full ADLC reset via adlc_full_reset,
-; then probes for a Tube co-processor via OSBYTE &EA and stores the result in
-; tube_present. Issues an NMI-claim service request (OSBYTE &8F, X=&0C). Falls through to
-; init_nmi_workspace to copy the NMI shim to RAM.
+; Initialise ADLC hardware and Econet workspace. Disables NMIs via BIT disable_net_nmis
+; (the Master 128 INTOFF register at &FE38). Performs a full ADLC reset via
+; adlc_full_reset, then probes for a Tube co-processor via OSBYTE &EA and stores the
+; result in tube_present. Issues an NMI-claim service request (OSBYTE &8F, X=&0C). Falls
+; through to init_nmi_workspace to copy the NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
-    bit master_intoff                                                 ; 8050: 2c 38 fe    ,8.      ; INTOFF: disable NMIs (Master &FE38)
+    bit disable_net_nmis                                              ; 8050: 2c 38 fe    ,8.      ; INTOFF: disable NMIs (Master &FE38)
     jsr adlc_full_reset                                               ; 8053: 20 8c 89     ..      ; Full ADLC hardware reset
     lda #&ea                                                          ; 8056: a9 ea       ..       ; OSBYTE &EA: check Tube co-processor
     ldx #0                                                            ; 8058: a2 00       ..       ; X=0 for OSBYTE
@@ -849,9 +839,9 @@ rom_header_byte2 = rom_header_byte1+1
 ; workspace RAM block, then patches the current ROM bank number into the self-modifying
 ; code at nmi_romsel (&0D07).
 ;
-; The shim includes the INTOFF/INTON pair (BIT master_intoff at entry, BIT master_inton
-; before RTI) that toggles the Econet NMI-enable flip-flop, guaranteeing edge
-; re-triggering on /NMI.
+; The shim includes the INTOFF/INTON pair (BIT disable_net_nmis at entry, BIT
+; enable_net_nmis before RTI) that toggles the Econet NMI-enable flip-flop, guaranteeing
+; edge re-triggering on /NMI.
 ;
 ; Workspace fields written:
 ;
@@ -864,7 +854,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; | tx_complete_flag   | &80        | mark idle           |
 ; | econet_init_flag   | &80        | mark initialised    |
 ;
-; Finally re-enables NMIs via INTON (master_inton read).
+; Finally re-enables NMIs via INTON (enable_net_nmis read).
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8070: a0 20       .        ; Copy NMI shim from ROM to &0D0C area
 ; &8072 referenced 1 time by &8079
@@ -884,7 +874,7 @@ rom_header_byte2 = rom_header_byte1+1
     lda #&80                                                          ; 808f: a9 80       ..       ; &80 = Econet initialised
     sta tx_complete_flag                                              ; 8091: 8d 60 0d    .`.      ; Mark TX as complete (ready)
     sta econet_init_flag                                              ; 8094: 8d 62 0d    .b.      ; Mark Econet as initialised
-    bit master_inton                                                  ; 8097: 2c 3c fe    ,<.      ; INTON: re-enable NMIs (Master &FE3C)
+    bit enable_net_nmis                                               ; 8097: 2c 3c fe    ,<.      ; INTON: re-enable NMIs (Master &FE3C)
 ; &809a referenced 1 time by &806e
 .adlc_init_done
     rts                                                               ; 809a: 60          `        ; Return
@@ -1415,12 +1405,12 @@ rom_header_byte2 = rom_header_byte1+1
 ; First step of the four-byte ACK frame transmission. Saves the caller-supplied (A=lo,
 ; Y=hi) next-NMI handler address into saved_nmi_lo / saved_nmi_hi, loads the destination
 ; station from scout_buf and tests SR1 bit 6 (TDRA, TX Data Register Available) via BIT
-; adlc_cr1. If TDRA is clear the TX FIFO isn't ready and control branches to
-; dispatch_nmi_error to abort.
+; econet_control1_or_status1. If TDRA is clear the TX FIFO isn't ready and control
+; branches to dispatch_nmi_error to abort.
 ;
 ; When TDRA is set, writes the destination station and network bytes (from scout_src_net)
-; into adlc_tx, then installs nmi_ack_tx_src as the next NMI handler via set_nmi_vector
-; -- that handler will write the source-address pair on the next NMI.
+; into econet_data_continue_frame, then installs nmi_ack_tx_src as the next NMI handler
+; via set_nmi_vector -- that handler will write the source-address pair on the next NMI.
 ;
 ; Two callers: send_data_rx_ack's tail JMP and imm_op_build_reply.
 ;
@@ -2316,13 +2306,13 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
-; Disables NMIs via two BIT reads of master_intoff (the Master 128 INTOFF register), then
-; polls SR2 for the INACTIVE bit (bit 2):
+; Disables NMIs via two BIT reads of disable_net_nmis (the Master 128 INTOFF register),
+; then polls SR2 for the INACTIVE bit (bit 2):
 ;
 ; | SR2 INACTIVE | Action                                                                                                   |
 ; |--------------|----------------------------------------------------------------------------------------------------------|
 ; | set          | read SR1, write CR2=&67 to clear status, then test CTS (SR1 bit 4); if CTS present, branch to tx_prepare |
-; | clear        | re-enable NMIs via master_inton (INTON) and decrement the 3-byte timeout counter on the stack            |
+; | clear        | re-enable NMIs via enable_net_nmis (INTON) and decrement the 3-byte timeout counter on the stack         |
 ;
 ; On timeout, falls through to tx_line_jammed.
 ;
@@ -2331,8 +2321,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;     Y: &E7 (CR2 value for tx_prepare)
 .intoff_test_inactive
 ; &85fd referenced 1 time by &8679
-    bit master_intoff                                                 ; 85fc: 2c 38 fe    ,8.      ; INTOFF -- disable NMIs
-    bit master_intoff                                                 ; 85ff: 2c 38 fe    ,8.      ; INTOFF again (belt-and-braces)
+    bit disable_net_nmis                                              ; 85fc: 2c 38 fe    ,8.      ; INTOFF -- disable NMIs
+    bit disable_net_nmis                                              ; 85ff: 2c 38 fe    ,8.      ; INTOFF again (belt-and-braces)
 .test_line_idle
     bit econet_control23_or_status2                                   ; 8602: 2c a1 fe    ,..      ; Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 8605: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
@@ -2344,7 +2334,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bne tx_prepare                                                    ; 8614: d0 34       .4       ; CTS set -- clock hardware detected, start TX
 ; &8616 referenced 1 time by &8605
 .inactive_retry
-    bit master_inton                                                  ; 8616: 2c 3c fe    ,<.      ; INTON -- re-enable NMIs (Master &FE3C)
+    bit enable_net_nmis                                               ; 8616: 2c 3c fe    ,<.      ; INTON -- re-enable NMIs (Master &FE3C)
     plp                                                               ; 8619: 28          (        ; Restore interrupt state
     tsx                                                               ; 861a: ba          .        ; 3-byte timeout counter on stack
     inc error_text,x                                                  ; 861b: fe 01 01    ...      ; Increment timeout counter byte 1
@@ -2410,7 +2400,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;    nmi_jmp_lo / nmi_jmp_hi.
 ; 3. Sets bit 7 of prot_flags (Tube-claimed marker, paired with release_tube) via SEC /
 ;    ROR prot_flags.
-; 4. BIT master_inton re-enables NMIs so TDRA can fire.
+; 4. BIT enable_net_nmis re-enables NMIs so TDRA can fire.
 ;
 ; Then dispatches on tx_port:
 ;
@@ -2435,7 +2425,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sty nmi_jmp_hi                                                    ; 8659: 8c 0d 0d    ...      ; Write NMI vector high byte directly
     sec                                                               ; 865c: 38          8        ; SEC: prepare carry for ROR into bit 7
     ror prot_flags                                                    ; 865d: 66 99       f.       ; Rotate carry into bit 7 of prot_flags (Tube-claimed)
-    bit master_inton                                                  ; 865f: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (Master &FE3C)
+    bit enable_net_nmis                                               ; 865f: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (Master &FE3C)
     lda tx_port                                                       ; 8662: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 8665: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8667: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
@@ -2591,8 +2581,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; NMI TX data handler
 ;
-; Writes 2 bytes per NMI invocation to the TX FIFO at adlc_tx. Uses BIT adlc_cr1 on SR1
-; to test TDRA (V flag = bit 6) and IRQ (N flag = bit 7).
+; Writes 2 bytes per NMI invocation to the TX FIFO at econet_data_continue_frame. Uses
+; BIT econet_control1_or_status1 on SR1 to test TDRA (V flag = bit 6) and IRQ (N flag =
+; bit 7).
 ;
 ; After writing 2 bytes, checks if the frame is complete:
 ;
@@ -2657,9 +2648,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; | 0   | PSE          | prioritised status enable                    |
 ;
 ; The routine exits via JMP to set_nmi_vector, which installs nmi_tx_complete and falls
-; through to nmi_rti. The BIT of econet_nmi_enable (INTON) inside nmi_rti creates the
-; /NMI edge for the frame-complete interrupt – essential because the ADLC IRQ may
-; transition atomically from TDRA to frame-complete without de-asserting in between.
+; through to nmi_rti. The BIT of enable_net_nmis (INTON) inside nmi_rti creates the /NMI
+; edge for the frame-complete interrupt – essential because the ADLC IRQ may transition
+; atomically from TDRA to frame-complete without de-asserting in between.
 ; &8723 referenced 1 time by &8703
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
@@ -2731,10 +2722,11 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; (local network). Loads A=&76, the low byte of nmi_reply_validate, to install it as the
 ; next NMI handler.
 ;
-; Optimisation: before installing, checks SR1 bit 7 (IRQ still asserted) via BIT adlc_cr1
-; / BMI. When IRQ is still set the next byte is already in the FIFO, so the routine falls
-; through directly to nmi_reply_validate without an intermediate RTI, avoiding NMI
-; re-entry overhead for short frames where all bytes arrive in quick succession.
+; Optimisation: before installing, checks SR1 bit 7 (IRQ still asserted) via BIT
+; econet_control1_or_status1 / BMI. When IRQ is still set the next byte is already in the
+; FIFO, so the routine falls through directly to nmi_reply_validate without an
+; intermediate RTI, avoiding NMI re-entry overhead for short frames where all bytes
+; arrive in quick succession.
 .nmi_reply_cont
     bit econet_control23_or_status2                                   ; 875f: 2c a1 fe    ,..      ; Read RX byte (destination station)
     bpl reject_reply                                                  ; 8762: 10 0f       ..       ; No RDA -- error
@@ -3292,7 +3284,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX-listen
 ;
-; Disables NMIs via BIT master_intoff (the Master 128 dedicated INTOFF at &FE38), then
+; Disables NMIs via BIT disable_net_nmis (the Master 128 dedicated INTOFF at &FE38), then
 ; clears tx_complete_flag and econet_init_flag by storing the current A value. Sets Y=5
 ; (service-call workspace page) and jumps to adlc_rx_listen to configure the ADLC for
 ; passive listening.
@@ -3306,8 +3298,8 @@ tx_flags_table = check_tube_irq_loop+1
 ; On Exit:
 ;     Y: 5 (service-call workspace page)
 .save_econet_state
-    bit master_intoff                                                 ; 89b9: 2c 38 fe    ,8.      ; INTOFF: disable NMIs
-    bit master_intoff                                                 ; 89bc: 2c 38 fe    ,8.      ; INTOFF again (belt-and-braces)
+    bit disable_net_nmis                                              ; 89b9: 2c 38 fe    ,8.      ; INTOFF: disable NMIs
+    bit disable_net_nmis                                              ; 89bc: 2c 38 fe    ,8.      ; INTOFF again (belt-and-braces)
     sta tx_complete_flag                                              ; 89bf: 8d 60 0d    .`.      ; TX not in progress
     sta econet_init_flag                                              ; 89c2: 8d 62 0d    .b.      ; Econet not initialised
     ldy #5                                                            ; 89c5: a0 05       ..       ; Y=5: service call workspace page
@@ -3328,7 +3320,7 @@ nmi_shim_source = reset_enter_listen+2
 ; Same sequence as the RAM shim:
 ;
 ; [6502]
-;     BIT master_intoff      ; INTOFF (Master 128 dedicated register)
+;     BIT disable_net_nmis      ; INTOFF (Master 128 dedicated register)
 ;     PHA
 ;     TYA
 ;     PHA
@@ -3336,8 +3328,8 @@ nmi_shim_source = reset_enter_listen+2
 ;     STA romsel
 ;     JMP nmi_rx_scout
 ;
-; The BIT of master_intoff (INTOFF) at entry and BIT of master_inton (INTON) before RTI
-; in nmi_rti are essential for edge-triggered NMI re-delivery.
+; The BIT of disable_net_nmis (INTOFF) at entry and BIT of enable_net_nmis (INTON) before
+; RTI in nmi_rti are essential for edge-triggered NMI re-delivery.
 ;
 ; The 6502 /NMI is falling-edge triggered; the Econet NMI-enable flip-flop gates the ADLC
 ; IRQ onto /NMI. INTOFF clears the flip-flop, forcing /NMI high; INTON sets it, allowing
@@ -3346,7 +3338,7 @@ nmi_shim_source = reset_enter_listen+2
 ; frame-complete without de-asserting). Without this mechanism, nmi_tx_complete would
 ; never fire after tx_last_data.
 .nmi_bootstrap_entry
-    bit master_intoff                                                 ; 89ca: 2c 38 fe    ,8.      ; INTOFF: force /NMI high (clear NMI flip-flop)
+    bit disable_net_nmis                                              ; 89ca: 2c 38 fe    ,8.      ; INTOFF: force /NMI high (clear NMI flip-flop)
     pha                                                               ; 89cd: 48          H        ; Save A
     tya                                                               ; 89ce: 98          .        ; Transfer Y to A
     pha                                                               ; 89cf: 48          H        ; Save Y (via A)
@@ -3359,10 +3351,10 @@ nmi_shim_source = reset_enter_listen+2
 ; ROM-resident version of the NMI-exit sequence; also the source for the initial copy to
 ; RAM at set_nmi_vector.
 ;
-; | RAM target     | Function                                                                                                                                      |
-; |----------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
-; | set_nmi_vector | writes both hi and lo bytes of the JMP target at nmi_jmp_lo / nmi_jmp_hi                                                                      |
-; | nmi_rti        | restores the original ROM bank, pulls Y and A from the stack, then BIT of econet_nmi_enable (INTON) to re-enable the NMI flip-flop before RTI |
+; | RAM target     | Function                                                                                                                                    |
+; |----------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+; | set_nmi_vector | writes both hi and lo bytes of the JMP target at nmi_jmp_lo / nmi_jmp_hi                                                                    |
+; | nmi_rti        | restores the original ROM bank, pulls Y and A from the stack, then BIT of enable_net_nmis (INTON) to re-enable the NMI flip-flop before RTI |
 ;
 ; The INTON creates a guaranteed falling edge on /NMI if the ADLC IRQ is already
 ; asserted, ensuring the next handler fires immediately.
@@ -3374,7 +3366,7 @@ nmi_shim_source = reset_enter_listen+2
     pla                                                               ; 89e3: 68          h        ; Restore Y from stack
     tay                                                               ; 89e4: a8          .        ; Transfer ROM bank to Y
     pla                                                               ; 89e5: 68          h        ; Restore A from stack
-    bit master_inton                                                  ; 89e6: 2c 3c fe    ,<.      ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
+    bit enable_net_nmis                                               ; 89e6: 2c 3c fe    ,<.      ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
     rti                                                               ; 89e9: 40          @        ; Return from interrupt
     equb &05, &00, &21                                                ; 89ea: 05 00 21    ..!   
 ; ***************************************************************************************
@@ -4929,8 +4921,8 @@ ps_template_base = load_transfer_params+1
     pha                                                               ; 8f01: 48          H        ; Push restored value
     and #&7f                                                          ; 8f02: 29 7f       ).       ; Mask bit 7 (workspace flag)
     sta rom_ws_pages,y                                                ; 8f04: 99 f0 0d    ...      ; Publish page into rom_ws_pages[slot] (bit 7 cleared = workspace claimed)
-    ldy master_fdc_data                                               ; 8f07: ac 2b fe    .+.      ; Discarded read of 1770 data reg (&FE2B)
-    ldy master_fdc_cmd_status                                         ; 8f0a: ac 28 fe    .(.      ; Discarded read of 1770 status reg (&FE28)
+    ldy fdc_1770_data                                                 ; 8f07: ac 2b fe    .+.      ; Discarded read of 1770 data reg (&FE2B)
+    ldy fdc_1770_command_or_status                                    ; 8f0a: ac 28 fe    .(.      ; Discarded read of 1770 status reg (&FE28)
     ply                                                               ; 8f0d: 7a          z        ; Pop saved Y
     iny                                                               ; 8f0e: c8          .        ; Increment for next page
     rts                                                               ; 8f0f: 60          `        ; Return
@@ -5318,8 +5310,9 @@ ps_template_base = load_transfer_params+1
 ;
 ; Uses print_inline to output 'Econet Station ', then reads the station ID from offset 1
 ; of the receive control block and prints it as a decimal number via
-; print_num_no_leading. Tests ADLC status register 2 (adlc_cr2) to detect the Econet
-; clock; if absent, appends ' No Clock' via a second inline string. Finishes with OSNEWL.
+; print_num_no_leading. Tests ADLC status register 2 (econet_control23_or_status2) to
+; detect the Econet clock; if absent, appends ' No Clock' via a second inline string.
+; Finishes with OSNEWL.
 ;
 ; Called by print_version_header and svc_3_autoboot.
 ;
@@ -7922,7 +7915,7 @@ bad_prefix_table = bad_str_anchor+1
 .start_tx_attempt
     sta (net_tx_ptr,x)                                                ; 9b3c: 81 9a       ..       ; Restore control byte (overwritten by result code on retry)
     pha                                                               ; 9b3e: 48          H        ; Push control byte
-    jsr poll_adlc_tx_status                                           ; 9b3f: 20 b6 9b     ..      ; Poll ADLC until line idle
+    jsr poll_econet_data_continue_frame_status                        ; 9b3f: 20 b6 9b     ..      ; Poll ADLC until line idle
     asl a                                                             ; 9b42: 0a          .        ; Bit 6 (error flag) into N
     bpl tx_success                                                    ; 9b43: 10 2a       .*       ; N=0 (bit 6 clear): success
     asl a                                                             ; 9b45: 0a          .        ; Shift away error flag, keep error type
@@ -8009,7 +8002,7 @@ bad_prefix_table = bad_str_anchor+1
 ; stack, then polls the ADLC and retries until complete.
 ;
 ; On Exit:
-;     A: TX result (from poll_adlc_tx_status)
+;     A: TX result (from poll_econet_data_continue_frame_status)
 ; &9b81 referenced 1 time by &8e18
 .init_tx_ptr_for_pass
     ldy #&c0                                                          ; 9b81: a0 c0       ..       ; Y=&C0: TX control block base (low)
@@ -8021,11 +8014,11 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Copies 12 bytes from pass_txbuf_init_table into the TX control block, pushing the
 ; original values on the stack for later restoration. Skips offsets marked &FD in the
-; template. Starts transmission via poll_adlc_tx_status and retries on failure, restoring
-; the original TX buffer contents when done.
+; template. Starts transmission via poll_econet_data_continue_frame_status and retries on
+; failure, restoring the original TX buffer contents when done.
 ;
 ; On Exit:
-;     A: TX result (from poll_adlc_tx_status)
+;     A: TX result (from poll_econet_data_continue_frame_status)
 ; &9b89 referenced 1 time by &af45
 .setup_pass_txbuf
     ldy #&0b                                                          ; 9b89: a0 0b       ..       ; Y=&0B: 12 bytes to process (0-11)
@@ -8052,7 +8045,7 @@ bad_prefix_table = bad_str_anchor+1
 .start_pass_tx
     sta (net_tx_ptr,x)                                                ; 9ba5: 81 9a       ..       ; Write control byte to start TX
     pha                                                               ; 9ba7: 48          H        ; Save control byte on stack
-    jsr poll_adlc_tx_status                                           ; 9ba8: 20 b6 9b     ..      ; Poll ADLC until line idle
+    jsr poll_econet_data_continue_frame_status                        ; 9ba8: 20 b6 9b     ..      ; Poll ADLC until line idle
     asl a                                                             ; 9bab: 0a          .        ; Shift result: check bit 6 (success)
     bpl pass_tx_success                                               ; 9bac: 10 32       .2       ; Bit 6 clear: transmission complete
     asl a                                                             ; 9bae: 0a          .        ; Shift result: check bit 5 (fatal)
@@ -8086,9 +8079,9 @@ bad_prefix_table = bad_str_anchor+1
 ; On Exit:
 ;     A: TX result (&00 success / &40 jammed / &41 not listening / &43 no clock / &44 bad control byte)
 ; &9bb6 referenced 3 times by &9b3f, &9ba8, &9bb9
-.poll_adlc_tx_status
+.poll_econet_data_continue_frame_status
     asl tx_complete_flag                                              ; 9bb6: 0e 60 0d    .`.      ; Shift ws_0d60 left to poll ADLC
-    bcc poll_adlc_tx_status                                           ; 9bb9: 90 fb       ..       ; Bit not set: keep polling
+    bcc poll_econet_data_continue_frame_status                        ; 9bb9: 90 fb       ..       ; Bit not set: keep polling
     lda net_tx_ptr                                                    ; 9bbb: a5 9a       ..       ; Copy TX pointer low to NMI TX block
     sta nmi_tx_block                                                  ; 9bbd: 85 a0       ..       ; Store in NMI TX block low
     lda net_tx_ptr_hi                                                 ; 9bbf: a5 9b       ..       ; Copy TX pointer high
@@ -16525,1410 +16518,1406 @@ net_chan_err_strings = err_net_chan_not_found+2
 save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
-;     nfs_workspace:                91
-;     hazel_txcb_data:              73
-;     fs_options:                   55
-;     net_rx_ptr:                   52
-;     ws_ptr_hi:                    48
-;     adlc_cr2:                     46
-;     econet_control23_or_status2:  46
-;     work_ae:                      45
-;     fs_load_addr_2:               38
-;     adlc_tx:                      37
-;     econet_data_continue_frame:   37
-;     hazel_fs_lib_flags:           37
-;     net_tx_ptr:                   37
-;     osword_flag:                  34
-;     port_ws_offset:               34
-;     fs_error_ptr:                 33
-;     print_inline:                 33
-;     adlc_cr1:                     32
-;     econet_control1_or_status1:   32
-;     fs_crc_lo:                    31
-;     hazel_txcb_flag:              31
-;     fs_flags:                     30
-;     osbyte:                       29
-;     rx_src_net:                   27
-;     fs_work_4:                    25
-;     hazel_fcb_status:             25
-;     save_net_tx_cb:               25
-;     fs_load_addr:                 24
-;     port_buf_len:                 23
-;     hazel_fcb_flags:              22
-;     always_set_v_byte:            21
-;     econet_flags:                 20
-;     error_text:                   20
-;     os_text_ptr:                  20
-;     osbyte_a1:                    20
-;     fs_work_5:                    18
-;     hazel_fcb_addr_lo:            18
-;     hazel_fcb_slot_attr:          18
-;     acccon:                       17
-;     hazel_parse_buf:              17
-;     ws_page:                      17
-;     fs_block_offset:              16
-;     open_port_buf_hi:             16
-;     fs_last_byte_flag:            15
-;     hazel_fcb_addr_mid:           15
-;     mask_owner_access:            15
-;     nmi_tx_block:                 15
-;     svc_state:                    15
-;     hazel_cur_fcb_index:          14
-;     hazel_fcb_state_byte:         14
-;     need_release_tube:            14
-;     net_tx_ptr_hi:                14
-;     open_port_buf:                14
-;     port_buf_len_hi:              14
-;     hazel_txcb_count:             13
-;     osasci:                       13
-;     print_inline_no_spool:        13
-;     set_nmi_vector:               13
-;     fs_work_6:                    12
-;     hazel_chan_attr:              12
-;     osnewl:                       12
-;     return_with_last_flag:        12
-;     cmd_table_fs:                 11
-;     copy_arg_to_buf:              11
-;     error_bad_inline:             11
-;     error_block:                  11
-;     error_inline_log:             11
-;     fs_load_addr_3:               11
-;     hazel_fs_network:             11
-;     net_rx_ptr_hi:                11
-;     nmi_error_dispatch:           11
-;     print_char_no_spool:          11
-;     tx_result_fail:               11
-;     hazel_txcb_network:           10
-;     nfs_workspace_hi:             10
-;     store_rx_attribute:           10
-;     addr_work:                     9
-;     fs_crflag:                     9
-;     hazel_fcb_addr_hi:             9
-;     install_nmi_handler:           9
-;     osword_pb_ptr:                 9
-;     process_all_fcbs:              9
-;     romsel_copy:                   9
-;     save_ptr_to_os_text:           9
-;     scout_buf:                     9
-;     tx_src_stn:                    9
-;     txcb_end:                      9
-;     ws_0d6a:                       9
-;     error_msg_table:               8
-;     hazel_txcb_result:             8
-;     tube_addr_data_dispatch:       8
-;     tx_complete_flag:              8
-;     alloc_fcb_slot:                7
-;     ensure_fs_selected:            7
-;     finalise_and_return:           7
-;     fs_load_addr_hi:               7
-;     hazel_fcb_offset_save:         7
-;     hazel_txcb_station:            7
-;     match_station_net:             7
-;     os_text_ptr_hi:                7
-;     reject_reply:                  7
-;     rx_buf_offset:                 7
-;     tube_data_register_3:          7
-;     tx_dst_stn:                    7
-;     txcb_ctrl:                     7
-;     txcb_start:                    7
-;     vdu_status:                    7
-;     ws_ptr_lo:                     7
-;     bin_to_bcd:                    6
-;     cond_save_error_code:          6
-;     discard_reset_rx:              6
-;     error_overflow:                6
-;     fs_crc_hi:                     6
-;     fs_work_7:                     6
-;     fs_ws_ptr:                     6
-;     hazel_exec_addr:               6
-;     hazel_fs_context_copy:         6
-;     hazel_fs_flags:                6
-;     hazel_fs_station:              6
-;     hazel_quote_mode:              6
-;     master_intoff:                 6
-;     nmi_rti:                       6
-;     print_newline_no_spool:        6
-;     prot_status:                   6
-;     pydis_end:                     6
-;     send_net_packet:               6
-;     set_xfer_params:               6
-;     spool_buf_idx:                 6
-;     spool_control_flag:            6
-;     table_idx:                     6
-;     wait_net_tx_ack:               6
-;     attr_to_chan_index:            5
-;     close_ws_file:                 5
-;     copy_arg_to_buf_x0:            5
-;     copy_pb_byte_to_ws:            5
-;     escapable:                     5
-;     fs_spool_handle:               5
-;     hazel_fs_last_error:           5
-;     hazel_fs_pending_state:        5
-;     hazel_fs_prefix_stn:           5
-;     hazel_fs_saved_station:        5
-;     hazel_offset_counter:          5
-;     hazel_station_hi:              5
-;     hazel_station_lo:              5
-;     init_bridge_poll:              5
-;     init_txcb:                     5
-;     net_error_lookup_data:         5
-;     parse_addr_arg:                5
-;     print_num_no_leading:          5
-;     prot_flags:                    5
-;     rom_ws_pages:                  5
-;     rx_port:                       5
-;     scout_ctrl:                    5
-;     scout_error:                   5
-;     scout_port:                    5
-;     stack_page_2:                  5
-;     stack_page_6:                  5
-;     strip_token_prefix:            5
-;     svc_dispatch:                  5
-;     svc_return_unclaimed:          5
-;     tube_present:                  5
-;     tx_done_exit:                  5
-;     tx_dst_net:                    5
-;     verify_ws_checksum:            5
-;     byte_to_2bit_index:            4
-;     check_net_error_code:          4
-;     commit_state_byte:             4
-;     dispatch_svc_index:            4
-;     done_close:                    4
-;     done_poll_name_parse:          4
-;     econet_init_flag:              4
-;     error_bad_command:             4
-;     error_inline:                  4
-;     escape_flag:                   4
-;     exec_addr_lo:                  4
-;     get_ws_page:                   4
-;     gsinit:                        4
-;     gsread:                        4
-;     hazel_fcb_attr_ref:            4
-;     hazel_txcb_lib:                4
-;     load_ps_server_addr:           4
-;     loop_find_fcb:                 4
-;     loop_poll_tx:                  4
-;     loop_scan_fcb_down:            4
-;     master_inton:                  4
-;     nmi_tx_block_hi:               4
-;     osbyte_x0:                     4
-;     osfind:                        4
-;     parse_access_prefix:           4
-;     parse_fs_ps_args:              4
-;     port_match_found:              4
-;     print_station_addr:            4
-;     process_spool_data:            4
-;     read_pw_char:                  4
-;     read_rx_attribute:             4
-;     rts_spool_reset:               4
-;     rx_ctrl:                       4
-;     saved_nmi_hi:                  4
-;     saved_nmi_lo:                  4
-;     scout_src_net:                 4
-;     store_a_to_pb_1:               4
-;     tx_op_type:                    4
-;     txcb_port:                     4
-;     zp_work_3:                     4
-;     adlc_full_reset:               3
-;     advance_buffer_ptr:            3
-;     alloc_fcb_with_flags:          3
-;     append_byte_to_rxbuf:          3
-;     check_tube_irq_loop:           3
-;     clear_channel_flag:            3
-;     close_all_net_chans:           3
-;     copy_arg_validated:            3
-;     data_tx_last:                  3
-;     dispatch_rts:                  3
-;     dispatch_svc_state_check:      3
-;     done_add_disp_base:            3
-;     done_poll_status_line:         3
-;     done_ps_name_parse:            3
-;     err_bad_hex:                   3
-;     err_bad_station_num:           3
-;     error_bad_filename:            3
-;     error_bad_hex_value:           3
-;     find_matching_fcb:             3
-;     find_station_bit3:             3
-;     handle_invalid:                3
-;     hazel_buf_addr_hi:             3
-;     hazel_chan_ref:                3
-;     hazel_chan_status:             3
-;     hazel_cur_dir_handle:          3
-;     hazel_display_buf:             3
-;     hazel_fcb_station_hi:          3
-;     hazel_fcb_station_lo:          3
-;     hazel_fs_error_code:           3
-;     hazel_fs_messages_flag:        3
-;     hazel_minus_2:                 3
-;     hazel_parse_buf_1:             3
-;     hazel_pass_counter:            3
-;     hazel_txcb_port:               3
-;     inx16:                         3
-;     is_decimal_digit:              3
-;     jmp_restore_fs_ctx:            3
-;     loop_ps_delay:                 3
-;     match_fs_cmd:                  3
-;     match_rx_code:                 3
-;     next_handle_slot:              3
-;     next_port_slot:                3
-;     nmi_jmp_hi:                    3
-;     nmi_jmp_lo:                    3
-;     osbyte_a2:                     3
-;     osbyte_a_copy:                 3
-;     osword:                        3
-;     osword_pb_ptr_hi:              3
-;     parse_cmd_arg_y0:              3
-;     parse_filename_arg:            3
-;     poll_adlc_tx_status:           3
-;     print_10_chars:                3
-;     process_match_result:          3
-;     prot_status_save:              3
-;     read_filename_char:            3
-;     read_last_rx_byte:             3
-;     reload_inactive_mask:          3
-;     reset_adlc_rx_listen:          3
-;     restore_fs_context:            3
-;     rts_advance_buf:               3
-;     rts_strip_prefix:              3
-;     rx_complete_update_rxcb:       3
-;     rx_remote_addr:                3
-;     save_text_ptr:                 3
-;     send_cmd_and_dispatch:         3
-;     send_disconnect_reply:         3
-;     store_rx_result:               3
-;     tube_claim_c3:                 3
-;     tx_bad_ctrl_error:             3
-;     tx_begin:                      3
-;     tx_calc_transfer:              3
-;     tx_econet_abort:               3
-;     update_fcb_flag_bits:          3
-;     vdu_mode:                      3
-;     write_second_tube_byte:        3
-;     zp_work_2:                     3
-;     ack_tx:                        2
-;     ack_tx_write_dest:             2
-;     adjust_fsopts_4bytes:          2
-;     adlc_rx_listen:                2
-;     advance_rx_buffer_ptr:         2
-;     advance_template_idx:          2
-;     advance_y_by_4:                2
-;     alloc_fcb_or_error:            2
-;     alloc_store_station_id:        2
-;     append_decimal_digit:          2
-;     append_decimal_num:            2
-;     append_drv_dot_num:            2
-;     append_error_number:           2
-;     append_space_and_num:          2
-;     boot_select_cmd:               2
-;     build_error_block:             2
-;     build_simple_error:            2
-;     check_adlc_flag:               2
-;     check_and_setup_txcb:          2
-;     check_chan_char:               2
-;     check_escape_and_classify:     2
-;     check_not_ampersand:           2
-;     check_not_dir:                 2
-;     check_tx_in_progress:          2
-;     classify_reply_error:          2
-;     clear_conn_active:             2
-;     clear_if_station_match:        2
-;     clear_result:                  2
-;     clear_v_flag:                  2
-;     cmd_dispatch_hi_table:         2
-;     cmd_dispatch_lo_table:         2
-;     cmd_net_fs:                    2
-;     cmd_pass:                      2
-;     cmp_5byte_handle:              2
-;     col_sep_eol_check:             2
-;     copy_fs_cmd_name:              2
-;     copy_fsopts_to_zp:             2
-;     copy_scout_via_tube:           2
-;     copy_workspace_to_fsopts:      2
-;     credits_keyword_start:         2
-;     data_rx_tube_complete:         2
-;     data_tx_check_fifo:            2
-;     discard_handle_match:          2
-;     discard_no_match:              2
-;     discard_reset_listen:          2
-;     dispatch_fs_cmd:               2
-;     dispatch_nmi_error:            2
-;     dispatch_via_vector:           2
-;     do_print_no_spool:             2
-;     done_advance_start:            2
-;     done_check_station:            2
-;     done_file_open:                2
-;     done_load_from_buf:            2
-;     done_osfind:                   2
-;     done_parse_num:                2
-;     done_poll_tx:                  2
-;     done_ps_slot_mark:             2
-;     done_ps_slot_scan:             2
-;     done_set_dirty_flag:           2
-;     done_strip_prefix:             2
-;     done_test_hex_space:           2
-;     done_uppercase_store:          2
-;     done_vset_station:             2
-;     enable_irq_and_poll:           2
-;     err_net_chan_invalid:          2
-;     error_bad_number:              2
-;     error_bad_param:               2
-;     error_bad_prefix:              2
-;     error_net_checksum:            2
-;     error_osargs:                  2
-;     error_outside_file:            2
-;     exec_addr_hi:                  2
-;     fallback_calc_transfer:        2
-;     find_open_fcb:                 2
-;     flip_set_station_boot:         2
-;     format_filename_field:         2
-;     frame_complete_restore:        2
-;     frame_end_restore:             2
-;     get_access_bits:               2
-;     get_pb_ptr_as_index:           2
-;     get_prot_bits:                 2
-;     handle_dot_sep:                2
-;     handle_spool_ctrl_byte:        2
-;     hazel_ctx_buffer:              2
-;     hazel_fcb_slot_1:              2
-;     hazel_fcb_slot_2:              2
-;     hazel_fcb_slot_3:              2
-;     hazel_fs_opts_addend:          2
-;     hazel_minus_1:                 2
-;     hazel_net_reply_buf_0:         2
-;     hazel_net_reply_buf_1:         2
-;     hazel_net_reply_buf_2:         2
-;     hazel_parse_buf_m1:            2
-;     hazel_rtc_buffer:              2
-;     hazel_saved_byte:              2
-;     hazel_txcb_addr_hi:            2
-;     hazel_txcb_func_code:          2
-;     hazel_txcb_len:                2
-;     hazel_txcb_size_hi:            2
-;     hazel_txcb_tx_status:          2
-;     hazel_txcb_type:               2
-;     help_print_start:              2
-;     imm_op_out_of_range:           2
-;     inc_fcb_byte_count:            2
-;     init_adlc_and_vectors:         2
-;     init_remote_session:           2
-;     init_spool_drive:              2
-;     init_tx_ptr_and_send:          2
-;     init_wipe_counters:            2
-;     init_ws_copy_wide:             2
-;     lookup_cat_entry_0:            2
-;     lookup_chan_by_char:           2
-;     loop_copy_arg_char:            2
-;     loop_copy_ws_template:         2
-;     loop_drain_printer_buf:        2
-;     loop_dump_line:                2
-;     loop_find_pending_fcb:         2
-;     loop_next_fcb_slot:            2
-;     loop_pass_tx_delay:            2
-;     loop_pop_stack_buf:            2
-;     loop_print_help_byte:          2
-;     loop_print_hex_byte:           2
-;     loop_print_syntax:             2
-;     loop_reload_attr:              2
-;     loop_restore_workspace:        2
-;     loop_scan_disconnect:          2
-;     loop_scan_empty_fcb:           2
-;     loop_search_stn_bit2:          2
-;     loop_search_stn_bit3:          2
-;     loop_search_stn_boot:          2
-;     loop_skip_space_chars:         2
-;     loop_tx_delay:                 2
-;     loop_wait_ws_status:           2
-;     mark_not_found:                2
-;     match_char_loop_cmp:           2
-;     match_char_process:            2
-;     net_chan_err_strings:          2
-;     next_dec_char:                 2
-;     next_fcb_entry:                2
-;     osargs:                        2
-;     osbget:                        2
-;     oscli:                         2
-;     osrdch:                        2
-;     osword_11_done:                2
-;     oswrch:                        2
-;     pad_with_spaces:               2
-;     parse_dump_range:              2
-;     parse_quoted_arg:              2
-;     pass_txbuf_init_table:         2
-;     poll_nmi_idle:                 2
-;     pop_requeue_ps_scan:           2
-;     print_5_hex_bytes:             2
-;     print_byte_no_spool:           2
-;     print_chars_from_buf:          2
-;     print_cmd_table:               2
-;     print_cmd_table_loop:          2
-;     print_dec_digit_no_spool:      2
-;     print_decimal_3dig:            2
-;     print_decimal_digit:           2
-;     print_dir_syntax:              2
-;     print_dump_header:             2
-;     print_fs_station:              2
-;     print_hex_and_space:           2
-;     print_hex_byte:                2
-;     print_hex_byte_no_spool:       2
-;     print_printer_server_is:       2
-;     print_station_id:              2
-;     print_station_low:             2
-;     print_version_header:          2
-;     prompt_yn:                     2
-;     raise_escape_error:            2
-;     recv_and_process_reply:        2
-;     release_tube:                  2
-;     reset_spool_buf_state:         2
-;     restore_rom_slot:              2
-;     retreat_y_by_3:                2
-;     return_1:                      2
-;     reverse_ps_name_to_tx:         2
-;     romsel:                        2
-;     rts_bridge_poll:               2
-;     rts_claim_release:             2
-;     rts_credits_check:             2
-;     rts_digit_test:                2
-;     rts_help_wrap:                 2
-;     rts_inc_fcb_count:             2
-;     rts_match_rx_code:             2
-;     rts_raise_y_to_c8:             2
-;     rts_save_text_ptr:             2
-;     rx_extra_byte:                 2
-;     rx_wait_timeout:               2
-;     save_fcb_context:              2
-;     save_net_tx_cb_vset:           2
-;     save_ptr_to_spool_buf:         2
-;     save_txcb_and_convert:         2
-;     scout_complete:                2
-;     scout_done_restore_x:          2
-;     select_fs_via_cmd_net_fs:      2
-;     send_ack:                      2
-;     send_and_receive:              2
-;     send_data_rx_ack:              2
-;     send_disconnect_status:        2
-;     send_fs_request:               2
-;     send_request_write:            2
-;     send_save_or_access:           2
-;     send_txcb_swap_addrs:          2
-;     send_wipe_request:             2
-;     set_conn_active:               2
-;     set_nmi_rx_scout:              2
-;     set_options_ptr:               2
-;     set_text_and_xfer_ptr:         2
-;     set_ws_pair_0d68_0d69:         2
-;     setup_dir_display:             2
-;     setup_transfer_workspace:      2
-;     setup_ws_ptr:                  2
-;     shadow_enable_flag:            2
-;     skip_entry_chars:              2
-;     skip_rename_spaces:            2
-;     skip_sep_spaces:               2
-;     stack_page_3:                  2
-;     stack_page_4:                  2
-;     start_wipe_pass:               2
-;     store_bridge_station:          2
-;     store_char_uppercase:          2
-;     store_pb_result:               2
-;     store_ptr_at_ws_y:             2
-;     store_result_check_dir:        2
-;     store_station_result:          2
-;     store_stn_flags_restore:       2
-;     store_tx_error:                2
-;     svc4_dispatch_lookup:          2
-;     tail_update_catalogue:         2
-;     terminate_buf:                 2
-;     try_nfs_port_list:             2
-;     tube_tx_fifo_write:            2
-;     tx_addr_base:                  2
-;     tx_ctrl_byte:                  2
-;     tx_port:                       2
-;     tx_result_ok:                  2
-;     tx_retry_count:                2
-;     tx_send_error:                 2
-;     tx_store_result:               2
-;     write_data_block:              2
-;     write_ps_slot_byte_ff:         2
-;     write_vector_entry:            2
-;     zp_ptr_hi:                     2
-;     zp_ptr_lo:                     2
-;     abort_if_escape:               1
-;     accept_frame:                  1
-;     accept_local_net:              1
-;     accept_scout_net:              1
-;     ack_tx_configure:              1
-;     add_ascii_base:                1
-;     add_bytes_loop:                1
-;     add_rxcb_ptr:                  1
-;     add_workspace_to_fsopts:       1
-;     adlc_init:                     1
-;     adlc_init_done:                1
-;     adlc_tx2:                      1
-;     advance_positions:             1
-;     advance_spool_rx_idx:          1
-;     alloc_common_entry:            1
-;     alloc_error_overflow:          1
-;     alloc_fcb_for_open:            1
-;     alloc_post_restore_check:      1
-;     alloc_run_channel:             1
-;     alloc_run_fcb:                 1
-;     append_space:                  1
-;     append_station_num:            1
-;     assign_handle_2:               1
-;     assign_handle_3:               1
-;     bad_prefix_table:              1
-;     begin_prot_encode:             1
-;     boot_cancel_rts:               1
-;     boot_cmd_lo_table:             1
-;     boot_cmd_oscli:                1
-;     boot_persist_fs_maybe:         1
-;     boot_try_findlib:              1
-;     bra_target_svc_return:         1
-;     bridge_err_table:              1
-;     bridge_found:                  1
-;     bridge_responded:              1
-;     bridge_txcb_init_table:        1
-;     brk_ptr:                       1
-;     build_no_reply_error:          1
-;     byte_pair_restore:             1
-;     calc_peek_poke_size:           1
-;     calc_transfer_size:            1
-;     call_fscv:                     1
-;     cat_after_label_print:         1
-;     cat_set_lib_flag:              1
-;     cdir_size_done:                1
-;     cdir_size_thresholds:          1
-;     cdir_unused_dispatch_table:    1
-;     check_auto_boot_flag:          1
-;     check_chan_range:              1
-;     check_char_type:               1
-;     check_cmd_flags:               1
-;     check_colon_prefix:            1
-;     check_credits_easter_egg:      1
-;     check_data_loss:               1
-;     check_digit_range:             1
-;     check_display_type:            1
-;     check_exec_addr:               1
-;     check_fifo_loop:               1
-;     check_fs_dot:                  1
-;     check_fv_final_ack:            1
-;     check_handle_2:                1
-;     check_handle_3:                1
-;     check_handle_alloc:            1
-;     check_handshake_bit:           1
-;     check_hash_prefix:             1
-;     check_help_topic:              1
-;     check_msg_terminator:          1
-;     check_open_mode:               1
-;     check_open_quote:              1
-;     check_poll_busy:               1
-;     check_poll_jammed:             1
-;     check_port_slot:               1
-;     check_pw_special:              1
-;     check_separator:               1
-;     check_spool_state:             1
-;     check_station_filter:          1
-;     check_tdra_status:             1
-;     check_urd_prefix:              1
-;     check_wipe_attr:               1
-;     check_wipe_dir:                1
-;     check_wipe_response:           1
-;     clamp_end_to_limit:            1
-;     clear_buf_after_write:         1
-;     clear_c_flag:                  1
-;     clear_escapable:               1
-;     clear_flag_bits:               1
-;     clear_release_flag:            1
-;     clear_single_fcb:              1
-;     clear_svc_and_ws:              1
-;     clear_workspace_byte:          1
-;     close_all_channels:            1
-;     close_all_fcbs:                1
-;     close_specific_chan:           1
-;     close_spool_exec:              1
-;     cmd_fs_reentry:                1
-;     cmd_run_load_mask:             1
-;     cmd_run_via_urd:               1
-;     cmd_syntax_strings:            1
-;     cmd_syntax_table:              1
-;     cmd_table_nfs_iam:             1
-;     cmos_attr_table:               1
-;     cmos_opt_mask_table:           1
-;     col_sep_print_char:            1
-;     col_sep_print_cr:              1
-;     commit_workspace_pages:        1
-;     complete_nfs_init:             1
-;     copy_addr_loop:                1
-;     copy_arg_and_enum:             1
-;     copy_bcast_addr:               1
-;     copy_from_buf_entry:           1
-;     copy_imm_params:               1
-;     copy_nmi_shim:                 1
-;     copy_pb_and_mark:              1
-;     copy_pb_to_ws:                 1
-;     copy_ps_data:                  1
-;     copy_ps_data_y1c:              1
-;     copy_scout_bytes:              1
-;     copy_scout_to_buffer:          1
-;     copy_ws_byte_to_pb:            1
-;     copy_ws_then_fsopts:           1
-;     data_rx_complete:              1
-;     data_rx_loop:                  1
-;     data_tx_begin:                 1
-;     delay_nmi_disable:             1
-;     dir_found_send:                1
-;     dir_op_dispatch:               1
-;     dir_pass_simple:               1
-;     dispatch_fs_ps_with_arg:       1
-;     dispatch_imm_op:               1
-;     dispatch_imm_op_fail:          1
-;     dispatch_ops_1_to_6:           1
-;     dispatch_osfind_op:            1
-;     dispatch_osword_op:            1
-;     dispatch_svc5:                 1
-;     dispatch_svc_with_state:       1
-;     do_fs_cmd_iteration:           1
-;     done_advance_fcb:              1
-;     done_alloc_handles:            1
-;     done_bcd_convert:              1
-;     done_calc_offset:              1
-;     done_cap_ws_count:             1
-;     done_cdir_size:                1
-;     done_check_boundary:           1
-;     done_check_buf_offset:         1
-;     done_check_dump_eof:           1
-;     done_check_fcb_status:         1
-;     done_check_outside:            1
-;     done_clear_fcb_active:         1
-;     done_close_files:              1
-;     done_commit_state:             1
-;     done_credits_check:            1
-;     done_dump_eof:                 1
-;     done_end_dump_line:            1
-;     done_entry_newline:            1
-;     done_find_write_fcb:           1
-;     done_flush_fcb:                1
-;     done_found_free_slot:          1
-;     done_inc_byte_count:           1
-;     done_init_wipe:                1
-;     done_mask_hex_digit:           1
-;     done_no_reply_msg:             1
-;     done_osword_op:                1
-;     done_parse_disp_base:          1
-;     done_pass_retries:             1
-;     done_poll_name_print:          1
-;     done_poll_slot_mark:           1
-;     done_print_newline:            1
-;     done_print_separator:          1
-;     done_print_table:              1
-;     done_ps_available:             1
-;     done_ps_scan:                  1
-;     done_read_fcb_byte:            1
-;     done_restore_offset:           1
-;     done_return_flag:              1
-;     done_run_dispatch:             1
-;     done_save_context:             1
-;     done_search_bit2:              1
-;     done_search_bit3:              1
-;     done_search_boot:              1
-;     done_select_fcb:               1
-;     done_set_fcb_active:           1
-;     done_skip_filename:            1
-;     done_spool_ctrl:               1
-;     done_start_dump_addr:          1
-;     done_station_msg:              1
-;     done_suffix:                   1
-;     done_terminate_wipe_err:       1
-;     done_test_del:                 1
-;     done_test_empty_slot:          1
-;     done_test_fcb_active:          1
-;     done_test_write_flag:          1
-;     done_toggle_station:           1
-;     done_trim_spaces:              1
-;     done_write_block:              1
-;     done_ws_template_copy:         1
-;     econet_data_terminate_frame:   1
-;     enable_irq_pending:            1
-;     err_printer_busy:              1
-;     error_bad_net_num:             1
-;     error_bad_rename:              1
-;     error_chan_not_found:          1
-;     error_chan_not_here:           1
-;     error_chan_out_of_range:       1
-;     error_end_of_file:             1
-;     error_escape_pressed:          1
-;     error_hex_overflow:            1
-;     error_invalid_chan:            1
-;     escape_error_close:            1
-;     evntv:                         1
-;     ex_print_col_sep:              1
-;     ex_set_lib_flag:               1
-;     extract_digit_value:           1
-;     false_ref_6f6e:                1
-;     fcb_workspace_idx_base:        1
-;     filev:                         1
-;     find_station_bit2:             1
-;     findv_handler:                 1
-;     fixup_reply_status_a:          1
-;     flush_fcb_if_stn_known:        1
-;     flush_fcb_with_init:           1
-;     fs_info_template:              1
-;     fs_template_done:              1
-;     fs_vector_table:               1
-;     fscv:                          1
-;     fscv_2_star_run:               1
-;     fscv_3_star_cmd:               1
-;     fsreply_3_set_csd:             1
-;     generate_event:                1
-;     get_ws_page_loop:              1
-;     gsread_to_buf:                 1
-;     halt_spin_loop:                1
-;     handle_burst_xfer:             1
-;     handle_cat_update:             1
-;     handle_disconnect:             1
-;     handle_help_paged_mode:        1
-;     handle_net_error:              1
-;     handle_tx_request:             1
-;     handshake_await_ack:           1
-;     hazel_byte_counter_lo:         1
-;     hazel_display_buf_minusF4:     1
-;     hazel_examine_attr:            1
-;     hazel_fcb_addr_lo_minus20:     1
-;     hazel_fcb_addr_mid_minus20:    1
-;     hazel_fcb_network:             1
-;     hazel_fs_reply_byte:           1
-;     hazel_idx_bases:               1
-;     hazel_minus_1a:                1
-;     hazel_net_reply_buf_3:         1
-;     hazel_parse_buf_2:             1
-;     hazel_retry_counter:           1
-;     hazel_sentinel_cd:             1
-;     hazel_sentinel_ce:             1
-;     hazel_transfer_flag:           1
-;     hazel_txcb_access:             1
-;     hazel_txcb_addr_lo:            1
-;     hazel_txcb_byte_16:            1
-;     hazel_txcb_cycle:              1
-;     hazel_txcb_end:                1
-;     hazel_txcb_objtype:            1
-;     hazel_txcb_osword_flag:        1
-;     hazel_xfer_init_zeros:         1
-;     help_dispatch_setup:           1
-;     help_print_char_check:         1
-;     help_print_nfs_cmds:           1
-;     help_topic_template:           1
-;     help_wrap_if_serial:           1
-;     imm_op_build_reply:            1
-;     imm_op_discard:                1
-;     imm_op_handler_lo_table:       1
-;     imm_param_base:                1
-;     immediate_op:                  1
-;     inactive_retry:                1
-;     inc_rxcb_ptr:                  1
-;     increment_and_retry:           1
-;     init_channel_table:            1
-;     init_copy_skip_cmos:           1
-;     init_dump_buffer:              1
-;     init_poll_counters:            1
-;     init_ps_slot_from_rx:          1
-;     init_transfer_addrs:           1
-;     init_tx_ptr_for_pass:          1
-;     init_txcb_bye:                 1
-;     init_txcb_port:                1
-;     init_ws_copy_narrow:           1
-;     install_data_rx_handler:       1
-;     install_imm_data_nmi:          1
-;     install_reply_scout:           1
-;     install_saved_handler:         1
-;     install_tube_rx:               1
-;     inx4:                          1
-;     inx8:                          1
-;     irq_check_dispatch:            1
-;     is_dec_digit_only:             1
-;     issue_svc_15:                  1
-;     jmp_osbyte:                    1
-;     jmp_osnewl:                    1
-;     last_break_type:               1
-;     library_dir_prefix:            1
-;     library_path_string:           1
-;     library_tried:                 1
-;     load_chan_handle:              1
-;     load_char:                     1
-;     load_reply_and_classify:       1
-;     load_suffix_offset:            1
-;     load_text_ptr_and_parse:       1
-;     local_net_prefix:              1
-;     lookup_cat_slot_data:          1
-;     loop_add_disp_bytes:           1
-;     loop_adjust_byte:              1
-;     loop_advance_char:             1
-;     loop_alloc_handles:            1
-;     loop_append_err_suffix:        1
-;     loop_bcd_add:                  1
-;     loop_bridge_tx_delay:          1
-;     loop_build_wipe_cmd:           1
-;     loop_check_exec_bytes:         1
-;     loop_check_ff_addr:            1
-;     loop_check_handles:            1
-;     loop_check_if_locked:          1
-;     loop_check_remaining:          1
-;     loop_check_sep_table:          1
-;     loop_check_vs_limit:           1
-;     loop_checksum_byte:            1
-;     loop_clear_buf:                1
-;     loop_clear_buffer:             1
-;     loop_clear_chan_table:         1
-;     loop_clear_counters:           1
-;     loop_clear_hex_accum:          1
-;     loop_cmp_file_length:          1
-;     loop_cmp_handle:               1
-;     loop_compute_diffs:            1
-;     loop_copy_addr_offset:         1
-;     loop_copy_addrs:               1
-;     loop_copy_bad_prefix:          1
-;     loop_copy_bcd_to_pb:           1
-;     loop_copy_bridge_init:         1
-;     loop_copy_buf_char:            1
-;     loop_copy_cat_info:            1
-;     loop_copy_chan_err_str:        1
-;     loop_copy_channel_msg:         1
-;     loop_copy_char:                1
-;     loop_copy_cmdline_char:        1
-;     loop_copy_command_suffix:      1
-;     loop_copy_error:               1
-;     loop_copy_error_msg:           1
-;     loop_copy_ext_info:            1
-;     loop_copy_fcb_fields:          1
-;     loop_copy_file_info:           1
-;     loop_copy_fs_ctx:              1
-;     loop_copy_fs_num:              1
-;     loop_copy_fs_options:          1
-;     loop_copy_fsopts_4:            1
-;     loop_copy_fsopts_8:            1
-;     loop_copy_fsopts_byte:         1
-;     loop_copy_handles:             1
-;     loop_copy_init_data:           1
-;     loop_copy_inline_str:          1
-;     loop_copy_lib_prefix:          1
-;     loop_copy_limit:               1
-;     loop_copy_logon_cmd:           1
-;     loop_copy_name:                1
-;     loop_copy_no_reply_msg:        1
-;     loop_copy_offset:              1
-;     loop_copy_offsets:             1
-;     loop_copy_opts_to_buf:         1
-;     loop_copy_opts_to_ws:          1
-;     loop_copy_osfile_ptr:          1
-;     loop_copy_osword_data:         1
-;     loop_copy_pb_to_ws:            1
-;     loop_copy_pbytes_to_ws:        1
-;     loop_copy_ps_tmpl:             1
-;     loop_copy_ptr_to_buf:          1
-;     loop_copy_rename:              1
-;     loop_copy_reply_to_zp:         1
-;     loop_copy_return_template:     1
-;     loop_copy_slot_data:           1
-;     loop_copy_slot_tmpl:           1
-;     loop_copy_spool_rx:            1
-;     loop_copy_spool_tx:            1
-;     loop_copy_start_addr:          1
-;     loop_copy_start_end:           1
-;     loop_copy_station:             1
-;     loop_copy_station_msg:         1
-;     loop_copy_suffix:              1
-;     loop_copy_template:            1
-;     loop_copy_text_ptr:            1
-;     loop_copy_to_host:             1
-;     loop_copy_to_ws:               1
-;     loop_copy_topic_name:          1
-;     loop_copy_tx_hdr:              1
-;     loop_copy_txcb_init:           1
-;     loop_copy_vset_stn:            1
-;     loop_copy_wipe_err_msg:        1
-;     loop_copy_wipe_leaf:           1
-;     loop_copy_wipe_name:           1
-;     loop_copy_ws_byte:             1
-;     loop_copy_ws_page:             1
-;     loop_copy_ws_to_pb:            1
-;     loop_copy_zp_to_buf:           1
-;     loop_count_digit:              1
-;     loop_count_rxcb_slot:          1
-;     loop_dispatch_help:            1
-;     loop_divide_decimal_digit:     1
-;     loop_divide_digit:             1
-;     loop_emit_credits:             1
-;     loop_encode_prot:              1
-;     loop_erase_pw:                 1
-;     loop_extract_attr_bits:        1
-;     loop_find_alloc_size:          1
-;     loop_find_name_end:            1
-;     loop_find_rx_slot:             1
-;     loop_gsread_char:              1
-;     loop_help_skip_spaces:         1
-;     loop_inc_dump_addr:            1
-;     loop_indent_spaces:            1
-;     loop_init_txcb:                1
-;     loop_mark_chan_avail:          1
-;     loop_match_char:               1
-;     loop_match_credits:            1
-;     loop_match_on_suffix:          1
-;     loop_next_char:                1
-;     loop_next_dump_col:            1
-;     loop_next_entry:               1
-;     loop_next_reply:               1
-;     loop_pad_poll_name:            1
-;     loop_pad_ps_name:              1
-;     loop_pad_spaces:               1
-;     loop_parse_hex_digit:          1
-;     loop_poll_pass_tx:             1
-;     loop_poll_ws_status:           1
-;     loop_pollps_next_slot:         1
-;     loop_pop_ps_name:              1
-;     loop_pop_ps_slot:              1
-;     loop_print_addr_byte:          1
-;     loop_print_cmd_name:           1
-;     loop_print_dir_format:         1
-;     loop_print_dump_ascii:         1
-;     loop_print_dump_hex:           1
-;     loop_print_filename:           1
-;     loop_print_hex_row:            1
-;     loop_print_inline_string:      1
-;     loop_print_poll_name:          1
-;     loop_print_wipe_info:          1
-;     loop_process_fcb:              1
-;     loop_push_ps_name:             1
-;     loop_push_zero_buf:            1
-;     loop_read_dump_byte:           1
-;     loop_read_gs_string:           1
-;     loop_read_palette:             1
-;     loop_read_poll_char:           1
-;     loop_read_ps_char:             1
-;     loop_restore_ctx:              1
-;     loop_restore_fcb_ws:           1
-;     loop_restore_name:             1
-;     loop_restore_osword_ws:        1
-;     loop_restore_stack:            1
-;     loop_restore_tx_buf:           1
-;     loop_restore_txbuf:            1
-;     loop_retry_tx:                 1
-;     loop_rotate_hex_accum:         1
-;     loop_save_before_match:        1
-;     loop_save_fcb_workspace:       1
-;     loop_save_osword_ws:           1
-;     loop_save_tube_bytes:          1
-;     loop_save_tx_context:          1
-;     loop_scan_channels:            1
-;     loop_scan_colon:               1
-;     loop_scan_entries:             1
-;     loop_scan_entry_data:          1
-;     loop_scan_fcb_flags:           1
-;     loop_scan_fcb_slots:           1
-;     loop_scan_flag:                1
-;     loop_scan_key_range:           1
-;     loop_scan_past_word:           1
-;     loop_scan_ps_slots:            1
-;     loop_send_pb_chars:            1
-;     loop_set_vectors:              1
-;     loop_setup_addr_bytes:         1
-;     loop_shift_filename:           1
-;     loop_shift_name_right:         1
-;     loop_shift_nibble:             1
-;     loop_shift_osfile_data:        1
-;     loop_shift_str_left:           1
-;     loop_skip_filename:            1
-;     loop_skip_fn_spaces:           1
-;     loop_skip_hex_spaces:          1
-;     loop_skip_non_spaces:          1
-;     loop_skip_spaces:              1
-;     loop_skip_to_next:             1
-;     loop_skip_trail_spaces:        1
-;     loop_skip_trailing:            1
-;     loop_store_disp_addr:          1
-;     loop_store_station:            1
-;     loop_store_topic_char:         1
-;     loop_sum_rom_bytes:            1
-;     loop_sum_ws:                   1
-;     loop_swap_and_send:            1
-;     loop_trim_trailing:            1
-;     loop_trim_trailing_spaces:     1
-;     loop_tube_delay:               1
-;     loop_verify_addrs:             1
-;     loop_wait_disc_tx_ack:         1
-;     loop_wait_tx_done:             1
-;     loop_write_to_tube:            1
-;     loop_zero_load_addr:           1
-;     loop_zero_workspace:           1
-;     mark_ws_uninit:                1
-;     mask_error_class:              1
-;     master_fdc_cmd_status:         1
-;     master_fdc_data:               1
-;     match_char_found:              1
-;     match_help_topic:              1
-;     net_error_close_spool:         1
-;     netv:                          1
-;     netv_dispatch_hi:              1
-;     netv_dispatch_lo:              1
-;     next_flag_entry:               1
-;     next_hex_char:                 1
-;     next_scout_byte:               1
-;     nfs_init_check_fs_flags:       1
-;     nfs_temp:                      1
-;     nmi_buf_idx_base:              1
-;     nmi_code_base:                 1
-;     nmi_data_rx_bulk:              1
-;     nmi_data_rx_skip:              1
-;     nmi_data_tx:                   1
-;     nmi_final_ack_validate:        1
-;     nmi_reply_validate:            1
-;     nmi_romsel:                    1
-;     nmi_rx_scout:                  1
-;     nmi_shim_source:               1
-;     no_flag_match:                 1
-;     no_poll_name_given:            1
-;     no_ps_name_given:              1
-;     no_station_loop:               1
-;     not_a_digit:                   1
-;     notify_new_fs:                 1
-;     on_suffix_pattern:             1
-;     open_file_for_read:            1
-;     open_file_for_run:             1
-;     option_offset_table:           1
-;     option_str_offset_data:        1
-;     osargs_check_length:           1
-;     osargs_dispatch:               1
-;     osargs_ptr_dispatch:           1
-;     osargs_read_op:                1
-;     osargs_store_ptr_lo:           1
-;     osargs_write_ptr:              1
-;     osbyte_a2_value_tya:           1
-;     osbyte_x0_y0:                  1
-;     osbyte_yff:                    1
-;     oseven:                        1
-;     osfile:                        1
-;     osfind_close_or_open:          1
-;     osfind_with_channel:           1
-;     osopt_check_cmos_protect:      1
-;     osword_13_dispatch_hi:         1
-;     osword_13_dispatch_lo:         1
-;     osword_13_read_ctx_3:          1
-;     osword_13_write_ctx_3:         1
-;     osword_claim_codes:            1
-;     osword_pb_ready:               1
-;     osword_setup_handler:          1
-;     osword_store_svc_state:        1
-;     osword_subcode_dispatch:       1
-;     page_boundary_restore:         1
-;     parse_cdir_size:               1
-;     parse_fs_dot_dir:              1
-;     parse_object_space_print:      1
-;     parse_separator_flag:          1
-;     pass_send_cmd:                 1
-;     pass_tx_success:               1
-;     peek_retry_count:              1
-;     prep_send_tx_cb:               1
-;     print_char_terminator:         1
-;     print_cmos_decimal_nl:         1
-;     print_cmos_done:               1
-;     print_current_fs:              1
-;     print_dec_3dig_no_spool:       1
-;     print_dir_header:              1
-;     print_field_tail_s:            1
-;     print_file_server_is:          1
-;     print_fs_address:              1
-;     print_fs_info_newline:         1
-;     print_hex_nybble:              1
-;     print_hex_nybble_no_spool:     1
-;     print_indent:                  1
-;     print_load_exec_addrs:         1
-;     print_next_string_char:        1
-;     print_nonzero_digit:           1
-;     print_nybble_leading_zero:     1
-;     print_poll_jammed:             1
-;     print_ps_address:              1
-;     print_ps_now:                  1
-;     print_ps_padding:              1
-;     print_public_label:            1
-;     print_server_is_suffix:        1
-;     print_syntax_char:             1
-;     print_table_newline:           1
-;     print_via_oswrch:              1
-;     printer_busy_msg:              1
-;     private_ws_set_bit:            1
-;     process_reply_code:            1
-;     prot_bit_encode_table:         1
-;     ps_print_template:             1
-;     ps_template_base:              1
-;     ps_tx_header_template:         1
-;     push_osword_handler_addr:      1
-;     read_cat_info:                 1
-;     read_cmos_byte_0:              1
-;     read_osbyte_return:            1
-;     read_osbyte_table:             1
-;     read_osbyte_to_ws_x0:          1
-;     read_ps_station_addr:          1
-;     read_second_rx_byte:           1
-;     read_sr2_between_pairs:        1
-;     recv_and_update:               1
-;     recv_reply:                    1
-;     recv_reply_preserve_flags:     1
-;     reinit_ps_slot:                1
-;     request_next_wipe:             1
-;     reset_enter_listen:            1
-;     restart_table_scan:            1
-;     restore_and_return:            1
-;     restore_catalog_entry:         1
-;     restore_filename:              1
-;     restore_regs_return:           1
-;     restore_retry_state:           1
-;     restore_rom_slot_entry:        1
-;     restore_spool_and_return:      1
-;     restore_svc_state:             1
-;     restore_text_ptr:              1
-;     restore_x_and_return:          1
-;     resume_caller:                 1
-;     retreat_y_by_4:                1
-;     retry_with_library:            1
-;     return_2:                      1
-;     return_3:                      1
-;     return_4:                      1
-;     return_5:                      1
-;     return_6:                      1
-;     return_7:                      1
-;     return_alloc_success:          1
-;     return_chan_index:             1
-;     return_parsed:                 1
-;     return_rx_complete:            1
-;     return_success:                1
-;     return_test_offset:            1
-;     return_with_handle:            1
-;     return_with_result:            1
-;     return_zero_uninit:            1
-;     rom_type_table:                1
-;     rotate_prot_mask:              1
-;     rts_2bit_index:                1
-;     rts_advance_y:                 1
-;     rts_bridge_query:              1
-;     rts_cmp_handle:                1
-;     rts_cond_save_err:             1
-;     rts_copy_arg:                  1
-;     rts_copy_cmd_name:             1
-;     rts_discard_reset:             1
-;     rts_fs_shutdown:               1
-;     rts_match_stn:                 1
-;     rts_osword_13:                 1
-;     rts_poll_slots:                1
-;     rts_print_digit:               1
-;     rts_recv_reply:                1
-;     rts_setup_ws_ptr:              1
-;     rts_skip_arg:                  1
-;     rts_station_match:             1
-;     rts_store_digit:               1
-;     rts_txcb_swap:                 1
-;     rts_write_ws_pair:             1
-;     rx_error_reset:                1
-;     rx_palette_txcb_template:      1
-;     rx_tube_data:                  1
-;     save_ps_cmd_ptr:               1
-;     save_regs_print_no_spool:      1
-;     save_tube_state:               1
-;     save_txcb_done:                1
-;     scan_channel_store_reply:      1
-;     scan_fcb_entry:                1
-;     scan_fcb_flags:                1
-;     scan_nfs_port_list:            1
-;     scan_pass_prompt:              1
-;     scan_port_list:                1
-;     scan_remote_keys:              1
-;     scout_data:                    1
-;     scout_discard:                 1
-;     scout_loop_rda:                1
-;     scout_loop_second:             1
-;     scout_match_port:              1
-;     scout_page_overflow:           1
-;     scout_reject:                  1
-;     select_fs_cmd_net_fs:          1
-;     select_net_fs:                 1
-;     select_store_target:           1
-;     send_close_request:            1
-;     send_delete_request:           1
-;     send_info_request:             1
-;     send_open_file_request:        1
-;     send_osargs_request:           1
-;     send_osbput_data:              1
-;     send_pass_to_fs:               1
-;     send_request_nowrite:          1
-;     send_request_vset:             1
-;     send_with_swap:                1
-;     sep_table_data:                1
-;     separator_char_table:          1
-;     separator_parse_dispatch:      1
-;     serialise_palette_entry:       1
-;     service_handler:               1
-;     set_c_and_return:              1
-;     set_flags_bit2:                1
-;     set_flags_bit3:                1
-;     set_flags_boot:                1
-;     set_fs_select_flag:            1
-;     set_port_and_ctrl:             1
-;     set_rom_ws_page:               1
-;     set_timeout:                   1
-;     set_tube_addr:                 1
-;     set_tx_reply_flag:             1
-;     set_wipe_cr_end:               1
-;     set_write_active:              1
-;     setup_csd_copy:                1
-;     setup_data_xfer:               1
-;     setup_error_copy:              1
-;     setup_ex_pagination:           1
-;     setup_ex_request:              1
-;     setup_fs_root:                 1
-;     setup_gbpb_request:            1
-;     setup_pass_txbuf:              1
-;     setup_save_access:             1
-;     setup_sr_tx:                   1
-;     setup_txcb_addrs:              1
-;     setup_txcb_transfer:           1
-;     setup_unicast_xfer:            1
-;     setup_write_access:            1
-;     setup_ws_rx_ptrs:              1
-;     shift_and_finalise:            1
-;     show_wipe_prompt:              1
-;     skip_buf_ptr_update:           1
-;     skip_buf_setup:                1
-;     skip_clear_prot:               1
-;     skip_dot_and_spaces:           1
-;     skip_if_error:                 1
-;     skip_if_local_net:             1
-;     skip_if_modified_fcb:          1
-;     skip_if_no_match:              1
-;     skip_if_no_poll_arg:           1
-;     skip_if_no_station:            1
-;     skip_if_no_wrap:               1
-;     skip_if_not_a:                 1
-;     skip_if_not_hex:               1
-;     skip_if_not_space:             1
-;     skip_if_out_of_range:          1
-;     skip_if_slots_done:            1
-;     skip_next_ps_slot:             1
-;     skip_no_fs_addr:               1
-;     skip_non_printable:            1
-;     skip_one_and_advance5:         1
-;     skip_restore_byte:             1
-;     skip_struct_hole:              1
-;     skip_template_byte:            1
-;     skip_to_next_arg:              1
-;     skip_tube_update:              1
-;     skip_txcb_dest:                1
-;     skip_wipe_locked:              1
-;     skip_wipe_to_next:             1
-;     spool_tx_retry:                1
-;     spool_tx_succeeded:            1
-;     start_data_tx:                 1
-;     start_help_file_load:          1
-;     start_pass_tx:                 1
-;     start_spool_retry:             1
-;     start_tx_attempt:              1
-;     store_adjusted_byte:           1
-;     store_arg_char:                1
-;     store_buf_ptr_lo:              1
-;     store_digit:                   1
-;     store_direction_flag:          1
-;     store_display_flag:            1
-;     store_fcb_flags:               1
-;     store_owner_flags:             1
-;     store_port_and_send:           1
-;     store_prot_byte:               1
-;     store_ps_station:              1
-;     store_rename_char:             1
-;     store_reply_status:            1
-;     store_result:                  1
-;     store_rx_slot_found:           1
-;     store_slot_tmpl_byte:          1
-;     store_spool_rx_byte:           1
-;     store_stack_byte:              1
-;     store_station_and_flush:       1
-;     store_station_lo:              1
-;     store_status_copy_ptr:         1
-;     store_tx_ctrl_byte:            1
-;     store_tx_ptr_hi:               1
-;     store_txcb_init_byte:          1
-;     store_updated_status:          1
-;     store_via_rx_ptr:              1
-;     store_wipe_tx_char:            1
-;     store_ws_byte:                 1
-;     subst_rx_page_byte:            1
-;     subtract_ws_byte:              1
-;     suffix_copy_loop:              1
-;     suffix_not_listening:          1
-;     svc_dispatch_hi:               1
-;     svc_dispatch_lo:               1
-;     syn_opt_dir:                   1
-;     trigger_brk:                   1
-;     try_alternate_phase:           1
-;     try_library_path:              1
-;     tube_claimed_id:               1
-;     tube_overflow_restore:         1
-;     tube_write_setup:              1
-;     tx_buffer_scratch:             1
-;     tx_check_tdra_ready:           1
-;     tx_ctrl_dispatch_lo-&81:       1
-;     tx_ctrl_exit:                  1
-;     tx_ctrl_range_check:           1
-;     tx_ctrl_store_and_add:         1
-;     tx_data_start:                 1
-;     tx_done_dispatch_lo-&83:       1
-;     tx_econet_txcb_template:       1
-;     tx_error:                      1
-;     tx_fifo_not_ready:             1
-;     tx_fifo_write:                 1
-;     tx_flags_table:                1
-;     tx_imm_idx_base:               1
-;     tx_imm_op_setup:               1
-;     tx_last_data:                  1
-;     tx_length_table:               1
-;     tx_line_idle_check:            1
-;     tx_line_jammed:                1
-;     tx_no_clock_error:             1
-;     tx_prepare:                    1
-;     tx_src_net:                    1
-;     tx_store_error:                1
-;     tx_success:                    1
-;     tx_tdra_error:                 1
-;     txcb_copy_carry_clr:           1
-;     txcb_copy_carry_set:           1
-;     txcb_dest:                     1
-;     txcb_init_template:            1
-;     txcb_pos:                      1
-;     unprot_apply:                  1
-;     unprot_check:                  1
-;     unprot_clear:                  1
-;     update_addr_from_offset1:      1
-;     update_addr_from_offset9:      1
-;     update_cat_position:           1
-;     use_default_station:           1
-;     use_lib_station:               1
-;     use_specified_slot:            1
-;     use_wipe_leaf_name:            1
-;     valid_osgbpb_op:               1
-;     validate_chan_close:           1
-;     validate_handle:               1
-;     validate_station:              1
-;     vdu_display_start_hi:          1
-;     vdu_screen_mode:               1
-;     vec_filev:                     1
-;     vec_fscv:                      1
-;     verify_copy_station_id:        1
-;     verify_stn_match:              1
-;     write_block_entry:             1
-;     write_error_num_and_str:       1
-;     write_key_state:               1
-;     write_second_tx_byte:          1
-;     write_two_bytes_inc_y:         1
-;     ws_copy_vclr_entry:            1
-;     ws_precomputed_value:          1
-;     ws_template_source:            1
-;     ws_txcb_template_data:         1
-;     zp_0063:                       1
-;     zp_0078:                       1
+;     nfs_workspace:                           91
+;     hazel_txcb_data:                         73
+;     fs_options:                              55
+;     net_rx_ptr:                              52
+;     ws_ptr_hi:                               48
+;     econet_control23_or_status2:             46
+;     work_ae:                                 45
+;     fs_load_addr_2:                          38
+;     econet_data_continue_frame:              37
+;     hazel_fs_lib_flags:                      37
+;     net_tx_ptr:                              37
+;     osword_flag:                             34
+;     port_ws_offset:                          34
+;     fs_error_ptr:                            33
+;     print_inline:                            33
+;     econet_control1_or_status1:              32
+;     fs_crc_lo:                               31
+;     hazel_txcb_flag:                         31
+;     fs_flags:                                30
+;     osbyte:                                  29
+;     rx_src_net:                              27
+;     fs_work_4:                               25
+;     hazel_fcb_status:                        25
+;     save_net_tx_cb:                          25
+;     fs_load_addr:                            24
+;     port_buf_len:                            23
+;     hazel_fcb_flags:                         22
+;     always_set_v_byte:                       21
+;     econet_flags:                            20
+;     error_text:                              20
+;     os_text_ptr:                             20
+;     osbyte_a1:                               20
+;     fs_work_5:                               18
+;     hazel_fcb_addr_lo:                       18
+;     hazel_fcb_slot_attr:                     18
+;     acccon:                                  17
+;     hazel_parse_buf:                         17
+;     ws_page:                                 17
+;     fs_block_offset:                         16
+;     open_port_buf_hi:                        16
+;     fs_last_byte_flag:                       15
+;     hazel_fcb_addr_mid:                      15
+;     mask_owner_access:                       15
+;     nmi_tx_block:                            15
+;     svc_state:                               15
+;     hazel_cur_fcb_index:                     14
+;     hazel_fcb_state_byte:                    14
+;     need_release_tube:                       14
+;     net_tx_ptr_hi:                           14
+;     open_port_buf:                           14
+;     port_buf_len_hi:                         14
+;     hazel_txcb_count:                        13
+;     osasci:                                  13
+;     print_inline_no_spool:                   13
+;     set_nmi_vector:                          13
+;     fs_work_6:                               12
+;     hazel_chan_attr:                         12
+;     osnewl:                                  12
+;     return_with_last_flag:                   12
+;     cmd_table_fs:                            11
+;     copy_arg_to_buf:                         11
+;     error_bad_inline:                        11
+;     error_block:                             11
+;     error_inline_log:                        11
+;     fs_load_addr_3:                          11
+;     hazel_fs_network:                        11
+;     net_rx_ptr_hi:                           11
+;     nmi_error_dispatch:                      11
+;     print_char_no_spool:                     11
+;     tx_result_fail:                          11
+;     hazel_txcb_network:                      10
+;     nfs_workspace_hi:                        10
+;     store_rx_attribute:                      10
+;     addr_work:                                9
+;     fs_crflag:                                9
+;     hazel_fcb_addr_hi:                        9
+;     install_nmi_handler:                      9
+;     osword_pb_ptr:                            9
+;     process_all_fcbs:                         9
+;     romsel_copy:                              9
+;     save_ptr_to_os_text:                      9
+;     scout_buf:                                9
+;     tx_src_stn:                               9
+;     txcb_end:                                 9
+;     ws_0d6a:                                  9
+;     error_msg_table:                          8
+;     hazel_txcb_result:                        8
+;     tube_addr_data_dispatch:                  8
+;     tx_complete_flag:                         8
+;     alloc_fcb_slot:                           7
+;     ensure_fs_selected:                       7
+;     finalise_and_return:                      7
+;     fs_load_addr_hi:                          7
+;     hazel_fcb_offset_save:                    7
+;     hazel_txcb_station:                       7
+;     match_station_net:                        7
+;     os_text_ptr_hi:                           7
+;     reject_reply:                             7
+;     rx_buf_offset:                            7
+;     tube_data_register_3:                     7
+;     tx_dst_stn:                               7
+;     txcb_ctrl:                                7
+;     txcb_start:                               7
+;     vdu_status:                               7
+;     ws_ptr_lo:                                7
+;     bin_to_bcd:                               6
+;     cond_save_error_code:                     6
+;     disable_net_nmis:                         6
+;     discard_reset_rx:                         6
+;     error_overflow:                           6
+;     fs_crc_hi:                                6
+;     fs_work_7:                                6
+;     fs_ws_ptr:                                6
+;     hazel_exec_addr:                          6
+;     hazel_fs_context_copy:                    6
+;     hazel_fs_flags:                           6
+;     hazel_fs_station:                         6
+;     hazel_quote_mode:                         6
+;     nmi_rti:                                  6
+;     print_newline_no_spool:                   6
+;     prot_status:                              6
+;     pydis_end:                                6
+;     send_net_packet:                          6
+;     set_xfer_params:                          6
+;     spool_buf_idx:                            6
+;     spool_control_flag:                       6
+;     table_idx:                                6
+;     wait_net_tx_ack:                          6
+;     attr_to_chan_index:                       5
+;     close_ws_file:                            5
+;     copy_arg_to_buf_x0:                       5
+;     copy_pb_byte_to_ws:                       5
+;     escapable:                                5
+;     fs_spool_handle:                          5
+;     hazel_fs_last_error:                      5
+;     hazel_fs_pending_state:                   5
+;     hazel_fs_prefix_stn:                      5
+;     hazel_fs_saved_station:                   5
+;     hazel_offset_counter:                     5
+;     hazel_station_hi:                         5
+;     hazel_station_lo:                         5
+;     init_bridge_poll:                         5
+;     init_txcb:                                5
+;     net_error_lookup_data:                    5
+;     parse_addr_arg:                           5
+;     print_num_no_leading:                     5
+;     prot_flags:                               5
+;     rom_ws_pages:                             5
+;     rx_port:                                  5
+;     scout_ctrl:                               5
+;     scout_error:                              5
+;     scout_port:                               5
+;     stack_page_2:                             5
+;     stack_page_6:                             5
+;     strip_token_prefix:                       5
+;     svc_dispatch:                             5
+;     svc_return_unclaimed:                     5
+;     tube_present:                             5
+;     tx_done_exit:                             5
+;     tx_dst_net:                               5
+;     verify_ws_checksum:                       5
+;     byte_to_2bit_index:                       4
+;     check_net_error_code:                     4
+;     commit_state_byte:                        4
+;     dispatch_svc_index:                       4
+;     done_close:                               4
+;     done_poll_name_parse:                     4
+;     econet_init_flag:                         4
+;     enable_net_nmis:                          4
+;     error_bad_command:                        4
+;     error_inline:                             4
+;     escape_flag:                              4
+;     exec_addr_lo:                             4
+;     get_ws_page:                              4
+;     gsinit:                                   4
+;     gsread:                                   4
+;     hazel_fcb_attr_ref:                       4
+;     hazel_txcb_lib:                           4
+;     load_ps_server_addr:                      4
+;     loop_find_fcb:                            4
+;     loop_poll_tx:                             4
+;     loop_scan_fcb_down:                       4
+;     nmi_tx_block_hi:                          4
+;     osbyte_x0:                                4
+;     osfind:                                   4
+;     parse_access_prefix:                      4
+;     parse_fs_ps_args:                         4
+;     port_match_found:                         4
+;     print_station_addr:                       4
+;     process_spool_data:                       4
+;     read_pw_char:                             4
+;     read_rx_attribute:                        4
+;     rts_spool_reset:                          4
+;     rx_ctrl:                                  4
+;     saved_nmi_hi:                             4
+;     saved_nmi_lo:                             4
+;     scout_src_net:                            4
+;     store_a_to_pb_1:                          4
+;     tx_op_type:                               4
+;     txcb_port:                                4
+;     zp_work_3:                                4
+;     adlc_full_reset:                          3
+;     advance_buffer_ptr:                       3
+;     alloc_fcb_with_flags:                     3
+;     append_byte_to_rxbuf:                     3
+;     check_tube_irq_loop:                      3
+;     clear_channel_flag:                       3
+;     close_all_net_chans:                      3
+;     copy_arg_validated:                       3
+;     data_tx_last:                             3
+;     dispatch_rts:                             3
+;     dispatch_svc_state_check:                 3
+;     done_add_disp_base:                       3
+;     done_poll_status_line:                    3
+;     done_ps_name_parse:                       3
+;     err_bad_hex:                              3
+;     err_bad_station_num:                      3
+;     error_bad_filename:                       3
+;     error_bad_hex_value:                      3
+;     find_matching_fcb:                        3
+;     find_station_bit3:                        3
+;     handle_invalid:                           3
+;     hazel_buf_addr_hi:                        3
+;     hazel_chan_ref:                           3
+;     hazel_chan_status:                        3
+;     hazel_cur_dir_handle:                     3
+;     hazel_display_buf:                        3
+;     hazel_fcb_station_hi:                     3
+;     hazel_fcb_station_lo:                     3
+;     hazel_fs_error_code:                      3
+;     hazel_fs_messages_flag:                   3
+;     hazel_minus_2:                            3
+;     hazel_parse_buf_1:                        3
+;     hazel_pass_counter:                       3
+;     hazel_txcb_port:                          3
+;     inx16:                                    3
+;     is_decimal_digit:                         3
+;     jmp_restore_fs_ctx:                       3
+;     loop_ps_delay:                            3
+;     match_fs_cmd:                             3
+;     match_rx_code:                            3
+;     next_handle_slot:                         3
+;     next_port_slot:                           3
+;     nmi_jmp_hi:                               3
+;     nmi_jmp_lo:                               3
+;     osbyte_a2:                                3
+;     osbyte_a_copy:                            3
+;     osword:                                   3
+;     osword_pb_ptr_hi:                         3
+;     parse_cmd_arg_y0:                         3
+;     parse_filename_arg:                       3
+;     poll_econet_data_continue_frame_status:   3
+;     print_10_chars:                           3
+;     process_match_result:                     3
+;     prot_status_save:                         3
+;     read_filename_char:                       3
+;     read_last_rx_byte:                        3
+;     reload_inactive_mask:                     3
+;     reset_adlc_rx_listen:                     3
+;     restore_fs_context:                       3
+;     rts_advance_buf:                          3
+;     rts_strip_prefix:                         3
+;     rx_complete_update_rxcb:                  3
+;     rx_remote_addr:                           3
+;     save_text_ptr:                            3
+;     send_cmd_and_dispatch:                    3
+;     send_disconnect_reply:                    3
+;     store_rx_result:                          3
+;     tube_claim_c3:                            3
+;     tx_bad_ctrl_error:                        3
+;     tx_begin:                                 3
+;     tx_calc_transfer:                         3
+;     tx_econet_abort:                          3
+;     update_fcb_flag_bits:                     3
+;     vdu_mode:                                 3
+;     write_second_tube_byte:                   3
+;     zp_work_2:                                3
+;     ack_tx:                                   2
+;     ack_tx_write_dest:                        2
+;     adjust_fsopts_4bytes:                     2
+;     adlc_rx_listen:                           2
+;     advance_rx_buffer_ptr:                    2
+;     advance_template_idx:                     2
+;     advance_y_by_4:                           2
+;     alloc_fcb_or_error:                       2
+;     alloc_store_station_id:                   2
+;     append_decimal_digit:                     2
+;     append_decimal_num:                       2
+;     append_drv_dot_num:                       2
+;     append_error_number:                      2
+;     append_space_and_num:                     2
+;     boot_select_cmd:                          2
+;     build_error_block:                        2
+;     build_simple_error:                       2
+;     check_adlc_flag:                          2
+;     check_and_setup_txcb:                     2
+;     check_chan_char:                          2
+;     check_escape_and_classify:                2
+;     check_not_ampersand:                      2
+;     check_not_dir:                            2
+;     check_tx_in_progress:                     2
+;     classify_reply_error:                     2
+;     clear_conn_active:                        2
+;     clear_if_station_match:                   2
+;     clear_result:                             2
+;     clear_v_flag:                             2
+;     cmd_dispatch_hi_table:                    2
+;     cmd_dispatch_lo_table:                    2
+;     cmd_net_fs:                               2
+;     cmd_pass:                                 2
+;     cmp_5byte_handle:                         2
+;     col_sep_eol_check:                        2
+;     copy_fs_cmd_name:                         2
+;     copy_fsopts_to_zp:                        2
+;     copy_scout_via_tube:                      2
+;     copy_workspace_to_fsopts:                 2
+;     credits_keyword_start:                    2
+;     data_rx_tube_complete:                    2
+;     data_tx_check_fifo:                       2
+;     discard_handle_match:                     2
+;     discard_no_match:                         2
+;     discard_reset_listen:                     2
+;     dispatch_fs_cmd:                          2
+;     dispatch_nmi_error:                       2
+;     dispatch_via_vector:                      2
+;     do_print_no_spool:                        2
+;     done_advance_start:                       2
+;     done_check_station:                       2
+;     done_file_open:                           2
+;     done_load_from_buf:                       2
+;     done_osfind:                              2
+;     done_parse_num:                           2
+;     done_poll_tx:                             2
+;     done_ps_slot_mark:                        2
+;     done_ps_slot_scan:                        2
+;     done_set_dirty_flag:                      2
+;     done_strip_prefix:                        2
+;     done_test_hex_space:                      2
+;     done_uppercase_store:                     2
+;     done_vset_station:                        2
+;     enable_irq_and_poll:                      2
+;     err_net_chan_invalid:                     2
+;     error_bad_number:                         2
+;     error_bad_param:                          2
+;     error_bad_prefix:                         2
+;     error_net_checksum:                       2
+;     error_osargs:                             2
+;     error_outside_file:                       2
+;     exec_addr_hi:                             2
+;     fallback_calc_transfer:                   2
+;     find_open_fcb:                            2
+;     flip_set_station_boot:                    2
+;     format_filename_field:                    2
+;     frame_complete_restore:                   2
+;     frame_end_restore:                        2
+;     get_access_bits:                          2
+;     get_pb_ptr_as_index:                      2
+;     get_prot_bits:                            2
+;     handle_dot_sep:                           2
+;     handle_spool_ctrl_byte:                   2
+;     hazel_ctx_buffer:                         2
+;     hazel_fcb_slot_1:                         2
+;     hazel_fcb_slot_2:                         2
+;     hazel_fcb_slot_3:                         2
+;     hazel_fs_opts_addend:                     2
+;     hazel_minus_1:                            2
+;     hazel_net_reply_buf_0:                    2
+;     hazel_net_reply_buf_1:                    2
+;     hazel_net_reply_buf_2:                    2
+;     hazel_parse_buf_m1:                       2
+;     hazel_rtc_buffer:                         2
+;     hazel_saved_byte:                         2
+;     hazel_txcb_addr_hi:                       2
+;     hazel_txcb_func_code:                     2
+;     hazel_txcb_len:                           2
+;     hazel_txcb_size_hi:                       2
+;     hazel_txcb_tx_status:                     2
+;     hazel_txcb_type:                          2
+;     help_print_start:                         2
+;     imm_op_out_of_range:                      2
+;     inc_fcb_byte_count:                       2
+;     init_adlc_and_vectors:                    2
+;     init_remote_session:                      2
+;     init_spool_drive:                         2
+;     init_tx_ptr_and_send:                     2
+;     init_wipe_counters:                       2
+;     init_ws_copy_wide:                        2
+;     lookup_cat_entry_0:                       2
+;     lookup_chan_by_char:                      2
+;     loop_copy_arg_char:                       2
+;     loop_copy_ws_template:                    2
+;     loop_drain_printer_buf:                   2
+;     loop_dump_line:                           2
+;     loop_find_pending_fcb:                    2
+;     loop_next_fcb_slot:                       2
+;     loop_pass_tx_delay:                       2
+;     loop_pop_stack_buf:                       2
+;     loop_print_help_byte:                     2
+;     loop_print_hex_byte:                      2
+;     loop_print_syntax:                        2
+;     loop_reload_attr:                         2
+;     loop_restore_workspace:                   2
+;     loop_scan_disconnect:                     2
+;     loop_scan_empty_fcb:                      2
+;     loop_search_stn_bit2:                     2
+;     loop_search_stn_bit3:                     2
+;     loop_search_stn_boot:                     2
+;     loop_skip_space_chars:                    2
+;     loop_tx_delay:                            2
+;     loop_wait_ws_status:                      2
+;     mark_not_found:                           2
+;     match_char_loop_cmp:                      2
+;     match_char_process:                       2
+;     net_chan_err_strings:                     2
+;     next_dec_char:                            2
+;     next_fcb_entry:                           2
+;     osargs:                                   2
+;     osbget:                                   2
+;     oscli:                                    2
+;     osrdch:                                   2
+;     osword_11_done:                           2
+;     oswrch:                                   2
+;     pad_with_spaces:                          2
+;     parse_dump_range:                         2
+;     parse_quoted_arg:                         2
+;     pass_txbuf_init_table:                    2
+;     poll_nmi_idle:                            2
+;     pop_requeue_ps_scan:                      2
+;     print_5_hex_bytes:                        2
+;     print_byte_no_spool:                      2
+;     print_chars_from_buf:                     2
+;     print_cmd_table:                          2
+;     print_cmd_table_loop:                     2
+;     print_dec_digit_no_spool:                 2
+;     print_decimal_3dig:                       2
+;     print_decimal_digit:                      2
+;     print_dir_syntax:                         2
+;     print_dump_header:                        2
+;     print_fs_station:                         2
+;     print_hex_and_space:                      2
+;     print_hex_byte:                           2
+;     print_hex_byte_no_spool:                  2
+;     print_printer_server_is:                  2
+;     print_station_id:                         2
+;     print_station_low:                        2
+;     print_version_header:                     2
+;     prompt_yn:                                2
+;     raise_escape_error:                       2
+;     recv_and_process_reply:                   2
+;     release_tube:                             2
+;     reset_spool_buf_state:                    2
+;     restore_rom_slot:                         2
+;     retreat_y_by_3:                           2
+;     return_1:                                 2
+;     reverse_ps_name_to_tx:                    2
+;     romsel:                                   2
+;     rts_bridge_poll:                          2
+;     rts_claim_release:                        2
+;     rts_credits_check:                        2
+;     rts_digit_test:                           2
+;     rts_help_wrap:                            2
+;     rts_inc_fcb_count:                        2
+;     rts_match_rx_code:                        2
+;     rts_raise_y_to_c8:                        2
+;     rts_save_text_ptr:                        2
+;     rx_extra_byte:                            2
+;     rx_wait_timeout:                          2
+;     save_fcb_context:                         2
+;     save_net_tx_cb_vset:                      2
+;     save_ptr_to_spool_buf:                    2
+;     save_txcb_and_convert:                    2
+;     scout_complete:                           2
+;     scout_done_restore_x:                     2
+;     select_fs_via_cmd_net_fs:                 2
+;     send_ack:                                 2
+;     send_and_receive:                         2
+;     send_data_rx_ack:                         2
+;     send_disconnect_status:                   2
+;     send_fs_request:                          2
+;     send_request_write:                       2
+;     send_save_or_access:                      2
+;     send_txcb_swap_addrs:                     2
+;     send_wipe_request:                        2
+;     set_conn_active:                          2
+;     set_nmi_rx_scout:                         2
+;     set_options_ptr:                          2
+;     set_text_and_xfer_ptr:                    2
+;     set_ws_pair_0d68_0d69:                    2
+;     setup_dir_display:                        2
+;     setup_transfer_workspace:                 2
+;     setup_ws_ptr:                             2
+;     shadow_enable_flag:                       2
+;     skip_entry_chars:                         2
+;     skip_rename_spaces:                       2
+;     skip_sep_spaces:                          2
+;     stack_page_3:                             2
+;     stack_page_4:                             2
+;     start_wipe_pass:                          2
+;     store_bridge_station:                     2
+;     store_char_uppercase:                     2
+;     store_pb_result:                          2
+;     store_ptr_at_ws_y:                        2
+;     store_result_check_dir:                   2
+;     store_station_result:                     2
+;     store_stn_flags_restore:                  2
+;     store_tx_error:                           2
+;     svc4_dispatch_lookup:                     2
+;     tail_update_catalogue:                    2
+;     terminate_buf:                            2
+;     try_nfs_port_list:                        2
+;     tube_tx_fifo_write:                       2
+;     tx_addr_base:                             2
+;     tx_ctrl_byte:                             2
+;     tx_port:                                  2
+;     tx_result_ok:                             2
+;     tx_retry_count:                           2
+;     tx_send_error:                            2
+;     tx_store_result:                          2
+;     write_data_block:                         2
+;     write_ps_slot_byte_ff:                    2
+;     write_vector_entry:                       2
+;     zp_ptr_hi:                                2
+;     zp_ptr_lo:                                2
+;     abort_if_escape:                          1
+;     accept_frame:                             1
+;     accept_local_net:                         1
+;     accept_scout_net:                         1
+;     ack_tx_configure:                         1
+;     add_ascii_base:                           1
+;     add_bytes_loop:                           1
+;     add_rxcb_ptr:                             1
+;     add_workspace_to_fsopts:                  1
+;     adlc_init:                                1
+;     adlc_init_done:                           1
+;     advance_positions:                        1
+;     advance_spool_rx_idx:                     1
+;     alloc_common_entry:                       1
+;     alloc_error_overflow:                     1
+;     alloc_fcb_for_open:                       1
+;     alloc_post_restore_check:                 1
+;     alloc_run_channel:                        1
+;     alloc_run_fcb:                            1
+;     append_space:                             1
+;     append_station_num:                       1
+;     assign_handle_2:                          1
+;     assign_handle_3:                          1
+;     bad_prefix_table:                         1
+;     begin_prot_encode:                        1
+;     boot_cancel_rts:                          1
+;     boot_cmd_lo_table:                        1
+;     boot_cmd_oscli:                           1
+;     boot_persist_fs_maybe:                    1
+;     boot_try_findlib:                         1
+;     bra_target_svc_return:                    1
+;     bridge_err_table:                         1
+;     bridge_found:                             1
+;     bridge_responded:                         1
+;     bridge_txcb_init_table:                   1
+;     brk_ptr:                                  1
+;     build_no_reply_error:                     1
+;     byte_pair_restore:                        1
+;     calc_peek_poke_size:                      1
+;     calc_transfer_size:                       1
+;     call_fscv:                                1
+;     cat_after_label_print:                    1
+;     cat_set_lib_flag:                         1
+;     cdir_size_done:                           1
+;     cdir_size_thresholds:                     1
+;     cdir_unused_dispatch_table:               1
+;     check_auto_boot_flag:                     1
+;     check_chan_range:                         1
+;     check_char_type:                          1
+;     check_cmd_flags:                          1
+;     check_colon_prefix:                       1
+;     check_credits_easter_egg:                 1
+;     check_data_loss:                          1
+;     check_digit_range:                        1
+;     check_display_type:                       1
+;     check_exec_addr:                          1
+;     check_fifo_loop:                          1
+;     check_fs_dot:                             1
+;     check_fv_final_ack:                       1
+;     check_handle_2:                           1
+;     check_handle_3:                           1
+;     check_handle_alloc:                       1
+;     check_handshake_bit:                      1
+;     check_hash_prefix:                        1
+;     check_help_topic:                         1
+;     check_msg_terminator:                     1
+;     check_open_mode:                          1
+;     check_open_quote:                         1
+;     check_poll_busy:                          1
+;     check_poll_jammed:                        1
+;     check_port_slot:                          1
+;     check_pw_special:                         1
+;     check_separator:                          1
+;     check_spool_state:                        1
+;     check_station_filter:                     1
+;     check_tdra_status:                        1
+;     check_urd_prefix:                         1
+;     check_wipe_attr:                          1
+;     check_wipe_dir:                           1
+;     check_wipe_response:                      1
+;     clamp_end_to_limit:                       1
+;     clear_buf_after_write:                    1
+;     clear_c_flag:                             1
+;     clear_escapable:                          1
+;     clear_flag_bits:                          1
+;     clear_release_flag:                       1
+;     clear_single_fcb:                         1
+;     clear_svc_and_ws:                         1
+;     clear_workspace_byte:                     1
+;     close_all_channels:                       1
+;     close_all_fcbs:                           1
+;     close_specific_chan:                      1
+;     close_spool_exec:                         1
+;     cmd_fs_reentry:                           1
+;     cmd_run_load_mask:                        1
+;     cmd_run_via_urd:                          1
+;     cmd_syntax_strings:                       1
+;     cmd_syntax_table:                         1
+;     cmd_table_nfs_iam:                        1
+;     cmos_attr_table:                          1
+;     cmos_opt_mask_table:                      1
+;     col_sep_print_char:                       1
+;     col_sep_print_cr:                         1
+;     commit_workspace_pages:                   1
+;     complete_nfs_init:                        1
+;     copy_addr_loop:                           1
+;     copy_arg_and_enum:                        1
+;     copy_bcast_addr:                          1
+;     copy_from_buf_entry:                      1
+;     copy_imm_params:                          1
+;     copy_nmi_shim:                            1
+;     copy_pb_and_mark:                         1
+;     copy_pb_to_ws:                            1
+;     copy_ps_data:                             1
+;     copy_ps_data_y1c:                         1
+;     copy_scout_bytes:                         1
+;     copy_scout_to_buffer:                     1
+;     copy_ws_byte_to_pb:                       1
+;     copy_ws_then_fsopts:                      1
+;     data_rx_complete:                         1
+;     data_rx_loop:                             1
+;     data_tx_begin:                            1
+;     delay_nmi_disable:                        1
+;     dir_found_send:                           1
+;     dir_op_dispatch:                          1
+;     dir_pass_simple:                          1
+;     dispatch_fs_ps_with_arg:                  1
+;     dispatch_imm_op:                          1
+;     dispatch_imm_op_fail:                     1
+;     dispatch_ops_1_to_6:                      1
+;     dispatch_osfind_op:                       1
+;     dispatch_osword_op:                       1
+;     dispatch_svc5:                            1
+;     dispatch_svc_with_state:                  1
+;     do_fs_cmd_iteration:                      1
+;     done_advance_fcb:                         1
+;     done_alloc_handles:                       1
+;     done_bcd_convert:                         1
+;     done_calc_offset:                         1
+;     done_cap_ws_count:                        1
+;     done_cdir_size:                           1
+;     done_check_boundary:                      1
+;     done_check_buf_offset:                    1
+;     done_check_dump_eof:                      1
+;     done_check_fcb_status:                    1
+;     done_check_outside:                       1
+;     done_clear_fcb_active:                    1
+;     done_close_files:                         1
+;     done_commit_state:                        1
+;     done_credits_check:                       1
+;     done_dump_eof:                            1
+;     done_end_dump_line:                       1
+;     done_entry_newline:                       1
+;     done_find_write_fcb:                      1
+;     done_flush_fcb:                           1
+;     done_found_free_slot:                     1
+;     done_inc_byte_count:                      1
+;     done_init_wipe:                           1
+;     done_mask_hex_digit:                      1
+;     done_no_reply_msg:                        1
+;     done_osword_op:                           1
+;     done_parse_disp_base:                     1
+;     done_pass_retries:                        1
+;     done_poll_name_print:                     1
+;     done_poll_slot_mark:                      1
+;     done_print_newline:                       1
+;     done_print_separator:                     1
+;     done_print_table:                         1
+;     done_ps_available:                        1
+;     done_ps_scan:                             1
+;     done_read_fcb_byte:                       1
+;     done_restore_offset:                      1
+;     done_return_flag:                         1
+;     done_run_dispatch:                        1
+;     done_save_context:                        1
+;     done_search_bit2:                         1
+;     done_search_bit3:                         1
+;     done_search_boot:                         1
+;     done_select_fcb:                          1
+;     done_set_fcb_active:                      1
+;     done_skip_filename:                       1
+;     done_spool_ctrl:                          1
+;     done_start_dump_addr:                     1
+;     done_station_msg:                         1
+;     done_suffix:                              1
+;     done_terminate_wipe_err:                  1
+;     done_test_del:                            1
+;     done_test_empty_slot:                     1
+;     done_test_fcb_active:                     1
+;     done_test_write_flag:                     1
+;     done_toggle_station:                      1
+;     done_trim_spaces:                         1
+;     done_write_block:                         1
+;     done_ws_template_copy:                    1
+;     econet_data_terminate_frame:              1
+;     enable_irq_pending:                       1
+;     err_printer_busy:                         1
+;     error_bad_net_num:                        1
+;     error_bad_rename:                         1
+;     error_chan_not_found:                     1
+;     error_chan_not_here:                      1
+;     error_chan_out_of_range:                  1
+;     error_end_of_file:                        1
+;     error_escape_pressed:                     1
+;     error_hex_overflow:                       1
+;     error_invalid_chan:                       1
+;     escape_error_close:                       1
+;     evntv:                                    1
+;     ex_print_col_sep:                         1
+;     ex_set_lib_flag:                          1
+;     extract_digit_value:                      1
+;     false_ref_6f6e:                           1
+;     fcb_workspace_idx_base:                   1
+;     fdc_1770_command_or_status:               1
+;     fdc_1770_data:                            1
+;     filev:                                    1
+;     find_station_bit2:                        1
+;     findv_handler:                            1
+;     fixup_reply_status_a:                     1
+;     flush_fcb_if_stn_known:                   1
+;     flush_fcb_with_init:                      1
+;     fs_info_template:                         1
+;     fs_template_done:                         1
+;     fs_vector_table:                          1
+;     fscv:                                     1
+;     fscv_2_star_run:                          1
+;     fscv_3_star_cmd:                          1
+;     fsreply_3_set_csd:                        1
+;     generate_event:                           1
+;     get_ws_page_loop:                         1
+;     gsread_to_buf:                            1
+;     halt_spin_loop:                           1
+;     handle_burst_xfer:                        1
+;     handle_cat_update:                        1
+;     handle_disconnect:                        1
+;     handle_help_paged_mode:                   1
+;     handle_net_error:                         1
+;     handle_tx_request:                        1
+;     handshake_await_ack:                      1
+;     hazel_byte_counter_lo:                    1
+;     hazel_display_buf_minusF4:                1
+;     hazel_examine_attr:                       1
+;     hazel_fcb_addr_lo_minus20:                1
+;     hazel_fcb_addr_mid_minus20:               1
+;     hazel_fcb_network:                        1
+;     hazel_fs_reply_byte:                      1
+;     hazel_idx_bases:                          1
+;     hazel_minus_1a:                           1
+;     hazel_net_reply_buf_3:                    1
+;     hazel_parse_buf_2:                        1
+;     hazel_retry_counter:                      1
+;     hazel_sentinel_cd:                        1
+;     hazel_sentinel_ce:                        1
+;     hazel_transfer_flag:                      1
+;     hazel_txcb_access:                        1
+;     hazel_txcb_addr_lo:                       1
+;     hazel_txcb_byte_16:                       1
+;     hazel_txcb_cycle:                         1
+;     hazel_txcb_end:                           1
+;     hazel_txcb_objtype:                       1
+;     hazel_txcb_osword_flag:                   1
+;     hazel_xfer_init_zeros:                    1
+;     help_dispatch_setup:                      1
+;     help_print_char_check:                    1
+;     help_print_nfs_cmds:                      1
+;     help_topic_template:                      1
+;     help_wrap_if_serial:                      1
+;     imm_op_build_reply:                       1
+;     imm_op_discard:                           1
+;     imm_op_handler_lo_table:                  1
+;     imm_param_base:                           1
+;     immediate_op:                             1
+;     inactive_retry:                           1
+;     inc_rxcb_ptr:                             1
+;     increment_and_retry:                      1
+;     init_channel_table:                       1
+;     init_copy_skip_cmos:                      1
+;     init_dump_buffer:                         1
+;     init_poll_counters:                       1
+;     init_ps_slot_from_rx:                     1
+;     init_transfer_addrs:                      1
+;     init_tx_ptr_for_pass:                     1
+;     init_txcb_bye:                            1
+;     init_txcb_port:                           1
+;     init_ws_copy_narrow:                      1
+;     install_data_rx_handler:                  1
+;     install_imm_data_nmi:                     1
+;     install_reply_scout:                      1
+;     install_saved_handler:                    1
+;     install_tube_rx:                          1
+;     inx4:                                     1
+;     inx8:                                     1
+;     irq_check_dispatch:                       1
+;     is_dec_digit_only:                        1
+;     issue_svc_15:                             1
+;     jmp_osbyte:                               1
+;     jmp_osnewl:                               1
+;     last_break_type:                          1
+;     library_dir_prefix:                       1
+;     library_path_string:                      1
+;     library_tried:                            1
+;     load_chan_handle:                         1
+;     load_char:                                1
+;     load_reply_and_classify:                  1
+;     load_suffix_offset:                       1
+;     load_text_ptr_and_parse:                  1
+;     local_net_prefix:                         1
+;     lookup_cat_slot_data:                     1
+;     loop_add_disp_bytes:                      1
+;     loop_adjust_byte:                         1
+;     loop_advance_char:                        1
+;     loop_alloc_handles:                       1
+;     loop_append_err_suffix:                   1
+;     loop_bcd_add:                             1
+;     loop_bridge_tx_delay:                     1
+;     loop_build_wipe_cmd:                      1
+;     loop_check_exec_bytes:                    1
+;     loop_check_ff_addr:                       1
+;     loop_check_handles:                       1
+;     loop_check_if_locked:                     1
+;     loop_check_remaining:                     1
+;     loop_check_sep_table:                     1
+;     loop_check_vs_limit:                      1
+;     loop_checksum_byte:                       1
+;     loop_clear_buf:                           1
+;     loop_clear_buffer:                        1
+;     loop_clear_chan_table:                    1
+;     loop_clear_counters:                      1
+;     loop_clear_hex_accum:                     1
+;     loop_cmp_file_length:                     1
+;     loop_cmp_handle:                          1
+;     loop_compute_diffs:                       1
+;     loop_copy_addr_offset:                    1
+;     loop_copy_addrs:                          1
+;     loop_copy_bad_prefix:                     1
+;     loop_copy_bcd_to_pb:                      1
+;     loop_copy_bridge_init:                    1
+;     loop_copy_buf_char:                       1
+;     loop_copy_cat_info:                       1
+;     loop_copy_chan_err_str:                   1
+;     loop_copy_channel_msg:                    1
+;     loop_copy_char:                           1
+;     loop_copy_cmdline_char:                   1
+;     loop_copy_command_suffix:                 1
+;     loop_copy_error:                          1
+;     loop_copy_error_msg:                      1
+;     loop_copy_ext_info:                       1
+;     loop_copy_fcb_fields:                     1
+;     loop_copy_file_info:                      1
+;     loop_copy_fs_ctx:                         1
+;     loop_copy_fs_num:                         1
+;     loop_copy_fs_options:                     1
+;     loop_copy_fsopts_4:                       1
+;     loop_copy_fsopts_8:                       1
+;     loop_copy_fsopts_byte:                    1
+;     loop_copy_handles:                        1
+;     loop_copy_init_data:                      1
+;     loop_copy_inline_str:                     1
+;     loop_copy_lib_prefix:                     1
+;     loop_copy_limit:                          1
+;     loop_copy_logon_cmd:                      1
+;     loop_copy_name:                           1
+;     loop_copy_no_reply_msg:                   1
+;     loop_copy_offset:                         1
+;     loop_copy_offsets:                        1
+;     loop_copy_opts_to_buf:                    1
+;     loop_copy_opts_to_ws:                     1
+;     loop_copy_osfile_ptr:                     1
+;     loop_copy_osword_data:                    1
+;     loop_copy_pb_to_ws:                       1
+;     loop_copy_pbytes_to_ws:                   1
+;     loop_copy_ps_tmpl:                        1
+;     loop_copy_ptr_to_buf:                     1
+;     loop_copy_rename:                         1
+;     loop_copy_reply_to_zp:                    1
+;     loop_copy_return_template:                1
+;     loop_copy_slot_data:                      1
+;     loop_copy_slot_tmpl:                      1
+;     loop_copy_spool_rx:                       1
+;     loop_copy_spool_tx:                       1
+;     loop_copy_start_addr:                     1
+;     loop_copy_start_end:                      1
+;     loop_copy_station:                        1
+;     loop_copy_station_msg:                    1
+;     loop_copy_suffix:                         1
+;     loop_copy_template:                       1
+;     loop_copy_text_ptr:                       1
+;     loop_copy_to_host:                        1
+;     loop_copy_to_ws:                          1
+;     loop_copy_topic_name:                     1
+;     loop_copy_tx_hdr:                         1
+;     loop_copy_txcb_init:                      1
+;     loop_copy_vset_stn:                       1
+;     loop_copy_wipe_err_msg:                   1
+;     loop_copy_wipe_leaf:                      1
+;     loop_copy_wipe_name:                      1
+;     loop_copy_ws_byte:                        1
+;     loop_copy_ws_page:                        1
+;     loop_copy_ws_to_pb:                       1
+;     loop_copy_zp_to_buf:                      1
+;     loop_count_digit:                         1
+;     loop_count_rxcb_slot:                     1
+;     loop_dispatch_help:                       1
+;     loop_divide_decimal_digit:                1
+;     loop_divide_digit:                        1
+;     loop_emit_credits:                        1
+;     loop_encode_prot:                         1
+;     loop_erase_pw:                            1
+;     loop_extract_attr_bits:                   1
+;     loop_find_alloc_size:                     1
+;     loop_find_name_end:                       1
+;     loop_find_rx_slot:                        1
+;     loop_gsread_char:                         1
+;     loop_help_skip_spaces:                    1
+;     loop_inc_dump_addr:                       1
+;     loop_indent_spaces:                       1
+;     loop_init_txcb:                           1
+;     loop_mark_chan_avail:                     1
+;     loop_match_char:                          1
+;     loop_match_credits:                       1
+;     loop_match_on_suffix:                     1
+;     loop_next_char:                           1
+;     loop_next_dump_col:                       1
+;     loop_next_entry:                          1
+;     loop_next_reply:                          1
+;     loop_pad_poll_name:                       1
+;     loop_pad_ps_name:                         1
+;     loop_pad_spaces:                          1
+;     loop_parse_hex_digit:                     1
+;     loop_poll_pass_tx:                        1
+;     loop_poll_ws_status:                      1
+;     loop_pollps_next_slot:                    1
+;     loop_pop_ps_name:                         1
+;     loop_pop_ps_slot:                         1
+;     loop_print_addr_byte:                     1
+;     loop_print_cmd_name:                      1
+;     loop_print_dir_format:                    1
+;     loop_print_dump_ascii:                    1
+;     loop_print_dump_hex:                      1
+;     loop_print_filename:                      1
+;     loop_print_hex_row:                       1
+;     loop_print_inline_string:                 1
+;     loop_print_poll_name:                     1
+;     loop_print_wipe_info:                     1
+;     loop_process_fcb:                         1
+;     loop_push_ps_name:                        1
+;     loop_push_zero_buf:                       1
+;     loop_read_dump_byte:                      1
+;     loop_read_gs_string:                      1
+;     loop_read_palette:                        1
+;     loop_read_poll_char:                      1
+;     loop_read_ps_char:                        1
+;     loop_restore_ctx:                         1
+;     loop_restore_fcb_ws:                      1
+;     loop_restore_name:                        1
+;     loop_restore_osword_ws:                   1
+;     loop_restore_stack:                       1
+;     loop_restore_tx_buf:                      1
+;     loop_restore_txbuf:                       1
+;     loop_retry_tx:                            1
+;     loop_rotate_hex_accum:                    1
+;     loop_save_before_match:                   1
+;     loop_save_fcb_workspace:                  1
+;     loop_save_osword_ws:                      1
+;     loop_save_tube_bytes:                     1
+;     loop_save_tx_context:                     1
+;     loop_scan_channels:                       1
+;     loop_scan_colon:                          1
+;     loop_scan_entries:                        1
+;     loop_scan_entry_data:                     1
+;     loop_scan_fcb_flags:                      1
+;     loop_scan_fcb_slots:                      1
+;     loop_scan_flag:                           1
+;     loop_scan_key_range:                      1
+;     loop_scan_past_word:                      1
+;     loop_scan_ps_slots:                       1
+;     loop_send_pb_chars:                       1
+;     loop_set_vectors:                         1
+;     loop_setup_addr_bytes:                    1
+;     loop_shift_filename:                      1
+;     loop_shift_name_right:                    1
+;     loop_shift_nibble:                        1
+;     loop_shift_osfile_data:                   1
+;     loop_shift_str_left:                      1
+;     loop_skip_filename:                       1
+;     loop_skip_fn_spaces:                      1
+;     loop_skip_hex_spaces:                     1
+;     loop_skip_non_spaces:                     1
+;     loop_skip_spaces:                         1
+;     loop_skip_to_next:                        1
+;     loop_skip_trail_spaces:                   1
+;     loop_skip_trailing:                       1
+;     loop_store_disp_addr:                     1
+;     loop_store_station:                       1
+;     loop_store_topic_char:                    1
+;     loop_sum_rom_bytes:                       1
+;     loop_sum_ws:                              1
+;     loop_swap_and_send:                       1
+;     loop_trim_trailing:                       1
+;     loop_trim_trailing_spaces:                1
+;     loop_tube_delay:                          1
+;     loop_verify_addrs:                        1
+;     loop_wait_disc_tx_ack:                    1
+;     loop_wait_tx_done:                        1
+;     loop_write_to_tube:                       1
+;     loop_zero_load_addr:                      1
+;     loop_zero_workspace:                      1
+;     mark_ws_uninit:                           1
+;     mask_error_class:                         1
+;     match_char_found:                         1
+;     match_help_topic:                         1
+;     net_error_close_spool:                    1
+;     netv:                                     1
+;     netv_dispatch_hi:                         1
+;     netv_dispatch_lo:                         1
+;     next_flag_entry:                          1
+;     next_hex_char:                            1
+;     next_scout_byte:                          1
+;     nfs_init_check_fs_flags:                  1
+;     nfs_temp:                                 1
+;     nmi_buf_idx_base:                         1
+;     nmi_code_base:                            1
+;     nmi_data_rx_bulk:                         1
+;     nmi_data_rx_skip:                         1
+;     nmi_data_tx:                              1
+;     nmi_final_ack_validate:                   1
+;     nmi_reply_validate:                       1
+;     nmi_romsel:                               1
+;     nmi_rx_scout:                             1
+;     nmi_shim_source:                          1
+;     no_flag_match:                            1
+;     no_poll_name_given:                       1
+;     no_ps_name_given:                         1
+;     no_station_loop:                          1
+;     not_a_digit:                              1
+;     notify_new_fs:                            1
+;     on_suffix_pattern:                        1
+;     open_file_for_read:                       1
+;     open_file_for_run:                        1
+;     option_offset_table:                      1
+;     option_str_offset_data:                   1
+;     osargs_check_length:                      1
+;     osargs_dispatch:                          1
+;     osargs_ptr_dispatch:                      1
+;     osargs_read_op:                           1
+;     osargs_store_ptr_lo:                      1
+;     osargs_write_ptr:                         1
+;     osbyte_a2_value_tya:                      1
+;     osbyte_x0_y0:                             1
+;     osbyte_yff:                               1
+;     oseven:                                   1
+;     osfile:                                   1
+;     osfind_close_or_open:                     1
+;     osfind_with_channel:                      1
+;     osopt_check_cmos_protect:                 1
+;     osword_13_dispatch_hi:                    1
+;     osword_13_dispatch_lo:                    1
+;     osword_13_read_ctx_3:                     1
+;     osword_13_write_ctx_3:                    1
+;     osword_claim_codes:                       1
+;     osword_pb_ready:                          1
+;     osword_setup_handler:                     1
+;     osword_store_svc_state:                   1
+;     osword_subcode_dispatch:                  1
+;     page_boundary_restore:                    1
+;     parse_cdir_size:                          1
+;     parse_fs_dot_dir:                         1
+;     parse_object_space_print:                 1
+;     parse_separator_flag:                     1
+;     pass_send_cmd:                            1
+;     pass_tx_success:                          1
+;     peek_retry_count:                         1
+;     prep_send_tx_cb:                          1
+;     print_char_terminator:                    1
+;     print_cmos_decimal_nl:                    1
+;     print_cmos_done:                          1
+;     print_current_fs:                         1
+;     print_dec_3dig_no_spool:                  1
+;     print_dir_header:                         1
+;     print_field_tail_s:                       1
+;     print_file_server_is:                     1
+;     print_fs_address:                         1
+;     print_fs_info_newline:                    1
+;     print_hex_nybble:                         1
+;     print_hex_nybble_no_spool:                1
+;     print_indent:                             1
+;     print_load_exec_addrs:                    1
+;     print_next_string_char:                   1
+;     print_nonzero_digit:                      1
+;     print_nybble_leading_zero:                1
+;     print_poll_jammed:                        1
+;     print_ps_address:                         1
+;     print_ps_now:                             1
+;     print_ps_padding:                         1
+;     print_public_label:                       1
+;     print_server_is_suffix:                   1
+;     print_syntax_char:                        1
+;     print_table_newline:                      1
+;     print_via_oswrch:                         1
+;     printer_busy_msg:                         1
+;     private_ws_set_bit:                       1
+;     process_reply_code:                       1
+;     prot_bit_encode_table:                    1
+;     ps_print_template:                        1
+;     ps_template_base:                         1
+;     ps_tx_header_template:                    1
+;     push_osword_handler_addr:                 1
+;     read_cat_info:                            1
+;     read_cmos_byte_0:                         1
+;     read_osbyte_return:                       1
+;     read_osbyte_table:                        1
+;     read_osbyte_to_ws_x0:                     1
+;     read_ps_station_addr:                     1
+;     read_second_rx_byte:                      1
+;     read_sr2_between_pairs:                   1
+;     recv_and_update:                          1
+;     recv_reply:                               1
+;     recv_reply_preserve_flags:                1
+;     reinit_ps_slot:                           1
+;     request_next_wipe:                        1
+;     reset_enter_listen:                       1
+;     restart_table_scan:                       1
+;     restore_and_return:                       1
+;     restore_catalog_entry:                    1
+;     restore_filename:                         1
+;     restore_regs_return:                      1
+;     restore_retry_state:                      1
+;     restore_rom_slot_entry:                   1
+;     restore_spool_and_return:                 1
+;     restore_svc_state:                        1
+;     restore_text_ptr:                         1
+;     restore_x_and_return:                     1
+;     resume_caller:                            1
+;     retreat_y_by_4:                           1
+;     retry_with_library:                       1
+;     return_2:                                 1
+;     return_3:                                 1
+;     return_4:                                 1
+;     return_5:                                 1
+;     return_6:                                 1
+;     return_7:                                 1
+;     return_alloc_success:                     1
+;     return_chan_index:                        1
+;     return_parsed:                            1
+;     return_rx_complete:                       1
+;     return_success:                           1
+;     return_test_offset:                       1
+;     return_with_handle:                       1
+;     return_with_result:                       1
+;     return_zero_uninit:                       1
+;     rom_type_table:                           1
+;     rotate_prot_mask:                         1
+;     rts_2bit_index:                           1
+;     rts_advance_y:                            1
+;     rts_bridge_query:                         1
+;     rts_cmp_handle:                           1
+;     rts_cond_save_err:                        1
+;     rts_copy_arg:                             1
+;     rts_copy_cmd_name:                        1
+;     rts_discard_reset:                        1
+;     rts_fs_shutdown:                          1
+;     rts_match_stn:                            1
+;     rts_osword_13:                            1
+;     rts_poll_slots:                           1
+;     rts_print_digit:                          1
+;     rts_recv_reply:                           1
+;     rts_setup_ws_ptr:                         1
+;     rts_skip_arg:                             1
+;     rts_station_match:                        1
+;     rts_store_digit:                          1
+;     rts_txcb_swap:                            1
+;     rts_write_ws_pair:                        1
+;     rx_error_reset:                           1
+;     rx_palette_txcb_template:                 1
+;     rx_tube_data:                             1
+;     save_ps_cmd_ptr:                          1
+;     save_regs_print_no_spool:                 1
+;     save_tube_state:                          1
+;     save_txcb_done:                           1
+;     scan_channel_store_reply:                 1
+;     scan_fcb_entry:                           1
+;     scan_fcb_flags:                           1
+;     scan_nfs_port_list:                       1
+;     scan_pass_prompt:                         1
+;     scan_port_list:                           1
+;     scan_remote_keys:                         1
+;     scout_data:                               1
+;     scout_discard:                            1
+;     scout_loop_rda:                           1
+;     scout_loop_second:                        1
+;     scout_match_port:                         1
+;     scout_page_overflow:                      1
+;     scout_reject:                             1
+;     select_fs_cmd_net_fs:                     1
+;     select_net_fs:                            1
+;     select_store_target:                      1
+;     send_close_request:                       1
+;     send_delete_request:                      1
+;     send_info_request:                        1
+;     send_open_file_request:                   1
+;     send_osargs_request:                      1
+;     send_osbput_data:                         1
+;     send_pass_to_fs:                          1
+;     send_request_nowrite:                     1
+;     send_request_vset:                        1
+;     send_with_swap:                           1
+;     sep_table_data:                           1
+;     separator_char_table:                     1
+;     separator_parse_dispatch:                 1
+;     serialise_palette_entry:                  1
+;     service_handler:                          1
+;     set_c_and_return:                         1
+;     set_flags_bit2:                           1
+;     set_flags_bit3:                           1
+;     set_flags_boot:                           1
+;     set_fs_select_flag:                       1
+;     set_port_and_ctrl:                        1
+;     set_rom_ws_page:                          1
+;     set_timeout:                              1
+;     set_tube_addr:                            1
+;     set_tx_reply_flag:                        1
+;     set_wipe_cr_end:                          1
+;     set_write_active:                         1
+;     setup_csd_copy:                           1
+;     setup_data_xfer:                          1
+;     setup_error_copy:                         1
+;     setup_ex_pagination:                      1
+;     setup_ex_request:                         1
+;     setup_fs_root:                            1
+;     setup_gbpb_request:                       1
+;     setup_pass_txbuf:                         1
+;     setup_save_access:                        1
+;     setup_sr_tx:                              1
+;     setup_txcb_addrs:                         1
+;     setup_txcb_transfer:                      1
+;     setup_unicast_xfer:                       1
+;     setup_write_access:                       1
+;     setup_ws_rx_ptrs:                         1
+;     shift_and_finalise:                       1
+;     show_wipe_prompt:                         1
+;     skip_buf_ptr_update:                      1
+;     skip_buf_setup:                           1
+;     skip_clear_prot:                          1
+;     skip_dot_and_spaces:                      1
+;     skip_if_error:                            1
+;     skip_if_local_net:                        1
+;     skip_if_modified_fcb:                     1
+;     skip_if_no_match:                         1
+;     skip_if_no_poll_arg:                      1
+;     skip_if_no_station:                       1
+;     skip_if_no_wrap:                          1
+;     skip_if_not_a:                            1
+;     skip_if_not_hex:                          1
+;     skip_if_not_space:                        1
+;     skip_if_out_of_range:                     1
+;     skip_if_slots_done:                       1
+;     skip_next_ps_slot:                        1
+;     skip_no_fs_addr:                          1
+;     skip_non_printable:                       1
+;     skip_one_and_advance5:                    1
+;     skip_restore_byte:                        1
+;     skip_struct_hole:                         1
+;     skip_template_byte:                       1
+;     skip_to_next_arg:                         1
+;     skip_tube_update:                         1
+;     skip_txcb_dest:                           1
+;     skip_wipe_locked:                         1
+;     skip_wipe_to_next:                        1
+;     spool_tx_retry:                           1
+;     spool_tx_succeeded:                       1
+;     start_data_tx:                            1
+;     start_help_file_load:                     1
+;     start_pass_tx:                            1
+;     start_spool_retry:                        1
+;     start_tx_attempt:                         1
+;     store_adjusted_byte:                      1
+;     store_arg_char:                           1
+;     store_buf_ptr_lo:                         1
+;     store_digit:                              1
+;     store_direction_flag:                     1
+;     store_display_flag:                       1
+;     store_fcb_flags:                          1
+;     store_owner_flags:                        1
+;     store_port_and_send:                      1
+;     store_prot_byte:                          1
+;     store_ps_station:                         1
+;     store_rename_char:                        1
+;     store_reply_status:                       1
+;     store_result:                             1
+;     store_rx_slot_found:                      1
+;     store_slot_tmpl_byte:                     1
+;     store_spool_rx_byte:                      1
+;     store_stack_byte:                         1
+;     store_station_and_flush:                  1
+;     store_station_lo:                         1
+;     store_status_copy_ptr:                    1
+;     store_tx_ctrl_byte:                       1
+;     store_tx_ptr_hi:                          1
+;     store_txcb_init_byte:                     1
+;     store_updated_status:                     1
+;     store_via_rx_ptr:                         1
+;     store_wipe_tx_char:                       1
+;     store_ws_byte:                            1
+;     subst_rx_page_byte:                       1
+;     subtract_ws_byte:                         1
+;     suffix_copy_loop:                         1
+;     suffix_not_listening:                     1
+;     svc_dispatch_hi:                          1
+;     svc_dispatch_lo:                          1
+;     syn_opt_dir:                              1
+;     trigger_brk:                              1
+;     try_alternate_phase:                      1
+;     try_library_path:                         1
+;     tube_claimed_id:                          1
+;     tube_overflow_restore:                    1
+;     tube_write_setup:                         1
+;     tx_buffer_scratch:                        1
+;     tx_check_tdra_ready:                      1
+;     tx_ctrl_dispatch_lo-&81:                  1
+;     tx_ctrl_exit:                             1
+;     tx_ctrl_range_check:                      1
+;     tx_ctrl_store_and_add:                    1
+;     tx_data_start:                            1
+;     tx_done_dispatch_lo-&83:                  1
+;     tx_econet_txcb_template:                  1
+;     tx_error:                                 1
+;     tx_fifo_not_ready:                        1
+;     tx_fifo_write:                            1
+;     tx_flags_table:                           1
+;     tx_imm_idx_base:                          1
+;     tx_imm_op_setup:                          1
+;     tx_last_data:                             1
+;     tx_length_table:                          1
+;     tx_line_idle_check:                       1
+;     tx_line_jammed:                           1
+;     tx_no_clock_error:                        1
+;     tx_prepare:                               1
+;     tx_src_net:                               1
+;     tx_store_error:                           1
+;     tx_success:                               1
+;     tx_tdra_error:                            1
+;     txcb_copy_carry_clr:                      1
+;     txcb_copy_carry_set:                      1
+;     txcb_dest:                                1
+;     txcb_init_template:                       1
+;     txcb_pos:                                 1
+;     unprot_apply:                             1
+;     unprot_check:                             1
+;     unprot_clear:                             1
+;     update_addr_from_offset1:                 1
+;     update_addr_from_offset9:                 1
+;     update_cat_position:                      1
+;     use_default_station:                      1
+;     use_lib_station:                          1
+;     use_specified_slot:                       1
+;     use_wipe_leaf_name:                       1
+;     valid_osgbpb_op:                          1
+;     validate_chan_close:                      1
+;     validate_handle:                          1
+;     validate_station:                         1
+;     vdu_display_start_hi:                     1
+;     vdu_screen_mode:                          1
+;     vec_filev:                                1
+;     vec_fscv:                                 1
+;     verify_copy_station_id:                   1
+;     verify_stn_match:                         1
+;     write_block_entry:                        1
+;     write_error_num_and_str:                  1
+;     write_key_state:                          1
+;     write_second_tx_byte:                     1
+;     write_two_bytes_inc_y:                    1
+;     ws_copy_vclr_entry:                       1
+;     ws_precomputed_value:                     1
+;     ws_template_source:                       1
+;     ws_txcb_template_data:                    1
+;     zp_0063:                                  1
+;     zp_0078:                                  1
 
 ; Automatically generated labels:
 ;     return_1

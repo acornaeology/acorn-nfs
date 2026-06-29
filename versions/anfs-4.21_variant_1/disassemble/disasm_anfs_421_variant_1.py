@@ -580,7 +580,7 @@ d.label(
     0x0D14,
     "nmi_rti",
     description="""NMI exit shim.
-Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT econet_nmi_enable` (INTON, re-enables /NMI), and `RTI`s. Reached either as a fall-through from [`set_nmi_vector`](address:0D0E) / [`install_nmi_handler`](address:0D11), or as a direct branch from any NMI handler that has finished early.""",
+Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_net_nmis` (INTON, re-enables /NMI), and `RTI`s. Reached either as a fall-through from [`set_nmi_vector`](address:0D0E) / [`install_nmi_handler`](address:0D11), or as a direct branch from any NMI handler that has finished early.""",
     length=11,
     group="ram_workspace",
     access="r",
@@ -1295,7 +1295,7 @@ d.subroutine(
     "adlc_init",
     title="ADLC initialisation",
     description="""Initialise ADLC hardware and Econet workspace. Disables NMIs via
-`BIT master_intoff` (the Master 128 INTOFF register at &FE38).
+`BIT disable_net_nmis` (the Master 128 INTOFF register at &FE38).
 Performs a full ADLC reset via
 [`adlc_full_reset`](address:898C), then probes for a Tube
 co-processor via OSBYTE `&EA` and stores the result in
@@ -1331,8 +1331,8 @@ d.subroutine(
 start of the NFS workspace RAM block, then patches the current ROM
 bank number into the self-modifying code at `nmi_romsel` (`&0D07`).
 
-The shim includes the INTOFF/INTON pair (`BIT master_intoff`
-at entry, `BIT master_inton` before `RTI`) that toggles the
+The shim includes the INTOFF/INTON pair (`BIT disable_net_nmis`
+at entry, `BIT enable_net_nmis` before `RTI`) that toggles the
 Econet NMI-enable flip-flop, guaranteeing edge re-triggering
 on /NMI.
 
@@ -1347,7 +1347,7 @@ Workspace fields written:
 | `tx_complete_flag`   | `&80`  | mark idle |
 | `econet_init_flag`   | `&80`  | mark initialised |
 
-Finally re-enables NMIs via INTON (`master_inton` read).""",
+Finally re-enables NMIs via INTON (`enable_net_nmis` read).""",
 )
 
 
@@ -2010,12 +2010,12 @@ d.subroutine(
 caller-supplied `(A=lo, Y=hi)` next-NMI handler address into
 `saved_nmi_lo` / `saved_nmi_hi`, loads the destination station
 from [`scout_buf`](address:0D2E) and tests `SR1` bit 6 (`TDRA`,
-TX Data Register Available) via `BIT adlc_cr1`. If `TDRA` is
+TX Data Register Available) via `BIT econet_control1_or_status1`. If `TDRA` is
 clear the TX FIFO isn't ready and control branches to
 [`dispatch_nmi_error`](address:833C) to abort.
 
 When `TDRA` is set, writes the destination station and network
-bytes (from [`scout_src_net`](address:0D2F)) into `adlc_tx`, then
+bytes (from [`scout_src_net`](address:0D2F)) into `econet_data_continue_frame`, then
 installs [`nmi_ack_tx_src`](address:8316) as the next NMI handler
 via [`set_nmi_vector`](address:0D0E) -- that handler will write
 the source-address pair on the next NMI.
@@ -3125,13 +3125,13 @@ d.subroutine(
     "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
     description="""Disables NMIs via two `BIT` reads of
-[`master_intoff`](address:FE38) (the Master 128 INTOFF register),
+[`disable_net_nmis`](address:FE38) (the Master 128 INTOFF register),
 then polls `SR2` for the INACTIVE bit (bit 2):
 
 | `SR2` INACTIVE | Action |
 |---|---|
 | set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:864A) |
-| clear | re-enable NMIs via [`master_inton`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |
+| clear | re-enable NMIs via [`enable_net_nmis`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |
 
 On timeout, falls through to
 [`tx_line_jammed`](address:8630).""",
@@ -3231,7 +3231,7 @@ control-byte handler.
 3. Sets bit 7 of [`prot_flags`](address:0099) (Tube-claimed
    marker, paired with [`release_tube`](address:8448)) via
    `SEC` / `ROR prot_flags`.
-4. `BIT master_inton` re-enables NMIs so `TDRA` can fire.
+4. `BIT enable_net_nmis` re-enables NMIs so `TDRA` can fire.
 
 Then dispatches on [`tx_port`](address:0D25):
 
@@ -3447,8 +3447,8 @@ d.subroutine(
     "nmi_tx_data",
     title="NMI TX data handler",
     description="""Writes 2 bytes per NMI invocation to the TX FIFO at
-[`adlc_tx`](address:FEA2). Uses `BIT`
-[`adlc_cr1`](address:FEA0)
+[`econet_data_continue_frame`](address:FEA2). Uses `BIT`
+[`econet_control1_or_status1`](address:FEA0)
 on `SR1` to test `TDRA` (`V` flag = bit 6) and `IRQ` (`N` flag =
 bit 7).
 
@@ -3524,7 +3524,7 @@ The routine exits via `JMP` to
 [`set_nmi_vector`](address:0D0E), which installs
 [`nmi_tx_complete`](address:872F) and falls through to
 [`nmi_rti`](address:0D14). The `BIT` of
-[`econet_nmi_enable`](address:FE20) (INTON) inside
+[`enable_net_nmis`](address:FE3C) (INTON) inside
 [`nmi_rti`](address:0D14) creates the /NMI edge for the
 frame-complete interrupt – essential because the ADLC IRQ may
 transition atomically from TDRA to frame-complete without
@@ -3618,7 +3618,7 @@ byte of [`nmi_reply_validate`](address:8776), to install it as
 the next NMI handler.
 
 **Optimisation:** before installing, checks `SR1` bit 7 (`IRQ`
-still asserted) via `BIT adlc_cr1` / `BMI`. When `IRQ` is still
+still asserted) via `BIT econet_control1_or_status1` / `BMI`. When `IRQ` is still
 set the next byte is already in the FIFO, so the routine falls
 through directly to [`nmi_reply_validate`](address:8776) without
 an intermediate `RTI`, avoiding NMI re-entry overhead for short
@@ -4280,7 +4280,7 @@ d.subroutine(
     0x89B9,
     "save_econet_state",
     title="Reset Econet flags and enter RX-listen",
-    description="""Disables NMIs via `BIT master_intoff` (the Master 128 dedicated
+    description="""Disables NMIs via `BIT disable_net_nmis` (the Master 128 dedicated
 INTOFF at &FE38), then clears
 [`tx_complete_flag`](address:0D60) and
 [`econet_init_flag`](address:0D62) by storing the current `A`
@@ -4321,7 +4321,7 @@ initialisation.
 Same sequence as the RAM shim:
 
 ```6502
-BIT master_intoff      ; INTOFF (Master 128 dedicated register)
+BIT disable_net_nmis      ; INTOFF (Master 128 dedicated register)
 PHA
 TYA
 PHA
@@ -4330,8 +4330,8 @@ STA romsel
 JMP nmi_rx_scout
 ```
 
-The `BIT` of [`master_intoff`](address:FE38) (INTOFF) at
-entry and `BIT` of [`master_inton`](address:FE3C) (INTON)
+The `BIT` of [`disable_net_nmis`](address:FE38) (INTOFF) at
+entry and `BIT` of [`enable_net_nmis`](address:FE3C) (INTON)
 before `RTI` in [`nmi_rti`](address:0D14) are essential for
 edge-triggered NMI re-delivery.
 
@@ -4368,7 +4368,7 @@ for the initial copy to RAM at
 | RAM target | Function |
 |---|---|
 | [`set_nmi_vector`](address:0D0E) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C) / [`nmi_jmp_hi`](address:0D0D) |
-| [`nmi_rti`](address:0D14) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`econet_nmi_enable`](address:FE20) (INTON) to re-enable the NMI flip-flop before `RTI` |
+| [`nmi_rti`](address:0D14) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`enable_net_nmis`](address:FE3C) (INTON) to re-enable the NMI flip-flop before `RTI` |
 
 The INTON creates a guaranteed falling edge on /NMI if the ADLC
 IRQ is already asserted, ensuring the next handler fires
@@ -6429,7 +6429,7 @@ d.subroutine(
 Station '`, then reads the station ID from offset 1 of the
 receive control block and prints it as a decimal number via
 `print_num_no_leading`. Tests ADLC status register 2
-([`adlc_cr2`](address:FEA1)) to detect the Econet clock; if
+([`econet_control23_or_status2`](address:FEA1)) to detect the Econet clock; if
 absent, appends `' No Clock'` via a second inline string.
 Finishes with `OSNEWL`.
 
@@ -9468,7 +9468,7 @@ d.subroutine(
     description="""Copies the template into the TX buffer (skipping
 &FD markers), saves original values on stack,
 then polls the ADLC and retries until complete.""",
-    on_exit={"a": "TX result (from poll_adlc_tx_status)"},
+    on_exit={"a": "TX result (from poll_econet_data_continue_frame_status)"},
 )
 
 
@@ -9486,9 +9486,9 @@ d.subroutine(
 TX control block, pushing the original values on the
 stack for later restoration. Skips offsets marked &FD
 in the template. Starts transmission via
-poll_adlc_tx_status and retries on failure, restoring
+poll_econet_data_continue_frame_status and retries on failure, restoring
 the original TX buffer contents when done.""",
-    on_exit={"a": "TX result (from poll_adlc_tx_status)"},
+    on_exit={"a": "TX result (from poll_econet_data_continue_frame_status)"},
 )
 
 
@@ -9527,7 +9527,7 @@ d.comment(0x9BB1, "X=0: clear error status", align=Align.INLINE)
 d.comment(0x9BB3, "Jump to fix up reply status", align=Align.INLINE)
 d.subroutine(
     0x9BB6,
-    "poll_adlc_tx_status",
+    "poll_econet_data_continue_frame_status",
     title="Wait for TX ready, then start new transmission",
     description="""1. Polls [`tx_complete_flag`](address:0D60) via `ASL`
    (testing bit 7) until set, indicating any previous TX
@@ -19157,20 +19157,8 @@ d.label(
 d.label(0xC2F3, "hazel_display_buf")
 
 d.label(
-    0xFE20,
-    "econet_nmi_enable",
-    description="""Econet NMI-enable register / INTON latch.
-Read: re-enables NMIs (INTON side-effect; the value read is ignored).
-
-Used by the NMI-exit shim before `RTI` so the next /NMI edge re-triggers the handler.""",
-    length=1,
-    group="mmio",
-    access="r",
-)
-
-d.label(
     0xFE28,
-    "master_fdc_cmd_status",
+    "fdc_1770_command_or_status",
     description="""Master 128 1770 floppy-disk-controller command (write) / status
 (read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not
 do disk I/O; the only access is a discarded read in `set_rom_ws_page`
@@ -19182,7 +19170,7 @@ do disk I/O; the only access is a discarded read in `set_rom_ws_page`
 
 d.label(
     0xFE2B,
-    "master_fdc_data",
+    "fdc_1770_data",
     description="""Master 128 1770 floppy-disk-controller data register, part of the
 `&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only
 access is a discarded read in `set_rom_ws_page` (its result is
@@ -19218,7 +19206,7 @@ ANFS uses bit 7 (IRR) as a deferred-work latch via `TRB`/`TSB`.""",
 
 d.label(
     0xFE38,
-    "master_intoff",
+    "disable_net_nmis",
     description="""Master 128 INTOFF mirror (NMI-disable side effect).
 Reading any byte here disables /NMI re-entry; the byte value itself is irrelevant.""",
     length=1,
@@ -19228,7 +19216,7 @@ Reading any byte here disables /NMI re-entry; the byte value itself is irrelevan
 
 d.label(
     0xFE3C,
-    "master_inton",
+    "enable_net_nmis",
     description="""Master 128 INTON mirror (NMI-enable side effect).
 Reading any byte here re-enables /NMI; the byte value itself is irrelevant.""",
     length=1,
@@ -19238,7 +19226,7 @@ Reading any byte here re-enables /NMI; the byte value itself is irrelevant.""",
 
 d.label(
     0xFEA0,
-    "adlc_cr1",
+    "econet_control1_or_status1",
     description="""ADLC control register 1 / status register 1.
 Write: `CR1` (or `CR3` if `AC=1`). Read: `SR1`.
 
@@ -19250,7 +19238,7 @@ Write: `CR1` (or `CR3` if `AC=1`). Read: `SR1`.
 
 d.label(
     0xFEA1,
-    "adlc_cr2",
+    "econet_control23_or_status2",
     description="""ADLC control register 2 / status register 2.
 Write: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.
 
@@ -19262,7 +19250,7 @@ Write: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.
 
 d.label(
     0xFEA2,
-    "adlc_tx",
+    "econet_data_continue_frame",
     description="""ADLC TX FIFO continue / RX FIFO read.
 Write: byte to TX FIFO with `LAST_DATA = 0` (continue frame).
 Read: next byte from RX FIFO.""",
@@ -19273,7 +19261,7 @@ Read: next byte from RX FIFO.""",
 
 d.label(
     0xFEA3,
-    "adlc_tx2",
+    "econet_data_terminate_frame",
     description="""ADLC TX FIFO terminate / RX FIFO read.
 Write: final byte of frame (`LAST_DATA = 1`; ADLC appends CRC + closing flag).
 Read: next byte from RX FIFO.""",
