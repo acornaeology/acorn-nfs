@@ -319,20 +319,20 @@
       "addr": 32848,
       "name": "adlc_init",
       "title": "ADLC initialisation",
-      "description": "Initialise ADLC hardware and Econet workspace. Disables NMIs via\n`BIT master_intoff` (the Master 128 INTOFF register at &FE38;\nthe Model-B equivalent reads econet_station_id at &FE18 for the\nsame side effect). Performs a full ADLC reset via\n[`adlc_full_reset`](address:898C), then probes for a Tube\nco-processor via OSBYTE `&EA` and stores the result in\n[`tube_present`](address:0D63). Issues an NMI-claim service\nrequest (OSBYTE `&8F`, `X=&0C`). Falls through to\n[`init_nmi_workspace`](address:8070) to copy the NMI shim to\nRAM.",
+      "description": "Initialise ADLC hardware and Econet workspace. Disables NMIs via\n`BIT master_intoff` (the Master 128 INTOFF register at &FE38).\nPerforms a full ADLC reset via\n[`adlc_full_reset`](address:898C), then probes for a Tube\nco-processor via OSBYTE `&EA` and stores the result in\n[`tube_present`](address:0D63). Issues an NMI-claim service\nrequest (OSBYTE `&8F`, `X=&0C`). Falls through to\n[`init_nmi_workspace`](address:8070) to copy the NMI shim to\nRAM.",
       "fall_through": true
     },
     {
       "addr": 32880,
       "name": "init_nmi_workspace",
       "title": "Initialise NMI workspace (skip service request)",
-      "description": "Copies 32 bytes of NMI shim code from ROM (`listen_jmp_hi`) to the\nstart of the NFS workspace RAM block, then patches the current ROM\nbank number into the self-modifying code at `nmi_romsel` (`&0D07`).\n\nThe shim includes the INTOFF/INTON pair (`BIT\neconet_station_id` at entry, `BIT econet_nmi_enable` before\n`RTI`) that toggles the IC97 NMI-enable flip-flop, guaranteeing\nedge re-triggering on /NMI.\n\nWorkspace fields written:\n\n| Address / label | Value | Role |\n|---|---|---|\n| `tx_src_net`         | `0`    | clear |\n| `need_release_tube`  | `0`    | clear |\n| `tx_op_type`         | `0`    | clear |\n| `tx_src_stn` (`&0D22`) | station ID | from `econet_station_id` |\n| `tx_complete_flag`   | `&80`  | mark idle |\n| `econet_init_flag`   | `&80`  | mark initialised |\n\nFinally re-enables NMIs via INTON (`econet_nmi_enable` read)."
+      "description": "Copies 32 bytes of NMI shim code from ROM (`listen_jmp_hi`) to the\nstart of the NFS workspace RAM block, then patches the current ROM\nbank number into the self-modifying code at `nmi_romsel` (`&0D07`).\n\nThe shim includes the INTOFF/INTON pair (`BIT master_intoff`\nat entry, `BIT master_inton` before `RTI`) that toggles the\nEconet NMI-enable flip-flop, guaranteeing edge re-triggering\non /NMI.\n\nWorkspace fields written:\n\n| Address / label | Value | Role |\n|---|---|---|\n| `tx_src_net`         | `0`    | clear |\n| `need_release_tube`  | `0`    | clear |\n| `tx_op_type`         | `0`    | clear |\n| `tx_src_stn` (`&0D22`) | station ID | from `(net_rx_ptr)+1` |\n| `tx_complete_flag`   | `&80`  | mark idle |\n| `econet_init_flag`   | `&80`  | mark initialised |\n\nFinally re-enables NMIs via INTON (`master_inton` read)."
     },
     {
       "addr": 32923,
       "name": "nmi_rx_scout",
       "title": "NMI RX scout handler (initial byte)",
-      "description": "Default NMI handler for incoming scout frames. Checks whether the\nframe is addressed to us or is a broadcast. Installed as the NMI\ntarget during idle RX listen mode.\n\nTests `SR2` bit 0 (`AP` = Address Present) to detect incoming\ndata. Reads the first byte (destination station) from the RX FIFO\nand compares against our station ID. Reading `econet_station_id`\n(`&FE18`) also disables NMIs (INTOFF side effect)."
+      "description": "Default NMI handler for incoming scout frames. Checks whether the\nframe is addressed to us or is a broadcast. Installed as the NMI\ntarget during idle RX listen mode.\n\nTests `SR2` bit 0 (`AP` = Address Present) to detect incoming\ndata. Reads the first byte (destination station) from the RX FIFO\nand compares it against our station ID (the workspace copy in\n`tx_src_stn`)."
     },
     {
       "addr": 32952,
@@ -681,7 +681,7 @@
       "addr": 34300,
       "name": "intoff_test_inactive",
       "title": "Disable NMIs and test INACTIVE",
-      "description": "Disables NMIs via two `BIT` reads of\n[`master_intoff`](address:FE38) (the Master 128 INTOFF register;\nthe Model-B equivalent reads `econet_station_id` at &FE18 for the\nsame side-effect), then polls `SR2` for the INACTIVE bit (bit 2):\n\n| `SR2` INACTIVE | Action |\n|---|---|\n| set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:864A) |\n| clear | re-enable NMIs via [`master_inton`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |\n\nOn timeout, falls through to\n[`tx_line_jammed`](address:8630).",
+      "description": "Disables NMIs via two `BIT` reads of\n[`master_intoff`](address:FE38) (the Master 128 INTOFF register),\nthen polls `SR2` for the INACTIVE bit (bit 2):\n\n| `SR2` INACTIVE | Action |\n|---|---|\n| set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:864A) |\n| clear | re-enable NMIs via [`master_inton`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |\n\nOn timeout, falls through to\n[`tx_line_jammed`](address:8630).",
       "on_entry": {
         "a": "&04 (INACTIVE bit mask)",
         "y": "&E7 (CR2 value for tx_prepare)"
@@ -951,7 +951,7 @@
       "addr": 35274,
       "name": "nmi_bootstrap_entry",
       "title": "Bootstrap NMI entry point (in ROM)",
-      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM shim at the start of the NFS workspace block. Unlike\nthe RAM shim (which uses a self-modifying `JMP` to dispatch to\ndifferent handlers), this one hardcodes\n`JMP `[`nmi_rx_scout`](address:809B). Used as the initial\nNMI handler before the workspace has been properly set up during\ninitialisation.\n\nSame sequence as the RAM shim:\n\n```6502\nBIT master_intoff      ; INTOFF (Master 128 dedicated register)\nPHA\nTYA\nPHA\nLDA #romsel-bank\nSTA romsel\nJMP nmi_rx_scout\n```\n\nThe `BIT` of [`econet_station_id`](address:FE18) (INTOFF) at\nentry and `BIT` of [`econet_nmi_enable`](address:FE20) (INTON)\nbefore `RTI` in [`nmi_rti`](address:0D14) are essential for\nedge-triggered NMI re-delivery.\n\nThe 6502 /NMI is falling-edge triggered; the Econet NMI-enable\nflip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears the\nflip-flop, forcing /NMI high; INTON sets it, allowing the ADLC\nIRQ through. This creates a guaranteed high-to-low edge on /NMI\neven when the ADLC IRQ is continuously asserted (e.g. when it\ntransitions atomically from TDRA to frame-complete without\nde-asserting). Without this mechanism,\n[`nmi_tx_complete`](address:872F) would never fire after\n[`tx_last_data`](address:8723)."
+      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM shim at the start of the NFS workspace block. Unlike\nthe RAM shim (which uses a self-modifying `JMP` to dispatch to\ndifferent handlers), this one hardcodes\n`JMP `[`nmi_rx_scout`](address:809B). Used as the initial\nNMI handler before the workspace has been properly set up during\ninitialisation.\n\nSame sequence as the RAM shim:\n\n```6502\nBIT master_intoff      ; INTOFF (Master 128 dedicated register)\nPHA\nTYA\nPHA\nLDA #romsel-bank\nSTA romsel\nJMP nmi_rx_scout\n```\n\nThe `BIT` of [`master_intoff`](address:FE38) (INTOFF) at\nentry and `BIT` of [`master_inton`](address:FE3C) (INTON)\nbefore `RTI` in [`nmi_rti`](address:0D14) are essential for\nedge-triggered NMI re-delivery.\n\nThe 6502 /NMI is falling-edge triggered; the Econet NMI-enable\nflip-flop gates the ADLC IRQ onto /NMI. INTOFF clears the\nflip-flop, forcing /NMI high; INTON sets it, allowing the ADLC\nIRQ through. This creates a guaranteed high-to-low edge on /NMI\neven when the ADLC IRQ is continuously asserted (e.g. when it\ntransitions atomically from TDRA to frame-complete without\nde-asserting). Without this mechanism,\n[`nmi_tx_complete`](address:872F) would never fire after\n[`tx_last_data`](address:8723)."
     },
     {
       "addr": 35288,
@@ -5116,7 +5116,6 @@
     "acia_control_or_status": 65032,
     "acia_data": 65033,
     "serial_ula_set_baud_cassette_and_motor": 65040,
-    "econet_station_id": 65048,
     "station_id_disable_net_nmis": 65048,
     "econet_nmi_enable": 65056,
     "video_ula_control": 65056,
@@ -5913,7 +5912,7 @@
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "Source-station byte (our station ID).\nSet during init from [`econet_station_id`](address:FE18)."
+      "description": "Source-station byte (our local station number). Loaded at init\nfrom the Econet control block at `(net_rx_ptr)+1`. On the Master the\nstation number is configured in CMOS (`*CONFIGURE STATION nnn`)."
     },
     {
       "addr": 3363,
@@ -6522,14 +6521,6 @@
       "group": "hazel",
       "access": "rw",
       "description": "HAZEL context buffer (saved register / state block used during FCB processing)."
-    },
-    {
-      "addr": 65048,
-      "name": "station_id_disable_net_nmis",
-      "length": 1,
-      "group": "mmio",
-      "access": "r",
-      "description": "Econet station ID register / INTOFF latch.\nRead: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input).\n\nOn the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with `*CONFIGURE STATION nnn`); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.)\n\nANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler."
     },
     {
       "addr": 65056,
@@ -7634,7 +7625,7 @@
         34,
         13
       ],
-      "comment_inline": "Compare to our station ID (&FE18 read = INTOFF, disables NMIs)",
+      "comment_inline": "Compare to our station ID (tx_src_stn copy)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "tx_src_stn",
@@ -9453,7 +9444,7 @@
         34,
         13
       ],
-      "comment_inline": "Compare to our station ID (INTOFF)",
+      "comment_inline": "Compare to our station ID (tx_src_stn copy)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "tx_src_stn",
@@ -22531,7 +22522,7 @@
       "labels": [
         "nmi_bootstrap_entry"
       ],
-      "comment_inline": "INTOFF: force /NMI high (IC97 flip-flop clear)",
+      "comment_inline": "INTOFF: force /NMI high (clear NMI flip-flop)",
       "type": "code",
       "mnemonic": "bit",
       "operand": "master_intoff",

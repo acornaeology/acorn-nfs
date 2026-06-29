@@ -259,7 +259,7 @@ tx_dst_stn                  = &0d20  ; Destination station for next TX scout/ACK
 ; &0d20 referenced 7 times by &858f, &86a9, &86ef, &86f6, &877e, &87a6, &88c2
 tx_dst_net                  = &0d21  ; Destination network for next TX scout/ACK frame.
 ; &0d21 referenced 5 times by &8595, &86ac, &8786, &87b1, &88ca
-tx_src_stn                  = &0d22  ; Source-station byte (our station ID). Set during init from econet_station_id.
+tx_src_stn                  = &0d22  ; Source-station byte (our local station number). Loaded at init from the Econet control block at (net_rx_ptr)+1. On the Master the station number is configured in CMOS (*CONFIGURE STATION nnn).
 ; &0d22 referenced 9 times by &808c, &80a5, &81cc, &8316, &86c1, &8718, &8755, &87be, &889c
 tx_src_net                  = &0d23  ; Source-network byte for outgoing scout/ACK frames (typically 0 for local network).
 ; &0d23 referenced 1 time by &8080
@@ -597,8 +597,6 @@ hazel_ctx_buffer            = &c2d9  ; HAZEL context buffer (saved register / st
 ; &c2d9 referenced 2 times by &ba0e, &bac2
 hazel_display_buf           = &c2f3
 ; &c2f3 referenced 3 times by &9e8f, &9e97, &9ea5
-econet_station_id           = &fe18  ; Econet station ID register / INTOFF latch. Read: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input). On the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with *CONFIGURE STATION nnn); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.) ANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler.
-station_id_disable_net_nmis = &fe18  ; Econet station ID register / INTOFF latch. Read: configured station-ID byte (1..254) AND INTOFF side-effect (disables NMIs from /NMI input). On the Master 128 the station number is held in the 50-byte CMOS configuration RAM (set with *CONFIGURE STATION nnn); the MOS loads it into the Econet hardware at boot, where reads of &FE18 return it. (The Model B by contrast latches the value from station-link PCB switches.) ANFS reads this on every NMI entry as the first instruction of the shim, both to capture the station ID and to stop NMIs from re-firing during the body of the handler.
 econet_nmi_enable           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
 video_ula_control           = &fe20  ; Econet NMI-enable register / INTON latch. Read: re-enables NMIs (INTON side-effect; the value read is ignored). Used by the NMI-exit shim before RTI so the next /NMI edge re-triggers the handler.
 master_fdc_cmd_status       = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
@@ -824,10 +822,9 @@ rom_header_byte2 = rom_header_byte1+1
 ; ADLC initialisation
 ;
 ; Initialise ADLC hardware and Econet workspace. Disables NMIs via BIT master_intoff (the
-; Master 128 INTOFF register at &FE38; the Model-B equivalent reads econet_station_id at
-; &FE18 for the same side effect). Performs a full ADLC reset via adlc_full_reset, then
-; probes for a Tube co-processor via OSBYTE &EA and stores the result in tube_present.
-; Issues an NMI-claim service request (OSBYTE &8F, X=&0C). Falls through to
+; Master 128 INTOFF register at &FE38). Performs a full ADLC reset via adlc_full_reset,
+; then probes for a Tube co-processor via OSBYTE &EA and stores the result in
+; tube_present. Issues an NMI-claim service request (OSBYTE &8F, X=&0C). Falls through to
 ; init_nmi_workspace to copy the NMI shim to RAM.
 ; &8050 referenced 1 time by &903c
 .adlc_init
@@ -852,22 +849,22 @@ rom_header_byte2 = rom_header_byte1+1
 ; workspace RAM block, then patches the current ROM bank number into the self-modifying
 ; code at nmi_romsel (&0D07).
 ;
-; The shim includes the INTOFF/INTON pair (BIT econet_station_id at entry, BIT
-; econet_nmi_enable before RTI) that toggles the IC97 NMI-enable flip-flop, guaranteeing
-; edge re-triggering on /NMI.
+; The shim includes the INTOFF/INTON pair (BIT master_intoff at entry, BIT master_inton
+; before RTI) that toggles the Econet NMI-enable flip-flop, guaranteeing edge
+; re-triggering on /NMI.
 ;
 ; Workspace fields written:
 ;
-; | Address / label    | Value      | Role                   |
-; |--------------------|------------|------------------------|
-; | tx_src_net         | 0          | clear                  |
-; | need_release_tube  | 0          | clear                  |
-; | tx_op_type         | 0          | clear                  |
-; | tx_src_stn (&0D22) | station ID | from econet_station_id |
-; | tx_complete_flag   | &80        | mark idle              |
-; | econet_init_flag   | &80        | mark initialised       |
+; | Address / label    | Value      | Role                |
+; |--------------------|------------|---------------------|
+; | tx_src_net         | 0          | clear               |
+; | need_release_tube  | 0          | clear               |
+; | tx_op_type         | 0          | clear               |
+; | tx_src_stn (&0D22) | station ID | from (net_rx_ptr)+1 |
+; | tx_complete_flag   | &80        | mark idle           |
+; | econet_init_flag   | &80        | mark initialised    |
 ;
-; Finally re-enables NMIs via INTON (econet_nmi_enable read).
+; Finally re-enables NMIs via INTON (master_inton read).
 .init_nmi_workspace
     ldy #&20 ; ' '                                                    ; 8070: a0 20       .        ; Copy NMI shim from ROM to &0D0C area
 ; &8072 referenced 1 time by &8079
@@ -898,15 +895,15 @@ rom_header_byte2 = rom_header_byte1+1
 ; us or is a broadcast. Installed as the NMI target during idle RX listen mode.
 ;
 ; Tests SR2 bit 0 (AP = Address Present) to detect incoming data. Reads the first byte
-; (destination station) from the RX FIFO and compares against our station ID. Reading
-; econet_station_id (&FE18) also disables NMIs (INTOFF side effect).
+; (destination station) from the RX FIFO and compares it against our station ID (the
+; workspace copy in tx_src_stn).
 ; &809b referenced 1 time by &89d5
 .nmi_rx_scout
     lda #1                                                            ; 809b: a9 01       ..       ; A=&01: mask for SR2 bit0 (AP = Address Present)
     bit econet_control23_or_status2                                   ; 809d: 2c a1 fe    ,..      ; Z = A AND SR2 -- tests if AP is set
     beq scout_error                                                   ; 80a0: f0 36       .6       ; AP not set, no incoming data -- check for errors
     lda econet_data_continue_frame                                    ; 80a2: ad a2 fe    ...      ; Read first RX byte (destination station address)
-    cmp tx_src_stn                                                    ; 80a5: cd 22 0d    .".      ; Compare to our station ID (&FE18 read = INTOFF, disables NMIs)
+    cmp tx_src_stn                                                    ; 80a5: cd 22 0d    .".      ; Compare to our station ID (tx_src_stn copy)
     beq accept_frame                                                  ; 80a8: f0 09       ..       ; Match -- accept frame
     cmp #&ff                                                          ; 80aa: c9 ff       ..       ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 80ac: d0 18       ..       ; Neither our address nor broadcast -- reject frame
@@ -1163,7 +1160,7 @@ rom_header_byte2 = rom_header_byte1+1
     bit econet_control23_or_status2                                   ; 81c4: 2c a1 fe    ,..      ; Test SR2 AP bit
     beq nmi_error_dispatch                                            ; 81c7: f0 4c       .L       ; No AP: wrong frame or error
     lda econet_data_continue_frame                                    ; 81c9: ad a2 fe    ...      ; Read first byte (dest station)
-    cmp tx_src_stn                                                    ; 81cc: cd 22 0d    .".      ; Compare to our station ID (INTOFF)
+    cmp tx_src_stn                                                    ; 81cc: cd 22 0d    .".      ; Compare to our station ID (tx_src_stn copy)
     bne nmi_error_dispatch                                            ; 81cf: d0 44       .D       ; Not for us: error path
     lda #&d6                                                          ; 81d1: a9 d6       ..       ; Install nmi_data_rx_net check handler
     jmp install_nmi_handler                                           ; 81d3: 4c 11 0d    L..      ; Set NMI vector via RAM shim
@@ -2319,8 +2316,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
-; Disables NMIs via two BIT reads of master_intoff (the Master 128 INTOFF register; the
-; Model-B equivalent reads econet_station_id at &FE18 for the same side-effect), then
+; Disables NMIs via two BIT reads of master_intoff (the Master 128 INTOFF register), then
 ; polls SR2 for the INACTIVE bit (bit 2):
 ;
 ; | SR2 INACTIVE | Action                                                                                                   |
@@ -3340,17 +3336,17 @@ nmi_shim_source = reset_enter_listen+2
 ;     STA romsel
 ;     JMP nmi_rx_scout
 ;
-; The BIT of econet_station_id (INTOFF) at entry and BIT of econet_nmi_enable (INTON)
-; before RTI in nmi_rti are essential for edge-triggered NMI re-delivery.
+; The BIT of master_intoff (INTOFF) at entry and BIT of master_inton (INTON) before RTI
+; in nmi_rti are essential for edge-triggered NMI re-delivery.
 ;
-; The 6502 /NMI is falling-edge triggered; the Econet NMI-enable flip-flop (IC97) gates
-; the ADLC IRQ onto /NMI. INTOFF clears the flip-flop, forcing /NMI high; INTON sets it,
-; allowing the ADLC IRQ through. This creates a guaranteed high-to-low edge on /NMI even
-; when the ADLC IRQ is continuously asserted (e.g. when it transitions atomically from
-; TDRA to frame-complete without de-asserting). Without this mechanism, nmi_tx_complete
-; would never fire after tx_last_data.
+; The 6502 /NMI is falling-edge triggered; the Econet NMI-enable flip-flop gates the ADLC
+; IRQ onto /NMI. INTOFF clears the flip-flop, forcing /NMI high; INTON sets it, allowing
+; the ADLC IRQ through. This creates a guaranteed high-to-low edge on /NMI even when the
+; ADLC IRQ is continuously asserted (e.g. when it transitions atomically from TDRA to
+; frame-complete without de-asserting). Without this mechanism, nmi_tx_complete would
+; never fire after tx_last_data.
 .nmi_bootstrap_entry
-    bit master_intoff                                                 ; 89ca: 2c 38 fe    ,8.      ; INTOFF: force /NMI high (IC97 flip-flop clear)
+    bit master_intoff                                                 ; 89ca: 2c 38 fe    ,8.      ; INTOFF: force /NMI high (clear NMI flip-flop)
     pha                                                               ; 89cd: 48          H        ; Save A
     tya                                                               ; 89ce: 98          .        ; Transfer Y to A
     pha                                                               ; 89cf: 48          H        ; Save Y (via A)
