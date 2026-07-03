@@ -51,13 +51,13 @@ osbyte_last_break_type         = &fd
 
 ; Memory locations
 zp_ptr_lo                              = &00
-; &00 referenced 8 times by &9c68, &9ca1, &bd07, &bd46, &bd76, &bdfd, &bfa9, &bfab
+; &00 referenced 3 times by &bd46, &bfa9, &bfab; also used as index base 5 times by &9c68, &9ca1, &bd07, &bd76, &bdfd
 zp_ptr_hi                              = &01
-; &01 referenced 8 times by &9c6e, &9ca7, &bd3e, &bd48, &bd57, &bfc0, &bfc2, &bfd6
+; &01 referenced 4 times by &bd48, &bfc0, &bfc2, &bfd6; also used as index base 4 times by &9c6e, &9ca7, &bd3e, &bd57
 zp_work_2                              = &02
-; &02 referenced 4 times by &9c52, &9c74, &9cad, &9cdb
+; &02 used as index base 4 times by &9c52, &9c74, &9cad, &9cdb
 zp_work_3                              = &03
-; &03 referenced 5 times by &9c27, &9c4d, &9c79, &9c85, &9cdd
+; &03 used as index base 5 times by &9c27, &9c4d, &9c79, &9c85, &9cdd
 zp_temp_10                             = &10
 zp_temp_11                             = &11
 tube_data_ptr                          = &12
@@ -67,7 +67,7 @@ tube_data_ptr_hi                       = &13
 tube_claim_flag                        = &14
 ; &14 referenced 2 times by &bf25, &bf28
 tube_claimed_id                        = &15
-; &15 referenced 7 times by &a9f4, &bf10, &bf1b, &bf23, &bf2c, &bf32, &bf41
+; &15 referenced 6 times by &bf10, &bf1b, &bf23, &bf2c, &bf32, &bf41; also used as index base 1 time by &a9f4
 zp_0063                                = &63
 ; &63 referenced 1 time by &af44
 zp_0078                                = &78
@@ -78,7 +78,7 @@ need_release_tube                      = &98
 ; &98 referenced 5 times by &809c, &814b, &843f, &8448, &8656
 prot_flags                             = &99
 net_tx_ptr                             = &9a
-; &9a referenced 37 times by &8352, &8911, &95de, &962b, &9636, &9742, &9754, &9824, &9838, &983a, &9881, &9890, &9894, &98a1, &98a3, &98b9, &98c4, &98eb, &a8ee, &a9b6, &a9bc, &a9c7, &a9cd, &aa9c, &abab, &abb9, &ac12, &ac3a, &ac3d, &ac46, &ac49, &ac58, &ac5f, &ac66, &b163, &b16a, &b1dd
+; &9a referenced 27 times by &95de, &9742, &9754, &9824, &9881, &9890, &9894, &98b9, &98eb, &a8ee, &a9b6, &a9bc, &a9cd, &aa9c, &abab, &abb9, &ac12, &ac3a, &ac3d, &ac46, &ac49, &ac58, &ac5f, &ac66, &b163, &b16a, &b1dd; also used as index base 10 times by &8352, &8911, &962b, &9636, &9838, &983a, &98a1, &98a3, &98c4, &a9c7
 net_tx_ptr_hi                          = &9b
 ; &9b referenced 14 times by &95cf, &9828, &9885, &98bd, &a909, &a9b9, &a9c0, &a9ca, &aa8d, &abaf, &abbd, &ac14, &b15f, &b1d9
 net_rx_ptr                             = &9c
@@ -86,7 +86,7 @@ net_rx_ptr                             = &9c
 net_rx_ptr_hi                          = &9d
 ; &9d referenced 11 times by &8492, &8ea2, &a594, &a61c, &a6f3, &aa87, &ab2b, &aba1, &abad, &b15d, &b2d1
 nfs_workspace                          = &9e
-; &9e referenced 88 times by &8ae2, &8ae6, &8af7, &8eb2, &8ed7, &8ef6, &8efb, &8f1a, &9583, &9587, &95b4, &a0d7, &a0f6, &a612, &a619, &a71a, &a71f, &a724, &a728, &a87b, &a8b7, &a8c2, &a8e6, &a913, &a916, &a91c, &a921, &a9a8, &a9ae, &a9b4, &a9f7, &aa09, &aa0b, &aa12, &aa1a, &aa4b, &aa4f, &aa55, &aa59, &aa5b, &aa61, &aa68, &aa91, &ab29, &ab2e, &ab32, &ab48, &ab84, &ab88, &aba3, &ac8b, &ac94, &ac96, &ac9d, &ac9f, &acab, &acae, &acb1, &acb3, &acc1, &acc6, &acd5, &acdd, &ace0, &aceb, &acf8, &b050, &b057, &b060, &b065, &b071, &b099, &b09e, &b0c8, &b0cd, &b0ec, &b0fc, &b101, &b10a, &b118, &b13d, &b142, &b145, &b248, &b24e, &b253, &b258, &b2bf
+; &9e referenced 86 times by &8ae2, &8ae6, &8af7, &8eb2, &8ed7, &8ef6, &8efb, &8f1a, &9583, &9587, &95b4, &a0d7, &a0f6, &a612, &a619, &a71a, &a71f, &a724, &a728, &a87b, &a8b7, &a8c2, &a8e6, &a913, &a916, &a91c, &a921, &a9a8, &a9ae, &a9b4, &a9f7, &aa09, &aa0b, &aa12, &aa1a, &aa4b, &aa4f, &aa55, &aa59, &aa5b, &aa61, &aa68, &aa91, &ab29, &ab2e, &ab32, &ab48, &ab84, &ab88, &aba3, &ac8b, &ac94, &ac96, &ac9d, &ac9f, &acab, &acae, &acb1, &acb3, &acc1, &acc6, &acd5, &acdd, &aceb, &b050, &b057, &b060, &b065, &b071, &b099, &b09e, &b0c8, &b0cd, &b0ec, &b0fc, &b101, &b10a, &b118, &b13d, &b142, &b145, &b248, &b24e, &b253, &b258, &b2bf; also used as index base 2 times by &ace0, &acf8
 nfs_workspace_hi                       = &9f
 ; &9f referenced 10 times by &81ab, &8ea5, &a5a8, &a70a, &a907, &a9be, &aa8b, &ab59, &abbb, &aca1
 nmi_tx_block                           = &a0
@@ -102,7 +102,7 @@ open_port_buf                          = &a4
 open_port_buf_hi                       = &a5
 ; &a5 referenced 16 times by &8248, &825f, &8291, &82d2, &83a6, &83ad, &841b, &8494, &84bd, &8531, &87f9, &8809, &8844, &885a, &894c, &8959
 port_ws_offset                         = &a6
-; &a6 referenced 34 times by &8168, &816e, &8177, &8181, &818b, &8198, &819d, &834f, &8355, &836a, &837f, &8381, &83aa, &83af, &83bb, &83c1, &83c7, &83cf, &83d8, &84a6, &84c3, &86d0, &88ea, &88f1, &8908, &890f, &8922, &893d, &8942, &8948, &8950, &8956, &99bb, &99c9
+; &a6 referenced 32 times by &8168, &816e, &8177, &8181, &818b, &8198, &819d, &834f, &8355, &836a, &837f, &8381, &83aa, &83af, &83bb, &83c1, &83c7, &83cf, &83d8, &84a6, &84c3, &86d0, &88ea, &88f1, &8908, &890f, &8922, &893d, &8942, &8948, &8950, &8956; also used as index base 2 times by &99bb, &99c9
 rx_buf_offset                          = &a7
 ; &a7 referenced 7 times by &816a, &8194, &836d, &84aa, &84c7, &86d4, &8925
 ws_page                                = &a8
@@ -110,7 +110,7 @@ ws_page                                = &a8
 svc_state                              = &a9
 ; &a9 referenced 12 times by &8aa0, &8aa4, &8ac3, &8ac6, &8af5, &8b5e, &8e87, &9f78, &9fb8, &a11d, &a505, &a523
 osword_flag                            = &aa
-; &aa referenced 16 times by &a4e8, &a4fa, &a5b3, &a5e0, &b0d3, &b126, &ba23, &ba2c, &ba2e, &ba38, &ba79, &bbd7, &bc00, &bc6d, &bc70, &bc7c
+; &aa referenced 9 times by &a5b3, &a5e0, &b0d3, &b126, &ba23, &ba2c, &ba2e, &ba38, &ba79; also used as index base 7 times by &a4e8, &a4fa, &bbd7, &bc00, &bc6d, &bc70, &bc7c
 ws_ptr_lo                              = &ab
 ; &ab referenced 16 times by &a59c, &a5ac, &a5c1, &a5d8, &a5e2, &a5f2, &a625, &a6f1, &a6ff, &a701, &a710, &a930, &a93d, &a93f, &b0d6, &b123
 ws_ptr_hi                              = &ac
@@ -118,19 +118,19 @@ ws_ptr_hi                              = &ac
 table_idx                              = &ad
 ; &ad referenced 18 times by &ac86, &ac8f, &acb5, &acb8, &acbf, &acc9, &ace7, &ace9, &b028, &b202, &b2db, &b2ec, &b992, &b9b0, &b9c0, &b9c5, &b9d0, &b9e6
 work_ae                                = &ae
-; &ae referenced 38 times by &9a64, &afcb, &b059, &b05b, &b1cb, &b1d0, &b25a, &b269, &b293, &b295, &b2ac, &b2ae, &b2d3, &ba15, &ba30, &ba47, &ba52, &ba64, &ba67, &ba7b, &baa7, &bace, &bb5a, &bb8c, &bb8f, &bba4, &bba6, &bbbf, &bbda, &bbfe, &bc1e, &bc25, &bc2e, &bc32, &bc3d, &bc4a, &bc6b, &bc7e
+; &ae referenced 33 times by &afcb, &b059, &b1cb, &b1d0, &b25a, &b293, &b2ac, &b2d3, &ba15, &ba30, &ba47, &ba52, &ba64, &ba67, &ba7b, &baa7, &bace, &bb5a, &bb8c, &bb8f, &bba4, &bba6, &bbbf, &bbda, &bbfe, &bc1e, &bc25, &bc2e, &bc32, &bc3d, &bc4a, &bc6b, &bc7e; also used as index base 5 times by &9a64, &b05b, &b269, &b295, &b2ae
 addr_work                              = &af
-; &af referenced 8 times by &9292, &9f17, &9f22, &afc5, &b13b, &b1d7, &bbc3, &bc27
+; &af referenced 5 times by &afc5, &b13b, &b1d7, &bbc3, &bc27; also used as index base 3 times by &9292, &9f17, &9f22
 fs_load_addr                           = &b0
-; &b0 referenced 22 times by &8b15, &8b1a, &8b21, &93f9, &943e, &96a7, &96c0, &96d3, &96f2, &96fd, &9701, &995d, &9a99, &9aa2, &9aab, &9f60, &9fb6, &9fbc, &9fdd, &a00c, &b668, &b721
+; &b0 referenced 16 times by &8b15, &8b1a, &8b21, &93f9, &943e, &96a7, &96c0, &96d3, &96f2, &96fd, &9701, &9f60, &9fb6, &9fbc, &9fdd, &a00c; also used as index base 6 times by &995d, &9a99, &9aa2, &9aab, &b668, &b721
 fs_load_addr_hi                        = &b1
 ; &b1 referenced 7 times by &8b11, &96aa, &96c3, &9f62, &9fb3, &9fbe, &a015
 fs_load_addr_2                         = &b2
 ; &b2 referenced 38 times by &915c, &918a, &9196, &91ad, &91b1, &91b9, &91c1, &91ca, &91cf, &91d5, &91ed, &972b, &973e, &9749, &9750, &9759, &975f, &9764, &9790, &9795, &9e0f, &9f46, &9f4b, &9f66, &9fa9, &9fc7, &9feb, &a02c, &a03f, &a09f, &a0a3, &b4c5, &b70c, &b711, &b845, &b849, &b90b, &b90e
 fs_load_addr_3                         = &b3
-; &b3 referenced 11 times by &9188, &9194, &91ab, &91bd, &9294, &9778, &9780, &9784, &b708, &b841, &b907
+; &b3 referenced 10 times by &9188, &9194, &91ab, &91bd, &9778, &9780, &9784, &b708, &b841, &b907; also used as index base 1 time by &9294
 fs_work_4                              = &b4
-; &b4 referenced 24 times by &8d7a, &8dc5, &8dd5, &8dd9, &91c6, &91d9, &91e7, &91eb, &91fd, &9964, &9993, &99a6, &9aae, &9ab9, &a078, &a093, &ad10, &ae40, &ae6b, &b12d, &b135, &b1a4, &b4c7, &b4cd
+; &b4 referenced 19 times by &8d7a, &8dc5, &8dd5, &8dd9, &91c6, &91d9, &91e7, &91eb, &91fd, &a078, &a093, &ad10, &ae40, &ae6b, &b12d, &b135, &b1a4, &b4c7, &b4cd; also used as index base 5 times by &9964, &9993, &99a6, &9aae, &9ab9
 fs_work_5                              = &b5
 ; &b5 referenced 16 times by &a066, &a0af, &ad6a, &ad82, &ae42, &b067, &b097, &b0ca, &b18d, &b1c9, &b250, &b297, &b342, &b355, &b387, &b409
 fs_work_6                              = &b6
@@ -144,27 +144,27 @@ fs_crflag                              = &b9
 fs_spool_handle                        = &ba
 ; &ba referenced 5 times by &a101, &ad62, &ad7c, &af27, &af2f
 fs_options                             = &bb
-; &bb referenced 57 times by &8d86, &8e40, &9257, &9287, &98f5, &9949, &99b9, &99c1, &99c7, &99cd, &99d7, &9a1e, &9a52, &9a62, &9a75, &9b01, &9b18, &9b61, &9b69, &9b76, &9bdc, &9c0f, &9c49, &9c63, &9cc3, &9cd6, &9d84, &9d8d, &9e0d, &9e1c, &9e44, &9e7a, &9ea1, &9eaa, &9eb3, &9eb8, &9ec2, &9ed6, &9f07, &9f15, &9f20, &9f71, &9f76, &9f7a, &9fd2, &9ff9, &a000, &a01a, &a021, &a023, &a04f, &a2b0, &afb8, &afde, &b1b1, &b7a3, &b7c8
+; &bb referenced 55 times by &8d86, &8e40, &9257, &9287, &98f5, &9949, &99b9, &99c1, &99c7, &99cd, &99d7, &9a1e, &9a52, &9a62, &9a75, &9b01, &9b18, &9b61, &9b69, &9b76, &9bdc, &9c0f, &9c49, &9c63, &9cc3, &9cd6, &9d84, &9d8d, &9e0d, &9e1c, &9e44, &9e7a, &9ea1, &9eaa, &9eb3, &9eb8, &9ec2, &9ed6, &9f15, &9f20, &9f71, &9f76, &9f7a, &9fd2, &9ff9, &a000, &a021, &a023, &a04f, &a2b0, &afb8, &afde, &b1b1, &b7a3, &b7c8; also used as index base 2 times by &9f07, &a01a
 fs_block_offset                        = &bc
 ; &bc referenced 17 times by &9289, &9a85, &9bd7, &9be7, &9c11, &9c5e, &9c99, &9cc5, &9d93, &9da7, &9ddb, &9de6, &9fd4, &a2ac, &afbc, &b7a6, &b7c5
 fs_last_byte_flag                      = &bd
-; &bd referenced 12 times by &9281, &992d, &99ef, &9bb2, &9bd5, &9c37, &9c47, &9c95, &9cb9, &9d2e, &9d91, &9f7c
+; &bd referenced 11 times by &9281, &992d, &99ef, &9bb2, &9bd5, &9c37, &9c47, &9c95, &9cb9, &9d2e, &9d91; also used as index base 1 time by &9f7c
 fs_crc_lo                              = &be
 ; &be referenced 33 times by &8afd, &915e, &9165, &916a, &919a, &91de, &9283, &933b, &934f, &93c9, &93d0, &93dd, &991a, &9b8d, &9fc3, &a06d, &a137, &a147, &a154, &a16f, &a17f, &a18d, &a191, &a1a0, &aef5, &af96, &afa1, &afae, &afb6, &b2f0, &b300, &b321, &b32d
 fs_crc_hi                              = &bf
 ; &bf referenced 5 times by &8b01, &9285, &991e, &af9a, &afba
 txcb_ctrl                              = &c0
-; &c0 referenced 7 times by &945c, &9465, &999c, &9ac7, &a880, &a893, &a8a0
+; &c0 referenced 5 times by &945c, &999c, &9ac7, &a893, &a8a0; also used as index base 2 times by &9465, &a880
 txcb_port                              = &c1
 ; &c1 referenced 4 times by &9456, &998b, &9ac3, &9ad6
 txcb_dest                              = &c2
-; &c2 referenced 1 time by &946f
+; &c2 used as index base 1 time by &946f
 txcb_start                             = &c4
-; &c4 referenced 7 times by &945a, &94e5, &9543, &9548, &9991, &9a9b, &b934
+; &c4 referenced 5 times by &945a, &94e5, &9543, &9548, &b934; also used as index base 2 times by &9991, &9a9b
 txcb_pos                               = &c7
-; &c7 referenced 1 time by &9f1a
+; &c7 used as index base 1 time by &9f1a
 txcb_end                               = &c8
-; &c8 referenced 9 times by &94d2, &995f, &998f, &9995, &99a3, &9aa0, &9abb, &a025, &b938
+; &c8 referenced 3 times by &94d2, &a025, &b938; also used as index base 6 times by &995f, &998f, &9995, &99a3, &9aa0, &9abb
 fs_ws_ptr                              = &cc
 ; &cc referenced 7 times by &8b6f, &8cbc, &8ed5, &8fa4, &8fbb, &8fc2, &b434
 nfs_temp                               = &cd
@@ -176,11 +176,11 @@ vdu_status                             = &d0
 osbyte_a_copy                          = &ef
 ; &ef referenced 4 times by &8e7c, &a4d7, &a989, &aa57
 osword_pb_ptr                          = &f0
-; &f0 referenced 40 times by &a0b4, &a0df, &a0ea, &a503, &a576, &a591, &a5b1, &a5d0, &a5fb, &a603, &a60c, &a610, &a670, &a682, &a6fd, &a703, &a717, &a71c, &a732, &a741, &a74f, &a754, &a767, &a7f6, &a7fb, &a811, &a818, &a820, &a837, &a83b, &a83f, &a84d, &a8a9, &a8f9, &a900, &a929, &a92d, &a941, &aa4d, &aac7
+; &f0 referenced 38 times by &a0b4, &a0df, &a0ea, &a503, &a576, &a591, &a5b1, &a5fb, &a603, &a60c, &a610, &a670, &a682, &a6fd, &a703, &a717, &a71c, &a732, &a741, &a74f, &a754, &a7f6, &a7fb, &a811, &a818, &a820, &a837, &a83b, &a83f, &a84d, &a8a9, &a8f9, &a900, &a929, &a92d, &a941, &aa4d, &aac7; also used as index base 2 times by &a5d0, &a767
 osword_pb_ptr_hi                       = &f1
 ; &f1 referenced 4 times by &a615, &a8a6, &a8b1, &a9d0
 os_text_ptr                            = &f2
-; &f2 referenced 16 times by &8afb, &8c57, &8d10, &927d, &98f7, &a291, &a29b, &af98, &bb16, &bb3d, &bb42, &bb4d, &bb64, &bbb6, &bc13, &bc1b
+; &f2 referenced 14 times by &8afb, &8c57, &8d10, &927d, &a291, &a29b, &af98, &bb16, &bb3d, &bb42, &bb4d, &bb64, &bbb6, &bc13; also used as index base 2 times by &98f7, &bc1b
 os_text_ptr_hi                         = &f3
 ; &f3 referenced 6 times by &8aff, &927f, &a2a0, &af9c, &bb1c, &bb3a
 romsel_copy                            = &f4
@@ -192,25 +192,25 @@ osrdsc_ptr_hi                          = &f7
 brk_ptr                                = &fd
 ; &fd referenced 3 times by &936b, &becd, &bed3
 escape_flag                            = &ff
-; &ff referenced 5 times by &955a, &b9ea, &bcf7, &bd66, &be37
+; &ff referenced 3 times by &955a, &b9ea, &be37; also used as index base 2 times by &bcf7, &bd66
 error_block                            = &0100
-; &0100 referenced 15 times by &8a65, &8a85, &8a90, &8a99, &954a, &9551, &960b, &964f, &968a, &96ce, &96e5, &b4b8, &b4d9, &b956, &b962
+; &0100 referenced 11 times by &8a65, &8a85, &8a90, &8a99, &960b, &964f, &968a, &96ce, &96e5, &b4b8, &b4d9; also used as index base 4 times by &954a, &9551, &b956, &b962
 error_text                             = &0101
-; &0101 referenced 20 times by &8614, &95e2, &9617, &9625, &9655, &9669, &9679, &9696, &96b2, &96c7, &96d5, &9722, &973a, &974d, &9761, &9792, &a0bc, &b4b3, &b4c0, &b4d4
+; &0101 referenced 3 times by &9669, &96c7, &b4b3; also used as index base 17 times by &8614, &95e2, &9617, &9625, &9655, &9679, &9696, &96b2, &96d5, &9722, &973a, &974d, &9761, &9792, &a0bc, &b4c0, &b4d4
 stack_page_2                           = &0102
-; &0102 referenced 5 times by &8619, &92a6, &92bd, &95e7, &9733
+; &0102 used as index base 5 times by &8619, &92a6, &92bd, &95e7, &9733
 stack_page_3                           = &0103
-; &0103 referenced 2 times by &861e, &a96f
+; &0103 used as index base 2 times by &861e, &a96f
 stack_page_4                           = &0104
-; &0104 referenced 1 time by &95ec
+; &0104 used as index base 1 time by &95ec
 stack_page_6                           = &0106
-; &0106 referenced 5 times by &a99f, &a9a2, &aa1c, &aae4, &aae7
+; &0106 used as index base 5 times by &a99f, &a9a2, &aa1c, &aae4, &aae7
 tube_osword_pb                         = &0128
-; &0128 referenced 2 times by &bdce, &bde7
+; &0128 used as index base 2 times by &bdce, &bde7
 brkv                                   = &0202
 ; &0202 referenced 1 time by &be8b
 filev                                  = &0212
-; &0212 referenced 1 time by &8b43
+; &0212 used as index base 1 time by &8b43
 fscv                                   = &021e
 ; &021e referenced 1 time by &8cfa
 evntv                                  = &0220
@@ -222,7 +222,7 @@ vdu_queue_count                        = &026a
 last_break_type                        = &028d
 ; &028d referenced 2 times by &8a62, &8ec9
 rom_type_table                         = &02a0
-; &02a0 referenced 1 time by &8a2b
+; &02a0 used as index base 1 time by &8a2b
 vdu_screen_mode                        = &0350
 ; &0350 referenced 1 time by &ac91
 vdu_display_start_hi                   = &0351
@@ -230,13 +230,13 @@ vdu_display_start_hi                   = &0351
 vdu_mode                               = &0355
 ; &0355 referenced 3 times by &8c28, &acd2, &acd7
 string_buf                             = &0700
-; &0700 referenced 2 times by &bd19, &be17
+; &0700 used as index base 2 times by &bd19, &be17
 tube_vdu_stream_end                    = &072c
 ; &072c referenced 1 time by &be77
 tube_vdu_normal_byte                   = &072e
 ; &072e referenced 2 times by &be60, &be66
 nmi_code_base                          = &0cff
-; &0cff referenced 1 time by &808e
+; &0cff used as index base 1 time by &808e
 nmi_romsel                             = &0d07
 ; &0d07 referenced 1 time by &8096
 nmi_jmp_lo                             = &0d0c
@@ -250,15 +250,15 @@ install_nmi_handler                    = &0d11
 nmi_rti                                = &0d14
 ; &0d14 referenced 6 times by &8129, &826a, &82b6, &8703, &8810, &8863
 imm_param_base                         = &0d1a
-; &0d1a referenced 1 time by &85d1
+; &0d1a used as index base 1 time by &85d1
 tx_addr_base                           = &0d1e
-; &0d1e referenced 2 times by &8690, &8696
+; &0d1e used as index base 2 times by &8690, &8696
 tx_dst_stn                             = &0d20
-; &0d20 referenced 7 times by &8588, &86a2, &86e8, &86ef, &8777, &879f, &88aa
+; &0d20 referenced 5 times by &8588, &86a2, &8777, &879f, &88aa; also used as index base 2 times by &86e8, &86ef
 tx_dst_net                             = &0d21
 ; &0d21 referenced 5 times by &858e, &86a5, &877f, &87aa, &88b2
 tx_src_stn                             = &0d22
-; &0d22 referenced 2 times by &80a4, &86ba
+; &0d22 referenced 1 time by &80a4; also used as index base 1 time by &86ba
 tx_src_net                             = &0d23
 ; &0d23 referenced 1 time by &8099
 tx_ctrl_byte                           = &0d24
@@ -266,10 +266,10 @@ tx_ctrl_byte                           = &0d24
 tx_port                                = &0d25
 ; &0d25 referenced 2 times by &85a1, &865b
 tx_data_start                          = &0d26
-; &0d26 referenced 1 time by &85b7
+; &0d26 used as index base 1 time by &85b7
 tx_data_len                            = &0d2a
 scout_buf                              = &0d2e
-; &0d2e referenced 9 times by &810c, &811a, &8142, &8185, &8303, &83be, &8413, &842d, &84f7
+; &0d2e referenced 4 times by &8185, &8303, &83be, &84f7; also used as index base 5 times by &810c, &811a, &8142, &8413, &842d
 scout_src_net                          = &0d2f
 ; &0d2f referenced 4 times by &818f, &830e, &83b6, &84fd
 scout_ctrl                             = &0d30
@@ -277,7 +277,7 @@ scout_ctrl                             = &0d30
 scout_port                             = &0d31
 ; &0d31 referenced 5 times by &814d, &817b, &838b, &83b1, &83c4
 scout_data                             = &0d32
-; &0d32 referenced 1 time by &8498
+; &0d32 used as index base 1 time by &8498
 rx_src_stn                             = &0d3d
 rx_src_net                             = &0d3e
 ; &0d3e referenced 27 times by &80c8, &80e6, &8155, &81b9, &8213, &822b, &82de, &82e1, &82e4, &832b, &8346, &8360, &83fd, &840c, &84d3, &84d8, &8666, &86b3, &86c6, &872d, &8737, &87c9, &8818, &8866, &88b7, &88fc, &8901
@@ -311,7 +311,7 @@ ws_0d64                                = &0d64
 tx_op_type                             = &0d65
 ; &0d65 referenced 3 times by &8047, &809e, &8505
 exec_addr_lo                           = &0d66
-; &0d66 referenced 4 times by &849b, &853f, &8542, &8550
+; &0d66 referenced 3 times by &853f, &8542, &8550; also used as index base 1 time by &849b
 exec_addr_hi                           = &0d67
 ; &0d67 referenced 2 times by &8545, &8553
 prot_status                            = &0d68
@@ -325,7 +325,7 @@ spool_buf_idx                          = &0d6b
 fs_flags                               = &0d6c
 ; &0d6c referenced 19 times by &83d1, &8b09, &8b37, &8b3b, &8b79, &8b7c, &8ed1, &8f80, &8fa9, &8fae, &95fb, &a0e7, &a0ed, &a517, &a663, &a676, &a737, &a747, &a8d4
 net_context                            = &0d6d
-; &0d6d referenced 6 times by &8b64, &8f02, &96e8, &a804, &a815, &a822
+; &0d6d referenced 3 times by &8b64, &96e8, &a804; also used as index base 3 times by &8f02, &a815, &a822
 tx_retry_count                         = &0d6e
 ; &0d6e referenced 2 times by &982a, &985e
 rx_poll_count                          = &0d6f
@@ -335,23 +335,23 @@ peek_retry_count                       = &0d70
 bridge_status                          = &0d72
 ; &0d72 referenced 6 times by &8f68, &a82f, &a843, &a868, &a886, &a8c6
 txcb_default_base                      = &0de6
-; &0de6 referenced 1 time by &a8e3
+; &0de6 used as index base 1 time by &a8e3
 rom_ws_pages                           = &0df0
-; &0df0 referenced 7 times by &8a49, &8a4d, &8a50, &8a88, &8a8d, &8cb0, &8eab
+; &0df0 used as index base 7 times by &8a49, &8a4d, &8a50, &8a88, &8a8d, &8cb0, &8eab
 fs_context_save                        = &0dfa
-; &0dfa referenced 2 times by &8b2f, &8f75
+; &0dfa used as index base 2 times by &8b2f, &8f75
 osword_ws_base                         = &0dfe
-; &0dfe referenced 1 time by &a8fd
+; &0dfe used as index base 1 time by &a8fd
 fs_server_base                         = &0dff
-; &0dff referenced 2 times by &a66d, &a684
+; &0dff used as index base 2 times by &a66d, &a684
 fs_server_stn                          = &0e00
-; &0e00 referenced 6 times by &8d9e, &8ee7, &946c, &a063, &b51a, &b57d
+; &0e00 referenced 5 times by &8d9e, &8ee7, &a063, &b51a, &b57d; also used as index base 1 time by &946c
 fs_server_net                          = &0e01
-; &0e01 referenced 9 times by &8d92, &8e01, &8e06, &8eee, &a068, &a779, &a84a, &b520, &b585
+; &0e01 referenced 8 times by &8d92, &8e01, &8e06, &8eee, &a068, &a84a, &b520, &b585; also used as index base 1 time by &a779
 fs_urd_handle                          = &0e02
 ; &0e02 referenced 5 times by &949a, &94bf, &9f99, &a301, &a6b0
 fs_csd_handle                          = &0e03
-; &0e03 referenced 6 times by &9428, &94a7, &9f8d, &a32c, &a33e, &a6c5
+; &0e03 referenced 4 times by &9428, &a32c, &a33e, &a6c5; also used as index base 2 times by &94a7, &9f8d
 fs_lib_handle                          = &0e04
 ; &0e04 referenced 5 times by &94b7, &9f93, &a342, &a363, &a6da
 fs_boot_option                         = &0e05
@@ -363,59 +363,59 @@ fs_eof_flags                           = &0e07
 fs_last_error                          = &0e09
 ; &0e09 referenced 5 times by &94fa, &952f, &9600, &a7fe, &b94e
 fs_cmd_context                         = &0e0a
-; &0e0a referenced 4 times by &9cd3, &9e13, &9e19, &a29d
+; &0e0a referenced 1 time by &a29d; also used as index base 3 times by &9cd3, &9e13, &9e19
 fs_context_hi                          = &0e0b
 ; &0e0b referenced 1 time by &a2a4
 fs_work_16                             = &0e16
 ; &0e16 referenced 1 time by &a2b2
 fs_filename_buf_m1                     = &0e2f
-; &0e2f referenced 2 times by &aeb7, &aec0
+; &0e2f used as index base 2 times by &aeb7, &aec0
 fs_filename_buf                        = &0e30
-; &0e30 referenced 17 times by &92f5, &935d, &9387, &93ab, &990d, &9915, &a1f1, &a206, &a20d, &a21b, &a231, &ae85, &ae97, &aead, &b39f, &b3e6, &b3ed
+; &0e30 referenced 6 times by &92f5, &9387, &93ab, &a1f1, &ae85, &ae97; also used as index base 11 times by &935d, &990d, &9915, &a206, &a20d, &a21b, &a231, &aead, &b39f, &b3e6, &b3ed
 fs_filename_buf_1                      = &0e31
-; &0e31 referenced 3 times by &ae9e, &aeaa, &b413
+; &0e31 referenced 1 time by &ae9e; also used as index base 2 times by &aeaa, &b413
 fs_filename_buf_2                      = &0e32
 ; &0e32 referenced 1 time by &aed4
 fs_filename_backup                     = &0e38
-; &0e38 referenced 2 times by &a210, &a22e
+; &0e38 used as index base 2 times by &a210, &a22e
 fs_reply_data                          = &0ef7
-; &0ef7 referenced 1 time by &9a1b
+; &0ef7 used as index base 1 time by &9a1b
 txcb_reply_port                        = &0f00
-; &0f00 referenced 3 times by &94c9, &b662, &b72e
+; &0f00 referenced 1 time by &94c9; also used as index base 2 times by &b662, &b72e
 fs_cmd_y_param                         = &0f01
 ; &0f01 referenced 2 times by &94a2, &9fa1
 fs_cmd_urd                             = &0f02
-; &0f02 referenced 7 times by &949d, &9941, &99e3, &9a77, &9ef8, &9f38, &9f9c
+; &0f02 referenced 6 times by &949d, &9941, &99e3, &9ef8, &9f38, &9f9c; also used as index base 1 time by &9a77
 fs_cmd_csd                             = &0f03
-; &0f03 referenced 9 times by &8e11, &94aa, &94ba, &94c2, &99c3, &99d9, &9b88, &9f2c, &9f90
+; &0f03 referenced 5 times by &8e11, &94ba, &94c2, &9b88, &9f90; also used as index base 4 times by &94aa, &99c3, &99d9, &9f2c
 fs_cmd_lib                             = &0f04
-; &0f04 referenced 2 times by &9f96, &ae63
+; &0f04 referenced 1 time by &9f96; also used as index base 1 time by &ae63
 fs_cmd_data                            = &0f05
-; &0f05 referenced 69 times by &8da7, &8db7, &8de4, &8e16, &9300, &9323, &932c, &939a, &93df, &93e8, &93fd, &9412, &942b, &9437, &9448, &997b, &9a05, &9a13, &9add, &9b1a, &9b5a, &9b66, &9b7c, &9ba6, &9c04, &9c19, &9c4f, &9cf1, &9d13, &9d19, &9d21, &9d32, &9d9d, &9dd3, &9e52, &9e8c, &9e9b, &9ecf, &9eff, &9f51, &9fac, &9fc0, &9fdf, &a00e, &a01c, &a041, &a1b9, &a1c1, &a1da, &a265, &a384, &a551, &a56e, &a573, &ad1d, &ad8d, &ae49, &ae57, &ae5e, &ae72, &aef7, &af20, &b34f, &b368, &b3c2, &b3fc, &b416, &b699, &b8a6
+; &0f05 referenced 44 times by &8e16, &93fd, &9412, &942b, &9437, &9448, &9a05, &9a13, &9add, &9b5a, &9b7c, &9c04, &9c19, &9cf1, &9d13, &9d19, &9d32, &9d9d, &9dd3, &9e52, &9e8c, &9e9b, &9ecf, &9eff, &9f51, &9fac, &a00e, &a01c, &a041, &a1b9, &a1c1, &a1da, &a265, &a384, &a551, &a56e, &ad1d, &ad8d, &ae49, &ae57, &b34f, &b368, &b699, &b8a6; also used as index base 25 times by &8da7, &8db7, &8de4, &9300, &9323, &932c, &939a, &93df, &93e8, &997b, &9b1a, &9b66, &9ba6, &9c4f, &9d21, &9fc0, &9fdf, &a573, &ae5e, &ae72, &aef7, &af20, &b3c2, &b3fc, &b416
 fs_func_code                           = &0f06
-; &0f06 referenced 30 times by &943a, &9a9d, &9b03, &9b3d, &9c1d, &9c7e, &9cf5, &9d1e, &9d5f, &9e57, &9e86, &9ea4, &9ed8, &9eea, &9f2f, &9fa6, &9ffb, &a017, &a029, &a044, &a1dd, &a254, &a38a, &a54d, &a561, &ae3d, &b357, &b399, &b6be, &b8b1
+; &0f06 referenced 23 times by &943a, &9b3d, &9c1d, &9c7e, &9cf5, &9d5f, &9e57, &9e86, &9ea4, &9eea, &9fa6, &9ffb, &a017, &a029, &a044, &a1dd, &a38a, &a54d, &a561, &ae3d, &b357, &b6be, &b8b1; also used as index base 7 times by &9a9d, &9b03, &9d1e, &9ed8, &9f2f, &a254, &b399
 fs_data_count                          = &0f07
-; &0f07 referenced 14 times by &9c29, &9c87, &9d68, &9e5d, &9ead, &a002, &a035, &a390, &a53f, &a557, &ae44, &b352, &b6c2, &b8b5
+; &0f07 referenced 11 times by &9d68, &9e5d, &9ead, &a002, &a390, &a53f, &a557, &ae44, &b352, &b6c2, &b8b5; also used as index base 3 times by &9c29, &9c87, &a035
 fs_reply_cmd                           = &0f08
 ; &0f08 referenced 9 times by &9a0e, &9a92, &9e63, &a007, &a37d, &a536, &a54a, &b6a3, &b8bb
 fs_load_vector                         = &0f09
 ; &0f09 referenced 7 times by &9a95, &9e69, &a2d9, &a52d, &a545, &b6ac, &b8c1
 fs_handle_check                        = &0f0a
-; &0f0a referenced 2 times by &a1ca, &a53c
+; &0f0a referenced 1 time by &a53c; also used as index base 1 time by &a1ca
 fs_load_upper                          = &0f0b
 ; &0f0b referenced 2 times by &a2c1, &a533
 fs_addr_check                          = &0f0c
 ; &0f0c referenced 1 time by &a2c4
 fs_file_len                            = &0f0d
-; &0f0d referenced 1 time by &9961
+; &0f0d used as index base 1 time by &9961
 fs_file_attrs                          = &0f0e
 ; &0f0e referenced 1 time by &9b11
 fs_file_len_3                          = &0f10
-; &0f10 referenced 2 times by &996b, &9978
+; &0f10 referenced 1 time by &996b; also used as index base 1 time by &9978
 fs_obj_type                            = &0f11
 ; &0f11 referenced 2 times by &9b4e, &9b51
 fs_access_level                        = &0f12
-; &0f12 referenced 2 times by &9b73, &adc1
+; &0f12 referenced 1 time by &adc1; also used as index base 1 time by &9b73
 fs_reply_stn                           = &0f13
 ; &0f13 referenced 1 time by &adb2
 fs_len_clear                           = &0f14
@@ -427,7 +427,7 @@ fs_exam_attr_char                      = &0f2f
 fs_exam_dir_flag                       = &0f30
 ; &0f30 referenced 1 time by &b390
 fs_putb_buf                            = &0fdc
-; &0fdc referenced 2 times by &b92c, &b953
+; &0fdc referenced 1 time by &b92c; also used as index base 1 time by &b953
 fs_getb_buf                            = &0fdd
 ; &0fdd referenced 2 times by &b93c, &b949
 fs_handle_mask                         = &0fde
@@ -435,27 +435,27 @@ fs_handle_mask                         = &0fde
 fs_error_flags                         = &0fdf
 ; &0fdf referenced 1 time by &b923
 fcb_xfer_count_lo                      = &0fe0
-; &0fe0 referenced 1 time by &b511
+; &0fe0 used as index base 1 time by &b511
 fcb_xfer_count_mid                     = &0ff0
-; &0ff0 referenced 1 time by &b514
+; &0ff0 used as index base 1 time by &b514
 fcb_count_lo                           = &1000
-; &1000 referenced 18 times by &8b71, &8f97, &8fa1, &9c65, &9ca4, &9df1, &9e5a, &9e9e, &b43c, &b44c, &b457, &b517, &b791, &b7f4, &b82a, &b891, &b8da, &b8f9
+; &1000 used as index base 18 times by &8b71, &8f97, &8fa1, &9c65, &9ca4, &9df1, &9e5a, &9e9e, &b43c, &b44c, &b457, &b517, &b791, &b7f4, &b82a, &b891, &b8da, &b8f9
 fcb_attr_or_count_mid                  = &1010
-; &1010 referenced 16 times by &9bd9, &9c16, &9c6b, &9caa, &9db4, &9e60, &9ea7, &a75f, &a776, &b4fd, &b50c, &b696, &b74e, &b76e, &b796, &b8b8
+; &1010 used as index base 16 times by &9bd9, &9c16, &9c6b, &9caa, &9db4, &9e60, &9ea7, &a75f, &a776, &b4fd, &b50c, &b696, &b74e, &b76e, &b796, &b8b8
 fcb_station_or_count_hi                = &1020
-; &1020 referenced 9 times by &9c71, &9cb0, &9e66, &9eb0, &b51d, &b748, &b776, &b79b, &b8be
+; &1020 used as index base 9 times by &9c71, &9cb0, &9e66, &9eb0, &b51d, &b748, &b776, &b79b, &b8be
 fcb_net_or_port                        = &1030
-; &1030 referenced 16 times by &9c01, &9d9a, &9e4f, &9ec7, &a2fb, &a326, &a35d, &a6ad, &a6c2, &a6d7, &ac20, &b4a2, &b523, &b575, &b881, &b89c
+; &1030 used as index base 16 times by &9c01, &9d9a, &9e4f, &9ec7, &a2fb, &a326, &a35d, &a6ad, &a6c2, &a6d7, &ac20, &b4a2, &b523, &b575, &b881, &b89c
 fcb_flags                              = &1040
-; &1040 referenced 14 times by &9d77, &9db7, &9f0a, &9f0f, &a76b, &a789, &a78e, &a7a5, &a7aa, &a7b8, &a7bd, &b57a, &b96c, &b971
+; &1040 used as index base 14 times by &9d77, &9db7, &9f0a, &9f0f, &a76b, &a789, &a78e, &a7a5, &a7aa, &a7b8, &a7bd, &b57a, &b96c, &b971
 fcb_net_num                            = &1050
-; &1050 referenced 1 time by &b582
+; &1050 used as index base 1 time by &b582
 chan_status                            = &1060
-; &1060 referenced 25 times by &92b0, &92b3, &92c7, &92ca, &a26e, &a2f3, &a31e, &a355, &a373, &a68f, &a69a, &a6e4, &a7c6, &a7ce, &a7db, &a7de, &ac33, &b4ad, &b557, &b566, &b572, &b7d7, &b7fc, &b807, &b85f
+; &1060 used as index base 25 times by &92b0, &92b3, &92c7, &92ca, &a26e, &a2f3, &a31e, &a355, &a373, &a68f, &a69a, &a6e4, &a7c6, &a7ce, &a7db, &a7de, &ac33, &b4ad, &b557, &b566, &b572, &b7d7, &b7fc, &b807, &b85f
 cur_dir_handle                         = &1070
 ; &1070 referenced 3 times by &9d52, &9d5a, &a271
 fs_lib_flags                           = &1071
-; &1071 referenced 32 times by &8b5b, &8ce2, &8ce7, &93b2, &93c1, &9400, &9405, &94b0, &a1f8, &a221, &a226, &a23d, &a39c, &a3a6, &a73e, &a773, &ad4d, &ad53, &ad59, &ad5d, &ad73, &ad77, &ad98, &ada1, &addb, &ae3a, &ae8c, &ae91, &aedf, &aee4, &af12, &af17
+; &1071 referenced 30 times by &8b5b, &8ce2, &8ce7, &93b2, &93c1, &9400, &9405, &94b0, &a1f8, &a221, &a226, &a23d, &a39c, &a3a6, &ad4d, &ad53, &ad59, &ad5d, &ad73, &ad77, &ad98, &ada1, &addb, &ae3a, &ae8c, &ae91, &aedf, &aee4, &af12, &af17; also used as index base 2 times by &a73e, &a773
 handle_1_fcb                           = &1072
 ; &1072 referenced 2 times by &a30a, &a6b6
 handle_2_fcb                           = &1073
@@ -463,15 +463,15 @@ handle_2_fcb                           = &1073
 handle_3_fcb                           = &1074
 ; &1074 referenced 2 times by &a36c, &a6e0
 fcb_stn_lo                             = &1078
-; &1078 referenced 3 times by &b603, &b6a6, &b771
+; &1078 used as index base 3 times by &b603, &b6a6, &b771
 fcb_stn_hi                             = &1088
-; &1088 referenced 3 times by &b609, &b6af, &b779
+; &1088 used as index base 3 times by &b609, &b6af, &b779
 fcb_buf_offset                         = &1098
-; &1098 referenced 7 times by &9df4, &b629, &b6fa, &b70e, &b7f7, &b8dd, &b8e4
+; &1098 used as index base 7 times by &9df4, &b629, &b6fa, &b70e, &b7f7, &b8dd, &b8e4
 fcb_attr_ref                           = &10a8
-; &10a8 referenced 4 times by &b62f, &b69d, &b75f, &b7b4
+; &10a8 used as index base 4 times by &b62f, &b69d, &b75f, &b7b4
 fcb_status                             = &10b8
-; &10b8 referenced 25 times by &950c, &9510, &9515, &b5a0, &b5b2, &b5ba, &b5c3, &b5f5, &b622, &b659, &b65c, &b679, &b686, &b6ff, &b702, &b718, &b71b, &b757, &b77e, &b785, &b78b, &b8eb, &b8ee, &b8f3, &b8f6
+; &10b8 used as index base 25 times by &950c, &9510, &9515, &b5a0, &b5b2, &b5ba, &b5c3, &b5f5, &b622, &b659, &b65c, &b679, &b686, &b6ff, &b702, &b718, &b71b, &b757, &b77e, &b785, &b78b, &b8eb, &b8ee, &b8f3, &b8f6
 cur_fcb_index                          = &10c8
 ; &10c8 referenced 14 times by &b589, &b596, &b5bd, &b5f2, &b618, &b647, &b6e5, &b764, &b76b, &b7ab, &b7ae, &b7bf, &b83b, &b901
 cur_chan_attr                          = &10c9
@@ -491,7 +491,7 @@ xfer_offset                            = &10cf
 xfer_pass_count                        = &10d0
 ; &10d0 referenced 3 times by &b5ce, &b615, &b6e8
 xfer_counter                           = &10d1
-; &10d1 referenced 1 time by &b5de
+; &10d1 used as index base 1 time by &b5de
 work_stn_lo                            = &10d4
 ; &10d4 referenced 5 times by &b5fb, &b606, &b654, &b6a0, &b751
 work_stn_hi                            = &10d5
@@ -503,9 +503,9 @@ osbput_saved_byte                      = &10d7
 quote_mode                             = &10d8
 ; &10d8 referenced 6 times by &9338, &9349, &934c, &9355, &9358, &9366
 fcb_ctx_save                           = &10d9
-; &10d9 referenced 2 times by &b665, &b72b
+; &10d9 used as index base 2 times by &b665, &b72b
 filename_buf                           = &10f3
-; &10f3 referenced 4 times by &9a2c, &9b93, &9b9b, &9ba9
+; &10f3 used as index base 4 times by &9a2c, &9b93, &9b9b, &9ba9
 false_ref_6f6e                         = &6f6e
 ; &6f6e referenced 1 time by &b484
 tube_vdu_dispatch                      = &be5e
@@ -589,7 +589,7 @@ oscli                                  = &fff7
 
 ; Move 1: &bc90 to &0500 for length 256
     org &0500
-; &0500 referenced 2 times by &bea3, &bef9
+; &0500 referenced 1 time by &bef9; also used as index base 1 time by &bea3
 .tube_r2_dispatch_table
     equw tube_osrdch                                                  ; bc90: 37 05       7. :0500[1]         ; R2 cmd 0: OSRDCH
     equw tube_oscli                                                   ; bc92: 96 05       .. :0502[1]         ; R2 cmd 1: OSCLI
@@ -604,7 +604,7 @@ oscli                                  = &fff7
     equw tube_osfile                                                  ; bca4: a9 05       .. :0514[1]         ; R2 cmd 10: OSFILE
     equw tube_osgbpb                                                  ; bca6: d1 05       .. :0516[1]         ; R2 cmd 11: OSGBPB
 ; Tube ULA control register values, indexed by transfer type (0-7). Written to &FEE0 after clearing V+M with &18. Bit layout: S=set/clear, T=reset regs, P=PRST, V=2-byte R3, M=PNMI(R3), J=PIRQ(R4), I=PIRQ(R1), Q=HIRQ(R4). Bits 1-7 select flags; bit 0 (S) is the value to set or clear.
-; &0518 referenced 1 time by &bf53
+; &0518 used as index base 1 time by &bf53
 .tube_ctrl_values
     equb &86                                                          ; bca8: 86          . :0518[1]          ; Type 0: set I+J (1-byte R3, parasite to host)
     equb &88                                                          ; bca9: 88          . :0519[1]          ; Type 1: set M (1-byte R3, host to parasite)
@@ -853,7 +853,7 @@ oscli                                  = &fff7
 
 ; Move 2: &bd90 to &0600 for length 256
     org &0600
-; &0600 referenced 1 time by &bea9
+; &0600 used as index base 1 time by &bea9
 .tube_osbyte_reply_block
     equb &fb                                                          ; bd90: fb          . :0600[2]          ; Send carry+status to co-processor via R2
     stx tube_data_register_2                                          ; bd91: 8e e3 fe    ... :0601[2]        ; Send X result for 2-param OSBYTE
@@ -1107,7 +1107,7 @@ oscli                                  = &fff7
 
 ; Move 3: &bebf to &16 for length 66
     org &16
-; &16 referenced 1 time by &beb7
+; &16 used as index base 1 time by &beb7
 .nmi_workspace_start
     lda #&ff                                                          ; bebf: a9 ff       .. :0016[3]         ; A=&FF: signal error to co-processor via R4
     jsr tube_send_r4                                                  ; bec1: 20 9e 06     .. :0018[3]        ; Send &FF error signal to Tube R4
@@ -1185,7 +1185,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 
 ; Move 4: &bf00 to &0400 for length 256
     org &0400
-; &0400 referenced 1 time by &be9d
+; &0400 used as index base 1 time by &be9d
 .tube_page4_vectors
     jmp tube_begin                                                    ; bf00: 4c 84 04    L.. :0400[4]        ; JMP to BEGIN startup entry
     jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[4]        ; JMP to tube_escape_check (&06A7)
@@ -1467,12 +1467,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; | 1 | Normal startup                                    |
 ; | 2 | Request next byte of softkey expansion (Electron) |
 ; | 3 | Request length of softkey expansion (Electron)    |
-; &8000 referenced 1 time by &bfe6
+; &8000 used as index base 1 time by &bfe6
 .language_entry
     equb &00                                                          ; 8000: 00          .        ; no-language sentinel (rom_type bit 6 clear)
-; &8001 referenced 1 time by &bfeb
+; &8001 used as index base 1 time by &bfeb
 .rom_header_byte1
-; &8002 referenced 1 time by &bff0
+; &8002 used as index base 1 time by &bff0
 rom_header_byte2 = rom_header_byte1+1
     equb &42, &43                                                     ; 8001: 42 43       BC       ; unused padding
 ; ***************************************************************************************
@@ -1481,9 +1481,9 @@ rom_header_byte2 = rom_header_byte1+1
 ; MOS calls JMP &8003 for service-call dispatch — unrecognised * commands, OSWORDs,
 ; OSBYTEs, *HELP, filing-system init / select, paged-ROM scans, and many other events.
 ; The reason code arrives in A.
-; &8003 referenced 1 time by &bff5
+; &8003 used as index base 1 time by &bff5
 .service_entry
-; &8004 referenced 1 time by &bff8
+; &8004 used as index base 1 time by &bff8
 service_handler_lo = service_entry+1
     jmp service_handler                                               ; 8003: 4c 0b 8a    L..   
 ; ***************************************************************************************
@@ -2271,7 +2271,7 @@ service_handler_lo = service_entry+1
 .discard_reset_listen
     lda #2                                                            ; 83f8: a9 02       ..       ; Tube flag bit 1 AND tx_flags bit 1
     and tube_present                                                  ; 83fa: 2d 63 0d    -c.      ; Check if Tube transfer active
-; &83fd referenced 1 time by &846e
+; &83fd used as index base 1 time by &846e
     bit rx_src_net                                                    ; 83fd: 2c 3e 0d    ,>.      ; Test tx_flags for Tube transfer
     beq rts_discard_reset                                             ; 8400: f0 03       ..       ; No Tube transfer active -- skip release
     jsr release_tube                                                  ; 8402: 20 3f 84     ?.      ; Release Tube claim before discarding
@@ -2460,7 +2460,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; is serviced inline here — not deferred like the execute- class operations &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 84af: a9 01       ..       ; Buffer length hi = 1
-; &84b1 referenced 1 time by &8064
+; &84b1 used as index base 1 time by &8064
 .set_rx_buf_len_hi
     sta port_buf_len_hi                                               ; 84b1: 85 a3       ..       ; Set buffer length hi
     lda #&fc                                                          ; 84b3: a9 fc       ..       ; Buffer length lo = &FC
@@ -2750,7 +2750,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; INACTIVE is not set, re-enables NMIs via &FE20 (INTON) and decrements the 3-byte
 ; timeout counter on the stack. On timeout, falls through to tx_line_jammed.
 .intoff_test_inactive
-; &85f6 referenced 1 time by &8672
+; &85f6 used as index base 1 time by &8672
 intoff_disable_nmi_op = intoff_test_inactive+1
     bit station_id_disable_net_nmis                                   ; 85f5: 2c 18 fe    ,..      ; INTOFF -- disable NMIs
     bit station_id_disable_net_nmis                                   ; 85f8: 2c 18 fe    ,..      ; INTOFF again (belt-and-braces)
@@ -3278,7 +3278,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     inc port_buf_len_hi                                               ; 8852: e6 a3       ..       ; Carry into second byte
     bne check_tube_irq_loop                                           ; 8854: d0 08       ..       ; No further carry
 .tube_tx_inc_byte3
-; &8857 referenced 1 time by &8669
+; &8857 used as index base 1 time by &8669
 tube_tx_inc_operand = tube_tx_inc_byte3+1
     inc open_port_buf                                                 ; 8856: e6 a4       ..       ; Carry into third byte
     bne check_tube_irq_loop                                           ; 8858: d0 04       ..       ; No further carry
@@ -3287,7 +3287,7 @@ tube_tx_inc_operand = tube_tx_inc_byte3+1
     beq data_tx_last                                                  ; 885c: f0 b5       ..       ; Counter wrapped to zero: last data
 ; &885e referenced 3 times by &8850, &8854, &8858
 .check_tube_irq_loop
-; &885f referenced 1 time by &8663
+; &885f used as index base 1 time by &8663
 tube_tx_sr1_operand = check_tube_irq_loop+1
     bit econet_control1_or_status1                                    ; 885e: 2c a0 fe    ,..      ; BIT SR1: test IRQ for tight loop
     bmi tube_tx_fifo_write                                            ; 8861: 30 cd       0.       ; IRQ still set: write 2 more bytes
@@ -3573,7 +3573,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     ldy #5                                                            ; 8998: a0 05       ..       ; Y=5: service call workspace page
 ; &899a referenced 1 time by &897c
 .reset_enter_listen
-; &899c referenced 1 time by &808b
+; &899c used as index base 1 time by &808b
 listen_jmp_hi = reset_enter_listen+2
     jmp adlc_rx_listen                                                ; 899a: 4c 6e 89    Ln.      ; Set ADLC to RX listen mode
 ; ***************************************************************************************
@@ -3627,7 +3627,7 @@ listen_jmp_hi = reset_enter_listen+2
     equb &00                                                          ; 89be: 00          .        ; Dead data: &00
     equb &08                                                          ; 89bf: 08          .        ; Dead data: &08
 ; Service dispatch table (37 entries, split lo/hi). PHA/PHA/RTS dispatch used by svc_dispatch. Indices 0-14: service calls (index = service + 1). Indices 15-36: FS command and OSWORD routing. Indices 1, 7, 11 point to return_4 (no-op RTS).
-; &89c0 referenced 1 time by &8e3c
+; &89c0 used as index base 1 time by &8e3c
 .svc_dispatch_lo
     equb &04                                                          ; 89c0: 04          .        ; lo - dummy entry (outside ROM range)
     equb <(dispatch_rts-1)                                            ; 89c1: 41          A        ; lo - Svc 0: already claimed (no-op)
@@ -3666,7 +3666,7 @@ listen_jmp_hi = reset_enter_listen+2
     equb <(net_1_read_handle-1)                                       ; 89e2: cb          .        ; lo - *NET1: read handle from packet
     equb <(net_2_read_handle_entry-1)                                 ; 89e3: d1          .        ; lo - *NET2: read handle from workspace
     equb <(net_3_close_handle-1)                                      ; 89e4: e1          .        ; lo - *NET3: close handle
-; &89e5 referenced 1 time by &8e38
+; &89e5 used as index base 1 time by &8e38
 .svc_dispatch_hi
     equb &cb                                                          ; 89e5: cb          .        ; hi - dummy entry (outside ROM range)
     equb >(dispatch_rts-1)                                            ; 89e6: 8e          .        ; hi - Svc 0: already claimed (no-op)
@@ -4423,14 +4423,14 @@ version_string = version_string_cr+1
 ; &8d2c referenced 2 times by &8d1d, &8d24
 .rts_credits_check
     rts                                                               ; 8d2c: 60          `        ; Return
-; &8d2d referenced 2 times by &8d12, &8d21
+; &8d2d used as index base 2 times by &8d12, &8d21
 .credits_keyword_start
     equb &0d                                                          ; 8d2d: 0d          .        ; CR
 .credits_string
     equs "The authors of ANFS are;"                                   ; 8d2e: 54 68 65... The...
     equb &0d                                                          ; 8d46: 0d          .        ; CR
     equs "B Co"                                                       ; 8d47: 42 20 43... B C...
-; &8d4b referenced 1 time by &affb
+; &8d4b used as index base 1 time by &affb
 .ps_template_base
     equs "ckburn"                                                     ; 8d4b: 63 6b 62... ckb...
     equb &0d                                                          ; 8d51: 0d          .        ; CR
@@ -4613,7 +4613,7 @@ version_string = version_string_cr+1
     lda svc_dispatch_hi,x                                             ; 8e38: bd e5 89    ...      ; Load dispatch address high byte
     pha                                                               ; 8e3b: 48          H        ; Push high byte for RTS dispatch
 .push_dispatch_lo
-; &8e3e referenced 2 times by &8f53, &8f59
+; &8e3e used as index base 2 times by &8f53, &8f59
 svc_dispatch_lo_offset = push_dispatch_lo+2
     lda svc_dispatch_lo,x                                             ; 8e3c: bd c0 89    ...      ; Load dispatch address low byte
     pha                                                               ; 8e3f: 48          H        ; Push low byte for RTS dispatch
@@ -4638,7 +4638,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; Bytes 14-33: handler address pairs read by write_vector_entry. Each entry has addr_lo,
 ; addr_hi, then a padding byte that is not read at runtime (write_vector_entry writes the
 ; current ROM bank number instead). The last entry (FSCV) has no padding byte.
-; &8e4b referenced 1 time by &8b40
+; &8e4b used as index base 1 time by &8b40
 .fs_vector_table
     equw &ff1b                                                        ; 8e4b: 1b ff       ..       ; FILEV dispatch (&FF1B)
     equw &ff1e                                                        ; 8e4d: 1e ff       ..       ; ARGSV dispatch (&FF1E)
@@ -4864,7 +4864,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     bne store_station_id                                              ; 8f27: d0 06       ..       ; Non-zero: station ID valid
 ; &8f29 referenced 1 time by &8f30
 .error_bad_station
-; &8f2b referenced 1 time by &8eff
+; &8f2b used as index base 1 time by &8eff
 ws_init_data = error_bad_station+2
     jmp err_bad_station_num                                           ; 8f29: 4c 01 92    L..      ; Station 0: report error
 ; Workspace init data
@@ -5061,7 +5061,7 @@ ws_init_data = error_bad_station+2
 ; *HELP command syntax strings
 ;
 ; 13 null-terminated syntax help strings displayed by *HELP after each command name. Multi-line entries use &0D as a line break. Indexed by cmd_syntax_table via the low 5 bits of each command's syntax descriptor byte.
-; &900e referenced 1 time by &8bd6
+; &900e used as index base 1 time by &8bd6
 .cmd_syntax_strings
 .syn_opt_dir
     equs "(<dir>)"                                                    ; 900e: 28 3c 64... (<d...   ; Syn 1: *Dir, *LCat, *LEx, *Wipe
@@ -5108,7 +5108,7 @@ ws_init_data = error_bad_station+2
 ; Command syntax string offset table
 ;
 ; 13 offsets into cmd_syntax_strings (&900E). Indexed by the low 5 bits of each command table syntax descriptor byte. Index &0E is handled separately as a shared-commands list. The print loop at &8BD5 does INY before LDA, so each offset points to the byte before the first character.
-; &910e referenced 1 time by &8bd1
+; &910e used as index base 1 time by &8bd1
 .cmd_syntax_table
     equb syn_iam - cmd_syntax_strings - 2                             ; 910e: 06          .        ; Idx 0: (no syntax)
     equb (syn_opt_dir - cmd_syntax_strings - 1) AND &FF               ; 910f: ff          .        ; Idx 1: "(<dir>)" (Y wraps via &FF)
@@ -5443,7 +5443,7 @@ ws_init_data = error_bad_station+2
 ; Indices 0-4: used by get_prot_bits (5-bit input). Some entries set multiple output bits (expansion).
 ;
 ; Indices 5-10: used by get_access_bits (6-bit input from directory entry offset &0E). Each entry sets exactly one output bit (pure permutation).
-; &9272 referenced 1 time by &926c
+; &9272 used as index base 1 time by &926c
 .prot_bit_encode_table
     equb &50                                                          ; 9272: 50          P        ; Bit 0: &50 = %01010000 (bits 4,6)
     equb &20                                                          ; 9273: 20                   ; Bit 1: &20 = %00100000 (bit 5)
@@ -5892,7 +5892,7 @@ ws_init_data = error_bad_station+2
 ; the first two bytes (Y=0,1), also copies the destination station/network from &0E00
 ; into txcb_dest (&C2). Preserves A via PHA/PLA. Called by 4 sites including cmd_pass,
 ; init_txcb_port, prep_send_tx_cb, and send_wipe_request.
-; &945f referenced 5 times by &8df1, &9453, &94cc, &a8de, &b92f
+; &945f referenced 4 times by &8df1, &9453, &94cc, &b92f; also used as index base 1 time by &a8de
 .init_txcb
     pha                                                               ; 945f: 48          H        ; Save A
     ldy #&0b                                                          ; 9460: a0 0b       ..       ; Y=&0B: template size - 1
@@ -5915,7 +5915,7 @@ ws_init_data = error_bad_station+2
 ; Copied by init_txcb into the TXCB workspace at &00C0. For offsets 0-1, the destination station bytes are also copied from l0e00 into txcb_dest.
 ;
 ; The &FF byte at offset 6 (bit_test_ff, &947D) serves double duty: it is part of this template AND a BIT target used by 22 callers to set the V and N flags without clobbering A.
-; &9477 referenced 1 time by &9462
+; &9477 used as index base 1 time by &9462
 .txcb_init_template
     equb &80                                                          ; 9477: 80          .        ; Offset 0: txcb_ctrl = &80 (transmit)
     equb &99                                                          ; 9478: 99          .        ; Offset 1: txcb_port = &99 (FS reply)
@@ -6373,7 +6373,7 @@ ws_init_data = error_bad_station+2
     iny                                                               ; 969b: c8          .        ; Advance source
     inx                                                               ; 969c: e8          .        ; Advance destination
 .bad_str_anchor
-; &969e referenced 1 time by &96af
+; &969e used as index base 1 time by &96af
 bad_prefix = bad_str_anchor+1
     bne loop_copy_error_msg                                           ; 969d: d0 f4       ..       ; Loop until end of message
     equs "Bad"                                                        ; 969f: 42 61 64    Bad   
@@ -6626,7 +6626,7 @@ bad_prefix = bad_str_anchor+1
 ; Network error lookup table (12 bytes)
 ;
 ; Each byte is an offset into error_msg_table. Indices 0-7 are keyed by error class (reply AND 7). Index 8 is used by build_no_reply_error. Indices 9-11 point to suffix strings appended after the station address in compound errors.
-; &9798 referenced 5 times by &9606, &9644, &9672, &9685, &971b
+; &9798 used as index base 5 times by &9606, &9644, &9672, &9685, &971b
 .net_error_lookup_data
     equb error_msg_table - error_msg_table                            ; 9798: 00          .        ; Class 0: &A0 "Line jammed"
     equb msg_net_error - error_msg_table                              ; 9799: 0d          .        ; Class 1: &A1 "Net error"
@@ -6643,7 +6643,7 @@ bad_prefix = bad_str_anchor+1
 ; Network error message table
 ;
 ; Each entry is [error_number][string...][null]. The error number is the BRK error code stored in the error block at &0100. Entries 0-6 are complete error messages. The last 3 are suffix strings (no error number) appended to class 2 "Station" errors to form compound messages like "Station 1.254 not listening".
-; &97a4 referenced 8 times by &960e, &9614, &9647, &9652, &9676, &968d, &9693, &971f
+; &97a4 used as index base 8 times by &960e, &9614, &9647, &9652, &9676, &968d, &9693, &971f
 .error_msg_table
     equb &a0                                                          ; 97a4: a0          .        ; Error &A0: Line jammed
     equs "Line jammed"                                                ; 97a5: 4c 69 6e... Lin...
@@ -6766,7 +6766,7 @@ bad_prefix = bad_str_anchor+1
 ; Pass-through TX buffer template (12 bytes)
 ;
 ; Overlaid onto the TX control block by setup_pass_txbuf for pass-through operations. Offsets marked &FD are skipped, preserving the existing destination station and network. Buffer addresses point to &0D3A-&0D3E in NMI workspace. Original TX buffer values are pushed on the stack and restored after transmission.
-; &9873 referenced 2 times by &9889, &98e3
+; &9873 used as index base 2 times by &9889, &98e3
 .pass_txbuf_init_table
     equb &88                                                          ; 9873: 88          .        ; Offset 0: ctrl = &88 (immediate TX)
     equb &00                                                          ; 9874: 00          .        ; Offset 1: port = &00 (immediate op)
@@ -8514,7 +8514,7 @@ bad_prefix = bad_str_anchor+1
 ; Command separator table (9 bytes)
 ;
 ; Characters that terminate a command name in the star command parser. loop_check_sep_table scans Y down from 8 to 0, comparing each input char against this table.
-; &a164 referenced 1 time by &a158
+; &a164 used as index base 1 time by &a158
 .sep_table_data
     equb &20                                                          ; a164: 20                   ; Space
     equb &22                                                          ; a165: 22          "        ; '"' double quote
@@ -8700,7 +8700,7 @@ bad_prefix = bad_str_anchor+1
     sty cur_dir_handle                                                ; a271: 8c 70 10    .p.      ; Store handle in l1070
     ldy #3                                                            ; a274: a0 03       ..       ; Y=3: OSCLI execution
     jmp boot_cmd_oscli                                                ; a276: 4c d0 a3    L..      ; Execute via boot/OSCLI path
-; &a279 referenced 1 time by &a218
+; &a279 used as index base 1 time by &a218
 .library_dir_prefix
     equs "Library."                                                   ; a279: 4c 69 62... Lib...
 ; &a281 referenced 1 time by &a257
@@ -8929,7 +8929,7 @@ bad_prefix = bad_str_anchor+1
 ; Boot option OSCLI address table
 ;
 ; Low bytes of boot command string addresses, all in page &A3. Indexed by boot option 0-3 (option 0 is never reached due to BEQ). Entry 2 reuses the tail of 'L.!BOOT' to get '!BOOT' (*RUN equivalent).
-; &a3c7 referenced 1 time by &a3d0
+; &a3c7 used as index base 1 time by &a3d0
 .boot_oscli_lo_table
     equb &c6                                                          ; a3c7: c6          .        ; Opt 0: &A3C6 (don't-care, unused)
     equb &b7                                                          ; a3c8: b7          .        ; Opt 1: &A3B7 'L.!BOOT' (*LOAD)
@@ -8945,13 +8945,13 @@ bad_prefix = bad_str_anchor+1
     ldy #&a3                                                          ; a3d3: a0 a3       ..       ; Boot command address high (&A3xx)
     jmp oscli                                                         ; a3d5: 4c f7 ff    L..      ; Execute boot command via OSCLI
 ; Star command table (4 interleaved sub-tables). Each entry: ASCII name + flag byte (&80+) + dispatch address word (PHA/PHA/RTS, addr-1). Sub-tables separated by &80 sentinel bytes. Flag byte: bit 7 = end of name marker, bit 6 = set V on return if no argument, bits 0-4 = *HELP syntax string index. 1: Utility cmds  2: NFS commands 3: Help topics  4: Copro/attributes
-; &a3d8 referenced 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
+; &a3d8 used as index base 12 times by &8ba3, &8bb2, &8bba, &8bc7, &8bf5, &8bfc, &9316, &931e, &a12d, &a132, &a142, &a179
 .cmd_table_fs
     equs "C"                                                          ; a3d8: 43          C        ; *Close (first char)
-; &a3d9 referenced 3 times by &8c88, &a123, &b30a
+; &a3d9 used as index base 3 times by &8c88, &a123, &b30a
 .cmd_table_fs_lo
     equs "l"                                                          ; a3d9: 6c          l        ; *Close cont (dispatch lo base)
-; &a3da referenced 3 times by &8c84, &a11f, &b337
+; &a3da used as index base 3 times by &8c84, &a11f, &b337
 .cmd_table_fs_hi
     equs "ose"                                                        ; a3da: 6f 73 65    ose      ; *Close cont (dispatch hi base)
     equb &80                                                          ; a3dd: 80          .        ; No syntax
@@ -9012,7 +9012,7 @@ bad_prefix = bad_str_anchor+1
     equs "Info"                                                       ; a458: 49 6e 66... Inf...   ; *Info
     equb &c3                                                          ; a45c: c3          .        ; V no arg; syn 3: <object>
     equw cmd_fs_operation-1                                           ; a45d: d1 92       ..       ; Dispatch addr-1
-; &a45f referenced 1 time by &8da4
+; &a45f used as index base 1 time by &8da4
 .cmd_table_nfs_iam
     equs "I am"                                                       ; a45f: 49 20 61... I a...   ; *I am
     equb &c2                                                          ; a463: c2          .        ; V no arg; syn 2: (<stn>) <user>...
@@ -9129,7 +9129,7 @@ bad_prefix = bad_str_anchor+1
 .rts_osword_setup
     rts                                                               ; a507: 60          `        ; RTS dispatches to pushed handler
 ; OSWORD dispatch table (7 entries, split lo/hi). PHA/PHA/RTS dispatch used by svc_8_osword. Maps OSWORD codes &0E-&14 to handler routines.
-; &a508 referenced 1 time by &a4f4
+; &a508 used as index base 1 time by &a4f4
 .osword_dispatch_lo_table
     equb <(osword_0e_handler-1)                                       ; a508: 15          .        ; lo-&0E: Read clock
     equb <(rts_osword_setup-1)                                        ; a509: 06          .        ; lo-&0F: (unimplemented)
@@ -9138,7 +9138,7 @@ bad_prefix = bad_str_anchor+1
     equb <(osword_12_handler-1)                                       ; a50c: 1b          .        ; lo-&12: Read station info
     equb <(osword_13_dispatch-1)                                      ; a50d: 30          0        ; lo-&13: Misc operations
     equb <(osword_14_handler-1)                                       ; a50e: cf          .        ; lo-&14: Bridge/net config
-; &a50f referenced 1 time by &a4f0
+; &a50f used as index base 1 time by &a4f0
 .osword_dispatch_hi_table
     equb >(osword_0e_handler-1)                                       ; a50f: a5          .        ; hi-&0E: Read clock
     equb >(rts_osword_setup-1)                                        ; a510: a5          .        ; hi-&0F: (unimplemented)
@@ -9392,7 +9392,7 @@ bad_prefix = bad_str_anchor+1
 ; &a63e referenced 1 time by &a634
 .rts_osword_13
     rts                                                               ; a63e: 60          `        ; RTS dispatches to handler
-; &a63f referenced 1 time by &a63a
+; &a63f used as index base 1 time by &a63a
 .osword_13_lo_table
     equb <(osword_13_read_station-1)                                  ; a63f: 62          b        ; lo-sub 0: read FS station
     equb <(osword_13_set_station-1)                                   ; a640: 75          u        ; lo-sub 1: set FS station
@@ -9412,7 +9412,7 @@ bad_prefix = bad_str_anchor+1
     equb <(osword_13_read_ctx_3-1)                                    ; a64e: 13          .        ; lo-sub 15: read 3 context bytes
     equb <(osword_13_write_ctx_3-1)                                   ; a64f: 1e          .        ; lo-sub 16: write 3 context bytes
     equb <(osword_13_bridge_query-1)                                  ; a650: 29          )        ; lo-sub 17: query bridge status
-; &a651 referenced 1 time by &a636
+; &a651 used as index base 1 time by &a636
 .osword_13_hi_table
     equb >(osword_13_read_station-1)                                  ; a651: a6          .        ; hi-sub 0: read FS station
     equb >(osword_13_set_station-1)                                   ; a652: a6          .        ; hi-sub 1: set FS station
@@ -9878,7 +9878,7 @@ bad_prefix = bad_str_anchor+1
     lda (osword_pb_ptr),y                                             ; a83f: b1 f0       ..       ; Load PB[3] (caller value)
     beq use_default_station                                           ; a841: f0 07       ..       ; Zero: use default station
 .compare_bridge_status
-; &a844 referenced 1 time by &a878
+; &a844 used as index base 1 time by &a878
 bridge_ws_init_data = compare_bridge_status+1
     eor bridge_status                                                 ; a843: 4d 72 0d    Mr.      ; Compare with bridge status
     bne rts_bridge_query                                              ; a846: d0 07       ..       ; Different: return unchanged
@@ -9899,7 +9899,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; - Y to reach the RXCB data area.
 ;
 ; The TX broadcasts "BRIDGE" as immediate data on port &9C to all stations (FF.FF). The RX listens on the same port for a reply into the bridge status bytes at &0D72.
-; &a850 referenced 1 time by &a87d
+; &a850 used as index base 1 time by &a87d
 .bridge_txcb_init_table
     equb &82                                                          ; a850: 82          .        ; TX 0: ctrl = &82 (immediate mode)
     equb &9c                                                          ; a851: 9c          .        ; TX 1: port = &9C (bridge discovery)
@@ -10144,7 +10144,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; OSWORD handler dispatch table
 ;
 ; 9-entry PHA/PHA/RTS table for OSWORD numbers 0-8. push_osword_handler_addr indexes by the OSWORD number, pushes the handler address-1, then RTS dispatches to the handler with the OSWORD number reloaded in A.
-; &a98c referenced 1 time by &a985
+; &a98c used as index base 1 time by &a985
 .osword_handler_lo_table
     equb <(dispatch_rts-1)                                            ; a98c: 41          A        ; lo OSWORD 0: no-op (RTS)
     equb <(netv_print_data-1)                                         ; a98d: da          .        ; lo OSWORD 1: printer spool data
@@ -10155,7 +10155,7 @@ bridge_ws_init_data = compare_bridge_status+1
     equb <(dispatch_rts-1)                                            ; a992: 41          A        ; lo OSWORD 6: no-op (RTS)
     equb <(netv_claim_release-1)                                      ; a993: cf          .        ; lo OSWORD 7: claim/release handler
     equb <(osword_8_handler-1)                                        ; a994: 3e          >        ; lo OSWORD 8: copy PB + abort
-; &a995 referenced 1 time by &a981
+; &a995 used as index base 1 time by &a981
 .osword_handler_hi_table
     equb >(dispatch_rts-1)                                            ; a995: 8e          .        ; hi OSWORD 0: no-op (RTS)
     equb >(netv_print_data-1)                                         ; a996: aa          .        ; hi OSWORD 1: printer spool data
@@ -10301,7 +10301,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; OSWORD claim code table
 ;
 ; Table of OSWORD numbers that trigger NMI claim processing. Searched in two passes by the OSWORD 7 handler: first the 11-entry range (indices 0-&0A), then the full 18-entry range (indices 0-&11). A match in the first range sets state 2 (standard claim); a match only in the extended range sets state 3.
-; &aa2d referenced 1 time by &aa24
+; &aa2d used as index base 1 time by &aa24
 .osword_claim_codes
     equb &04                                                          ; aa2d: 04          .        ; Range 1+2: OSWORD &04
     equb &09                                                          ; aa2e: 09          .        ; Range 1+2: OSWORD &09
@@ -10422,7 +10422,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; Workspace TXCB init template
 ;
 ; 39-byte template with three overlapping regions, each a TXCB/RXCB structure: Wide  [0..13]:  ws+&6F..&7C via net_rx_ptr Narrow [14..26]: ws+&0C..&17 via workspace Spool [27..38]:  ws+&01..&0B via workspace Markers: &FE=end, &FD=skip, &FC=page ptr.
-; &aa9f referenced 1 time by &aa78
+; &aa9f used as index base 1 time by &aa78
 .ws_txcb_template_data
     equb &85                                                          ; aa9f: 85          .        ; Wide &6F: ctrl=&85
     equb &00                                                          ; aaa0: 00          .        ; Wide &70: port=&00
@@ -10770,7 +10770,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; Spool TX control block template
 ;
 ; 12-byte TXCB template copied directly (no marker processing) to workspace at offset &25..&30. Destination station and network (&27/&28) are filled in from (nfs_workspace) after the copy.
-; &ac6e referenced 1 time by &ab77
+; &ac6e used as index base 1 time by &ab77
 .tx_econet_txcb_template
     equb &80                                                          ; ac6e: 80          .        ; ctrl=&80 (standard TX)
     equb &9f                                                          ; ac6f: 9f          .        ; port=&9F
@@ -10787,7 +10787,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; Spool RX control block template
 ;
 ; 12-byte RXCB template with marker processing: &FD skips the offset (preserves existing value) and &FC substitutes net_rx_ptr_hi. Copied to workspace at offset &00..&0B. Sets up a 3-byte receive buffer at &xx31..&xx34.
-; &ac7a referenced 1 time by &ab96
+; &ac7a used as index base 1 time by &ab96
 .rx_palette_txcb_template
     equb &7f                                                          ; ac7a: 7f          .        ; ctrl=&7F (RX listen)
     equb &9e                                                          ; ac7b: 9e          .        ; port=&9E
@@ -10897,7 +10897,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; OSBYTE mode read codes
 ;
 ; Three OSBYTE numbers used by read_osbyte_to_ws to save display mode state to workspace before a language 2 file transfer.
-; &acfb referenced 1 time by &aced
+; &acfb used as index base 1 time by &aced
 .osbyte_mode_read_codes
     equb &85                                                          ; acfb: 85          .        ; OSBYTE &85: read display start addr
     equb &c2                                                          ; acfc: c2          .        ; OSBYTE &C2: read video ULA ctrl
@@ -10944,7 +10944,7 @@ bridge_ws_init_data = compare_bridge_status+1
     jsr copy_arg_to_buf                                               ; ad2a: 20 f2 ae     ..      ; Copy directory name to TX buffer
     ldy #&1b                                                          ; ad2d: a0 1b       ..       ; Y=&1B: *CDir FS command code
 .cdir_dispatch_col
-; &ad31 referenced 1 time by &ad18
+; &ad31 used as index base 1 time by &ad18
 cdir_alloc_size_table = cdir_dispatch_col+2
     jmp save_net_tx_cb                                                ; ad2f: 4c 99 94    L..      ; Send command to file server
 ; *CDir allocation size threshold table
@@ -11270,11 +11270,11 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     ora #&40 ; '@'                                                    ; aee2: 09 40       .@       ; Set FS selection flag (bit 6)
     sta fs_lib_flags                                                  ; aee4: 8d 71 10    .q.      ; Store updated flags
     bne strip_token_prefix                                            ; aee7: d0 bc       ..    
-; &aee9 referenced 1 time by &ae07
+; &aee9 used as index base 1 time by &ae07
 .option_str_offset_data
     brk                                                               ; aee9: 00          .        ; Data: option string offset table
     equs "!.U"                                                        ; aeea: 21 2e 55    !.U   
-; &aeed referenced 1 time by &ae0a
+; &aeed used as index base 1 time by &ae0a
 .roff_off_string
     equs "Off"                                                        ; aeed: 4f 66 66    Off   
 ; ***************************************************************************************
@@ -11807,7 +11807,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     lda ws_ptr_hi                                                     ; b116: a5 ac       ..       ; Get updated scan position
     sta (nfs_workspace),y                                             ; b118: 91 9e       ..       ; Write RX buffer page high
 .write_ps_slot_hi_link
-; &b11b referenced 1 time by &b2c6
+; &b11b used as index base 1 time by &b2c6
 write_ps_slot_link_addr = write_ps_slot_hi_link+1
     jsr write_ps_slot_byte_ff                                         ; b11a: 20 3a b1     :.      ; Write another page + &FF bytes
     jmp skip_next_ps_slot                                             ; b11d: 4c f4 b0    L..      ; Continue scanning slots
@@ -11897,7 +11897,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; Printer server TX header template
 ;
 ; 4-byte header copied to the TX control block by reverse_ps_name_to_tx. Sets up an immediate transmit on port &9F (PS port) to any station.
-; &b170 referenced 1 time by &b167
+; &b170 used as index base 1 time by &b167
 .ps_tx_header_template
     equb &80                                                          ; b170: 80          .        ; Control byte &80 (immediate TX)
     equb &9f                                                          ; b171: 9f          .        ; Port &9F (printer server)
@@ -12486,7 +12486,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 .error_chan_not_found
     lda #&de                                                          ; b473: a9 de       ..       ; Error code &DE
 .err_net_chan_not_found
-; &b477 referenced 2 times by &b4bd, &b4d1
+; &b477 used as index base 2 times by &b4bd, &b4d1
 net_channel_err_string = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b475: 20 bb 96     ..      ; Generate 'Net channel' error
     equs "Net channel", &00                                           ; b478: 4e 65 74... Net...

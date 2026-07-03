@@ -1,5 +1,6 @@
 {
   "meta": {
+    "schema_version": 2,
     "load_addr": 32768,
     "end_addr": 40960
   },
@@ -2285,6 +2286,8 @@
     "oscli": 65527
   },
   "memory_map": [],
+  "index_bases": [],
+  "regions": [],
   "items": [
     {
       "addr": 32768,
@@ -2308,14 +2311,25 @@
         "# NFS ROM 3.40 disassembly (Acorn Econet filing system)"
       ],
       "xref_summaries": [
-        "&8000 referenced 3 times by &04a9[2], &04df[2], &9b9b",
-        "&8001 referenced 1 time by &04e4[2]",
-        "&8002 referenced 1 time by &04e9[2]"
+        "&8000 referenced 2 times by &04a9[2], &9b9b; also used as index base 1 time by &04df[2]",
+        "&8001 used as index base 1 time by &04e4[2]",
+        "&8002 used as index base 1 time by &04e9[2]"
       ],
       "references": [
-        1193,
-        1247,
-        39835
+        {
+          "addr": 1193,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1247,
+          "kind": "indexed",
+          "move_id": 2
+        },
+        {
+          "addr": 39835,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -2339,11 +2353,15 @@
         ]
       },
       "xref_summaries": [
-        "&8003 referenced 1 time by &04ee[2]",
-        "&8004 referenced 1 time by &04f1[2]"
+        "&8003 used as index base 1 time by &04ee[2]",
+        "&8004 used as index base 1 time by &04f1[2]"
       ],
       "references": [
-        1262
+        {
+          "addr": 1262,
+          "kind": "indexed",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -2364,7 +2382,11 @@
         "&8006 referenced 1 time by &04d3[2]"
       ],
       "references": [
-        1235
+        {
+          "addr": 1235,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -2387,7 +2409,11 @@
         "&8007 referenced 1 time by &04db[2]"
       ],
       "references": [
-        1243
+        {
+          "addr": 1243,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -2407,11 +2433,17 @@
       ],
       "comment_inline": "Binary version: &83 (informational, not used by MOS)",
       "xref_summaries": [
-        "&8008 referenced 2 times by &836a, &8373"
+        "&8008 used as index base 2 times by &836a, &8373"
       ],
       "references": [
-        33642,
-        33651
+        {
+          "addr": 33642,
+          "kind": "indexed"
+        },
+        {
+          "addr": 33651,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -2489,10 +2521,13 @@
       ],
       "comment_inline": "NUL terminator \"Line Jammed\"",
       "xref_summaries": [
-        "&8018 referenced 1 time by &8500"
+        "&8018 used as index base 1 time by &8500"
       ],
       "references": [
-        34048
+        {
+          "addr": 34048,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -2657,10 +2692,13 @@
       ],
       "comment_inline": "Purpose unknown",
       "xref_summaries": [
-        "&8024 referenced 1 time by &80f0"
+        "&8024 used as index base 1 time by &80f0"
       ],
       "references": [
-        33008
+        {
+          "addr": 33008,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -3181,10 +3219,13 @@
       ],
       "comment_inline": "lo - *NET4: resume remote",
       "xref_summaries": [
-        "&8049 referenced 1 time by &80ec"
+        "&8049 used as index base 1 time by &80ec"
       ],
       "references": [
-        33004
+        {
+          "addr": 33004,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -3848,7 +3889,10 @@
         "&8081 referenced 1 time by &8086"
       ],
       "references": [
-        32902
+        {
+          "addr": 32902,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -4038,7 +4082,10 @@
         "&809d referenced 1 time by &808a"
       ],
       "references": [
-        32906
+        {
+          "addr": 32906,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -4059,8 +4106,14 @@
         "&80a0 referenced 2 times by &80a8, &80bf"
       ],
       "references": [
-        32936,
-        32959
+        {
+          "addr": 32936,
+          "kind": "direct"
+        },
+        {
+          "addr": 32959,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -4145,7 +4198,10 @@
         "&80ad referenced 1 time by &80ba"
       ],
       "references": [
-        32954
+        {
+          "addr": 32954,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -4288,7 +4344,10 @@
         "&80c5 referenced 1 time by &80a1"
       ],
       "references": [
-        32929
+        {
+          "addr": 32929,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -4454,7 +4513,10 @@
         "&80e1 referenced 1 time by &8000"
       ],
       "references": [
-        32768
+        {
+          "addr": 32768,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cpx",
@@ -4474,7 +4536,10 @@
         "&80e3 referenced 1 time by &8075"
       ],
       "references": [
-        32885
+        {
+          "addr": 32885,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcs",
@@ -4506,11 +4571,26 @@
         "&80e7 referenced 5 times by &807f, &80d2, &80df, &80e9, &819d"
       ],
       "references": [
-        32895,
-        32978,
-        32991,
-        33001,
-        33181
+        {
+          "addr": 32895,
+          "kind": "direct"
+        },
+        {
+          "addr": 32978,
+          "kind": "direct"
+        },
+        {
+          "addr": 32991,
+          "kind": "direct"
+        },
+        {
+          "addr": 33001,
+          "kind": "direct"
+        },
+        {
+          "addr": 33181,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -4616,9 +4696,18 @@
         "&80f6 referenced 3 times by &80cb, &80d9, &80e3"
       ],
       "references": [
-        32971,
-        32985,
-        32995
+        {
+          "addr": 32971,
+          "kind": "direct"
+        },
+        {
+          "addr": 32985,
+          "kind": "direct"
+        },
+        {
+          "addr": 32995,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -4636,7 +4725,10 @@
         "&80f7 referenced 1 time by &8003"
       ],
       "references": [
-        32771
+        {
+          "addr": 32771,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "nop"
@@ -4839,7 +4931,10 @@
         "&8114 referenced 1 time by &810d"
       ],
       "references": [
-        33037
+        {
+          "addr": 33037,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sec"
@@ -4871,8 +4966,14 @@
         "&8118 referenced 2 times by &8105, &8112"
       ],
       "references": [
-        33029,
-        33042
+        {
+          "addr": 33029,
+          "kind": "direct"
+        },
+        {
+          "addr": 33042,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -4935,7 +5036,10 @@
         "&811f referenced 1 time by &811b"
       ],
       "references": [
-        33051
+        {
+          "addr": 33051,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -5042,8 +5146,14 @@
         "&8130 referenced 2 times by &8133, &813d"
       ],
       "references": [
-        33075,
-        33085
+        {
+          "addr": 33075,
+          "kind": "direct"
+        },
+        {
+          "addr": 33085,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -5133,7 +5243,10 @@
         "&8140 referenced 1 time by &8123"
       ],
       "references": [
-        33059
+        {
+          "addr": 33059,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -5280,7 +5393,10 @@
         "&815b referenced 1 time by &816e"
       ],
       "references": [
-        33134
+        {
+          "addr": 33134,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -5423,7 +5539,10 @@
         "&8175 referenced 1 time by &817b"
       ],
       "references": [
-        33147
+        {
+          "addr": 33147,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -5480,7 +5599,10 @@
         "&817d referenced 1 time by &8138"
       ],
       "references": [
-        33080
+        {
+          "addr": 33080,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -5500,8 +5622,14 @@
         "&817f referenced 2 times by &8121, &8127"
       ],
       "references": [
-        33057,
-        33063
+        {
+          "addr": 33057,
+          "kind": "direct"
+        },
+        {
+          "addr": 33063,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -5582,8 +5710,14 @@
         "&818b referenced 2 times by &8181, &8185"
       ],
       "references": [
-        33153,
-        33157
+        {
+          "addr": 33153,
+          "kind": "direct"
+        },
+        {
+          "addr": 33157,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -5603,7 +5737,10 @@
         "&818d referenced 1 time by &811d"
       ],
       "references": [
-        33053
+        {
+          "addr": 33053,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcs",
@@ -5624,7 +5761,10 @@
         "&818f referenced 1 time by &8189"
       ],
       "references": [
-        33161
+        {
+          "addr": 33161,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tax"
@@ -5828,7 +5968,10 @@
         "&81ab referenced 1 time by &818d"
       ],
       "references": [
-        33165
+        {
+          "addr": 33165,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -6062,7 +6205,10 @@
         "&81ce referenced 1 time by &84b9"
       ],
       "references": [
-        33977
+        {
+          "addr": 33977,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -6095,7 +6241,10 @@
         "&81d2 referenced 1 time by &81dd"
       ],
       "references": [
-        33245
+        {
+          "addr": 33245,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -6180,7 +6329,10 @@
         "&81df referenced 1 time by &81bc"
       ],
       "references": [
-        33212
+        {
+          "addr": 33212,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -6237,7 +6389,10 @@
         "&81e6 referenced 1 time by &81b6"
       ],
       "references": [
-        33206
+        {
+          "addr": 33206,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -6348,7 +6503,10 @@
         "&81f8 referenced 1 time by &8200"
       ],
       "references": [
-        33280
+        {
+          "addr": 33280,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -6464,8 +6622,14 @@
         "&8211 referenced 2 times by &81eb, &8226"
       ],
       "references": [
-        33259,
-        33318
+        {
+          "addr": 33259,
+          "kind": "direct"
+        },
+        {
+          "addr": 33318,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -6496,8 +6660,14 @@
         "&8214 referenced 2 times by &81ed, &8219"
       ],
       "references": [
-        33261,
-        33305
+        {
+          "addr": 33261,
+          "kind": "direct"
+        },
+        {
+          "addr": 33305,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -6655,7 +6825,10 @@
         "&822e referenced 1 time by &8222"
       ],
       "references": [
-        33314
+        {
+          "addr": 33314,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -6818,7 +6991,10 @@
         "&825b referenced 1 time by &824c"
       ],
       "references": [
-        33356
+        {
+          "addr": 33356,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -6849,7 +7025,10 @@
         "&8260 referenced 1 time by &8202"
       ],
       "references": [
-        33282
+        {
+          "addr": 33282,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -6870,7 +7049,10 @@
         "&8262 referenced 1 time by &8269"
       ],
       "references": [
-        33385
+        {
+          "addr": 33385,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -6991,7 +7173,10 @@
         "&8277 referenced 1 time by &81f3"
       ],
       "references": [
-        33267
+        {
+          "addr": 33267,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -7095,11 +7280,17 @@
       ],
       "comment_inline": "Y=&82: ROM page high byte",
       "xref_summaries": [
-        "&8289 referenced 2 times by &8335, &833b"
+        "&8289 used as index base 2 times by &8335, &833b"
       ],
       "references": [
-        33589,
-        33595
+        {
+          "addr": 33589,
+          "kind": "indexed"
+        },
+        {
+          "addr": 33595,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -7149,10 +7340,13 @@
       ],
       "comment_inline": "FILEV dispatch (&FF1B)",
       "xref_summaries": [
-        "&8296 referenced 1 time by &8262"
+        "&8296 used as index base 1 time by &8262"
       ],
       "references": [
-        33378
+        {
+          "addr": 33378,
+          "kind": "indexed"
+        }
       ],
       "type": "word",
       "values": [
@@ -7432,8 +7626,14 @@
         "&82be referenced 2 times by &8285, &82ba"
       ],
       "references": [
-        33413,
-        33466
+        {
+          "addr": 33413,
+          "kind": "direct"
+        },
+        {
+          "addr": 33466,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -7852,7 +8052,10 @@
         "&8303 referenced 1 time by &8310"
       ],
       "references": [
-        33552
+        {
+          "addr": 33552,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -7952,8 +8155,14 @@
         "&8312 referenced 2 times by &82de, &8308"
       ],
       "references": [
-        33502,
-        33544
+        {
+          "addr": 33502,
+          "kind": "direct"
+        },
+        {
+          "addr": 33544,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8038,7 +8247,10 @@
         "&8321 referenced 1 time by &826b"
       ],
       "references": [
-        33387
+        {
+          "addr": 33387,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8157,8 +8369,14 @@
         "&8335 referenced 2 times by &8272, &8347"
       ],
       "references": [
-        33394,
-        33607
+        {
+          "addr": 33394,
+          "kind": "direct"
+        },
+        {
+          "addr": 33607,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8341,7 +8559,10 @@
         "&834f referenced 1 time by &8357"
       ],
       "references": [
-        33623
+        {
+          "addr": 33623,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8434,8 +8655,14 @@
         "&835e referenced 2 times by &81b3, &81e8"
       ],
       "references": [
-        33203,
-        33256
+        {
+          "addr": 33203,
+          "kind": "direct"
+        },
+        {
+          "addr": 33256,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -8457,7 +8684,10 @@
         "&8360 referenced 1 time by &8371"
       ],
       "references": [
-        33649
+        {
+          "addr": 33649,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8586,8 +8816,14 @@
         "&8373 referenced 2 times by &8368, &836d"
       ],
       "references": [
-        33640,
-        33645
+        {
+          "addr": 33640,
+          "kind": "direct"
+        },
+        {
+          "addr": 33645,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8630,8 +8866,14 @@
         "&8379 referenced 2 times by &8364, &837e"
       ],
       "references": [
-        33636,
-        33662
+        {
+          "addr": 33636,
+          "kind": "direct"
+        },
+        {
+          "addr": 33662,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -8650,8 +8892,14 @@
         "&837a referenced 2 times by &8376, &8de0"
       ],
       "references": [
-        33654,
-        36320
+        {
+          "addr": 33654,
+          "kind": "direct"
+        },
+        {
+          "addr": 36320,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8717,7 +8965,10 @@
         "&8383 referenced 1 time by &83f0"
       ],
       "references": [
-        33776
+        {
+          "addr": 33776,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8738,7 +8989,10 @@
         "&8385 referenced 1 time by &885a"
       ],
       "references": [
-        34906
+        {
+          "addr": 34906,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -8815,13 +9069,25 @@
       ],
       "comment_inline": "Preserve A across call",
       "xref_summaries": [
-        "&8391 referenced 4 times by &8385, &83df, &8428, &8fee"
+        "&8391 referenced 3 times by &8385, &83df, &8428; also used as index base 1 time by &8fee"
       ],
       "references": [
-        33669,
-        33759,
-        33832,
-        36846
+        {
+          "addr": 33669,
+          "kind": "direct"
+        },
+        {
+          "addr": 33759,
+          "kind": "direct"
+        },
+        {
+          "addr": 33832,
+          "kind": "direct"
+        },
+        {
+          "addr": 36846,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -8852,7 +9118,10 @@
         "&8394 referenced 1 time by &83a5"
       ],
       "references": [
-        33701
+        {
+          "addr": 33701,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -8939,7 +9208,10 @@
         "&83a4 referenced 1 time by &839c"
       ],
       "references": [
-        33692
+        {
+          "addr": 33692,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -8985,10 +9257,13 @@
       ],
       "comment_inline": "Control flag",
       "xref_summaries": [
-        "&83a9 referenced 1 time by &8394"
+        "&83a9 used as index base 1 time by &8394"
       ],
       "references": [
-        33684
+        {
+          "addr": 33684,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -9045,9 +9320,18 @@
         "&83af referenced 3 times by &88d8, &89b7, &9177"
       ],
       "references": [
-        35032,
-        35255,
-        37239
+        {
+          "addr": 35032,
+          "kind": "direct"
+        },
+        {
+          "addr": 35255,
+          "kind": "direct"
+        },
+        {
+          "addr": 37239,
+          "kind": "direct"
+        }
       ],
       "type": "byte",
       "values": [
@@ -9122,7 +9406,10 @@
         "&83b5 referenced 1 time by &8a7f"
       ],
       "references": [
-        35455
+        {
+          "addr": 35455,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -9162,8 +9449,14 @@
         "&83b9 referenced 2 times by &8720, &87c7"
       ],
       "references": [
-        34592,
-        34759
+        {
+          "addr": 34592,
+          "kind": "direct"
+        },
+        {
+          "addr": 34759,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clv"
@@ -9232,18 +9525,54 @@
         "&83c3 referenced 12 times by &80c5, &887d, &88f3, &893f, &8966, &89dd, &8a04, &8ada, &8b95, &8c3c, &8c73, &8cde"
       ],
       "references": [
-        32965,
-        34941,
-        35059,
-        35135,
-        35174,
-        35293,
-        35332,
-        35546,
-        35733,
-        35900,
-        35955,
-        36062
+        {
+          "addr": 32965,
+          "kind": "direct"
+        },
+        {
+          "addr": 34941,
+          "kind": "direct"
+        },
+        {
+          "addr": 35059,
+          "kind": "direct"
+        },
+        {
+          "addr": 35135,
+          "kind": "direct"
+        },
+        {
+          "addr": 35174,
+          "kind": "direct"
+        },
+        {
+          "addr": 35293,
+          "kind": "direct"
+        },
+        {
+          "addr": 35332,
+          "kind": "direct"
+        },
+        {
+          "addr": 35546,
+          "kind": "direct"
+        },
+        {
+          "addr": 35733,
+          "kind": "direct"
+        },
+        {
+          "addr": 35900,
+          "kind": "direct"
+        },
+        {
+          "addr": 35955,
+          "kind": "direct"
+        },
+        {
+          "addr": 36062,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clv"
@@ -9264,8 +9593,14 @@
         "&83c4 referenced 2 times by &88db, &89ba"
       ],
       "references": [
-        35035,
-        35258
+        {
+          "addr": 35035,
+          "kind": "direct"
+        },
+        {
+          "addr": 35258,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -9300,7 +9635,10 @@
         "&83ca referenced 1 time by &83ba"
       ],
       "references": [
-        33722
+        {
+          "addr": 33722,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clc"
@@ -9320,7 +9658,10 @@
         "&83cb referenced 1 time by &83b7"
       ],
       "references": [
-        33719
+        {
+          "addr": 33719,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -9354,7 +9695,10 @@
         "&83d0 referenced 1 time by &83d7"
       ],
       "references": [
-        33751
+        {
+          "addr": 33751,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -9411,7 +9755,10 @@
         "&83d9 referenced 1 time by &8b33"
       ],
       "references": [
-        35635
+        {
+          "addr": 35635,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "php"
@@ -9555,8 +9902,14 @@
         "&83ef referenced 2 times by &87d3, &8ab7"
       ],
       "references": [
-        34771,
-        35511
+        {
+          "addr": 34771,
+          "kind": "direct"
+        },
+        {
+          "addr": 35511,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "php"
@@ -9611,7 +9964,10 @@
         "&83f7 referenced 1 time by &840d"
       ],
       "references": [
-        33805
+        {
+          "addr": 33805,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -9689,7 +10045,10 @@
         "&8401 referenced 1 time by &83fd"
       ],
       "references": [
-        33789
+        {
+          "addr": 33789,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bne",
@@ -9710,7 +10069,10 @@
         "&8403 referenced 1 time by &83fb"
       ],
       "references": [
-        33787
+        {
+          "addr": 33787,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -9728,7 +10090,10 @@
         "&8404 referenced 1 time by &83e8"
       ],
       "references": [
-        33768
+        {
+          "addr": 33768,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -9818,7 +10183,10 @@
         "&8410 referenced 1 time by &855d"
       ],
       "references": [
-        34141
+        {
+          "addr": 34141,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -10088,7 +10456,10 @@
         "&843a referenced 1 time by &8437"
       ],
       "references": [
-        33847
+        {
+          "addr": 33847,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -10187,7 +10558,10 @@
         "&844b referenced 1 time by &8452"
       ],
       "references": [
-        33874
+        {
+          "addr": 33874,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -10351,7 +10725,10 @@
         "&8466 referenced 1 time by &845e"
       ],
       "references": [
-        33886
+        {
+          "addr": 33886,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tax"
@@ -10395,7 +10772,10 @@
         "&846c referenced 1 time by &8464"
       ],
       "references": [
-        33892
+        {
+          "addr": 33892,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -10443,7 +10823,10 @@
         "&8473 referenced 1 time by &8401"
       ],
       "references": [
-        33793
+        {
+          "addr": 33793,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -10524,7 +10907,10 @@
         "&8480 referenced 1 time by &847a"
       ],
       "references": [
-        33914
+        {
+          "addr": 33914,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -10543,7 +10929,10 @@
         "&8482 referenced 1 time by &848a"
       ],
       "references": [
-        33930
+        {
+          "addr": 33930,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -10641,7 +11030,10 @@
         "&8491 referenced 1 time by &8447"
       ],
       "references": [
-        33863
+        {
+          "addr": 33863,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -10761,7 +11153,10 @@
         "&84a0 referenced 1 time by &84e6"
       ],
       "references": [
-        34022
+        {
+          "addr": 34022,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -10783,8 +11178,14 @@
         "&84a3 referenced 2 times by &849e, &84dc"
       ],
       "references": [
-        33950,
-        34012
+        {
+          "addr": 33950,
+          "kind": "direct"
+        },
+        {
+          "addr": 34012,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ora",
@@ -11053,7 +11454,10 @@
         "&84cf referenced 1 time by &84d3"
       ],
       "references": [
-        34003
+        {
+          "addr": 34003,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -11098,8 +11502,14 @@
         "&84d5 referenced 2 times by &848f, &850e"
       ],
       "references": [
-        33935,
-        34062
+        {
+          "addr": 33935,
+          "kind": "direct"
+        },
+        {
+          "addr": 34062,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -11308,7 +11718,10 @@
         "&84f7 referenced 1 time by &854a"
       ],
       "references": [
-        34122
+        {
+          "addr": 34122,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -11341,7 +11754,10 @@
         "&84fb referenced 1 time by &86d0"
       ],
       "references": [
-        34512
+        {
+          "addr": 34512,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -11363,8 +11779,14 @@
         "&84fd referenced 2 times by &855a, &89fc"
       ],
       "references": [
-        34138,
-        35324
+        {
+          "addr": 34138,
+          "kind": "direct"
+        },
+        {
+          "addr": 35324,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "and",
@@ -11383,7 +11805,10 @@
         "&84ff referenced 1 time by &84f9"
       ],
       "references": [
-        34041
+        {
+          "addr": 34041,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tax"
@@ -11442,7 +11867,10 @@
         "&8508 referenced 1 time by &8512"
       ],
       "references": [
-        34066
+        {
+          "addr": 34066,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -11548,11 +11976,26 @@
         "&851b referenced 5 times by &83f3, &8779, &8864, &9031, &9296"
       ],
       "references": [
-        33779,
-        34681,
-        34916,
-        36913,
-        37526
+        {
+          "addr": 33779,
+          "kind": "direct"
+        },
+        {
+          "addr": 34681,
+          "kind": "direct"
+        },
+        {
+          "addr": 34916,
+          "kind": "direct"
+        },
+        {
+          "addr": 36913,
+          "kind": "direct"
+        },
+        {
+          "addr": 37526,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -11683,9 +12126,18 @@
         "&852d referenced 3 times by &8537, &853c, &8541"
       ],
       "references": [
-        34103,
-        34108,
-        34113
+        {
+          "addr": 34103,
+          "kind": "direct"
+        },
+        {
+          "addr": 34108,
+          "kind": "direct"
+        },
+        {
+          "addr": 34113,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -11816,7 +12268,10 @@
         "&8543 referenced 1 time by &8532"
       ],
       "references": [
-        34098
+        {
+          "addr": 34098,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -11898,9 +12353,18 @@
         "&854d referenced 3 times by &80b0, &852d, &86b7"
       ],
       "references": [
-        32944,
-        34093,
-        34487
+        {
+          "addr": 32944,
+          "kind": "direct"
+        },
+        {
+          "addr": 34093,
+          "kind": "direct"
+        },
+        {
+          "addr": 34487,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -12145,7 +12609,10 @@
         "&8572 referenced 1 time by &856d"
       ],
       "references": [
-        34157
+        {
+          "addr": 34157,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -12183,8 +12650,14 @@
         "&8578 referenced 2 times by &854f, &8566"
       ],
       "references": [
-        34127,
-        34150
+        {
+          "addr": 34127,
+          "kind": "direct"
+        },
+        {
+          "addr": 34150,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -12200,10 +12673,13 @@
       ],
       "comment_inline": "Error &A0: Line Jammed",
       "xref_summaries": [
-        "&8579 referenced 1 time by &8508"
+        "&8579 used as index base 1 time by &8508"
       ],
       "references": [
-        34056
+        {
+          "addr": 34056,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -12436,9 +12912,18 @@
         "&85c8 referenced 3 times by &80d4, &8994, &8bd7"
       ],
       "references": [
-        32980,
-        35220,
-        35799
+        {
+          "addr": 32980,
+          "kind": "direct"
+        },
+        {
+          "addr": 35220,
+          "kind": "direct"
+        },
+        {
+          "addr": 35799,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -12501,9 +12986,18 @@
         "&85d2 referenced 3 times by &8705, &8924, &8a2e"
       ],
       "references": [
-        34565,
-        35108,
-        35374
+        {
+          "addr": 34565,
+          "kind": "direct"
+        },
+        {
+          "addr": 35108,
+          "kind": "direct"
+        },
+        {
+          "addr": 35374,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -12586,8 +13080,14 @@
         "&85dd referenced 2 times by &88b7, &88e2"
       ],
       "references": [
-        34999,
-        35042
+        {
+          "addr": 34999,
+          "kind": "direct"
+        },
+        {
+          "addr": 35042,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -12655,8 +13155,14 @@
         "&85e7 referenced 2 times by &87de, &88ff"
       ],
       "references": [
-        34782,
-        35071
+        {
+          "addr": 34782,
+          "kind": "direct"
+        },
+        {
+          "addr": 35071,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "and",
@@ -12687,7 +13193,10 @@
         "&85eb referenced 1 time by &85e5"
       ],
       "references": [
-        34277
+        {
+          "addr": 34277,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -12719,7 +13228,10 @@
         "&85ef referenced 1 time by &85f7"
       ],
       "references": [
-        34295
+        {
+          "addr": 34295,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -12778,7 +13290,10 @@
         "&85f7 referenced 1 time by &85f2"
       ],
       "references": [
-        34290
+        {
+          "addr": 34290,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bne",
@@ -12814,10 +13329,13 @@
         "access_bit_table"
       ],
       "xref_summaries": [
-        "&85fa referenced 1 time by &85f4"
+        "&85fa used as index base 1 time by &85f4"
       ],
       "references": [
-        34292
+        {
+          "addr": 34292,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -12847,19 +13365,58 @@
         "&8605 referenced 13 times by &8204, &822e, &824e, &825b, &8c44, &8c4e, &8c5c, &8c67, &8c7c, &8c91, &8ca4, &8cb3, &8d9e"
       ],
       "references": [
-        33284,
-        33326,
-        33358,
-        33371,
-        35908,
-        35918,
-        35932,
-        35943,
-        35964,
-        35985,
-        36004,
-        36019,
-        36254
+        {
+          "addr": 33284,
+          "kind": "direct"
+        },
+        {
+          "addr": 33326,
+          "kind": "direct"
+        },
+        {
+          "addr": 33358,
+          "kind": "direct"
+        },
+        {
+          "addr": 33371,
+          "kind": "direct"
+        },
+        {
+          "addr": 35908,
+          "kind": "direct"
+        },
+        {
+          "addr": 35918,
+          "kind": "direct"
+        },
+        {
+          "addr": 35932,
+          "kind": "direct"
+        },
+        {
+          "addr": 35943,
+          "kind": "direct"
+        },
+        {
+          "addr": 35964,
+          "kind": "direct"
+        },
+        {
+          "addr": 35985,
+          "kind": "direct"
+        },
+        {
+          "addr": 36004,
+          "kind": "direct"
+        },
+        {
+          "addr": 36019,
+          "kind": "direct"
+        },
+        {
+          "addr": 36254,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -12924,7 +13481,10 @@
         "&860d referenced 1 time by &861a"
       ],
       "references": [
-        34330
+        {
+          "addr": 34330,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inc",
@@ -12972,7 +13532,10 @@
         "&8613 referenced 1 time by &860f"
       ],
       "references": [
-        34319
+        {
+          "addr": 34319,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -13035,7 +13598,10 @@
         "&861d referenced 1 time by &8615"
       ],
       "references": [
-        34325
+        {
+          "addr": 34325,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -13057,7 +13623,10 @@
         "&8620 referenced 1 time by &808c"
       ],
       "references": [
-        32908
+        {
+          "addr": 32908,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -13090,7 +13659,10 @@
         "&8624 referenced 1 time by &863d"
       ],
       "references": [
-        34365
+        {
+          "addr": 34365,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -13277,7 +13849,10 @@
         "&863f referenced 1 time by &862a"
       ],
       "references": [
-        34346
+        {
+          "addr": 34346,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clc"
@@ -13296,7 +13871,10 @@
         "&8640 referenced 1 time by &8628"
       ],
       "references": [
-        34344
+        {
+          "addr": 34344,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -13326,9 +13904,18 @@
         "&8643 referenced 3 times by &886b, &8a49, &8f53"
       ],
       "references": [
-        34923,
-        35401,
-        36691
+        {
+          "addr": 34923,
+          "kind": "direct"
+        },
+        {
+          "addr": 35401,
+          "kind": "direct"
+        },
+        {
+          "addr": 36691,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tay"
@@ -13346,8 +13933,14 @@
         "&8644 referenced 2 times by &841b, &892f"
       ],
       "references": [
-        33819,
-        35119
+        {
+          "addr": 33819,
+          "kind": "direct"
+        },
+        {
+          "addr": 35119,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clc"
@@ -13365,7 +13958,10 @@
         "&8645 referenced 1 time by &8998"
       ],
       "references": [
-        35224
+        {
+          "addr": 35224,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -13436,7 +14032,10 @@
         "&864d referenced 1 time by &8649"
       ],
       "references": [
-        34377
+        {
+          "addr": 34377,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sec"
@@ -13485,7 +14084,10 @@
         "&8653 referenced 1 time by &8655"
       ],
       "references": [
-        34389
+        {
+          "addr": 34389,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "asl"
@@ -13565,8 +14167,14 @@
         "&865c referenced 2 times by &864b, &8659"
       ],
       "references": [
-        34379,
-        34393
+        {
+          "addr": 34379,
+          "kind": "direct"
+        },
+        {
+          "addr": 34393,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -13612,8 +14220,14 @@
         "&8660 referenced 2 times by &89c7, &8f6b"
       ],
       "references": [
-        35271,
-        36715
+        {
+          "addr": 35271,
+          "kind": "direct"
+        },
+        {
+          "addr": 36715,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -13632,7 +14246,10 @@
         "&8662 referenced 1 time by &8664"
       ],
       "references": [
-        34404
+        {
+          "addr": 34404,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -13691,8 +14308,14 @@
         "&8668 referenced 2 times by &875f, &8815"
       ],
       "references": [
-        34655,
-        34837
+        {
+          "addr": 34655,
+          "kind": "direct"
+        },
+        {
+          "addr": 34837,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -13712,7 +14335,10 @@
         "&866a referenced 1 time by &8671"
       ],
       "references": [
-        34417
+        {
+          "addr": 34417,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -13781,7 +14407,10 @@
         "&8673 referenced 1 time by &866e"
       ],
       "references": [
-        34414
+        {
+          "addr": 34414,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -13838,11 +14467,26 @@
         "&8679 referenced 5 times by &8572, &896c, &89c3, &89e3, &8ac4"
       ],
       "references": [
-        34162,
-        35180,
-        35267,
-        35299,
-        35524
+        {
+          "addr": 34162,
+          "kind": "direct"
+        },
+        {
+          "addr": 35180,
+          "kind": "direct"
+        },
+        {
+          "addr": 35267,
+          "kind": "direct"
+        },
+        {
+          "addr": 35299,
+          "kind": "direct"
+        },
+        {
+          "addr": 35524,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ora",
@@ -13877,9 +14521,18 @@
         "&867e referenced 3 times by &856f, &8886, &8ac1"
       ],
       "references": [
-        34159,
-        34950,
-        35521
+        {
+          "addr": 34159,
+          "kind": "direct"
+        },
+        {
+          "addr": 34950,
+          "kind": "direct"
+        },
+        {
+          "addr": 35521,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "eor",
@@ -13914,7 +14567,10 @@
         "&8683 referenced 1 time by &867c"
       ],
       "references": [
-        34428
+        {
+          "addr": 34428,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -13945,8 +14601,14 @@
         "&8687 referenced 2 times by &83eb, &8855"
       ],
       "references": [
-        33771,
-        34901
+        {
+          "addr": 33771,
+          "kind": "direct"
+        },
+        {
+          "addr": 34901,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -14003,10 +14665,22 @@
         "&868f referenced 4 times by &901a, &9073, &90d0, &9274"
       ],
       "references": [
-        36890,
-        36979,
-        37072,
-        37492
+        {
+          "addr": 36890,
+          "kind": "direct"
+        },
+        {
+          "addr": 36979,
+          "kind": "direct"
+        },
+        {
+          "addr": 37072,
+          "kind": "direct"
+        },
+        {
+          "addr": 37492,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -14093,7 +14767,10 @@
         "&869a referenced 1 time by &86cd"
       ],
       "references": [
-        34509
+        {
+          "addr": 34509,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -14125,7 +14802,10 @@
         "&869d referenced 1 time by &86a0"
       ],
       "references": [
-        34464
+        {
+          "addr": 34464,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "asl",
@@ -14227,7 +14907,10 @@
         "&86ad referenced 1 time by &86af"
       ],
       "references": [
-        34479
+        {
+          "addr": 34479,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -14424,8 +15107,14 @@
         "&86c7 referenced 2 times by &86c8, &86cb"
       ],
       "references": [
-        34504,
-        34507
+        {
+          "addr": 34504,
+          "kind": "direct"
+        },
+        {
+          "addr": 34507,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dex"
@@ -14490,8 +15179,14 @@
         "&86cf referenced 2 times by &86b5, &86bf"
       ],
       "references": [
-        34485,
-        34495
+        {
+          "addr": 34485,
+          "kind": "direct"
+        },
+        {
+          "addr": 34495,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tax"
@@ -14523,7 +15218,10 @@
         "&86d3 referenced 1 time by &86b2"
       ],
       "references": [
-        34482
+        {
+          "addr": 34482,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -14569,7 +15267,10 @@
         "&86d7 referenced 1 time by &8708"
       ],
       "references": [
-        34568
+        {
+          "addr": 34568,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -14589,7 +15290,10 @@
         "&86d9 referenced 1 time by &86df"
       ],
       "references": [
-        34527
+        {
+          "addr": 34527,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -14647,8 +15351,14 @@
         "&86e1 referenced 2 times by &89ad, &8dcf"
       ],
       "references": [
-        35245,
-        36303
+        {
+          "addr": 35245,
+          "kind": "direct"
+        },
+        {
+          "addr": 36303,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -14668,7 +15378,10 @@
         "&86e3 referenced 1 time by &8c32"
       ],
       "references": [
-        35890
+        {
+          "addr": 35890,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -14725,7 +15438,10 @@
         "&86eb referenced 1 time by &86f4"
       ],
       "references": [
-        34548
+        {
+          "addr": 34548,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -14795,8 +15511,14 @@
         "&86f6 referenced 2 times by &86e9, &86ee"
       ],
       "references": [
-        34537,
-        34542
+        {
+          "addr": 34537,
+          "kind": "direct"
+        },
+        {
+          "addr": 34542,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -14993,7 +15715,10 @@
         "&8716 referenced 1 time by &8711"
       ],
       "references": [
-        34577
+        {
+          "addr": 34577,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -15026,7 +15751,10 @@
         "&871b referenced 1 time by &8e00"
       ],
       "references": [
-        36352
+        {
+          "addr": 36352,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -15153,7 +15881,10 @@
         "&8731 referenced 1 time by &8727"
       ],
       "references": [
-        34599
+        {
+          "addr": 34599,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -15189,7 +15920,10 @@
         "&8737 referenced 1 time by &872f"
       ],
       "references": [
-        34607
+        {
+          "addr": 34607,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -15209,7 +15943,10 @@
         "&8739 referenced 1 time by &8744"
       ],
       "references": [
-        34628
+        {
+          "addr": 34628,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -15378,7 +16115,10 @@
         "&8754 referenced 1 time by &875b"
       ],
       "references": [
-        34651
+        {
+          "addr": 34651,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -15449,8 +16189,14 @@
         "&875f referenced 2 times by &874f, &8ab4"
       ],
       "references": [
-        34639,
-        35508
+        {
+          "addr": 34639,
+          "kind": "direct"
+        },
+        {
+          "addr": 35508,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -15509,7 +16255,10 @@
         "&8768 referenced 1 time by &8784"
       ],
       "references": [
-        34692
+        {
+          "addr": 34692,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -15529,7 +16278,10 @@
         "&876a referenced 1 time by &8773"
       ],
       "references": [
-        34675
+        {
+          "addr": 34675,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -15662,7 +16414,10 @@
         "&877e referenced 1 time by &8787"
       ],
       "references": [
-        34695
+        {
+          "addr": 34695,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -15732,7 +16487,10 @@
         "&8789 referenced 1 time by &8762"
       ],
       "references": [
-        34658
+        {
+          "addr": 34658,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -15751,7 +16509,10 @@
         "&878a referenced 1 time by &870d"
       ],
       "references": [
-        34573
+        {
+          "addr": 34573,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "beq",
@@ -15787,7 +16548,10 @@
         "&878f referenced 1 time by &878a"
       ],
       "references": [
-        34698
+        {
+          "addr": 34698,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -15818,7 +16582,10 @@
         "&8793 referenced 1 time by &87ad"
       ],
       "references": [
-        34733
+        {
+          "addr": 34733,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -16000,7 +16767,10 @@
         "&87b1 referenced 1 time by &87b7"
       ],
       "references": [
-        34743
+        {
+          "addr": 34743,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -16189,7 +16959,10 @@
         "&87d3 referenced 1 time by &875d"
       ],
       "references": [
-        34653
+        {
+          "addr": 34653,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -16281,7 +17054,10 @@
         "&87e3 referenced 1 time by &87eb"
       ],
       "references": [
-        34795
+        {
+          "addr": 34795,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -16303,7 +17079,10 @@
         "&87e6 referenced 1 time by &87e1"
       ],
       "references": [
-        34785
+        {
+          "addr": 34785,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -16372,8 +17151,14 @@
         "&87f0 referenced 2 times by &8729, &8734"
       ],
       "references": [
-        34601,
-        34612
+        {
+          "addr": 34601,
+          "kind": "direct"
+        },
+        {
+          "addr": 34612,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -16393,7 +17178,10 @@
         "&87f2 referenced 1 time by &87fa"
       ],
       "references": [
-        34810
+        {
+          "addr": 34810,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -16461,7 +17249,10 @@
         "&87fc referenced 1 time by &87a9"
       ],
       "references": [
-        34729
+        {
+          "addr": 34729,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -16479,7 +17270,10 @@
         "&87fd referenced 1 time by &8a91"
       ],
       "references": [
-        35473
+        {
+          "addr": 35473,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -16534,8 +17328,14 @@
         "&8802 referenced 2 times by &872c, &8731"
       ],
       "references": [
-        34604,
-        34609
+        {
+          "addr": 34604,
+          "kind": "direct"
+        },
+        {
+          "addr": 34609,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -16564,7 +17364,10 @@
         "&8805 referenced 1 time by &880d"
       ],
       "references": [
-        34829
+        {
+          "addr": 34829,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -16632,7 +17435,10 @@
         "&880f referenced 1 time by &8798"
       ],
       "references": [
-        34712
+        {
+          "addr": 34712,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -16650,8 +17456,14 @@
         "&8810 referenced 2 times by &88a5, &8a99"
       ],
       "references": [
-        34981,
-        35481
+        {
+          "addr": 34981,
+          "kind": "direct"
+        },
+        {
+          "addr": 35481,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -16696,8 +17508,14 @@
         "&8814 referenced 2 times by &87d0, &8aaf"
       ],
       "references": [
-        34768,
-        35503
+        {
+          "addr": 34768,
+          "kind": "direct"
+        },
+        {
+          "addr": 35503,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -16742,7 +17560,10 @@
         "&881a referenced 1 time by &8867"
       ],
       "references": [
-        34919
+        {
+          "addr": 34919,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -16810,7 +17631,10 @@
         "&8825 referenced 1 time by &8832"
       ],
       "references": [
-        34866
+        {
+          "addr": 34866,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -16939,7 +17763,10 @@
         "&8837 referenced 1 time by &883f"
       ],
       "references": [
-        34879
+        {
+          "addr": 34879,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -17019,7 +17846,10 @@
         "&8843 referenced 1 time by &8834"
       ],
       "references": [
-        34868
+        {
+          "addr": 34868,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -17039,7 +17869,10 @@
         "&8845 referenced 1 time by &884a"
       ],
       "references": [
-        34890
+        {
+          "addr": 34890,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -17095,7 +17928,10 @@
         "&884c referenced 1 time by &8841"
       ],
       "references": [
-        34881
+        {
+          "addr": 34881,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -17469,10 +18305,22 @@
         "&8889 referenced 4 times by &8818, &885e, &8873, &8884"
       ],
       "references": [
-        34840,
-        34910,
-        34931,
-        34948
+        {
+          "addr": 34840,
+          "kind": "direct"
+        },
+        {
+          "addr": 34910,
+          "kind": "direct"
+        },
+        {
+          "addr": 34931,
+          "kind": "direct"
+        },
+        {
+          "addr": 34948,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -17514,7 +18362,10 @@
         "&888d referenced 1 time by &878c"
       ],
       "references": [
-        34700
+        {
+          "addr": 34700,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -17697,7 +18548,10 @@
         "&88aa referenced 1 time by &88b1"
       ],
       "references": [
-        34993
+        {
+          "addr": 34993,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -17788,7 +18642,10 @@
         "&88b7 referenced 1 time by &88a0"
       ],
       "references": [
-        34976
+        {
+          "addr": 34976,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -17846,7 +18703,10 @@
         "&88c1 referenced 1 time by &88c8"
       ],
       "references": [
-        35016
+        {
+          "addr": 35016,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -17925,8 +18785,14 @@
         "&88cc referenced 2 times by &88b5, &88ea"
       ],
       "references": [
-        34997,
-        35050
+        {
+          "addr": 34997,
+          "kind": "direct"
+        },
+        {
+          "addr": 35050,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -17973,7 +18839,10 @@
         "&88d3 referenced 1 time by &8892"
       ],
       "references": [
-        34962
+        {
+          "addr": 34962,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -18007,7 +18876,10 @@
         "&88d8 referenced 1 time by &88d1"
       ],
       "references": [
-        35025
+        {
+          "addr": 35025,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -18043,7 +18915,10 @@
         "&88de referenced 1 time by &8894"
       ],
       "references": [
-        34964
+        {
+          "addr": 34964,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcs",
@@ -18079,7 +18954,10 @@
         "&88e2 referenced 1 time by &889c"
       ],
       "references": [
-        34972
+        {
+          "addr": 34972,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -18139,7 +19017,10 @@
         "&88ec referenced 1 time by &8898"
       ],
       "references": [
-        34968
+        {
+          "addr": 34968,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -18298,7 +19179,10 @@
         "&8909 referenced 1 time by &8910"
       ],
       "references": [
-        35088
+        {
+          "addr": 35088,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -18394,7 +19278,10 @@
         "&8916 referenced 1 time by &891d"
       ],
       "references": [
-        35101
+        {
+          "addr": 35101,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -18474,7 +19361,10 @@
         "&8922 referenced 1 time by &88de"
       ],
       "references": [
-        35038
+        {
+          "addr": 35038,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bpl",
@@ -18712,7 +19602,10 @@
         "&894a referenced 1 time by &8951"
       ],
       "references": [
-        35153
+        {
+          "addr": 35153,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -18778,7 +19671,10 @@
         "&8953 referenced 1 time by &88e0"
       ],
       "references": [
-        35040
+        {
+          "addr": 35040,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcc",
@@ -18799,7 +19695,10 @@
         "&8955 referenced 1 time by &8939"
       ],
       "references": [
-        35129
+        {
+          "addr": 35129,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tya"
@@ -18838,7 +19737,10 @@
         "&8959 referenced 1 time by &8960"
       ],
       "references": [
-        35168
+        {
+          "addr": 35168,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -18977,13 +19879,34 @@
         "&896f referenced 7 times by &8713, &87ed, &8929, &8953, &89e6, &8a39, &8e27"
       ],
       "references": [
-        34579,
-        34797,
-        35113,
-        35155,
-        35302,
-        35385,
-        36391
+        {
+          "addr": 34579,
+          "kind": "direct"
+        },
+        {
+          "addr": 34797,
+          "kind": "direct"
+        },
+        {
+          "addr": 35113,
+          "kind": "direct"
+        },
+        {
+          "addr": 35155,
+          "kind": "direct"
+        },
+        {
+          "addr": 35302,
+          "kind": "direct"
+        },
+        {
+          "addr": 35385,
+          "kind": "direct"
+        },
+        {
+          "addr": 36391,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -19005,11 +19928,26 @@
         "&8971 referenced 5 times by &8922, &8982, &8992, &89bd, &89ca"
       ],
       "references": [
-        35106,
-        35202,
-        35218,
-        35261,
-        35274
+        {
+          "addr": 35106,
+          "kind": "direct"
+        },
+        {
+          "addr": 35202,
+          "kind": "direct"
+        },
+        {
+          "addr": 35218,
+          "kind": "direct"
+        },
+        {
+          "addr": 35261,
+          "kind": "direct"
+        },
+        {
+          "addr": 35274,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -19053,7 +19991,10 @@
         "&8976 referenced 1 time by &892d"
       ],
       "references": [
-        35117
+        {
+          "addr": 35117,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -19131,7 +20072,10 @@
         "&8981 referenced 1 time by &8978"
       ],
       "references": [
-        35192
+        {
+          "addr": 35192,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lsr"
@@ -19164,8 +20108,14 @@
         "&8984 referenced 2 times by &897d, &898a"
       ],
       "references": [
-        35197,
-        35210
+        {
+          "addr": 35197,
+          "kind": "direct"
+        },
+        {
+          "addr": 35210,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -19247,10 +20197,22 @@
         "&8990 referenced 4 times by &897a, &89a0, &8ad5, &8b77"
       ],
       "references": [
-        35194,
-        35232,
-        35541,
-        35703
+        {
+          "addr": 35194,
+          "kind": "direct"
+        },
+        {
+          "addr": 35232,
+          "kind": "direct"
+        },
+        {
+          "addr": 35541,
+          "kind": "direct"
+        },
+        {
+          "addr": 35703,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -19597,7 +20559,10 @@
         "&89cc referenced 1 time by &899c"
       ],
       "references": [
-        35228
+        {
+          "addr": 35228,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tya"
@@ -19666,7 +20631,10 @@
         "&89d6 referenced 1 time by &89cd"
       ],
       "references": [
-        35277
+        {
+          "addr": 35277,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -19749,7 +20717,10 @@
         "&89e6 referenced 1 time by &8a0c"
       ],
       "references": [
-        35340
+        {
+          "addr": 35340,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcc",
@@ -19837,7 +20808,10 @@
         "&89f2 referenced 1 time by &89ec"
       ],
       "references": [
-        35308
+        {
+          "addr": 35308,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dex"
@@ -19870,7 +20844,10 @@
         "&89f5 referenced 1 time by &89e8"
       ],
       "references": [
-        35304
+        {
+          "addr": 35304,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -19905,7 +20882,10 @@
         "&89fa referenced 1 time by &89f3"
       ],
       "references": [
-        35315
+        {
+          "addr": 35315,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -19940,7 +20920,10 @@
         "&89ff referenced 1 time by &89f0"
       ],
       "references": [
-        35312
+        {
+          "addr": 35312,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -20013,7 +20996,10 @@
         "&8a0c referenced 1 time by &89f8"
       ],
       "references": [
-        35320
+        {
+          "addr": 35320,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcc",
@@ -20035,7 +21021,10 @@
         "&8a0e referenced 1 time by &8ac9"
       ],
       "references": [
-        35529
+        {
+          "addr": 35529,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -20069,7 +21058,10 @@
         "&8a13 referenced 1 time by &8bbe"
       ],
       "references": [
-        35774
+        {
+          "addr": 35774,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -20088,7 +21080,10 @@
         "&8a15 referenced 1 time by &8a10"
       ],
       "references": [
-        35344
+        {
+          "addr": 35344,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clc"
@@ -20107,8 +21102,14 @@
         "&8a16 referenced 2 times by &8acf, &8bca"
       ],
       "references": [
-        35535,
-        35786
+        {
+          "addr": 35535,
+          "kind": "direct"
+        },
+        {
+          "addr": 35786,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -20128,7 +21129,10 @@
         "&8a18 referenced 1 time by &8a2b"
       ],
       "references": [
-        35371
+        {
+          "addr": 35371,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -20205,7 +21209,10 @@
         "&8a24 referenced 1 time by &8a1c"
       ],
       "references": [
-        35356
+        {
+          "addr": 35356,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sbc",
@@ -20227,7 +21234,10 @@
         "&8a27 referenced 1 time by &8a21"
       ],
       "references": [
-        35361
+        {
+          "addr": 35361,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -20362,7 +21372,10 @@
         "&8a39 referenced 1 time by &8a32"
       ],
       "references": [
-        35378
+        {
+          "addr": 35378,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -20383,7 +21396,10 @@
         "&8a3c referenced 1 time by &8a37"
       ],
       "references": [
-        35383
+        {
+          "addr": 35383,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "txa"
@@ -20460,7 +21476,10 @@
         "&8a47 referenced 1 time by &8a42"
       ],
       "references": [
-        35394
+        {
+          "addr": 35394,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -20532,7 +21551,10 @@
         "&8a53 referenced 1 time by &8a5f"
       ],
       "references": [
-        35423
+        {
+          "addr": 35423,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -20610,7 +21632,10 @@
         "&8a5e referenced 1 time by &8a5b"
       ],
       "references": [
-        35419
+        {
+          "addr": 35419,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dex"
@@ -20692,7 +21717,10 @@
         "&8a67 referenced 1 time by &8a64"
       ],
       "references": [
-        35428
+        {
+          "addr": 35428,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -20788,7 +21816,10 @@
         "&8a75 referenced 1 time by &8a70"
       ],
       "references": [
-        35440
+        {
+          "addr": 35440,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -20900,7 +21931,10 @@
         "&8a89 referenced 1 time by &8a9d"
       ],
       "references": [
-        35485
+        {
+          "addr": 35485,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -21037,7 +22071,10 @@
         "&8aa0 referenced 1 time by &8aa7"
       ],
       "references": [
-        35495
+        {
+          "addr": 35495,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -21159,7 +22196,10 @@
         "&8ab4 referenced 1 time by &8aaa"
       ],
       "references": [
-        35498
+        {
+          "addr": 35498,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -21182,7 +22222,10 @@
         "&8ab7 referenced 1 time by &8ab2"
       ],
       "references": [
-        35506
+        {
+          "addr": 35506,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -21259,7 +22302,10 @@
         "&8ac4 referenced 1 time by &8abf"
       ],
       "references": [
-        35519
+        {
+          "addr": 35519,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -21372,7 +22418,10 @@
         "&8ad8 referenced 1 time by &8b08"
       ],
       "references": [
-        35592
+        {
+          "addr": 35592,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -21497,7 +22546,10 @@
         "&8aed referenced 1 time by &8a44"
       ],
       "references": [
-        35396
+        {
+          "addr": 35396,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -21591,8 +22643,14 @@
         "&8afb referenced 2 times by &8af2, &8af6"
       ],
       "references": [
-        35570,
-        35574
+        {
+          "addr": 35570,
+          "kind": "direct"
+        },
+        {
+          "addr": 35574,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -21614,7 +22672,10 @@
         "&8afd referenced 1 time by &8b03"
       ],
       "references": [
-        35587
+        {
+          "addr": 35587,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -21739,7 +22800,10 @@
         "&8b0f referenced 1 time by &8b0b"
       ],
       "references": [
-        35595
+        {
+          "addr": 35595,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tay"
@@ -21984,8 +23048,14 @@
         "&8b3b referenced 2 times by &8aeb, &8bb3"
       ],
       "references": [
-        35563,
-        35763
+        {
+          "addr": 35563,
+          "kind": "direct"
+        },
+        {
+          "addr": 35763,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -22047,7 +23117,10 @@
         "&8b43 referenced 1 time by &8b4c"
       ],
       "references": [
-        35660
+        {
+          "addr": 35660,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -22140,7 +23213,10 @@
         "&8b50 referenced 1 time by &8b3d"
       ],
       "references": [
-        35645
+        {
+          "addr": 35645,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -22231,7 +23307,10 @@
         "&8b5d referenced 1 time by &8b5a"
       ],
       "references": [
-        35674
+        {
+          "addr": 35674,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -22267,7 +23346,10 @@
         "&8b62 referenced 1 time by &8b70"
       ],
       "references": [
-        35696
+        {
+          "addr": 35696,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -22322,7 +23404,10 @@
         "&8b6b referenced 1 time by &8b6c"
       ],
       "references": [
-        35692
+        {
+          "addr": 35692,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -22406,8 +23491,14 @@
         "&8b77 referenced 2 times by &8b4e, &8bcd"
       ],
       "references": [
-        35662,
-        35789
+        {
+          "addr": 35662,
+          "kind": "direct"
+        },
+        {
+          "addr": 35789,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -22429,7 +23520,10 @@
         "&8b7a referenced 1 time by &8b0d"
       ],
       "references": [
-        35597
+        {
+          "addr": 35597,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -22768,7 +23862,10 @@
         "&8bb6 referenced 1 time by &8bb1"
       ],
       "references": [
-        35761
+        {
+          "addr": 35761,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -22789,7 +23886,10 @@
         "&8bb8 referenced 1 time by &8bbc"
       ],
       "references": [
-        35772
+        {
+          "addr": 35772,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -22924,9 +24024,18 @@
         "&8bcf referenced 3 times by &8b50, &8bd4, &8e10"
       ],
       "references": [
-        35664,
-        35796,
-        36368
+        {
+          "addr": 35664,
+          "kind": "direct"
+        },
+        {
+          "addr": 35796,
+          "kind": "direct"
+        },
+        {
+          "addr": 36368,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -22983,7 +24092,10 @@
         "&8bd7 referenced 1 time by &828b"
       ],
       "references": [
-        33419
+        {
+          "addr": 33419,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -23029,7 +24141,10 @@
         "&8bde referenced 1 time by &8bf9"
       ],
       "references": [
-        35833
+        {
+          "addr": 35833,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -23048,7 +24163,10 @@
         "&8be0 referenced 1 time by &8beb"
       ],
       "references": [
-        35819
+        {
+          "addr": 35819,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -23077,7 +24195,10 @@
         "&8be2 referenced 1 time by &8bfd"
       ],
       "references": [
-        35837
+        {
+          "addr": 35837,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -23157,7 +24278,10 @@
         "&8bee referenced 1 time by &8bf2"
       ],
       "references": [
-        35826
+        {
+          "addr": 35826,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -23279,7 +24403,10 @@
         "&8bff referenced 1 time by &8be5"
       ],
       "references": [
-        35813
+        {
+          "addr": 35813,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -23332,12 +24459,18 @@
       },
       "comment_inline": "Match last char against '.' for *I. abbreviation",
       "xref_summaries": [
-        "&8c05 referenced 2 times by &8be2, &8bef",
-        "&8c06 referenced 1 time by &8c00"
+        "&8c05 used as index base 2 times by &8be2, &8bef",
+        "&8c06 used as index base 1 time by &8c00"
       ],
       "references": [
-        35810,
-        35823
+        {
+          "addr": 35810,
+          "kind": "indexed"
+        },
+        {
+          "addr": 35823,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "eor",
@@ -23514,7 +24647,10 @@
         "&8c29 referenced 1 time by &8c1f"
       ],
       "references": [
-        35871
+        {
+          "addr": 35871,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -23806,7 +24942,10 @@
         "&8c67 referenced 1 time by &8c5a"
       ],
       "references": [
-        35930
+        {
+          "addr": 35930,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -23841,7 +24980,10 @@
         "&8c71 referenced 1 time by &8c65"
       ],
       "references": [
-        35941
+        {
+          "addr": 35941,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -24015,7 +25157,10 @@
         "&8c99 referenced 1 time by &8ca2"
       ],
       "references": [
-        36002
+        {
+          "addr": 36002,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -24086,7 +25231,10 @@
         "&8ca4 referenced 1 time by &8c9c"
       ],
       "references": [
-        35996
+        {
+          "addr": 35996,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -24218,7 +25366,10 @@
         "&8cc8 referenced 1 time by &8cf9"
       ],
       "references": [
-        36089
+        {
+          "addr": 36089,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -24405,7 +25556,10 @@
         "&8ce8 referenced 1 time by &8cec"
       ],
       "references": [
-        36076
+        {
+          "addr": 36076,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -24532,9 +25686,18 @@
         "&8cfb referenced 3 times by &8c41, &8cb0, &8cc2"
       ],
       "references": [
-        35905,
-        36016,
-        36034
+        {
+          "addr": 35905,
+          "kind": "direct"
+        },
+        {
+          "addr": 36016,
+          "kind": "direct"
+        },
+        {
+          "addr": 36034,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -24555,8 +25718,14 @@
         "&8cfd referenced 2 times by &8c79, &8d05"
       ],
       "references": [
-        35961,
-        36101
+        {
+          "addr": 35961,
+          "kind": "direct"
+        },
+        {
+          "addr": 36101,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -24635,11 +25804,17 @@
         "boot_option_text"
       ],
       "xref_summaries": [
-        "&8d08 referenced 2 times by &8c96, &8c99"
+        "&8d08 used as index base 2 times by &8c96, &8c99"
       ],
       "references": [
-        35990,
-        35993
+        {
+          "addr": 35990,
+          "kind": "indexed"
+        },
+        {
+          "addr": 35993,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -24719,10 +25894,13 @@
         "boot_oscli_offset"
       ],
       "xref_summaries": [
-        "&8d1c referenced 1 time by &8e3d"
+        "&8d1c used as index base 1 time by &8e3d"
       ],
       "references": [
-        36413
+        {
+          "addr": 36413,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -24806,8 +25984,14 @@
         "&8d24 referenced 2 times by &874c, &87ca"
       ],
       "references": [
-        34636,
-        34762
+        {
+          "addr": 34636,
+          "kind": "direct"
+        },
+        {
+          "addr": 34762,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -24907,8 +26091,14 @@
         "&8d35 referenced 2 times by &8d2e, &8d43"
       ],
       "references": [
-        36142,
-        36163
+        {
+          "addr": 36142,
+          "kind": "direct"
+        },
+        {
+          "addr": 36163,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25014,9 +26204,18 @@
         "&8d45 referenced 3 times by &8d39, &8d3d, &8d4b"
       ],
       "references": [
-        36153,
-        36157,
-        36171
+        {
+          "addr": 36153,
+          "kind": "direct"
+        },
+        {
+          "addr": 36157,
+          "kind": "direct"
+        },
+        {
+          "addr": 36171,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -25071,7 +26270,10 @@
         "&8d4d referenced 1 time by &8d33"
       ],
       "references": [
-        36147
+        {
+          "addr": 36147,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -25119,7 +26321,10 @@
         "&8d55 referenced 1 time by &8ce5"
       ],
       "references": [
-        36069
+        {
+          "addr": 36069,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -25141,7 +26346,10 @@
         "&8d58 referenced 1 time by &8d52"
       ],
       "references": [
-        36178
+        {
+          "addr": 36178,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -25209,8 +26417,14 @@
         "&8d63 referenced 2 times by &8d4f, &8d5a"
       ],
       "references": [
-        36175,
-        36186
+        {
+          "addr": 36175,
+          "kind": "direct"
+        },
+        {
+          "addr": 36186,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -25230,8 +26444,14 @@
         "&8d65 referenced 2 times by &8d61, &8d6c"
       ],
       "references": [
-        36193,
-        36204
+        {
+          "addr": 36193,
+          "kind": "direct"
+        },
+        {
+          "addr": 36204,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25298,7 +26518,10 @@
         "&8d6e referenced 1 time by &8d45"
       ],
       "references": [
-        36165
+        {
+          "addr": 36165,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25341,11 +26564,26 @@
         "&8d75 referenced 5 times by &809d, &80c1, &8716, &88d3, &8dd2"
       ],
       "references": [
-        32925,
-        32961,
-        34582,
-        35027,
-        36306
+        {
+          "addr": 32925,
+          "kind": "direct"
+        },
+        {
+          "addr": 32961,
+          "kind": "direct"
+        },
+        {
+          "addr": 34582,
+          "kind": "direct"
+        },
+        {
+          "addr": 35027,
+          "kind": "direct"
+        },
+        {
+          "addr": 36306,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -25365,12 +26603,30 @@
         "&8d77 referenced 6 times by &87c2, &88cc, &88ee, &89b2, &8c37, &8cd9"
       ],
       "references": [
-        34754,
-        35020,
-        35054,
-        35250,
-        35895,
-        36057
+        {
+          "addr": 34754,
+          "kind": "direct"
+        },
+        {
+          "addr": 35020,
+          "kind": "direct"
+        },
+        {
+          "addr": 35054,
+          "kind": "direct"
+        },
+        {
+          "addr": 35250,
+          "kind": "direct"
+        },
+        {
+          "addr": 35895,
+          "kind": "direct"
+        },
+        {
+          "addr": 36057,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -25390,7 +26646,10 @@
         "&8d79 referenced 1 time by &8d82"
       ],
       "references": [
-        36226
+        {
+          "addr": 36226,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25467,8 +26726,14 @@
         "&8d84 referenced 2 times by &8d27, &8d8e"
       ],
       "references": [
-        36135,
-        36238
+        {
+          "addr": 36135,
+          "kind": "direct"
+        },
+        {
+          "addr": 36238,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -25513,8 +26778,14 @@
         "&8d8b referenced 2 times by &8d30, &8dab"
       ],
       "references": [
-        36144,
-        36267
+        {
+          "addr": 36144,
+          "kind": "direct"
+        },
+        {
+          "addr": 36267,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25562,7 +26833,10 @@
         "&8d92 referenced 1 time by &8cf1"
       ],
       "references": [
-        36081
+        {
+          "addr": 36081,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -25688,8 +26962,14 @@
         "&8da5 referenced 2 times by &8d94, &8d9c"
       ],
       "references": [
-        36244,
-        36252
+        {
+          "addr": 36244,
+          "kind": "direct"
+        },
+        {
+          "addr": 36252,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -25709,7 +26989,10 @@
         "&8da7 referenced 1 time by &8d90"
       ],
       "references": [
-        36240
+        {
+          "addr": 36240,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -25730,7 +27013,10 @@
         "&8daa referenced 1 time by &8da3"
       ],
       "references": [
-        36259
+        {
+          "addr": 36259,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -25771,8 +27057,14 @@
         "&8db0 referenced 2 times by &8244, &8c4b"
       ],
       "references": [
-        33348,
-        35915
+        {
+          "addr": 33348,
+          "kind": "direct"
+        },
+        {
+          "addr": 35915,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tay"
@@ -25852,8 +27144,14 @@
         "&8dbd referenced 2 times by &8db3, &8db8"
       ],
       "references": [
-        36275,
-        36280
+        {
+          "addr": 36275,
+          "kind": "direct"
+        },
+        {
+          "addr": 36280,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -25903,7 +27201,10 @@
         "&8dc3 referenced 1 time by &8dc6"
       ],
       "references": [
-        36294
+        {
+          "addr": 36294,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -25979,7 +27280,10 @@
         "&8dcc referenced 1 time by &8d70"
       ],
       "references": [
-        36208
+        {
+          "addr": 36208,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -26070,7 +27374,10 @@
         "&8ddb referenced 1 time by &8dde"
       ],
       "references": [
-        36318
+        {
+          "addr": 36318,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -26430,8 +27737,14 @@
         "&8e1c referenced 2 times by &8e06, &8e0e"
       ],
       "references": [
-        36358,
-        36366
+        {
+          "addr": 36358,
+          "kind": "direct"
+        },
+        {
+          "addr": 36366,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -26501,8 +27814,14 @@
         "&8e27 referenced 2 times by &8e22, &8e38"
       ],
       "references": [
-        36386,
-        36408
+        {
+          "addr": 36386,
+          "kind": "direct"
+        },
+        {
+          "addr": 36408,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -26564,7 +27883,10 @@
         "&8e2f referenced 1 time by &8e36"
       ],
       "references": [
-        36406
+        {
+          "addr": 36406,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -26599,7 +27921,10 @@
         "&8e35 referenced 1 time by &8e2d"
       ],
       "references": [
-        36397
+        {
+          "addr": 36397,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dex"
@@ -26700,8 +28025,14 @@
         "&8e45 referenced 2 times by &8e5f, &8e6f"
       ],
       "references": [
-        36447,
-        36463
+        {
+          "addr": 36447,
+          "kind": "direct"
+        },
+        {
+          "addr": 36463,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -26722,9 +28053,18 @@
         "&8e47 referenced 3 times by &8305, &8f85, &8f9e"
       ],
       "references": [
-        33541,
-        36741,
-        36766
+        {
+          "addr": 33541,
+          "kind": "direct"
+        },
+        {
+          "addr": 36741,
+          "kind": "direct"
+        },
+        {
+          "addr": 36766,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "asl"
@@ -26855,7 +28195,10 @@
         "&8e58 referenced 1 time by &8e53"
       ],
       "references": [
-        36435
+        {
+          "addr": 36435,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -26984,8 +28327,14 @@
         "&8e6a referenced 2 times by &8e62, &8e72"
       ],
       "references": [
-        36450,
-        36466
+        {
+          "addr": 36450,
+          "kind": "direct"
+        },
+        {
+          "addr": 36466,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -27005,8 +28354,14 @@
         "&8e6c referenced 2 times by &8e5d, &8e68"
       ],
       "references": [
-        36445,
-        36456
+        {
+          "addr": 36445,
+          "kind": "direct"
+        },
+        {
+          "addr": 36456,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -27220,7 +28575,10 @@
         "&8e8e referenced 1 time by &8e94"
       ],
       "references": [
-        36500
+        {
+          "addr": 36500,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -27286,7 +28644,10 @@
         "&8e97 referenced 1 time by &8e89"
       ],
       "references": [
-        36489
+        {
+          "addr": 36489,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tax"
@@ -27366,7 +28727,10 @@
         "&8ea2 referenced 1 time by &8ea8"
       ],
       "references": [
-        36520
+        {
+          "addr": 36520,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -27457,8 +28821,14 @@
         "&8eaf referenced 2 times by &8e83, &8e87"
       ],
       "references": [
-        36483,
-        36487
+        {
+          "addr": 36483,
+          "kind": "direct"
+        },
+        {
+          "addr": 36487,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -27472,10 +28842,13 @@
         "osword_handler_lo"
       ],
       "xref_summaries": [
-        "&8eb0 referenced 1 time by &8e9c"
+        "&8eb0 used as index base 1 time by &8e9c"
       ],
       "references": [
-        36508
+        {
+          "addr": 36508,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -27550,10 +28923,13 @@
       ],
       "comment_inline": "Dispatch table: high bytes for OSWORD &0F-&13 handlers",
       "xref_summaries": [
-        "&8eb5 referenced 1 time by &8e98"
+        "&8eb5 used as index base 1 time by &8e98"
       ],
       "references": [
-        36504
+        {
+          "addr": 36504,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -27915,7 +29291,10 @@
         "&8ee9 referenced 1 time by &8f44"
       ],
       "references": [
-        36676
+        {
+          "addr": 36676,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -27992,7 +29371,10 @@
         "&8ef4 referenced 1 time by &8ebe"
       ],
       "references": [
-        36542
+        {
+          "addr": 36542,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -28019,10 +29401,13 @@
         "osword_12_offsets"
       ],
       "xref_summaries": [
-        "&8ef7 referenced 1 time by &8f0b"
+        "&8ef7 used as index base 1 time by &8f0b"
       ],
       "references": [
-        36619
+        {
+          "addr": 36619,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -28150,7 +29535,10 @@
         "&8f09 referenced 1 time by &8f05"
       ],
       "references": [
-        36613
+        {
+          "addr": 36613,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -28221,10 +29609,22 @@
         "&8f14 referenced 4 times by &8ece, &8ee3, &8f20, &8fb5"
       ],
       "references": [
-        36558,
-        36579,
-        36640,
-        36789
+        {
+          "addr": 36558,
+          "kind": "direct"
+        },
+        {
+          "addr": 36579,
+          "kind": "direct"
+        },
+        {
+          "addr": 36640,
+          "kind": "direct"
+        },
+        {
+          "addr": 36789,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bcc",
@@ -28272,7 +29672,10 @@
         "&8f1a referenced 1 time by &8f14"
       ],
       "references": [
-        36628
+        {
+          "addr": 36628,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -28353,7 +29756,10 @@
         "&8f23 referenced 1 time by &8eff"
       ],
       "references": [
-        36607
+        {
+          "addr": 36607,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lsr"
@@ -28435,7 +29841,10 @@
         "&8f2e referenced 1 time by &8f27"
       ],
       "references": [
-        36647
+        {
+          "addr": 36647,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -28480,7 +29889,10 @@
         "&8f35 referenced 1 time by &8f40"
       ],
       "references": [
-        36672
+        {
+          "addr": 36672,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -28546,7 +29958,10 @@
         "&8f3e referenced 1 time by &8efb"
       ],
       "references": [
-        36603
+        {
+          "addr": 36603,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -28662,7 +30077,10 @@
         "&8f4f referenced 1 time by &8f5e"
       ],
       "references": [
-        36702
+        {
+          "addr": 36702,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -28781,7 +30199,10 @@
         "&8f61 referenced 1 time by &8f46"
       ],
       "references": [
-        36678
+        {
+          "addr": 36678,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -28836,8 +30257,14 @@
         "&8f68 referenced 2 times by &8f4b, &8f71"
       ],
       "references": [
-        36683,
-        36721
+        {
+          "addr": 36683,
+          "kind": "direct"
+        },
+        {
+          "addr": 36721,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -29022,7 +30449,10 @@
         "&8f85 referenced 1 time by &8f97"
       ],
       "references": [
-        36759
+        {
+          "addr": 36759,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -29164,7 +30594,10 @@
         "&8f99 referenced 1 time by &8f93"
       ],
       "references": [
-        36755
+        {
+          "addr": 36755,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "txa"
@@ -29208,7 +30641,10 @@
         "&8f9e referenced 1 time by &8f81"
       ],
       "references": [
-        36737
+        {
+          "addr": 36737,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -29349,7 +30785,10 @@
         "&8fb4 referenced 1 time by &8fc4"
       ],
       "references": [
-        36804
+        {
+          "addr": 36804,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clc"
@@ -29369,7 +30808,10 @@
         "&8fb5 referenced 1 time by &8fb0"
       ],
       "references": [
-        36784
+        {
+          "addr": 36784,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -29452,7 +30894,10 @@
         "&8fc2 referenced 1 time by &8fb2"
       ],
       "references": [
-        36786
+        {
+          "addr": 36786,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "adc",
@@ -29494,9 +30939,18 @@
         "&8fc7 referenced 3 times by &8f88, &8f8f, &8fa1"
       ],
       "references": [
-        36744,
-        36751,
-        36769
+        {
+          "addr": 36744,
+          "kind": "direct"
+        },
+        {
+          "addr": 36751,
+          "kind": "direct"
+        },
+        {
+          "addr": 36769,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -29519,8 +30973,14 @@
         "&8fc9 referenced 2 times by &8fb8, &8fc0"
       ],
       "references": [
-        36792,
-        36800
+        {
+          "addr": 36792,
+          "kind": "direct"
+        },
+        {
+          "addr": 36800,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rol",
@@ -29551,7 +31011,10 @@
         "&8fcd referenced 1 time by &9000"
       ],
       "references": [
-        36864
+        {
+          "addr": 36864,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -29657,7 +31120,10 @@
         "&8fde referenced 1 time by &8fd3"
       ],
       "references": [
-        36819
+        {
+          "addr": 36819,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -29773,7 +31239,10 @@
         "&8fee referenced 1 time by &8ffb"
       ],
       "references": [
-        36859
+        {
+          "addr": 36859,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -29822,7 +31291,10 @@
         "&8ff6 referenced 1 time by &8ff1"
       ],
       "references": [
-        36849
+        {
+          "addr": 36849,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -29966,7 +31438,10 @@
         "&900b referenced 1 time by &9013"
       ],
       "references": [
-        36883
+        {
+          "addr": 36883,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -30219,7 +31694,10 @@
         "&9034 referenced 1 time by &8fea"
       ],
       "references": [
-        36842
+        {
+          "addr": 36842,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "php"
@@ -30394,7 +31872,10 @@
         "&904b referenced 1 time by &9064"
       ],
       "references": [
-        36964
+        {
+          "addr": 36964,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -30515,7 +31996,10 @@
         "&905e referenced 1 time by &905f"
       ],
       "references": [
-        36959
+        {
+          "addr": 36959,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dex"
@@ -30579,7 +32063,10 @@
         "&9066 referenced 1 time by &9051"
       ],
       "references": [
-        36945
+        {
+          "addr": 36945,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -30599,7 +32086,10 @@
         "&9067 referenced 1 time by &9049"
       ],
       "references": [
-        36937
+        {
+          "addr": 36937,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -30668,7 +32158,10 @@
         "&9072 referenced 1 time by &905b"
       ],
       "references": [
-        36955
+        {
+          "addr": 36955,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cli"
@@ -30827,7 +32320,10 @@
         "&9088 referenced 1 time by &9082"
       ],
       "references": [
-        36994
+        {
+          "addr": 36994,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -30901,7 +32397,10 @@
         "&908f referenced 1 time by &9085"
       ],
       "references": [
-        36997
+        {
+          "addr": 36997,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -30972,10 +32471,13 @@
         "osword_tbl_lo"
       ],
       "xref_summaries": [
-        "&909a referenced 1 time by &9093"
+        "&909a used as index base 1 time by &9093"
       ],
       "references": [
-        37011
+        {
+          "addr": 37011,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -31101,10 +32603,13 @@
         "netvec_handler_hi"
       ],
       "xref_summaries": [
-        "&90a3 referenced 1 time by &908f"
+        "&90a3 used as index base 1 time by &908f"
       ],
       "references": [
-        37007
+        {
+          "addr": 37007,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -31316,9 +32821,18 @@
         "&90ba referenced 3 times by &81cb, &910d, &916e"
       ],
       "references": [
-        33227,
-        37133,
-        37230
+        {
+          "addr": 33227,
+          "kind": "direct"
+        },
+        {
+          "addr": 37133,
+          "kind": "direct"
+        },
+        {
+          "addr": 37230,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -31714,9 +33228,18 @@
         "&90f7 referenced 3 times by &90e2, &90eb, &90f4"
       ],
       "references": [
-        37090,
-        37099,
-        37108
+        {
+          "addr": 37090,
+          "kind": "direct"
+        },
+        {
+          "addr": 37099,
+          "kind": "direct"
+        },
+        {
+          "addr": 37108,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -31789,7 +33312,10 @@
         "&9100 referenced 1 time by &90fd"
       ],
       "references": [
-        37117
+        {
+          "addr": 37117,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -31810,7 +33336,10 @@
         "&9102 referenced 1 time by &910a"
       ],
       "references": [
-        37130
+        {
+          "addr": 37130,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -31947,7 +33476,10 @@
         "&9117 referenced 1 time by &9119"
       ],
       "references": [
-        37145
+        {
+          "addr": 37145,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -32038,7 +33570,10 @@
         "&9124 referenced 1 time by &912d"
       ],
       "references": [
-        37165
+        {
+          "addr": 37165,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "dey"
@@ -32080,7 +33615,10 @@
         "&9128 referenced 1 time by &9122"
       ],
       "references": [
-        37154
+        {
+          "addr": 37154,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -32125,8 +33663,14 @@
         "&912f referenced 2 times by &90fa, &9111"
       ],
       "references": [
-        37114,
-        37137
+        {
+          "addr": 37114,
+          "kind": "direct"
+        },
+        {
+          "addr": 37137,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -32146,9 +33690,18 @@
         "&9130 referenced 3 times by &90e8, &90f1, &9136"
       ],
       "references": [
-        37096,
-        37105,
-        37174
+        {
+          "addr": 37096,
+          "kind": "direct"
+        },
+        {
+          "addr": 37105,
+          "kind": "direct"
+        },
+        {
+          "addr": 37174,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -32204,8 +33757,14 @@
         "&9138 referenced 2 times by &9133, &9150"
       ],
       "references": [
-        37171,
-        37200
+        {
+          "addr": 37171,
+          "kind": "direct"
+        },
+        {
+          "addr": 37200,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -32233,10 +33792,13 @@
         "remote_osbyte_table"
       ],
       "xref_summaries": [
-        "&9139 referenced 1 time by &9130"
+        "&9139 used as index base 1 time by &9130"
       ],
       "references": [
-        37168
+        {
+          "addr": 37168,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -32336,7 +33898,10 @@
         "&9152 referenced 1 time by &914c"
       ],
       "references": [
-        37196
+        {
+          "addr": 37196,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -32369,7 +33934,10 @@
         "&9156 referenced 1 time by &915b"
       ],
       "references": [
-        37211
+        {
+          "addr": 37211,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -32560,8 +34128,14 @@
         "&9173 referenced 2 times by &9058, &9067"
       ],
       "references": [
-        36952,
-        36967
+        {
+          "addr": 36952,
+          "kind": "direct"
+        },
+        {
+          "addr": 36967,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -32619,7 +34193,10 @@
         "&917c referenced 1 time by &84bc"
       ],
       "references": [
-        33980
+        {
+          "addr": 33980,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -32649,7 +34226,10 @@
         "&9180 referenced 1 time by &9244"
       ],
       "references": [
-        37444
+        {
+          "addr": 37444,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "clv"
@@ -32669,7 +34249,10 @@
         "&9181 referenced 1 time by &917a"
       ],
       "references": [
-        37242
+        {
+          "addr": 37242,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -32802,7 +34385,10 @@
         "&9196 referenced 1 time by &9192"
       ],
       "references": [
-        37266
+        {
+          "addr": 37266,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -32824,7 +34410,10 @@
         "&9198 referenced 1 time by &918e"
       ],
       "references": [
-        37262
+        {
+          "addr": 37262,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bvs",
@@ -32879,7 +34468,10 @@
         "&919e referenced 1 time by &9198"
       ],
       "references": [
-        37272
+        {
+          "addr": 37272,
+          "kind": "direct"
+        }
       ],
       "type": "byte",
       "values": [
@@ -32909,7 +34501,10 @@
         "&91a0 referenced 1 time by &918a"
       ],
       "references": [
-        37258
+        {
+          "addr": 37258,
+          "kind": "direct"
+        }
       ],
       "type": "byte",
       "values": [
@@ -32959,7 +34554,10 @@
         "&91a4 referenced 1 time by &9186"
       ],
       "references": [
-        37254
+        {
+          "addr": 37254,
+          "kind": "direct"
+        }
       ],
       "type": "byte",
       "values": [
@@ -33008,10 +34606,13 @@
       ],
       "comment_inline": "Alt-path only \u2192 Y=&6F",
       "xref_summaries": [
-        "&91a8 referenced 1 time by &9181"
+        "&91a8 used as index base 1 time by &9181"
       ],
       "references": [
-        37249
+        {
+          "addr": 37249,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -33375,7 +34976,10 @@
         "&91db referenced 1 time by &91d2"
       ],
       "references": [
-        37330
+        {
+          "addr": 37330,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -33396,8 +35000,14 @@
         "&91de referenced 2 times by &91e1, &91f5"
       ],
       "references": [
-        37345,
-        37365
+        {
+          "addr": 37345,
+          "kind": "direct"
+        },
+        {
+          "addr": 37365,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -33511,8 +35121,14 @@
         "&91ee referenced 2 times by &91fd, &9202"
       ],
       "references": [
-        37373,
-        37378
+        {
+          "addr": 37373,
+          "kind": "direct"
+        },
+        {
+          "addr": 37378,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -33645,8 +35261,14 @@
         "&9204 referenced 2 times by &91f8, &9211"
       ],
       "references": [
-        37368,
-        37393
+        {
+          "addr": 37368,
+          "kind": "direct"
+        },
+        {
+          "addr": 37393,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -33703,7 +35325,10 @@
         "&920d referenced 1 time by &91e5"
       ],
       "references": [
-        37349
+        {
+          "addr": 37349,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -33830,7 +35455,10 @@
         "&9221 referenced 1 time by &9218"
       ],
       "references": [
-        37400
+        {
+          "addr": 37400,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -33940,8 +35568,14 @@
         "&9230 referenced 2 times by &91ff, &921e"
       ],
       "references": [
-        37375,
-        37406
+        {
+          "addr": 37375,
+          "kind": "direct"
+        },
+        {
+          "addr": 37406,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -34247,8 +35881,14 @@
         "&9261 referenced 2 times by &8408, &8441"
       ],
       "references": [
-        33800,
-        33857
+        {
+          "addr": 33800,
+          "kind": "direct"
+        },
+        {
+          "addr": 33857,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "stx",
@@ -34330,7 +35970,10 @@
         "&926d referenced 1 time by &9269"
       ],
       "references": [
-        37481
+        {
+          "addr": 37481,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -34525,7 +36168,10 @@
         "&928a referenced 1 time by &9286"
       ],
       "references": [
-        37510
+        {
+          "addr": 37510,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "tya"
@@ -34594,7 +36240,10 @@
         "&9292 referenced 1 time by &929e"
       ],
       "references": [
-        37534
+        {
+          "addr": 37534,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -34883,7 +36532,10 @@
         "&92bd referenced 1 time by &92dc"
       ],
       "references": [
-        37596
+        {
+          "addr": 37596,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -35190,10 +36842,22 @@
         "&92eb referenced 4 times by &84a0, &84c8, &84ef, &8ee6"
       ],
       "references": [
-        33952,
-        33992,
-        34031,
-        36582
+        {
+          "addr": 33952,
+          "kind": "direct"
+        },
+        {
+          "addr": 33992,
+          "kind": "direct"
+        },
+        {
+          "addr": 34031,
+          "kind": "direct"
+        },
+        {
+          "addr": 36582,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -35239,7 +36903,10 @@
         "&92f2 referenced 1 time by &92e3"
       ],
       "references": [
-        37603
+        {
+          "addr": 37603,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -35346,7 +37013,10 @@
         "&9303 referenced 1 time by &9300"
       ],
       "references": [
-        37632
+        {
+          "addr": 37632,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -35366,7 +37036,10 @@
         "&9305 referenced 1 time by &92f8"
       ],
       "references": [
-        37624
+        {
+          "addr": 37624,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -35492,10 +37165,13 @@
       ],
       "comment_inline": "OSBYTE &85: read cursor position",
       "xref_summaries": [
-        "&9319 referenced 1 time by &930b"
+        "&9319 used as index base 1 time by &930b"
       ],
       "references": [
-        37643
+        {
+          "addr": 37643,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -35527,10 +37203,13 @@
       ],
       "comment_inline": "A=&FF: signal error to co-processor via R4",
       "xref_summaries": [
-        "&931c referenced 1 time by &8178"
+        "&931c used as index base 1 time by &8178"
       ],
       "references": [
-        33144
+        {
+          "addr": 33144,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -35591,10 +37270,14 @@
       ],
       "comment_inline": "Send zero prefix byte via R2",
       "xref_summaries": [
-        "&9326 referenced 1 time by &0626[4]"
+        "&9326 used as index base 1 time by &0626[4]"
       ],
       "references": [
-        1574
+        {
+          "addr": 1574,
+          "kind": "indexed",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -35655,7 +37338,11 @@
         "&932f referenced 1 time by &0030[1]"
       ],
       "references": [
-        48
+        {
+          "addr": 48,
+          "kind": "direct",
+          "move_id": 1
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -35731,7 +37418,11 @@
         "&9338 referenced 1 time by &046a[2]"
       ],
       "references": [
-        1130
+        {
+          "addr": 1130,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -35773,12 +37464,36 @@
         "&933c referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[4], &0665[4], &0692[4]"
       ],
       "references": [
-        68,
-        1407,
-        1446,
-        1540,
-        1637,
-        1682
+        {
+          "addr": 68,
+          "kind": "direct",
+          "move_id": 1
+        },
+        {
+          "addr": 1407,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1446,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1540,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1637,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1682,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -35816,7 +37531,11 @@
         "&9341 referenced 1 time by &0049[1]"
       ],
       "references": [
-        73
+        {
+          "addr": 73,
+          "kind": "direct",
+          "move_id": 1
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -35854,7 +37573,11 @@
         "&9347 referenced 1 time by &0039[1]"
       ],
       "references": [
-        57
+        {
+          "addr": 57,
+          "kind": "direct",
+          "move_id": 1
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -35973,8 +37696,16 @@
         "&9359 referenced 2 times by &04d7[2], &04e7[2]"
       ],
       "references": [
-        1239,
-        1255
+        {
+          "addr": 1239,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1255,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -35994,9 +37725,21 @@
         "&935a referenced 3 times by &04af[2], &04cd[2], &04ec[2]"
       ],
       "references": [
-        1199,
-        1229,
-        1260
+        {
+          "addr": 1199,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1229,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1260,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -36016,8 +37759,16 @@
         "&935b referenced 2 times by &04b3[2], &04f6[2]"
       ],
       "references": [
-        1203,
-        1270
+        {
+          "addr": 1203,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1270,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -36037,8 +37788,16 @@
         "&935c referenced 2 times by &04b7[2], &04f4[2]"
       ],
       "references": [
-        1207,
-        1268
+        {
+          "addr": 1207,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1268,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -36058,10 +37817,13 @@
       ],
       "comment_inline": "JMP to BEGIN startup entry",
       "xref_summaries": [
-        "&935d referenced 1 time by &815e"
+        "&935d used as index base 1 time by &815e"
       ],
       "references": [
-        33118
+        {
+          "addr": 33118,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -36102,16 +37864,48 @@
         "&9363 referenced 10 times by &0493[2], &04c8[2], &8b5d, &8b74, &8bd1, &8e19, &99d1, &9a3a, &9f75, &9f7d"
       ],
       "references": [
-        1171,
-        1224,
-        35677,
-        35700,
-        35793,
-        36377,
-        39377,
-        39482,
-        40821,
-        40829
+        {
+          "addr": 1171,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1224,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 35677,
+          "kind": "direct"
+        },
+        {
+          "addr": 35700,
+          "kind": "direct"
+        },
+        {
+          "addr": 35793,
+          "kind": "direct"
+        },
+        {
+          "addr": 36377,
+          "kind": "direct"
+        },
+        {
+          "addr": 39377,
+          "kind": "direct"
+        },
+        {
+          "addr": 39482,
+          "kind": "direct"
+        },
+        {
+          "addr": 40821,
+          "kind": "direct"
+        },
+        {
+          "addr": 40829,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cmp",
@@ -36212,7 +38006,11 @@
         "&9371 referenced 1 time by &0464[2]"
       ],
       "references": [
-        1124
+        {
+          "addr": 1124,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -36277,7 +38075,10 @@
         "&937b referenced 1 time by &8170"
       ],
       "references": [
-        33136
+        {
+          "addr": 33136,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -36322,7 +38123,11 @@
         "&9380 referenced 1 time by &040c[2]"
       ],
       "references": [
-        1036
+        {
+          "addr": 1036,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "asl",
@@ -36407,7 +38212,11 @@
         "&938a referenced 1 time by &0425[2]"
       ],
       "references": [
-        1061
+        {
+          "addr": 1061,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -36429,8 +38238,16 @@
         "&938c referenced 2 times by &0412[2], &0429[2]"
       ],
       "references": [
-        1042,
-        1065
+        {
+          "addr": 1042,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1065,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -36449,7 +38266,11 @@
         "&938d referenced 1 time by &0408[2]"
       ],
       "references": [
-        1032
+        {
+          "addr": 1032,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "php"
@@ -36576,7 +38397,11 @@
         "&939e referenced 1 time by &0447[2]"
       ],
       "references": [
-        1095
+        {
+          "addr": 1095,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -36731,7 +38556,11 @@
         "&93b6 referenced 1 time by &045c[2]"
       ],
       "references": [
-        1116
+        {
+          "addr": 1116,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -36809,7 +38638,11 @@
         "&93c1 referenced 1 time by &048f[2]"
       ],
       "references": [
-        1167
+        {
+          "addr": 1167,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -36863,7 +38696,11 @@
         "&93ca referenced 1 time by &045e[2]"
       ],
       "references": [
-        1118
+        {
+          "addr": 1118,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -36954,8 +38791,16 @@
         "&93d8 referenced 2 times by &0462[2], &0474[2]"
       ],
       "references": [
-        1122,
-        1140
+        {
+          "addr": 1122,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1140,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "plp"
@@ -36987,7 +38832,11 @@
         "&93da referenced 1 time by &0400[2]"
       ],
       "references": [
-        1024
+        {
+          "addr": 1024,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "cli"
@@ -37050,7 +38899,11 @@
         "&93e2 referenced 1 time by &0480[2]"
       ],
       "references": [
-        1152
+        {
+          "addr": 1152,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -37133,8 +38986,16 @@
         "&93ee referenced 2 times by &047e[2], &0496[2]"
       ],
       "references": [
-        1150,
-        1174
+        {
+          "addr": 1150,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1174,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -37199,7 +39060,11 @@
         "&93f8 referenced 1 time by &04bd[2]"
       ],
       "references": [
-        1213
+        {
+          "addr": 1213,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -37261,7 +39126,11 @@
         "&9401 referenced 1 time by &04ad[2]"
       ],
       "references": [
-        1197
+        {
+          "addr": 1197,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -37408,8 +39277,16 @@
         "&9416 referenced 2 times by &04b1[2], &04b5[2]"
       ],
       "references": [
-        1201,
-        1205
+        {
+          "addr": 1201,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1205,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "inc",
@@ -37487,7 +39364,11 @@
         "&9421 referenced 1 time by &049d[2]"
       ],
       "references": [
-        1181
+        {
+          "addr": 1181,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -37535,8 +39416,16 @@
         "&9428 referenced 2 times by &0498[2], &04bf[2]"
       ],
       "references": [
-        1176,
-        1215
+        {
+          "addr": 1176,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1215,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -37664,7 +39553,11 @@
         "&943b referenced 1 time by &04e2[2]"
       ],
       "references": [
-        1250
+        {
+          "addr": 1250,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "inx"
@@ -37801,7 +39694,11 @@
         "&9451 referenced 1 time by &04d9[2]"
       ],
       "references": [
-        1241
+        {
+          "addr": 1241,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -37845,11 +39742,18 @@
       ],
       "comment_inline": "R2 cmd 0: OSRDCH",
       "xref_summaries": [
-        "&9456 referenced 2 times by &0050[1], &8164"
+        "&9456 referenced 1 time by &0050[1]; also used as index base 1 time by &8164"
       ],
       "references": [
-        80,
-        33124
+        {
+          "addr": 80,
+          "kind": "pointer",
+          "move_id": 1
+        },
+        {
+          "addr": 33124,
+          "kind": "indexed"
+        }
       ],
       "type": "word",
       "values": [
@@ -38049,10 +39953,14 @@
       ],
       "comment_inline": "Type 0: set I+J (1-byte R3, parasite to host)",
       "xref_summaries": [
-        "&946e referenced 1 time by &0451[2]"
+        "&946e used as index base 1 time by &0451[2]"
       ],
       "references": [
-        1105
+        {
+          "addr": 1105,
+          "kind": "indexed",
+          "move_id": 2
+        }
       ],
       "type": "byte",
       "values": [
@@ -38306,8 +40214,16 @@
         "&9490 referenced 2 times by &0534[3], &05ef[3]"
       ],
       "references": [
-        1332,
-        1519
+        {
+          "addr": 1332,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1519,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "ror"
@@ -38464,7 +40380,11 @@
         "&94a8 referenced 1 time by &0545[3]"
       ],
       "references": [
-        1349
+        {
+          "addr": 1349,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -38583,7 +40503,11 @@
         "&94ba referenced 1 time by &056a[3]"
       ],
       "references": [
-        1386
+        {
+          "addr": 1386,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -38704,7 +40628,11 @@
         "&94cd referenced 1 time by &057d[3]"
       ],
       "references": [
-        1405
+        {
+          "addr": 1405,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -38781,9 +40709,21 @@
         "&94d8 referenced 3 times by &0548[3], &0596[3], &05b3[3]"
       ],
       "references": [
-        1352,
-        1430,
-        1459
+        {
+          "addr": 1352,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1430,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1459,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -38817,7 +40757,11 @@
         "&94dc referenced 1 time by &0591[3]"
       ],
       "references": [
-        1425
+        {
+          "addr": 1425,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -38905,7 +40849,11 @@
         "&94e9 referenced 1 time by &058d[3]"
       ],
       "references": [
-        1421
+        {
+          "addr": 1421,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -38969,9 +40917,21 @@
         "&94f2 referenced 3 times by &0482[2], &052a[3], &055b[3]"
       ],
       "references": [
-        1154,
-        1322,
-        1371
+        {
+          "addr": 1154,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1322,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1371,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -38993,10 +40953,26 @@
         "&94f4 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]"
       ],
       "references": [
-        1343,
-        1359,
-        1441,
-        1661
+        {
+          "addr": 1343,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1359,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1441,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1661,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -39049,7 +41025,11 @@
         "&94fc referenced 1 time by &05cf[3]"
       ],
       "references": [
-        1487
+        {
+          "addr": 1487,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -39088,7 +41068,11 @@
         "&9501 referenced 1 time by &05b1[3]"
       ],
       "references": [
-        1457
+        {
+          "addr": 1457,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -39261,7 +41245,11 @@
         "&951d referenced 1 time by &05cd[3]"
       ],
       "references": [
-        1485
+        {
+          "addr": 1485,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -39353,7 +41341,11 @@
         "&9529 referenced 1 time by &05d9[3]"
       ],
       "references": [
-        1497
+        {
+          "addr": 1497,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -39477,7 +41469,11 @@
         "&953c referenced 1 time by &05ec[3]"
       ],
       "references": [
-        1516
+        {
+          "addr": 1516,
+          "kind": "direct",
+          "move_id": 3
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -39646,10 +41642,13 @@
         "tube_page6_start"
       ],
       "xref_summaries": [
-        "&9556 referenced 1 time by &816a"
+        "&9556 used as index base 1 time by &816a"
       ],
       "references": [
-        33130
+        {
+          "addr": 33130,
+          "kind": "indexed"
+        }
       ],
       "type": "byte",
       "values": [
@@ -39687,7 +41686,11 @@
         "&955a referenced 1 time by &0617[4]"
       ],
       "references": [
-        1559
+        {
+          "addr": 1559,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -39845,7 +41848,11 @@
         "&9573 referenced 1 time by &0620[4]"
       ],
       "references": [
-        1568
+        {
+          "addr": 1568,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -39955,7 +41962,11 @@
         "&9581 referenced 1 time by &062e[4]"
       ],
       "references": [
-        1582
+        {
+          "addr": 1582,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40035,8 +42046,16 @@
         "&958c referenced 2 times by &0639[4], &0642[4]"
       ],
       "references": [
-        1593,
-        1602
+        {
+          "addr": 1593,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1602,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40137,7 +42156,11 @@
         "&959b referenced 1 time by &0634[4]"
       ],
       "references": [
-        1588
+        {
+          "addr": 1588,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -40186,7 +42209,11 @@
         "&95a2 referenced 1 time by &064f[4]"
       ],
       "references": [
-        1615
+        {
+          "addr": 1615,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40263,7 +42290,11 @@
         "&95ad referenced 1 time by &0663[4]"
       ],
       "references": [
-        1635
+        {
+          "addr": 1635,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -40287,7 +42318,11 @@
         "&95b0 referenced 1 time by &065d[4]"
       ],
       "references": [
-        1629
+        {
+          "addr": 1629,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40364,7 +42399,11 @@
         "&95bb referenced 1 time by &0655[4]"
       ],
       "references": [
-        1621
+        {
+          "addr": 1621,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -40403,7 +42442,11 @@
         "&95c0 referenced 1 time by &0670[4]"
       ],
       "references": [
-        1648
+        {
+          "addr": 1648,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -40552,7 +42595,11 @@
         "&95d6 referenced 1 time by &0679[4]"
       ],
       "references": [
-        1657
+        {
+          "addr": 1657,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "ldx",
@@ -40601,7 +42648,11 @@
         "&95dd referenced 1 time by &0690[4]"
       ],
       "references": [
-        1680
+        {
+          "addr": 1680,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -40694,20 +42745,76 @@
         "&95eb referenced 14 times by &0020[1], &0026[1], &002c[1], &0467[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]"
       ],
       "references": [
-        32,
-        38,
-        44,
-        1127,
-        1339,
-        1394,
-        1401,
-        1474,
-        1481,
-        1512,
-        1562,
-        1668,
-        1674,
-        1688
+        {
+          "addr": 32,
+          "kind": "direct",
+          "move_id": 1
+        },
+        {
+          "addr": 38,
+          "kind": "direct",
+          "move_id": 1
+        },
+        {
+          "addr": 44,
+          "kind": "direct",
+          "move_id": 1
+        },
+        {
+          "addr": 1127,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1339,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1394,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1401,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1474,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1481,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1512,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1562,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1668,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1674,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1688,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40770,14 +42877,46 @@
         "&95f4 referenced 8 times by &0018[1], &0416[2], &041b[2], &0436[2], &043e[2], &0443[2], &0449[2], &06a1[4]"
       ],
       "references": [
-        24,
-        1046,
-        1051,
-        1078,
-        1086,
-        1091,
-        1097,
-        1697
+        {
+          "addr": 24,
+          "kind": "direct",
+          "move_id": 1
+        },
+        {
+          "addr": 1046,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1051,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1078,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1086,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1091,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1097,
+          "kind": "direct",
+          "move_id": 2
+        },
+        {
+          "addr": 1697,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -40839,7 +42978,11 @@
         "&95fd referenced 1 time by &0403[2]"
       ],
       "references": [
-        1027
+        {
+          "addr": 1027,
+          "kind": "direct",
+          "move_id": 2
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -40997,11 +43140,31 @@
         "&9612 referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]"
       ],
       "references": [
-        1707,
-        1712,
-        1716,
-        1720,
-        1727
+        {
+          "addr": 1707,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1712,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1716,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1720,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1727,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -41064,26 +43227,106 @@
         "&961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &066a[4], &06c8[4]"
       ],
       "references": [
-        1312,
-        1316,
-        1325,
-        1346,
-        1362,
-        1374,
-        1380,
-        1388,
-        1414,
-        1451,
-        1468,
-        1491,
-        1499,
-        1522,
-        1526,
-        1543,
-        1547,
-        1551,
-        1642,
-        1736
+        {
+          "addr": 1312,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1316,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1325,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1346,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1362,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1374,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1380,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1388,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1414,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1451,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1468,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1491,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1499,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1522,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1526,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1543,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1547,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1551,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1642,
+          "kind": "direct",
+          "move_id": 4
+        },
+        {
+          "addr": 1736,
+          "kind": "direct",
+          "move_id": 4
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -41287,8 +43530,14 @@
         "&9660 referenced 2 times by &86aa, &8ed1"
       ],
       "references": [
-        34474,
-        36561
+        {
+          "addr": 34474,
+          "kind": "direct"
+        },
+        {
+          "addr": 36561,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -41311,7 +43560,10 @@
         "&9663 referenced 1 time by &8319"
       ],
       "references": [
-        33561
+        {
+          "addr": 33561,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -41385,7 +43637,10 @@
         "&966f referenced 1 time by &9663"
       ],
       "references": [
-        38499
+        {
+          "addr": 38499,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -41545,7 +43800,10 @@
         "&968d referenced 1 time by &9669"
       ],
       "references": [
-        38505
+        {
+          "addr": 38505,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -41566,7 +43824,10 @@
         "&968f referenced 1 time by &9696"
       ],
       "references": [
-        38550
+        {
+          "addr": 38550,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -41756,7 +44017,10 @@
         "&96b2 referenced 1 time by &9666"
       ],
       "references": [
-        38502
+        {
+          "addr": 38502,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -41792,8 +44056,14 @@
         "&96b7 referenced 2 times by &96bc, &96c3"
       ],
       "references": [
-        38588,
-        38595
+        {
+          "addr": 38588,
+          "kind": "direct"
+        },
+        {
+          "addr": 38595,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -41959,7 +44229,10 @@
         "&96d5 referenced 1 time by &96b5"
       ],
       "references": [
-        38581
+        {
+          "addr": 38581,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -41981,9 +44254,18 @@
         "&96d8 referenced 3 times by &9672, &973a, &987a"
       ],
       "references": [
-        38514,
-        38714,
-        39034
+        {
+          "addr": 38514,
+          "kind": "direct"
+        },
+        {
+          "addr": 38714,
+          "kind": "direct"
+        },
+        {
+          "addr": 39034,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42067,8 +44349,14 @@
         "&96e7 referenced 2 times by &96d5, &9a3d"
       ],
       "references": [
-        38613,
-        39485
+        {
+          "addr": 38613,
+          "kind": "direct"
+        },
+        {
+          "addr": 39485,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42136,7 +44424,10 @@
         "&96f2 referenced 1 time by &9fb3"
       ],
       "references": [
-        40883
+        {
+          "addr": 40883,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42273,7 +44564,10 @@
         "&970a referenced 1 time by &96ff"
       ],
       "references": [
-        38655
+        {
+          "addr": 38655,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42399,7 +44693,10 @@
         "&971f referenced 1 time by &9703"
       ],
       "references": [
-        38659
+        {
+          "addr": 38659,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42448,7 +44745,10 @@
         "&9727 referenced 1 time by &9719"
       ],
       "references": [
-        38681
+        {
+          "addr": 38681,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -42470,7 +44770,10 @@
         "&972a referenced 1 time by &971d"
       ],
       "references": [
-        38685
+        {
+          "addr": 38685,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -42529,11 +44832,26 @@
         "&9733 referenced 5 times by &96f7, &9714, &9748, &977c, &977e"
       ],
       "references": [
-        38647,
-        38676,
-        38728,
-        38780,
-        38782
+        {
+          "addr": 38647,
+          "kind": "direct"
+        },
+        {
+          "addr": 38676,
+          "kind": "direct"
+        },
+        {
+          "addr": 38728,
+          "kind": "direct"
+        },
+        {
+          "addr": 38780,
+          "kind": "direct"
+        },
+        {
+          "addr": 38782,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42608,7 +44926,10 @@
         "&9740 referenced 1 time by &9738"
       ],
       "references": [
-        38712
+        {
+          "addr": 38712,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -42660,7 +44981,10 @@
         "&9748 referenced 1 time by &9768"
       ],
       "references": [
-        38760
+        {
+          "addr": 38760,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bpl",
@@ -42760,7 +45084,10 @@
         "&9758 referenced 1 time by &9754"
       ],
       "references": [
-        38740
+        {
+          "addr": 38740,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -42883,8 +45210,14 @@
         "&976d referenced 2 times by &9756, &9761"
       ],
       "references": [
-        38742,
-        38753
+        {
+          "addr": 38742,
+          "kind": "direct"
+        },
+        {
+          "addr": 38753,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -43089,9 +45422,18 @@
         "&9793 referenced 3 times by &97de, &97e3, &9801"
       ],
       "references": [
-        38878,
-        38883,
-        38913
+        {
+          "addr": 38878,
+          "kind": "direct"
+        },
+        {
+          "addr": 38883,
+          "kind": "direct"
+        },
+        {
+          "addr": 38913,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -43114,7 +45456,10 @@
         "&9796 referenced 1 time by &978e"
       ],
       "references": [
-        38798
+        {
+          "addr": 38798,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -43175,7 +45520,10 @@
         "&97a0 referenced 1 time by &9799"
       ],
       "references": [
-        38809
+        {
+          "addr": 38809,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -43261,7 +45609,10 @@
         "&97ad referenced 1 time by &97da"
       ],
       "references": [
-        38874
+        {
+          "addr": 38874,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -43281,7 +45632,10 @@
         "&97af referenced 1 time by &97ed"
       ],
       "references": [
-        38893
+        {
+          "addr": 38893,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -43401,7 +45755,10 @@
         "&97c1 referenced 1 time by &97ba"
       ],
       "references": [
-        38842
+        {
+          "addr": 38842,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -43472,7 +45829,10 @@
         "&97cb referenced 1 time by &97c4"
       ],
       "references": [
-        38852
+        {
+          "addr": 38852,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "iny"
@@ -43531,9 +45891,18 @@
         "&97d3 referenced 3 times by &97b5, &97bf, &97c9"
       ],
       "references": [
-        38837,
-        38847,
-        38857
+        {
+          "addr": 38837,
+          "kind": "direct"
+        },
+        {
+          "addr": 38847,
+          "kind": "direct"
+        },
+        {
+          "addr": 38857,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -43601,7 +45970,10 @@
         "&97dc referenced 1 time by &97b1"
       ],
       "references": [
-        38833
+        {
+          "addr": 38833,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -43637,7 +46009,10 @@
         "&97e0 referenced 1 time by &97a3"
       ],
       "references": [
-        38819
+        {
+          "addr": 38819,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -43735,7 +46110,10 @@
         "&97ef referenced 1 time by &97d1"
       ],
       "references": [
-        38865
+        {
+          "addr": 38865,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -43784,8 +46162,14 @@
         "&97f7 referenced 2 times by &97f2, &9abb"
       ],
       "references": [
-        38898,
-        39611
+        {
+          "addr": 38898,
+          "kind": "direct"
+        },
+        {
+          "addr": 39611,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -43860,8 +46244,14 @@
         "&9804 referenced 2 times by &97ff, &9ab0"
       ],
       "references": [
-        38911,
-        39600
+        {
+          "addr": 38911,
+          "kind": "direct"
+        },
+        {
+          "addr": 39600,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44259,7 +46649,10 @@
         "&984d referenced 1 time by &9848"
       ],
       "references": [
-        38984
+        {
+          "addr": 38984,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -44322,7 +46715,10 @@
         "&9858 referenced 1 time by &9f0c"
       ],
       "references": [
-        40716
+        {
+          "addr": 40716,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44432,7 +46828,10 @@
         "&986b referenced 1 time by &985d"
       ],
       "references": [
-        39005
+        {
+          "addr": 39005,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44478,18 +46877,54 @@
         "&9872 referenced 12 times by &9793, &9826, &982e, &983a, &983f, &9850, &9893, &98c5, &98cb, &9916, &99a1, &9a82"
       ],
       "references": [
-        38803,
-        38950,
-        38958,
-        38970,
-        38975,
-        38992,
-        39059,
-        39109,
-        39115,
-        39190,
-        39329,
-        39554
+        {
+          "addr": 38803,
+          "kind": "direct"
+        },
+        {
+          "addr": 38950,
+          "kind": "direct"
+        },
+        {
+          "addr": 38958,
+          "kind": "direct"
+        },
+        {
+          "addr": 38970,
+          "kind": "direct"
+        },
+        {
+          "addr": 38975,
+          "kind": "direct"
+        },
+        {
+          "addr": 38992,
+          "kind": "direct"
+        },
+        {
+          "addr": 39059,
+          "kind": "direct"
+        },
+        {
+          "addr": 39109,
+          "kind": "direct"
+        },
+        {
+          "addr": 39115,
+          "kind": "direct"
+        },
+        {
+          "addr": 39190,
+          "kind": "direct"
+        },
+        {
+          "addr": 39329,
+          "kind": "direct"
+        },
+        {
+          "addr": 39554,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44540,7 +46975,10 @@
         "&987a referenced 1 time by &9875"
       ],
       "references": [
-        39029
+        {
+          "addr": 39029,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -44576,7 +47014,10 @@
         "&9880 referenced 1 time by &9866"
       ],
       "references": [
-        39014
+        {
+          "addr": 39014,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -44612,7 +47053,10 @@
         "&9885 referenced 1 time by &98af"
       ],
       "references": [
-        39087
+        {
+          "addr": 39087,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bpl",
@@ -44723,7 +47167,10 @@
         "&9895 referenced 1 time by &988d"
       ],
       "references": [
-        39053
+        {
+          "addr": 39053,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44772,7 +47219,10 @@
         "&989c referenced 1 time by &9898"
       ],
       "references": [
-        39064
+        {
+          "addr": 39064,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44882,7 +47332,10 @@
         "&98ac referenced 1 time by &98a4"
       ],
       "references": [
-        39076
+        {
+          "addr": 39076,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -44931,9 +47384,18 @@
         "&98b4 referenced 3 times by &9885, &989a, &98aa"
       ],
       "references": [
-        39045,
-        39066,
-        39082
+        {
+          "addr": 39045,
+          "kind": "direct"
+        },
+        {
+          "addr": 39066,
+          "kind": "direct"
+        },
+        {
+          "addr": 39082,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45165,8 +47627,14 @@
         "&98da referenced 2 times by &98c7, &98d6"
       ],
       "references": [
-        39111,
-        39126
+        {
+          "addr": 39111,
+          "kind": "direct"
+        },
+        {
+          "addr": 39126,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -45205,7 +47673,10 @@
         "&98e0 referenced 1 time by &9911"
       ],
       "references": [
-        39185
+        {
+          "addr": 39185,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bpl",
@@ -45360,9 +47831,18 @@
         "&98f8 referenced 3 times by &98ea, &98ee, &98f2"
       ],
       "references": [
-        39146,
-        39150,
-        39154
+        {
+          "addr": 39146,
+          "kind": "direct"
+        },
+        {
+          "addr": 39150,
+          "kind": "direct"
+        },
+        {
+          "addr": 39154,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45503,9 +47983,18 @@
         "&990e referenced 3 times by &9900, &9904, &9908"
       ],
       "references": [
-        39168,
-        39172,
-        39176
+        {
+          "addr": 39168,
+          "kind": "direct"
+        },
+        {
+          "addr": 39172,
+          "kind": "direct"
+        },
+        {
+          "addr": 39176,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45555,9 +48044,18 @@
         "&9916 referenced 3 times by &98f6, &9928, &9934"
       ],
       "references": [
-        39158,
-        39208,
-        39220
+        {
+          "addr": 39158,
+          "kind": "direct"
+        },
+        {
+          "addr": 39208,
+          "kind": "direct"
+        },
+        {
+          "addr": 39220,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -45579,8 +48077,14 @@
         "&9919 referenced 2 times by &98e0, &990c"
       ],
       "references": [
-        39136,
-        39180
+        {
+          "addr": 39136,
+          "kind": "direct"
+        },
+        {
+          "addr": 39180,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45823,8 +48327,14 @@
         "&9944 referenced 2 times by &98da, &992a"
       ],
       "references": [
-        39130,
-        39210
+        {
+          "addr": 39130,
+          "kind": "direct"
+        },
+        {
+          "addr": 39210,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45887,7 +48397,10 @@
         "&994f referenced 1 time by &9947"
       ],
       "references": [
-        39239
+        {
+          "addr": 39239,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -45969,8 +48482,14 @@
         "&995d referenced 2 times by &9812, &9af9"
       ],
       "references": [
-        38930,
-        39673
+        {
+          "addr": 38930,
+          "kind": "direct"
+        },
+        {
+          "addr": 39673,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -46306,7 +48825,10 @@
         "&999e referenced 1 time by &998e"
       ],
       "references": [
-        39310
+        {
+          "addr": 39310,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -46329,8 +48851,14 @@
         "&99a1 referenced 2 times by &9969, &9981"
       ],
       "references": [
-        39273,
-        39297
+        {
+          "addr": 39273,
+          "kind": "direct"
+        },
+        {
+          "addr": 39297,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -46352,8 +48880,14 @@
         "&99a4 referenced 2 times by &9949, &99f7"
       ],
       "references": [
-        39241,
-        39415
+        {
+          "addr": 39241,
+          "kind": "direct"
+        },
+        {
+          "addr": 39415,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -46429,7 +48963,10 @@
         "&99af referenced 1 time by &99bb"
       ],
       "references": [
-        39355
+        {
+          "addr": 39355,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -46777,7 +49314,10 @@
         "&99e5 referenced 1 time by &99c3"
       ],
       "references": [
-        39363
+        {
+          "addr": 39363,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -46796,7 +49336,10 @@
         "&99e7 referenced 1 time by &99a9"
       ],
       "references": [
-        39337
+        {
+          "addr": 39337,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -46895,8 +49438,14 @@
         "&99f7 referenced 2 times by &99eb, &99f2"
       ],
       "references": [
-        39403,
-        39410
+        {
+          "addr": 39403,
+          "kind": "direct"
+        },
+        {
+          "addr": 39410,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -46984,7 +49533,7 @@
       },
       "comment_inline": "Carry: increment buffer high byte",
       "xref_summaries": [
-        "&9a04 referenced 1 time by &9a7d"
+        "&9a04 used as index base 1 time by &9a7d"
       ],
       "type": "code",
       "mnemonic": "inc",
@@ -47006,7 +49555,10 @@
         "&9a05 referenced 1 time by &9a01"
       ],
       "references": [
-        39425
+        {
+          "addr": 39425,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -47061,10 +49613,13 @@
       ],
       "comment_inline": "Store high byte to RXCB",
       "xref_summaries": [
-        "&9a0c referenced 1 time by &9a79"
+        "&9a0c used as index base 1 time by &9a79"
       ],
       "references": [
-        39545
+        {
+          "addr": 39545,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -47087,8 +49642,14 @@
         "&9a0e referenced 2 times by &99fa, &9a53"
       ],
       "references": [
-        39418,
-        39507
+        {
+          "addr": 39418,
+          "kind": "direct"
+        },
+        {
+          "addr": 39507,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -47280,10 +49841,22 @@
         "&9a2e referenced 4 times by &987d, &9a11, &9e72, &9f25"
       ],
       "references": [
-        39037,
-        39441,
-        40562,
-        40741
+        {
+          "addr": 39037,
+          "kind": "direct"
+        },
+        {
+          "addr": 39441,
+          "kind": "direct"
+        },
+        {
+          "addr": 40562,
+          "kind": "direct"
+        },
+        {
+          "addr": 40741,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -47370,9 +49943,18 @@
         "&9a3d referenced 3 times by &9740, &9a36, &9b32"
       ],
       "references": [
-        38720,
-        39478,
-        39730
+        {
+          "addr": 38720,
+          "kind": "direct"
+        },
+        {
+          "addr": 39478,
+          "kind": "direct"
+        },
+        {
+          "addr": 39730,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jsr",
@@ -47394,8 +49976,14 @@
         "&9a40 referenced 2 times by &9724, &973d"
       ],
       "references": [
-        38692,
-        38717
+        {
+          "addr": 38692,
+          "kind": "direct"
+        },
+        {
+          "addr": 38717,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -47440,7 +50028,10 @@
         "&9a47 referenced 1 time by &97f4"
       ],
       "references": [
-        38900
+        {
+          "addr": 38900,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -47461,7 +50052,10 @@
         "&9a49 referenced 1 time by &9a51"
       ],
       "references": [
-        39505
+        {
+          "addr": 39505,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -47544,7 +50138,10 @@
         "&9a56 referenced 1 time by &9790"
       ],
       "references": [
-        38800
+        {
+          "addr": 38800,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -47689,7 +50286,10 @@
         "&9a6d referenced 1 time by &9a6f"
       ],
       "references": [
-        39535
+        {
+          "addr": 39535,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ror"
@@ -47758,8 +50358,14 @@
         "&9a76 referenced 2 times by &9a63, &9a71"
       ],
       "references": [
-        39523,
-        39537
+        {
+          "addr": 39523,
+          "kind": "direct"
+        },
+        {
+          "addr": 39537,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -47837,8 +50443,14 @@
         "&9a82 referenced 2 times by &9a5b, &9a5f"
       ],
       "references": [
-        39515,
-        39519
+        {
+          "addr": 39515,
+          "kind": "direct"
+        },
+        {
+          "addr": 39519,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -48181,7 +50793,10 @@
         "&9aa7 referenced 1 time by &9aae"
       ],
       "references": [
-        39598
+        {
+          "addr": 39598,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -48535,7 +51150,10 @@
         "&9ae3 referenced 1 time by &9ace"
       ],
       "references": [
-        39630
+        {
+          "addr": 39630,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -48612,7 +51230,7 @@
       },
       "comment_inline": "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE",
       "xref_summaries": [
-        "&9af1 referenced 1 time by &9b6f"
+        "&9af1 used as index base 1 time by &9b6f"
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -48648,7 +51266,7 @@
       },
       "comment_inline": "NMI handler lo byte (self-modifying)",
       "xref_summaries": [
-        "&9af6 referenced 1 time by &9b6b"
+        "&9af6 used as index base 1 time by &9b6b"
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -48693,7 +51311,10 @@
         "&9afc referenced 1 time by &99f4"
       ],
       "references": [
-        39412
+        {
+          "addr": 39412,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -48989,8 +51610,14 @@
         "&9b32 referenced 2 times by &9a73, &9ae1"
       ],
       "references": [
-        39539,
-        39649
+        {
+          "addr": 39539,
+          "kind": "direct"
+        },
+        {
+          "addr": 39649,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -49012,7 +51639,10 @@
         "&9b35 referenced 1 time by &966c"
       ],
       "references": [
-        38508
+        {
+          "addr": 38508,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -49078,7 +51708,10 @@
         "&9b3f referenced 1 time by &9b3a"
       ],
       "references": [
-        39738
+        {
+          "addr": 39738,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "txa"
@@ -49322,7 +51955,10 @@
         "&9b6b referenced 1 time by &9b5e"
       ],
       "references": [
-        39774
+        {
+          "addr": 39774,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -49791,7 +52427,10 @@
         "&9bb1 referenced 1 time by &9bb4"
       ],
       "references": [
-        39860
+        {
+          "addr": 39860,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -49879,10 +52518,22 @@
         "&9bc0 referenced 4 times by &9b92, &9b9e, &9ba6, &9bb6"
       ],
       "references": [
-        39826,
-        39838,
-        39846,
-        39862
+        {
+          "addr": 39826,
+          "kind": "direct"
+        },
+        {
+          "addr": 39838,
+          "kind": "direct"
+        },
+        {
+          "addr": 39846,
+          "kind": "direct"
+        },
+        {
+          "addr": 39862,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -49947,7 +52598,10 @@
         "&9bc7 referenced 1 time by &9660"
       ],
       "references": [
-        38496
+        {
+          "addr": 38496,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "txa"
@@ -50100,7 +52754,10 @@
         "&9bdf referenced 1 time by &9bda"
       ],
       "references": [
-        39898
+        {
+          "addr": 39898,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -50233,7 +52890,10 @@
         "&9bf3 referenced 1 time by &9c07"
       ],
       "references": [
-        39943
+        {
+          "addr": 39943,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -50414,7 +53074,10 @@
         "&9c0a referenced 1 time by &9bed"
       ],
       "references": [
-        39917
+        {
+          "addr": 39917,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "cpx",
@@ -50485,7 +53148,10 @@
         "&9c14 referenced 1 time by &9c1c"
       ],
       "references": [
-        39964
+        {
+          "addr": 39964,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -50554,7 +53220,10 @@
         "&9c1e referenced 1 time by &9be9"
       ],
       "references": [
-        39913
+        {
+          "addr": 39913,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -50703,9 +53372,18 @@
         "&9c36 referenced 3 times by &9c5c, &9c61, &9c66"
       ],
       "references": [
-        40028,
-        40033,
-        40038
+        {
+          "addr": 40028,
+          "kind": "direct"
+        },
+        {
+          "addr": 40033,
+          "kind": "direct"
+        },
+        {
+          "addr": 40038,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -50741,10 +53419,13 @@
       ],
       "comment_inline": "INTOFF -- disable NMIs",
       "xref_summaries": [
-        "&9c3a referenced 1 time by &9cb6"
+        "&9c3a used as index base 1 time by &9cb6"
       ],
       "references": [
-        40118
+        {
+          "addr": 40118,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -50783,7 +53464,7 @@
       },
       "comment_inline": "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE",
       "xref_summaries": [
-        "&9c42 referenced 1 time by &9cb2"
+        "&9c42 used as index base 1 time by &9cb2"
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -50896,7 +53577,10 @@
         "&9c54 referenced 1 time by &9c43"
       ],
       "references": [
-        40003
+        {
+          "addr": 40003,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -51034,9 +53718,18 @@
         "&9c6b referenced 3 times by &9bdc, &9c0c, &9c10"
       ],
       "references": [
-        39900,
-        39948,
-        39952
+        {
+          "addr": 39900,
+          "kind": "direct"
+        },
+        {
+          "addr": 39948,
+          "kind": "direct"
+        },
+        {
+          "addr": 39952,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -51068,7 +53761,10 @@
         "&9c6f referenced 1 time by &9c68"
       ],
       "references": [
-        40040
+        {
+          "addr": 40040,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -51153,7 +53849,10 @@
         "&9c7b referenced 1 time by &9c23"
       ],
       "references": [
-        39971
+        {
+          "addr": 39971,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -51173,8 +53872,14 @@
         "&9c7d referenced 2 times by &9c6d, &9c79"
       ],
       "references": [
-        40045,
-        40057
+        {
+          "addr": 40045,
+          "kind": "direct"
+        },
+        {
+          "addr": 40057,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -51260,7 +53965,10 @@
         "&9c89 referenced 1 time by &9c52"
       ],
       "references": [
-        40018
+        {
+          "addr": 40018,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sty",
@@ -51798,7 +54506,10 @@
         "&9cd5 referenced 1 time by &9cd1"
       ],
       "references": [
-        40145
+        {
+          "addr": 40145,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -51850,7 +54561,10 @@
         "&9cdc referenced 1 time by &9ce9"
       ],
       "references": [
-        40169
+        {
+          "addr": 40169,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -51977,7 +54691,10 @@
         "&9cef referenced 1 time by &9ca1"
       ],
       "references": [
-        40097
+        {
+          "addr": 40097,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52098,7 +54815,10 @@
         "&9d05 referenced 1 time by &9d0d"
       ],
       "references": [
-        40205
+        {
+          "addr": 40205,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52179,7 +54899,10 @@
         "&9d11 referenced 1 time by &9cf7"
       ],
       "references": [
-        40183
+        {
+          "addr": 40183,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52228,7 +54951,10 @@
         "&9d18 referenced 1 time by &9ccd"
       ],
       "references": [
-        40141
+        {
+          "addr": 40141,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "sta",
@@ -52250,7 +54976,10 @@
         "&9d1b referenced 1 time by &9cec"
       ],
       "references": [
-        40172
+        {
+          "addr": 40172,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52324,7 +55053,10 @@
         "&9d26 referenced 1 time by &9d0f"
       ],
       "references": [
-        40207
+        {
+          "addr": 40207,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "plp"
@@ -52428,7 +55160,10 @@
         "&9d33 referenced 1 time by &9d4e"
       ],
       "references": [
-        40270
+        {
+          "addr": 40270,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bvc",
@@ -52609,7 +55344,10 @@
         "&9d53 referenced 1 time by &9d98"
       ],
       "references": [
-        40344
+        {
+          "addr": 40344,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52641,7 +55379,10 @@
         "&9d57 referenced 1 time by &9d33"
       ],
       "references": [
-        40243
+        {
+          "addr": 40243,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52687,7 +55428,10 @@
         "&9d5e referenced 1 time by &9d55"
       ],
       "references": [
-        40277
+        {
+          "addr": 40277,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -52708,7 +55452,10 @@
         "&9d61 referenced 1 time by &9d64"
       ],
       "references": [
-        40292
+        {
+          "addr": 40292,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -52772,7 +55519,10 @@
         "&9d69 referenced 1 time by &9d49"
       ],
       "references": [
-        40265
+        {
+          "addr": 40265,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52911,7 +55661,10 @@
         "&9d82 referenced 1 time by &9d7d"
       ],
       "references": [
-        40317
+        {
+          "addr": 40317,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -52972,7 +55725,10 @@
         "&9d8c referenced 1 time by &9d87"
       ],
       "references": [
-        40327
+        {
+          "addr": 40327,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -53256,13 +56012,34 @@
         "&9dbf referenced 7 times by &9da0, &9dac, &9db1, &9dc5, &9dcd, &9dd5, &9ddc"
       ],
       "references": [
-        40352,
-        40364,
-        40369,
-        40389,
-        40397,
-        40405,
-        40412
+        {
+          "addr": 40352,
+          "kind": "direct"
+        },
+        {
+          "addr": 40364,
+          "kind": "direct"
+        },
+        {
+          "addr": 40369,
+          "kind": "direct"
+        },
+        {
+          "addr": 40389,
+          "kind": "direct"
+        },
+        {
+          "addr": 40397,
+          "kind": "direct"
+        },
+        {
+          "addr": 40405,
+          "kind": "direct"
+        },
+        {
+          "addr": 40412,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -53285,7 +56062,10 @@
         "&9dc2 referenced 1 time by &9dba"
       ],
       "references": [
-        40378
+        {
+          "addr": 40378,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -53742,7 +56522,10 @@
         "&9e1a referenced 1 time by &999e"
       ],
       "references": [
-        39326
+        {
+          "addr": 39326,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -53825,7 +56608,10 @@
         "&9e28 referenced 1 time by &9e1f"
       ],
       "references": [
-        40479
+        {
+          "addr": 40479,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -53900,7 +56686,10 @@
         "&9e34 referenced 1 time by &9e57"
       ],
       "references": [
-        40535
+        {
+          "addr": 40535,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bvc",
@@ -54010,7 +56799,10 @@
         "&9e44 referenced 1 time by &9e3c"
       ],
       "references": [
-        40508
+        {
+          "addr": 40508,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -54121,7 +56913,10 @@
         "&9e54 referenced 1 time by &9e4c"
       ],
       "references": [
-        40524
+        {
+          "addr": 40524,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -54170,10 +56965,22 @@
         "&9e5c referenced 4 times by &9e40, &9e50, &9e9a, &9eb0"
       ],
       "references": [
-        40512,
-        40528,
-        40602,
-        40624
+        {
+          "addr": 40512,
+          "kind": "direct"
+        },
+        {
+          "addr": 40528,
+          "kind": "direct"
+        },
+        {
+          "addr": 40602,
+          "kind": "direct"
+        },
+        {
+          "addr": 40624,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -54271,10 +57078,22 @@
         "&9e6d referenced 4 times by &9df8, &9e10, &9e34, &9e84"
       ],
       "references": [
-        40440,
-        40464,
-        40500,
-        40580
+        {
+          "addr": 40440,
+          "kind": "direct"
+        },
+        {
+          "addr": 40464,
+          "kind": "direct"
+        },
+        {
+          "addr": 40500,
+          "kind": "direct"
+        },
+        {
+          "addr": 40580,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -54324,7 +57143,10 @@
         "&9e75 referenced 1 time by &9e70"
       ],
       "references": [
-        40560
+        {
+          "addr": 40560,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "jmp",
@@ -54347,7 +57169,10 @@
         "&9e78 referenced 1 time by &9e64"
       ],
       "references": [
-        40548
+        {
+          "addr": 40548,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -54414,7 +57239,10 @@
         "&9e84 referenced 1 time by &9eb5"
       ],
       "references": [
-        40629
+        {
+          "addr": 40629,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bvc",
@@ -54569,9 +57397,18 @@
         "&9e9c referenced 3 times by &9e8e, &9e92, &9e96"
       ],
       "references": [
-        40590,
-        40594,
-        40598
+        {
+          "addr": 40590,
+          "kind": "direct"
+        },
+        {
+          "addr": 40594,
+          "kind": "direct"
+        },
+        {
+          "addr": 40598,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -54635,7 +57472,7 @@
       },
       "comment_inline": "Carry into second byte",
       "xref_summaries": [
-        "&9ea7 referenced 1 time by &9cac"
+        "&9ea7 used as index base 1 time by &9cac"
       ],
       "type": "code",
       "mnemonic": "inc",
@@ -54701,7 +57538,7 @@
       },
       "comment_inline": "Carry into fourth byte",
       "xref_summaries": [
-        "&9eaf referenced 1 time by &9ca6"
+        "&9eaf used as index base 1 time by &9ca6"
       ],
       "type": "code",
       "mnemonic": "inc",
@@ -54737,9 +57574,18 @@
         "&9eb2 referenced 3 times by &9ea4, &9ea8, &9eac"
       ],
       "references": [
-        40612,
-        40616,
-        40620
+        {
+          "addr": 40612,
+          "kind": "direct"
+        },
+        {
+          "addr": 40616,
+          "kind": "direct"
+        },
+        {
+          "addr": 40620,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -54788,7 +57634,10 @@
         "&9eba referenced 1 time by &9d89"
       ],
       "references": [
-        40329
+        {
+          "addr": 40329,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -55097,7 +57946,10 @@
         "&9ef2 referenced 1 time by &9eed"
       ],
       "references": [
-        40685
+        {
+          "addr": 40685,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "bit",
@@ -55255,7 +58107,10 @@
         "&9f0f referenced 1 time by &9f0a"
       ],
       "references": [
-        40714
+        {
+          "addr": 40714,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -55302,8 +58157,14 @@
         "&9f16 referenced 2 times by &994c, &9d7f"
       ],
       "references": [
-        39244,
-        40319
+        {
+          "addr": 39244,
+          "kind": "direct"
+        },
+        {
+          "addr": 40319,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -55336,17 +58197,50 @@
         "&9f1a referenced 11 times by &9877, &9dbf, &9e75, &9ecb, &9ed3, &9edf, &9ee4, &9ef5, &9efd, &9f05, &9f14"
       ],
       "references": [
-        39031,
-        40383,
-        40565,
-        40651,
-        40659,
-        40671,
-        40676,
-        40693,
-        40701,
-        40709,
-        40724
+        {
+          "addr": 39031,
+          "kind": "direct"
+        },
+        {
+          "addr": 40383,
+          "kind": "direct"
+        },
+        {
+          "addr": 40565,
+          "kind": "direct"
+        },
+        {
+          "addr": 40651,
+          "kind": "direct"
+        },
+        {
+          "addr": 40659,
+          "kind": "direct"
+        },
+        {
+          "addr": 40671,
+          "kind": "direct"
+        },
+        {
+          "addr": 40676,
+          "kind": "direct"
+        },
+        {
+          "addr": 40693,
+          "kind": "direct"
+        },
+        {
+          "addr": 40701,
+          "kind": "direct"
+        },
+        {
+          "addr": 40709,
+          "kind": "direct"
+        },
+        {
+          "addr": 40724,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -55366,8 +58260,14 @@
         "&9f1c referenced 2 times by &9d66, &9f18"
       ],
       "references": [
-        40294,
-        40728
+        {
+          "addr": 40294,
+          "kind": "direct"
+        },
+        {
+          "addr": 40728,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -55482,9 +58382,18 @@
         "&9f38 referenced 3 times by &97fc, &9ade, &9d23"
       ],
       "references": [
-        38908,
-        39646,
-        40227
+        {
+          "addr": 38908,
+          "kind": "direct"
+        },
+        {
+          "addr": 39646,
+          "kind": "direct"
+        },
+        {
+          "addr": 40227,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -55657,7 +58566,10 @@
         "&9f54 referenced 1 time by &9f66"
       ],
       "references": [
-        40806
+        {
+          "addr": 40806,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "lda",
@@ -55967,7 +58879,10 @@
         "&9f81 referenced 1 time by &9f78"
       ],
       "references": [
-        40824
+        {
+          "addr": 40824,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pla"
@@ -56004,8 +58919,14 @@
         "&9f84 referenced 2 times by &9f41, &9f46"
       ],
       "references": [
-        40769,
-        40774
+        {
+          "addr": 40769,
+          "kind": "direct"
+        },
+        {
+          "addr": 40774,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "ldy",
@@ -56233,10 +59154,13 @@
       ],
       "comment_inline": "Return with C=1 (success)",
       "xref_summaries": [
-        "&9fa7 referenced 1 time by &968f"
+        "&9fa7 used as index base 1 time by &968f"
       ],
       "references": [
-        38543
+        {
+          "addr": 38543,
+          "kind": "indexed"
+        }
       ],
       "type": "code",
       "mnemonic": "rts"
@@ -56476,8 +59400,14 @@
         "&9fe0 referenced 2 times by &8c8e, &8d67"
       ],
       "references": [
-        35982,
-        36199
+        {
+          "addr": 35982,
+          "kind": "direct"
+        },
+        {
+          "addr": 36199,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "pha"
@@ -56555,7 +59485,10 @@
         "&9fe9 referenced 1 time by &9fe5"
       ],
       "references": [
-        40933
+        {
+          "addr": 40933,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "and",
@@ -56610,7 +59543,10 @@
         "&9ff1 referenced 1 time by &9fed"
       ],
       "references": [
-        40941
+        {
+          "addr": 40941,
+          "kind": "direct"
+        }
       ],
       "type": "code",
       "mnemonic": "adc",
