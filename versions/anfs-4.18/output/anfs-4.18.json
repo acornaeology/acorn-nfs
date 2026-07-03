@@ -3428,7 +3428,172 @@
     "oscli": 65527
   },
   "memory_map": [],
-  "index_bases": [],
+  "index_bases": [
+    {
+      "addr": 2,
+      "name": "zp_work_2"
+    },
+    {
+      "addr": 3,
+      "name": "zp_work_3"
+    },
+    {
+      "addr": 194,
+      "name": "txcb_dest"
+    },
+    {
+      "addr": 199,
+      "name": "txcb_pos"
+    },
+    {
+      "addr": 258,
+      "name": "stack_page_2"
+    },
+    {
+      "addr": 259,
+      "name": "stack_page_3"
+    },
+    {
+      "addr": 260,
+      "name": "stack_page_4"
+    },
+    {
+      "addr": 262,
+      "name": "stack_page_6"
+    },
+    {
+      "addr": 296,
+      "name": "tube_osword_pb"
+    },
+    {
+      "addr": 672,
+      "name": "rom_type_table"
+    },
+    {
+      "addr": 1792,
+      "name": "string_buf"
+    },
+    {
+      "addr": 3327,
+      "name": "nmi_code_base"
+    },
+    {
+      "addr": 3354,
+      "name": "imm_param_base"
+    },
+    {
+      "addr": 3358,
+      "name": "tx_addr_base"
+    },
+    {
+      "addr": 3366,
+      "name": "tx_data_start"
+    },
+    {
+      "addr": 3378,
+      "name": "scout_data"
+    },
+    {
+      "addr": 3558,
+      "name": "txcb_default_base"
+    },
+    {
+      "addr": 3568,
+      "name": "rom_ws_pages"
+    },
+    {
+      "addr": 3582,
+      "name": "osword_ws_base"
+    },
+    {
+      "addr": 3583,
+      "name": "fs_server_base"
+    },
+    {
+      "addr": 3631,
+      "name": "fs_filename_buf_m1"
+    },
+    {
+      "addr": 3640,
+      "name": "fs_filename_backup"
+    },
+    {
+      "addr": 3831,
+      "name": "fs_reply_data"
+    },
+    {
+      "addr": 3853,
+      "name": "fs_file_len"
+    },
+    {
+      "addr": 4064,
+      "name": "fcb_xfer_count_lo"
+    },
+    {
+      "addr": 4080,
+      "name": "fcb_xfer_count_mid"
+    },
+    {
+      "addr": 4096,
+      "name": "fcb_count_lo"
+    },
+    {
+      "addr": 4112,
+      "name": "fcb_attr_or_count_mid"
+    },
+    {
+      "addr": 4128,
+      "name": "fcb_station_or_count_hi"
+    },
+    {
+      "addr": 4144,
+      "name": "fcb_net_or_port"
+    },
+    {
+      "addr": 4160,
+      "name": "fcb_flags"
+    },
+    {
+      "addr": 4176,
+      "name": "fcb_net_num"
+    },
+    {
+      "addr": 4192,
+      "name": "chan_status"
+    },
+    {
+      "addr": 4216,
+      "name": "fcb_stn_lo"
+    },
+    {
+      "addr": 4232,
+      "name": "fcb_stn_hi"
+    },
+    {
+      "addr": 4248,
+      "name": "fcb_buf_offset"
+    },
+    {
+      "addr": 4264,
+      "name": "fcb_attr_ref"
+    },
+    {
+      "addr": 4280,
+      "name": "fcb_status"
+    },
+    {
+      "addr": 4305,
+      "name": "xfer_counter"
+    },
+    {
+      "addr": 4313,
+      "name": "fcb_ctx_save"
+    },
+    {
+      "addr": 4339,
+      "name": "filename_buf"
+    }
+  ],
   "regions": [],
   "items": [
     {

@@ -5211,34 +5211,6 @@
   },
   "memory_map": [
     {
-      "addr": 0,
-      "name": "zp_ptr_lo",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 1,
-      "name": "zp_ptr_hi",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 2,
-      "name": "zp_work_2",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 3,
-      "name": "zp_work_3",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
       "addr": 16,
       "name": "zp_temp_10",
       "length": 1,
@@ -5269,20 +5241,6 @@
     {
       "addr": 20,
       "name": "tube_claim_flag",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 21,
-      "name": "tube_claimed_id",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 32,
-      "name": "tx_buffer_scratch",
       "length": 1,
       "group": "zero_page",
       "access": "rw"
@@ -5640,22 +5598,8 @@
       "access": "rw"
     },
     {
-      "addr": 194,
-      "name": "txcb_dest",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
       "addr": 196,
       "name": "txcb_start",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
-      "addr": 199,
-      "name": "txcb_pos",
       "length": 1,
       "group": "zero_page",
       "access": "rw"
@@ -5705,13 +5649,6 @@
       "description": "VDU status register (OSBYTE &75)"
     },
     {
-      "addr": 237,
-      "name": "tx_imm_idx_base",
-      "length": 1,
-      "group": "zero_page",
-      "access": "rw"
-    },
-    {
       "addr": 239,
       "name": "osbyte_a_copy",
       "length": 1,
@@ -5759,14 +5696,6 @@
       "length": 1,
       "group": "zero_page",
       "access": "rw"
-    },
-    {
-      "addr": 530,
-      "name": "filev",
-      "length": 2,
-      "group": "ram_workspace",
-      "access": "rw",
-      "description": "FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init."
     },
     {
       "addr": 532,
@@ -5937,14 +5866,6 @@
       "description": "Destination port for next TX scout frame."
     },
     {
-      "addr": 3366,
-      "name": "tx_data_start",
-      "length": 1,
-      "group": "ram_workspace",
-      "access": "rw",
-      "description": "Start of TX data buffer (used by scout/data frame construction)."
-    },
-    {
       "addr": 3370,
       "name": "tx_data_len",
       "length": 1,
@@ -5983,14 +5904,6 @@
       "group": "ram_workspace",
       "access": "rw",
       "description": "Scout port byte ([`scout_buf`](address:0D2E)+3)."
-    },
-    {
-      "addr": 3378,
-      "name": "scout_data",
-      "length": 8,
-      "group": "ram_workspace",
-      "access": "rw",
-      "description": "Scout data payload base ([`scout_buf`](address:0D2E)+4).\nHolds the 4-byte remote address for JSR / UserProc / OSProc immediate ops."
     },
     {
       "addr": 3389,
@@ -6241,14 +6154,6 @@
       "description": "Bridge station number (`&FF` = no bridge).\nSet by the bridge-discovery scout reply; checked before any cross-network operation."
     },
     {
-      "addr": 3568,
-      "name": "rom_ws_pages",
-      "length": 16,
-      "group": "ram_workspace",
-      "access": "r",
-      "description": "MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace."
-    },
-    {
       "addr": 3843,
       "name": "fs_cmd_csd",
       "length": 1,
@@ -6337,22 +6242,6 @@
       "description": "Three-byte parse-buffer used for command-line matching (e.g. `*OPT`, `*FS`)."
     },
     {
-      "addr": 49208,
-      "name": "hazel_rtc_buffer",
-      "length": 25,
-      "group": "hazel",
-      "access": "rw",
-      "description": "OSWORD `&0E` real-time-clock result buffer."
-    },
-    {
-      "addr": 49399,
-      "name": "hazel_fs_reply_byte",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "Latched first byte of the most recent FS reply."
-    },
-    {
       "addr": 49408,
       "name": "hazel_txcb_port",
       "length": 1,
@@ -6425,62 +6314,6 @@
       "description": "TXCB byte 8: result / transfer-size lo."
     },
     {
-      "addr": 49664,
-      "name": "hazel_fcb_addr_lo",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): file position byte 0 (low).\nIndexed by channel `0..15`; cleared by [`alloc_fcb_slot`](address:B8A8) on FCB allocation."
-    },
-    {
-      "addr": 49680,
-      "name": "hazel_fcb_addr_mid",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): file position byte 1 (mid)."
-    },
-    {
-      "addr": 49696,
-      "name": "hazel_fcb_addr_hi",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): file position byte 2 (high)."
-    },
-    {
-      "addr": 49712,
-      "name": "hazel_fcb_slot_attr",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): slot occupancy + channel attribute.\nTested for zero by [`alloc_fcb_slot`](address:B8A8) as the slot-free check; set non-zero on allocation."
-    },
-    {
-      "addr": 49728,
-      "name": "hazel_fcb_state_byte",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): multi-purpose state byte.\nHolds station number for non-OSFIND channels, or open-mode flags for channels created by OSFIND."
-    },
-    {
-      "addr": 49744,
-      "name": "hazel_fcb_network",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): network number per channel."
-    },
-    {
-      "addr": 49760,
-      "name": "hazel_fcb_status",
-      "length": 16,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FCB parallel array (16 entries): per-channel status flags.\nHeavily used: bit 6 = connection active (`set_conn_active` / `clear_conn_active` toggle)."
-    },
-    {
       "addr": 49777,
       "name": "hazel_fs_lib_flags",
       "length": 1,
@@ -6511,14 +6344,6 @@
       "group": "hazel",
       "access": "rw",
       "description": "Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in [`process_all_fcbs`](address:BB38)."
-    },
-    {
-      "addr": 49881,
-      "name": "hazel_ctx_buffer",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "HAZEL context buffer (saved register / state block used during FCB processing)."
     },
     {
       "addr": 65064,
@@ -6647,13 +6472,258 @@
       "group": "ext_vectors",
       "access": "r",
       "description": "FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands)."
+    }
+  ],
+  "index_bases": [
+    {
+      "addr": 0,
+      "name": "zp_ptr_lo",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 1,
+      "name": "zp_ptr_hi",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 2,
+      "name": "zp_work_2",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 3,
+      "name": "zp_work_3",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 21,
+      "name": "tube_claimed_id",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 32,
+      "name": "tx_buffer_scratch",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 194,
+      "name": "txcb_dest",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 199,
+      "name": "txcb_pos",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 237,
+      "name": "tx_imm_idx_base",
+      "length": 1,
+      "group": "zero_page"
+    },
+    {
+      "addr": 258,
+      "name": "stack_page_2"
+    },
+    {
+      "addr": 259,
+      "name": "stack_page_3"
+    },
+    {
+      "addr": 260,
+      "name": "stack_page_4"
+    },
+    {
+      "addr": 262,
+      "name": "stack_page_6"
+    },
+    {
+      "addr": 530,
+      "name": "filev",
+      "length": 2,
+      "group": "ram_workspace",
+      "description": "FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init."
+    },
+    {
+      "addr": 672,
+      "name": "rom_type_table"
+    },
+    {
+      "addr": 3327,
+      "name": "nmi_code_base"
+    },
+    {
+      "addr": 3354,
+      "name": "imm_param_base"
+    },
+    {
+      "addr": 3358,
+      "name": "tx_addr_base"
+    },
+    {
+      "addr": 3366,
+      "name": "tx_data_start",
+      "length": 1,
+      "group": "ram_workspace",
+      "description": "Start of TX data buffer (used by scout/data frame construction)."
+    },
+    {
+      "addr": 3378,
+      "name": "scout_data",
+      "length": 8,
+      "group": "ram_workspace",
+      "description": "Scout data payload base ([`scout_buf`](address:0D2E)+4).\nHolds the 4-byte remote address for JSR / UserProc / OSProc immediate ops."
+    },
+    {
+      "addr": 3568,
+      "name": "rom_ws_pages",
+      "length": 16,
+      "group": "ram_workspace",
+      "description": "MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace."
+    },
+    {
+      "addr": 18584,
+      "name": "cdir_unused_dispatch_table"
+    },
+    {
+      "addr": 49162,
+      "name": "hazel_fs_opts_addend"
+    },
+    {
+      "addr": 49199,
+      "name": "hazel_parse_buf_m1"
+    },
+    {
+      "addr": 49208,
+      "name": "hazel_rtc_buffer",
+      "length": 25,
+      "group": "hazel",
+      "description": "OSWORD `&0E` real-time-clock result buffer."
+    },
+    {
+      "addr": 49399,
+      "name": "hazel_fs_reply_byte",
+      "length": 1,
+      "group": "hazel",
+      "description": "Latched first byte of the most recent FS reply."
+    },
+    {
+      "addr": 49421,
+      "name": "hazel_txcb_addr_lo"
+    },
+    {
+      "addr": 49608,
+      "name": "hazel_chan_status"
+    },
+    {
+      "addr": 49632,
+      "name": "hazel_fcb_addr_lo_minus20"
+    },
+    {
+      "addr": 49648,
+      "name": "hazel_fcb_addr_mid_minus20"
+    },
+    {
+      "addr": 49663,
+      "name": "hazel_display_buf_minusF4"
+    },
+    {
+      "addr": 49664,
+      "name": "hazel_fcb_addr_lo",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): file position byte 0 (low).\nIndexed by channel `0..15`; cleared by [`alloc_fcb_slot`](address:B8A8) on FCB allocation."
+    },
+    {
+      "addr": 49680,
+      "name": "hazel_fcb_addr_mid",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): file position byte 1 (mid)."
+    },
+    {
+      "addr": 49696,
+      "name": "hazel_fcb_addr_hi",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): file position byte 2 (high)."
+    },
+    {
+      "addr": 49712,
+      "name": "hazel_fcb_slot_attr",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): slot occupancy + channel attribute.\nTested for zero by [`alloc_fcb_slot`](address:B8A8) as the slot-free check; set non-zero on allocation."
+    },
+    {
+      "addr": 49728,
+      "name": "hazel_fcb_state_byte",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): multi-purpose state byte.\nHolds station number for non-OSFIND channels, or open-mode flags for channels created by OSFIND."
+    },
+    {
+      "addr": 49744,
+      "name": "hazel_fcb_network",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): network number per channel."
+    },
+    {
+      "addr": 49760,
+      "name": "hazel_fcb_status",
+      "length": 16,
+      "group": "hazel",
+      "description": "FCB parallel array (16 entries): per-channel status flags.\nHeavily used: bit 6 = connection active (`set_conn_active` / `clear_conn_active` toggle)."
+    },
+    {
+      "addr": 49784,
+      "name": "hazel_fcb_station_lo"
+    },
+    {
+      "addr": 49800,
+      "name": "hazel_fcb_station_hi"
+    },
+    {
+      "addr": 49816,
+      "name": "hazel_fcb_offset_save"
+    },
+    {
+      "addr": 49832,
+      "name": "hazel_fcb_attr_ref"
+    },
+    {
+      "addr": 49848,
+      "name": "hazel_fcb_flags"
+    },
+    {
+      "addr": 49873,
+      "name": "hazel_xfer_init_zeros"
+    },
+    {
+      "addr": 49881,
+      "name": "hazel_ctx_buffer",
+      "length": 1,
+      "group": "hazel",
+      "description": "HAZEL context buffer (saved register / state block used during FCB processing)."
+    },
+    {
+      "addr": 49907,
+      "name": "hazel_display_buf"
     },
     {
       "addr": 65456,
       "name": "nmi_buf_idx_base",
       "length": 1,
       "group": "idx_base",
-      "access": "r",
       "description": "NMI buffer indexing-base.\nUsed by the NMI RX setup as `STA nmi_buf_idx_base,Y` with Y values that wrap into low memory; the bytes at `&FFB0` themselves aren't read or written."
     },
     {
@@ -6661,11 +6731,9 @@
       "name": "fcb_workspace_idx_base",
       "length": 1,
       "group": "idx_base",
-      "access": "r",
       "description": "FCB-workspace indexing-base (wraps into ZP).\nUsed by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&FF`; the effective address wraps to `&00B4`..`&00BC` (= `fs_work_4`+0..+8). The byte at `&FFBD` itself is never read."
     }
   ],
-  "index_bases": [],
   "regions": [],
   "items": [
     {

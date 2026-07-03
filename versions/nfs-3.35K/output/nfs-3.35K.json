@@ -2265,7 +2265,72 @@
     "oscli": 65527
   },
   "memory_map": [],
-  "index_bases": [],
+  "index_bases": [
+    {
+      "addr": 2,
+      "name": "zp_work_2"
+    },
+    {
+      "addr": 3,
+      "name": "zp_work_3"
+    },
+    {
+      "addr": 174,
+      "name": "work_ae"
+    },
+    {
+      "addr": 175,
+      "name": "addr_work"
+    },
+    {
+      "addr": 194,
+      "name": "txcb_dest"
+    },
+    {
+      "addr": 199,
+      "name": "txcb_pos"
+    },
+    {
+      "addr": 3354,
+      "name": "nmi_shim_1a"
+    },
+    {
+      "addr": 3366,
+      "name": "tx_data_start"
+    },
+    {
+      "addr": 3393,
+      "name": "rx_remote_addr"
+    },
+    {
+      "addr": 3558,
+      "name": "nmi_sub_table"
+    },
+    {
+      "addr": 3563,
+      "name": "fs_state_deb"
+    },
+    {
+      "addr": 3582,
+      "name": "fs_context_base"
+    },
+    {
+      "addr": 3632,
+      "name": "fs_filename_buf"
+    },
+    {
+      "addr": 3831,
+      "name": "fs_reply_data"
+    },
+    {
+      "addr": 3853,
+      "name": "fs_file_len"
+    },
+    {
+      "addr": 4064,
+      "name": "fs_error_buf"
+    }
+  ],
   "regions": [],
   "items": [
     {

@@ -147,7 +147,7 @@ d.use_environment("acorn_master_hardware")
 d.use_environment(
     "acorn_sideways_rom", rom_title="ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)"
 )
-d.label(0x0000, "zp_ptr_lo", length=1, group="zero_page", access="rw")
+d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
 for idx, name, role in _netv_dispatch_entries:
     d.expr(0xAD20 + idx, "<(%s-1)" % name)
@@ -166,9 +166,9 @@ for idx, target, name, desc in _svc_dispatch_entries:
         d.expr(0x8A20 + idx, ">(%s-1)" % name)
     d.comment(0x89ED + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
     d.comment(0x8A20 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
-d.label(0x0001, "zp_ptr_hi", length=1, group="zero_page", access="rw")
+d.index_base(0x0001, "zp_ptr_hi", length=1, group="zero_page")
 
-d.label(0x0002, "zp_work_2", length=1, group="zero_page", access="rw")
+d.index_base(0x0002, "zp_work_2", length=1, group="zero_page")
 
 for i, (name, handler_label) in enumerate(handler_names):
     base_addr = 0x8EB5 + i * 3
@@ -179,7 +179,7 @@ for i, (name, handler_label) in enumerate(handler_names):
         d.byte(base_addr + 2, 1)
         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
-d.label(0x0003, "zp_work_3", length=1, group="zero_page", access="rw")
+d.index_base(0x0003, "zp_work_3", length=1, group="zero_page")
 
 d.label(0x0010, "zp_temp_10", length=1, group="zero_page", access="rw")
 
@@ -192,9 +192,9 @@ d.label(0x0013, "tube_data_ptr_hi", length=1, group="zero_page", access="rw")
 d.constant(20, "osbyte_explode_chars")
 d.label(0x0014, "tube_claim_flag", length=1, group="zero_page", access="rw")
 
-d.label(0x0015, "tube_claimed_id", length=1, group="zero_page", access="rw")
+d.index_base(0x0015, "tube_claimed_id", length=1, group="zero_page")
 
-d.label(0x0020, "tx_buffer_scratch", length=1, group="zero_page", access="rw")
+d.index_base(0x0020, "tx_buffer_scratch", length=1, group="zero_page")
 
 d.label(0x0026, "parse_separator_flag", length=1, group="zero_page", access="rw")
 
@@ -376,11 +376,11 @@ d.label(0x00C0, "txcb_ctrl", length=1, group="zero_page", access="rw")
 
 d.label(0x00C1, "txcb_port", length=1, group="zero_page", access="rw")
 
-d.label(0x00C2, "txcb_dest", length=1, group="zero_page", access="rw")
+d.index_base(0x00C2, "txcb_dest", length=1, group="zero_page")
 
 d.label(0x00C4, "txcb_start", length=1, group="zero_page", access="rw")
 
-d.label(0x00C7, "txcb_pos", length=1, group="zero_page", access="rw")
+d.index_base(0x00C7, "txcb_pos", length=1, group="zero_page")
 
 d.label(0x00C8, "txcb_end", length=1, group="zero_page", access="rw")
 
@@ -402,7 +402,7 @@ d.label(0x00CF, "fs_spool0", length=1, group="zero_page", access="rw")
 d.label(0x00D0, "vdu_status", description="VDU status register (OSBYTE &75)", length=1, group="zero_page", access="rw")
 
 d.constant(0xD1, "port_printer")
-d.label(0x00ED, "tx_imm_idx_base", length=1, group="zero_page", access="rw")
+d.index_base(0x00ED, "tx_imm_idx_base", length=1, group="zero_page")
 
 d.label(0x00EF, "osbyte_a_copy", length=1, group="zero_page", access="rw")
 
@@ -425,21 +425,20 @@ d.label(0x0100, "error_block")
 
 d.label(0x0101, "error_text")
 
-d.label(0x0102, "stack_page_2")
+d.index_base(0x0102, "stack_page_2")
 
-d.label(0x0103, "stack_page_3")
+d.index_base(0x0103, "stack_page_3")
 
-d.label(0x0104, "stack_page_4")
+d.index_base(0x0104, "stack_page_4")
 
-d.label(0x0106, "stack_page_6")
+d.index_base(0x0106, "stack_page_6")
 
-d.label(
+d.index_base(
     0x0212,
     "vec_filev",
     description="FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init.",
     length=2,
     group="ram_workspace",
-    access="rw",
 )
 
 d.label(
@@ -497,7 +496,7 @@ d.label(
 )
 d.label(0x028D, "last_break_type")
 
-d.label(0x02A0, "rom_type_table")
+d.index_base(0x02A0, "rom_type_table")
 
 d.label(
     0x0350, "vdu_screen_mode", description="VDU screen mode set by the OS.", length=1, group="ram_workspace", access="r"
@@ -524,7 +523,7 @@ Determines whether `OSWRCH` writes to the screen, printer, serial port, etc. ANF
 
 d.label(0x0406, "tube_addr_data_dispatch")
 
-d.label(0x0CFF, "nmi_code_base")
+d.index_base(0x0CFF, "nmi_code_base")
 
 d.label(
     0x0D07,
@@ -586,9 +585,9 @@ Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_n
     access="r",
 )
 
-d.label(0x0D1A, "imm_param_base")
+d.index_base(0x0D1A, "imm_param_base")
 
-d.label(0x0D1E, "tx_addr_base")
+d.index_base(0x0D1E, "tx_addr_base")
 
 d.label(
     0x0D20,
@@ -646,13 +645,12 @@ d.label(
     access="rw",
 )
 
-d.label(
+d.index_base(
     0x0D26,
     "tx_data_start",
     description="Start of TX data buffer (used by scout/data frame construction).",
     length=1,
     group="ram_workspace",
-    access="rw",
 )
 
 d.label(
@@ -702,14 +700,13 @@ d.label(
     access="rw",
 )
 
-d.label(
+d.index_base(
     0x0D32,
     "scout_data",
     description="""Scout data payload base ([`scout_buf`](address:0D2E)+4).
 Holds the 4-byte remote address for JSR / UserProc / OSProc immediate ops.""",
     length=8,
     group="ram_workspace",
-    access="rw",
 )
 
 d.label(
@@ -982,13 +979,12 @@ Set by the bridge-discovery scout reply; checked before any cross-network operat
 
 d.label(0x0DE6, "txcb_default_base")
 
-d.label(
+d.index_base(
     0x0DF0,
     "rom_ws_pages",
     description="MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace.",
     length=16,
     group="ram_workspace",
-    access="r",
 )
 
 d.label(0x0DFA, "fs_context_save")
@@ -1184,7 +1180,7 @@ d.label(0x2048, "ws_template_source")
 
 d.label(0x2322, "separator_parse_dispatch")
 
-d.label(0x4898, "cdir_unused_dispatch_table")
+d.index_base(0x4898, "cdir_unused_dispatch_table")
 
 d.label(0x688B, "ws_precomputed_value")
 
@@ -18846,7 +18842,7 @@ d.label(
     access="rw",
 )
 
-d.label(0xC00A, "hazel_fs_opts_addend")
+d.index_base(0xC00A, "hazel_fs_opts_addend")
 
 d.label(
     0xC014,
@@ -18857,7 +18853,7 @@ d.label(
     access="rw",
 )
 
-d.label(0xC02F, "hazel_parse_buf_m1")
+d.index_base(0xC02F, "hazel_parse_buf_m1")
 
 d.label(
     0xC030,
@@ -18872,22 +18868,20 @@ d.label(0xC031, "hazel_parse_buf_1")
 
 d.label(0xC032, "hazel_parse_buf_2")
 
-d.label(
+d.index_base(
     0xC038,
     "hazel_rtc_buffer",
     description="OSWORD `&0E` real-time-clock result buffer.",
     length=25,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC0F7,
     "hazel_fs_reply_byte",
     description="Latched first byte of the most recent FS reply.",
     length=1,
     group="hazel",
-    access="rw",
 )
 
 d.label(
@@ -18964,7 +18958,7 @@ d.label(0xC10B, "hazel_txcb_tx_status")
 
 d.label(0xC10C, "hazel_txcb_osword_flag")
 
-d.label(0xC10D, "hazel_txcb_addr_lo")
+d.index_base(0xC10D, "hazel_txcb_addr_lo")
 
 d.label(0xC10E, "hazel_txcb_access")
 
@@ -18984,7 +18978,7 @@ d.label(0xC12F, "hazel_txcb_end")
 
 d.label(0xC130, "hazel_examine_attr")
 
-d.label(0xC1C8, "hazel_chan_status")
+d.index_base(0xC1C8, "hazel_chan_status")
 
 d.label(0xC1DC, "hazel_net_reply_buf_0")
 
@@ -18994,77 +18988,70 @@ d.label(0xC1DE, "hazel_net_reply_buf_2")
 
 d.label(0xC1DF, "hazel_net_reply_buf_3")
 
-d.label(0xC1E0, "hazel_fcb_addr_lo_minus20")
+d.index_base(0xC1E0, "hazel_fcb_addr_lo_minus20")
 
-d.label(0xC1F0, "hazel_fcb_addr_mid_minus20")
+d.index_base(0xC1F0, "hazel_fcb_addr_mid_minus20")
 
-d.label(0xC1FF, "hazel_display_buf_minusF4")
+d.index_base(0xC1FF, "hazel_display_buf_minusF4")
 
-d.label(
+d.index_base(
     0xC200,
     "hazel_fcb_addr_lo",
     description="""FCB parallel array (16 entries): file position byte 0 (low).
 Indexed by channel `0..15`; cleared by [`alloc_fcb_slot`](address:B8A8) on FCB allocation.""",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC210,
     "hazel_fcb_addr_mid",
     description="FCB parallel array (16 entries): file position byte 1 (mid).",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC220,
     "hazel_fcb_addr_hi",
     description="FCB parallel array (16 entries): file position byte 2 (high).",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC230,
     "hazel_fcb_slot_attr",
     description="""FCB parallel array (16 entries): slot occupancy + channel attribute.
 Tested for zero by [`alloc_fcb_slot`](address:B8A8) as the slot-free check; set non-zero on allocation.""",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC240,
     "hazel_fcb_state_byte",
     description="""FCB parallel array (16 entries): multi-purpose state byte.
 Holds station number for non-OSFIND channels, or open-mode flags for channels created by OSFIND.""",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC250,
     "hazel_fcb_network",
     description="FCB parallel array (16 entries): network number per channel.",
     length=16,
     group="hazel",
-    access="rw",
 )
 
-d.label(
+d.index_base(
     0xC260,
     "hazel_fcb_status",
     description="""FCB parallel array (16 entries): per-channel status flags.
 Heavily used: bit 6 = connection active (`set_conn_active` / `clear_conn_active` toggle).""",
     length=16,
     group="hazel",
-    access="rw",
 )
 
 d.label(0xC270, "hazel_cur_dir_handle")
@@ -19084,15 +19071,15 @@ d.label(0xC273, "hazel_fcb_slot_2")
 
 d.label(0xC274, "hazel_fcb_slot_3")
 
-d.label(0xC278, "hazel_fcb_station_lo")
+d.index_base(0xC278, "hazel_fcb_station_lo")
 
-d.label(0xC288, "hazel_fcb_station_hi")
+d.index_base(0xC288, "hazel_fcb_station_hi")
 
-d.label(0xC298, "hazel_fcb_offset_save")
+d.index_base(0xC298, "hazel_fcb_offset_save")
 
-d.label(0xC2A8, "hazel_fcb_attr_ref")
+d.index_base(0xC2A8, "hazel_fcb_attr_ref")
 
-d.label(0xC2B8, "hazel_fcb_flags")
+d.index_base(0xC2B8, "hazel_fcb_flags")
 
 d.label(
     0xC2C8,
@@ -19133,7 +19120,7 @@ d.label(0xC2CF, "hazel_offset_counter")
 
 d.label(0xC2D0, "hazel_pass_counter")
 
-d.label(0xC2D1, "hazel_xfer_init_zeros")
+d.index_base(0xC2D1, "hazel_xfer_init_zeros")
 
 d.label(0xC2D4, "hazel_station_lo")
 
@@ -19145,16 +19132,15 @@ d.label(0xC2D7, "hazel_saved_byte")
 
 d.label(0xC2D8, "hazel_quote_mode")
 
-d.label(
+d.index_base(
     0xC2D9,
     "hazel_ctx_buffer",
     description="HAZEL context buffer (saved register / state block used during FCB processing).",
     length=1,
     group="hazel",
-    access="rw",
 )
 
-d.label(0xC2F3, "hazel_display_buf")
+d.index_base(0xC2F3, "hazel_display_buf")
 
 d.label(
     0xFE28,
@@ -19333,24 +19319,22 @@ d.label(
     access="r",
 )
 
-d.label(
+d.index_base(
     0xFFB0,
     "nmi_buf_idx_base",
     description="""NMI buffer indexing-base.
 Used by the NMI RX setup as `STA nmi_buf_idx_base,Y` with Y values that wrap into low memory; the bytes at `&FFB0` themselves aren't read or written.""",
     length=1,
     group="idx_base",
-    access="r",
 )
 
-d.label(
+d.index_base(
     0xFFBD,
     "fcb_workspace_idx_base",
     description="""FCB-workspace indexing-base (wraps into ZP).
 Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&FF`; the effective address wraps to `&00B4`..`&00BC` (= `fs_work_4`+0..+8). The byte at `&FFBD` itself is never read.""",
     length=1,
     group="idx_base",
-    access="r",
 )
 
 import sys

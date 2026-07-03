@@ -77,9 +77,9 @@ d.label(0x0000, "zp_ptr_lo")
 
 d.label(0x0001, "zp_ptr_hi")
 
-d.label(0x0002, "zp_work_2")
+d.index_base(0x0002, "zp_work_2")
 
-d.label(0x0003, "zp_work_3")
+d.index_base(0x0003, "zp_work_3")
 
 d.label(0x10, "zp_temp_10")
 
@@ -256,9 +256,9 @@ d.label(0x00AC, "ws_ptr_hi")
 
 d.label(0x00AD, "table_idx")
 
-d.label(0x00AE, "work_ae")
+d.index_base(0x00AE, "work_ae")
 
-d.label(0x00AF, "addr_work")
+d.index_base(0x00AF, "addr_work")
 
 d.label(0xB0, "fs_load_addr")
 
@@ -294,11 +294,11 @@ d.label(0x00C0, "txcb_ctrl")
 
 d.label(0x00C1, "txcb_port")
 
-d.label(0x00C2, "txcb_dest")
+d.index_base(0x00C2, "txcb_dest")
 
 d.label(0x00C4, "txcb_start")
 
-d.label(0x00C7, "txcb_pos")
+d.index_base(0x00C7, "txcb_pos")
 
 d.label(0x00C8, "txcb_end")
 
@@ -961,7 +961,7 @@ d.label(0x0D11, "install_nmi_handler")
 
 d.label(0x0D14, "nmi_rti")
 
-d.label(0x0D1A, "nmi_shim_1a")
+d.index_base(0x0D1A, "nmi_shim_1a")
 
 d.label(0x0D20, "tx_dst_stn")
 
@@ -975,7 +975,7 @@ d.label(0x0D24, "tx_ctrl_byte")
 
 d.label(0x0D25, "tx_port")
 
-d.label(0x0D26, "tx_data_start")
+d.index_base(0x0D26, "tx_data_start")
 
 d.label(0x0D2A, "tx_data_len")
 
@@ -993,7 +993,7 @@ d.label(0x0D3F, "rx_ctrl")
 
 d.label(0x0D40, "rx_port")
 
-d.label(0x0D41, "rx_remote_addr")
+d.index_base(0x0D41, "rx_remote_addr")
 
 d.label(0x0D4A, "tx_flags")
 
@@ -1031,10 +1031,10 @@ d.label(0x0D67, "tube_flag")
 
 d.label(0x0DE6, "nmi_sub_table")
 
-d.label(0x0DEB, "fs_state_deb")
+d.index_base(0x0DEB, "fs_state_deb")
 d.label(0x0DF0, "rom_ws_table")
 
-d.label(0x0DFE, "fs_context_base")
+d.index_base(0x0DFE, "fs_context_base")
 
 d.label(0x0E00, "fs_server_stn")
 
@@ -1056,7 +1056,7 @@ d.label(0x0E08, "fs_sequence_nos")
 
 d.label(0x0E09, "fs_last_error")
 
-d.label(0x0E0A, "fs_cmd_context")
+d.index_base(0x0E0A, "fs_cmd_context")
 
 d.label(0x0E0B, "fs_context_hi")
 
@@ -1070,7 +1070,7 @@ d.label(0x0E16, "fs_work_16")
 
 d.label(0x0E30, "fs_filename_buf")
 
-d.label(0x0EF7, "fs_reply_data")
+d.index_base(0x0EF7, "fs_reply_data")
 
 d.label(0x0F00, "fs_cmd_type")
 
@@ -1096,7 +1096,7 @@ d.label(0x0F0B, "fs_load_upper")
 
 d.label(0x0F0C, "fs_addr_check")
 
-d.label(0x0F0D, "fs_file_len")
+d.index_base(0x0F0D, "fs_file_len")
 
 d.label(0x0F0E, "fs_file_attrs")
 
@@ -1120,7 +1120,7 @@ d.label(0x0FDE, "fs_handle_mask")
 
 d.label(0x0FDF, "fs_error_flags")
 
-d.label(0x0FE0, "fs_error_buf")
+d.index_base(0x0FE0, "fs_error_buf")
 d.label(0x8001, "lang_entry_lo")
 
 d.label(0x8002, "lang_entry_hi")
