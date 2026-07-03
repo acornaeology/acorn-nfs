@@ -713,7 +713,7 @@ for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
     d.expr(addr, target_label)
     d.comment(addr, desc, align=Align.INLINE)
-d.label(0x0518, "tube_ctrl_values")
+d.index_base(0x0518, "tube_ctrl_values")
 
 d.comment(
     0x0518,
@@ -1571,7 +1571,7 @@ d.index_base(0x10D9, "fcb_ctx_save")
 d.index_base(0x10F3, "filename_buf")
 
 d.label(0x6F6E, "false_ref_6f6e")
-d.label(0x8001, "rom_header_byte1")
+d.index_base(0x8001, "rom_header_byte1")
 
 d.label(0x8002, "rom_header_byte2")
 
@@ -4130,12 +4130,12 @@ Indices 15-36: FS command and OSWORD routing.
 Indices 1, 7, 11 point to return_4 (no-op RTS).""",
 )
 
-d.label(0x89CA, "svc_dispatch_lo")
+d.index_base(0x89CA, "svc_dispatch_lo")
 
 for i, body in enumerate(svc_dispatch_comments):
     d.comment(0x89CA + i, f"lo - {body}", align=Align.INLINE)
     d.comment(0x89EF + i, f"hi - {body}", align=Align.INLINE)
-d.label(0x89EF, "svc_dispatch_hi")
+d.index_base(0x89EF, "svc_dispatch_hi")
 d.subroutine(
     0x8A15,
     "service_handler",
@@ -4945,7 +4945,7 @@ d.comment(0x8D35, "Continue printing", align=Align.INLINE)
 d.label(0x8D37, "rts_credits_check")
 
 d.comment(0x8D37, "Return", align=Align.INLINE)
-d.label(0x8D38, "credits_keyword_start")
+d.index_base(0x8D38, "credits_keyword_start")
 
 d.byte(0x8D38)
 d.comment(0x8D38, "CR", align=Align.INLINE)
@@ -4954,7 +4954,7 @@ d.byte(0x8D51)
 d.comment(0x8D51, "CR", align=Align.INLINE)
 d.byte(0x8D5C)
 d.comment(0x8D5C, "CR", align=Align.INLINE)
-d.label(0x8D61, "ps_template_base")
+d.index_base(0x8D61, "ps_template_base")
 
 d.string(0x8D61, 2)
 d.byte(0x8D63)
@@ -7543,7 +7543,7 @@ d.comment(0x97B7, 'Index 10: " on channel" suffix', align=Align.INLINE)
 d.expr(0x97B8, "msg_not_present - error_msg_table")
 
 d.comment(0x97B8, 'Index 11: " not present" suffix', align=Align.INLINE)
-d.label(0x97B9, "error_msg_table")
+d.index_base(0x97B9, "error_msg_table")
 
 d.byte(0x97B9)
 d.comment(
@@ -7706,7 +7706,7 @@ d.comment(0x9882, "Pull control byte", align=Align.INLINE)
 d.comment(0x9883, "Pull timeout", align=Align.INLINE)
 d.comment(0x9884, "Pull retry count", align=Align.INLINE)
 d.comment(0x9885, "Clear escapable flag and return", align=Align.INLINE)
-d.label(0x9888, "pass_txbuf_init_table")
+d.index_base(0x9888, "pass_txbuf_init_table")
 for i in range(12):
     d.byte(0x9888 + i)
 
@@ -9644,7 +9644,7 @@ d.comment(0xA176, "Loop through separator list", align=Align.INLINE)
 d.comment(0xA178, "No separator match: restore Y", align=Align.INLINE)
 d.comment(0xA179, "Transfer back to Y", align=Align.INLINE)
 d.comment(0xA17A, "Try next table entry", align=Align.INLINE)
-d.label(0xA17C, "sep_table_data")
+d.index_base(0xA17C, "sep_table_data")
 for i in range(9):
     d.byte(0xA17C + i)
 
@@ -9839,7 +9839,7 @@ d.comment(0xA286, "Clear status in channel table", align=Align.INLINE)
 d.comment(0xA289, "Store handle in l1070", align=Align.INLINE)
 d.comment(0xA28C, "Y=3: OSCLI execution", align=Align.INLINE)
 d.comment(0xA28E, "Execute via boot/OSCLI path", align=Align.INLINE)
-d.label(0xA291, "library_dir_prefix")
+d.index_base(0xA291, "library_dir_prefix")
 
 d.label(0xA299, "setup_oscli_arg")
 
@@ -10090,7 +10090,7 @@ d.comment(0xA3CE, "CTRL pressed: cancel boot, return", align=Align.INLINE)
 d.label(0xA3D7, "boot_exec_cmd")
 
 
-d.label(0xA3DF, "boot_oscli_lo_table")
+d.index_base(0xA3DF, "boot_oscli_lo_table")
 for i in range(4):
     d.byte(0xA3DF + i)
 
@@ -10126,15 +10126,15 @@ bits 0-4 = *HELP syntax string index.
 3: Help topics  4: Copro/attributes""",
 )
 
-d.label(0xA3F0, "cmd_table_fs")
+d.index_base(0xA3F0, "cmd_table_fs")
 
 d.string(0xA3F0, 1)
 d.comment(0xA3F0, "*Close (first char)", align=Align.INLINE)
-d.label(0xA3F1, "cmd_table_fs_lo")
+d.index_base(0xA3F1, "cmd_table_fs_lo")
 
 d.string(0xA3F1, 1)
 d.comment(0xA3F1, "*Close cont (dispatch lo base)", align=Align.INLINE)
-d.label(0xA3F2, "cmd_table_fs_hi")
+d.index_base(0xA3F2, "cmd_table_fs_hi")
 
 d.comment(0xA3F2, "*Close cont (dispatch hi base)", align=Align.INLINE)
 d.comment(0xA3F5, "No syntax", align=Align.INLINE)
@@ -10182,7 +10182,7 @@ d.comment(0xA46B, "*FS; syn 11: (<stn. id.>)", align=Align.INLINE)
 d.byte(0xA46D)
 d.comment(0xA470, "*Info", align=Align.INLINE)
 d.comment(0xA474, "V no arg; syn 3: <object>", align=Align.INLINE)
-d.label(0xA477, "cmd_table_nfs_iam")
+d.index_base(0xA477, "cmd_table_nfs_iam")
 
 d.comment(0xA477, "*I am", align=Align.INLINE)
 d.comment(0xA47B, "V no arg; syn 2: (<stn>) <user>...", align=Align.INLINE)
@@ -10328,7 +10328,7 @@ for i, desc in enumerate(_osword_handler_descs):
     d.comment(0xA523 + i, f"lo-&{0x0E + i:02X}: {desc.split(': ', 1)[1]}", align=Align.INLINE)
     d.comment(0xA52A + i, f"hi-&{0x0E + i:02X}: {desc.split(': ', 1)[1]}", align=Align.INLINE)
 
-d.label(0xA52A, "osword_dispatch_hi_table")
+d.index_base(0xA52A, "osword_dispatch_hi_table")
 d.label(0xA531, "osword_0e_handler")
 
 d.comment(0xA531, "Test station active flag", align=Align.INLINE)
@@ -10540,11 +10540,11 @@ d.comment(0xA63A, "Push low byte", align=Align.INLINE)
 d.label(0xA63B, "rts_osword_13")
 
 d.comment(0xA63B, "RTS dispatches to handler", align=Align.INLINE)
-d.label(0xA63C, "osword_13_lo_table")
+d.index_base(0xA63C, "osword_13_lo_table")
 
 for i in range(18):
     d.rts_code_ptr(0xA63C + i, 0xA64E + i)
-d.label(0xA64E, "osword_13_hi_table")
+d.index_base(0xA64E, "osword_13_hi_table")
 d.comment(0xA64E, "hi-sub 0: read FS station", align=Align.INLINE)
 d.comment(0xA64F, "hi-sub 1: set FS station", align=Align.INLINE)
 d.comment(0xA650, "hi-sub 2: read workspace pair", align=Align.INLINE)
@@ -11120,7 +11120,7 @@ d.comment(0xA84A, "Store to PB[3]", align=Align.INLINE)
 d.label(0xA84C, "rts_bridge_query")
 
 d.comment(0xA84C, "Return", align=Align.INLINE)
-d.label(0xA84D, "bridge_txcb_init_table")
+d.index_base(0xA84D, "bridge_txcb_init_table")
 
 for i in range(4):
     d.byte(0xA84D + i)
@@ -11445,7 +11445,7 @@ d.comment(0xA997, "Load handler low byte from table", align=Align.INLINE)
 d.comment(0xA99A, "Push for RTS dispatch", align=Align.INLINE)
 d.comment(0xA99B, "Reload OSWORD number for handler", align=Align.INLINE)
 d.comment(0xA99D, "RTS will dispatch to handler", align=Align.INLINE)
-d.label(0xA99E, "osword_handler_lo_table")
+d.index_base(0xA99E, "osword_handler_lo_table")
 
 for i in range(9):
     d.rts_code_ptr(0xA99E + i, 0xA9A7 + i)
@@ -11459,7 +11459,7 @@ OSWORD number, pushes the handler address-1,
 then RTS dispatches to the handler with the
 OSWORD number reloaded in A.""",
 )
-d.label(0xA9A7, "osword_handler_hi_table")
+d.index_base(0xA9A7, "osword_handler_hi_table")
 d.comment(0xA9A7, "hi OSWORD 0: no-op (RTS)", align=Align.INLINE)
 d.comment(0xA9A8, "hi OSWORD 1: printer spool data", align=Align.INLINE)
 d.comment(0xA9A9, "hi OSWORD 2: printer spool data", align=Align.INLINE)
@@ -11620,7 +11620,7 @@ d.comment(0xAA3C, "More codes: continue search", align=Align.INLINE)
 d.label(0xAA3E, "rts_match_rx_code")
 
 d.comment(0xAA3E, "Return (Z clear = not found)", align=Align.INLINE)
-d.label(0xAA3F, "osword_claim_codes")
+d.index_base(0xAA3F, "osword_claim_codes")
 for i in range(18):
     d.byte(0xAA3F + i)
 
@@ -11774,7 +11774,7 @@ d.label(0xAAAD, "done_ws_template_copy")
 d.comment(0xAAAD, "Adjust Y for start of TX data", align=Align.INLINE)
 d.comment(0xAAAE, "Set net_tx_ptr from Y", align=Align.INLINE)
 d.comment(0xAAB0, "Return", align=Align.INLINE)
-d.label(0xAAB1, "ws_txcb_template_data")
+d.index_base(0xAAB1, "ws_txcb_template_data")
 for i in range(39):
     d.byte(0xAAB1 + i)
 
@@ -12165,7 +12165,7 @@ d.comment(0xAC7B, "C=1: status changed, retry", align=Align.INLINE)
 d.comment(0xAC7D, "Done: discard status", align=Align.INLINE)
 d.comment(0xAC7E, "Discard disconnect code", align=Align.INLINE)
 d.comment(0xAC7F, "Return", align=Align.INLINE)
-d.label(0xAC80, "tx_econet_txcb_template")
+d.index_base(0xAC80, "tx_econet_txcb_template")
 for i in range(12):
     d.byte(0xAC80 + i)
 
@@ -12189,7 +12189,7 @@ d.comment(0xAC87, "buf start ext hi=&FF", align=Align.INLINE)
 d.comment(0xAC89, "buf end hi=&8E", align=Align.INLINE)
 d.comment(0xAC8A, "buf end ext lo=&FF", align=Align.INLINE)
 d.comment(0xAC8B, "buf end ext hi=&FF", align=Align.INLINE)
-d.label(0xAC8C, "rx_palette_txcb_template")
+d.index_base(0xAC8C, "rx_palette_txcb_template")
 for i in range(12):
     d.byte(0xAC8C + i)
 
@@ -12329,7 +12329,7 @@ d.comment(0xAD07, "A = result (from X)", align=Align.INLINE)
 d.comment(0xAD08, "X=0 for indexed store", align=Align.INLINE)
 d.comment(0xAD0A, "Store result to workspace", align=Align.INLINE)
 d.comment(0xAD0C, "Return", align=Align.INLINE)
-d.label(0xAD0D, "osbyte_mode_read_codes")
+d.index_base(0xAD0D, "osbyte_mode_read_codes")
 for i in range(3):
     d.byte(0xAD0D + i)
 
@@ -12757,7 +12757,7 @@ d.comment(0xAEF6, "Store updated flags", align=Align.INLINE)
 d.label(0xAEFB, "option_str_offset_data")
 
 d.comment(0xAEFB, "Data: option string offset table", align=Align.INLINE)
-d.label(0xAEFF, "roff_off_string")
+d.index_base(0xAEFF, "roff_off_string")
 
 d.label(0xAF02, "copy_arg_to_buf_x0")
 
@@ -13489,7 +13489,7 @@ d.comment(0xB18E, "Store in TX buffer", align=Align.INLINE)
 d.comment(0xB190, "Previous byte", align=Align.INLINE)
 d.comment(0xB191, "Loop until all 4 copied", align=Align.INLINE)
 d.comment(0xB193, "Return", align=Align.INLINE)
-d.label(0xB194, "ps_tx_header_template")
+d.index_base(0xB194, "ps_tx_header_template")
 for i in range(4):
     d.byte(0xB194 + i)
 

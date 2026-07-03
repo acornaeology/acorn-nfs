@@ -4381,7 +4381,7 @@ d.comment(0x89E4, "Transfer ROM bank to Y", align=Align.INLINE)
 d.comment(0x89E5, "Restore A from stack", align=Align.INLINE)
 d.comment(0x89E6, "INTON: guaranteed /NMI edge if ADLC IRQ asserted", align=Align.INLINE)
 d.comment(0x89E9, "Return from interrupt", align=Align.INLINE)
-d.label(0x89ED, "svc_dispatch_lo")
+d.index_base(0x89ED, "svc_dispatch_lo")
 d.banner(
     0x89ED,
     title="svc_dispatch low-byte table (51 entries)",
@@ -4404,7 +4404,7 @@ slot dispatches.""",
 for addr in range(0x89ED, 0x8A20):
     d.byte(addr)
 
-d.label(0x8A20, "svc_dispatch_hi")
+d.index_base(0x8A20, "svc_dispatch_hi")
 d.banner(
     0x8A20,
     title="svc_dispatch high-byte table (51 entries + 1 padding)",
@@ -5393,7 +5393,7 @@ d.comment(0x8D42, "Continue printing", align=Align.INLINE)
 d.label(0x8D44, "rts_credits_check")
 
 d.comment(0x8D44, "Return", align=Align.INLINE)
-d.label(0x8D45, "credits_keyword_start")
+d.index_base(0x8D45, "credits_keyword_start")
 
 d.byte(0x8D45)
 d.comment(0x8D45, "CR", align=Align.INLINE)
@@ -5738,7 +5738,7 @@ d.comment(0x8E7C, "Loop until X has wrapped past 0", align=Align.INLINE)
 d.label(0x8E7E, "fs_template_done")
 
 d.comment(0x8E7E, "Return", align=Align.INLINE)
-d.label(0x8E7F, "fs_info_template")
+d.index_base(0x8E7F, "fs_info_template")
 d.banner(
     0x8E7F,
     title="FS-name reply template (11 bytes, byte-reversed)",
@@ -6448,7 +6448,7 @@ d.comment(0x90F3, "String terminator", align=Align.INLINE)
 d.label(0x90F4, "done_print_newline")
 
 d.comment(0x90F7, "Return", align=Align.INLINE)
-d.label(0x90F8, "cmd_syntax_strings")
+d.index_base(0x90F8, "cmd_syntax_strings")
 d.banner(
     0x90F8,
     title="*HELP / *SYNTAX argument strings (8 messages)",
@@ -6460,7 +6460,7 @@ index. Read by [`do_print_no_spool`](address:921D) when no command
 argument was supplied.""",
 )
 
-d.label(0x90F8, "syn_opt_dir")
+d.index_base(0x90F8, "syn_opt_dir")
 
 d.comment(
     0x90F8,
@@ -6505,7 +6505,7 @@ d.label(0x91E0, "syn_opt_stn")
 
 d.comment(0x91E0, "Syn 11: (station id. argument)", align=Align.INLINE)
 d.comment(0x91EC, "Null terminator", align=Align.INLINE)
-d.label(0x91ED, "cmd_syntax_table")
+d.index_base(0x91ED, "cmd_syntax_table")
 d.banner(
     0x91ED,
     title="Argument-syntax offset table (12 entries)",
@@ -8038,7 +8038,7 @@ d.comment(
     "'!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)",
     align=Align.INLINE,
 )
-d.label(0x9697, "on_suffix_pattern")
+d.index_base(0x9697, "on_suffix_pattern")
 
 d.comment(
     0x9697,
@@ -8223,7 +8223,7 @@ d.comment(0x975E, "Decrement index", align=Align.INLINE)
 d.comment(0x975F, "More bytes: continue", align=Align.INLINE)
 d.comment(0x9761, "Restore A", align=Align.INLINE)
 d.comment(0x9762, "Return", align=Align.INLINE)
-d.label(0x9763, "txcb_init_template")
+d.index_base(0x9763, "txcb_init_template")
 d.banner(
     0x9763,
     title="TXCB initialisation template (12 bytes)",
@@ -9214,7 +9214,7 @@ d.comment(0x9A97, "Advance text position", align=Align.INLINE)
 d.label(0x9A99, "rts_store_digit")
 
 d.comment(0x9A99, "Return", align=Align.INLINE)
-d.label(0x9A9A, "net_error_lookup_data")
+d.index_base(0x9A9A, "net_error_lookup_data")
 d.banner(
     0x9A9A,
     title="Net-error class -> error_msg_table offset (12 bytes)",
@@ -9245,7 +9245,7 @@ d.expr(0x9AA3, "msg_not_listening - error_msg_table")
 d.expr(0x9AA4, "msg_on_channel - error_msg_table")
 d.expr(0x9AA5, "msg_not_present - error_msg_table")
 
-d.label(0x9AA6, "error_msg_table")
+d.index_base(0x9AA6, "error_msg_table")
 d.banner(
     0x9AA6,
     title="Net-error message strings",
@@ -9411,7 +9411,7 @@ d.comment(0x9B6F, "Pull control byte", align=Align.INLINE)
 d.comment(0x9B70, "Pull timeout", align=Align.INLINE)
 d.comment(0x9B71, "Pull retry count", align=Align.INLINE)
 d.comment(0x9B72, "Clear escapable flag and return", align=Align.INLINE)
-d.label(0x9B75, "pass_txbuf_init_table")
+d.index_base(0x9B75, "pass_txbuf_init_table")
 d.banner(
     0x9B75,
     title="Pass-through TX buffer template (12 bytes)",
@@ -10821,7 +10821,7 @@ d.label(
 )
 
 d.comment(0xA101, "Tail-branch into the OSARGS done path", align=Align.INLINE)
-d.label(0xA103, "cmos_opt_mask_table")
+d.index_base(0xA103, "cmos_opt_mask_table")
 d.banner(
     0xA103,
     title="CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
@@ -12119,7 +12119,7 @@ d.comment(0xA5CC, "Clear status in channel table", align=Align.INLINE)
 d.comment(0xA5CF, "A=3: start searching from slot 3", align=Align.INLINE)
 d.comment(0xA5D2, "Y=3: skip past 3-byte FS header", align=Align.INLINE)
 d.comment(0xA5D4, "C set: slot invalid, store result", align=Align.INLINE)
-d.label(0xA5D7, "library_dir_prefix")
+d.index_base(0xA5D7, "library_dir_prefix")
 
 d.comment(0xA5D7, "Continue shift", align=Align.INLINE)
 d.label(0xA5DF, "library_path_string")
@@ -12576,7 +12576,7 @@ d.comment(0xA741, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing se
 d.comment(0xA74D, "CR terminator", align=Align.INLINE)
 d.comment(0xA74E, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA75A, "CR terminator", align=Align.INLINE)
-d.label(0xA75B, "boot_cmd_lo_table")
+d.index_base(0xA75B, "boot_cmd_lo_table")
 
 d.banner(
     0xA75B,
@@ -12657,7 +12657,7 @@ Two entry paths:
 d.comment(0xA764, "Load boot-command low byte from boot_cmd_lo_table[Y]", align=Align.INLINE)
 d.comment(0xA767, "Y=&A7: high byte (boot strings live in &A7xx)", align=Align.INLINE)
 d.comment(0xA769, "Tail-jump to OSCLI to execute the boot command", align=Align.INLINE)
-d.label(0xA76C, "cmd_table_fs")
+d.index_base(0xA76C, "cmd_table_fs")
 d.banner(
     0xA76C,
     title="ANFS *command dispatch tables (5 concatenated sub-tables)",
@@ -12694,7 +12694,7 @@ d.byte(0xA7A0)
 d.comment(0xA7A0, "Padding (alignment before sub-table 2)", align=Align.INLINE)
 d.label(0xA7A1, "cmd_table_nfs")
 
-d.label(0xA7C9, "cmd_table_nfs_iam")
+d.index_base(0xA7C9, "cmd_table_nfs_iam")
 
 d.byte(0xA7FA)
 d.comment(0xA7FA, "Sub-table 2 end (walker reads &80 -> stop)", align=Align.INLINE)
@@ -12789,7 +12789,7 @@ d.comment(
     "PB-ready / parameter table (3 bytes) read by osword_setup_handler at &A868 via LDA osword_pb_ready,X",
     align=Align.INLINE,
 )
-d.label(0xA871, "osword_pb_ready")
+d.index_base(0xA871, "osword_pb_ready")
 
 d.label(0xA874, "osword_0e_handler")
 
@@ -13078,7 +13078,7 @@ d.comment(0xA9A3, "Read dispatch lo from osword_13_dispatch_lo+X", align=Align.I
 d.comment(0xA9A6, "Push lo for RTS dispatch", align=Align.INLINE)
 d.label(0xA9A7, "rts_osword_13")
 d.comment(0xA9A7, "RTS -> dispatched OSWORD &13 sub-handler", align=Align.INLINE)
-d.label(0xA9A8, "osword_13_dispatch_lo")
+d.index_base(0xA9A8, "osword_13_dispatch_lo")
 d.banner(
     0xA9A8,
     title="OSWORD &13 dispatch low-byte table (18 entries)",
@@ -13092,7 +13092,7 @@ read context, read/write CSD, read free buffers, read/write context
 for addr in range(0xA9A8, 0xA9BA):
     d.byte(addr)
 
-d.label(0xA9BA, "osword_13_dispatch_hi")
+d.index_base(0xA9BA, "osword_13_dispatch_hi")
 d.banner(
     0xA9BA,
     title="OSWORD &13 dispatch high-byte table (18 entries)",
@@ -13700,7 +13700,7 @@ d.comment(0xABCE, "Store to PB[3]", align=Align.INLINE)
 d.label(0xABD0, "rts_bridge_query")
 
 d.comment(0xABD0, "Return", align=Align.INLINE)
-d.label(0xABD1, "bridge_txcb_init_table")
+d.index_base(0xABD1, "bridge_txcb_init_table")
 
 for i in range(4):
     d.byte(0xABD1 + i)
@@ -14070,7 +14070,7 @@ d.comment(0xAD19, "Load handler low byte from lo-table column X", align=Align.IN
 d.comment(0xAD1C, "Push lo so RTS pulls (lo, hi)+1 -> handler entry", align=Align.INLINE)
 d.comment(0xAD1D, "Reload original OSWORD number into A for the handler", align=Align.INLINE)
 d.comment(0xAD1F, "RTS jumps to handler with A=OSWORD number", align=Align.INLINE)
-d.label(0xAD20, "netv_dispatch_lo")
+d.index_base(0xAD20, "netv_dispatch_lo")
 d.banner(
     0xAD20,
     title="NETV reason-code dispatch low-byte table (9 entries)",
@@ -14084,7 +14084,7 @@ stack frame (`&0103,X` after TSX) and gates 9..&FF away to
 for addr in range(0xAD20, 0xAD29):
     d.byte(addr)
 
-d.label(0xAD29, "netv_dispatch_hi")
+d.index_base(0xAD29, "netv_dispatch_hi")
 d.banner(
     0xAD29,
     title="NETV reason-code dispatch high-byte table (9 entries)",
@@ -14261,7 +14261,7 @@ d.comment(0xADBE, "Loop while X >= 0 (table walked top-down)", align=Align.INLIN
 d.label(0xADC0, "rts_match_rx_code")
 
 d.comment(0xADC0, "Return; Z reflects last CMP", align=Align.INLINE)
-d.label(0xADC1, "osword_claim_codes")
+d.index_base(0xADC1, "osword_claim_codes")
 d.banner(
     0xADC1,
     title="OSWORD per-claim-code lookup table (18 bytes)",
@@ -14424,7 +14424,7 @@ d.label(0xAE2F, "done_ws_template_copy")
 d.comment(0xAE2F, "Bump Y back to first written offset", align=Align.INLINE)
 d.comment(0xAE30, "Save it as net_tx_ptr low for the caller", align=Align.INLINE)
 d.comment(0xAE32, "Return", align=Align.INLINE)
-d.label(0xAE33, "ws_txcb_template_data")
+d.index_base(0xAE33, "ws_txcb_template_data")
 d.banner(
     0xAE33,
     title="Workspace TXCB template (39 bytes, three overlapping regions)",
@@ -14825,7 +14825,7 @@ d.comment(0xAFFD, "C set: keep waiting", align=Align.INLINE)
 d.comment(0xAFFF, "Discard saved status", align=Align.INLINE)
 d.comment(0xB000, "Discard caller's saved A", align=Align.INLINE)
 d.comment(0xB001, "Return", align=Align.INLINE)
-d.label(0xB002, "tx_econet_txcb_template")
+d.index_base(0xB002, "tx_econet_txcb_template")
 d.banner(
     0xB002,
     title="Spool / disconnect TX control-block template (12 bytes)",
@@ -14850,7 +14850,7 @@ d.comment(0xB00A, "buf end lo (&A7)", align=Align.INLINE)
 d.comment(0xB00B, "buf end hi (&8E); end = &8EA7", align=Align.INLINE)
 d.comment(0xB00C, "buf end ext lo=&FF", align=Align.INLINE)
 d.comment(0xB00D, "buf end ext hi=&FF", align=Align.INLINE)
-d.label(0xB00E, "rx_palette_txcb_template")
+d.index_base(0xB00E, "rx_palette_txcb_template")
 d.banner(
     0xB00E,
     title="Palette-RX control-block template (12 bytes)",
@@ -15013,9 +15013,9 @@ d.comment(0xB091, "Result to A", align=Align.INLINE)
 d.comment(0xB092, "X=0: indexed-indirect mode", align=Align.INLINE)
 d.comment(0xB094, "Store at (nfs_workspace,X)", align=Align.INLINE)
 d.comment(0xB096, "Return", align=Align.INLINE)
-d.label(0xB097, "read_osbyte_return")
+d.index_base(0xB097, "read_osbyte_return")
 
-d.label(0xB099, "read_osbyte_table")
+d.index_base(0xB099, "read_osbyte_table")
 
 d.comment(0xB0A0, "JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir", align=Align.INLINE)
 d.label(0xB0A0, "cmd_cdir_indirect_dispatch")
@@ -15109,7 +15109,7 @@ d.comment(0xB0E9, "Index 21: threshold 197", align=Align.INLINE)
 d.comment(0xB0EB, "Index 23: threshold 216", align=Align.INLINE)
 d.comment(0xB0EC, "Index 24: threshold 226", align=Align.INLINE)
 d.comment(0xB0ED, "Index 25: threshold 236", align=Align.INLINE)
-d.label(0xB0EE, "cdir_size_done")
+d.index_base(0xB0EE, "cdir_size_done")
 d.comment(
     0xB0EE,
     "Index 26: threshold &F6 (246) -- last cdir-size threshold; doubles as cdir_size_done[0] (unread by init loop)",
@@ -15483,10 +15483,10 @@ d.comment(0xB290, "Store updated fs_lib_flags", align=Align.INLINE)
 d.comment(0xB293, "Recurse to strip the trailing component", align=Align.INLINE)
 d.comment(0xB296, "Decrement X (consume processed char)", align=Align.INLINE)
 d.comment(0xB297, "Return", align=Align.INLINE)
-d.label(0xB298, "option_str_offset_data")
+d.index_base(0xB298, "option_str_offset_data")
 
 d.comment(0xB298, "Data: option string offset table", align=Align.INLINE)
-d.label(0xB29C, "option_offset_table")
+d.index_base(0xB29C, "option_offset_table")
 
 d.label(0xB29F, "copy_arg_to_buf_x0")
 
@@ -16325,7 +16325,7 @@ d.comment(0xB54C, "Write to TX buffer at offset Y", align=Align.INLINE)
 d.comment(0xB54E, "Step backwards", align=Align.INLINE)
 d.comment(0xB54F, "Loop while Y >= 0", align=Align.INLINE)
 d.comment(0xB551, "Return", align=Align.INLINE)
-d.label(0xB552, "ps_tx_header_template")
+d.index_base(0xB552, "ps_tx_header_template")
 d.banner(
     0xB552,
     title="Printer-server TX header template (4 bytes)",
@@ -18727,9 +18727,9 @@ d.byte(0xBFC7)
 
 d.comment(0xBFC7, "ROM-tail padding (1 byte &FF; on its own line for annotation)", align=Align.INLINE)
 d.comment(0xBFC8, "ROM-tail padding (30 bytes &FF)", align=Align.INLINE)
-d.label(0xBFE6, "hazel_minus_1a")
+d.index_base(0xBFE6, "hazel_minus_1a")
 
-d.label(0xBFE6, "hazel_idx_bases")
+d.index_base(0xBFE6, "hazel_idx_bases")
 d.banner(
     0xBFE6,
     title="HAZEL Y-indexed access bases (3 labels at the ROM tail)",
@@ -18764,14 +18764,14 @@ d.comment(
     "Base for `hazel_minus_1a,Y` reads in loop_copy_txcb_init -- `&BFE6 + Y` reaches into HAZEL for Y >= &1A",
     align=Align.INLINE,
 )
-d.label(0xBFFE, "hazel_minus_2")
+d.index_base(0xBFFE, "hazel_minus_2")
 
 d.comment(
     0xBFFE,
     "Base for `hazel_minus_2,Y` reads/writes -- `&BFFE + Y` reaches into HAZEL for Y >= 2 (used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)",
     align=Align.INLINE,
 )
-d.label(0xBFFF, "hazel_minus_1")
+d.index_base(0xBFFF, "hazel_minus_1")
 
 d.comment(
     0xBFFF,

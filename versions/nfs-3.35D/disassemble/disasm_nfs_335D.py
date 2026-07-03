@@ -437,7 +437,7 @@ d.label(0x046A, "return_tube_xfer")
 
 d.comment(0x046A, "Return from transfer setup", align=Align.INLINE)
 
-d.label(0x046B, "tube_xfer_ctrl_bits")
+d.index_base(0x046B, "tube_xfer_ctrl_bits")
 
 d.label(0x0473, "tube_begin")
 d.comment(0x0473, "BEGIN: enable interrupts for Tube host code", align=Align.INLINE)
@@ -1138,7 +1138,7 @@ copyright string and the star command table.""",
 
 d.label(0x800D, "copyright_string")
 d.label(0x8010, "cmd_roff_str")
-d.label(0x8014, "error_offsets")
+d.index_base(0x8014, "error_offsets")
 d.banner(
     0x8014,
     title="Error-message offset table (9 entries)",
@@ -1842,7 +1842,7 @@ the .BOOT file.""",
 
 
 d.comment(0x8288, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
-d.label(0x828A, "fs_vector_addrs")
+d.index_base(0x828A, "fs_vector_addrs")
 
 d.subroutine(
     0x828A,
@@ -2699,7 +2699,7 @@ d.comment(0x8552, "Load handle bitmask for caller", align=Align.INLINE)
 d.label(0x8555, "return_4")
 
 d.comment(0x8555, "Return with handle mask in A", align=Align.INLINE)
-d.label(0x8556, "error_msg_table")
+d.index_base(0x8556, "error_msg_table")
 d.banner(
     0x8556,
     title="Econet error message table (ERRTAB, 7 entries)",
@@ -2731,7 +2731,7 @@ addr = 0x8556
 for _ in range(7):
     d.byte(addr, 1)
     addr = d.stringz(addr + 1)
-d.label(0x8556, "msg_line_jammed")
+d.index_base(0x8556, "msg_line_jammed")
 d.label(0x8563, "msg_net_error")
 d.label(0x856E, "msg_not_listening")
 d.label(0x857D, "msg_no_clock")
@@ -2843,7 +2843,7 @@ d.label(0x85D4, "skip_set_attrib_bit")
 d.comment(0x85D4, "Loop while source bits remain (A != 0)", align=Align.INLINE)
 d.comment(0x85D6, "Return; A = converted attribute bitmask", align=Align.INLINE)
 
-d.label(0x85D7, "access_bit_table")
+d.index_base(0x85D7, "access_bit_table")
 
 d.hook_subroutine(0x85E2, "print_inline", stringhi_hook)
 d.subroutine(
@@ -5141,12 +5141,12 @@ d.comment(0x8EA6, "RTS dispatches to pushed handler address", align=Align.INLINE
 for i in range(5):
     d.rts_code_ptr(0x8EA7 + i, 0x8EAC + i)
 d.comment(0x8EA7, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
-d.label(0x8EA7, "osword_0f_tbl_lo")
+d.index_base(0x8EA7, "osword_0f_tbl_lo")
 
 d.label(0x8EA9, "fs_osword_tbl_lo")
 
 d.comment(0x8EAC, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
-d.label(0x8EAC, "osword_0f_tbl_hi")
+d.index_base(0x8EAC, "osword_0f_tbl_hi")
 
 d.label(0x8EAE, "fs_osword_tbl_hi")
 
@@ -5245,7 +5245,7 @@ d.label(0x8EFA, "readry")
 d.comment(0x8EFA, "Store args start offset to (&F0)+2", align=Align.INLINE)
 d.comment(0x8EFC, "Return", align=Align.INLINE)
 
-d.label(0x8EFD, "osword_12_offsets")
+d.index_base(0x8EFD, "osword_12_offsets")
 d.label(0x8EFF, "osword_12_dispatch")
 d.subroutine(
     0x8EFF,
@@ -5634,11 +5634,11 @@ d.comment(0x9099, "Load handler low byte from table", align=Align.INLINE)
 d.comment(0x909C, "Push low byte of handler address", align=Align.INLINE)
 d.comment(0x909D, "Load workspace byte &EF for handler", align=Align.INLINE)
 d.comment(0x909F, "RTS dispatches to pushed handler", align=Align.INLINE)
-d.label(0x90A0, "osword_tbl_lo")
+d.index_base(0x90A0, "osword_tbl_lo")
 
 for i in range(9):
     d.rts_code_ptr(0x90A0 + i, 0x90A9 + i)
-d.label(0x90A9, "osword_tbl_hi")
+d.index_base(0x90A9, "osword_tbl_hi")
 
 d.label(0x90B2, "nwrch_handler")
 d.subroutine(
@@ -5794,7 +5794,7 @@ d.label(0x9132, "return_match_osbyte")
 
 d.comment(0x9132, "Return; Z=1 if match, Z=0 if not", align=Align.INLINE)
 
-d.label(0x9133, "remote_osbyte_table")
+d.index_base(0x9133, "remote_osbyte_table")
 for addr in range(0x9133, 0x9142):
     d.byte(addr)
 d.comment(0x9133, "OSBYTE &04: cursor key status", align=Align.INLINE)
@@ -6315,7 +6315,7 @@ d.comment(0x9312, "X=0 for indexed indirect store", align=Align.INLINE)
 d.comment(0x9314, "Store result to workspace", align=Align.INLINE)
 
 d.comment(0x9316, "Return after storing result", align=Align.INLINE)
-d.label(0x9317, "osbyte_vdu_table")
+d.index_base(0x9317, "osbyte_vdu_table")
 d.comment(0x9317, "3-entry OSBYTE table for lang_2_save_palette_vdu (&92A4)")
 d.byte(0x9317, 1)
 d.comment(0x9317, "OSBYTE &85: read cursor position", align=Align.INLINE)

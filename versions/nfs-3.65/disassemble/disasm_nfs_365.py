@@ -650,7 +650,7 @@ result-poll loop crosses the page boundary, with a `BVS &05FC` at
 )
 
 
-d.label(0x0518, "tube_ctrl_values")
+d.index_base(0x0518, "tube_ctrl_values")
 
 d.comment(
     0x0518,
@@ -1386,7 +1386,7 @@ The `*NET` matcher uses the same trick: [`cmd_net_str`](address:8009) is just th
 
 d.label(0x800D, "copyright_string")
 d.label(0x8010, "cmd_roff_str")
-d.label(0x8014, "error_offsets")
+d.index_base(0x8014, "error_offsets")
 d.banner(
     0x8014,
     title="Error-message offset table (9 entries)",
@@ -2089,7 +2089,7 @@ for i, (name, handler_addr) in enumerate(handler_names):
         d.byte(base_addr + 2, 1)
         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
-d.label(0x8288, "fs_dispatch_addrs")
+d.index_base(0x8288, "fs_dispatch_addrs")
 
 d.subroutine(
     0x82AA,
@@ -2882,7 +2882,7 @@ d.comment(0x856A, "Load handle bitmask for caller", align=Align.INLINE)
 d.label(0x856D, "return_4")
 
 d.comment(0x856D, "Return with handle mask in A", align=Align.INLINE)
-d.label(0x856E, "error_msg_table")
+d.index_base(0x856E, "error_msg_table")
 d.banner(
     0x856E,
     title="Econet error message table (ERRTAB, 7 entries)",
@@ -2914,7 +2914,7 @@ addr = 0x856E
 for _ in range(7):
     d.byte(addr, 1)
     addr = d.stringz(addr + 1)
-d.label(0x856E, "msg_line_jammed")
+d.index_base(0x856E, "msg_line_jammed")
 d.label(0x857B, "msg_net_error")
 d.label(0x8586, "msg_not_listening")
 d.label(0x8595, "msg_no_clock")
@@ -2985,7 +2985,7 @@ d.label(0x85D7, "skip_set_attrib_bit")
 
 d.comment(0x85D7, "Loop while source bits remain (A != 0)", align=Align.INLINE)
 d.comment(0x85D9, "Return; A = converted attribute bitmask", align=Align.INLINE)
-d.label(0x85DA, "access_bit_table")
+d.index_base(0x85DA, "access_bit_table")
 
 d.comment(0x85DA, "Attribute bit mapping table (11 entries)", align=Align.INLINE)
 
@@ -4850,7 +4850,7 @@ having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""",
 
 
 d.comment(0x8D41, "Return from column separator", align=Align.INLINE)
-d.label(0x8D42, "option_name_offsets")
+d.index_base(0x8D42, "option_name_offsets")
 
 d.comment(0x8D42, "Boot option name offsets (4 entries)", align=Align.INLINE)
 d.comment(0x8D45, "Offset &18: Exec option name start", align=Align.INLINE)
@@ -5415,7 +5415,7 @@ d.comment(0x8EB8, "Store Y=1 to &A9", align=Align.INLINE)
 d.label(0x8EBA, "return_7")
 
 d.comment(0x8EBA, "RTS dispatches to pushed handler address", align=Align.INLINE)
-d.label(0x8EBB, "osword_handler_lo")
+d.index_base(0x8EBB, "osword_handler_lo")
 
 for i in range(5):
     d.rts_code_ptr(0x8EBB + i, 0x8EC0 + i)
@@ -5424,7 +5424,7 @@ d.comment(0x8EBC, "lo(osword_10_handler-1): OSWORD &10", align=Align.INLINE)
 d.comment(0x8EBD, "lo(osword_11_handler-1): OSWORD &11", align=Align.INLINE)
 d.comment(0x8EBE, "lo(osword_12_dispatch-1): OSWORD &12", align=Align.INLINE)
 d.comment(0x8EBF, "lo(econet_tx_rx-1): OSWORD &13", align=Align.INLINE)
-d.label(0x8EC0, "fs_osword_tbl_hi")
+d.index_base(0x8EC0, "fs_osword_tbl_hi")
 
 d.comment(0x8EC0, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
 d.comment(0x8EC1, "hi(osword_10_handler-1): OSWORD &10", align=Align.INLINE)
@@ -5496,7 +5496,7 @@ d.label(0x8EFF, "readry")
 
 d.comment(0x8EFF, "Store args start offset to (&F0)+2", align=Align.INLINE)
 d.comment(0x8F01, "Return", align=Align.INLINE)
-d.label(0x8F02, "osword_12_offsets")
+d.index_base(0x8F02, "osword_12_offsets")
 
 d.comment(0x8F02, "OSWORD &12 workspace offset table", align=Align.INLINE)
 d.label(0x8F04, "osword_12_dispatch")
@@ -5939,7 +5939,7 @@ d.comment(0x90A0, "Load handler low byte from table", align=Align.INLINE)
 d.comment(0x90A3, "Push low byte of handler address", align=Align.INLINE)
 d.comment(0x90A4, "Load workspace byte &EF for handler", align=Align.INLINE)
 d.comment(0x90A6, "RTS dispatches to pushed handler", align=Align.INLINE)
-d.label(0x90A7, "osword_tbl_lo")
+d.index_base(0x90A7, "osword_tbl_lo")
 
 for i in range(9):
     d.rts_code_ptr(0x90A7 + i, 0x90B0 + i)
@@ -5953,7 +5953,7 @@ d.comment(0x90AC, "lo(printer_select_handler-1): fn 5", align=Align.INLINE)
 d.comment(0x90AD, "lo(return_1-1): fn 6 (null handler)", align=Align.INLINE)
 d.comment(0x90AE, "lo(remote_cmd_dispatch-1): fn 7", align=Align.INLINE)
 d.comment(0x90AF, "lo(remote_osword_handler-1): fn 8", align=Align.INLINE)
-d.label(0x90B0, "osword_tbl_hi")
+d.index_base(0x90B0, "osword_tbl_hi")
 
 d.comment(0x90B0, "hi(return_1-1): fn 0 (null handler)", align=Align.INLINE)
 d.comment(0x90B1, "hi(remote_print_handler-1): fn 1", align=Align.INLINE)
@@ -6133,7 +6133,7 @@ d.comment(0x9145, "Loop for remaining entries", align=Align.INLINE)
 d.label(0x9147, "return_match_osbyte")
 
 d.comment(0x9147, "Return; Z=1 if match, Z=0 if not", align=Align.INLINE)
-d.label(0x9148, "remote_osbyte_table")
+d.index_base(0x9148, "remote_osbyte_table")
 
 for addr in range(0x9148, 0x9157):
     d.byte(addr)
@@ -6635,7 +6635,7 @@ d.comment(0x931B, "Result in X to A", align=Align.INLINE)
 d.comment(0x931C, "X=0 for indexed indirect store", align=Align.INLINE)
 d.comment(0x931E, "Store result to workspace", align=Align.INLINE)
 d.comment(0x9320, "Return after storing result", align=Align.INLINE)
-d.label(0x9321, "vdu_osbyte_table")
+d.index_base(0x9321, "vdu_osbyte_table")
 
 d.comment(0x9321, "OSBYTE &85: read cursor position", align=Align.INLINE)
 d.comment(0x9323, "OSBYTE &C3: read screen start address", align=Align.INLINE)

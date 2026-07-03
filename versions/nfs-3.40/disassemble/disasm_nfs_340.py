@@ -574,7 +574,7 @@ Layout:
 )
 
 
-d.label(0x0518, "tube_ctrl_values")
+d.index_base(0x0518, "tube_ctrl_values")
 
 d.comment(
     0x0518,
@@ -1300,7 +1300,7 @@ string and the star command table.""",
 
 d.label(0x8011, "copyright_string")
 d.label(0x8014, "cmd_roff_str")
-d.label(0x8018, "error_offsets")
+d.index_base(0x8018, "error_offsets")
 d.banner(
     0x8018,
     title="Error-message offset table (9 entries)",
@@ -2771,7 +2771,7 @@ d.comment(0x8575, "Load handle bitmask for caller", align=Align.INLINE)
 d.label(0x8578, "return_4")
 
 d.comment(0x8578, "Return with handle mask in A", align=Align.INLINE)
-d.label(0x8579, "error_msg_table")
+d.index_base(0x8579, "error_msg_table")
 d.banner(
     0x8579,
     title="Econet error message table (ERRTAB, 7 entries)",
@@ -2803,7 +2803,7 @@ addr = 0x8579
 for _ in range(7):
     d.byte(addr, 1)
     addr = d.stringz(addr + 1)
-d.label(0x8579, "msg_line_jammed")
+d.index_base(0x8579, "msg_line_jammed")
 d.label(0x8586, "msg_net_error")
 d.label(0x8591, "msg_not_listening")
 d.label(0x85A0, "msg_no_clock")
@@ -2915,7 +2915,7 @@ d.label(0x85F7, "skip_set_attrib_bit")
 d.comment(0x85F7, "Loop while source bits remain (A != 0)", align=Align.INLINE)
 d.comment(0x85F9, "Return; A = converted attribute bitmask", align=Align.INLINE)
 
-d.label(0x85FA, "access_bit_table")
+d.index_base(0x85FA, "access_bit_table")
 
 d.hook_subroutine(0x8605, "print_inline", stringhi_hook)
 d.subroutine(
@@ -4614,7 +4614,7 @@ having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""",
 
 
 d.comment(0x8D07, "Return from column separator", align=Align.INLINE)
-d.label(0x8D08, "boot_option_text")
+d.index_base(0x8D08, "boot_option_text")
 
 d.subroutine(
     0x8D0F,
@@ -4652,7 +4652,7 @@ See boot_cmd_strings for the target strings.""",
 )
 for i in range(5):
     d.byte(0x8D1B + i)
-d.label(0x8D1C, "boot_oscli_offset")
+d.index_base(0x8D1C, "boot_oscli_offset")
 
 d.comment(0x8D21, "Data byte: boot_cmd_strings 'x'", align=Align.INLINE)
 d.comment(0x8D22, "Data bytes: boot_cmd_strings 'ec'", align=Align.INLINE)
@@ -5167,11 +5167,11 @@ d.label(0x8EAF, "return_7")
 d.comment(0x8EAF, "RTS dispatches to pushed handler address", align=Align.INLINE)
 for i in range(5):
     d.rts_code_ptr(0x8EB0 + i, 0x8EB5 + i)
-d.label(0x8EB0, "osword_handler_lo")
+d.index_base(0x8EB0, "osword_handler_lo")
 
 d.label(0x8EB3, "copyl3")
 
-d.label(0x8EB5, "fs_osword_tbl_hi")
+d.index_base(0x8EB5, "fs_osword_tbl_hi")
 
 d.comment(0x8EB5, "Dispatch table: high bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
 d.subroutine(
@@ -5242,7 +5242,7 @@ d.label(0x8EF4, "readry")
 d.comment(0x8EF4, "Store args start offset to (&F0)+2", align=Align.INLINE)
 d.comment(0x8EF6, "Return", align=Align.INLINE)
 
-d.label(0x8EF7, "osword_12_offsets")
+d.index_base(0x8EF7, "osword_12_offsets")
 d.label(0x8EF9, "rs")
 
 d.comment(0x8EF9, "Sub-function >= 6?", align=Align.INLINE)
@@ -5630,13 +5630,13 @@ d.comment(0x9096, "Push low byte of handler address", align=Align.INLINE)
 d.comment(0x9097, "Load workspace byte &EF for handler", align=Align.INLINE)
 d.comment(0x9099, "RTS dispatches to pushed handler", align=Align.INLINE)
 
-d.label(0x909A, "osword_tbl_lo")
+d.index_base(0x909A, "osword_tbl_lo")
 
 for i in range(9):
     d.rts_code_ptr(0x909A + i, 0x90A3 + i)
 d.label(0x90A1, "osword_tbl_hi")
 
-d.label(0x90A3, "netvec_handler_hi")
+d.index_base(0x90A3, "netvec_handler_hi")
 
 d.label(0x90AC, "net_write_char_handler")
 d.comment(0x90AC, "Get stack pointer for P register access", align=Align.INLINE)
@@ -5771,7 +5771,7 @@ d.label(0x9138, "return_match_osbyte")
 
 d.comment(0x9138, "Return; Z=1 if match, Z=0 if not", align=Align.INLINE)
 
-d.label(0x9139, "remote_osbyte_table")
+d.index_base(0x9139, "remote_osbyte_table")
 d.label(0x9148, "nword")
 
 d.comment(0x9148, "Y=14: max OSWORD parameter bytes", align=Align.INLINE)
@@ -6264,7 +6264,7 @@ d.comment(0x9314, "X=0 for indexed indirect store", align=Align.INLINE)
 d.comment(0x9316, "Store result to workspace", align=Align.INLINE)
 
 d.comment(0x9318, "Return after storing result", align=Align.INLINE)
-d.label(0x9319, "vdu_osbyte_table")
+d.index_base(0x9319, "vdu_osbyte_table")
 
 d.comment(0x9319, "OSBYTE &85: read cursor position", align=Align.INLINE)
 d.comment(0x931B, "OSBYTE &C3: read screen start address", align=Align.INLINE)
