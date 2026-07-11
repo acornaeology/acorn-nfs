@@ -15,6 +15,15 @@
             "icon": "chat"
         }
     ],
+    "references": [
+        {
+            "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
+            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
+            "icon": "doc",
+            "category": "source",
+            "note": "Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions."
+        }
+    ],
     "docs": [
         {
             "type": "changes",

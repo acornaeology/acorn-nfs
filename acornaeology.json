@@ -20,28 +20,19 @@
     ],
     "references": [
         {
-            "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
-            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
-            "icon": "doc",
-            "note": "Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions."
+            "label": "tobylobster's BBC Micro MOS disassembly",
+            "url": "https://tobylobster.github.io/mos/",
+            "icon": "ref",
+            "category": "source",
+            "note": "tobylobster's fully annotated disassembly of the BBC Micro (Model B) MOS — a reference for the OSBYTE / OSWORD / vector-call semantics and zero-page / workspace names NFS relies on.",
+            "id": "mos"
         },
         {
             "label": "Acorn DNFS 3.00 source code",
             "url": "https://github.com/stardot/AcornDNFSv300",
+            "category": "source",
             "icon": "ref",
             "note": "This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process."
-        },
-        {
-            "label": "Stardot Forums: A new annotated disassembly of Acorn NFS",
-            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32531",
-            "icon": "chat",
-            "note": "Discussion thread for the NFS 3.x disassemblies."
-        },
-        {
-            "label": "Stardot Forums: Acorn ANFS - A new annotated disassembly",
-            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32592",
-            "icon": "chat",
-            "note": "Discussion thread for the ANFS 4.x disassemblies."
         }
     ]
 }

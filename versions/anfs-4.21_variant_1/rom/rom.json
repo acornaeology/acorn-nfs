@@ -25,6 +25,23 @@
             "icon": "chat"
         }
     ],
+    "references": [
+        {
+            "id": "mos",
+            "label": "Tom Seddon's Acorn MOS disassembly (Master)",
+            "url": "https://github.com/tom-seddon/acorn_mos_disassembly",
+            "icon": "ref",
+            "category": "source",
+            "note": "Tom Seddon's disassembly of the BBC Master 128 MOS — the reference for the OS entry points and workspace semantics ANFS 4.21 (Master-only) relies on, in place of the Model-B MOS."
+        },
+        {
+            "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
+            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
+            "icon": "doc",
+            "category": "source",
+            "note": "Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions."
+        }
+    ],
     "docs": [
         {
             "type": "changes",

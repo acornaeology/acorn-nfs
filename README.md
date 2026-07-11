@@ -139,14 +139,10 @@ beebasm -i versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm -o anfs-4
 
 ## References
 
-- [Original Acorn technical description for ANFS 4.08.61 (PDF)](https://www.stardot.org.uk/forums/download/file.php?id=116634)
-  Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions.
+- [tobylobster's BBC Micro MOS disassembly](https://tobylobster.github.io/mos/)
+  tobylobster's fully annotated disassembly of the BBC Micro (Model B) MOS — a reference for the OSBYTE / OSWORD / vector-call semantics and zero-page / workspace names NFS relies on.
 - [Acorn DNFS 3.00 source code](https://github.com/stardot/AcornDNFSv300)
   This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process.
-- [Stardot Forums: A new annotated disassembly of Acorn NFS](https://www.stardot.org.uk/forums/viewtopic.php?t=32531)
-  Discussion thread for the NFS 3.x disassemblies.
-- [Stardot Forums: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
-  Discussion thread for the ANFS 4.x disassemblies.
 
 ## Credits
 
