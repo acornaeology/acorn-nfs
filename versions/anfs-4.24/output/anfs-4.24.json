@@ -51905,6 +51905,7 @@
       "labels": [
         "error_msg_table"
       ],
+      "comment_inline": "BRK error code &A0 (first table entry)",
       "xref_summaries": [
         "&9aa4 used as index base 8 times by &9911, &9917, &994a, &9955, &9979, &9990, &9996, &9a1f"
       ],
@@ -52065,6 +52066,7 @@
       "labels": [
         "msg_no_clock"
       ],
+      "comment_inline": "BRK error code &A3",
       "type": "byte",
       "values": [
         163
@@ -52183,6 +52185,7 @@
       "labels": [
         "msg_no_reply"
       ],
+      "comment_inline": "BRK error code &A5",
       "type": "byte",
       "values": [
         165
@@ -85787,6 +85790,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "OSWORD &9A",
       "type": "byte",
       "values": [
         154
@@ -85819,6 +85823,7 @@
       "bytes": [
         226
       ],
+      "comment_inline": "OSWORD &E2",
       "type": "byte",
       "values": [
         226
@@ -85851,6 +85856,7 @@
       "bytes": [
         11
       ],
+      "comment_inline": "OSWORD &0B",
       "type": "byte",
       "values": [
         11
@@ -85894,6 +85900,7 @@
       "bytes": [
         122
       ],
+      "comment_inline": "OSWORD &7A",
       "type": "byte",
       "values": [
         122
@@ -85904,6 +85911,7 @@
       "bytes": [
         134
       ],
+      "comment_inline": "OSWORD &86",
       "type": "byte",
       "values": [
         134
@@ -91493,6 +91501,7 @@
       "bytes": [
         39
       ],
+      "comment_inline": "Index 5: threshold 39",
       "type": "byte",
       "values": [
         39
@@ -91503,6 +91512,7 @@
       "bytes": [
         49
       ],
+      "comment_inline": "Index 6: threshold 49",
       "type": "byte",
       "values": [
         49
@@ -91535,6 +91545,7 @@
       "bytes": [
         79
       ],
+      "comment_inline": "Index 9: threshold 79",
       "type": "byte",
       "values": [
         79
@@ -91578,6 +91589,7 @@
       "bytes": [
         118
       ],
+      "comment_inline": "Index 13: threshold 118",
       "type": "byte",
       "values": [
         118
@@ -91588,6 +91600,7 @@
       "bytes": [
         128
       ],
+      "comment_inline": "Index 14: threshold 128",
       "type": "byte",
       "values": [
         128
@@ -91620,6 +91633,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Index 17: threshold 157",
       "type": "byte",
       "values": [
         157
@@ -91652,6 +91666,7 @@
       "bytes": [
         187
       ],
+      "comment_inline": "Index 20: threshold 187",
       "type": "byte",
       "values": [
         187
@@ -91673,6 +91688,7 @@
       "bytes": [
         207
       ],
+      "comment_inline": "Index 22: threshold 207",
       "type": "byte",
       "values": [
         207

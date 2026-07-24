@@ -7622,7 +7622,7 @@ bad_prefix_table = bad_str_anchor+1
 ; network reply.
 ; &9aa4 used as index base 8 times by &9911, &9917, &994a, &9955, &9979, &9990, &9996, &9a1f
 .error_msg_table
-    equb &a0                                                          ; 9aa4: a0          .     
+    equb &a0                                                          ; 9aa4: a0          .        ; BRK error code &A0 (first table entry)
     equs "Line jammed"                                                ; 9aa5: 4c 69 6e... Lin...   ; err_line_jammed = &A0
     equb &00                                                          ; 9ab0: 00          .        ; Null terminator
 .msg_net_error
@@ -7634,7 +7634,7 @@ bad_prefix_table = bad_str_anchor+1
     equs "Station"                                                    ; 9abd: 53 74 61... Sta...
     equb &00                                                          ; 9ac4: 00          .     
 .msg_no_clock
-    equb &a3                                                          ; 9ac5: a3          .     
+    equb &a3                                                          ; 9ac5: a3          .        ; BRK error code &A3
     equs "No clock"                                                   ; 9ac6: 4e 6f 20... No ...
     equb &00                                                          ; 9ace: 00          .        ; Null terminator
 .msg_escape
@@ -7646,7 +7646,7 @@ bad_prefix_table = bad_str_anchor+1
     equs "Bad option"                                                 ; 9ad8: 42 61 64... Bad...
     equb &00                                                          ; 9ae2: 00          .        ; Null terminator + Error &A5: No reply from station
 .msg_no_reply
-    equb &a5                                                          ; 9ae3: a5          .     
+    equb &a5                                                          ; 9ae3: a5          .        ; BRK error code &A5
     equs "No reply from station"                                      ; 9ae4: 4e 6f 20... No ...   ; err_no_reply = &A5 message body
     equb &00                                                          ; 9af9: 00          .        ; Null terminator
 .msg_not_listening
@@ -12117,18 +12117,18 @@ labe5 = compare_bridge_status+1
     equb &0a                                                          ; ade3: 0a          .        ; Range 1+2: OSWORD &0A
     equb &14                                                          ; ade4: 14          .        ; Range 1+2: OSWORD &14
     equb &15                                                          ; ade5: 15          .        ; Range 1+2: OSWORD &15
-    equb &9a                                                          ; ade6: 9a          .     
+    equb &9a                                                          ; ade6: 9a          .        ; OSWORD &9A
     equb &9b                                                          ; ade7: 9b          .        ; Range 1+2: OSWORD &9B
     equb &e1                                                          ; ade8: e1          .        ; Range 1+2: OSWORD &E1
-    equb &e2                                                          ; ade9: e2          .     
+    equb &e2                                                          ; ade9: e2          .        ; OSWORD &E2
     equb &e3                                                          ; adea: e3          .        ; Range 1+2: OSWORD &E3
     equb &e4                                                          ; adeb: e4          .        ; Range 1+2: OSWORD &E4
-    equb &0b                                                          ; adec: 0b          .     
+    equb &0b                                                          ; adec: 0b          .        ; OSWORD &0B
     equb &0c                                                          ; aded: 0c          .        ; Range 2 only: OSWORD &0C
     equb &0f                                                          ; adee: 0f          .        ; Range 2 only: OSWORD &0F
     equb &79                                                          ; adef: 79          y        ; Range 2 only: OSWORD &79
-    equb &7a                                                          ; adf0: 7a          z     
-    equb &86                                                          ; adf1: 86          .     
+    equb &7a                                                          ; adf0: 7a          z        ; OSWORD &7A
+    equb &86                                                          ; adf1: 86          .        ; OSWORD &86
     equb &87                                                          ; adf2: 87          .        ; Range 2 only: OSWORD &87
 ; ***************************************************************************************
 ; OSWORD 7/8 handler: copy PB to workspace and abort
@@ -12873,24 +12873,24 @@ cdir_size_thresholds = cdir_dispatch_col+2
     equb &0a                                                          ; b109: 0a          .        ; Index 2: threshold 10 (default)
     equb &14                                                          ; b10a: 14          .        ; Index 3: threshold 20
     equb &1d                                                          ; b10b: 1d          .        ; Index 4: threshold 29
-    equb &27                                                          ; b10c: 27          '     
-    equb &31                                                          ; b10d: 31          1     
+    equb &27                                                          ; b10c: 27          '        ; Index 5: threshold 39
+    equb &31                                                          ; b10d: 31          1        ; Index 6: threshold 49
     equb &3b                                                          ; b10e: 3b          ;        ; Index 7: threshold 59
     equb &45                                                          ; b10f: 45          E        ; Index 8: threshold 69
-    equb &4f                                                          ; b110: 4f          O     
+    equb &4f                                                          ; b110: 4f          O        ; Index 9: threshold 79
     equb &58                                                          ; b111: 58          X        ; Index 10: threshold 88
     equb &62                                                          ; b112: 62          b        ; Index 11: threshold 98
     equb &6c                                                          ; b113: 6c          l        ; Index 12: threshold 108
-    equb &76                                                          ; b114: 76          v     
-    equb &80                                                          ; b115: 80          .     
+    equb &76                                                          ; b114: 76          v        ; Index 13: threshold 118
+    equb &80                                                          ; b115: 80          .        ; Index 14: threshold 128
     equb &8a                                                          ; b116: 8a          .        ; Index 15: threshold 138
     equb &94                                                          ; b117: 94          .        ; Index 16: threshold 148
-    equb &9d                                                          ; b118: 9d          .     
+    equb &9d                                                          ; b118: 9d          .        ; Index 17: threshold 157
     equb &a7                                                          ; b119: a7          .        ; Index 18: threshold 167
     equb &b1                                                          ; b11a: b1          .        ; Index 19: threshold 177
-    equb &bb                                                          ; b11b: bb          .     
+    equb &bb                                                          ; b11b: bb          .        ; Index 20: threshold 187
     equb &c5                                                          ; b11c: c5          .        ; Index 21: threshold 197
-    equb &cf                                                          ; b11d: cf          .     
+    equb &cf                                                          ; b11d: cf          .        ; Index 22: threshold 207
     equb &d8                                                          ; b11e: d8          .        ; Index 23: threshold 216
     equb &e2                                                          ; b11f: e2          .        ; Index 24: threshold 226
     equb &ec                                                          ; b120: ec          .        ; Index 25: threshold 236
