@@ -1,0 +1,116 @@
+# Changes from ANFS 4.21 (variant 1) to ANFS 4.24
+
+ANFS 4.24 is the next Master 128 ANFS after 4.21 (variant 1). Both are
+65C02 ROMs that keep their filing-system workspace in HAZEL hidden RAM
+at `&C000`–`&C2FF`, so 4.24 inherits the whole Master-128 architecture
+4.21 introduced. The two 16 KB ROMs share **93.9 %** of their opcode
+structure; the byte-level similarity is 85.1 %, and only 2.3 % of bytes
+match at the same offset because almost every operand shifted as code
+grew and moved.
+
+The differences are refinements rather than a redesign: a scattering of
+defensive fixes, some workspace consolidation into HAZEL, and a handful
+of routines compacted or reshaped. None of the version's external
+behaviour changes in a way a user would notice; the value of cataloguing
+them is that each shifts addresses downstream and each is a place where a
+carried-over 4.21 annotation would otherwise be wrong.
+
+## ROM header
+
+| Field | 4.21 (variant 1) | 4.24 |
+|---|---|---|
+| Title | `Acorn ANFS 4.21` | `Acorn ANFS 4.24` |
+| Copyright | `(C)1986 Acorn` | `(C)1986 Acorn` |
+| ROM type | `&82` | `&82` |
+| Service entry | [`&8A54`](address:8A54@4.21_variant_1) | [`&8A8A`](address:8A8A) |
+| Language entry | none (`&4342`) | none (`&4342`) |
+
+The service entry moves down by `&36` bytes, tracking the code inserted
+ahead of it.
+
+## Defensive `CLD` guards in the interrupt paths
+
+4.24 adds four `CLD` instructions at the head of paths reachable from
+Econet NMI / IRQ context:
+
+| Address | Path | Protects |
+|---|---|---|
+| [`&8150`](address:8150) | port-slot scan | scan arithmetic |
+| [`&835A`](address:835A) | `add_rxcb_ptr` | the RXCB-pointer `ADC` |
+| [`&8476`](address:8476) | `immediate_op` | the operation-index `SBC` |
+| [`&85AD`](address:85AD) | transfer setup | the transfer-size `ADC` |
+
+An interrupt can arrive while the foreground has the decimal flag set;
+each guard clears `D` so the binary `ADC` / `SBC` further down its path
+computes correctly. 4.21 relied on callers never leaving `D` set.
+
+## ACCCON-guarded buffer stores
+
+The Master 128 reaches the Econet receive buffer through shadow / HAZEL
+paging, controlled by [`ACCCON`](address:FE34). 4.24 widens the
+save-restore of `ACCCON` around the buffer writes. The clearest new
+instance is the last-data-byte store at [`&8284`](address:8284): it
+saves `ACCCON`, switches to the caller's paging value in
+[`escapable`](address:0097), performs the `(open_port_buf),Y` store, then
+restores `ACCCON` — so the write lands in the correct RAM regardless of
+what the interrupted foreground had paged in.
+
+## Credits easter egg rewritten
+
+The `*` credits keyword handler drops its hand-written character-emit
+loop. Where 4.21 walked `credits_keyword_start` byte by byte through
+`OSASCI`, 4.24 emits the same text with a single
+[`jsr print_inline`](address:9666) over the inline, high-bit-terminated
+string at [`&8D5C`](address:8D5C). The `&EA` (`NOP`) terminator doubles
+as the resume opcode and falls through to the `RTS`. The string still
+lists the four authors (B Cockburn, J Dunn, B Robertson, J Wills).
+
+## `print_fs_address` / `print_ps_address` share one tail
+
+4.21 had two near-identical routines that each read a `network.station`
+pair from CMOS and printed it. 4.24 folds them into one body:
+[`print_ps_address`](address:9662) loads `X=4` and branches into the
+shared tail; [`print_fs_address`](address:9666) loads `X=2` and falls
+straight in. The shared tail [`print_cmos_pair`](address:9668) prints
+`CMOS[X]`, a `.`, then `CMOS[X-1]`, deriving the station index with
+`PHX` / `PLX` / `DEX` instead of a second literal `LDX`.
+
+## Immediate-operation handlers compacted
+
+The port-0 immediate-operation setup block (`&848B`–`&84F9` in 4.21) is
+reshaped: the dispatch low-byte table moves, and the PEEK and
+machine-type setup paths are merged so the machine-type handler at
+[`&84C7`](address:84C7) now shares the PEEK workspace-offset setup rather
+than duplicating the buffer-dimension writes. One routine
+(`&88F0`–`&898C` in 4.21) is relocated wholesale to the `&85B1`–`&864B`
+region.
+
+## New `*HELP` sub-table entry
+
+The command / `*HELP` dispatch tables gain a five-byte entry in the
+sub-table just after `*Wipe` (around [`&A80F`](address:A80F)), dispatching
+through [`&8E45`](address:8E45) — the `*command` / `*RUN`-`&` classifier.
+This is the one net-new code path in 4.24; everything else is a
+reshaping of existing behaviour. The insertion is why command-table
+addresses shift by `+&14` before it and `+&19` after.
+
+## Workspace nudges
+
+- Three page-`&10` scratch pokes move into HAZEL page `&C2` (e.g. the
+  `LDX`/`LDY` pair that now points X/Y at `&C2CA` rather than `&10CA`).
+- The filename buffer `fs_filename_buf` moves from page `&0E` to page
+  `&C0` (HAZEL).
+- Several TXCB field offsets shift by `+1`, reflecting a one-byte growth
+  in the transmit control block layout.
+
+## Dispatch-table bases
+
+Every PHA/PHA/RTS dispatch table shifts with the code around it. The
+4.24 bases, read from each dispatcher's operand:
+
+| Table | 4.21 (lo / hi) | 4.24 (lo / hi) |
+|---|---|---|
+| Service call | `&89ED` / `&8A20` | `&8A23` / `&8A56` |
+| OSWORD `&13` | `&A9A8` / `&A9BA` | `&A9C8` / `&A9DA` |
+| NETV | `&AD20` / `&AD29` | `&AD40` / `&AD49` |
+| Extended vectors | `&8EB5` | `&8ECD` |

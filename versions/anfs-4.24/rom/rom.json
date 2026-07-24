@@ -51,21 +51,16 @@
                 {"pattern": "ANFS", "occurrence": 0, "term": "NFS"},
                 {"pattern": "NFS", "occurrence": 0, "term": "NFS"},
                 {"pattern": "ROM", "occurrence": 0, "term": "ROM"},
-                {"pattern": "OSBYTE", "occurrence": 0, "term": "OSBYTE"},
                 {"pattern": "OSWORD", "occurrence": 0, "term": "OSWORD"},
                 {"pattern": "MOS", "occurrence": 0, "term": "MOS"},
                 {"pattern": "Econet", "occurrence": 0, "term": "Econet"},
-                {"pattern": "service call", "occurrence": 0, "term": "service call"},
                 {"pattern": "IRQ", "occurrence": 0, "term": "IRQ"},
                 {"pattern": "NMI", "occurrence": 0, "term": "NMI"},
-                {"pattern": "sideways ROM", "occurrence": 0, "term": "sideways ROM"},
                 {"pattern": "HAZEL", "occurrence": 0, "term": "HAZEL"},
                 {"pattern": "ACCCON", "occurrence": 0, "term": "ACCCON"},
                 {"pattern": "Master 128", "occurrence": 0, "term": "Master 128"},
                 {"pattern": "65C02", "occurrence": 0, "term": "65C02"},
-                {"pattern": "VIA", "occurrence": 0, "term": "VIA"},
-                {"pattern": "CMOS", "occurrence": 0, "term": "CMOS"},
-                {"pattern": "shadow RAM", "occurrence": 0, "term": "shadow RAM"}
+                {"pattern": "CMOS", "occurrence": 0, "term": "CMOS"}
             ]
         }
     ]

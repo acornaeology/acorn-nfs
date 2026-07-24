@@ -19325,6 +19325,17 @@ Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&F
     group="idx_base",
 )
 
+# ACCCON-guarded last-data-byte store (Master 128 shadow/HAZEL aware).
+# The port receive buffer may live behind shadow/HAZEL paging, so ACCCON
+# is saved, switched to the caller's `escapable` paging value, used for
+# the `(open_port_buf),Y` store, then restored.
+d.comment(0x8287, "Save current ACCCON on stack", align=Align.INLINE)
+d.comment(0x8288, "Load desired paging mode from escapable (&97)", align=Align.INLINE)
+d.comment(0x828A, "Select paging so the buffer store lands correctly", align=Align.INLINE)
+d.comment(0x828D, "Read last data byte from RX FIFO (FV+RDA)", align=Align.INLINE)
+d.comment(0x8294, "Pull saved ACCCON", align=Align.INLINE)
+d.comment(0x8295, "Restore caller's ACCCON", align=Align.INLINE)
+
 # Defensive `CLD` guards. These sit at the head of paths reachable from
 # Econet NMI/IRQ context, where the interrupted foreground could have left
 # the decimal flag set; each protects a binary ADC/SBC further down the

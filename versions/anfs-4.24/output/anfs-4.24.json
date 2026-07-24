@@ -10739,6 +10739,7 @@
       "bytes": [
         72
       ],
+      "comment_inline": "Save current ACCCON on stack",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -10748,6 +10749,7 @@
         165,
         151
       ],
+      "comment_inline": "Load desired paging mode from escapable (&97)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "escapable",
@@ -10761,6 +10763,7 @@
         52,
         254
       ],
+      "comment_inline": "Select paging so the buffer store lands correctly",
       "type": "code",
       "mnemonic": "sta",
       "operand": "acccon",
@@ -10774,6 +10777,7 @@
         162,
         254
       ],
+      "comment_inline": "Read last data byte from RX FIFO (FV+RDA)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "econet_data_continue_frame",
@@ -10811,6 +10815,7 @@
       "bytes": [
         104
       ],
+      "comment_inline": "Pull saved ACCCON",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -10821,6 +10826,7 @@
         52,
         254
       ],
+      "comment_inline": "Restore caller's ACCCON",
       "type": "code",
       "mnemonic": "sta",
       "operand": "acccon",

@@ -1321,14 +1321,14 @@ rom_header_byte2 = rom_header_byte1+1
 .read_last_rx_byte
     beq nmi_error_dispatch                                            ; 8282: f0 94       ..       ; No buffer space: error/discard frame
     lda acccon                                                        ; 8284: ad 34 fe    .4.      ; FV+RDA: read and store last data byte
-    pha                                                               ; 8287: 48          H     
-    lda escapable                                                     ; 8288: a5 97       ..    
-    sta acccon                                                        ; 828a: 8d 34 fe    .4.   
-    lda econet_data_continue_frame                                    ; 828d: ad a2 fe    ...   
+    pha                                                               ; 8287: 48          H        ; Save current ACCCON on stack
+    lda escapable                                                     ; 8288: a5 97       ..       ; Load desired paging mode from escapable (&97)
+    sta acccon                                                        ; 828a: 8d 34 fe    .4.      ; Select paging so the buffer store lands correctly
+    lda econet_data_continue_frame                                    ; 828d: ad a2 fe    ...      ; Read last data byte from RX FIFO (FV+RDA)
     ldy port_buf_len                                                  ; 8290: a4 a2       ..       ; Y = current buffer write offset
     sta (open_port_buf),y                                             ; 8292: 91 a4       ..       ; Store last byte in port receive buffer
-    pla                                                               ; 8294: 68          h     
-    sta acccon                                                        ; 8295: 8d 34 fe    .4.   
+    pla                                                               ; 8294: 68          h        ; Pull saved ACCCON
+    sta acccon                                                        ; 8295: 8d 34 fe    .4.      ; Restore caller's ACCCON
     inc port_buf_len                                                  ; 8298: e6 a2       ..       ; Advance buffer write offset
     bne send_ack                                                      ; 829a: d0 02       ..       ; No page wrap: proceed to send ACK
     inc open_port_buf_hi                                              ; 829c: e6 a5       ..       ; Page boundary: advance buffer page
