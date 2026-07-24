@@ -75041,7 +75041,7 @@
         0,
         0
       ],
-      "comment_inline": "*HELP 'On' interactive-matcher entry: sub-table default word &8E44, keyword 'On', dispatch via &8E45",
+      "comment_inline": "&80 sub-table separator; the &8E44 word is the FS-command sub-table default handler (&8E45-1); the following &4F &6E &80 &00 &00 (ASCII 'On' + markers) is a 5-byte record new in this build",
       "type": "byte",
       "values": [
         128,

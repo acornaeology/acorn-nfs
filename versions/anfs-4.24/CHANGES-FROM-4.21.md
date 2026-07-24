@@ -42,7 +42,9 @@ Econet NMI / IRQ context:
 
 An interrupt can arrive while the foreground has the decimal flag set;
 each guard clears `D` so the binary `ADC` / `SBC` further down its path
-computes correctly. 4.21 relied on callers never leaving `D` set.
+computes correctly. 4.21 relied on callers never leaving `D` set. A fifth
+`CLD` byte sits at [`&8397`](address:8397) but is unreached (it follows an
+`RTS`), so it is inert.
 
 ## ACCCON-guarded buffer stores
 
@@ -59,11 +61,12 @@ what the interrupted foreground had paged in.
 
 The `*` credits keyword handler drops its hand-written character-emit
 loop. Where 4.21 walked `credits_keyword_start` byte by byte through
-`OSASCI`, 4.24 emits the same text with a single
-[`jsr print_inline`](address:9666) over the inline, high-bit-terminated
-string at [`&8D5C`](address:8D5C). The `&EA` (`NOP`) terminator doubles
-as the resume opcode and falls through to the `RTS`. The string still
-lists the four authors (B Cockburn, J Dunn, B Robertson, J Wills).
+`OSASCI`, 4.24 emits the same text with a single `jsr`
+[`print_inline`](address:926A) (at [`&8D59`](address:8D59)) over the
+inline, high-bit-terminated string at [`&8D5C`](address:8D5C). The `&EA`
+(`NOP`) terminator doubles as the resume opcode and falls through to the
+`RTS`. The string still lists the four authors (B Cockburn, J Dunn,
+B Robertson, J Wills).
 
 ## `print_fs_address` / `print_ps_address` share one tail
 
@@ -78,21 +81,29 @@ straight in. The shared tail [`print_cmos_pair`](address:9668) prints
 ## Immediate-operation handlers compacted
 
 The port-0 immediate-operation setup block (`&848B`–`&84F9` in 4.21) is
-reshaped: the dispatch low-byte table moves, and the PEEK and
-machine-type setup paths are merged so the machine-type handler at
-[`&84C7`](address:84C7) now shares the PEEK workspace-offset setup rather
-than duplicating the buffer-dimension writes. One routine
-(`&88F0`–`&898C` in 4.21) is relocated wholesale to the `&85B1`–`&864B`
-region.
+reshaped: the dispatch low-byte table moves, and the machine-type handler
+at [`&84C7`](address:84C7) now uses the same workspace-offset setup as the
+PEEK path (`port_ws_offset = &2E`, `rx_buf_offset = &0D`, then
+`jsr tx_calc_transfer`) rather than writing its own buffer dimensions.
 
-## New `*HELP` sub-table entry
+The transfer-size routine `tx_calc_transfer` is relocated from
+[`&8900`](address:8900@4.21_variant_1) to [`&85AD`](address:85AD) (its
+three call sites move with it) and gains a `CLD` guard and a new
+shadow-RAM branch: when the buffer is a Tube address and `ACCCON.E` marks
+shadow RAM enabled, it now sets the shadow bit in `escapable` before the
+4-byte size subtraction.
 
-The command / `*HELP` dispatch tables gain a five-byte entry in the
-sub-table just after `*Wipe` (around [`&A80F`](address:A80F)), dispatching
-through [`&8E45`](address:8E45) — the `*command` / `*RUN`-`&` classifier.
-This is the one net-new code path in 4.24; everything else is a
-reshaping of existing behaviour. The insertion is why command-table
-addresses shift by `+&14` before it and `+&19` after.
+## New command sub-table record
+
+4.24 inserts a five-byte record — `4F 6E 80 00 00`, ASCII `"On"` followed
+by table markers — into the FS-command sub-table at
+[`&A80E`](address:A80E), immediately after that sub-table's shifted
+default-handler word (`&8E44`, i.e. [`&8E45`](address:8E45)-1, the
+`*command` / `*RUN`-`&` classifier). This is the one net-new record in
+the command tables; it is why command-table addresses shift by `+&14`
+before it and `+&19` after. (The preceding word `&8E2C`→`&8E44` is not
+new — it is the same default-handler slot, shifted with the extended-
+vector region.)
 
 ## Workspace nudges
 

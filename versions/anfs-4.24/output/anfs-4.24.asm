@@ -10751,7 +10751,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equs "Wipe"                                                       ; a807: 57 69 70... Wip...   ; syn 1: (<dir>) -- delete with confirm
     equb &81                                                          ; a80b: 81          .        ; syn &1
     equw cmd_wipe-1                                                   ; a80c: 1b b7       ..    
-    equb &80, &44, &8e, &4f, &6e, &80, &00, &00                       ; a80e: 80 44 8e... .D....   ; *HELP 'On' interactive-matcher entry: sub-table default word &8E44, keyword 'On', dispatch via &8E45
+    equb &80, &44, &8e, &4f, &6e, &80, &00, &00                       ; a80e: 80 44 8e... .D....   ; &80 sub-table separator; the &8E44 word is the FS-command sub-table default handler (&8E45-1); the following &4F &6E &80 &00 &00 (ASCII 'On' + markers) is a 5-byte record new in this build
     equs "Net"                                                        ; a816: 4e 65 74    Net      ; *HELP NET
     equb &80                                                          ; a819: 80          .        ; no syn
     equw help_net-1                                                   ; a81a: e9 8b       ..    
