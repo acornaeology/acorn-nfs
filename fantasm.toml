@@ -132,3 +132,11 @@ reloc_blocks = [
 [[versions.entry]]
 id = "4.21_variant_1"
 parents = ["4.18"]
+
+# 4.24 is the next Master 128 ANFS after 4.21 (variant 1). Like
+# 4.21_v1 it has no relocated blocks — filing-system workspace lives
+# in HAZEL hidden RAM at &C000-&C2FF. 65C02, loaded via
+# load(0x8000, ROM, "65c02").
+[[versions.entry]]
+id = "4.24"
+parents = ["4.21_variant_1"]

@@ -1,38 +1,51 @@
 {
-    "slug": "acorn-nfs",
-    "name": "Acorn NFS and Acorn ANFS",
-    "description": "NFS (Network Filing System) and ANFS (Advanced Network Filing System) are Econet filing system clients for the BBC Micro, providing remote file access over Acorn's Econet local area network. They handle the full Econet protocol stack — four-way handshake, NMI-driven frame transmission and reception — and plug into the MOS filing system framework to transparently redirect file operations to a network fileserver. Both ROMs also contain Tube host code for managing second-processor communication, which is largely unrelated to the filing system functionality. NFS (versions 3.34–3.65) is an 8 KB ROM; ANFS (4.x) is its 16 KB successor, with an expanded star command set and improved error reporting.",
-    "glossary": "GLOSSARY.md",
-    "versions": ["3.34", "3.34B", "3.35D", "3.35K", "3.40", "3.60", "3.62", "3.65", "4.08.53", "4.18", "4.21_variant_1"],
-    "analyses": [
-        {
-            "label": "Deferring the Remote Subroutine Jump",
-            "url": "docs/analysis/deferring-the-remote-subroutine-jump.md",
-            "icon": "doc",
-            "note": "An Econet Remote Subroutine Jump (and its execute-class siblings) cannot be run from the NMI receive handler, so NFS defers the call into a later IRQ via service call &05. On the Model B it arms the system VIA shift register as a one-shot timer (ANFS 4.08.53, shared with NFS 3.34-3.65 and ANFS 4.18); on the Master 128 it sets ACCCON bit 7 (IRR) to assert a software IRQ (ANFS 4.21). The two ROMs also differ in where they raise the LSTAT re-entrancy protection -- dispatch side on the Model B, NMI side on the Master -- a difference disguised by the constant &1C meaning different things in the VIA ACR and the LSTAT mask."
-        },
-        {
-            "label": "The *HELP authors easter egg",
-            "url": "docs/analysis/authors-easter-egg.md",
-            "icon": "doc",
-            "note": "Type *HELP authors and ANFS prints its credit roll. The seven-byte keyword the matcher checks is overlaid on the printed message itself — bytes 5..11 of the credits string spell 'authors'. A second byte-saving trick parks the indexed-addressing base used by copy_ps_data inside whatever happens to live at base+&F8: 'ckburn' (4.08.53), 'nn' (4.18), and a JSR operand byte (4.21)."
-        }
-    ],
-    "references": [
-        {
-            "label": "tobylobster's BBC Micro MOS disassembly",
-            "url": "https://tobylobster.github.io/mos/",
-            "icon": "ref",
-            "category": "source",
-            "note": "tobylobster's fully annotated disassembly of the BBC Micro (Model B) MOS — a reference for the OSBYTE / OSWORD / vector-call semantics and zero-page / workspace names NFS relies on.",
-            "id": "mos"
-        },
-        {
-            "label": "Acorn DNFS 3.00 source code",
-            "url": "https://github.com/stardot/AcornDNFSv300",
-            "category": "source",
-            "icon": "ref",
-            "note": "This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process."
-        }
-    ]
+  "slug": "acorn-nfs",
+  "name": "Acorn NFS and Acorn ANFS",
+  "description": "NFS (Network Filing System) and ANFS (Advanced Network Filing System) are Econet filing system clients for the BBC Micro, providing remote file access over Acorn's Econet local area network. They handle the full Econet protocol stack \u2014 four-way handshake, NMI-driven frame transmission and reception \u2014 and plug into the MOS filing system framework to transparently redirect file operations to a network fileserver. Both ROMs also contain Tube host code for managing second-processor communication, which is largely unrelated to the filing system functionality. NFS (versions 3.34\u20133.65) is an 8 KB ROM; ANFS (4.x) is its 16 KB successor, with an expanded star command set and improved error reporting.",
+  "glossary": "GLOSSARY.md",
+  "versions": [
+    "3.34",
+    "3.34B",
+    "3.35D",
+    "3.35K",
+    "3.40",
+    "3.60",
+    "3.62",
+    "3.65",
+    "4.08.53",
+    "4.18",
+    "4.21_variant_1",
+    "4.24"
+  ],
+  "analyses": [
+    {
+      "label": "Deferring the Remote Subroutine Jump",
+      "url": "docs/analysis/deferring-the-remote-subroutine-jump.md",
+      "icon": "doc",
+      "note": "An Econet Remote Subroutine Jump (and its execute-class siblings) cannot be run from the NMI receive handler, so NFS defers the call into a later IRQ via service call &05. On the Model B it arms the system VIA shift register as a one-shot timer (ANFS 4.08.53, shared with NFS 3.34-3.65 and ANFS 4.18); on the Master 128 it sets ACCCON bit 7 (IRR) to assert a software IRQ (ANFS 4.21). The two ROMs also differ in where they raise the LSTAT re-entrancy protection -- dispatch side on the Model B, NMI side on the Master -- a difference disguised by the constant &1C meaning different things in the VIA ACR and the LSTAT mask."
+    },
+    {
+      "label": "The *HELP authors easter egg",
+      "url": "docs/analysis/authors-easter-egg.md",
+      "icon": "doc",
+      "note": "Type *HELP authors and ANFS prints its credit roll. The seven-byte keyword the matcher checks is overlaid on the printed message itself \u2014 bytes 5..11 of the credits string spell 'authors'. A second byte-saving trick parks the indexed-addressing base used by copy_ps_data inside whatever happens to live at base+&F8: 'ckburn' (4.08.53), 'nn' (4.18), and a JSR operand byte (4.21)."
+    }
+  ],
+  "references": [
+    {
+      "label": "tobylobster's BBC Micro MOS disassembly",
+      "url": "https://tobylobster.github.io/mos/",
+      "icon": "ref",
+      "category": "source",
+      "note": "tobylobster's fully annotated disassembly of the BBC Micro (Model B) MOS \u2014 a reference for the OSBYTE / OSWORD / vector-call semantics and zero-page / workspace names NFS relies on.",
+      "id": "mos"
+    },
+    {
+      "label": "Acorn DNFS 3.00 source code",
+      "url": "https://github.com/stardot/AcornDNFSv300",
+      "category": "source",
+      "icon": "ref",
+      "note": "This is a different version of NFS, but its comments and labels provided important guidance in the disassembly and annotation process."
+    }
+  ]
 }
