@@ -358,7 +358,7 @@
       "addr": 33173,
       "name": "port_match_found",
       "title": "Scout matched: arm data RX, ACK or discard",
-      "description": "Sets `scout_status=3` (match found) at `rx_port`, calls\n[`tx_calc_transfer`](address:8900) to compute the transfer\nparameters from the RXCB, then triages:\n\n| Carry | `rx_src_net` (V) | Action |\n|---|---|---|\n| `C=0` | \u2013 | no Tube claimed \u2192 [`nmi_error_dispatch`](address:8215) (discard) |\n| `C=1` | broadcast | discard (broadcasts get no ACK) |\n| `C=1` | unicast   | [`send_data_rx_ack`](address:81A7) |\n\nFour inbound refs (one `JSR` from `&84B9` and three branches from\nthe [`scout_complete`](address:8112) dispatch).",
+      "description": "Sets `scout_status=3` (match found) at `rx_port`, calls\n[`tx_calc_transfer`](address:8900) to compute the transfer\nparameters from the RXCB, then triages:\n\n| Carry | `net_frame_flags` (V) | Action |\n|---|---|---|\n| `C=0` | \u2013 | no Tube claimed \u2192 [`nmi_error_dispatch`](address:8215) (discard) |\n| `C=1` | broadcast | discard (broadcasts get no ACK) |\n| `C=1` | unicast   | [`send_data_rx_ack`](address:81A7) |\n\nFour inbound refs (one `JSR` from `&84B9` and three branches from\nthe [`scout_complete`](address:8112) dispatch).",
       "on_exit": {
         "a": "3 (scout_status)"
       }
@@ -405,14 +405,14 @@
       "addr": 33271,
       "name": "install_data_rx_handler",
       "title": "Install data RX bulk or Tube handler",
-      "description": "Selects between the normal bulk-RX handler at\n[`nmi_data_rx_bulk`](address:8223) and the Tube RX handler at\n[`nmi_data_rx_tube`](address:8291) based on bit 1 of\n`rx_src_net` (`tx_flags`).\n\n| `rx_src_net` bit 1 | Handler |\n|---|---|\n| clear | [`nmi_data_rx_bulk`](address:8223) (`A=&23`, `Y=&82`) |\n| set   | [`nmi_data_rx_tube`](address:8291) (`A=&91`, `Y=&82`) |\n\nIn the bulk path, after loading the handler address, checks `SR1`\nbit 7. If `IRQ` is already asserted (more data waiting), jumps\ndirectly to [`nmi_data_rx_bulk`](address:8223) to avoid NMI\nre-entry overhead. Otherwise installs the handler via\n[`set_nmi_vector`](address:0D0E) (the `(A,Y)` pair becomes the\nNMI dispatch target) and returns via `RTI`.",
+      "description": "Selects between the normal bulk-RX handler at\n[`nmi_data_rx_bulk`](address:8223) and the Tube RX handler at\n[`nmi_data_rx_tube`](address:8291) based on bit 1 of\n`net_frame_flags` (`tx_flags`).\n\n| `net_frame_flags` bit 1 | Handler |\n|---|---|\n| clear | [`nmi_data_rx_bulk`](address:8223) (`A=&23`, `Y=&82`) |\n| set   | [`nmi_data_rx_tube`](address:8291) (`A=&91`, `Y=&82`) |\n\nIn the bulk path, after loading the handler address, checks `SR1`\nbit 7. If `IRQ` is already asserted (more data waiting), jumps\ndirectly to [`nmi_data_rx_bulk`](address:8223) to avoid NMI\nre-entry overhead. Otherwise installs the handler via\n[`set_nmi_vector`](address:0D0E) (the `(A,Y)` pair becomes the\nNMI dispatch target) and returns via `RTI`.",
       "fall_through": true
     },
     {
       "addr": 33301,
       "name": "nmi_error_dispatch",
       "title": "NMI error handler dispatch",
-      "description": "Common error/abort entry used by 11 call sites. The dispatch byte\nat [`rx_src_net`](address:0D3E) doubles as a TX-state flag here:\nbit 7 distinguishes whether the NMI handler reached this point on\nan RX-error path or a TX not-listening path.\n\n| `rx_src_net` bit 7 | Path |\n|---|---|\n| clear | RX error \u2013 full ADLC reset; return to idle listen |\n| set   | TX not-listening \u2013 `JMP` [`tx_result_fail`](address:88E2) |"
+      "description": "Common error/abort entry used by 11 call sites. The dispatch byte\nat [`net_frame_flags`](address:0D3E) doubles as a TX-state flag here:\nbit 7 distinguishes whether the NMI handler reached this point on\nan RX-error path or a TX not-listening path.\n\n| `net_frame_flags` bit 7 | Path |\n|---|---|\n| clear | RX error \u2013 full ADLC reset; return to idle listen |\n| set   | TX not-listening \u2013 `JMP` [`tx_result_fail`](address:88E2) |"
     },
     {
       "addr": 33315,
@@ -438,7 +438,7 @@
       "addr": 33503,
       "name": "ack_tx",
       "title": "ACK transmission",
-      "description": "Sends a scout ACK or final ACK frame as part of the four-way\nhandshake. Tests bit 7 of [`rx_src_net`](address:0D3E) (used as\nTX-flags here): if set this is a final ACK and completion runs\nthrough [`tx_result_ok`](address:88DE). Otherwise configures\nfor TX (`CR1=&44`, `CR2=&A7`) and writes the ACK address frame:\ndestination station from [`scout_buf`](address:0D2E), destination\nnetwork from [`scout_src_net`](address:0D2F), source station\nfrom the workspace copy [`tx_src_stn`](address:0D22), and\n`src_net=0`. The ACK frame has no data payload -- just address\nbytes.\n\nAfter writing the address bytes to the TX FIFO, installs the next\nNMI handler from `saved_nmi_lo`/`saved_nmi_hi` (saved by the\nscout/data RX handler via [`ack_tx_write_dest`](address:82F8))\nand sends `TX_LAST_DATA` (`CR2=&3F`) to close the frame.",
+      "description": "Sends a scout ACK or final ACK frame as part of the four-way\nhandshake. Tests bit 7 of [`net_frame_flags`](address:0D3E) (used as\nTX-flags here): if set this is a final ACK and completion runs\nthrough [`tx_result_ok`](address:88DE). Otherwise configures\nfor TX (`CR1=&44`, `CR2=&A7`) and writes the ACK address frame:\ndestination station from [`scout_buf`](address:0D2E), destination\nnetwork from [`scout_src_net`](address:0D2F), source station\nfrom the workspace copy [`tx_src_stn`](address:0D22), and\n`src_net=0`. The ACK frame has no data payload -- just address\nbytes.\n\nAfter writing the address bytes to the TX FIFO, installs the next\nNMI handler from `saved_nmi_lo`/`saved_nmi_hi` (saved by the\nscout/data RX handler via [`ack_tx_write_dest`](address:82F8))\nand sends `TX_LAST_DATA` (`CR2=&3F`) to close the frame.",
       "fall_through": true
     },
     {
@@ -455,7 +455,7 @@
       "addr": 33558,
       "name": "nmi_ack_tx_src",
       "title": "ACK TX continuation",
-      "description": "Continuation of ACK frame transmission, reached via NMI after\n[`ack_tx_write_dest`](address:82F8) installed it as the next\nhandler. Reads our station ID from the workspace copy\n[`tx_src_stn`](address:0D22), tests `TDRA` via `SR1`, and writes\n`(station, network=0)` to the TX FIFO -- completing the 4-byte\nACK address header.\n\nThen dispatches on [`rx_src_net`](address:0D3E) bit 7 (which the\ncaller uses as a TX-flags byte):\n\n| Bit 7 | Action |\n|---|---|\n| set   | branch to `start_data_tx` to begin the data phase |\n| clear | write `CR2=&3F` (TX_LAST_DATA) and fall through to [`post_ack_scout`](address:832D) |",
+      "description": "Continuation of ACK frame transmission, reached via NMI after\n[`ack_tx_write_dest`](address:82F8) installed it as the next\nhandler. Reads our station ID from the workspace copy\n[`tx_src_stn`](address:0D22), tests `TDRA` via `SR1`, and writes\n`(station, network=0)` to the TX FIFO -- completing the 4-byte\nACK address header.\n\nThen dispatches on [`net_frame_flags`](address:0D3E) bit 7 (which the\ncaller uses as a TX-flags byte):\n\n| Bit 7 | Action |\n|---|---|\n| set   | branch to `start_data_tx` to begin the data phase |\n| clear | write `CR2=&3F` (TX_LAST_DATA) and fall through to [`post_ack_scout`](address:832D) |",
       "fall_through": true
     },
     {
@@ -509,13 +509,13 @@
       "addr": 33778,
       "name": "discard_reset_listen",
       "title": "Discard with Tube release",
-      "description": "Checks whether a Tube transfer is active by ANDing bit 1 of\n[`tube_present`](address:0D63) with\n[`rx_src_net`](address:0D3E) (`tx_flags`). If a Tube claim is\nheld, calls [`release_tube`](address:8448) to free it before\nreturning.\n\nUsed as the clean-up path after RXCB completion and after ADLC\nreset to ensure no stale Tube claims persist."
+      "description": "Checks whether a Tube transfer is active by ANDing bit 1 of\n[`tube_present`](address:0D63) with\n[`net_frame_flags`](address:0D3E) (`tx_flags`). If a Tube claim is\nheld, calls [`release_tube`](address:8448) to free it before\nreturning.\n\nUsed as the clean-up path after RXCB completion and after ADLC\nreset to ensure no stale Tube claims persist."
     },
     {
       "addr": 33792,
       "name": "copy_scout_to_buffer",
       "title": "Copy scout data to port buffer (entry point)",
-      "description": "Five-instruction prologue that prepares to copy scout-payload\nbytes (offsets `4..&0B`) from [`scout_buf`](address:0D2E) into the\nopen port buffer. Saves `X` on the stack, loads `X=4` (the first\nscout-data offset) and `A=&02` (Tube-flag mask), then `BIT`s\n[`rx_src_net`](address:0D3E) (`tx_flags`) so the immediately\nfollowing `BNE` in\n[`save_acccon_for_shadow_ram`](address:8409) can dispatch:\n\n| Bit 1 | Path |\n|---|---|\n| clear | fall through into `save_acccon_for_shadow_ram` (direct memory store via `(open_port_buf),Y`, with ACCCON saved/restored on Master 128) |\n| set   | branch to [`copy_scout_via_tube`](address:8436) (Tube R3 write) |\n\nBoth paths walk the four-byte buffer pointer and end via\n[`scout_copy_done`](address:842B) which restores `X` and returns.\nSingle caller: [`port_match_found`](address:8195) at `&81A4`.",
+      "description": "Five-instruction prologue that prepares to copy scout-payload\nbytes (offsets `4..&0B`) from [`scout_buf`](address:0D2E) into the\nopen port buffer. Saves `X` on the stack, loads `X=4` (the first\nscout-data offset) and `A=&02` (Tube-flag mask), then `BIT`s\n[`net_frame_flags`](address:0D3E) (`tx_flags`) so the immediately\nfollowing `BNE` in\n[`save_acccon_for_shadow_ram`](address:8409) can dispatch:\n\n| Bit 1 | Path |\n|---|---|\n| clear | fall through into `save_acccon_for_shadow_ram` (direct memory store via `(open_port_buf),Y`, with ACCCON saved/restored on Master 128) |\n| set   | branch to [`copy_scout_via_tube`](address:8436) (Tube R3 write) |\n\nBoth paths walk the four-byte buffer pointer and end via\n[`scout_copy_done`](address:842B) which restores `X` and returns.\nSingle caller: [`port_match_found`](address:8195) at `&81A4`.",
       "fall_through": true
     },
     {
@@ -782,7 +782,7 @@
       "addr": 34607,
       "name": "nmi_tx_complete",
       "title": "TX completion: switch to RX mode",
-      "description": "Called via NMI after the frame (including CRC and closing flag)\nhas been fully transmitted. Writes `CR1=&82` (`TX_RESET | RIE`)\nto clear `RX_RESET` and enable RX interrupts \u2013 the **TX-to-RX\npivot** in the four-way handshake. The scout ACK can only be\nreceived after this point.\n\nFull `CR1` sequence through a handshake:\n\n| Step | `CR1` | Meaning |\n|---|---|---|\n| 1 | `&44` | scout TX |\n| 2 | `&82` | await scout ACK |\n| 3 | `&44` | data TX |\n| 4 | `&82` | await data ACK |\n\nDispatches on [`rx_src_net`](address:0D3E) flags:\n\n| Flag | Action |\n|---|---|\n| bit 6 set (broadcast) | jump to [`tx_result_ok`](address:88DE) |\n| bit 0 set (handshake data pending) | jump to [`handshake_await_ack`](address:8886) |\n| both clear | install [`nmi_reply_scout`](address:874B) for scout ACK reception |"
+      "description": "Called via NMI after the frame (including CRC and closing flag)\nhas been fully transmitted. Writes `CR1=&82` (`TX_RESET | RIE`)\nto clear `RX_RESET` and enable RX interrupts \u2013 the **TX-to-RX\npivot** in the four-way handshake. The scout ACK can only be\nreceived after this point.\n\nFull `CR1` sequence through a handshake:\n\n| Step | `CR1` | Meaning |\n|---|---|---|\n| 1 | `&44` | scout TX |\n| 2 | `&82` | await scout ACK |\n| 3 | `&44` | data TX |\n| 4 | `&82` | await data ACK |\n\nDispatches on [`net_frame_flags`](address:0D3E) flags:\n\n| Flag | Action |\n|---|---|\n| bit 6 set (broadcast) | jump to [`tx_result_ok`](address:88DE) |\n| bit 0 set (handshake data pending) | jump to [`handshake_await_ack`](address:8886) |\n| both clear | install [`nmi_reply_scout`](address:874B) for scout ACK reception |"
     },
     {
       "addr": 34635,
@@ -812,14 +812,14 @@
       "addr": 34750,
       "name": "nmi_scout_ack_src",
       "title": "TX scout ACK: write source address",
-      "description": "Continuation of the TX-side scout ACK. Reads our station ID from\nthe workspace copy [`tx_src_stn`](address:0D22), tests `TDRA`\nvia `SR1`, and writes `(station, network=0)` to the TX FIFO.\n\nThen dispatches on bit 1 of [`rx_src_net`](address:0D3E) to\nselect the next NMI handler:\n\n| Bit 1 | Handler |\n|---|---|\n| set   | immediate-op data NMI handler |\n| clear | normal [`nmi_tx_data`](address:86E7) |\n\nInstalls the chosen handler via\n[`set_nmi_vector`](address:0D0E). Shares the\n[`tx_check_tdra_ready`](address:87C4) entry with\n[`ack_tx`](address:82DF).",
+      "description": "Continuation of the TX-side scout ACK. Reads our station ID from\nthe workspace copy [`tx_src_stn`](address:0D22), tests `TDRA`\nvia `SR1`, and writes `(station, network=0)` to the TX FIFO.\n\nThen dispatches on bit 1 of [`net_frame_flags`](address:0D3E) to\nselect the next NMI handler:\n\n| Bit 1 | Handler |\n|---|---|\n| set   | immediate-op data NMI handler |\n| clear | normal [`nmi_tx_data`](address:86E7) |\n\nInstalls the chosen handler via\n[`set_nmi_vector`](address:0D0E). Shares the\n[`tx_check_tdra_ready`](address:87C4) entry with\n[`ack_tx`](address:82DF).",
       "fall_through": true
     },
     {
       "addr": 34766,
       "name": "data_tx_begin",
       "title": "Begin data-frame TX: install nmi_data_tx or alt",
-      "description": "Tests bit 1 of [`rx_src_net`](address:0D3E)\n([`tx_flags`](address:0D4A)):\n\n| Bit 1 | Path |\n|---|---|\n| set (immediate-op) | branch to `install_imm_data_nmi` to use the alternative handler |\n| clear | install the [`nmi_data_tx`](address:87E3) alt-entry at `&87EB` (lo=`&EB`, hi=`&87`) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |\n\nSingle caller (`&8339` inside [`ack_tx`](address:82DF))."
+      "description": "Tests bit 1 of [`net_frame_flags`](address:0D3E)\n([`tx_flags`](address:0D4A)):\n\n| Bit 1 | Path |\n|---|---|\n| set (immediate-op) | branch to `install_imm_data_nmi` to use the alternative handler |\n| clear | install the [`nmi_data_tx`](address:87E3) alt-entry at `&87EB` (lo=`&EB`, hi=`&87`) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |\n\nSingle caller (`&8339` inside [`ack_tx`](address:82DF))."
     },
     {
       "addr": 34787,
@@ -4634,7 +4634,7 @@
       "addr": 39797,
       "name": "pass_txbuf_init_table",
       "title": "Pass-through TX buffer template (12 bytes)",
-      "description": "Overlaid onto the TX control block by\n[`setup_pass_txbuf`](address:9B89) for pass-through operations.\nThe 12 bytes follow the Econet TXCB layout used elsewhere in this\nROM (compare [`bridge_rxcb_init_data`](address:ABDD)):\n\n| Offset | Field |\n|---|---|\n| 0     | TX control byte (`&88` = immediate TX)        |\n| 1     | TX port (`&00` = immediate op)                |\n| 2-3   | dest station / network (`&FD` skip = preserve)|\n| 4-5   | buffer start address (lo, hi)                  |\n| 6-7   | extended-address fill (`&FF&FF`)               |\n| 8-9   | buffer end address (lo, hi)                    |\n| 10-11 | extended-address fill (`&FF&FF`)               |\n\nThe buffer spans [`&0D3A`..`&0D3E`](address:0D3D) -- the bytes\nimmediately preceding [`rx_src_stn`](address:0D3D) through\n[`rx_src_net`](address:0D3E) -- so the same RX-area bytes are\nechoed back as the TX payload (hence \"pass-through\"). The\n`&FF&FF` filler bytes at offsets 6-7 and 10-11 are a software\nconvention left over from a 4-byte-address format the BBC\nEconet driver anticipated; for main-RAM buffers they're left\nas `&FF&FF`. Original TX buffer values are pushed on the stack\nand restored after transmission.",
+      "description": "Overlaid onto the TX control block by\n[`setup_pass_txbuf`](address:9B89) for pass-through operations.\nThe 12 bytes follow the Econet TXCB layout used elsewhere in this\nROM (compare [`bridge_rxcb_init_data`](address:ABDD)):\n\n| Offset | Field |\n|---|---|\n| 0     | TX control byte (`&88` = immediate TX)        |\n| 1     | TX port (`&00` = immediate op)                |\n| 2-3   | dest station / network (`&FD` skip = preserve)|\n| 4-5   | buffer start address (lo, hi)                  |\n| 6-7   | extended-address fill (`&FF&FF`)               |\n| 8-9   | buffer end address (lo, hi)                    |\n| 10-11 | extended-address fill (`&FF&FF`)               |\n\nThe buffer spans [`&0D3A`..`&0D3E`](address:0D3D) -- the bytes\nimmediately preceding [`rx_src_stn`](address:0D3D) through\n[`net_frame_flags`](address:0D3E) -- so the same RX-area bytes are\nechoed back as the TX payload (hence \"pass-through\"). The\n`&FF&FF` filler bytes at offsets 6-7 and 10-11 are a software\nconvention left over from a 4-byte-address format the BBC\nEconet driver anticipated; for main-RAM buffers they're left\nas `&FF&FF`. Original TX buffer values are pushed on the stack\nand restored after transmission.",
       "align": "before_label"
     },
     {
@@ -4904,7 +4904,7 @@
     "scout_port": 3377,
     "scout_data": 3378,
     "rx_src_stn": 3389,
-    "rx_src_net": 3390,
+    "net_frame_flags": 3390,
     "rx_ctrl": 3391,
     "rx_port": 3392,
     "rx_remote_addr": 3393,
@@ -5915,11 +5915,11 @@
     },
     {
       "addr": 3390,
-      "name": "rx_src_net",
+      "name": "net_frame_flags",
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "Source network of the received scout frame.\nRead by [`nmi_rx_scout_net`](address:80B8); used for the local-network match (0 = local, &FF = broadcast)."
+      "description": "TX / transfer flags for the current Econet frame, initialised during\nscout receive and carried through the reply and data-TX phases:\n\n| Bit | Meaning |\n|-----|---------|\n| 0 | handshake-data pending |\n| 1 | data transfer routes into the Tube buffer |\n| 6 | broadcast frame (scout addressed to station &FF) |\n| 7 | reply pending / data-TX phase / error-path selector |"
     },
     {
       "addr": 3391,
@@ -7768,12 +7768,12 @@
         62,
         13
       ],
-      "comment_inline": "Store broadcast flag in rx_src_net",
+      "comment_inline": "Store broadcast flag in net_frame_flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 32947,
@@ -7966,9 +7966,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 32977,
@@ -8654,9 +8654,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33086,
@@ -9373,9 +9373,9 @@
       "comment_inline": "Check broadcast flag for ACK path",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33186,
@@ -9886,9 +9886,9 @@
       "comment_inline": "Check if Tube transfer active",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33276,
@@ -10114,9 +10114,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33304,
@@ -11381,9 +11381,9 @@
       "comment_inline": "Set extra byte flag in tx_flags",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33500,
@@ -11395,9 +11395,9 @@
       "comment_inline": "Store updated flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33503,
@@ -11425,9 +11425,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33506,
@@ -11810,9 +11810,9 @@
       "comment_inline": "Check tx_flags for data phase",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33577,
@@ -11990,9 +11990,9 @@
       "comment_inline": "Check tx_flags data-transfer bit",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33604,
@@ -12169,9 +12169,9 @@
       "comment_inline": "Check tx_flags Tube bit",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33630,
@@ -13281,9 +13281,9 @@
       "comment_inline": "Test tx_flags for Tube transfer",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33786,
@@ -13398,9 +13398,9 @@
       "comment_inline": "Check tx_flags Tube bit",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 33801,
@@ -15001,9 +15001,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34019,
@@ -15026,9 +15026,9 @@
       "comment_inline": "Store updated TX flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34024,
@@ -17674,9 +17674,9 @@
       "comment_inline": "Store operation flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34416,
@@ -18233,9 +18233,9 @@
       "comment_inline": "Set broadcast flag in tx_flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34493,
@@ -18365,9 +18365,9 @@
       "comment_inline": "Clear tx_flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34512,
@@ -19057,9 +19057,9 @@
       "comment_inline": "Test workspace flags",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34615,
@@ -19121,9 +19121,9 @@
       "comment_inline": "Test tx_flags bit0 (handshake)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34625,
@@ -19961,9 +19961,9 @@
       "comment_inline": "Check if immediate-op or data-transfer",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34771,
@@ -20634,9 +20634,9 @@
       "comment_inline": "Check tx_flags for next action",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34867,
@@ -21177,9 +21177,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 34945,
@@ -21628,9 +21628,9 @@
       "comment_inline": "Load TX flags for next action",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 35026,
@@ -22240,9 +22240,9 @@
       "comment_inline": "Load TX flags for transfer setup",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 35116,
@@ -22265,9 +22265,9 @@
       "comment_inline": "Store with bit 1 set (Tube xfer)",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "rx_src_net",
+      "operand": "net_frame_flags",
       "target": 3390,
-      "target_label": "rx_src_net"
+      "target_label": "net_frame_flags"
     },
     {
       "addr": 35121,

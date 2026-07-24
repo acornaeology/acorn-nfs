@@ -721,9 +721,16 @@ First address byte read by [`nmi_rx_scout`](address:809B) and validated against 
 
 d.label(
     0x0D3E,
-    "rx_src_net",
-    description="""Source network of the received scout frame.
-Read by [`nmi_rx_scout_net`](address:80B8); used for the local-network match (0 = local, &FF = broadcast).""",
+    "net_frame_flags",
+    description="""TX / transfer flags for the current Econet frame, initialised during
+scout receive and carried through the reply and data-TX phases:
+
+| Bit | Meaning |
+|-----|---------|
+| 0 | handshake-data pending |
+| 1 | data transfer routes into the Tube buffer |
+| 6 | broadcast frame (scout addressed to station &FF) |
+| 7 | reply pending / data-TX phase / error-path selector |""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -1394,7 +1401,7 @@ d.comment(0x80A8, "Match -- accept frame", align=Align.INLINE)
 d.comment(0x80AA, "Check for broadcast address (&FF)", align=Align.INLINE)
 d.comment(0x80AC, "Neither our address nor broadcast -- reject frame", align=Align.INLINE)
 d.comment(0x80AE, "Flag &40 = broadcast frame", align=Align.INLINE)
-d.comment(0x80B0, "Store broadcast flag in rx_src_net", align=Align.INLINE)
+d.comment(0x80B0, "Store broadcast flag in net_frame_flags", align=Align.INLINE)
 d.label(0x80B3, "accept_frame")
 
 d.comment(0x80B3, "Install nmi_rx_scout_net NMI handler", align=Align.INLINE)
@@ -1597,7 +1604,7 @@ d.subroutine(
 [`tx_calc_transfer`](address:8900) to compute the transfer
 parameters from the RXCB, then triages:
 
-| Carry | `rx_src_net` (V) | Action |
+| Carry | `net_frame_flags` (V) | Action |
 |---|---|---|
 | `C=0` | – | no Tube claimed → [`nmi_error_dispatch`](address:8215) (discard) |
 | `C=1` | broadcast | discard (broadcasts get no ACK) |
@@ -1747,9 +1754,9 @@ d.subroutine(
     description="""Selects between the normal bulk-RX handler at
 [`nmi_data_rx_bulk`](address:8223) and the Tube RX handler at
 [`nmi_data_rx_tube`](address:8291) based on bit 1 of
-`rx_src_net` (`tx_flags`).
+`net_frame_flags` (`tx_flags`).
 
-| `rx_src_net` bit 1 | Handler |
+| `net_frame_flags` bit 1 | Handler |
 |---|---|
 | clear | [`nmi_data_rx_bulk`](address:8223) (`A=&23`, `Y=&82`) |
 | set   | [`nmi_data_rx_tube`](address:8291) (`A=&91`, `Y=&82`) |
@@ -1792,11 +1799,11 @@ d.subroutine(
     "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="""Common error/abort entry used by 11 call sites. The dispatch byte
-at [`rx_src_net`](address:0D3E) doubles as a TX-state flag here:
+at [`net_frame_flags`](address:0D3E) doubles as a TX-state flag here:
 bit 7 distinguishes whether the NMI handler reached this point on
 an RX-error path or a TX not-listening path.
 
-| `rx_src_net` bit 7 | Path |
+| `net_frame_flags` bit 7 | Path |
 |---|---|
 | clear | RX error – full ADLC reset; return to idle listen |
 | set   | TX not-listening – `JMP` [`tx_result_fail`](address:88E2) |""",
@@ -1967,7 +1974,7 @@ d.subroutine(
     "ack_tx",
     title="ACK transmission",
     description="""Sends a scout ACK or final ACK frame as part of the four-way
-handshake. Tests bit 7 of [`rx_src_net`](address:0D3E) (used as
+handshake. Tests bit 7 of [`net_frame_flags`](address:0D3E) (used as
 TX-flags here): if set this is a final ACK and completion runs
 through [`tx_result_ok`](address:88DE). Otherwise configures
 for TX (`CR1=&44`, `CR2=&A7`) and writes the ACK address frame:
@@ -2045,7 +2052,7 @@ handler. Reads our station ID from the workspace copy
 `(station, network=0)` to the TX FIFO -- completing the 4-byte
 ACK address header.
 
-Then dispatches on [`rx_src_net`](address:0D3E) bit 7 (which the
+Then dispatches on [`net_frame_flags`](address:0D3E) bit 7 (which the
 caller uses as a TX-flags byte):
 
 | Bit 7 | Action |
@@ -2334,7 +2341,7 @@ d.subroutine(
     title="Discard with Tube release",
     description="""Checks whether a Tube transfer is active by ANDing bit 1 of
 [`tube_present`](address:0D63) with
-[`rx_src_net`](address:0D3E) (`tx_flags`). If a Tube claim is
+[`net_frame_flags`](address:0D3E) (`tx_flags`). If a Tube claim is
 held, calls [`release_tube`](address:8448) to free it before
 returning.
 
@@ -2361,7 +2368,7 @@ d.subroutine(
 bytes (offsets `4..&0B`) from [`scout_buf`](address:0D2E) into the
 open port buffer. Saves `X` on the stack, loads `X=4` (the first
 scout-data offset) and `A=&02` (Tube-flag mask), then `BIT`s
-[`rx_src_net`](address:0D3E) (`tx_flags`) so the immediately
+[`net_frame_flags`](address:0D3E) (`tx_flags`) so the immediately
 following `BNE` in
 [`save_acccon_for_shadow_ram`](address:8409) can dispatch:
 
@@ -3553,7 +3560,7 @@ Full `CR1` sequence through a handshake:
 | 3 | `&44` | data TX |
 | 4 | `&82` | await data ACK |
 
-Dispatches on [`rx_src_net`](address:0D3E) flags:
+Dispatches on [`net_frame_flags`](address:0D3E) flags:
 
 | Flag | Action |
 |---|---|
@@ -3707,7 +3714,7 @@ d.subroutine(
 the workspace copy [`tx_src_stn`](address:0D22), tests `TDRA`
 via `SR1`, and writes `(station, network=0)` to the TX FIFO.
 
-Then dispatches on bit 1 of [`rx_src_net`](address:0D3E) to
+Then dispatches on bit 1 of [`net_frame_flags`](address:0D3E) to
 select the next NMI handler:
 
 | Bit 1 | Handler |
@@ -3736,7 +3743,7 @@ d.subroutine(
     0x87CE,
     "data_tx_begin",
     title="Begin data-frame TX: install nmi_data_tx or alt",
-    description="""Tests bit 1 of [`rx_src_net`](address:0D3E)
+    description="""Tests bit 1 of [`net_frame_flags`](address:0D3E)
 ([`tx_flags`](address:0D4A)):
 
 | Bit 1 | Path |
@@ -9432,7 +9439,7 @@ ROM (compare [`bridge_rxcb_init_data`](address:ABDD)):
 
 The buffer spans [`&0D3A`..`&0D3E`](address:0D3D) -- the bytes
 immediately preceding [`rx_src_stn`](address:0D3D) through
-[`rx_src_net`](address:0D3E) -- so the same RX-area bytes are
+[`net_frame_flags`](address:0D3E) -- so the same RX-area bytes are
 echoed back as the TX payload (hence "pass-through"). The
 `&FF&FF` filler bytes at offsets 6-7 and 10-11 are a software
 convention left over from a 4-byte-address format the BBC

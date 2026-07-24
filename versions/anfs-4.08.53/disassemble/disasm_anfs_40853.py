@@ -1329,7 +1329,7 @@ d.index_base(0x0D32, "scout_data")
 
 d.label(0x0D3D, "rx_src_stn")
 
-d.label(0x0D3E, "rx_src_net")
+d.label(0x0D3E, "net_frame_flags")
 
 d.label(0x0D3F, "rx_ctrl")
 
@@ -1758,7 +1758,7 @@ d.comment(0x80C0, "Match -- accept frame", align=Align.INLINE)
 d.comment(0x80C2, "Check for broadcast address (&FF)", align=Align.INLINE)
 d.comment(0x80C4, "Neither our address nor broadcast -- reject frame", align=Align.INLINE)
 d.comment(0x80C6, "Flag &40 = broadcast frame", align=Align.INLINE)
-d.comment(0x80C8, "Store broadcast flag in rx_src_net", align=Align.INLINE)
+d.comment(0x80C8, "Store broadcast flag in net_frame_flags", align=Align.INLINE)
 d.label(0x80CB, "accept_frame")
 
 d.comment(0x80CB, "Install nmi_rx_scout_net NMI handler", align=Align.INLINE)
@@ -2015,7 +2015,7 @@ d.subroutine(
     "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="""Selects between the normal bulk RX handler (&8239)
-and the Tube RX handler based on bit 1 of rx_src_net
+and the Tube RX handler based on bit 1 of net_frame_flags
 (tx_flags). If normal mode, loads the handler address
 &8239 and checks SR1 bit 7: if IRQ is already asserted
 (more data waiting), jumps directly to nmi_data_rx_bulk
@@ -2226,7 +2226,7 @@ d.subroutine(
 station ID from &FE18 (INTOFF side effect), tests
 TDRA via SR1, and writes station + network=0 to the
 TX FIFO, completing the 4-byte ACK address header.
-Then checks rx_src_net bit 7: if set, branches to
+Then checks net_frame_flags bit 7: if set, branches to
 start_data_tx to begin the data phase. Otherwise
 writes CR2=&3F (TX_LAST_DATA) and falls through to
 post_ack_scout for scout processing.""",
@@ -2441,7 +2441,7 @@ d.subroutine(
     "discard_reset_listen",
     title="Discard with Tube release",
     description="""Checks whether a Tube transfer is active by
-ANDing bit 1 of l0d63 with rx_src_net (tx_flags).
+ANDing bit 1 of l0d63 with net_frame_flags (tx_flags).
 If a Tube claim is held, calls release_tube to
 free it before returning. Used as the clean-up
 path after RXCB completion and after ADLC reset
@@ -2467,7 +2467,7 @@ d.subroutine(
     title="Copy scout data to port buffer",
     description="""Copies scout data bytes (offsets 4-11) from the
 RX scout buffer at &0D3D into the open port buffer.
-Checks bit 1 of rx_src_net (tx_flags) to select the
+Checks bit 1 of net_frame_flags (tx_flags) to select the
 write path: direct memory store via (open_port_buf),Y
 for normal transfers, or Tube data register 3 write
 for Tube transfers. Calls advance_buffer_ptr after
@@ -3416,7 +3416,7 @@ Writes `CR1 = &82` (`TX_RESET | RIE`, i.e. `1000_0010`): clears `RX_RESET` (bit 
 
 (this routine fires at step 2; [`handshake_await_ack`](address:886E) at step 4.)
 
-Dispatches on the `rx_src_net` flags written earlier in the TX path:
+Dispatches on the `net_frame_flags` flags written earlier in the TX path:
 
 | Flag                          | Next handler                                   |
 |-------------------------------|------------------------------------------------|
@@ -3545,7 +3545,7 @@ d.subroutine(
     description="""Continuation of the TX-side scout ACK. Reads our
 station ID from &FE18 (INTOFF), tests TDRA via SR1,
 and writes station + network=0 to the TX FIFO. Then
-checks bit 1 of rx_src_net to select between the
+checks bit 1 of net_frame_flags to select between the
 immediate-op data NMI handler and the normal
 nmi_data_tx handler at &87E4. Installs the chosen
 handler via set_nmi_vector. Shares the tx_check_tdra
@@ -3864,7 +3864,7 @@ RXCB buffer pointers. Reads the 4-byte buffer end
 address from (port_ws_offset) and checks for Tube
 addresses (&FExx/&FFxx). For Tube transfers, claims
 the Tube address and sets the transfer flag in
-rx_src_net. Subtracts the buffer start from the
+net_frame_flags. Subtracts the buffer start from the
 buffer end to compute the byte count, storing it in
 port_buf_len/port_buf_len_hi. Also copies the buffer
 start address to open_port_buf for the RX/TX handlers

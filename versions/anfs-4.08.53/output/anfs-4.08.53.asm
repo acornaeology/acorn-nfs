@@ -279,7 +279,7 @@ scout_port                             = &0d31
 scout_data                             = &0d32
 ; &0d32 used as index base 1 time by &8498
 rx_src_stn                             = &0d3d
-rx_src_net                             = &0d3e
+net_frame_flags                        = &0d3e
 ; &0d3e referenced 27 times by &80c8, &80e6, &8155, &81b9, &8213, &822b, &82de, &82e1, &82e4, &832b, &8346, &8360, &83fd, &840c, &84d3, &84d8, &8666, &86b3, &86c6, &872d, &8737, &87c9, &8818, &8866, &88b7, &88fc, &8901
 rx_ctrl                                = &0d3f
 ; &0d3f referenced 4 times by &85e5, &866c, &86ae, &86f9
@@ -1674,7 +1674,7 @@ service_handler_lo = service_entry+1
     cmp #&ff                                                          ; 80c2: c9 ff       ..       ; Check for broadcast address (&FF)
     bne scout_reject                                                  ; 80c4: d0 18       ..       ; Neither our address nor broadcast -- reject frame
     lda #&40 ; '@'                                                    ; 80c6: a9 40       .@       ; Flag &40 = broadcast frame
-    sta rx_src_net                                                    ; 80c8: 8d 3e 0d    .>.      ; Store broadcast flag in rx_src_net
+    sta net_frame_flags                                               ; 80c8: 8d 3e 0d    .>.      ; Store broadcast flag in net_frame_flags
 ; &80cb referenced 1 time by &80c0
 .accept_frame
     lda #&d0                                                          ; 80cb: a9 d0       ..       ; Install nmi_rx_scout_net NMI handler
@@ -1699,7 +1699,7 @@ service_handler_lo = service_entry+1
     jmp set_nmi_rx_scout                                              ; 80e3: 4c f1 83    L..      ; Return to idle scout listening
 ; &80e6 referenced 1 time by &80d8
 .accept_local_net
-    sta rx_src_net                                                    ; 80e6: 8d 3e 0d    .>.      ; Network = 0 (local): clear tx_flags
+    sta net_frame_flags                                               ; 80e6: 8d 3e 0d    .>.      ; Network = 0 (local): clear tx_flags
 ; &80e9 referenced 1 time by &80dc
 .accept_scout_net
     sta port_buf_len                                                  ; 80e9: 85 a2       ..       ; Store Y offset for scout data buffer
@@ -1777,7 +1777,7 @@ service_handler_lo = service_entry+1
     jmp immediate_op                                                  ; 8152: 4c 4b 84    LK.      ; Port = 0 -- immediate operation handler
 ; &8155 referenced 1 time by &8150
 .scout_match_port
-    bit rx_src_net                                                    ; 8155: 2c 3e 0d    ,>.      ; Check if broadcast (bit6 of tx_flags)
+    bit net_frame_flags                                               ; 8155: 2c 3e 0d    ,>.      ; Check if broadcast (bit6 of tx_flags)
     bvc scan_port_list                                                ; 8158: 50 05       P.       ; Not broadcast -- skip CR2 setup
     lda #7                                                            ; 815a: a9 07       ..       ; CR2=&07: broadcast prep
     sta econet_control23_or_status2                                   ; 815c: 8d a1 fe    ...      ; Write CR2: broadcast frame prep
@@ -1842,7 +1842,7 @@ service_handler_lo = service_entry+1
     sta rx_port                                                       ; 81b1: 8d 40 0d    .@.      ; Record match for completion handler
     jsr tx_calc_transfer                                              ; 81b4: 20 e8 88     ..      ; Calculate transfer parameters
     bcc nmi_error_dispatch                                            ; 81b7: 90 72       .r       ; C=0: no Tube claimed -- discard
-    bit rx_src_net                                                    ; 81b9: 2c 3e 0d    ,>.      ; Check broadcast flag for ACK path
+    bit net_frame_flags                                               ; 81b9: 2c 3e 0d    ,>.      ; Check broadcast flag for ACK path
     bvc send_data_rx_ack                                              ; 81bc: 50 03       P.       ; Not broadcast -- normal ACK path
     jmp copy_scout_to_buffer                                          ; 81be: 4c 06 84    L..      ; Broadcast: different completion path
 ; &81c1 referenced 2 times by &81bc, &84a1
@@ -1898,14 +1898,14 @@ service_handler_lo = service_entry+1
 ; Install data RX bulk or Tube handler
 ;
 ; Selects between the normal bulk RX handler (&8239) and the Tube RX handler based on bit
-; 1 of rx_src_net (tx_flags). If normal mode, loads the handler address &8239 and checks
-; SR1 bit 7: if IRQ is already asserted (more data waiting), jumps directly to
+; 1 of net_frame_flags (tx_flags). If normal mode, loads the handler address &8239 and
+; checks SR1 bit 7: if IRQ is already asserted (more data waiting), jumps directly to
 ; nmi_data_rx_bulk to avoid NMI re-entry overhead. Otherwise installs the handler via
 ; set_nmi_vector and returns via RTI.
 ; &8211 referenced 1 time by &88bc
 .install_data_rx_handler
     lda #2                                                            ; 8211: a9 02       ..       ; A=2: Tube transfer flag mask
-    bit rx_src_net                                                    ; 8213: 2c 3e 0d    ,>.      ; Check if Tube transfer active
+    bit net_frame_flags                                               ; 8213: 2c 3e 0d    ,>.      ; Check if Tube transfer active
     bne install_tube_rx                                               ; 8216: d0 0c       ..       ; Tube active: use Tube RX path
     lda #&39 ; '9'                                                    ; 8218: a9 39       .9       ; Install bulk read at &8239
     ldy #&82                                                          ; 821a: a0 82       ..       ; High byte of &8239 handler
@@ -1925,7 +1925,7 @@ service_handler_lo = service_entry+1
 ; tx_result_fail (TX not-listening path).
 ; &822b referenced 12 times by &81a1, &81b7, &81e1, &81e9, &81f3, &81f8, &8209, &824c, &827e, &8284, &8341, &847b
 .nmi_error_dispatch
-    lda rx_src_net                                                    ; 822b: ad 3e 0d    .>.      ; Check tx_flags for error path
+    lda net_frame_flags                                               ; 822b: ad 3e 0d    .>.      ; Check tx_flags for error path
     bpl rx_error_reset                                                ; 822e: 10 03       ..       ; Bit7 clear: RX error path
     jmp tx_result_fail                                                ; 8230: 4c ca 88    L..      ; Bit7 set: TX result = not listening
 ; &8233 referenced 1 time by &822e
@@ -2039,8 +2039,8 @@ service_handler_lo = service_entry+1
     lda econet_data_continue_frame                                    ; 82d6: ad a2 fe    ...      ; Read extra trailing byte from FIFO
     sta rx_extra_byte                                                 ; 82d9: 8d 42 0d    .B.      ; Save extra byte at &0D5D for later use
     lda #&20 ; ' '                                                    ; 82dc: a9 20       .        ; Bit5 = extra data byte available flag
-    ora rx_src_net                                                    ; 82de: 0d 3e 0d    .>.      ; Set extra byte flag in tx_flags
-    sta rx_src_net                                                    ; 82e1: 8d 3e 0d    .>.      ; Store updated flags
+    ora net_frame_flags                                               ; 82de: 0d 3e 0d    .>.      ; Set extra byte flag in tx_flags
+    sta net_frame_flags                                               ; 82e1: 8d 3e 0d    .>.      ; Store updated flags
 ; ***************************************************************************************
 ; ACK transmission
 ;
@@ -2054,7 +2054,7 @@ service_handler_lo = service_entry+1
 ; close the frame.
 ; &82e4 referenced 2 times by &8293, &82ca
 .ack_tx
-    lda rx_src_net                                                    ; 82e4: ad 3e 0d    .>.      ; Load TX flags to check ACK type
+    lda net_frame_flags                                               ; 82e4: ad 3e 0d    .>.      ; Load TX flags to check ACK type
     bpl ack_tx_configure                                              ; 82e7: 10 06       ..       ; Bit7 clear: normal scout ACK
     jsr advance_rx_buffer_ptr                                         ; 82e9: 20 44 83     D.      ; Final ACK: call completion handler
     jmp tx_result_ok                                                  ; 82ec: 4c c6 88    L..      ; Jump to TX success result
@@ -2084,7 +2084,7 @@ service_handler_lo = service_entry+1
 ;
 ; Continuation of ACK frame transmission. Reads our station ID from &FE18 (INTOFF side
 ; effect), tests TDRA via SR1, and writes station + network=0 to the TX FIFO, completing
-; the 4-byte ACK address header. Then checks rx_src_net bit 7: if set, branches to
+; the 4-byte ACK address header. Then checks net_frame_flags bit 7: if set, branches to
 ; start_data_tx to begin the data phase. Otherwise writes CR2=&3F (TX_LAST_DATA) and
 ; falls through to post_ack_scout for scout processing.
 .nmi_ack_tx_src
@@ -2094,7 +2094,7 @@ service_handler_lo = service_entry+1
     sta econet_data_continue_frame                                    ; 8323: 8d a2 fe    ...      ; Write our station to TX FIFO
     lda #0                                                            ; 8326: a9 00       ..       ; Write network=0 to TX FIFO
     sta econet_data_continue_frame                                    ; 8328: 8d a2 fe    ...      ; Write network=0 (local) to TX FIFO
-    lda rx_src_net                                                    ; 832b: ad 3e 0d    .>.      ; Check tx_flags for data phase
+    lda net_frame_flags                                               ; 832b: ad 3e 0d    .>.      ; Check tx_flags for data phase
     bmi start_data_tx                                                 ; 832e: 30 0e       0.       ; bit7 set: start data TX phase
     lda #&3f ; '?'                                                    ; 8330: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
 ; ***************************************************************************************
@@ -2124,7 +2124,7 @@ service_handler_lo = service_entry+1
 ; &8344 referenced 2 times by &82e9, &839a
 .advance_rx_buffer_ptr
     lda #2                                                            ; 8344: a9 02       ..       ; A=2: test bit1 of tx_flags
-    bit rx_src_net                                                    ; 8346: 2c 3e 0d    ,>.      ; BIT tx_flags: check data transfer bit
+    bit net_frame_flags                                               ; 8346: 2c 3e 0d    ,>.      ; BIT tx_flags: check data transfer bit
     beq return_rx_complete                                            ; 8349: f0 3f       .?       ; Bit1 clear: no transfer -- return
     clc                                                               ; 834b: 18          .        ; CLC: init carry for 4-byte add
     php                                                               ; 834c: 08          .        ; Save carry on stack for loop
@@ -2141,7 +2141,7 @@ service_handler_lo = service_entry+1
     bcc add_rxcb_ptr                                                  ; 835b: 90 f2       ..       ; No: continue adding
     plp                                                               ; 835d: 28          (        ; Discard final carry
     lda #&20 ; ' '                                                    ; 835e: a9 20       .        ; A=&20: test bit5 of tx_flags
-    bit rx_src_net                                                    ; 8360: 2c 3e 0d    ,>.      ; BIT tx_flags: check Tube bit
+    bit net_frame_flags                                               ; 8360: 2c 3e 0d    ,>.      ; BIT tx_flags: check Tube bit
     beq skip_tube_update                                              ; 8363: f0 23       .#       ; No Tube: skip Tube update
     txa                                                               ; 8365: 8a          .        ; Save X on stack
     pha                                                               ; 8366: 48          H        ; Push X
@@ -2263,7 +2263,7 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Discard with Tube release
 ;
-; Checks whether a Tube transfer is active by ANDing bit 1 of l0d63 with rx_src_net
+; Checks whether a Tube transfer is active by ANDing bit 1 of l0d63 with net_frame_flags
 ; (tx_flags). If a Tube claim is held, calls release_tube to free it before returning.
 ; Used as the clean-up path after RXCB completion and after ADLC reset to ensure no stale
 ; Tube claims persist.
@@ -2272,7 +2272,7 @@ service_handler_lo = service_entry+1
     lda #2                                                            ; 83f8: a9 02       ..       ; Tube flag bit 1 AND tx_flags bit 1
     and tube_present                                                  ; 83fa: 2d 63 0d    -c.      ; Check if Tube transfer active
 ; &83fd used as index base 1 time by &846e
-    bit rx_src_net                                                    ; 83fd: 2c 3e 0d    ,>.      ; Test tx_flags for Tube transfer
+    bit net_frame_flags                                               ; 83fd: 2c 3e 0d    ,>.      ; Test tx_flags for Tube transfer
     beq rts_discard_reset                                             ; 8400: f0 03       ..       ; No Tube transfer active -- skip release
     jsr release_tube                                                  ; 8402: 20 3f 84     ?.      ; Release Tube claim before discarding
 ; &8405 referenced 1 time by &8400
@@ -2282,9 +2282,9 @@ service_handler_lo = service_entry+1
 ; Copy scout data to port buffer
 ;
 ; Copies scout data bytes (offsets 4-11) from the RX scout buffer at &0D3D into the open
-; port buffer. Checks bit 1 of rx_src_net (tx_flags) to select the write path: direct
-; memory store via (open_port_buf),Y for normal transfers, or Tube data register 3 write
-; for Tube transfers. Calls advance_buffer_ptr after each byte. Falls through to
+; port buffer. Checks bit 1 of net_frame_flags (tx_flags) to select the write path:
+; direct memory store via (open_port_buf),Y for normal transfers, or Tube data register 3
+; write for Tube transfers. Calls advance_buffer_ptr after each byte. Falls through to
 ; release_tube on completion. Handles page overflow (Y wrap) by branching to
 ; scout_page_overflow.
 ; &8406 referenced 1 time by &81be
@@ -2294,7 +2294,7 @@ service_handler_lo = service_entry+1
     ldx #4                                                            ; 8408: a2 04       ..       ; X=4: start at scout byte offset 4
     lda #2                                                            ; 840a: a9 02       ..       ; A=2: Tube transfer check mask
 .copy_scout_select
-    bit rx_src_net                                                    ; 840c: 2c 3e 0d    ,>.      ; BIT tx_flags: check Tube bit
+    bit net_frame_flags                                               ; 840c: 2c 3e 0d    ,>.      ; BIT tx_flags: check Tube bit
     bne copy_scout_via_tube                                           ; 840f: d0 1c       ..       ; Tube active: use R3 write path
     ldy port_buf_len                                                  ; 8411: a4 a2       ..       ; Y = current buffer position
 ; &8413 referenced 1 time by &8426
@@ -2488,9 +2488,9 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     bcc imm_op_discard                                                ; 84d1: 90 4f       .O       ; C=0: transfer not set up, discard
 ; &84d3 referenced 1 time by &84bf
 .set_tx_reply_flag
-    lda rx_src_net                                                    ; 84d3: ad 3e 0d    .>.      ; Mark TX flags bit 7 (reply pending)
+    lda net_frame_flags                                               ; 84d3: ad 3e 0d    .>.      ; Mark TX flags bit 7 (reply pending)
     ora #&80                                                          ; 84d6: 09 80       ..       ; Set reply pending flag
-    sta rx_src_net                                                    ; 84d8: 8d 3e 0d    .>.      ; Store updated TX flags
+    sta net_frame_flags                                               ; 84d8: 8d 3e 0d    .>.      ; Store updated TX flags
 .rx_imm_halt_cont
     lda #&44 ; 'D'                                                    ; 84db: a9 44       .D       ; CR1=&44: TIE | TX_LAST_DATA
     sta econet_control1_or_status1                                    ; 84dd: 8d a0 fe    ...      ; Write CR1: enable TX interrupts
@@ -2832,7 +2832,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     bne setup_data_xfer                                               ; 865e: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8660: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
     lda tube_tx_sr1_operand,y                                         ; 8663: b9 5f 88    ._.      ; Look up tx_flags from table
-    sta rx_src_net                                                    ; 8666: 8d 3e 0d    .>.      ; Store operation flags
+    sta net_frame_flags                                               ; 8666: 8d 3e 0d    .>.      ; Store operation flags
     lda tube_tx_inc_operand,y                                         ; 8669: b9 57 88    .W.      ; Look up tx_length from table
     sta rx_ctrl                                                       ; 866c: 8d 3f 0d    .?.      ; Store expected transfer length
     lda #&86                                                          ; 866f: a9 86       ..       ; Push high byte of return address (&9C)
@@ -2920,7 +2920,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda #&0e                                                          ; 86ac: a9 0e       ..       ; Broadcast scout: 14 bytes total
     sta rx_ctrl                                                       ; 86ae: 8d 3f 0d    .?.      ; Store broadcast scout length
     lda #&40 ; '@'                                                    ; 86b1: a9 40       .@       ; A=&40: broadcast flag
-    sta rx_src_net                                                    ; 86b3: 8d 3e 0d    .>.      ; Set broadcast flag in tx_flags
+    sta net_frame_flags                                               ; 86b3: 8d 3e 0d    .>.      ; Set broadcast flag in tx_flags
     ldy #4                                                            ; 86b6: a0 04       ..       ; Y=4: start of address data in TXCB
 ; &86b8 referenced 1 time by &86c0
 .copy_bcast_addr
@@ -2933,7 +2933,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; &86c4 referenced 1 time by &86aa
 .setup_unicast_xfer
     lda #0                                                            ; 86c4: a9 00       ..       ; A=0: clear flags for unicast
-    sta rx_src_net                                                    ; 86c6: 8d 3e 0d    .>.      ; Clear tx_flags
+    sta net_frame_flags                                               ; 86c6: 8d 3e 0d    .>.      ; Clear tx_flags
 .proc_op_status2
     lda #2                                                            ; 86c9: a9 02       ..       ; scout_status=2: data transfer pending
 ; &86cb referenced 1 time by &8681
@@ -3040,7 +3040,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ;
 ; (this routine fires at step 2; handshake_await_ack at step 4.)
 ;
-; Dispatches on the rx_src_net flags written earlier in the TX path:
+; Dispatches on the net_frame_flags flags written earlier in the TX path:
 ;
 ; | Flag                          | Next handler                                    |
 ; |-------------------------------|-------------------------------------------------|
@@ -3050,13 +3050,13 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 .nmi_tx_complete
     lda #&82                                                          ; 8728: a9 82       ..       ; Jump to error handler
     sta econet_control1_or_status1                                    ; 872a: 8d a0 fe    ...      ; Write CR1 to switch from TX to RX
-    bit rx_src_net                                                    ; 872d: 2c 3e 0d    ,>.      ; Test workspace flags
+    bit net_frame_flags                                               ; 872d: 2c 3e 0d    ,>.      ; Test workspace flags
     bvc check_handshake_bit                                           ; 8730: 50 03       P.       ; bit6 not set -- check bit0
     jmp tx_result_ok                                                  ; 8732: 4c c6 88    L..      ; bit6 set -- TX completion
 ; &8735 referenced 1 time by &8730
 .check_handshake_bit
     lda #1                                                            ; 8735: a9 01       ..       ; A=1: mask for bit0 test
-    bit rx_src_net                                                    ; 8737: 2c 3e 0d    ,>.      ; Test tx_flags bit0 (handshake)
+    bit net_frame_flags                                               ; 8737: 2c 3e 0d    ,>.      ; Test tx_flags bit0 (handshake)
     beq install_reply_scout                                           ; 873a: f0 03       ..       ; bit0 clear: install reply handler
     jmp handshake_await_ack                                           ; 873c: 4c 6e 88    Ln.      ; bit0 set -- four-way handshake data phase
 ; &873f referenced 1 time by &873a
@@ -3169,7 +3169,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ;
 ; Continuation of the TX-side scout ACK. Reads our station ID from &FE18 (INTOFF), tests
 ; TDRA via SR1, and writes station + network=0 to the TX FIFO. Then checks bit 1 of
-; rx_src_net to select between the immediate-op data NMI handler and the normal
+; net_frame_flags to select between the immediate-op data NMI handler and the normal
 ; nmi_data_tx handler at &87E4. Installs the chosen handler via set_nmi_vector. Shares
 ; the tx_check_tdra entry at &87BD with ack_tx.
 .nmi_scout_ack_src
@@ -3184,7 +3184,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ; &87c7 referenced 1 time by &833e
 .data_tx_begin
     lda #2                                                            ; 87c7: a9 02       ..       ; Test bit 1 of tx_flags
-    bit rx_src_net                                                    ; 87c9: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
+    bit net_frame_flags                                               ; 87c9: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 87cc: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
     lda #&e4                                                          ; 87ce: a9 e4       ..       ; Install nmi_data_tx at &87E4
     ldy #&87                                                          ; 87d0: a0 87       ..       ; High byte of handler address
@@ -3243,7 +3243,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 .data_tx_last
     lda #&3f ; '?'                                                    ; 8813: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA (close data frame)
     sta econet_control23_or_status2                                   ; 8815: 8d a1 fe    ...      ; Write CR2 to close frame
-    lda rx_src_net                                                    ; 8818: ad 3e 0d    .>.      ; Check tx_flags for next action
+    lda net_frame_flags                                               ; 8818: ad 3e 0d    .>.      ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 881b: 10 07       ..       ; Bit7 clear: error, install saved handler
     lda #&eb                                                          ; 881d: a9 eb       ..       ; Install discard_reset_listen at &83EB
     ldy #&83                                                          ; 881f: a0 83       ..       ; High byte of &83EB handler
@@ -3294,7 +3294,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     jmp nmi_rti                                                       ; 8863: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
 ; &8866 referenced 1 time by &8830
 .tx_tdra_error
-    lda rx_src_net                                                    ; 8866: ad 3e 0d    .>.      ; TX error: check flags for path
+    lda net_frame_flags                                               ; 8866: ad 3e 0d    .>.      ; TX error: check flags for path
     bpl tx_result_fail                                                ; 8869: 10 5f       ._       ; Bit7 clear: TX result = not listening
     jmp discard_reset_rx                                              ; 886b: 4c eb 83    L..      ; Bit7 set: discard and return to listen
 ; ***************************************************************************************
@@ -3355,7 +3355,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     lda econet_data_continue_frame                                    ; 88af: ad a2 fe    ...      ; Read source network
     cmp tx_dst_net                                                    ; 88b2: cd 21 0d    .!.      ; Compare to TX dest network (&0D21)
     bne tx_result_fail                                                ; 88b5: d0 13       ..       ; Mismatch -- error
-    lda rx_src_net                                                    ; 88b7: ad 3e 0d    .>.      ; Load TX flags for next action
+    lda net_frame_flags                                               ; 88b7: ad 3e 0d    .>.      ; Load TX flags for next action
     bpl check_fv_final_ack                                            ; 88ba: 10 03       ..       ; bit7 clear: no data phase
     jmp install_data_rx_handler                                       ; 88bc: 4c 11 82    L..      ; Install data RX handler
 ; &88bf referenced 1 time by &88ba
@@ -3425,10 +3425,10 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 ;
 ; Computes the data transfer byte count from the RXCB buffer pointers. Reads the 4-byte
 ; buffer end address from (port_ws_offset) and checks for Tube addresses (&FExx/&FFxx).
-; For Tube transfers, claims the Tube address and sets the transfer flag in rx_src_net.
-; Subtracts the buffer start from the buffer end to compute the byte count, storing it in
-; port_buf_len/port_buf_len_hi. Also copies the buffer start address to open_port_buf for
-; the RX/TX handlers to use as their working pointer.
+; For Tube transfers, claims the Tube address and sets the transfer flag in
+; net_frame_flags. Subtracts the buffer start from the buffer end to compute the byte
+; count, storing it in port_buf_len/port_buf_len_hi. Also copies the buffer start address
+; to open_port_buf for the RX/TX handlers to use as their working pointer.
 ; &88e8 referenced 3 times by &81b4, &84ce, &86d6
 .tx_calc_transfer
     ldy #7                                                            ; 88e8: a0 07       ..       ; Y=7: offset to RXCB buffer addr byte 3
@@ -3443,9 +3443,9 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .check_tx_in_progress
     lda tube_present                                                  ; 88f7: ad 63 0d    .c.      ; Transmit in progress?
     beq fallback_calc_transfer                                        ; 88fa: f0 3f       .?       ; No: fallback path
-    lda rx_src_net                                                    ; 88fc: ad 3e 0d    .>.      ; Load TX flags for transfer setup
+    lda net_frame_flags                                               ; 88fc: ad 3e 0d    .>.      ; Load TX flags for transfer setup
     ora #2                                                            ; 88ff: 09 02       ..       ; Set bit 1 (transfer complete)
-    sta rx_src_net                                                    ; 8901: 8d 3e 0d    .>.      ; Store with bit 1 set (Tube xfer)
+    sta net_frame_flags                                               ; 8901: 8d 3e 0d    .>.      ; Store with bit 1 set (Tube xfer)
     sec                                                               ; 8904: 38          8        ; Init borrow for 4-byte subtract
     php                                                               ; 8905: 08          .        ; Save carry on stack
     ldy #4                                                            ; 8906: a0 04       ..       ; Y=4: start at RXCB offset 4
@@ -14021,7 +14021,7 @@ save pydis_start, pydis_end
 ;     fs_lib_flags:                            32
 ;     fs_func_code:                            30
 ;     osbyte:                                  28
-;     rx_src_net:                              27
+;     net_frame_flags:                         27
 ;     save_net_tx_cb:                          26
 ;     chan_status:                             25
 ;     fcb_status:                              25
