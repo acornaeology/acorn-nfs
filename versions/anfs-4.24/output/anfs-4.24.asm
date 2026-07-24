@@ -2275,8 +2275,15 @@ l85c1 = sub_c85c0+1
 ; Purpose unknown. Unreferenced, unreachable.
 .rom_gap_88f0
     equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a, &81, &00, &00, &00, &00, &01, &01, &81  ; 863a: 0e 0e 0a... ......
+; ***************************************************************************************
+; Seed TX scout from the TX control block and dispatch on type
+;
+; Copies the destination station and network from the TX control block ((nmi_tx_block))
+; into the TX scout buffer (tx_dst_stn / tx_dst_net), then reads the TXCB control byte:
+; bit 7 set selects tx_imm_op_setup (an immediate operation), bit 7 clear falls to
+; tx_bad_ctrl_error. Three callers in the TX-start paths.
 ; &864a referenced 3 times by &9bc1, &a94a, &ac3e
-.c864a
+.tx_setup_from_txcb
     txa                                                               ; 864a: 8a          .     
     pha                                                               ; 864b: 48          H        ; Push X
     ldy #2                                                            ; 864c: a0 02       ..       ; Y=2: TXCB offset for dest station
@@ -3796,12 +3803,18 @@ l8a1e = sub_c8a1d+1
     ply                                                               ; 8bf3: 7a          z     
     plx                                                               ; 8bf4: fa          .     
     clv                                                               ; 8bf5: b8          .        ; Clear overflow flag
-    bvc c8bfb                                                         ; 8bf6: 50 03       P.    
+    bvc help_table_walk_entry                                         ; 8bf6: 50 03       P.    
 ; &8bf8 referenced 1 time by &8bec
 .print_table_newline
     jsr osnewl                                                        ; 8bf8: 20 e7 ff     ..   
+; ***************************************************************************************
+; *HELP / command table walker per-entry body
+;
+; Per-entry body of the command / *HELP table walker: saves Y and flags, then classifies
+; cmd_table_fs,X (bit 7 marks a sub-table terminator vs. a name byte). Called from the
+; walker loop and from the *HELP command lister.
 ; &8bfb referenced 2 times by &8bf6, &8c86
-.c8bfb
+.help_table_walk_entry
     phy                                                               ; 8bfb: 5a          Z     
     php                                                               ; 8bfc: 08          .        ; Save processor status
 ; ***************************************************************************************
@@ -3975,7 +3988,7 @@ l8a1e = sub_c8a1d+1
     bne check_help_topic                                              ; 8c7f: d0 0b       ..       ; No: check for specific topic
     jsr print_version_header                                          ; 8c81: 20 b8 8c     ..      ; Print version string
     ldx #&91                                                          ; 8c84: a2 91       ..       ; X=&91: start of help command list
-    jsr c8bfb                                                         ; 8c86: 20 fb 8b     ..      ; Print command list from table
+    jsr help_table_walk_entry                                         ; 8c86: 20 fb 8b     ..      ; Print command list from table
 ; ***************************************************************************************
 ; Restore Y and return service-call unclaimed
 ;
@@ -6298,11 +6311,11 @@ l8dbf = load_transfer_params+1
     jsr print_dir_syntax                                              ; 95a8: 20 d9 95     ..      ; Print '[<D>.]<D>\r'
     jsr print_station_low                                             ; 95ab: 20 c0 95     ..      ; Print 'PS ' header
     jsr print_dir_syntax                                              ; 95ae: 20 d9 95     ..      ; Print '[<D>.]<D>\r' again
-    jsr sub_c9657                                                     ; 95b1: 20 57 96     W.      ; Print final 'Space\rNoSpace\r' lines
+    jsr print_space_line                                              ; 95b1: 20 57 96     W.      ; Print final 'Space\rNoSpace\r' lines
     jsr print_inline                                                  ; 95b4: 20 6a 92     j.   
     equs "No"                                                         ; 95b7: 4e 6f       No    
     nop                                                               ; 95b9: ea          .     
-    jsr sub_c9657                                                     ; 95ba: 20 57 96     W.   
+    jsr print_space_line                                              ; 95ba: 20 57 96     W.   
 ; &95bd referenced 1 time by &9616
 .bra_target_svc_return
     jmp svc_return_unclaimed                                          ; 95bd: 4c 89 8c    L..      ; JMP to svc_return_unclaimed (long-distance via this 3-byte trampoline)
@@ -6480,10 +6493,15 @@ l8dbf = load_transfer_params+1
     nop                                                               ; 9651: ea          .        ; Bit-7 terminator + resume
 ; &9652 referenced 1 time by &9649
 .parse_object_space_print
-    jsr sub_c9657                                                     ; 9652: 20 57 96     W.      ; Print 'Space ' or similar via inline
+    jsr print_space_line                                              ; 9652: 20 57 96     W.      ; Print 'Space ' or similar via inline
     bra print_cmos_done                                               ; 9655: 80 29       .)    
+; ***************************************************************************************
+; Print the 'Space' status label
+;
+; Emits the inline string "Space" + CR via print_inline; the &EA (NOP) terminator resumes
+; on the trailing RTS. Called from the *STATUS / free-space report.
 ; &9657 referenced 3 times by &95b1, &95ba, &9652
-.sub_c9657
+.print_space_line
     jsr print_inline                                                  ; 9657: 20 6a 92     j.   
     equs "Space", &0d                                                 ; 965a: 53 70 61... Spa...   ; Bit-7 terminator + resume opcode
     nop                                                               ; 9660: ea          .     
@@ -7861,7 +7879,7 @@ bad_prefix_table = bad_str_anchor+1
     sta nmi_tx_block                                                  ; 9bbb: 85 a0       ..       ; Store in NMI TX block low
     lda net_tx_ptr_hi                                                 ; 9bbd: a5 9b       ..       ; Copy TX pointer high
     sta nmi_tx_block_hi                                               ; 9bbf: 85 a1       ..       ; Store in NMI TX block high
-    jsr c864a                                                         ; 9bc1: 20 4a 86     J.      ; Begin Econet frame transmission
+    jsr tx_setup_from_txcb                                            ; 9bc1: 20 4a 86     J.      ; Begin Econet frame transmission
 ; &9bc4 referenced 1 time by &9bc6
 .loop_poll_pass_tx
     lda (net_tx_ptr,x)                                                ; 9bc4: a1 9a       ..       ; Read TX status byte
@@ -10931,7 +10949,7 @@ la891 = la88a+7
     sta nmi_tx_block                                                  ; a943: 85 a0       ..       ; Set NMI TX block low
     ldx #&0f                                                          ; a945: a2 0f       ..       ; X=&0F: byte count for copy
     jsr copy_pb_byte_to_ws                                            ; a947: 20 a2 aa     ..      ; Copy data and begin transmission
-    jmp c864a                                                         ; a94a: 4c 4a 86    LJ.      ; Jump to begin Econet transmission
+    jmp tx_setup_from_txcb                                            ; a94a: 4c 4a 86    LJ.      ; Jump to begin Econet transmission
 ; ***************************************************************************************
 ; OSWORD &11 handler: receive network packet
 ;
@@ -11639,7 +11657,7 @@ labe5 = compare_bridge_status+1
     sta nmi_tx_block                                                  ; ac38: 85 a0       ..       ; Set NMI TX block low
     lda #0                                                            ; ac3a: a9 00       ..       ; High byte = 0 (page 0)
     sta nmi_tx_block_hi                                               ; ac3c: 85 a1       ..       ; Set NMI TX block high
-    jsr c864a                                                         ; ac3e: 20 4a 86     J.      ; Begin Econet transmission
+    jsr tx_setup_from_txcb                                            ; ac3e: 20 4a 86     J.      ; Begin Econet transmission
 ; &ac41 referenced 1 time by &ac43
 .loop_wait_tx_done
     bit txcb_ctrl                                                     ; ac41: 24 c0       $.       ; Test TX control block bit 7
@@ -16410,7 +16428,6 @@ save pydis_start, pydis_end
 ;     advance_buffer_ptr:                       3
 ;     alloc_fcb_with_flags:                     3
 ;     append_byte_to_rxbuf:                     3
-;     c864a:                                    3
 ;     c86b9:                                    3
 ;     check_tube_irq_loop:                      3
 ;     clear_channel_flag:                       3
@@ -16466,6 +16483,7 @@ save pydis_start, pydis_end
 ;     parse_fs_ps_args:                         3
 ;     poll_econet_data_continue_frame_status:   3
 ;     print_10_chars:                           3
+;     print_space_line:                         3
 ;     process_match_result:                     3
 ;     prot_status_save:                         3
 ;     read_filename_char:                       3
@@ -16481,11 +16499,11 @@ save pydis_start, pydis_end
 ;     send_cmd_and_dispatch:                    3
 ;     send_disconnect_reply:                    3
 ;     store_rx_result:                          3
-;     sub_c9657:                                3
 ;     tube_claim_c3:                            3
 ;     tx_bad_ctrl_error:                        3
 ;     tx_calc_transfer:                         3
 ;     tx_econet_abort:                          3
+;     tx_setup_from_txcb:                       3
 ;     update_fcb_flag_bits:                     3
 ;     write_second_tube_byte:                   3
 ;     zp_work_2:                                3
@@ -16507,7 +16525,6 @@ save pydis_start, pydis_end
 ;     build_error_block:                        2
 ;     build_simple_error:                       2
 ;     c86db:                                    2
-;     c8bfb:                                    2
 ;     c9fab:                                    2
 ;     check_and_setup_txcb:                     2
 ;     check_chan_char:                          2
@@ -16590,6 +16607,7 @@ save pydis_start, pydis_end
 ;     hazel_txcb_osword_flag:                   2
 ;     hazel_txcb_tx_status:                     2
 ;     hazel_txcb_type:                          2
+;     help_table_walk_entry:                    2
 ;     imm_op_out_of_range:                      2
 ;     inc_fcb_byte_count:                       2
 ;     init_adlc_and_vectors:                    2
@@ -17590,10 +17608,8 @@ save pydis_start, pydis_end
 ;     c84dc
 ;     c851d
 ;     c85b9
-;     c864a
 ;     c86b9
 ;     c86db
-;     c8bfb
 ;     c9fab
 ;     c9faf
 ;     c9fb6
@@ -17644,7 +17660,6 @@ save pydis_start, pydis_end
 ;     sub_c85c0
 ;     sub_c872b
 ;     sub_c8a1d
-;     sub_c9657
 ;     sub_cbff8
 
 ; Stats:

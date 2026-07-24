@@ -19326,6 +19326,37 @@ Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&F
 )
 
 d.subroutine(
+    0x864A,
+    "tx_setup_from_txcb",
+    title="Seed TX scout from the TX control block and dispatch on type",
+    description="""Copies the destination station and network from the TX
+control block (`(nmi_tx_block)`) into the TX scout buffer
+([`tx_dst_stn`](address:0D20) / [`tx_dst_net`](address:0D21)), then reads
+the TXCB control byte: bit 7 set selects `tx_imm_op_setup` (an immediate
+operation), bit 7 clear falls to `tx_bad_ctrl_error`. Three callers in
+the TX-start paths.""",
+)
+
+d.subroutine(
+    0x8BFB,
+    "help_table_walk_entry",
+    title="*HELP / command table walker per-entry body",
+    description="""Per-entry body of the command / `*HELP` table walker:
+saves Y and flags, then classifies `cmd_table_fs,X` (bit 7 marks a
+sub-table terminator vs. a name byte). Called from the walker loop and
+from the `*HELP` command lister.""",
+)
+
+d.subroutine(
+    0x9657,
+    "print_space_line",
+    title="Print the 'Space' status label",
+    description="""Emits the inline string `"Space"` + `CR` via
+[`print_inline`](address:9666); the `&EA` (`NOP`) terminator resumes on
+the trailing `RTS`. Called from the `*STATUS` / free-space report.""",
+)
+
+d.subroutine(
     0x85AD,
     "tx_calc_transfer",
     title="Calculate transfer size; handle Tube and shadow buffers",

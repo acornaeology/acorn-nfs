@@ -1856,7 +1856,8 @@
       "addr": 38447,
       "name": "svc_29_status",
       "title": "Service &29: *STATUS handler",
-      "description": "Reached via `svc_dispatch` slot &18. With no argument on the\ncommand line (first byte = `CR`) prints the FS and PS station\naddresses from CMOS &01-&04, then a single FS-active flag drawn\nfrom bit 0 of CMOS &11 (the same bit that\n[`cmd_space`](address:9619) / [`cmd_nospace`](address:9623) set\nand clear). With an argument, branches to\n[`help_dispatch_setup`](address:968C) to parse it."
+      "description": "Reached via `svc_dispatch` slot &18. With no argument on the\ncommand line (first byte = `CR`) prints the FS and PS station\naddresses from CMOS &01-&04, then a single FS-active flag drawn\nfrom bit 0 of CMOS &11 (the same bit that\n[`cmd_space`](address:9619) / [`cmd_nospace`](address:9623) set\nand clear). With an argument, branches to\n[`help_dispatch_setup`](address:968C) to parse it.",
+      "fall_through": true
     },
     {
       "addr": 38498,
@@ -4425,6 +4426,26 @@
       }
     },
     {
+      "addr": 34378,
+      "name": "tx_setup_from_txcb",
+      "title": "Seed TX scout from the TX control block and dispatch on type",
+      "description": "Copies the destination station and network from the TX\ncontrol block (`(nmi_tx_block)`) into the TX scout buffer\n([`tx_dst_stn`](address:0D20) / [`tx_dst_net`](address:0D21)), then reads\nthe TXCB control byte: bit 7 set selects `tx_imm_op_setup` (an immediate\noperation), bit 7 clear falls to `tx_bad_ctrl_error`. Three callers in\nthe TX-start paths.",
+      "fall_through": true
+    },
+    {
+      "addr": 35835,
+      "name": "help_table_walk_entry",
+      "title": "*HELP / command table walker per-entry body",
+      "description": "Per-entry body of the command / `*HELP` table walker:\nsaves Y and flags, then classifies `cmd_table_fs,X` (bit 7 marks a\nsub-table terminator vs. a name byte). Called from the walker loop and\nfrom the `*HELP` command lister.",
+      "fall_through": true
+    },
+    {
+      "addr": 38487,
+      "name": "print_space_line",
+      "title": "Print the 'Space' status label",
+      "description": "Emits the inline string `\"Space\"` + `CR` via\n[`print_inline`](address:9666); the `&EA` (`NOP`) terminator resumes on\nthe trailing `RTS`. Called from the `*STATUS` / free-space report."
+    },
+    {
       "addr": 34221,
       "name": "tx_calc_transfer",
       "title": "Calculate transfer size; handle Tube and shadow buffers",
@@ -4435,8 +4456,7 @@
       "on_exit": {
         "a": "transfer status",
         "c": "set if Tube/shadow address handled, clear otherwise"
-      },
-      "fall_through": true
+      }
     }
   ],
   "banners": [
@@ -16991,7 +17011,7 @@
         138
       ],
       "labels": [
-        "c864a"
+        "tx_setup_from_txcb"
       ],
       "xref_summaries": [
         "&864a referenced 3 times by &9bc1, &a94a, &ac3e"
@@ -27286,9 +27306,9 @@
       ],
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "c8bfb",
+      "operand": "help_table_walk_entry",
       "target": 35835,
-      "target_label": "c8bfb"
+      "target_label": "help_table_walk_entry"
     },
     {
       "addr": 35832,
@@ -27321,7 +27341,7 @@
         90
       ],
       "labels": [
-        "c8bfb"
+        "help_table_walk_entry"
       ],
       "xref_summaries": [
         "&8bfb referenced 2 times by &8bf6, &8c86"
@@ -28289,9 +28309,9 @@
       "comment_inline": "Print command list from table",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "c8bfb",
+      "operand": "help_table_walk_entry",
       "target": 35835,
-      "target_label": "c8bfb"
+      "target_label": "help_table_walk_entry"
     },
     {
       "addr": 35977,
@@ -43003,9 +43023,9 @@
       "comment_inline": "Print final 'Space\\rNoSpace\\r' lines",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c9657",
+      "operand": "print_space_line",
       "target": 38487,
-      "target_label": "sub_c9657"
+      "target_label": "print_space_line"
     },
     {
       "addr": 38324,
@@ -43046,9 +43066,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c9657",
+      "operand": "print_space_line",
       "target": 38487,
-      "target_label": "sub_c9657"
+      "target_label": "print_space_line"
     },
     {
       "addr": 38333,
@@ -44000,9 +44020,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c9657",
+      "operand": "print_space_line",
       "target": 38487,
-      "target_label": "sub_c9657"
+      "target_label": "print_space_line"
     },
     {
       "addr": 38485,
@@ -44024,7 +44044,7 @@
         146
       ],
       "labels": [
-        "sub_c9657"
+        "print_space_line"
       ],
       "xref_summaries": [
         "&9657 referenced 3 times by &95b1, &95ba, &9652"
@@ -53536,9 +53556,9 @@
       "comment_inline": "Begin Econet frame transmission",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "c864a",
+      "operand": "tx_setup_from_txcb",
       "target": 34378,
-      "target_label": "c864a"
+      "target_label": "tx_setup_from_txcb"
     },
     {
       "addr": 39876,
@@ -76755,9 +76775,9 @@
       "comment_inline": "Jump to begin Econet transmission",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "c864a",
+      "operand": "tx_setup_from_txcb",
       "target": 34378,
-      "target_label": "c864a"
+      "target_label": "tx_setup_from_txcb"
     },
     {
       "addr": 43341,
@@ -82366,9 +82386,9 @@
       "comment_inline": "Begin Econet transmission",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "c864a",
+      "operand": "tx_setup_from_txcb",
       "target": 34378,
-      "target_label": "c864a"
+      "target_label": "tx_setup_from_txcb"
     },
     {
       "addr": 44097,
