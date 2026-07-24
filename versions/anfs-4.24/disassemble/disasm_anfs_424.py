@@ -19325,6 +19325,16 @@ Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&F
     group="idx_base",
 )
 
+# Defensive `CLD` guards. These sit at the head of paths reachable from
+# Econet NMI/IRQ context, where the interrupted foreground could have left
+# the decimal flag set; each protects a binary ADC/SBC further down the
+# path (a page-pointer add, an operation-index subtract, a transfer-size
+# add) from corrupting its result under decimal mode.
+d.comment(0x8150, "Clear decimal mode before scanning the port slots", align=Align.INLINE)
+d.comment(0x835A, "Clear decimal mode: the RXCB-pointer ADC below must be binary", align=Align.INLINE)
+d.comment(0x8476, "Clear decimal mode: the operation-index SBC below must be binary", align=Align.INLINE)
+d.comment(0x85AD, "Clear decimal mode before the binary transfer-size arithmetic", align=Align.INLINE)
+
 import sys
 
 ir = d.disassemble()

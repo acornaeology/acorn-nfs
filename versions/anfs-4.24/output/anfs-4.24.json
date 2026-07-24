@@ -8628,6 +8628,7 @@
       "bytes": [
         216
       ],
+      "comment_inline": "Clear decimal mode before scanning the port slots",
       "type": "code",
       "mnemonic": "cld"
     },
@@ -11982,6 +11983,7 @@
       "bytes": [
         216
       ],
+      "comment_inline": "Clear decimal mode: the RXCB-pointer ADC below must be binary",
       "type": "code",
       "mnemonic": "cld"
     },
@@ -14033,6 +14035,7 @@
       "bytes": [
         216
       ],
+      "comment_inline": "Clear decimal mode: the operation-index SBC below must be binary",
       "type": "code",
       "mnemonic": "cld"
     },
@@ -15914,6 +15917,7 @@
       "labels": [
         "sub_c85ad"
       ],
+      "comment_inline": "Clear decimal mode before the binary transfer-size arithmetic",
       "xref_summaries": [
         "&85ad referenced 3 times by &819d, &84d4, &87a4"
       ],

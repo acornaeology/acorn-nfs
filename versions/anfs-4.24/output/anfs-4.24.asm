@@ -1023,7 +1023,7 @@ rom_header_byte2 = rom_header_byte1+1
     bpl try_nfs_port_list                                             ; 814a: 10 41       .A       ; No active ports -- try NFS workspace
     lda #&c0                                                          ; 814c: a9 c0       ..       ; Start scanning port list at page &C0
     ldy #0                                                            ; 814e: a0 00       ..       ; Y=0: start offset within each port slot
-    cld                                                               ; 8150: d8          .     
+    cld                                                               ; 8150: d8          .        ; Clear decimal mode before scanning the port slots
 ; &8151 referenced 1 time by &8196
 .scan_nfs_port_list
     sta port_ws_offset                                                ; 8151: 85 a6       ..       ; Store page to workspace pointer low
@@ -1509,7 +1509,7 @@ rom_header_byte2 = rom_header_byte1+1
     clc                                                               ; 8356: 18          .        ; Init carry for 4-byte add
     php                                                               ; 8357: 08          .        ; Save carry on stack for loop
     ldy #8                                                            ; 8358: a0 08       ..       ; Y=8: start at byte 0 of the 4-byte RXCB pointer
-    cld                                                               ; 835a: d8          .     
+    cld                                                               ; 835a: d8          .        ; Clear decimal mode: the RXCB-pointer ADC below must be binary
 ; &835b referenced 1 time by &8367
 .add_rxcb_ptr
     lda (port_ws_offset),y                                            ; 835b: b1 a6       ..       ; Load RXCB[Y] (buffer pointer byte)
@@ -1841,7 +1841,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     cpy #&87                                                          ; 8471: c0 87       ..       ; CONTINUE(&87)/mc-type(&88) skip protection
     bcs dispatch_imm_op                                               ; 8473: b0 0f       ..       ; Ctrl >= &87: dispatch without mask check
     tya                                                               ; 8475: 98          .        ; Convert ctrl byte to 0-based index for mask
-    cld                                                               ; 8476: d8          .     
+    cld                                                               ; 8476: d8          .        ; Clear decimal mode: the operation-index SBC below must be binary
     sec                                                               ; 8477: 38          8        ; For subtract
     sbc #&81                                                          ; 8478: e9 81       ..       ; A = ctrl - &81 (0-based operation index)
     tay                                                               ; 847a: a8          .        ; Y = index for mask rotation count
@@ -2155,7 +2155,7 @@ l8494 = sub_c8492+2
     rts                                                               ; 85ac: 60          `        ; Return with A=0 (success)
 ; &85ad referenced 3 times by &819d, &84d4, &87a4
 .sub_c85ad
-    cld                                                               ; 85ad: d8          .     
+    cld                                                               ; 85ad: d8          .        ; Clear decimal mode before the binary transfer-size arithmetic
     lda acccon                                                        ; 85ae: ad 34 fe    .4.      ; Read ACCCON (Master 128 access-control register)
     ora #8                                                            ; 85b1: 09 08       ..       ; Set bit 3 of A (transfer-mode flag)
     sta escapable                                                     ; 85b3: 85 97       ..       ; Store as escapable mode
