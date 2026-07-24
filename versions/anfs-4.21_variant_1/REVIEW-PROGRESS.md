@@ -260,7 +260,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x80B8` `nmi_rx_scout_net` - description matches body
 - [x] `0x81A7` `send_data_rx_ack` - description claimed (A,Y)=&81B8 was 'data_rx_setup minus 1' but set_nmi_vector stores (A,Y) as-is, so &81B8 IS data_rx_setup directly. Rewrote
 - [x] `0x8291` `nmi_data_rx_tube` - description matches body
-- [x] `0x82DF` `ack_tx` - description had stale '&0D4A' tx_flags ref (the actual byte tested is rx_src_net at &0D3E used as TX-flags here), and claimed src_stn from &FE18 (Model B INTOFF) but body reads tx_src_stn workspace copy. Rewrote
+- [x] `0x82DF` `ack_tx` - description had stale '&0D4A' tx_flags ref (the actual byte tested is net_frame_flags at &0D3E used as TX-flags here), and claimed src_stn from &FE18 (Model B INTOFF) but body reads tx_src_stn workspace copy. Rewrote
 - [x] `0x8386` `nmi_post_ack_dispatch` - description matches body
 - [x] `0x83E8` `reset_adlc_rx_listen` - description matches body
 - [x] `0x83F2` `discard_reset_listen` - description matches body
@@ -385,7 +385,7 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 
 ## Depth 3 (17 routines)
 
-- [x] `0x8215` `nmi_error_dispatch` -- description had off-by-one count (12 vs 11 callers); the 'tx_flags' label was opaque -- clarified that &0D3E (rx_src_net) is overloaded as TX-state flag here
+- [x] `0x8215` `nmi_error_dispatch` -- description had off-by-one count (12 vs 11 callers); the 'tx_flags' label was opaque -- clarified that &0D3E (net_frame_flags) is overloaded as TX-state flag here
 - [x] `0x8395` `rx_complete_update_rxcb` -- description matches body; cleaned a misleading 'Set carry for subtraction' inline at &83D2 (LDA doesn't set carry)
 - [x] `0x84B1` `rx_imm_poke` -- fixed wrong inline at &84B1 ('= &3D') -- value is &2E; tightened &84B3 and &84B7 store labels
 - [x] `0x8845` `nmi_data_tx_tube` -- description matches body, no dupes -- confirmed clean

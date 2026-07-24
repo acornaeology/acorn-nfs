@@ -27088,7 +27088,7 @@
         0,
         194
       ],
-      "comment_inline": "Store to page &10 shadow copy",
+      "comment_inline": "Store to the HAZEL &C2 FCB shadow copy",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_addr_lo,y",
@@ -34965,7 +34965,7 @@
       "labels": [
         "loop_checksum_byte"
       ],
-      "comment_inline": "Add byte from page &10 shadow",
+      "comment_inline": "Add byte from the HAZEL &C2 FCB shadow",
       "xref_summaries": [
         "&908a referenced 1 time by &908e"
       ],
@@ -35037,7 +35037,7 @@
       "labels": [
         "loop_copy_to_ws"
       ],
-      "comment_inline": "Load byte from page &10 shadow",
+      "comment_inline": "Load byte from the HAZEL &C2 FCB shadow",
       "xref_summaries": [
         "&9094 referenced 1 time by &909a"
       ],

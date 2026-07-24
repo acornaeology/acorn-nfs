@@ -3749,7 +3749,7 @@ l8a1e = nmi_return_inton+1
 ; &8bca referenced 1 time by &8bd0
 .loop_copy_ws_page
     lda (fs_ws_ptr),y                                                 ; 8bca: b1 cc       ..       ; Load byte from source workspace
-    sta hazel_fcb_addr_lo,y                                           ; 8bcc: 99 00 c2    ...      ; Store to page &10 shadow copy
+    sta hazel_fcb_addr_lo,y                                           ; 8bcc: 99 00 c2    ...      ; Store to the HAZEL &C2 FCB shadow copy
     dey                                                               ; 8bcf: 88          .        ; Decrement index
     bpl loop_copy_ws_page                                             ; 8bd0: 10 f8       ..       ; Loop until all bytes copied
     lda #&80                                                          ; 8bd2: a9 80       ..       ; A=&80: FS selected flag
@@ -5097,14 +5097,14 @@ l8dbf = load_transfer_params+1
     clc                                                               ; 9089: 18          .        ; Clear carry for addition
 ; &908a referenced 1 time by &908e
 .loop_checksum_byte
-    adc hazel_fcb_addr_lo,y                                           ; 908a: 79 00 c2    y..      ; Add byte from page &10 shadow
+    adc hazel_fcb_addr_lo,y                                           ; 908a: 79 00 c2    y..      ; Add byte from the HAZEL &C2 FCB shadow
     dey                                                               ; 908d: 88          .        ; Decrement index
     bpl loop_checksum_byte                                            ; 908e: 10 fa       ..       ; Loop until all bytes summed
     ldy #&77 ; 'w'                                                    ; 9090: a0 77       .w       ; Y=&77: checksum storage offset
     bpl store_ws_byte                                                 ; 9092: 10 03       ..       ; Positive: store the workspace byte
 ; &9094 referenced 1 time by &909a
 .loop_copy_to_ws
-    lda hazel_fcb_addr_lo,y                                           ; 9094: b9 00 c2    ...      ; Load byte from page &10 shadow
+    lda hazel_fcb_addr_lo,y                                           ; 9094: b9 00 c2    ...      ; Load byte from the HAZEL &C2 FCB shadow
 ; &9097 referenced 1 time by &9092
 .store_ws_byte
     sta (fs_ws_ptr),y                                                 ; 9097: 91 cc       ..       ; Copy to FS workspace

@@ -3858,7 +3858,7 @@ nmi_shim_source = reset_enter_listen+2
 ; &8ba4 referenced 1 time by &8baa
 .loop_copy_ws_page
     lda (fs_ws_ptr),y                                                 ; 8ba4: b1 cc       ..       ; Load byte from source workspace
-    sta hazel_fcb_addr_lo,y                                           ; 8ba6: 99 00 c2    ...      ; Store to page &10 shadow copy
+    sta hazel_fcb_addr_lo,y                                           ; 8ba6: 99 00 c2    ...      ; Store to the HAZEL &C2 FCB shadow copy
     dey                                                               ; 8ba9: 88          .        ; Decrement index
     bpl loop_copy_ws_page                                             ; 8baa: 10 f8       ..       ; Loop until all bytes copied
     lda #&80                                                          ; 8bac: a9 80       ..       ; A=&80: FS selected flag
@@ -5235,14 +5235,14 @@ ps_template_base = load_transfer_params+1
     clc                                                               ; 9082: 18          .        ; Clear carry for addition
 ; &9083 referenced 1 time by &9087
 .loop_checksum_byte
-    adc hazel_fcb_addr_lo,y                                           ; 9083: 79 00 c2    y..      ; Add byte from page &10 shadow
+    adc hazel_fcb_addr_lo,y                                           ; 9083: 79 00 c2    y..      ; Add byte from the HAZEL &C2 FCB shadow
     dey                                                               ; 9086: 88          .        ; Decrement index
     bpl loop_checksum_byte                                            ; 9087: 10 fa       ..       ; Loop until all bytes summed
     ldy #&77 ; 'w'                                                    ; 9089: a0 77       .w       ; Y=&77: checksum storage offset
     bpl store_ws_byte                                                 ; 908b: 10 03       ..    
 ; &908d referenced 1 time by &9093
 .loop_copy_to_ws
-    lda hazel_fcb_addr_lo,y                                           ; 908d: b9 00 c2    ...      ; Load byte from page &10 shadow
+    lda hazel_fcb_addr_lo,y                                           ; 908d: b9 00 c2    ...      ; Load byte from the HAZEL &C2 FCB shadow
 ; &9090 referenced 1 time by &908b
 .store_ws_byte
     sta (fs_ws_ptr),y                                                 ; 9090: 91 cc       ..       ; Copy to FS workspace
@@ -8183,7 +8183,7 @@ bad_prefix_table = bad_str_anchor+1
     sta hazel_parse_buf,x                                             ; 9c16: 9d 30 c0    .0.      ; Store CR terminator in buffer
     lda #&30 ; '0'                                                    ; 9c19: a9 30       .0       ; A=&30: low byte of fs_filename_buf buffer
     sta fs_crc_lo                                                     ; 9c1b: 85 be       ..       ; Set command text pointer low
-    lda #&c0                                                          ; 9c1d: a9 c0       ..       ; A=&0E: high byte of fs_filename_buf buffer
+    lda #&c0                                                          ; 9c1d: a9 c0       ..       ; A=&C0: high byte of fs_filename_buf buffer
     sta fs_crc_hi                                                     ; 9c1f: 85 bf       ..       ; Set command text pointer high
     rts                                                               ; 9c21: 60          `        ; Return with buffer filled
 ; ***************************************************************************************
@@ -15182,8 +15182,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     stx hazel_sentinel_cd                                             ; b98f: 8e cd c2    ...      ; Store &FF as sentinel in xfer_sentinel_1
     stx hazel_sentinel_ce                                             ; b992: 8e ce c2    ...      ; Store &FF as sentinel in xfer_sentinel_2
     ldx #&ca                                                          ; b995: a2 ca       ..       ; X=&CA: workspace offset
-    ldy #&c2                                                          ; b997: a0 c2       ..       ; Y=&10: page &10
-    rts                                                               ; b999: 60          `        ; Return; X/Y point to &10CA
+    ldy #&c2                                                          ; b997: a0 c2       ..       ; Y=&C2: HAZEL page &C2
+    rts                                                               ; b999: 60          `        ; Return; X/Y point to &C2CA
 ; ***************************************************************************************
 ; Start wipe pass for current FCB
 ;
@@ -15231,7 +15231,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     txa                                                               ; b9e5: 8a          .        ; Restore attribute to A
     sta (net_rx_ptr),y                                                ; b9e6: 91 9c       ..       ; Set attribute in receive buffer
     ldx #&ca                                                          ; b9e8: a2 ca       ..       ; X=&CA: workspace offset
-    ldy #&c2                                                          ; b9ea: a0 c2       ..       ; Y=&10: page &10
+    ldy #&c2                                                          ; b9ea: a0 c2       ..       ; Y=&C2: HAZEL page &C2
     lda #0                                                            ; b9ec: a9 00       ..       ; A=0: standard transfer mode
     jsr send_and_receive                                              ; b9ee: 20 15 bd     ..      ; Send data and receive response
     ldx hazel_cur_fcb_index                                           ; b9f1: ae c8 c2    ...      ; Reload FCB index
@@ -15316,7 +15316,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     pha                                                               ; ba6b: 48          H        ; Function code &0D
     lda hazel_chan_ref                                                ; ba6c: ad ca c2    ...      ; Load current reference
     sta (net_rx_ptr),y                                                ; ba6f: 91 9c       ..       ; Set in receive buffer
-    ldy #&c2                                                          ; ba71: a0 c2       ..       ; Y=&10: page &10
+    ldy #&c2                                                          ; ba71: a0 c2       ..       ; Y=&C2: HAZEL page &C2
     lda #2                                                            ; ba73: a9 02       ..       ; A=2: transfer mode 2
     jsr send_and_receive                                              ; ba75: 20 15 bd     ..      ; Send and receive data
     pla                                                               ; ba78: 68          h        ; Restore receive attribute

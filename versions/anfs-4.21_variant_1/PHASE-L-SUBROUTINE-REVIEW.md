@@ -104,7 +104,7 @@ enrichments).
 | 19 | &8291 | `nmi_data_rx_tube` | kept | already has accurate inline-code description |
 | 20 | &82DF | `ack_tx` | kept | already has links + inline code; description complete |
 | 21 | &82F8 | `ack_tx_write_dest` | done | added ?hex on send_data_rx_ack/imm_op_build_reply |
-| 22 | &8316 | `nmi_ack_tx_src` | done | rx_src_net dispatch table; econet_station_id + post_ack_scout links |
+| 22 | &8316 | `nmi_ack_tx_src` | done | net_frame_flags dispatch table; econet_station_id + post_ack_scout links |
 | 23 | &832D | `post_ack_scout` | done | bullet-list match/no-match; rx_src_stn + rx_port links |
 | 24 | &833F | `advance_rx_buffer_ptr` | done | bullet-listed reads; tx_flags link |
 | 25 | &8386 | `nmi_post_ack_dispatch` | done | 3-row scout_port/control dispatch table; saved_nmi_lo/hi + rx_complete_update_rxcb links |
@@ -112,8 +112,8 @@ enrichments).
 | 27 | &83E5 | `discard_reset_rx` | done | 3-stage numbered chain; all 3 stage links + nmi_rx_scout + set_nmi_vector |
 | 28 | &83E8 | `reset_adlc_rx_listen` | done | discard_reset_rx + set_nmi_rx_scout links |
 | 29 | &83EB | `set_nmi_rx_scout` | done | nmi_rx_scout + set_nmi_vector + chain links |
-| 30 | &83F2 | `discard_reset_listen` | done | tube_present + rx_src_net + release_tube links |
-| 31 | &8400 | `copy_scout_to_buffer` | done | bit-1 write-path table; rx_src_stn + rx_src_net + release_tube links |
+| 30 | &83F2 | `discard_reset_listen` | done | tube_present + net_frame_flags + release_tube links |
+| 31 | &8400 | `copy_scout_to_buffer` | done | bit-1 write-path table; rx_src_stn + net_frame_flags + release_tube links |
 | 32 | &8409 | `save_acccon_for_shadow_ram` | done | full title + description; acccon link |
 | 33 | &8448 | `release_tube` | done | bit-7 dispatch table; bold idempotent note |
 | 34 | &8454 | `immediate_op` | done | 3-row range table; scout_ctrl/econet_flags/imm_op_dispatch_lo links |
@@ -146,12 +146,12 @@ enrichments).
 | 61 | &86A2 | `tx_ctrl_proc` | done | tx_calc_transfer link |
 | 62 | &86E7 | `nmi_tx_data` | done | SR1 IRQ dispatch table; adlc_tx + adlc_cr1 links |
 | 63 | &8723 | `tx_last_data` | done | bit-decomposition table; corrected &8728 → &872F; refreshed set_nmi_vector/nmi_rti/econet_nmi_enable links (post-L0) |
-| 64 | &872F | `nmi_tx_complete` | done | CR1 sequence table + rx_src_net flags table; tx_result_ok/handshake_await_ack/nmi_reply_scout links |
+| 64 | &872F | `nmi_tx_complete` | done | CR1 sequence table + net_frame_flags flags table; tx_result_ok/handshake_await_ack/nmi_reply_scout links |
 | 65 | &874B | `nmi_reply_scout` | done | econet_station_id link; inline-code refinement |
 | 66 | &875F | `nmi_reply_cont` | done | nmi_reply_validate link; bold optimisation note |
 | 67 | &8773 | `reject_reply` | done | tx_result_fail + nmi_reply_scout/validate/scout_ack_src links |
 | 68 | &8776 | `nmi_reply_validate` | kept | already has accurate numbered list + tx_dst_stn/net links |
-| 69 | &87BE | `nmi_scout_ack_src` | done | rx_src_net dispatch table; econet_station_id link |
+| 69 | &87BE | `nmi_scout_ack_src` | done | net_frame_flags dispatch table; econet_station_id link |
 | 70 | &87CE | `data_tx_begin` | done | bit-1 dispatch table; nmi_data_tx + ack_tx links |
 | 71 | &87E3 | `nmi_data_tx` | done | 3-row count/IRQ dispatch table; tx_last_data link |
 | 72 | &8845 | `nmi_data_tx_tube` | kept | already has accurate description with tx_prepare link |

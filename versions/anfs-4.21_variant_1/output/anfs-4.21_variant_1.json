@@ -27313,7 +27313,7 @@
         0,
         194
       ],
-      "comment_inline": "Store to page &10 shadow copy",
+      "comment_inline": "Store to the HAZEL &C2 FCB shadow copy",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_addr_lo,y",
@@ -35360,7 +35360,7 @@
       "labels": [
         "loop_checksum_byte"
       ],
-      "comment_inline": "Add byte from page &10 shadow",
+      "comment_inline": "Add byte from the HAZEL &C2 FCB shadow",
       "xref_summaries": [
         "&9083 referenced 1 time by &9087"
       ],
@@ -35431,7 +35431,7 @@
       "labels": [
         "loop_copy_to_ws"
       ],
-      "comment_inline": "Load byte from page &10 shadow",
+      "comment_inline": "Load byte from the HAZEL &C2 FCB shadow",
       "xref_summaries": [
         "&908d referenced 1 time by &9093"
       ],
@@ -55201,7 +55201,7 @@
         169,
         192
       ],
-      "comment_inline": "A=&0E: high byte of fs_filename_buf buffer",
+      "comment_inline": "A=&C0: high byte of fs_filename_buf buffer",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&c0"
@@ -107390,7 +107390,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
@@ -107400,7 +107400,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Return; X/Y point to &10CA",
+      "comment_inline": "Return; X/Y point to &C2CA",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -107862,7 +107862,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
@@ -108695,7 +108695,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
