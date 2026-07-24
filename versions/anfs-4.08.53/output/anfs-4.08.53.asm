@@ -2257,8 +2257,8 @@ service_handler_lo = service_entry+1
     jsr adlc_rx_listen                                                ; 83ee: 20 6e 89     n.      ; Reset ADLC and return to RX listen
 ; &83f1 referenced 2 times by &80e3, &80fc
 .set_nmi_rx_scout
-    lda #&b3                                                          ; 83f1: a9 b3       ..       ; A=&B3: low byte of nmi_rx_scout
-    ldy #&80                                                          ; 83f3: a0 80       ..       ; Y=&80: high byte of nmi_rx_scout
+    lda #<(nmi_rx_scout)                                              ; 83f1: a9 b3       ..       ; Next NMI handler address (low)
+    ldy #>(nmi_rx_scout)                                              ; 83f3: a0 80       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 83f5: 4c 0e 0d    L..      ; Install nmi_rx_scout as NMI handler
 ; ***************************************************************************************
 ; Discard with Tube release

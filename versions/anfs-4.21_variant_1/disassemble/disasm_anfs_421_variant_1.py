@@ -1773,15 +1773,15 @@ NMI dispatch target) and returns via `RTI`.""",
 d.comment(0x81F7, "A=2: Tube transfer flag mask", align=Align.INLINE)
 d.comment(0x81F9, "Check if Tube transfer active", align=Align.INLINE)
 d.comment(0x81FC, "Tube active: use Tube RX path", align=Align.INLINE)
-d.comment(0x81FE, "A=&23: low byte of nmi_data_rx_bulk (&8223)", align=Align.INLINE)
-d.comment(0x8200, "Y=&82: high byte of nmi_data_rx_bulk", align=Align.INLINE)
+d.comment(0x81FE, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x8200, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x8202, "SR1 bit7: more data already waiting?", align=Align.INLINE)
 d.comment(0x8205, "Yes: enter bulk read directly", align=Align.INLINE)
 d.comment(0x8207, "No: install handler", align=Align.INLINE)
 d.label(0x820A, "install_tube_rx")
 
-d.comment(0x820A, "A=&91: low byte of nmi_data_rx_tube (&8291)", align=Align.INLINE)
-d.comment(0x820C, "Y=&82: high byte of nmi_data_rx_tube", align=Align.INLINE)
+d.comment(0x820A, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x820C, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x820E, "Install Tube handler", align=Align.INLINE)
 d.comment(
     0x8211,
@@ -2037,7 +2037,7 @@ d.comment(0x8304, "TDRA not ready -- error", align=Align.INLINE)
 d.comment(0x8306, "Write dest station to TX FIFO", align=Align.INLINE)
 d.comment(0x8309, "Load dest network from RX scout buffer", align=Align.INLINE)
 d.comment(0x830C, "Write dest net byte to FIFO", align=Align.INLINE)
-d.comment(0x830F, "A=&16: low byte of nmi_ack_tx_src (&8316)", align=Align.INLINE)
+d.comment(0x830F, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x8311, "High byte of nmi_ack_tx_src", align=Align.INLINE)
 d.comment(0x8313, "Set NMI vector to ack_tx_src handler", align=Align.INLINE)
 d.entry(0x8316)
@@ -2330,10 +2330,10 @@ Two callers: `&80CB` (after init) and `&80E2` (after error).""",
 )
 
 
-d.comment(0x83EB, "A=&9B: low byte of nmi_rx_scout", align=Align.INLINE)
+d.comment(0x83EB, "Next NMI handler address (low)", align=Align.INLINE)
 d.expr_label(0x83ED, "imm_op_dispatch_lo-&81")
 
-d.comment(0x83ED, "Y=&80: high byte of nmi_rx_scout", align=Align.INLINE)
+d.comment(0x83ED, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x83EF, "Install nmi_rx_scout as NMI handler", align=Align.INLINE)
 d.subroutine(
     0x83F2,
@@ -2871,9 +2871,9 @@ target. When that routine returns via `RTS`, control resumes at
 )
 
 
-d.comment(0x8540, "A=&85: high byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
+d.comment(0x8540, "tx_done_exit RTS target (high)", align=Align.INLINE)
 d.comment(0x8542, "Push hi byte on stack", align=Align.INLINE)
-d.comment(0x8543, "A=&81: low byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
+d.comment(0x8543, "tx_done_exit RTS target (low)", align=Align.INLINE)
 d.comment(0x8545, "Push lo byte on stack", align=Align.INLINE)
 d.comment(0x8546, "Call remote JSR; RTS to tx_done_exit", align=Align.INLINE)
 
@@ -3253,7 +3253,7 @@ the dispatched-to handler (e.g. `setup_data_xfer`,
 d.comment(0x864A, "Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)", align=Align.INLINE)
 d.comment(0x864D, "CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)", align=Align.INLINE)
 d.comment(0x864F, "Write to ADLC CR1", align=Align.INLINE)
-d.comment(0x8652, "X=&E7: low byte of nmi_tx_data (&86E7)", align=Align.INLINE)
+d.comment(0x8652, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x8654, "High byte of NMI handler address", align=Align.INLINE)
 d.comment(0x8656, "Write NMI vector low byte directly", align=Align.INLINE)
 d.comment(0x8659, "Write NMI vector high byte directly", align=Align.INLINE)
@@ -3583,7 +3583,7 @@ d.comment(0x8741, "bit0 clear: install reply handler", align=Align.INLINE)
 d.comment(0x8743, "bit0 set -- four-way handshake data phase", align=Align.INLINE)
 d.label(0x8746, "install_reply_scout")
 
-d.comment(0x8746, "Install nmi_reply_validate at &874B", align=Align.INLINE)
+d.comment(0x8746, "Install nmi_reply_scout (low; hi supplied by install_nmi_handler)", align=Align.INLINE)
 d.comment(0x8748, "Install handler", align=Align.INLINE)
 d.entry(0x874B)
 d.subroutine(
@@ -3633,7 +3633,7 @@ d.comment(0x875F, "Read RX byte (destination station)", align=Align.INLINE)
 d.comment(0x8762, "No RDA -- error", align=Align.INLINE)
 d.comment(0x8764, "Read destination network byte", align=Align.INLINE)
 d.comment(0x8767, "Non-zero -- network mismatch, error", align=Align.INLINE)
-d.comment(0x8769, "A=&76: low byte of nmi_reply_validate (&8776)", align=Align.INLINE)
+d.comment(0x8769, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x876B, "Test SR1 IRQ (N=bit7) -- more data ready?", align=Align.INLINE)
 d.comment(0x876E, "IRQ set -- fall through to &8779", align=Align.INLINE)
 d.comment(0x8770, "IRQ not set -- install handler", align=Align.INLINE)
@@ -3961,7 +3961,7 @@ d.comment(0x8897, "No AP -- error", align=Align.INLINE)
 d.comment(0x8899, "Read dest station", align=Align.INLINE)
 d.comment(0x889C, "Compare to our station (workspace copy)", align=Align.INLINE)
 d.comment(0x889F, "Not our station -- error", align=Align.INLINE)
-d.comment(0x88A1, "A=&A6: low byte of nmi_final_ack_net (&88A6)", align=Align.INLINE)
+d.comment(0x88A1, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x88A3, "Install continuation handler", align=Align.INLINE)
 d.label(0x88A6, "nmi_final_ack_net")
 
@@ -9666,9 +9666,9 @@ d.label(0x9C13, "terminate_buf")
 d.comment(0x9C13, "Advance past last character", align=Align.INLINE)
 d.comment(0x9C14, "A=CR: terminate filename", align=Align.INLINE)
 d.comment(0x9C16, "Store CR terminator in buffer", align=Align.INLINE)
-d.comment(0x9C19, "A=&30: low byte of fs_filename_buf buffer", align=Align.INLINE)
+d.comment(0x9C19, "Parse-buffer pointer (low)", align=Align.INLINE)
 d.comment(0x9C1B, "Set command text pointer low", align=Align.INLINE)
-d.comment(0x9C1D, "A=&C0: high byte of fs_filename_buf buffer", align=Align.INLINE)
+d.comment(0x9C1D, "Parse-buffer pointer (high)", align=Align.INLINE)
 d.comment(0x9C1F, "Set command text pointer high", align=Align.INLINE)
 d.comment(0x9C21, "Return with buffer filled", align=Align.INLINE)
 d.subroutine(
@@ -19345,6 +19345,23 @@ Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&F
 )
 
 import sys
+
+d.expr(0x81FF, "<(nmi_data_rx_bulk)")
+d.expr(0x8201, ">(nmi_data_rx_bulk)")
+d.expr(0x820B, "<(nmi_data_rx_tube)")
+d.expr(0x820D, ">(nmi_data_rx_tube)")
+d.expr(0x8310, "<(nmi_ack_tx_src)")
+d.expr(0x83EC, "<(nmi_rx_scout)")
+d.expr(0x83EE, ">(nmi_rx_scout)")
+d.expr(0x8541, ">(tx_done_exit-1)")
+d.expr(0x8544, "<(tx_done_exit-1)")
+d.expr(0x8653, "<(nmi_tx_data)")
+d.expr(0x876A, "<(nmi_reply_validate)")
+d.expr(0x88A2, "<(nmi_final_ack_net)")
+d.expr(0x9C1A, "<(hazel_parse_buf)")
+d.expr(0x9C1E, ">(hazel_parse_buf)")
+
+d.expr(0x8747, "<(nmi_reply_scout)")
 
 ir = d.disassemble()
 output = str(

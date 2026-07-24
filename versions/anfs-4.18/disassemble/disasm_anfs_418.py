@@ -2455,10 +2455,10 @@ d.label(0x83F8, "reset_adlc_rx_listen")
 d.comment(0x83F8, "Reset ADLC and return to RX listen", align=Align.INLINE)
 d.label(0x83FB, "set_nmi_rx_scout")
 
-d.comment(0x83FB, "A=&BE: low byte of nmi_rx_scout", align=Align.INLINE)
+d.comment(0x83FB, "Next NMI handler address (low)", align=Align.INLINE)
 d.expr_label(0x83FD, "imm_op_dispatch_lo-&81")
 
-d.comment(0x83FD, "Y=&80: high byte of nmi_rx_scout", align=Align.INLINE)
+d.comment(0x83FD, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x83FF, "Install nmi_rx_scout as NMI handler", align=Align.INLINE)
 d.subroutine(
     0x8402,
@@ -15845,6 +15845,9 @@ d.constant(0xFEA1, "adlc_cr2")
 d.constant(0xFEA2, "adlc_tx")
 d.constant(0xFEA3, "adlc_tx2")
 import sys
+
+d.expr(0x83FC, "<(nmi_rx_scout)")
+d.expr(0x83FE, ">(nmi_rx_scout)")
 
 ir = d.disassemble()
 output = str(

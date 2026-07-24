@@ -10154,7 +10154,7 @@
       "labels": [
         "set_nmi_rx_scout"
       ],
-      "comment_inline": "A=&BE: low byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&83fb referenced 2 times by &80ee, &8107"
       ],
@@ -10170,7 +10170,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&be"
+      "operand": "#<(nmi_rx_scout)"
     },
     {
       "addr": 33789,
@@ -10178,10 +10178,10 @@
         160,
         128
       ],
-      "comment_inline": "Y=&80: high byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&80"
+      "operand": "#>(nmi_rx_scout)"
     },
     {
       "addr": 33791,

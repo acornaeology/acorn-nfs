@@ -9909,10 +9909,10 @@
         169,
         35
       ],
-      "comment_inline": "A=&23: low byte of nmi_data_rx_bulk (&8223)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&23"
+      "operand": "#<(nmi_data_rx_bulk)"
     },
     {
       "addr": 33280,
@@ -9920,10 +9920,10 @@
         160,
         130
       ],
-      "comment_inline": "Y=&82: high byte of nmi_data_rx_bulk",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(nmi_data_rx_bulk)"
     },
     {
       "addr": 33282,
@@ -9975,7 +9975,7 @@
       "labels": [
         "install_tube_rx"
       ],
-      "comment_inline": "A=&91: low byte of nmi_data_rx_tube (&8291)",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&820a referenced 1 time by &81fc"
       ],
@@ -9987,7 +9987,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&91"
+      "operand": "#<(nmi_data_rx_tube)"
     },
     {
       "addr": 33292,
@@ -9995,10 +9995,10 @@
         160,
         130
       ],
-      "comment_inline": "Y=&82: high byte of nmi_data_rx_tube",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(nmi_data_rx_tube)"
     },
     {
       "addr": 33294,
@@ -11687,10 +11687,10 @@
         169,
         22
       ],
-      "comment_inline": "A=&16: low byte of nmi_ack_tx_src (&8316)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&16"
+      "operand": "#<(nmi_ack_tx_src)"
     },
     {
       "addr": 33553,
@@ -13187,7 +13187,7 @@
       "labels": [
         "set_nmi_rx_scout"
       ],
-      "comment_inline": "A=&9B: low byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&83eb referenced 2 times by &80cb, &80e2"
       ],
@@ -13203,7 +13203,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&9b"
+      "operand": "#<(nmi_rx_scout)"
     },
     {
       "addr": 33773,
@@ -13211,10 +13211,10 @@
         160,
         128
       ],
-      "comment_inline": "Y=&80: high byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&80"
+      "operand": "#>(nmi_rx_scout)"
     },
     {
       "addr": 33775,
@@ -15669,10 +15669,10 @@
       "labels": [
         "tx_done_jsr"
       ],
-      "comment_inline": "A=&85: high byte of tx_done_exit-1 (&8581)",
+      "comment_inline": "tx_done_exit RTS target (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&85"
+      "operand": "#>(tx_done_exit-1)"
     },
     {
       "addr": 34114,
@@ -15689,10 +15689,10 @@
         169,
         129
       ],
-      "comment_inline": "A=&81: low byte of tx_done_exit-1 (&8581)",
+      "comment_inline": "tx_done_exit RTS target (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&81"
+      "operand": "#<(tx_done_exit-1)"
     },
     {
       "addr": 34117,
@@ -17529,10 +17529,10 @@
         162,
         231
       ],
-      "comment_inline": "X=&E7: low byte of nmi_tx_data (&86E7)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&e7"
+      "operand": "#<(nmi_tx_data)"
     },
     {
       "addr": 34388,
@@ -19161,7 +19161,7 @@
       "labels": [
         "install_reply_scout"
       ],
-      "comment_inline": "Install nmi_reply_validate at &874B",
+      "comment_inline": "Install nmi_reply_scout (low; hi supplied by install_nmi_handler)",
       "xref_summaries": [
         "&8746 referenced 1 time by &8741"
       ],
@@ -19173,7 +19173,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&4b"
+      "operand": "#<(nmi_reply_scout)"
     },
     {
       "addr": 34632,
@@ -19359,10 +19359,10 @@
         169,
         118
       ],
-      "comment_inline": "A=&76: low byte of nmi_reply_validate (&8776)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&76"
+      "operand": "#<(nmi_reply_validate)"
     },
     {
       "addr": 34667,
@@ -21369,10 +21369,10 @@
         169,
         166
       ],
-      "comment_inline": "A=&A6: low byte of nmi_final_ack_net (&88A6)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&a6"
+      "operand": "#<(nmi_final_ack_net)"
     },
     {
       "addr": 34979,
@@ -55177,10 +55177,10 @@
         169,
         48
       ],
-      "comment_inline": "A=&30: low byte of fs_filename_buf buffer",
+      "comment_inline": "Parse-buffer pointer (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&30"
+      "operand": "#<(hazel_parse_buf)"
     },
     {
       "addr": 39963,
@@ -55201,10 +55201,10 @@
         169,
         192
       ],
-      "comment_inline": "A=&C0: high byte of fs_filename_buf buffer",
+      "comment_inline": "Parse-buffer pointer (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&c0"
+      "operand": "#>(hazel_parse_buf)"
     },
     {
       "addr": 39967,
