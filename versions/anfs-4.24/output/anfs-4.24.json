@@ -6670,6 +6670,7 @@
       "labels": [
         "service_entry"
       ],
+      "comment_inline": "Service-call entry: jump to service_handler",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "service_handler",
@@ -13703,6 +13704,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy saved ACCCON to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -13855,6 +13857,7 @@
         240,
         231
       ],
+      "comment_inline": "Index reached end: restore X and finish",
       "type": "code",
       "mnemonic": "beq",
       "operand": "scout_done_restore_x",
@@ -15122,6 +15125,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance buffer index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -15817,6 +15821,7 @@
         240,
         8
       ],
+      "comment_inline": "Zero: transfer done, exit",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_done_exit",
@@ -16081,6 +16086,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Next byte (descending)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -17087,6 +17093,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance to destination network byte",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -17831,6 +17838,7 @@
         169,
         64
       ],
+      "comment_inline": "A=&40: 'line inactive' status code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&40"
@@ -17842,6 +17850,7 @@
         28,
         13
       ],
+      "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "l0d1c",
@@ -17920,6 +17929,7 @@
         48,
         12
       ],
+      "comment_inline": "N set: line still driven, report jammed",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "c86db",
@@ -17998,6 +18008,7 @@
       "labels": [
         "c86db"
       ],
+      "comment_inline": "A=&2C: 'line jammed' status code",
       "xref_summaries": [
         "&86db referenced 2 times by &86c8, &86cd"
       ],
@@ -18022,6 +18033,7 @@
         28,
         13
       ],
+      "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "l0d1c",
@@ -18150,6 +18162,7 @@
         240,
         4
       ],
+      "comment_inline": "Zero: report line jammed",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_line_jammed",
@@ -18193,6 +18206,7 @@
         208,
         14
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_tx_error",
@@ -18531,6 +18545,7 @@
         169,
         44
       ],
+      "comment_inline": "A=&2C: 'line jammed' status code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&2c"
@@ -18550,6 +18565,7 @@
           "l872d"
         ]
       },
+      "comment_inline": "Store net poll-status byte",
       "xref_summaries": [
         "&872d used as index base 1 time by &8748"
       ],
@@ -18767,6 +18783,7 @@
         208,
         2
       ],
+      "comment_inline": "Non-zero: store control byte and add",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_ctrl_store_and_add",
@@ -19174,6 +19191,7 @@
         176,
         21
       ],
+      "comment_inline": "C set: control byte out of range, exit",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "tx_ctrl_exit",
@@ -19666,6 +19684,7 @@
         208,
         7
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_store_error",
@@ -20036,6 +20055,7 @@
         160,
         136
       ],
+      "comment_inline": "Y=&88: high byte of nmi_data_tx handler",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&88"
@@ -23026,6 +23046,7 @@
         201,
         128
       ],
+      "comment_inline": "Compare to &80 (line-idle threshold)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&80"
@@ -23049,6 +23070,7 @@
         169,
         64
       ],
+      "comment_inline": "A=&40: 'line inactive' status code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&40"
@@ -23060,6 +23082,7 @@
         28,
         13
       ],
+      "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "l0d1c",
@@ -23086,6 +23109,7 @@
         169,
         0
       ],
+      "comment_inline": "A=0",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#0"
@@ -24916,6 +24940,7 @@
         113,
         13
       ],
+      "comment_inline": "Store the spool-control flag",
       "type": "code",
       "mnemonic": "sta",
       "operand": "spool_control_flag",
@@ -24939,6 +24964,7 @@
         176,
         33
       ],
+      "comment_inline": "C set: not ours, restore ROM slot and return",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "restore_rom_slot",
@@ -27202,6 +27228,7 @@
         240,
         2
       ],
+      "comment_inline": "Zero args: print the command table",
       "type": "code",
       "mnemonic": "beq",
       "operand": "print_cmd_table",
@@ -27316,6 +27343,7 @@
         80,
         3
       ],
+      "comment_inline": "V clear: walk the next table entry",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "help_table_walk_entry",
@@ -27332,6 +27360,7 @@
       "labels": [
         "print_table_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&8bf8 referenced 1 time by &8bec"
       ],
@@ -27355,6 +27384,7 @@
       "labels": [
         "help_table_walk_entry"
       ],
+      "comment_inline": "Save Y",
       "xref_summaries": [
         "&8bfb referenced 2 times by &8bf6, &8c86"
       ],
@@ -27503,6 +27533,7 @@
       "labels": [
         "loop_print_cmd_name"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8c0f referenced 1 time by &8c17"
       ],
@@ -27593,6 +27624,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -27792,6 +27824,7 @@
       "labels": [
         "print_syntax_char"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8c3b referenced 1 time by &8c33"
       ],
@@ -27831,6 +27864,7 @@
       "labels": [
         "done_entry_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&8c41 referenced 1 time by &8c2f"
       ],
@@ -28014,6 +28048,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -28052,6 +28087,7 @@
       "labels": [
         "loop_indent_spaces"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8c5f referenced 1 time by &8c63"
       ],
@@ -28681,6 +28717,7 @@
         240,
         209
       ],
+      "comment_inline": "Loop back for the next character",
       "type": "code",
       "mnemonic": "beq",
       "operand": "svc_return_unclaimed",
@@ -29184,6 +29221,7 @@
         206,
         144
       ],
+      "comment_inline": "Print the station identity line",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_station_id",
@@ -29197,6 +29235,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -29259,6 +29298,7 @@
         169,
         4
       ],
+      "comment_inline": "A=4: library-selected flag bit",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -29270,6 +29310,7 @@
         113,
         194
       ],
+      "comment_inline": "Set the library-selected flag",
       "type": "code",
       "mnemonic": "tsb",
       "operand": "hazel_fs_lib_flags",
@@ -29833,6 +29874,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "bit-7 terminator + resume opcode",
       "type": "code",
       "mnemonic": "nop"
     },
@@ -29922,6 +29964,7 @@
       "bytes": [
         218
       ],
+      "comment_inline": "Save X",
       "type": "code",
       "mnemonic": "phx"
     },
@@ -29930,6 +29973,7 @@
       "bytes": [
         90
       ],
+      "comment_inline": "Save Y",
       "type": "code",
       "mnemonic": "phy"
     },
@@ -30577,6 +30621,7 @@
         224,
         255
       ],
+      "comment_inline": "Read a character (password entry, no echo)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osrdch",
@@ -30589,6 +30634,7 @@
         201,
         21
       ],
+      "comment_inline": "Ctrl-U (&15): line-delete?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&15"
@@ -30882,6 +30928,7 @@
         240,
         27
       ],
+      "comment_inline": "Branch to send the command",
       "type": "code",
       "mnemonic": "beq",
       "operand": "send_cmd_and_dispatch",
@@ -31181,6 +31228,7 @@
         208,
         22
       ],
+      "comment_inline": "Not matched: fall to service dispatch",
       "type": "code",
       "mnemonic": "bne",
       "operand": "svc_dispatch",
@@ -31277,6 +31325,7 @@
         208,
         6
       ],
+      "comment_inline": "Not matched: fall to service dispatch",
       "type": "code",
       "mnemonic": "bne",
       "operand": "svc_dispatch",
@@ -32317,6 +32366,7 @@
         240,
         245
       ],
+      "comment_inline": "Zero: tail-call OSBYTE",
       "type": "code",
       "mnemonic": "beq",
       "operand": "jmp_osbyte",
@@ -33127,6 +33177,7 @@
         108,
         13
       ],
+      "comment_inline": "Test the FS flags",
       "type": "code",
       "mnemonic": "bit",
       "operand": "fs_flags",
@@ -33192,6 +33243,7 @@
         160,
         33
       ],
+      "comment_inline": "Y=&21: workspace flag offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&21"
@@ -33202,6 +33254,7 @@
         145,
         158
       ],
+      "comment_inline": "Clear the workspace flag at &21",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -34129,6 +34182,7 @@
         108,
         13
       ],
+      "comment_inline": "Merge into the FS flags",
       "type": "code",
       "mnemonic": "ora",
       "operand": "fs_flags",
@@ -34326,6 +34380,7 @@
         81,
         158
       ],
+      "comment_inline": "Toggle the workspace flag at &21",
       "type": "code",
       "mnemonic": "eor",
       "operand": "(nfs_workspace),y",
@@ -34927,6 +34982,7 @@
         16,
         3
       ],
+      "comment_inline": "Positive: store the workspace byte",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "store_ws_byte",
@@ -35511,6 +35567,7 @@
       "labels": [
         "done_print_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&90fb referenced 1 time by &90ec"
       ],
@@ -36939,6 +36996,7 @@
         227,
         255
       ],
+      "comment_inline": "Tail-call OSASCI to print the nybble",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osasci",
@@ -40570,6 +40628,7 @@
         96,
         194
       ],
+      "comment_inline": "Mask the FCB status flags",
       "type": "code",
       "mnemonic": "and",
       "operand": "hazel_fcb_status,x",
@@ -41324,6 +41383,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -43063,6 +43123,7 @@
         106,
         146
       ],
+      "comment_inline": "Print inline string",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_inline",
@@ -43094,6 +43155,7 @@
         87,
         150
       ],
+      "comment_inline": "Print the 'Space' free-space label",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_space_line",
@@ -44060,6 +44122,7 @@
         128,
         41
       ],
+      "comment_inline": "Branch to the shared CMOS-print return",
       "type": "code",
       "mnemonic": "bra",
       "operand": "print_cmos_done",
@@ -44076,6 +44139,7 @@
       "labels": [
         "print_space_line"
       ],
+      "comment_inline": "Print inline string",
       "xref_summaries": [
         "&9657 referenced 3 times by &95b1, &95ba, &9652"
       ],
@@ -44118,6 +44182,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "bit-7 terminator + resume opcode",
       "type": "code",
       "mnemonic": "nop"
     },
@@ -44126,6 +44191,7 @@
       "bytes": [
         96
       ],
+      "comment_inline": "Return",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -44333,6 +44399,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -45784,6 +45851,7 @@
         176,
         31
       ],
+      "comment_inline": "C set: copy TXCB with carry set",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "txcb_copy_carry_set",
@@ -45821,6 +45889,7 @@
         80,
         27
       ],
+      "comment_inline": "V clear: copy TXCB with carry clear",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "txcb_copy_carry_clr",
@@ -47563,6 +47632,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -49980,6 +50050,7 @@
         240,
         12
       ],
+      "comment_inline": "Branch to write the error number and string",
       "type": "code",
       "mnemonic": "beq",
       "operand": "write_error_num_and_str",
@@ -58836,6 +58907,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -68759,6 +68831,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -69111,6 +69184,7 @@
         81,
         190
       ],
+      "comment_inline": "XOR against the stored command character",
       "type": "code",
       "mnemonic": "eor",
       "operand": "(fs_crc_lo),y",
@@ -69503,6 +69577,7 @@
       "bytes": [
         42
       ],
+      "comment_inline": "Rotate result bit into carry",
       "type": "code",
       "mnemonic": "rol"
     },
@@ -69511,6 +69586,7 @@
       "bytes": [
         58
       ],
+      "comment_inline": "Decrement match counter",
       "type": "code",
       "mnemonic": "dec"
     },
@@ -70178,6 +70254,7 @@
         208,
         11
       ],
+      "comment_inline": "Branch to load the *RUN mask",
       "type": "code",
       "mnemonic": "bne",
       "operand": "cmd_run_load_mask",
@@ -70743,6 +70820,7 @@
       "bytes": [
         42
       ],
+      "comment_inline": "Rotate mask bit into carry",
       "type": "code",
       "mnemonic": "rol"
     },
@@ -71182,6 +71260,7 @@
         208,
         231
       ],
+      "comment_inline": "No match: retry via the library directory",
       "type": "code",
       "mnemonic": "bne",
       "operand": "retry_with_library",
@@ -72036,6 +72115,7 @@
         12,
         193
       ],
+      "comment_inline": "Mask the OSWORD flag byte",
       "type": "code",
       "mnemonic": "and",
       "operand": "hazel_txcb_osword_flag",
@@ -72201,6 +72281,7 @@
         218,
         159
       ],
+      "comment_inline": "Return with the last-byte flag",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "return_with_last_flag",
@@ -72231,6 +72312,7 @@
         218,
         159
       ],
+      "comment_inline": "Return with the last-byte flag",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "return_with_last_flag",
@@ -72527,6 +72609,7 @@
         208,
         96
       ],
+      "comment_inline": "Match: store station flags and restore",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_stn_flags_restore",
@@ -72831,6 +72914,7 @@
         208,
         53
       ],
+      "comment_inline": "Match: store station flags and restore",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_stn_flags_restore",
@@ -73589,6 +73673,7 @@
         162,
         18
       ],
+      "comment_inline": "X=&12: low byte of the -NET-FindLib command string (&A712)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&12"
@@ -73599,6 +73684,7 @@
         160,
         167
       ],
+      "comment_inline": "Y=&A7: high byte of the -NET-FindLib command string (&A712)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&a7"
@@ -73840,6 +73926,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -77390,6 +77477,7 @@
         208,
         7
       ],
+      "comment_inline": "Branch to OSWORD-11 done",
       "type": "code",
       "mnemonic": "bne",
       "operand": "osword_11_done",
@@ -78765,6 +78853,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -78905,6 +78994,7 @@
       "bytes": [
         152
       ],
+      "comment_inline": "Copy Y to A",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -78924,6 +79014,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -80228,6 +80319,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -81243,6 +81335,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -81664,6 +81757,7 @@
       "bytes": [
         152
       ],
+      "comment_inline": "Copy Y to A",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -81685,6 +81779,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -81694,6 +81789,7 @@
         208,
         19
       ],
+      "comment_inline": "Branch to store the bridge station",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_bridge_station",
@@ -83124,6 +83220,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -83132,6 +83229,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -83287,6 +83385,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -83528,6 +83627,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -87716,6 +87816,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -88736,6 +88837,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -88745,6 +88847,7 @@
         41,
         7
       ],
+      "comment_inline": "Mask the low 3 bits",
       "type": "code",
       "mnemonic": "and",
       "operand": "#7"
@@ -88909,6 +89012,7 @@
       "bytes": [
         58
       ],
+      "comment_inline": "Decrement",
       "type": "code",
       "mnemonic": "dec"
     },
@@ -88930,6 +89034,7 @@
       "bytes": [
         202
       ],
+      "comment_inline": "Decrement counter",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -89012,6 +89117,7 @@
       "labels": [
         "cafad"
       ],
+      "comment_inline": "Error code = 5?",
       "xref_summaries": [
         "&afad referenced 1 time by &af99"
       ],
@@ -90660,6 +90766,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -91074,6 +91181,7 @@
         208,
         15
       ],
+      "comment_inline": "Branch when the *CDIR size is complete",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_cdir_size",
@@ -91680,6 +91788,7 @@
         176,
         41
       ],
+      "comment_inline": "C set: set the library flag",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "cat_set_lib_flag",
@@ -91718,6 +91827,7 @@
         176,
         9
       ],
+      "comment_inline": "C set: set the library flag",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "ex_set_lib_flag",
@@ -91882,6 +91992,7 @@
         208,
         22
       ],
+      "comment_inline": "Branch to set up the *EX request",
       "type": "code",
       "mnemonic": "bne",
       "operand": "setup_ex_request",
@@ -92315,6 +92426,7 @@
         54,
         179
       ],
+      "comment_inline": "Print a 3-digit decimal (no spool)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_dec_3dig_no_spool",
@@ -93345,6 +93457,7 @@
       "labels": [
         "jmp_osnewl"
       ],
+      "comment_inline": "Tail-call print_newline_no_spool",
       "xref_summaries": [
         "&b25a referenced 1 time by &b237"
       ],
@@ -95100,6 +95213,7 @@
         69,
         120
       ],
+      "comment_inline": "XOR with zp_0078",
       "type": "code",
       "mnemonic": "eor",
       "operand": "zp_0078",
@@ -95112,6 +95226,7 @@
         101,
         99
       ],
+      "comment_inline": "Add zp_0063",
       "type": "code",
       "mnemonic": "adc",
       "operand": "zp_0063",
@@ -95741,6 +95856,7 @@
         227,
         255
       ],
+      "comment_inline": "Print the digit",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -96147,6 +96263,7 @@
         208,
         243
       ],
+      "comment_inline": "Loop to the next character",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_advance_char",
@@ -96553,6 +96670,7 @@
         160,
         33
       ],
+      "comment_inline": "Y=&21: workspace flag offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&21"
@@ -96563,6 +96681,7 @@
         169,
         0
       ],
+      "comment_inline": "A=0",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#0"
@@ -96573,6 +96692,7 @@
         145,
         158
       ],
+      "comment_inline": "Clear the workspace flag at &21",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -97276,6 +97396,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -97440,6 +97561,7 @@
         41,
         7
       ],
+      "comment_inline": "Mask the low 3 bits",
       "type": "code",
       "mnemonic": "and",
       "operand": "#7"
@@ -97618,6 +97740,7 @@
         208,
         212
       ],
+      "comment_inline": "Loop to pop the next PS slot",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_pop_ps_slot",
@@ -97729,6 +97852,7 @@
         80,
         12
       ],
+      "comment_inline": "V clear: branch onward",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "cb4af",
@@ -97778,6 +97902,7 @@
         160,
         33
       ],
+      "comment_inline": "Y=&21: workspace flag offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&21"
@@ -97787,6 +97912,7 @@
       "bytes": [
         152
       ],
+      "comment_inline": "Copy Y to A",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -97796,6 +97922,7 @@
         145,
         158
       ],
+      "comment_inline": "Store the workspace flag at &21",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -97882,6 +98009,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -101862,6 +101990,7 @@
         208,
         2
       ],
+      "comment_inline": "Branch to the unprotect-clear path",
       "type": "code",
       "mnemonic": "bne",
       "operand": "unprot_clear",
@@ -103437,6 +103566,7 @@
         240,
         219
       ],
+      "comment_inline": "Branch to set the wipe CR-end",
       "type": "code",
       "mnemonic": "beq",
       "operand": "set_wipe_cr_end",
@@ -112232,6 +112362,7 @@
       "labels": [
         "escape_error_close"
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
