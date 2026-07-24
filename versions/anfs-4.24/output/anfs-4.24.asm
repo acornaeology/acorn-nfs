@@ -3276,8 +3276,16 @@ l8a1e = sub_c8a1d+1
     bit enable_net_nmis                                               ; 8a1d: 2c 3c fe    ,<.      ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
     rti                                                               ; 8a20: 40          @        ; Return from interrupt
     equb &05, &0a                                                     ; 8a21: 05 0a       ..       ; Padding before the service-dispatch low-byte table
+; ***************************************************************************************
+; svc_dispatch low-byte table (51 entries)
+;
+; Low-byte half of the PHA/PHA/RTS dispatch table read by svc_dispatch as LDA &8A23,X.
+; Paired with the high-byte half at svc_dispatch_hi. Index 0 is an unused placeholder;
+; indices 1..50 cover service handlers, language replies, FSCV reasons, FS replies and
+; net-handle / OSWORD &13 trampolines. Per-entry inline comments give each slot's
+; dispatch.
 ; &8a23 used as index base 1 time by &8e82
-.l8a23
+.svc_dispatch_lo
     equb &0c                                                          ; 8a23: 0c          .        ; &00: placeholder (never reached)
     equb <(dispatch_rts-1)                                            ; 8a24: 87          .        ; &01: no-op (RTS only)
     equb <(svc_dispatch_idx_2-1)                                      ; 8a25: 2a          *        ; &02: workspace claim helper (CMOS bit 0)
@@ -3328,8 +3336,14 @@ l8a1e = sub_c8a1d+1
     equb <(net_1_read_handle-1)                                       ; 8a53: 12          .        ; &30: net handle 1: read handle
     equb <(net_2_read_entry-1)                                        ; 8a54: 18          .        ; &31: net handle 2: read handle entry
     equb <(net_3_close_handle-1)                                      ; 8a55: 28          (        ; &32: net handle 3: close handle
+; ***************************************************************************************
+; svc_dispatch high-byte table (51 entries + 1 padding)
+;
+; High-byte half of the PHA/PHA/RTS dispatch table read as LDA &8A56,X. The dispatcher
+; pushes the high byte first then the low, so RTS lands on target (each stored value is
+; handler-1).
 ; &8a56 used as index base 1 time by &8e7e
-.l8a56
+.svc_dispatch_hi
     equb &0f                                                          ; 8a56: 0f          .        ; &00: placeholder (never reached)
     equb >(dispatch_rts-1)                                            ; 8a57: 8e          .        ; &01: no-op (RTS only)
     equb >(svc_dispatch_idx_2-1)                                      ; 8a58: 8d          .        ; &02: workspace claim helper (CMOS bit 0)
@@ -4498,10 +4512,10 @@ l8dbf = load_transfer_params+1
     dey                                                               ; 8e7a: 88          .        ; Decrement Y offset counter
     bpl svc_dispatch                                                  ; 8e7b: 10 fc       ..       ; Y still positive: continue counting
     tay                                                               ; 8e7d: a8          .        ; Y=&FF: will be ignored by caller
-    lda l8a56,x                                                       ; 8e7e: bd 56 8a    .V.      ; Load dispatch address high byte
+    lda svc_dispatch_hi,x                                             ; 8e7e: bd 56 8a    .V.      ; Load dispatch address high byte
     pha                                                               ; 8e81: 48          H        ; Push high byte for RTS dispatch
 .push_dispatch_lo
-    lda l8a23,x                                                       ; 8e82: bd 23 8a    .#.      ; Load dispatch address low byte
+    lda svc_dispatch_lo,x                                             ; 8e82: bd 23 8a    .#.      ; Load dispatch address low byte
     pha                                                               ; 8e85: 48          H        ; Push low byte for RTS dispatch
     ldx fs_options                                                    ; 8e86: a6 bb       ..       ; Load FS options pointer
 ; &8e88 referenced 3 times by &8e5a, &8e68, &8e75
@@ -11053,13 +11067,18 @@ la891 = la88a+7
     bcs rts_osword_13                                                 ; a9bd: b0 08       ..       ; Out of range: return
     lda osword_13_dispatch_hi,x                                       ; a9bf: bd da a9    ...      ; Read dispatch hi from osword_13_dispatch_hi+X
     pha                                                               ; a9c2: 48          H        ; Push hi for RTS dispatch
-    lda la9c8,x                                                       ; a9c3: bd c8 a9    ...      ; Read dispatch lo from osword_13_dispatch_lo+X
+    lda osword_13_dispatch_lo,x                                       ; a9c3: bd c8 a9    ...      ; Read dispatch lo from osword_13_dispatch_lo+X
     pha                                                               ; a9c6: 48          H        ; Push lo for RTS dispatch
 ; &a9c7 referenced 1 time by &a9bd
 .rts_osword_13
     rts                                                               ; a9c7: 60          `        ; RTS -> dispatched OSWORD &13 sub-handler
+; ***************************************************************************************
+; OSWORD &13 dispatch low-byte table (18 entries)
+;
+; Low-byte half of the OSWORD &13 sub-reason PHA/PHA/RTS dispatch, read as LDA &A9C8,X;
+; paired with osword_13_dispatch_hi.
 ; &a9c8 used as index base 1 time by &a9c3
-.la9c8
+.osword_13_dispatch_lo
     equb <(osword_13_read_station-1)                                  ; a9c8: eb          .        ; sub &00: osword_13_read_station (read FS station)
     equb <(osword_13_set_station-1)                                   ; a9c9: f9          .        ; sub &01: osword_13_set_station (set FS station)
     equb <(osword_13_read_ws_pair-1)                                  ; a9ca: b0          .        ; sub &02: osword_13_read_ws_pair (read workspace pair)
@@ -11929,12 +11948,17 @@ labe5 = compare_bridge_status+1
 .push_osword_handler_addr
     lda netv_dispatch_hi,x                                            ; ad35: bd 49 ad    .I.      ; Load handler high byte from hi-table column X
     pha                                                               ; ad38: 48          H        ; Push for the eventual RTS dispatch
-    lda lad40,x                                                       ; ad39: bd 40 ad    .@.      ; Load handler low byte from lo-table column X
+    lda netv_dispatch_lo,x                                            ; ad39: bd 40 ad    .@.      ; Load handler low byte from lo-table column X
     pha                                                               ; ad3c: 48          H        ; Push lo so RTS pulls (lo, hi)+1 -> handler entry
     lda osbyte_a_copy                                                 ; ad3d: a5 ef       ..       ; Reload original OSWORD number into A for the handler
     rts                                                               ; ad3f: 60          `        ; RTS jumps to handler with A=OSWORD number
+; ***************************************************************************************
+; NETV reason-code dispatch low-byte table (9 entries)
+;
+; Low-byte half of the NETV reason-code PHA/PHA/RTS dispatch, read as LDA &AD40,X; paired
+; with netv_dispatch_hi.
 ; &ad40 used as index base 1 time by &ad39
-.lad40
+.netv_dispatch_lo
     equb <(dispatch_rts-1)                                            ; ad40: 87          .        ; reason &00: dispatch_rts (no-op (RTS only))
     equb <(netv_print_data-1)                                         ; ad41: 8e          .        ; reason &01: netv_print_data (NETV reason 1: print data)
     equb <(netv_print_data-1)                                         ; ad42: 8e          .        ; reason &02: netv_print_data (NETV reason 2: print data (alias))
@@ -17047,16 +17071,12 @@ save pydis_start, pydis_end
 ;     l85c1:                                    1
 ;     l872d:                                    1
 ;     l8a1e:                                    1
-;     l8a23:                                    1
-;     l8a56:                                    1
 ;     l8dbf:                                    1
 ;     la125:                                    1
 ;     la76f:                                    1
 ;     la88a:                                    1
 ;     la891:                                    1
-;     la9c8:                                    1
 ;     labe5:                                    1
-;     lad40:                                    1
 ;     last_break_type:                          1
 ;     lb538:                                    1
 ;     library_dir_prefix:                       1
@@ -17264,6 +17284,7 @@ save pydis_start, pydis_end
 ;     net_error_close_spool:                    1
 ;     netv:                                     1
 ;     netv_dispatch_hi:                         1
+;     netv_dispatch_lo:                         1
 ;     next_flag_entry:                          1
 ;     next_hex_char:                            1
 ;     next_scout_byte:                          1
@@ -17304,6 +17325,7 @@ save pydis_start, pydis_end
 ;     osfind_with_channel:                      1
 ;     osopt_check_cmos_protect:                 1
 ;     osword_13_dispatch_hi:                    1
+;     osword_13_dispatch_lo:                    1
 ;     osword_13_read_ctx_3:                     1
 ;     osword_13_write_ctx_3:                    1
 ;     osword_claim_codes:                       1
@@ -17541,6 +17563,8 @@ save pydis_start, pydis_end
 ;     subst_rx_page_byte:                       1
 ;     subtract_ws_byte:                         1
 ;     suffix_not_listening:                     1
+;     svc_dispatch_hi:                          1
+;     svc_dispatch_lo:                          1
 ;     syn_opt_dir:                              1
 ;     trigger_brk:                              1
 ;     try_alternate_phase:                      1
@@ -17633,16 +17657,12 @@ save pydis_start, pydis_end
 ;     l85c1
 ;     l872d
 ;     l8a1e
-;     l8a23
-;     l8a56
 ;     l8dbf
 ;     la125
 ;     la76f
 ;     la88a
 ;     la891
-;     la9c8
 ;     labe5
-;     lad40
 ;     lb538
 ;     lbffe
 ;     lbfff

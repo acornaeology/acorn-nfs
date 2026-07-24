@@ -4495,6 +4495,20 @@
       "align": "before_label"
     },
     {
+      "addr": 35363,
+      "name": "svc_dispatch_lo",
+      "title": "svc_dispatch low-byte table (51 entries)",
+      "description": "Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by\n[`svc_dispatch`](address:8E5F) as `LDA &8A23,X`. Paired with the high-byte\nhalf at [`svc_dispatch_hi`](address:8A56). Index 0 is an unused placeholder;\nindices 1..50 cover service handlers, language replies, FSCV reasons, FS\nreplies and net-handle / OSWORD &13 trampolines. Per-entry inline comments\ngive each slot's dispatch.",
+      "align": "before_label"
+    },
+    {
+      "addr": 35414,
+      "name": "svc_dispatch_hi",
+      "title": "svc_dispatch high-byte table (51 entries + 1 padding)",
+      "description": "High-byte half of the `PHA`/`PHA`/`RTS` dispatch table read as\n`LDA &8A56,X`. The dispatcher pushes the high byte first then the low, so\n`RTS` lands on target (each stored value is handler-1).",
+      "align": "before_label"
+    },
+    {
       "addr": 36503,
       "name": "fs_info_template",
       "title": "FS-name reply template (11 bytes, byte-reversed)",
@@ -4572,10 +4586,24 @@
       "align": "before_label"
     },
     {
+      "addr": 43464,
+      "name": "osword_13_dispatch_lo",
+      "title": "OSWORD &13 dispatch low-byte table (18 entries)",
+      "description": "Low-byte half of the OSWORD &13 sub-reason `PHA`/`PHA`/`RTS`\ndispatch, read as `LDA &A9C8,X`; paired with\n[`osword_13_dispatch_hi`](address:A9DA).",
+      "align": "before_label"
+    },
+    {
       "addr": 43482,
       "name": "osword_13_dispatch_hi",
       "title": "OSWORD &13 dispatch high-byte table (18 entries)",
       "description": "Read by [`osword_13_dispatch`](address:A99A) as `LDA &A9BA,X`. The\ndispatcher pushes the hi byte first then the lo, so RTS lands on\n`target` (the table stores `target-1`).",
+      "align": "before_label"
+    },
+    {
+      "addr": 44352,
+      "name": "netv_dispatch_lo",
+      "title": "NETV reason-code dispatch low-byte table (9 entries)",
+      "description": "Low-byte half of the NETV reason-code `PHA`/`PHA`/`RTS`\ndispatch, read as `LDA &AD40,X`; paired with\n[`netv_dispatch_hi`](address:AD49).",
       "align": "before_label"
     },
     {
@@ -23408,7 +23436,7 @@
         12
       ],
       "labels": [
-        "l8a23"
+        "svc_dispatch_lo"
       ],
       "comment_inline": "&00: placeholder (never reached)",
       "xref_summaries": [
@@ -24120,7 +24148,7 @@
         15
       ],
       "labels": [
-        "l8a56"
+        "svc_dispatch_hi"
       ],
       "comment_inline": "&00: placeholder (never reached)",
       "xref_summaries": [
@@ -31460,9 +31488,9 @@
       "comment_inline": "Load dispatch address high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8a56,x",
+      "operand": "svc_dispatch_hi,x",
       "target": 35414,
-      "target_label": "l8a56"
+      "target_label": "svc_dispatch_hi"
     },
     {
       "addr": 36481,
@@ -31486,9 +31514,9 @@
       "comment_inline": "Load dispatch address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8a23,x",
+      "operand": "svc_dispatch_lo,x",
       "target": 35363,
-      "target_label": "l8a23"
+      "target_label": "svc_dispatch_lo"
     },
     {
       "addr": 36485,
@@ -77813,9 +77841,9 @@
       "comment_inline": "Read dispatch lo from osword_13_dispatch_lo+X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la9c8,x",
+      "operand": "osword_13_dispatch_lo,x",
       "target": 43464,
-      "target_label": "la9c8"
+      "target_label": "osword_13_dispatch_lo"
     },
     {
       "addr": 43462,
@@ -77853,7 +77881,7 @@
         235
       ],
       "labels": [
-        "la9c8"
+        "osword_13_dispatch_lo"
       ],
       "comment_inline": "sub &00: osword_13_read_station (read FS station)",
       "xref_summaries": [
@@ -84350,9 +84378,9 @@
       "comment_inline": "Load handler low byte from lo-table column X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lad40,x",
+      "operand": "netv_dispatch_lo,x",
       "target": 44352,
-      "target_label": "lad40"
+      "target_label": "netv_dispatch_lo"
     },
     {
       "addr": 44348,
@@ -84391,7 +84419,7 @@
         135
       ],
       "labels": [
-        "lad40"
+        "netv_dispatch_lo"
       ],
       "comment_inline": "reason &00: dispatch_rts (no-op (RTS only))",
       "xref_summaries": [

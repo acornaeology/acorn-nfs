@@ -19441,6 +19441,29 @@ d.comment(0xB686, "Status = 1?", align=Align.INLINE)
 d.comment(0xB69D, "Not 1 or 2: default to jammed", align=Align.INLINE)
 
 # --- manual coverage-gap annotations ---
+d.index_base(0x8A23, "svc_dispatch_lo")
+d.banner(0x8A23, title="svc_dispatch low-byte table (51 entries)",
+    description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
+[`svc_dispatch`](address:8E5F) as `LDA &8A23,X`. Paired with the high-byte
+half at [`svc_dispatch_hi`](address:8A56). Index 0 is an unused placeholder;
+indices 1..50 cover service handlers, language replies, FSCV reasons, FS
+replies and net-handle / OSWORD &13 trampolines. Per-entry inline comments
+give each slot's dispatch.""")
+d.index_base(0x8A56, "svc_dispatch_hi")
+d.banner(0x8A56, title="svc_dispatch high-byte table (51 entries + 1 padding)",
+    description="""High-byte half of the `PHA`/`PHA`/`RTS` dispatch table read as
+`LDA &8A56,X`. The dispatcher pushes the high byte first then the low, so
+`RTS` lands on target (each stored value is handler-1).""")
+d.index_base(0xA9C8, "osword_13_dispatch_lo")
+d.banner(0xA9C8, title="OSWORD &13 dispatch low-byte table (18 entries)",
+    description="""Low-byte half of the OSWORD &13 sub-reason `PHA`/`PHA`/`RTS`
+dispatch, read as `LDA &A9C8,X`; paired with
+[`osword_13_dispatch_hi`](address:A9DA).""")
+d.index_base(0xAD40, "netv_dispatch_lo")
+d.banner(0xAD40, title="NETV reason-code dispatch low-byte table (9 entries)",
+    description="""Low-byte half of the NETV reason-code `PHA`/`PHA`/`RTS`
+dispatch, read as `LDA &AD40,X`; paired with
+[`netv_dispatch_hi`](address:AD49).""")
 d.comment(0xB10C, "Index 5: threshold 39", align=Align.INLINE)
 d.comment(0xB10D, "Index 6: threshold 49", align=Align.INLINE)
 d.comment(0xB110, "Index 9: threshold 79", align=Align.INLINE)
