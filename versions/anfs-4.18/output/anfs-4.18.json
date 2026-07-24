@@ -1065,7 +1065,7 @@
       "addr": 35999,
       "name": "print_version_header",
       "title": "Print ANFS version string and station number",
-      "description": "Uses an inline string after JSR print_inline:\nCR + \"Advanced  4.08.53\" + CR. After the inline\nstring, JMPs to print_station_id to append the\nlocal Econet station number."
+      "description": "Uses an inline string after JSR print_inline:\nCR + \"Advanced NFS 4.18\" + CR. After the inline\nstring, JMPs to print_station_id to append the\nlocal Econet station number."
     },
     {
       "addr": 36025,

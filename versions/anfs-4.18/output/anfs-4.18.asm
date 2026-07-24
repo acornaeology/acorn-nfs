@@ -4327,7 +4327,7 @@ init_rom_scan = sub_c8a6c+2
 ; ***************************************************************************************
 ; Print ANFS version string and station number
 ;
-; Uses an inline string after JSR print_inline: CR + "Advanced  4.08.53" + CR. After the
+; Uses an inline string after JSR print_inline: CR + "Advanced NFS 4.18" + CR. After the
 ; inline string, JMPs to print_station_id to append the local Econet station number.
 ; &8c9f referenced 2 times by &8b9e, &8c68
 .print_version_header

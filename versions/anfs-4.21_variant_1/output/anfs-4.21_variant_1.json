@@ -278,7 +278,7 @@
     {
       "addr": 32808,
       "name": "svc5_irq_check",
-      "title": "Service 5: unrecognised interrupt (Master 128 dispatch)",
+      "title": "Service 5: unrecognised interrupt (dispatch)",
       "description": "Delivers work deferred out of the Econet NMI receive handler.\nAn execute-class immediate operation -- a remote JSR, a user/OS\nprocedure call, halt or continue -- cannot safely JSR into user\ncode or call an OS routine from NMI context, so the NMI handler\nrecords it instead: [`setup_sr_tx`](address:8512) stores the\noperation type in [`tx_op_type`](address:0D65) and sets the\nMaster 128 ACCCON IRR latch (bit 7 at `&FE34`) via `TSB`. The\nlatch raises an ordinary IRQ once the NMI handler has returned,\nwhich reaches the ROM here as service call `&05` (unrecognised\ninterrupt) -- the normal IRQ path, where it is safe to run the\ndeferred operation.\n\nReads the deferred-work flag at `&0D65`; if zero, returns early via\n`PLX`/`PLY`/`RTS`. Otherwise clears bit 7 of the Master 128 `ACCCON`\nregister at `&FE34` (`TRB`), zeros `&0D65`, then dispatches one of\ntwo ways depending on bit 7 of the saved `Y`:\n\n| Caller `Y` bit 7 | Action |\n|---|---|\n| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](address:8048) |\n| Clear | Fire Econet RX event `&FE` via [`generate_event`](address:8045), then `JMP` to [`tx_done_exit`](address:8582) |",
       "on_entry": {
         "a": "5 (service call number)",
@@ -963,7 +963,7 @@
     {
       "addr": 35412,
       "name": "service_handler",
-      "title": "Service call dispatch (Master 128)",
+      "title": "Service call dispatch",
       "description": "Handles service calls 1, 4, 8, 9, 13, 14, and 15.\n\n| Call | Meaning                          |\n|-----:|----------------------------------|\n|    1 | Absolute workspace claim         |\n|    4 | Unrecognised `*` command         |\n|    8 | Unrecognised OSWORD              |\n|    9 | `*HELP`                          |\n|   13 | ROM initialisation               |\n|   14 | ROM initialisation complete      |\n|   15 | Vectors claimed                  |\n\nOn service 15 the ROM verifies the host OS via OSBYTE 0 with the\ninput `X=1`, which returns the OS version code:\n\n| OSBYTE 1 value | Host                                |\n|---------------:|-------------------------------------|\n|              0 | OS 1.00 (early BBC B or Electron)   |\n|              1 | OS 1.20 or American OS              |\n|              2 | OS 2.00 (BBC B+)                    |\n|              3 | OS 3.2 / 3.5 (Master 128)           |\n|              4 | OS 4.0 (Master Econet Terminal)     |\n|              5 | OS 5.0 (Master Compact)             |\n\nOnly Master 128 and Master Econet Terminal are supported. Any\nother version gets a `Bad ROM <slot>` message printed and its\nworkspace byte cleared at `&02A0 + adjusted-slot`, effectively\nrejecting the ROM.",
       "on_entry": {
         "a": "service call number",
@@ -1218,7 +1218,7 @@
       "on_entry": {
         "a": "3 (service call number)",
         "x": "ROM slot",
-        "y": "parameter (Master 128 service-call dispatch)"
+        "y": "parameter (service-call dispatch)"
       }
     },
     {
@@ -1322,7 +1322,7 @@
       "addr": 36443,
       "name": "dir_op_dispatch",
       "title": "Dispatch directory operation via PHA/PHA/RTS",
-      "description": "Validates `X < 5` and sets `Y = &18` as the dispatch offset,\nthen falls through into [`svc_dispatch`](address:8E61). The\n`INX`/`DEY`/`BPL` loop in\n[`svc_dispatch`](address:8E61) then settles `X_final =\nX_caller + Y + 1`, landing on indices `&19..&1D` of the\n[`svc_dispatch_lo`](address:89ED) /\n[`svc_dispatch_hi`](address:8A20) tables. Those slots map to\nthe language-reply handlers `lang_0_insert_key`\n(idx `&19`) through `lang_4_validated` (idx `&1D`).\n\n(In 4.18 the offset was `&0E`, reaching indices 15..19. The 4.21\nshift to `&18` puts the targets ten slots higher in the rebuilt\ndispatch table.)",
+      "description": "Validates `X < 5` and sets `Y = &18` as the dispatch offset,\nthen falls through into [`svc_dispatch`](address:8E61). The\n`INX`/`DEY`/`BPL` loop in\n[`svc_dispatch`](address:8E61) then settles `X_final =\nX_caller + Y + 1`, landing on indices `&19..&1D` of the\n[`svc_dispatch_lo`](address:89ED) /\n[`svc_dispatch_hi`](address:8A20) tables. Those slots map to\nthe language-reply handlers `lang_0_insert_key`\n(idx `&19`) through `lang_4_validated` (idx `&1D`).",
       "on_entry": {
         "x": "directory operation code (0-4)"
       },
@@ -1362,7 +1362,7 @@
     {
       "addr": 36504,
       "name": "read_cmos_byte_0",
-      "title": "Read CMOS RAM byte 0 (Master 128)",
+      "title": "Read CMOS RAM byte 0",
       "description": "Sets `X=0` and falls through to [`osbyte_a1`](address:8E9A),\nwhich issues OSBYTE `&A1` to read CMOS RAM byte 0 \u2013 the\nfile-system / language byte holding the default boot mode and FS\nselection.\n\nSingle caller (`&8FBB`, inside\n[`nfs_init_body`](address:8F38)'s CMOS-read sequence).",
       "on_exit": {
         "y": "CMOS byte 0 (returned by OSBYTE &A1)"
@@ -1441,7 +1441,7 @@
     {
       "addr": 36585,
       "name": "raise_y_to_c8",
-      "title": "Master 128 service &21 handler: claim static hidden-RAM workspace",
+      "title": "Service &21 handler: claim static hidden-RAM workspace",
       "description": "Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`.\nReached when MOS issues service call `&21` (\"Offer Static Workspace\nin Hidden RAM\") to all sideways ROMs at reset. Per the *Advanced\nReference Manual for the BBC Master*, hidden-RAM static workspace\nruns from page `&C0` up to page `&DB`; each filing-system ROM that\nwants a slice raises Y to its required base page. ANFS demands its\nstatic workspace base at page `&C8`, so it raises Y to `&C8` if a\nprevious ROM hasn't already.",
       "on_entry": {
         "y": "current bottom of static workspace claim (some page in &C0..&DB)"
@@ -1912,7 +1912,7 @@
     {
       "addr": 38382,
       "name": "set_fs_or_ps_cmos_station",
-      "title": "Write FS/PS station+network to Master 128 CMOS RAM",
+      "title": "Write FS/PS station+network to CMOS RAM",
       "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A80F`](address:A80F), `*PS` at\n[`&A814`](address:A814)) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](address:A3C4) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](address:9612), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](address:8C64).",
       "on_entry": {
         "x": "offset in cmd_table_fs of the matched entry's flag byte"
@@ -2333,7 +2333,7 @@
       "addr": 39936,
       "name": "gsread_to_buf",
       "title": "Parse command line via GSINIT/GSREAD into hazel_parse_buf",
-      "description": "Calls GSINIT to initialise string reading, then loops calling\nGSREAD to copy characters into [`hazel_parse_buf`](address:C030)\nuntil end-of-string. Appends a CR terminator and sets\n`fs_crc_lo`/`hi` to point at the buffer for subsequent parsing\nroutines. (Pre-HAZEL ROMs used `fs_filename_buf` at &0E30; the\n4.21 build uses HAZEL.)",
+      "description": "Calls GSINIT to initialise string reading, then loops calling\nGSREAD to copy characters into [`hazel_parse_buf`](address:C030)\nuntil end-of-string. Appends a CR terminator and sets\n`fs_crc_lo`/`hi` to point at the buffer for subsequent parsing\nroutines.",
       "on_entry": {
         "y": "current command-line offset (consumed by GSINIT)"
       },
@@ -2686,7 +2686,7 @@
       "title": "Look up channel from FS options offset 0",
       "description": "Loads the channel handle from (fs_options) at\noffset 0, then falls through to lookup_cat_slot_data\nto find the corresponding FCB entry.",
       "on_exit": {
-        "a": "FCB flag byte from &1030+X",
+        "a": "FCB flag byte from hazel_fcb_slot_attr,X",
         "x": "channel slot index"
       },
       "fall_through": true
@@ -2695,7 +2695,7 @@
       "addr": 41459,
       "name": "lookup_cat_slot_data",
       "title": "Look up channel and return FCB flag byte",
-      "description": "Calls [`lookup_chan_by_char`](address:B847) to find the channel\nslot for handle `A` in the channel table, then loads the FCB\nslot-attribute byte from\n[`hazel_fcb_slot_attr`](address:C230)+`X`. (Pre-HAZEL ROMs read\nfrom &1030+X.)",
+      "description": "Calls [`lookup_chan_by_char`](address:B847) to find the channel\nslot for handle `A` in the channel table, then loads the FCB\nslot-attribute byte from\n[`hazel_fcb_slot_attr`](address:C230)+`X`.",
       "on_entry": {
         "a": "channel handle"
       },
@@ -3292,7 +3292,7 @@
       "addr": 44215,
       "name": "handle_tx_request",
       "title": "Sub-code 0: copy PB station/network into RX block, dispatch burst",
-      "description": "Sub-code-0 path of [`osword_14_handler`](address:AC47), reached\nvia the `BCC handle_tx_request` at `&AC49` when the caller's `A`\nis 0. Reads two bytes from the OSWORD parameter block:\n\n| Reg setup | Source     | Stored at        |\n| --------- | ---------- | ---------------- |\n| `Y=1`     | `PB[1]`    | (parked in `X`)  |\n| `Y=2`     | `PB[2]`    | `(net_rx_ptr)+&72` (dest network) |\n| `Y=3`     | (saved as `osword_flag` for the next byte read) | |\n| `Y=&71`   | `X` (PB[1])| `(net_rx_ptr)+&71` (dest station) |\n\nWraps the body in `PHP`/`PLP` so the entry flags (carry clear from\nthe `BCC`) survive the workspace stores; the `BNE` after `PLP`\nthen dispatches to [`handle_burst_xfer`](address:ACED) when the\ncaller's `A` was non-zero (a defensive branch -- the `BCC` entry\nguarantees `A=0` in 4.21, but the same body is the entry point\nthe burst path piggy-backs on).",
+      "description": "Sub-code-0 path of [`osword_14_handler`](address:AC47), reached\nvia the `BCC handle_tx_request` at `&AC49` when the caller's `A`\nis 0. Reads two bytes from the OSWORD parameter block:\n\n| Reg setup | Source     | Stored at        |\n| --------- | ---------- | ---------------- |\n| `Y=1`     | `PB[1]`    | (parked in `X`)  |\n| `Y=2`     | `PB[2]`    | `(net_rx_ptr)+&72` (dest network) |\n| `Y=3`     | (saved as `osword_flag` for the next byte read) | |\n| `Y=&71`   | `X` (PB[1])| `(net_rx_ptr)+&71` (dest station) |\n\nWraps the body in `PHP`/`PLP` so the entry flags (carry clear from\nthe `BCC`) survive the workspace stores; the `BNE` after `PLP`\nthen dispatches to [`handle_burst_xfer`](address:ACED) when the\ncaller's `A` was non-zero (a defensive branch -- the `BCC` entry\nguarantees `A=0`, but the same body is the entry point\nthe burst path piggy-backs on).",
       "on_entry": {
         "a": "OSWORD &14 sub-function code (caller's A; 0 via the BCC entry from osword_14_handler)",
         "ws_ptr_hi": "OSWORD parameter-block high byte"
@@ -4196,7 +4196,7 @@
       "addr": 47479,
       "name": "init_wipe_counters",
       "title": "Initialise byte counters for wipe/transfer",
-      "description": "Sets `hazel_pass_counter` to 1 and clears\n`hazel_byte_counter_lo`, `hazel_offset_counter` and\n`hazel_transfer_flag`. Then stores `&FF` sentinels in\n[`hazel_sentinel_cd`](address:C2CD) /\n[`hazel_sentinel_ce`](address:C2CE). The HAZEL FS-state region\nis at &C2xx in the 4.21 build.",
+      "description": "Sets `hazel_pass_counter` to 1 and clears\n`hazel_byte_counter_lo`, `hazel_offset_counter` and\n`hazel_transfer_flag`. Then stores `&FF` sentinels in\n[`hazel_sentinel_cd`](address:C2CD) /\n[`hazel_sentinel_ce`](address:C2CE). The HAZEL FS-state region\nis at &C2xx.",
       "on_exit": {
         "x": "small loop counter (last DEX value)",
         "y": "0 (cleared by the TYA path)"
@@ -4232,7 +4232,7 @@
       "addr": 47808,
       "name": "restore_catalog_entry",
       "title": "Restore saved catalog entry to TX buffer",
-      "description": "Copies 13 bytes (Y=&0C..0) from\n[`hazel_ctx_buffer`](address:C2D9) back to the TX buffer\nstarting at [`hazel_txcb_port`](address:C100). Falls through to\n`find_matching_fcb`. (Pre-HAZEL ROMs read from `&10D9` and wrote\nto `&0F00`; the 4.21 build relocates both to HAZEL.)"
+      "description": "Copies 13 bytes (Y=&0C..0) from\n[`hazel_ctx_buffer`](address:C2D9) back to the TX buffer\nstarting at [`hazel_txcb_port`](address:C100). Falls through to\n`find_matching_fcb`."
     },
     {
       "addr": 47820,
@@ -6159,7 +6159,7 @@
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "TXCB port byte / CSD (current selected directory) handle. Pre-HAZEL counterpart of [`hazel_txcb_network`](address:C103)."
+      "description": "TXCB port byte / CSD (current selected directory) handle."
     },
     {
       "addr": 3845,
@@ -6167,7 +6167,7 @@
       "length": 1,
       "group": "ram_workspace",
       "access": "rw",
-      "description": "TX buffer data start / FS reply data. Pre-HAZEL counterpart of [`hazel_txcb_data`](address:C105)."
+      "description": "TX buffer data start / FS reply data."
     },
     {
       "addr": 4339,
@@ -10260,9 +10260,9 @@
         254
       ],
       "comments_before_label": [
-        "4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores\nin this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace\n&97 holds the desired ACCCON value pre-loaded by the caller."
+        "Save/restore ACCCON across the (open_port_buf),Y stores\nin this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace\n&97 holds the desired ACCCON value pre-loaded by the caller."
       ],
-      "comment_inline": "Save current ACCCON on stack (Master 128)",
+      "comment_inline": "Save current ACCCON on stack",
       "type": "code",
       "mnemonic": "lda",
       "operand": "acccon",
@@ -13437,9 +13437,9 @@
         254
       ],
       "comments_before_label": [
-        "4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores.\nThe destination port buffer may live in shadow RAM; bit 0 of ACCCON (D)\ncontrols whether (zp),Y addressing hits shadow vs main RAM. Workspace &97\nholds the desired ACCCON value pre-loaded by the caller."
+        "Save/restore ACCCON across the (open_port_buf),Y stores.\nThe destination port buffer may live in shadow RAM; bit 0 of ACCCON (D)\ncontrols whether (zp),Y addressing hits shadow vs main RAM. Workspace &97\nholds the desired ACCCON value pre-loaded by the caller."
       ],
-      "comment_inline": "Save current ACCCON on stack (4.21 Master 128)",
+      "comment_inline": "Save current ACCCON on stack",
       "type": "code",
       "mnemonic": "lda",
       "operand": "acccon",
@@ -20221,9 +20221,9 @@
         254
       ],
       "comments_before_label": [
-        "4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y reads\nin this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk;\nworkspace &97 holds the desired ACCCON value pre-loaded by the caller."
+        "Save/restore ACCCON across the (open_port_buf),Y reads\nin this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk;\nworkspace &97 holds the desired ACCCON value pre-loaded by the caller."
       ],
-      "comment_inline": "Save current ACCCON on stack (Master 128)",
+      "comment_inline": "Save current ACCCON on stack",
       "type": "code",
       "mnemonic": "lda",
       "operand": "acccon",
@@ -21950,7 +21950,7 @@
       "labels": [
         "tx_calc_transfer"
       ],
-      "comment_inline": "Read ACCCON (Master 128 access-control register)",
+      "comment_inline": "Read ACCCON (access-control register)",
       "xref_summaries": [
         "&8900 referenced 3 times by &819a, &84db, &86dd"
       ],
@@ -95498,7 +95498,7 @@
       "labels": [
         "mask_owner_access"
       ],
-      "comment_inline": "Read fs_lib_flags (now at &C271 in 4.21)",
+      "comment_inline": "Read fs_lib_flags (&C271)",
       "xref_summaries": [
         "&b2cf referenced 15 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b0a3, &b189, &b357, &b6f3"
       ],
@@ -99342,7 +99342,7 @@
         169,
         158
       ],
-      "comment_inline": "A=&9E: control byte (Master 128 PS-init pattern)",
+      "comment_inline": "A=&9E: control byte (PS-init pattern)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&9e"

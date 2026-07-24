@@ -1047,7 +1047,7 @@ d.label(0x0F02, "fs_cmd_urd")
 d.label(
     0x0F03,
     "fs_cmd_csd",
-    description="TXCB port byte / CSD (current selected directory) handle. Pre-HAZEL counterpart of [`hazel_txcb_network`](address:C103).",
+    description="TXCB port byte / CSD (current selected directory) handle.",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -1058,7 +1058,7 @@ d.label(0x0F04, "fs_cmd_lib")
 d.label(
     0x0F05,
     "fs_cmd_data",
-    description="TX buffer data start / FS reply data. Pre-HAZEL counterpart of [`hazel_txcb_data`](address:C105).",
+    description="TX buffer data start / FS reply data.",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -1207,7 +1207,7 @@ d.entry(0x802A)
 d.subroutine(
     0x802A,
     "svc5_irq_check",
-    title="Service 5: unrecognised interrupt (Master 128 dispatch)",
+    title="Service 5: unrecognised interrupt (dispatch)",
     description="""Delivers work deferred out of the Econet NMI receive handler.
 An execute-class immediate operation -- a remote JSR, a user/OS
 procedure call, halt or continue -- cannot safely JSR into user
@@ -1841,11 +1841,11 @@ d.label(0x822B, "data_rx_loop")
 d.comment(0x822B, "SR2 bit7 clear: frame complete (FV)", align=Align.INLINE)
 d.comment(
     0x822D,
-    """4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores
+    """Save/restore ACCCON across the (open_port_buf),Y stores
 in this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace
 &97 holds the desired ACCCON value pre-loaded by the caller.""",
 )
-d.comment(0x822D, "Save current ACCCON on stack (Master 128)", align=Align.INLINE)
+d.comment(0x822D, "Save current ACCCON on stack", align=Align.INLINE)
 d.comment(0x8230, "Push ACCCON snapshot", align=Align.INLINE)
 d.comment(0x8231, "Load desired ACCCON from workspace &97", align=Align.INLINE)
 d.comment(0x8233, "Set ACCCON for the upcoming buffer stores", align=Align.INLINE)
@@ -2410,12 +2410,12 @@ d.label(0x841C, "imm_op_handler_lo_table")
 
 d.comment(
     0x841D,
-    """4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores.
+    """Save/restore ACCCON across the (open_port_buf),Y stores.
 The destination port buffer may live in shadow RAM; bit 0 of ACCCON (D)
 controls whether (zp),Y addressing hits shadow vs main RAM. Workspace &97
 holds the desired ACCCON value pre-loaded by the caller.""",
 )
-d.comment(0x841D, "Save current ACCCON on stack (4.21 Master 128)", align=Align.INLINE)
+d.comment(0x841D, "Save current ACCCON on stack", align=Align.INLINE)
 d.comment(0x8420, "Push ACCCON snapshot", align=Align.INLINE)
 d.comment(0x8421, "Load desired ACCCON from workspace &97", align=Align.INLINE)
 d.comment(0x8423, "Set ACCCON for the upcoming (open_port_buf),Y stores", align=Align.INLINE)
@@ -3806,11 +3806,11 @@ d.label(0x88C1, "data_tx_check_fifo")
 d.comment(0x88C1, "TDRA not ready -- error", align=Align.INLINE)
 d.comment(
     0x88C3,
-    """4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y reads
+    """Save/restore ACCCON across the (open_port_buf),Y reads
 in this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk;
 workspace &97 holds the desired ACCCON value pre-loaded by the caller.""",
 )
-d.comment(0x88C3, "Save current ACCCON on stack (Master 128)", align=Align.INLINE)
+d.comment(0x88C3, "Save current ACCCON on stack", align=Align.INLINE)
 d.comment(0x88C6, "Push ACCCON snapshot", align=Align.INLINE)
 d.comment(0x88C7, "Load desired ACCCON from workspace &97", align=Align.INLINE)
 d.comment(0x88C9, "Set ACCCON for the upcoming buffer reads", align=Align.INLINE)
@@ -4108,7 +4108,7 @@ d.entry(0x863A)
 # UNMAPPED: )
 
 
-d.comment(0x85AE, "Read ACCCON (Master 128 access-control register)", align=Align.INLINE)
+d.comment(0x85AE, "Read ACCCON (access-control register)", align=Align.INLINE)
 d.comment(0x85B1, "Set bit 3 of A (transfer-mode flag)", align=Align.INLINE)
 d.comment(0x85B3, "Store as escapable mode", align=Align.INLINE)
 d.comment(0x85B5, "Y=7: scout-bytes counter", align=Align.INLINE)
@@ -4397,7 +4397,7 @@ d.comment(0x8A20, "Return from interrupt", align=Align.INLINE)
 # UNMAPPED:     title="svc_dispatch low-byte table (51 entries)",
 # UNMAPPED:     description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
 # UNMAPPED: [`svc_dispatch`](address:8E61) as `LDA &8A23,X`. Paired with
-# UNMAPPED: the high-byte half at [`svc_dispatch_hi`](address:8A20).
+# UNMAPPED: the high-byte half at [`svc_dispatch_hi`](address:8A56).
 # UNMAPPED: 
 # UNMAPPED: Index 0 is a placeholder (target value unused – never reached);
 # UNMAPPED: indices 1..50 cover:
@@ -4433,7 +4433,7 @@ d.comment(0x8A20, "Return from interrupt", align=Align.INLINE)
 d.subroutine(
     0x8A8A,
     "service_handler",
-    title="Service call dispatch (Master 128)",
+    title="Service call dispatch",
     description="""Handles service calls 1, 4, 8, 9, 13, 14, and 15.
 
 | Call | Meaning                          |
@@ -5161,7 +5161,7 @@ d.subroutine(
     "print_version_header",
     title="Print ANFS version string and station number",
     description="""Uses an inline string after `JSR` to
-[`print_inline`](address:9261): `CR + "Advanced NFS 4.21" +
+[`print_inline`](address:9261): `CR + "Advanced NFS 4.24" +
 CR`. After the inline string, `JMP`s to
 [`print_station_id`](address:90C7) to append the local Econet
 station number.""",
@@ -5253,7 +5253,7 @@ station ID, then checks if this is the first boot
 (ws_page = 0). If so, sets the auto-boot flag in
 &1071 and JMPs to cmd_fs_entry to execute the boot
 file.""",
-    on_entry={"a": "3 (service call number)", "x": "ROM slot", "y": "parameter (Master 128 service-call dispatch)"},
+    on_entry={"a": "3 (service call number)", "x": "ROM slot", "y": "parameter (service-call dispatch)"},
 )
 
 
@@ -5336,7 +5336,7 @@ d.subroutine(
     "svc_dispatch_idx_2",
     title="svc_dispatch table[2] handler",
     description="""Reached only via PHA/PHA/RTS dispatch from the
-[`svc_dispatch`](address:89ED) table at index 2. Pushes `Y`
+[`svc_dispatch_lo`](address:8A23) table at index 2. Pushes `Y`
 onto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the
 Econet station-flags byte), calls [`osbyte_a1`](address:8E9A) to
 read it, then ANDs the result with `&01` (bit 0 = "use page &0B
@@ -5649,14 +5649,10 @@ then falls through into [`svc_dispatch`](address:8E61). The
 `INX`/`DEY`/`BPL` loop in
 [`svc_dispatch`](address:8E61) then settles `X_final =
 X_caller + Y + 1`, landing on indices `&19..&1D` of the
-[`svc_dispatch_lo`](address:89ED) /
-[`svc_dispatch_hi`](address:8A20) tables. Those slots map to
+[`svc_dispatch_lo`](address:8A23) /
+[`svc_dispatch_hi`](address:8A56) tables. Those slots map to
 the language-reply handlers `lang_0_insert_key`
-(idx `&19`) through `lang_4_validated` (idx `&1D`).
-
-(In 4.18 the offset was `&0E`, reaching indices 15..19. The 4.21
-shift to `&18` puts the targets ten slots higher in the rebuilt
-dispatch table.)""",
+(idx `&19`) through `lang_4_validated` (idx `&1D`).""",
     on_entry={"x": "directory operation code (0-4)"},
 )
 
@@ -5672,8 +5668,8 @@ d.subroutine(
     description="""Computes a target index by incrementing `X` and decrementing `Y`
 until `Y` goes negative, effectively calculating `X+Y+1`. Pushes
 the target address (high then low byte) from
-[`svc_dispatch_lo`](address:89ED) /
-[`svc_dispatch_hi`](address:8A20) onto the stack, loads
+[`svc_dispatch_lo`](address:8A23) /
+[`svc_dispatch_hi`](address:8A56) onto the stack, loads
 `fs_options` into `X`, then `RTS` jumps to the target
 subroutine. Used for all service dispatch, FS command execution,
 and OSBYTE handler routing.
@@ -5782,7 +5778,7 @@ d.comment(0x8EAD, "Tail-call findv_handler (= FILEV)", align=Align.INLINE)
 d.subroutine(
     0x8EB0,
     "read_cmos_byte_0",
-    title="Read CMOS RAM byte 0 (Master 128)",
+    title="Read CMOS RAM byte 0",
     description="""Sets `X=0` and falls through to [`osbyte_a1`](address:8E9A),
 which issues OSBYTE `&A1` to read CMOS RAM byte 0 – the
 file-system / language byte holding the default boot mode and FS
@@ -5940,7 +5936,7 @@ d.label(0x8F01, "raise_y_to_c8")
 d.subroutine(
     0x8F01,
     "raise_y_to_c8",
-    title="Master 128 service &21 handler: claim static hidden-RAM workspace",
+    title="Service &21 handler: claim static hidden-RAM workspace",
     description="""Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`.
 Reached when MOS issues service call `&21` ("Offer Static Workspace
 in Hidden RAM") to all sideways ROMs at reset. Per the *Advanced
@@ -7803,7 +7799,7 @@ d.comment(0x95EA, "Tail-jump to svc4_dispatch_lookup with X=&A0", align=Align.IN
 d.subroutine(
     0x95ED,
     "set_fs_or_ps_cmos_station",
-    title="Write FS/PS station+network to Master 128 CMOS RAM",
+    title="Write FS/PS station+network to CMOS RAM",
     description="""Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
 (`*FS` at [`&A828`](address:A80F), `*PS` at
 [`&A82D`](address:A814)) when the caller supplies a `<net>.<stn>`
@@ -9631,8 +9627,7 @@ d.subroutine(
 GSREAD to copy characters into [`hazel_parse_buf`](address:C030)
 until end-of-string. Appends a CR terminator and sets
 `fs_crc_lo`/`hi` to point at the buffer for subsequent parsing
-routines. (Pre-HAZEL ROMs used `fs_filename_buf` at &0E30; the
-4.21 build uses HAZEL.)""",
+routines.""",
     on_entry={"y": "current command-line offset (consumed by GSINIT)"},
     on_exit={"y": "advanced past the parsed source"},
 )
@@ -11109,7 +11104,7 @@ d.subroutine(
     description="""Loads the channel handle from (fs_options) at
 offset 0, then falls through to lookup_cat_slot_data
 to find the corresponding FCB entry.""",
-    on_exit={"a": "FCB flag byte from &1030+X", "x": "channel slot index"},
+    on_exit={"a": "FCB flag byte from hazel_fcb_slot_attr,X", "x": "channel slot index"},
 )
 
 
@@ -11124,8 +11119,7 @@ d.subroutine(
     description="""Calls [`lookup_chan_by_char`](address:B847) to find the channel
 slot for handle `A` in the channel table, then loads the FCB
 slot-attribute byte from
-[`hazel_fcb_slot_attr`](address:C230)+`X`. (Pre-HAZEL ROMs read
-from &1030+X.)""",
+[`hazel_fcb_slot_attr`](address:C230)+`X`.""",
     on_entry={"a": "channel handle"},
     on_exit={"a": "FCB slot-attribute byte", "x": "channel slot index"},
 )
@@ -13917,7 +13911,7 @@ Wraps the body in `PHP`/`PLP` so the entry flags (carry clear from
 the `BCC`) survive the workspace stores; the `BNE` after `PLP`
 then dispatches to [`handle_burst_xfer`](address:ACED) when the
 caller's `A` was non-zero (a defensive branch -- the `BCC` entry
-guarantees `A=0` in 4.21, but the same body is the entry point
+guarantees `A=0`, but the same body is the entry point
 the burst path piggy-backs on).""",
     on_entry={
         "a": "OSWORD &14 sub-function code (caller's A; 0 via the BCC entry from osword_14_handler)",
@@ -15584,7 +15578,7 @@ state from a previous command. 12 callers.""",
 )
 
 
-d.comment(0xB302, "Read fs_lib_flags (now at &C271 in 4.21)", align=Align.INLINE)
+d.comment(0xB302, "Read fs_lib_flags (&C271)", align=Align.INLINE)
 d.comment(0xB305, "Keep only the 5-bit owner access mask", align=Align.INLINE)
 d.comment(0xB307, "Store back, clearing FS-selection and other high bits", align=Align.INLINE)
 d.comment(0xB30A, "Return", align=Align.INLINE)
@@ -16199,7 +16193,7 @@ d.comment(0xB516, "Push it", align=Align.INLINE)
 d.comment(0xB517, "A=&7F: slot status 'busy/active'", align=Align.INLINE)
 d.comment(0xB519, "Mark slot active", align=Align.INLINE)
 d.comment(0xB51B, "Step Y to control byte", align=Align.INLINE)
-d.comment(0xB51C, "A=&9E: control byte (Master 128 PS-init pattern)", align=Align.INLINE)
+d.comment(0xB51C, "A=&9E: control byte (PS-init pattern)", align=Align.INLINE)
 d.comment(0xB51E, "Store control byte", align=Align.INLINE)
 d.comment(0xB520, "A=0: zero-fill the next two bytes", align=Align.INLINE)
 d.comment(0xB522, "Write two zeros, advance Y", align=Align.INLINE)
@@ -17318,7 +17312,7 @@ d.subroutine(
 `hazel_transfer_flag`. Then stores `&FF` sentinels in
 [`hazel_sentinel_cd`](address:C2CD) /
 [`hazel_sentinel_ce`](address:C2CE). The HAZEL FS-state region
-is at &C2xx in the 4.21 build.""",
+is at &C2xx.""",
     on_entry={},
     on_exit={"x": "small loop counter (last DEX value)", "y": "0 (cleared by the TYA path)"},
 )
@@ -17547,8 +17541,7 @@ d.subroutine(
     description="""Copies 13 bytes (Y=&0C..0) from
 [`hazel_ctx_buffer`](address:C2D9) back to the TX buffer
 starting at [`hazel_txcb_port`](address:C100). Falls through to
-`find_matching_fcb`. (Pre-HAZEL ROMs read from `&10D9` and wrote
-to `&0F00`; the 4.21 build relocates both to HAZEL.)""",
+`find_matching_fcb`.""",
 )
 
 
@@ -19406,7 +19399,7 @@ d.comment(0x8476, "Clear decimal mode: the operation-index SBC below must be bin
 d.comment(0x85AD, "Clear decimal mode before the binary transfer-size arithmetic", align=Align.INLINE)
 
 
-# Structural-alignment fills: comments carried verbatim from 4.21 (variant 1)
+# Structural-alignment fills
 # for instructions that align 1:1 and share the same mnemonic + mode.
 d.comment(0x851F, "Clear carry for offset addition", align=Align.INLINE)
 d.comment(0x864A, "Save X on stack", align=Align.INLINE)

@@ -361,9 +361,9 @@ fs_reply_data               = &0ef7
 txcb_reply_port             = &0f00
 fs_cmd_y_param              = &0f01
 fs_cmd_urd                  = &0f02
-fs_cmd_csd                  = &0f03  ; TXCB port byte / CSD (current selected directory) handle. Pre-HAZEL counterpart of hazel_txcb_network.
+fs_cmd_csd                  = &0f03  ; TXCB port byte / CSD (current selected directory) handle.
 fs_cmd_lib                  = &0f04
-fs_cmd_data                 = &0f05  ; TX buffer data start / FS reply data. Pre-HAZEL counterpart of hazel_txcb_data.
+fs_cmd_data                 = &0f05  ; TX buffer data start / FS reply data.
 fs_func_code                = &0f06
 fs_data_count               = &0f07
 fs_reply_cmd                = &0f08
@@ -725,7 +725,7 @@ rom_header_byte2 = rom_header_byte1+1
     equs "(C)1986 Acorn"                                              ; 801a: 28 43 29... (C)...
     equb &00                                                          ; 8027: 00          .        ; NUL terminator
 ; ***************************************************************************************
-; Service 5: unrecognised interrupt (Master 128 dispatch)
+; Service 5: unrecognised interrupt (dispatch)
 ;
 ; Delivers work deferred out of the Econet NMI receive handler. An execute-class
 ; immediate operation -- a remote JSR, a user/OS procedure call, halt or continue --
@@ -1258,8 +1258,8 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8228 referenced 1 time by &825f
 .data_rx_loop
     bpl data_rx_complete                                              ; 8228: 10 3e       .>       ; SR2 bit7 clear: frame complete (FV)
-; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores in this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace &97 holds the desired ACCCON value pre-loaded by the caller.
-    lda acccon                                                        ; 822a: ad 34 fe    .4.      ; Save current ACCCON on stack (Master 128)
+; Save/restore ACCCON across the (open_port_buf),Y stores in this bulk-read loop. Same idiom as in copy_scout_to_buffer; workspace &97 holds the desired ACCCON value pre-loaded by the caller.
+    lda acccon                                                        ; 822a: ad 34 fe    .4.      ; Save current ACCCON on stack
     pha                                                               ; 822d: 48          H        ; Push ACCCON snapshot
     lda escapable                                                     ; 822e: a5 97       ..       ; Load desired ACCCON from workspace &97
     sta acccon                                                        ; 8230: 8d 34 fe    .4.      ; Set ACCCON for the upcoming buffer stores
@@ -1723,8 +1723,8 @@ rom_header_byte2 = rom_header_byte1+1
 ; &840a used as index base 1 time by &8477
 imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bne copy_scout_via_tube                                           ; 8409: d0 2b       .+       ; Tube active: use R3 write path
-; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y stores. The destination port buffer may live in shadow RAM; bit 0 of ACCCON (D) controls whether (zp),Y addressing hits shadow vs main RAM. Workspace &97 holds the desired ACCCON value pre-loaded by the caller.
-    lda acccon                                                        ; 840b: ad 34 fe    .4.      ; Save current ACCCON on stack (4.21 Master 128)
+; Save/restore ACCCON across the (open_port_buf),Y stores. The destination port buffer may live in shadow RAM; bit 0 of ACCCON (D) controls whether (zp),Y addressing hits shadow vs main RAM. Workspace &97 holds the desired ACCCON value pre-loaded by the caller.
+    lda acccon                                                        ; 840b: ad 34 fe    .4.      ; Save current ACCCON on stack
     pha                                                               ; 840e: 48          H        ; Push ACCCON snapshot
     lda escapable                                                     ; 840f: a5 97       ..       ; Load desired ACCCON from workspace &97
     sta acccon                                                        ; 8411: 8d 34 fe    .4.      ; Set ACCCON for the upcoming (open_port_buf),Y stores
@@ -2870,8 +2870,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; &87f2 referenced 2 times by &87c4, &8822
 .data_tx_check_fifo
     bvc tube_tx_fifo_write                                            ; 87f2: 50 54       PT       ; TDRA not ready -- error
-; 4.21 Master 128: save/restore ACCCON across the (open_port_buf),Y reads in this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk; workspace &97 holds the desired ACCCON value pre-loaded by the caller.
-    lda acccon                                                        ; 87f4: ad 34 fe    .4.      ; Save current ACCCON on stack (Master 128)
+; Save/restore ACCCON across the (open_port_buf),Y reads in this TX FIFO loop. Same idiom as copy_scout_to_buffer / nmi_data_rx_bulk; workspace &97 holds the desired ACCCON value pre-loaded by the caller.
+    lda acccon                                                        ; 87f4: ad 34 fe    .4.      ; Save current ACCCON on stack
     pha                                                               ; 87f7: 48          H        ; Push ACCCON snapshot
     lda escapable                                                     ; 87f8: a5 97       ..       ; Load desired ACCCON from workspace &97
     sta acccon                                                        ; 87fa: 8d 34 fe    .4.      ; Set ACCCON for the upcoming buffer reads
@@ -3122,7 +3122,7 @@ tx_flags_table = check_tube_irq_loop+1
 ;     C: set if Tube address claimed, clear otherwise
 ; &8900 referenced 3 times by &819a, &84db, &86dd
 .tx_calc_transfer
-    lda acccon                                                        ; 8900: ad 34 fe    .4.      ; Read ACCCON (Master 128 access-control register)
+    lda acccon                                                        ; 8900: ad 34 fe    .4.      ; Read ACCCON (access-control register)
     ora #8                                                            ; 8903: 09 08       ..       ; Set bit 3 of A (transfer-mode flag)
     sta escapable                                                     ; 8905: 85 97       ..       ; Store as escapable mode
     ldy #7                                                            ; 8907: a0 07       ..       ; Y=7: scout-bytes counter
@@ -3501,7 +3501,7 @@ nmi_shim_source = reset_enter_listen+2
     equb >(net_3_close_handle-1)                                      ; 8a52: a4          .        ; &32: net handle 3: close handle
     equb &8a                                                          ; 8a53: 8a          .        ; padding (table has only 51 entries)
 ; ***************************************************************************************
-; Service call dispatch (Master 128)
+; Service call dispatch
 ;
 ; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
 ;
@@ -4252,7 +4252,7 @@ nmi_shim_source = reset_enter_listen+2
 ; On Entry:
 ;     A: 3 (service call number)
 ;     X: ROM slot
-;     Y: parameter (Master 128 service-call dispatch)
+;     Y: parameter (service-call dispatch)
 .svc_3_autoboot
     lda #osbyte_scan_keyboard_from_16                                 ; 8cc7: a9 7a       .z       ; OSBYTE &7A: scan keyboard from key 16
     jsr osbyte                                                        ; 8cc9: 20 f4 ff     ..      ; Scan keyboard from key 16
@@ -4624,9 +4624,6 @@ ps_template_base = load_transfer_params+1
 ; slots map to the language-reply handlers lang_0_insert_key (idx &19) through
 ; lang_4_validated (idx &1D).
 ;
-; (In 4.18 the offset was &0E, reaching indices 15..19. The 4.21 shift to &18 puts the
-; targets ten slots higher in the rebuilt dispatch table.)
-;
 ; On Entry:
 ;     X: directory operation code (0-4)
 ; &8e5b referenced 1 time by &855d
@@ -4723,7 +4720,7 @@ ps_template_base = load_transfer_params+1
     tay                                                               ; 8e94: a8          .        ; Y=0 -- FILEV 'close all files' sub-call
     jmp findv_handler                                                 ; 8e95: 4c 2f a0    L/.      ; Tail-call findv_handler (= FILEV)
 ; ***************************************************************************************
-; Read CMOS RAM byte 0 (Master 128)
+; Read CMOS RAM byte 0
 ;
 ; Sets X=0 and falls through to osbyte_a1, which issues OSBYTE &A1 to read CMOS RAM byte
 ; 0 – the file-system / language byte holding the default boot mode and FS selection.
@@ -4874,7 +4871,7 @@ ps_template_base = load_transfer_params+1
     ldy #&2f ; '/'                                                    ; 8ee4: a0 2f       ./       ; Y=&2F: OSBYTE dispatch offset
     jmp svc_dispatch                                                  ; 8ee6: 4c 61 8e    La.      ; Dispatch to OSBYTE handler via table
 ; ***************************************************************************************
-; Master 128 service &21 handler: claim static hidden-RAM workspace
+; Service &21 handler: claim static hidden-RAM workspace
 ;
 ; Four-instruction stub: CPY #&C8 / BCS return / LDY #&C8 / RTS. Reached when MOS issues
 ; service call &21 ("Offer Static Workspace in Hidden RAM") to all sideways ROMs at
@@ -6520,7 +6517,7 @@ ps_template_base = load_transfer_params+1
     ldx #&a0                                                          ; 95e9: a2 a0       ..       ; X=&A0: index into svc4 dispatch table (no-arg path)
     jmp svc4_dispatch_lookup                                          ; 95eb: 4c 46 8c    LF.      ; Tail-jump to svc4_dispatch_lookup with X=&A0
 ; ***************************************************************************************
-; Write FS/PS station+network to Master 128 CMOS RAM
+; Write FS/PS station+network to CMOS RAM
 ;
 ; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A80F, *PS at
 ; &A814) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
@@ -8157,8 +8154,7 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Calls GSINIT to initialise string reading, then loops calling GSREAD to copy characters
 ; into hazel_parse_buf until end-of-string. Appends a CR terminator and sets fs_crc_lo/hi
-; to point at the buffer for subsequent parsing routines. (Pre-HAZEL ROMs used
-; fs_filename_buf at &0E30; the 4.21 build uses HAZEL.)
+; to point at the buffer for subsequent parsing routines.
 ;
 ; On Entry:
 ;     Y: current command-line offset (consumed by GSINIT)
@@ -9543,7 +9539,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; lookup_cat_slot_data to find the corresponding FCB entry.
 ;
 ; On Exit:
-;     A: FCB flag byte from &1030+X
+;     A: FCB flag byte from hazel_fcb_slot_attr,X
 ;     X: channel slot index
 ; &a1ef referenced 2 times by &a1bf, &a1fb
 .lookup_cat_entry_0
@@ -9553,8 +9549,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Look up channel and return FCB flag byte
 ;
 ; Calls lookup_chan_by_char to find the channel slot for handle A in the channel table,
-; then loads the FCB slot-attribute byte from hazel_fcb_slot_attr+X. (Pre-HAZEL ROMs read
-; from &1030+X.)
+; then loads the FCB slot-attribute byte from hazel_fcb_slot_attr+X.
 ;
 ; On Entry:
 ;     A: channel handle
@@ -12047,8 +12042,8 @@ bridge_err_table = compare_bridge_status+1
 ;
 ; Wraps the body in PHP/PLP so the entry flags (carry clear from the BCC) survive the
 ; workspace stores; the BNE after PLP then dispatches to handle_burst_xfer when the
-; caller's A was non-zero (a defensive branch -- the BCC entry guarantees A=0 in 4.21,
-; but the same body is the entry point the burst path piggy-backs on).
+; caller's A was non-zero (a defensive branch -- the BCC entry guarantees A=0, but the
+; same body is the entry point the burst path piggy-backs on).
 ;
 ; On Entry:
 ;     A: OSWORD &14 sub-function code (caller's A; 0 via the BCC entry from osword_14_handler)
@@ -13571,7 +13566,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ;     A: masked value
 ; &b2cf referenced 15 times by &8e53, &94c9, &9501, &9c28, &a036, &a153, &a4e7, &a4f4, &a585, &a58f, &ac52, &b0a3, &b189, &b357, &b6f3
 .mask_owner_access
-    lda hazel_fs_lib_flags                                            ; b2cf: ad 71 c2    .q.      ; Read fs_lib_flags (now at &C271 in 4.21)
+    lda hazel_fs_lib_flags                                            ; b2cf: ad 71 c2    .q.      ; Read fs_lib_flags (&C271)
     and #&1f                                                          ; b2d2: 29 1f       ).       ; Keep only the 5-bit owner access mask
     sta hazel_fs_lib_flags                                            ; b2d4: 8d 71 c2    .q.      ; Store back, clearing FS-selection and other high bits
     rts                                                               ; b2d7: 60          `        ; Return
@@ -14126,7 +14121,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     lda #&7f                                                          ; b4dc: a9 7f       ..       ; A=&7F: slot status 'busy/active'
     sta (nfs_workspace),y                                             ; b4de: 91 9e       ..       ; Mark slot active
     iny                                                               ; b4e0: c8          .        ; Step Y to control byte
-    lda #&9e                                                          ; b4e1: a9 9e       ..       ; A=&9E: control byte (Master 128 PS-init pattern)
+    lda #&9e                                                          ; b4e1: a9 9e       ..       ; A=&9E: control byte (PS-init pattern)
     sta (nfs_workspace),y                                             ; b4e3: 91 9e       ..       ; Store control byte
     lda #0                                                            ; b4e5: a9 00       ..       ; A=0: zero-fill the next two bytes
     jsr write_two_bytes_inc_y                                         ; b4e7: 20 23 b5     #.      ; Write two zeros, advance Y
@@ -15161,7 +15156,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;
 ; Sets hazel_pass_counter to 1 and clears hazel_byte_counter_lo, hazel_offset_counter and
 ; hazel_transfer_flag. Then stores &FF sentinels in hazel_sentinel_cd /
-; hazel_sentinel_ce. The HAZEL FS-state region is at &C2xx in the 4.21 build.
+; hazel_sentinel_ce. The HAZEL FS-state region is at &C2xx.
 ;
 ; On Exit:
 ;     X: small loop counter (last DEX value)
@@ -15372,8 +15367,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Restore saved catalog entry to TX buffer
 ;
 ; Copies 13 bytes (Y=&0C..0) from hazel_ctx_buffer back to the TX buffer starting at
-; hazel_txcb_port. Falls through to find_matching_fcb. (Pre-HAZEL ROMs read from &10D9
-; and wrote to &0F00; the 4.21 build relocates both to HAZEL.)
+; hazel_txcb_port. Falls through to find_matching_fcb.
 ; &bac0 referenced 1 time by &bcb5
 .restore_catalog_entry
     ldy #&0c                                                          ; bac0: a0 0c       ..       ; Copy 13 bytes (indices 0 to &0C)

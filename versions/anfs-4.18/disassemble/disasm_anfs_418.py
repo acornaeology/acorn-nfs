@@ -4772,7 +4772,7 @@ d.subroutine(
     "print_version_header",
     title="Print ANFS version string and station number",
     description="""Uses an inline string after JSR print_inline:
-CR + "Advanced  4.08.53" + CR. After the inline
+CR + "Advanced NFS 4.18" + CR. After the inline
 string, JMPs to print_station_id to append the
 local Econet station number.""",
 )
