@@ -14,7 +14,9 @@ hand-corrected.
 | `fantasm lint` | clean |
 | `fantasm comments check` | 0 HIGH, 1 benign MEDIUM (range-end `&0D2D`) |
 | `fantasm audit undeclared` | 0 |
-| Inline-comment density | 96.2 % |
+| Inline-comment density | **100.0 %** (6960 code items) |
+| Meaningful-bare data bytes | 40 (vs 48 in 4.21 — ahead of the sibling) |
+| Auto-labels / placeholders | 6 residual (index-base overlaps, command-name bytes, ROM-tail &FF padding — all banner-covered) |
 
 ## Done
 
@@ -36,28 +38,34 @@ hand-corrected.
 - All JSR targets declared.
 - `CHANGES-FROM-4.21.md` written.
 
-## Remaining (future passes, in priority order)
+## Done (this session, continued)
 
-1. **Coverage gaps (~270 code items, → 100 %).** `fantasm context
-   uncommented 4.24 --threshold-pct 100 --min-items 1` lists the
-   subroutines with gaps. These are inline comments missing in the
-   changed regions; ~640 `# UNMAPPED:` lines in the driver mark most of
-   them — for each, read the 4.24 instruction and either re-map the
-   4.21 comment (if the instruction is unchanged) or write a fresh one.
-   Exact-match relocations were already auto-recovered; what remains is
-   genuinely-changed code.
-2. **36 auto-labels / placeholders.** 29 `l####`/`c####` auto-labels,
-   5 `sub_c####`, 2 `loop_c####`. Several are data-adjacent artifacts of
-   the restructured dispatch tables (e.g. `sub_c8492`/`l8494` in the
-   immediate-op dispatch, `sub_c8a1d`/`l8a23` by the service table) and
-   need care; the loop bodies (`loop_cb1e7`, `loop_cb637`) are quick
-   semantic renames. Cross-check with `grep -E '^\.[a-z]+_?[a-z]?[0-9a-f]{4}$'`
-   on the `.asm` (audit only sees declared subs).
-3. **New `*HELP` sub-table entry (~`&A80F`).** The one net-new code
-   path; dispatch through `&8E45`. Decode and annotate the entry and its
-   handler.
-4. **Description/calling-convention review.** Sweep `on_entry`/`on_exit`
-   coverage and Markdown/address-link quality (as 4.21 Phases A/L did).
+1. **100 % inline-comment coverage.** All 6960 code items commented — the
+   ~270 changed-region gaps were annotated (argsv pointer/extent compare,
+   cmd_pollps status display, help-table walker, PS/workspace flags, boot
+   library lookup, register/branch gaps). 38 comments carried verbatim
+   from 4.21 by structural (mnemonic+mode) alignment; the rest written
+   from the 4.24 code.
+2. **Jump tables + EQUBs.** All PHA/PHA/RTS dispatch tables named and
+   banner'd (incl. the previously auto-labelled svc/OSWORD-13/NETV LO-HI
+   bases). cdir threshold table, OSWORD claim-code table and net-error
+   codes completed; the new `*HELP` `On` matcher entry (`&A80E`,
+   dispatch `&8E45`) explained. Remaining bare data (40 bytes) is at/below
+   4.21's own bar — the same field-continuation bytes 4.21 leaves bare.
+3. **Structural labels.** 30 of 36 auto-labels/placeholders named
+   (dispatch bases, poll-status labels, OSARGS compare labels, TX
+   interrupt gates, printer/spool error paths, `nmi_return_inton`).
+
+## Remaining (minor)
+
+1. **6 residual auto-labels** — `sub_c8492`/`l8494` (imm-op dispatch
+   operand-overlap), `c85b9`/`sub_c85c0` (tube-address index bases),
+   `la76f`/`la88a` (command-name data bytes), `sub_cbff8` (ROM-tail &FF
+   padding). All are intentional data-adjacent artifacts covered by
+   banners/aliases; forcing names would misrepresent them.
+2. **Description/calling-convention review.** Optional deeper sweep of
+   `on_entry`/`on_exit` on the newly-declared subs (as 4.21 Phases A/L
+   did) — not required for parity.
 
 ## Tooling notes
 
