@@ -1094,7 +1094,7 @@ rom_header_byte2 = rom_header_byte1+1
 .port_match_found
     lda #3                                                            ; 8198: a9 03       ..       ; Match found: set scout_status = 3
     sta rx_port                                                       ; 819a: 8d 40 0d    .@.      ; Record match for completion handler
-    jsr sub_c85ad                                                     ; 819d: 20 ad 85     ..      ; Calculate transfer parameters
+    jsr tx_calc_transfer                                              ; 819d: 20 ad 85     ..      ; Calculate transfer parameters
     bcc nmi_error_dispatch                                            ; 81a0: 90 76       .v       ; C=0: no Tube claimed -- discard
     bit rx_src_net                                                    ; 81a2: 2c 3e 0d    ,>.      ; Check broadcast flag for ACK path
     bvc send_data_rx_ack                                              ; 81a5: 50 03       P.       ; Not broadcast -- normal ACK path
@@ -1935,7 +1935,7 @@ l8494 = sub_c8492+2
     sta rx_buf_offset                                                 ; 84cd: 85 a7       ..       ; Set buffer length lo
     lda #2                                                            ; 84cf: a9 02       ..       ; Buffer start lo = &EE
     sta rx_port                                                       ; 84d1: 8d 40 0d    .@.      ; Store scout status
-    jsr sub_c85ad                                                     ; 84d4: 20 ad 85     ..      ; Calculate transfer size for response
+    jsr tx_calc_transfer                                              ; 84d4: 20 ad 85     ..      ; Calculate transfer size for response
     bcc imm_op_discard                                                ; 84d7: 90 74       .t       ; C=0: transfer not set up, discard
 .set_tx_reply_flag
     lda rx_src_net                                                    ; 84d9: ad 3e 0d    .>.      ; Mark TX flags bit 7 (reply pending)
@@ -2153,8 +2153,29 @@ l8494 = sub_c8492+2
     tax                                                               ; 85a9: aa          .        ; Transfer to X register
     lda #0                                                            ; 85aa: a9 00       ..       ; A=0: success status
     rts                                                               ; 85ac: 60          `        ; Return with A=0 (success)
+; ***************************************************************************************
+; Calculate transfer size; handle Tube and shadow buffers
+;
+; Prepares the buffer-transfer for a completed receive. Clears decimal mode, then seeds
+; escapable from ACCCON with the transfer-mode bit set. Inspects RXCB[6..7] (buffer end
+; address byte 2 and high) to classify the buffer:
+;
+; | Buffer type                               | Action                                                                                                                                                                    |
+; |-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+; | Tube (RXCB[7]=&FF, RXCB[6] in [&FE, &FF]) | if shadow RAM is enabled (ACCCON.E), also set the shadow bit in escapable; then compute the 4-byte transfer size by subtracting RXCB[8..&B] (start) from RXCB[4..7] (end) |
+; | Non-Tube                                  | branch to fallback_calc_transfer for the 1-byte size subtraction                                                                                                          |
+;
+; Three callers: scout_complete (&819D), rx_imm_machine_type (&84D4), tx_ctrl_proc
+; (&87A4).
+;
+; On Entry:
+;     Y: 0 -- caller convention
+;
+; On Exit:
+;     A: transfer status
+;     C: set if Tube/shadow address handled, clear otherwise
 ; &85ad referenced 3 times by &819d, &84d4, &87a4
-.sub_c85ad
+.tx_calc_transfer
     cld                                                               ; 85ad: d8          .        ; Clear decimal mode before the binary transfer-size arithmetic
     lda acccon                                                        ; 85ae: ad 34 fe    .4.      ; Read ACCCON (Master 128 access-control register)
     ora #8                                                            ; 85b1: 09 08       ..       ; Set bit 3 of A (transfer-mode flag)
@@ -2574,7 +2595,7 @@ l872d = sub_c872b+2
     sta port_ws_offset                                                ; 879e: 85 a6       ..       ; Store low byte
     lda nmi_tx_block_hi                                               ; 87a0: a5 a1       ..       ; Copy TX block pointer high byte
     sta rx_buf_offset                                                 ; 87a2: 85 a7       ..       ; Store high byte
-    jsr sub_c85ad                                                     ; 87a4: 20 ad 85     ..      ; Calculate transfer size from RXCB
+    jsr tx_calc_transfer                                              ; 87a4: 20 ad 85     ..      ; Calculate transfer size from RXCB
 ; &87a7 referenced 1 time by &8790
 .tx_ctrl_exit
     plp                                                               ; 87a7: 28          (        ; Restore processor status from stack
@@ -16460,10 +16481,10 @@ save pydis_start, pydis_end
 ;     send_cmd_and_dispatch:                    3
 ;     send_disconnect_reply:                    3
 ;     store_rx_result:                          3
-;     sub_c85ad:                                3
 ;     sub_c9657:                                3
 ;     tube_claim_c3:                            3
 ;     tx_bad_ctrl_error:                        3
+;     tx_calc_transfer:                         3
 ;     tx_econet_abort:                          3
 ;     update_fcb_flag_bits:                     3
 ;     write_second_tube_byte:                   3
@@ -17620,7 +17641,6 @@ save pydis_start, pydis_end
 ;     return_7
 ;     return_8
 ;     sub_c8492
-;     sub_c85ad
 ;     sub_c85c0
 ;     sub_c872b
 ;     sub_c8a1d

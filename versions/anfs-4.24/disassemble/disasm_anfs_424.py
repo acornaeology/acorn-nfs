@@ -19325,6 +19325,27 @@ Used by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&F
     group="idx_base",
 )
 
+d.subroutine(
+    0x85AD,
+    "tx_calc_transfer",
+    title="Calculate transfer size; handle Tube and shadow buffers",
+    description="""Prepares the buffer-transfer for a completed receive.
+Clears decimal mode, then seeds [`escapable`](address:0097) from
+[`ACCCON`](address:FE34) with the transfer-mode bit set. Inspects
+`RXCB[6..7]` (buffer end address byte 2 and high) to classify the buffer:
+
+| Buffer type | Action |
+|---|---|
+| Tube (`RXCB[7]=&FF`, `RXCB[6]` in `[&FE, &FF]`) | if shadow RAM is enabled (`ACCCON.E`), also set the shadow bit in `escapable`; then compute the 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end) |
+| Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |
+
+Three callers: [`scout_complete`](address:8114) (`&819D`),
+[`rx_imm_machine_type`](address:84C7) (`&84D4`),
+[`tx_ctrl_proc`](address:8769) (`&87A4`).""",
+    on_entry={"y": "0 -- caller convention"},
+    on_exit={"a": "transfer status", "c": "set if Tube/shadow address handled, clear otherwise"},
+)
+
 # ACCCON-guarded last-data-byte store (Master 128 shadow/HAZEL aware).
 # The port receive buffer may live behind shadow/HAZEL paging, so ACCCON
 # is saved, switched to the caller's `escapable` paging value, used for

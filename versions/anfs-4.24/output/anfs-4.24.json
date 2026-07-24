@@ -630,8 +630,7 @@
       "on_exit": {
         "a": "0 (success status)",
         "x, y": "restored from stack"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 34482,
@@ -4424,6 +4423,20 @@
         "a, y": "preserved",
         "n, z flags": "reflect new X"
       }
+    },
+    {
+      "addr": 34221,
+      "name": "tx_calc_transfer",
+      "title": "Calculate transfer size; handle Tube and shadow buffers",
+      "description": "Prepares the buffer-transfer for a completed receive.\nClears decimal mode, then seeds [`escapable`](address:0097) from\n[`ACCCON`](address:FE34) with the transfer-mode bit set. Inspects\n`RXCB[6..7]` (buffer end address byte 2 and high) to classify the buffer:\n\n| Buffer type | Action |\n|---|---|\n| Tube (`RXCB[7]=&FF`, `RXCB[6]` in `[&FE, &FF]`) | if shadow RAM is enabled (`ACCCON.E`), also set the shadow bit in `escapable`; then compute the 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end) |\n| Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |\n\nThree callers: [`scout_complete`](address:8114) (`&819D`),\n[`rx_imm_machine_type`](address:84C7) (`&84D4`),\n[`tx_ctrl_proc`](address:8769) (`&87A4`).",
+      "on_entry": {
+        "y": "0 -- caller convention"
+      },
+      "on_exit": {
+        "a": "transfer status",
+        "c": "set if Tube/shadow address handled, clear otherwise"
+      },
+      "fall_through": true
     }
   ],
   "banners": [
@@ -9221,9 +9234,9 @@
       "comment_inline": "Calculate transfer parameters",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c85ad",
+      "operand": "tx_calc_transfer",
       "target": 34221,
-      "target_label": "sub_c85ad"
+      "target_label": "tx_calc_transfer"
     },
     {
       "addr": 33184,
@@ -14717,9 +14730,9 @@
       "comment_inline": "Calculate transfer size for response",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c85ad",
+      "operand": "tx_calc_transfer",
       "target": 34221,
-      "target_label": "sub_c85ad"
+      "target_label": "tx_calc_transfer"
     },
     {
       "addr": 34007,
@@ -15921,7 +15934,7 @@
         216
       ],
       "labels": [
-        "sub_c85ad"
+        "tx_calc_transfer"
       ],
       "comment_inline": "Clear decimal mode before the binary transfer-size arithmetic",
       "xref_summaries": [
@@ -19284,9 +19297,9 @@
       "comment_inline": "Calculate transfer size from RXCB",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c85ad",
+      "operand": "tx_calc_transfer",
       "target": 34221,
-      "target_label": "sub_c85ad"
+      "target_label": "tx_calc_transfer"
     },
     {
       "addr": 34727,
