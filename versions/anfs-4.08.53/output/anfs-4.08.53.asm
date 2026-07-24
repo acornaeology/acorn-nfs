@@ -1703,8 +1703,8 @@ service_handler_lo = service_entry+1
 ; &80e9 referenced 1 time by &80dc
 .accept_scout_net
     sta port_buf_len                                                  ; 80e9: 85 a2       ..       ; Store Y offset for scout data buffer
-    lda #2                                                            ; 80eb: a9 02       ..       ; Install scout data handler (&8102)
-    ldy #&81                                                          ; 80ed: a0 81       ..       ; High byte of scout data handler
+    lda #<(nmi_scout_data)                                            ; 80eb: a9 02       ..       ; Install scout-data reader (low)
+    ldy #>(nmi_scout_data)                                            ; 80ed: a0 81       ..       ; Install scout-data reader (high)
     jmp set_nmi_vector                                                ; 80ef: 4c 0e 0d    L..      ; Install scout data loop and RTI
 ; ***************************************************************************************
 ; Scout error/discard handler
@@ -1724,6 +1724,7 @@ service_handler_lo = service_entry+1
 ; &80ff referenced 1 time by &80f7
 .scout_discard
     jmp reset_adlc_rx_listen                                          ; 80ff: 4c ee 83    L..      ; Gentle discard: RX_DISCONTINUE
+.nmi_scout_data
     ldy port_buf_len                                                  ; 8102: a4 a2       ..       ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 8104: ad a1 fe    ...      ; Read SR2
 ; &8107 referenced 1 time by &8127
@@ -3186,8 +3187,8 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda #2                                                            ; 87c7: a9 02       ..       ; Test bit 1 of tx_flags
     bit net_frame_flags                                               ; 87c9: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 87cc: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
-    lda #&e4                                                          ; 87ce: a9 e4       ..       ; Install nmi_data_tx at &87E4
-    ldy #&87                                                          ; 87d0: a0 87       ..       ; High byte of handler address
+    lda #<(nmi_data_tx_alt)                                           ; 87ce: a9 e4       ..       ; Install nmi_data_tx alt-entry (low)
+    ldy #>(nmi_data_tx_alt)                                           ; 87d0: a0 87       ..       ; Install nmi_data_tx alt-entry (high)
     jmp set_nmi_vector                                                ; 87d2: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &87d5 referenced 1 time by &87cc
 .install_imm_data_nmi
@@ -3209,6 +3210,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     beq data_tx_last                                                  ; 87de: f0 33       .3       ; No pages left: send final partial page
     ldy port_buf_len                                                  ; 87e0: a4 a2       ..       ; Load remaining byte count
     beq check_tdra_status                                             ; 87e2: f0 04       ..       ; Zero bytes left: skip to TDRA check
+.nmi_data_tx_alt
     ldy port_buf_len                                                  ; 87e4: a4 a2       ..       ; Load remaining byte count (alt entry)
     beq nmi_data_tx                                                   ; 87e6: f0 f4       ..       ; Zero: loop back to top of handler
 ; &87e8 referenced 1 time by &87e2

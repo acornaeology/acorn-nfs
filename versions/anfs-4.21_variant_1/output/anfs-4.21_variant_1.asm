@@ -933,7 +933,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &80d1 referenced 1 time by &80c4
 .accept_scout_net
     sta port_buf_len                                                  ; 80d1: 85 a2       ..       ; Store Y offset for scout data buffer
-    lda #&e8                                                          ; 80d3: a9 e8       ..       ; Install scout data handler
+    lda #<(nmi_scout_data)                                            ; 80d3: a9 e8       ..       ; Install scout-data reader (low)
     jmp install_nmi_handler                                           ; 80d5: 4c 11 0d    L..      ; Install scout data loop
 ; ***************************************************************************************
 ; Scout error/discard handler
@@ -956,6 +956,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &80e5 referenced 1 time by &80dd
 .scout_discard
     jmp reset_adlc_rx_listen                                          ; 80e5: 4c e8 83    L..      ; Gentle discard: RX_DISCONTINUE
+.nmi_scout_data
     ldy port_buf_len                                                  ; 80e8: a4 a2       ..       ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 80ea: ad a1 fe    ...      ; Read SR2
 ; &80ed referenced 1 time by &810d
@@ -2831,8 +2832,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda #2                                                            ; 87ce: a9 02       ..       ; Test bit 1 of tx_flags
     bit net_frame_flags                                               ; 87d0: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 87d3: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
-    lda #&eb                                                          ; 87d5: a9 eb       ..       ; A=&EB: low byte of nmi_data_tx alt-entry (&87EB)
-    ldy #&87                                                          ; 87d7: a0 87       ..       ; Y=&87: high byte of nmi_data_tx
+    lda #<(nmi_data_tx_alt)                                           ; 87d5: a9 eb       ..       ; Install nmi_data_tx alt-entry (low)
+    ldy #>(nmi_data_tx_alt)                                           ; 87d7: a0 87       ..       ; Install nmi_data_tx alt-entry (high)
     jmp set_nmi_vector                                                ; 87d9: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &87dc referenced 1 time by &87d3
 .install_imm_data_nmi
@@ -2860,6 +2861,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     beq data_tx_last                                                  ; 87e5: f0 44       .D       ; No pages left: send final partial page
     ldy port_buf_len                                                  ; 87e7: a4 a2       ..       ; Load remaining byte count
     beq check_tdra_status                                             ; 87e9: f0 04       ..       ; Zero bytes left: skip to TDRA check
+.nmi_data_tx_alt
     ldy port_buf_len                                                  ; 87eb: a4 a2       ..       ; Load remaining byte count (alt entry)
     beq nmi_data_tx                                                   ; 87ed: f0 f4       ..       ; Zero: loop back to top of handler
 ; &87ef referenced 1 time by &87e9

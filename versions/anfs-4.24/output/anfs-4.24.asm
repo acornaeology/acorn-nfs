@@ -934,7 +934,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &80d3 referenced 1 time by &80c6
 .accept_scout_net
     sta port_buf_len                                                  ; 80d3: 85 a2       ..       ; Store Y offset for scout data buffer
-    lda #&ea                                                          ; 80d5: a9 ea       ..       ; Install scout data handler
+    lda #<(nmi_scout_data)                                            ; 80d5: a9 ea       ..       ; Install scout-data reader (low)
     jmp install_nmi_handler                                           ; 80d7: 4c 11 0d    L..      ; Install scout data loop
 ; ***************************************************************************************
 ; Scout error/discard handler
@@ -957,6 +957,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &80e7 referenced 1 time by &80df
 .scout_discard
     jmp reset_adlc_rx_listen                                          ; 80e7: 4c fa 83    L..      ; Gentle discard: RX_DISCONTINUE
+.nmi_scout_data
     ldy port_buf_len                                                  ; 80ea: a4 a2       ..       ; Y = buffer offset
     lda econet_control23_or_status2                                   ; 80ec: ad a1 fe    ...      ; Read SR2
 ; &80ef referenced 1 time by &810f
@@ -2690,7 +2691,7 @@ l872d = tx_enable_nmis+2
 .tx_last_data
     lda #&3f ; '?'                                                    ; 87f2: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 87f4: 8d a1 fe    ...      ; Write to ADLC CR2
-    lda #&fc                                                          ; 87f7: a9 fc       ..       ; Install NMI handler at &87F7 (TX completion)
+    lda #<(nmi_tx_switch_rx)                                          ; 87f7: a9 fc       ..       ; Install TX->RX switch handler (low)
     jmp install_nmi_handler                                           ; 87f9: 4c 11 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
@@ -2717,6 +2718,7 @@ l872d = tx_enable_nmis+2
 ; | bit 0 set (handshake data pending) | jump to handshake_await_ack                     |
 ; | both clear                         | install nmi_reply_scout for scout ACK reception |
 .nmi_tx_complete
+.nmi_tx_switch_rx
     lda #&82                                                          ; 87fc: a9 82       ..       ; Jump to error handler
     sta econet_control1_or_status1                                    ; 87fe: 8d a0 fe    ...      ; Write CR1 to switch from TX to RX
     bit net_frame_flags                                               ; 8801: 2c 3e 0d    ,>.      ; Test workspace flags
@@ -2748,7 +2750,7 @@ l872d = tx_enable_nmis+2
     lda econet_data_continue_frame                                    ; 8821: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8824: cd 22 0d    .".      ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8827: d0 19       ..       ; Not our station -- error/reject
-    lda #&2e ; '.'                                                    ; 8829: a9 2e       ..       ; Install next handler at &8827 (reply continuation)
+    lda #<(nmi_reply_cont)                                            ; 8829: a9 2e       ..       ; Install reply-continuation handler (low)
     jmp install_nmi_handler                                           ; 882b: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; RX reply continuation handler
@@ -2866,7 +2868,7 @@ l872d = tx_enable_nmis+2
     lda #2                                                            ; 889d: a9 02       ..       ; Test bit 1 of tx_flags
     bit net_frame_flags                                               ; 889f: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 88a2: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
-    lda #&ba                                                          ; 88a4: a9 ba       ..       ; A=&BA: low byte of nmi_data_tx alt-entry (&88BA)
+    lda #<(nmi_data_tx_alt)                                           ; 88a4: a9 ba       ..       ; Install nmi_data_tx alt-entry (low)
     ldy #&88                                                          ; 88a6: a0 88       ..       ; Y=&88: high byte of nmi_data_tx
     jmp set_nmi_vector                                                ; 88a8: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &88ab referenced 1 time by &88a2
@@ -2895,6 +2897,7 @@ l872d = tx_enable_nmis+2
     beq data_tx_last                                                  ; 88b4: f0 44       .D       ; No pages left: send final partial page
     ldy port_buf_len                                                  ; 88b6: a4 a2       ..       ; Load remaining byte count
     beq check_tdra_status                                             ; 88b8: f0 04       ..       ; Zero bytes left: skip to TDRA check
+.nmi_data_tx_alt
     ldy port_buf_len                                                  ; 88ba: a4 a2       ..       ; Load remaining byte count (alt entry)
     beq nmi_data_tx                                                   ; 88bc: f0 f4       ..       ; Zero: loop back to top of handler
 ; &88be referenced 1 time by &88b8

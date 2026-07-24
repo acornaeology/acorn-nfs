@@ -7936,10 +7936,10 @@
         169,
         234
       ],
-      "comment_inline": "Install scout data handler",
+      "comment_inline": "Install scout-data reader (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ea"
+      "operand": "#<(nmi_scout_data)"
     },
     {
       "addr": 32983,
@@ -8080,6 +8080,9 @@
       "bytes": [
         164,
         162
+      ],
+      "labels": [
+        "nmi_scout_data"
       ],
       "comment_inline": "Y = buffer offset",
       "type": "code",
@@ -19911,10 +19914,10 @@
         169,
         252
       ],
-      "comment_inline": "Install NMI handler at &87F7 (TX completion)",
+      "comment_inline": "Install TX->RX switch handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&fc"
+      "operand": "#<(nmi_tx_switch_rx)"
     },
     {
       "addr": 34809,
@@ -19937,7 +19940,8 @@
         130
       ],
       "labels": [
-        "nmi_tx_complete"
+        "nmi_tx_complete",
+        "nmi_tx_switch_rx"
       ],
       "comment_inline": "Jump to error handler",
       "type": "code",
@@ -20199,10 +20203,10 @@
         169,
         46
       ],
-      "comment_inline": "Install next handler at &8827 (reply continuation)",
+      "comment_inline": "Install reply-continuation handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&2e"
+      "operand": "#<(nmi_reply_cont)"
     },
     {
       "addr": 34859,
@@ -20906,10 +20910,10 @@
         169,
         186
       ],
-      "comment_inline": "A=&BA: low byte of nmi_data_tx alt-entry (&88BA)",
+      "comment_inline": "Install nmi_data_tx alt-entry (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ba"
+      "operand": "#<(nmi_data_tx_alt)"
     },
     {
       "addr": 34982,
@@ -21053,6 +21057,9 @@
       "bytes": [
         164,
         162
+      ],
+      "labels": [
+        "nmi_data_tx_alt"
       ],
       "comment_inline": "Load remaining byte count (alt entry)",
       "type": "code",

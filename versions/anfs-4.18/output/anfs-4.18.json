@@ -5101,10 +5101,10 @@
         169,
         13
       ],
-      "comment_inline": "Install scout data handler (&8102)",
+      "comment_inline": "Install scout-data reader (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&0d"
+      "operand": "#<(nmi_scout_data)"
     },
     {
       "addr": 33016,
@@ -5112,10 +5112,10 @@
         160,
         129
       ],
-      "comment_inline": "High byte of scout data handler",
+      "comment_inline": "Install scout-data reader (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&81"
+      "operand": "#>(nmi_scout_data)"
     },
     {
       "addr": 33018,
@@ -5256,6 +5256,9 @@
       "bytes": [
         164,
         162
+      ],
+      "labels": [
+        "nmi_scout_data"
       ],
       "comment_inline": "Y = buffer offset",
       "type": "code",
@@ -16828,10 +16831,10 @@
         169,
         238
       ],
-      "comment_inline": "Install nmi_data_tx at &87EE",
+      "comment_inline": "Install nmi_data_tx alt-entry (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ee"
+      "operand": "#<(nmi_data_tx_alt)"
     },
     {
       "addr": 34778,
@@ -16839,10 +16842,10 @@
         160,
         135
       ],
-      "comment_inline": "High byte of handler address",
+      "comment_inline": "Install nmi_data_tx alt-entry (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&87"
+      "operand": "#>(nmi_data_tx_alt)"
     },
     {
       "addr": 34780,
@@ -16975,6 +16978,9 @@
       "bytes": [
         164,
         162
+      ],
+      "labels": [
+        "nmi_data_tx_alt"
       ],
       "comment_inline": "Load remaining byte count (alt entry)",
       "type": "code",

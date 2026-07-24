@@ -1792,8 +1792,8 @@ d.comment(0x80E6, "Network = 0 (local): clear tx_flags", align=Align.INLINE)
 d.label(0x80E9, "accept_scout_net")
 
 d.comment(0x80E9, "Store Y offset for scout data buffer", align=Align.INLINE)
-d.comment(0x80EB, "Install scout data handler (&8102)", align=Align.INLINE)
-d.comment(0x80ED, "High byte of scout data handler", align=Align.INLINE)
+d.comment(0x80EB, "Install scout-data reader (low)", align=Align.INLINE)
+d.comment(0x80ED, "Install scout-data reader (high)", align=Align.INLINE)
 d.comment(0x80EF, "Install scout data loop and RTI", align=Align.INLINE)
 d.subroutine(
     0x80F2,
@@ -3566,8 +3566,8 @@ d.label(0x87C7, "data_tx_begin")
 d.comment(0x87C7, "Test bit 1 of tx_flags", align=Align.INLINE)
 d.comment(0x87C9, "Check if immediate-op or data-transfer", align=Align.INLINE)
 d.comment(0x87CC, "Bit 1 set: immediate op, use alt handler", align=Align.INLINE)
-d.comment(0x87CE, "Install nmi_data_tx at &87E4", align=Align.INLINE)
-d.comment(0x87D0, "High byte of handler address", align=Align.INLINE)
+d.comment(0x87CE, "Install nmi_data_tx alt-entry (low)", align=Align.INLINE)
+d.comment(0x87D0, "Install nmi_data_tx alt-entry (high)", align=Align.INLINE)
 d.comment(0x87D2, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.label(0x87D5, "install_imm_data_nmi")
 
@@ -15844,6 +15844,13 @@ d.expr(0x8820, ">(discard_reset_rx)")
 d.expr(0x8874, "<(nmi_final_ack)")
 d.expr(0x8876, ">(nmi_final_ack)")
 d.expr(0x888A, "<(nmi_final_ack_net)")
+
+d.label(0x8102, "nmi_scout_data")
+d.label(0x87E4, "nmi_data_tx_alt")
+d.expr(0x80EC, "<(nmi_scout_data)")
+d.expr(0x80EE, ">(nmi_scout_data)")
+d.expr(0x87CF, "<(nmi_data_tx_alt)")
+d.expr(0x87D1, ">(nmi_data_tx_alt)")
 
 ir = d.disassemble()
 output = str(
