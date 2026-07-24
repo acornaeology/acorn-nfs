@@ -1208,15 +1208,15 @@ rom_header_byte2 = rom_header_byte1+1
     lda #2                                                            ; 81fa: a9 02       ..       ; A=2: Tube transfer flag mask
     bit net_frame_flags                                               ; 81fc: 2c 3e 0d    ,>.      ; Check if Tube transfer active
     bne install_tube_rx                                               ; 81ff: d0 0c       ..       ; Tube active: use Tube RX path
-    lda #&26 ; '&'                                                    ; 8201: a9 26       .&       ; A=&26: low byte of nmi_data_rx_bulk (&8226)
-    ldy #&82                                                          ; 8203: a0 82       ..       ; Y=&82: high byte of nmi_data_rx_bulk
+    lda #<(nmi_data_rx_bulk)                                          ; 8201: a9 26       .&       ; Next NMI handler address (low)
+    ldy #>(nmi_data_rx_bulk)                                          ; 8203: a0 82       ..       ; Next NMI handler address (high)
     bit econet_control1_or_status1                                    ; 8205: 2c a0 fe    ,..      ; SR1 bit7: more data already waiting?
     bmi nmi_data_rx_bulk                                              ; 8208: 30 1c       0.       ; Yes: enter bulk read directly
     jmp set_nmi_vector                                                ; 820a: 4c 0e 0d    L..      ; No: install handler
 ; &820d referenced 1 time by &81ff
 .install_tube_rx
-    lda #&a1                                                          ; 820d: a9 a1       ..       ; A=&A1: low byte of nmi_data_rx_tube (&82A1)
-    ldy #&82                                                          ; 820f: a0 82       ..       ; Y=&82: high byte of nmi_data_rx_tube
+    lda #<(nmi_data_rx_tube)                                          ; 820d: a9 a1       ..       ; Next NMI handler address (low)
+    ldy #>(nmi_data_rx_tube)                                          ; 820f: a0 82       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 8211: 4c 0e 0d    L..      ; Install Tube handler
 ; Page-overflow exit from nmi_data_rx_bulk: restores the Master 128 ACCCON that was saved at &822A before falling through to the RXCB-update path.
 ; &8214 referenced 1 time by &8242
@@ -1435,7 +1435,7 @@ rom_header_byte2 = rom_header_byte1+1
     sta econet_data_continue_frame                                    ; 8316: 8d a2 fe    ...      ; Write dest station to TX FIFO
     lda scout_src_net                                                 ; 8319: ad 2f 0d    ./.      ; Load dest network from RX scout buffer
     sta econet_data_continue_frame                                    ; 831c: 8d a2 fe    ...      ; Write dest net byte to FIFO
-    lda #&26 ; '&'                                                    ; 831f: a9 26       .&       ; A=&26: low byte of nmi_ack_tx_src (&8326)
+    lda #<(nmi_ack_tx_src)                                            ; 831f: a9 26       .&       ; Next NMI handler address (low)
     ldy #&83                                                          ; 8321: a0 83       ..       ; High byte of nmi_ack_tx_src
     jmp set_nmi_vector                                                ; 8323: 4c 0e 0d    L..      ; Set NMI vector to ack_tx_src handler
 ; ***************************************************************************************
@@ -1675,8 +1675,8 @@ rom_header_byte2 = rom_header_byte1+1
 ; Two callers: &80CD (after init) and &80E4 (after error).
 ; &83fd referenced 2 times by &80cd, &80e4
 .set_nmi_rx_scout
-    lda #&9d                                                          ; 83fd: a9 9d       ..       ; A=&9D: low byte of nmi_rx_scout
-    ldy #&80                                                          ; 83ff: a0 80       ..       ; Y=&80: high byte of nmi_rx_scout
+    lda #<(nmi_rx_scout)                                              ; 83fd: a9 9d       ..       ; Next NMI handler address (low)
+    ldy #>(nmi_rx_scout)                                              ; 83ff: a0 80       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 8401: 4c 0e 0d    L..      ; Install nmi_rx_scout as NMI handler
 ; ***************************************************************************************
 ; Discard with Tube release
@@ -2046,9 +2046,9 @@ l8494 = sub_c8492+2
 ; remote-supplied JSR target. When that routine returns via RTS, control resumes at
 ; tx_done_exit which tidies up TX state.
 .tx_done_jsr
-    lda #&85                                                          ; 8564: a9 85       ..       ; A=&85: high byte of tx_done_exit-1 (&8581)
+    lda #>(tx_done_exit-1)                                            ; 8564: a9 85       ..       ; tx_done_exit RTS target (high)
     pha                                                               ; 8566: 48          H        ; Push hi byte on stack
-    lda #&a5                                                          ; 8567: a9 a5       ..       ; A=&A5: low byte of tx_done_exit-1
+    lda #<(tx_done_exit-1)                                            ; 8567: a9 a5       ..       ; tx_done_exit RTS target (low)
     pha                                                               ; 8569: 48          H        ; Push lo byte on stack
     jmp (exec_addr_lo)                                                ; 856a: 6c 66 0d    lf.      ; Call remote JSR; RTS to tx_done_exit
 ; ***************************************************************************************
@@ -2478,7 +2478,7 @@ l85c1 = sub_c85c0+1
     sty econet_control23_or_status2                                   ; 8714: 8c a1 fe    ...      ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44 ; 'D'                                                    ; 8717: a2 44       .D       ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 8719: 8e a0 fe    ...      ; Write to ADLC CR1
-    ldx #&b6                                                          ; 871c: a2 b6       ..       ; X=&B6: low byte of nmi_tx_data (&87B6)
+    ldx #<(nmi_tx_data)                                               ; 871c: a2 b6       ..       ; Next NMI handler address (low)
     ldy #&87                                                          ; 871e: a0 87       ..       ; High byte of NMI handler address
     stx nmi_jmp_lo                                                    ; 8720: 8e 0c 0d    ...      ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 8723: 8c 0d 0d    ...      ; Write NMI vector high byte directly
@@ -2730,8 +2730,8 @@ l872d = tx_enable_nmis+2
     jmp handshake_await_ack                                           ; 8810: 4c 55 89    LU.      ; bit0 set -- four-way handshake data phase
 ; &8813 referenced 1 time by &880e
 .install_reply_scout
-    lda #&1a                                                          ; 8813: a9 1a       ..       ; Install nmi_reply_validate at &874B
-    ldy #&88                                                          ; 8815: a0 88       ..       ; Y=&88: high byte of nmi_data_tx handler
+    lda #<(nmi_reply_scout)                                           ; 8813: a9 1a       ..       ; Install nmi_reply_scout (low)
+    ldy #>(nmi_reply_scout)                                           ; 8815: a0 88       ..       ; Install nmi_reply_scout (high)
     jmp set_nmi_vector                                                ; 8817: 4c 0e 0d    L..      ; Install handler
 ; ***************************************************************************************
 ; RX reply-scout handler
@@ -2767,7 +2767,7 @@ l872d = tx_enable_nmis+2
     bpl reject_reply                                                  ; 8831: 10 0f       ..       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 8833: ad a2 fe    ...      ; Read destination network byte
     bne reject_reply                                                  ; 8836: d0 0a       ..       ; Non-zero -- network mismatch, error
-    lda #&45 ; 'E'                                                    ; 8838: a9 45       .E       ; A=&45: low byte of nmi_reply_validate (&8845)
+    lda #<(nmi_reply_validate)                                        ; 8838: a9 45       .E       ; Next NMI handler address (low)
     bit econet_control1_or_status1                                    ; 883a: 2c a0 fe    ,..      ; Test SR1 IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 883d: 30 06       0.       ; IRQ set -- fall through to &8848
     jmp install_nmi_handler                                           ; 883f: 4c 11 0d    L..      ; IRQ not set -- install handler
@@ -3034,7 +3034,7 @@ tx_flags_table = check_tube_irq_loop+1
     lda econet_data_continue_frame                                    ; 8968: ad a2 fe    ...      ; Read dest station
     cmp tx_src_stn                                                    ; 896b: cd 22 0d    .".      ; Compare to our station (workspace copy)
     bne tx_result_fail                                                ; 896e: d0 41       .A       ; Not our station -- error
-    lda #&75 ; 'u'                                                    ; 8970: a9 75       .u       ; A=&75: low byte of nmi_final_ack_net (&8975)
+    lda #<(nmi_final_ack_net)                                         ; 8970: a9 75       .u       ; Next NMI handler address (low)
     jmp install_nmi_handler                                           ; 8972: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; NMI handler: final-ACK source-net validation
@@ -7993,9 +7993,9 @@ bad_prefix_table = bad_str_anchor+1
     inx                                                               ; 9c11: e8          .        ; Advance past last character
     lda #&0d                                                          ; 9c12: a9 0d       ..       ; A=CR: terminate filename
     sta hazel_parse_buf,x                                             ; 9c14: 9d 30 c0    .0.      ; Store CR terminator in buffer
-    lda #&30 ; '0'                                                    ; 9c17: a9 30       .0       ; A=&30: low byte of fs_filename_buf buffer
+    lda #<(hazel_parse_buf)                                           ; 9c17: a9 30       .0       ; Parse-buffer pointer (low)
     sta fs_crc_lo                                                     ; 9c19: 85 be       ..       ; Set command text pointer low
-    lda #&c0                                                          ; 9c1b: a9 c0       ..       ; A=&C0: high byte of fs_filename_buf buffer
+    lda #>(hazel_parse_buf)                                           ; 9c1b: a9 c0       ..       ; Parse-buffer pointer (high)
     sta fs_crc_hi                                                     ; 9c1d: 85 bf       ..       ; Set command text pointer high
     rts                                                               ; 9c1f: 60          `        ; Return with buffer filled
 ; ***************************************************************************************
@@ -10582,8 +10582,8 @@ la125 = osopt_cmos_writeback_jsr+1
     tya                                                               ; a724: 98          .        ; Result to A
     and #2                                                            ; a725: 29 02       ).       ; Mask bit 1 (auto-CLI flag)
     beq boot_persist_fs_maybe                                         ; a727: f0 07       ..       ; Bit clear: skip auto-CLI
-    ldx #&12                                                          ; a729: a2 12       ..       ; X=&12: low byte of the -NET-FindLib command string (&A712)
-    ldy #&a7                                                          ; a72b: a0 a7       ..       ; Y=&A7: high byte of the -NET-FindLib command string (&A712)
+    ldx #<(findlib_oscli_cmd)                                         ; a729: a2 12       ..       ; -NET-FindLib command pointer (low)
+    ldy #>(findlib_oscli_cmd)                                         ; a72b: a0 a7       ..       ; -NET-FindLib command pointer (high)
     jsr oscli                                                         ; a72d: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)
 ; &a730 referenced 1 time by &a727
 .boot_persist_fs_maybe

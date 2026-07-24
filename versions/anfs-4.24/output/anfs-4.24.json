@@ -9853,10 +9853,10 @@
         169,
         38
       ],
-      "comment_inline": "A=&26: low byte of nmi_data_rx_bulk (&8226)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&26"
+      "operand": "#<(nmi_data_rx_bulk)"
     },
     {
       "addr": 33283,
@@ -9864,10 +9864,10 @@
         160,
         130
       ],
-      "comment_inline": "Y=&82: high byte of nmi_data_rx_bulk",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(nmi_data_rx_bulk)"
     },
     {
       "addr": 33285,
@@ -9919,7 +9919,7 @@
       "labels": [
         "install_tube_rx"
       ],
-      "comment_inline": "A=&A1: low byte of nmi_data_rx_tube (&82A1)",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&820d referenced 1 time by &81ff"
       ],
@@ -9931,7 +9931,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&a1"
+      "operand": "#<(nmi_data_rx_tube)"
     },
     {
       "addr": 33295,
@@ -9939,10 +9939,10 @@
         160,
         130
       ],
-      "comment_inline": "Y=&82: high byte of nmi_data_rx_tube",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(nmi_data_rx_tube)"
     },
     {
       "addr": 33297,
@@ -11704,10 +11704,10 @@
         169,
         38
       ],
-      "comment_inline": "A=&26: low byte of nmi_ack_tx_src (&8326)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&26"
+      "operand": "#<(nmi_ack_tx_src)"
     },
     {
       "addr": 33569,
@@ -13224,7 +13224,7 @@
       "labels": [
         "set_nmi_rx_scout"
       ],
-      "comment_inline": "A=&9D: low byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&83fd referenced 2 times by &80cd, &80e4"
       ],
@@ -13240,7 +13240,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&9d"
+      "operand": "#<(nmi_rx_scout)"
     },
     {
       "addr": 33791,
@@ -13248,10 +13248,10 @@
         160,
         128
       ],
-      "comment_inline": "Y=&80: high byte of nmi_rx_scout",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&80"
+      "operand": "#>(nmi_rx_scout)"
     },
     {
       "addr": 33793,
@@ -15544,10 +15544,10 @@
       "labels": [
         "tx_done_jsr"
       ],
-      "comment_inline": "A=&85: high byte of tx_done_exit-1 (&8581)",
+      "comment_inline": "tx_done_exit RTS target (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&85"
+      "operand": "#>(tx_done_exit-1)"
     },
     {
       "addr": 34150,
@@ -15564,10 +15564,10 @@
         169,
         165
       ],
-      "comment_inline": "A=&A5: low byte of tx_done_exit-1",
+      "comment_inline": "tx_done_exit RTS target (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&a5"
+      "operand": "#<(tx_done_exit-1)"
     },
     {
       "addr": 34153,
@@ -18510,10 +18510,10 @@
         162,
         182
       ],
-      "comment_inline": "X=&B6: low byte of nmi_tx_data (&87B6)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&b6"
+      "operand": "#<(nmi_tx_data)"
     },
     {
       "addr": 34590,
@@ -20072,7 +20072,7 @@
       "labels": [
         "install_reply_scout"
       ],
-      "comment_inline": "Install nmi_reply_validate at &874B",
+      "comment_inline": "Install nmi_reply_scout (low)",
       "xref_summaries": [
         "&8813 referenced 1 time by &880e"
       ],
@@ -20084,7 +20084,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&1a"
+      "operand": "#<(nmi_reply_scout)"
     },
     {
       "addr": 34837,
@@ -20092,10 +20092,10 @@
         160,
         136
       ],
-      "comment_inline": "Y=&88: high byte of nmi_data_tx handler",
+      "comment_inline": "Install nmi_reply_scout (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&88"
+      "operand": "#>(nmi_reply_scout)"
     },
     {
       "addr": 34839,
@@ -20281,10 +20281,10 @@
         169,
         69
       ],
-      "comment_inline": "A=&45: low byte of nmi_reply_validate (&8845)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&45"
+      "operand": "#<(nmi_reply_validate)"
     },
     {
       "addr": 34874,
@@ -22287,10 +22287,10 @@
         169,
         117
       ],
-      "comment_inline": "A=&75: low byte of nmi_final_ack_net (&8975)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&75"
+      "operand": "#<(nmi_final_ack_net)"
     },
     {
       "addr": 35186,
@@ -54403,10 +54403,10 @@
         169,
         48
       ],
-      "comment_inline": "A=&30: low byte of fs_filename_buf buffer",
+      "comment_inline": "Parse-buffer pointer (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&30"
+      "operand": "#<(hazel_parse_buf)"
     },
     {
       "addr": 39961,
@@ -54427,10 +54427,10 @@
         169,
         192
       ],
-      "comment_inline": "A=&C0: high byte of fs_filename_buf buffer",
+      "comment_inline": "Parse-buffer pointer (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&c0"
+      "operand": "#>(hazel_parse_buf)"
     },
     {
       "addr": 39965,
@@ -73715,10 +73715,10 @@
         162,
         18
       ],
-      "comment_inline": "X=&12: low byte of the -NET-FindLib command string (&A712)",
+      "comment_inline": "-NET-FindLib command pointer (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&12"
+      "operand": "#<(findlib_oscli_cmd)"
     },
     {
       "addr": 42795,
@@ -73726,10 +73726,10 @@
         160,
         167
       ],
-      "comment_inline": "Y=&A7: high byte of the -NET-FindLib command string (&A712)",
+      "comment_inline": "-NET-FindLib command pointer (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&a7"
+      "operand": "#>(findlib_oscli_cmd)"
     },
     {
       "addr": 42797,
