@@ -3144,7 +3144,8 @@
       },
       "on_exit": {
         "a": "OSWORD number (re-loaded for the handler's use)"
-      }
+      },
+      "fall_through": true
     },
     {
       "addr": 44384,
@@ -7012,9 +7013,9 @@
       "comment_inline": "Check Tube presence via OSBYTE &EA",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c8ee1",
+      "operand": "osbyte_x0",
       "target": 36577,
-      "target_label": "sub_c8ee1"
+      "target_label": "osbyte_x0"
     },
     {
       "addr": 32866,
@@ -7062,9 +7063,9 @@
       "comment_inline": "Issue NMI claim service request",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c8ee3",
+      "operand": "osbyte_yff",
       "target": 36579,
-      "target_label": "sub_c8ee3"
+      "target_label": "osbyte_yff"
     },
     {
       "addr": 32876,
@@ -7140,9 +7141,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8a00,y",
+      "operand": "nmi_shim_source,y",
       "target": 35328,
-      "target_label": "l8a00"
+      "target_label": "nmi_shim_source"
     },
     {
       "addr": 32887,
@@ -13227,6 +13228,11 @@
       "labels": [
         "save_acccon_for_shadow_ram"
       ],
+      "sub_labels": {
+        "33820": [
+          "imm_op_handler_lo_table"
+        ]
+      },
       "comment_inline": "Tube active: use R3 write path",
       "type": "code",
       "mnemonic": "bne",
@@ -15283,28 +15289,67 @@
     {
       "addr": 34143,
       "bytes": [
-        99,
-        108,
+        99
+      ],
+      "comment_inline": "op &83: remote JSR",
+      "type": "byte",
+      "values": [
+        99
+      ]
+    },
+    {
+      "addr": 34144,
+      "bytes": [
+        108
+      ],
+      "comment_inline": "op &84: fire Econet event",
+      "type": "byte",
+      "values": [
+        108
+      ]
+    },
+    {
+      "addr": 34145,
+      "bytes": [
         122
       ],
-      "type": "string",
-      "string": "clz"
+      "comment_inline": "op &85: OSProc call",
+      "type": "byte",
+      "values": [
+        122
+      ]
     },
     {
       "addr": 34146,
       "bytes": [
-        134,
-        157,
+        134
+      ],
+      "comment_inline": "op &86: HALT",
+      "type": "byte",
+      "values": [
+        134
+      ]
+    },
+    {
+      "addr": 34147,
+      "bytes": [
+        157
+      ],
+      "comment_inline": "op &87: CONTINUE",
+      "type": "byte",
+      "values": [
+        157
+      ]
+    },
+    {
+      "addr": 34148,
+      "bytes": [
         169,
         133
       ],
-      "type": "byte",
-      "values": [
-        134,
-        157,
-        169,
-        133
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&85"
     },
     {
       "addr": 34150,
@@ -15312,10 +15357,8 @@
         72
       ],
       "comment_inline": "Push hi byte on stack",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 34151,
@@ -15324,11 +15367,9 @@
         165
       ],
       "comment_inline": "A=&81: low byte of tx_done_exit-1 (&8581)",
-      "type": "byte",
-      "values": [
-        169,
-        165
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&a5"
     },
     {
       "addr": 34153,
@@ -15336,10 +15377,8 @@
         72
       ],
       "comment_inline": "Push lo byte on stack",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 34154,
@@ -15349,12 +15388,11 @@
         13
       ],
       "comment_inline": "Call remote JSR; RTS to tx_done_exit",
-      "type": "byte",
-      "values": [
-        108,
-        102,
-        13
-      ]
+      "type": "code",
+      "mnemonic": "jmp",
+      "operand": "(exec_addr_lo)",
+      "target": 3430,
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 34157,
@@ -21688,6 +21726,11 @@
       "labels": [
         "tube_tx_inc_byte3"
       ],
+      "sub_labels": {
+        "35134": [
+          "tx_length_table"
+        ]
+      },
       "comment_inline": "Carry into third byte",
       "type": "code",
       "mnemonic": "inc",
@@ -21747,6 +21790,11 @@
       "labels": [
         "check_tube_irq_loop"
       ],
+      "sub_labels": {
+        "35142": [
+          "tx_flags_table"
+        ]
+      },
       "comment_inline": "Test SR1 IRQ for tight loop",
       "xref_summaries": [
         "&8945 referenced 3 times by &8937, &893b, &893f"
@@ -22921,7 +22969,7 @@
       ],
       "sub_labels": {
         "35328": [
-          "l8a00"
+          "nmi_shim_source"
         ]
       },
       "comment_inline": "Set ADLC to RX listen mode",
@@ -23303,8 +23351,7 @@
         166,
         164,
         164,
-        164,
-        139
+        164
       ],
       "labels": [
         "sub_c8a40"
@@ -23391,7 +23438,17 @@
         166,
         164,
         164,
-        164,
+        164
+      ]
+    },
+    {
+      "addr": 35465,
+      "bytes": [
+        139
+      ],
+      "comment_inline": "padding (table has only 51 entries)",
+      "type": "byte",
+      "values": [
         139
       ]
     },
@@ -23592,6 +23649,7 @@
         165,
         244
       ],
+      "comment_inline": "Load this ROM's slot number",
       "type": "code",
       "mnemonic": "lda",
       "operand": "romsel_copy",
@@ -26086,7 +26144,7 @@
         255
       ],
       "labels": [
-        "loop_c8c0f"
+        "loop_print_cmd_name"
       ],
       "xref_summaries": [
         "&8c0f referenced 1 time by &8c17"
@@ -26144,9 +26202,9 @@
       "comment_inline": "Bit 7 clear: more chars, continue",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "loop_c8c0f",
+      "operand": "loop_print_cmd_name",
       "target": 35855,
-      "target_label": "loop_c8c0f"
+      "target_label": "loop_print_cmd_name"
     },
     {
       "addr": 35865,
@@ -26983,9 +27041,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 35983,
@@ -27169,9 +27227,9 @@
       "comment_inline": "Load dispatch address high",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la782,x",
+      "operand": "cmd_dispatch_hi_table,x",
       "target": 42882,
-      "target_label": "la782"
+      "target_label": "cmd_dispatch_hi_table"
     },
     {
       "addr": 36011,
@@ -27192,9 +27250,9 @@
       "comment_inline": "Load dispatch address low",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la781,x",
+      "operand": "cmd_dispatch_lo_table,x",
       "target": 42881,
-      "target_label": "la781"
+      "target_label": "cmd_dispatch_lo_table"
     },
     {
       "addr": 36015,
@@ -27360,6 +27418,7 @@
       "labels": [
         "sub_c8cd2"
       ],
+      "comment_inline": "Y = current ROM slot number from MOS copy at &F4",
       "xref_summaries": [
         "&8cd2 referenced 4 times by &8b49, &8ce2, &8f47, &b3d3"
       ],
@@ -28639,7 +28698,7 @@
       ],
       "sub_labels": {
         "36287": [
-          "l8dbf"
+          "ps_template_base"
         ]
       },
       "comment_inline": "Set up transfer parameters",
@@ -28859,9 +28918,9 @@
       "comment_inline": "Load logon command template byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la7dd,x",
+      "operand": "cmd_table_nfs_iam,x",
       "target": 42973,
-      "target_label": "la7dd"
+      "target_label": "cmd_table_nfs_iam"
     },
     {
       "addr": 36323,
@@ -30639,8 +30698,9 @@
         0
       ],
       "labels": [
-        "sub_c8ee1"
+        "osbyte_x0"
       ],
+      "comment_inline": "X=0 then fall through into osbyte_yff",
       "xref_summaries": [
         "&8ee1 referenced 3 times by &805f, &9048, &99fb"
       ],
@@ -30669,8 +30729,9 @@
         255
       ],
       "labels": [
-        "sub_c8ee3"
+        "osbyte_yff"
       ],
+      "comment_inline": "Y=&FF: 'read' parameter for OSBYTE",
       "xref_summaries": [
         "&8ee3 referenced 1 time by &8069"
       ],
@@ -30692,7 +30753,7 @@
         255
       ],
       "labels": [
-        "loop_c8ee5"
+        "jmp_osbyte"
       ],
       "xref_summaries": [
         "&8ee5 referenced 1 time by &8eee"
@@ -30730,6 +30791,7 @@
       "labels": [
         "sub_c8eea"
       ],
+      "comment_inline": "X=0: clear OSBYTE X arg",
       "xref_summaries": [
         "&8eea referenced 1 time by &9a0e"
       ],
@@ -30762,9 +30824,9 @@
       ],
       "type": "code",
       "mnemonic": "beq",
-      "operand": "loop_c8ee5",
+      "operand": "jmp_osbyte",
       "target": 36581,
-      "target_label": "loop_c8ee5"
+      "target_label": "jmp_osbyte"
     },
     {
       "addr": 36592,
@@ -31948,9 +32010,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb121,x",
+      "operand": "cdir_size_done,x",
       "target": 45345,
-      "target_label": "lb121"
+      "target_label": "cdir_size_done"
     },
     {
       "addr": 36771,
@@ -32320,9 +32382,9 @@
       "comment_inline": "Non-zero: station ID valid -> alloc_common_entry",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c9006",
+      "operand": "alloc_common_entry",
       "target": 36870,
-      "target_label": "c9006"
+      "target_label": "alloc_common_entry"
     },
     {
       "addr": 36829,
@@ -32397,6 +32459,7 @@
         169,
         1
       ],
+      "comment_inline": "A=1: default station ID",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#1"
@@ -32407,6 +32470,7 @@
         128,
         5
       ],
+      "comment_inline": "BRA to alloc_store_station_id with default",
       "type": "code",
       "mnemonic": "bra",
       "operand": "alloc_store_station_id",
@@ -32419,8 +32483,9 @@
         200
       ],
       "labels": [
-        "c9006"
+        "alloc_common_entry"
       ],
+      "comment_inline": "Check next byte (CMOS station ID hi?)",
       "xref_summaries": [
         "&9006 referenced 1 time by &8fdb"
       ],
@@ -32870,9 +32935,9 @@
       "comment_inline": "Read ROM pointer table address",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c8ee1",
+      "operand": "osbyte_x0",
       "target": 36577,
-      "target_label": "sub_c8ee1"
+      "target_label": "osbyte_x0"
     },
     {
       "addr": 36939,
@@ -33840,6 +33905,7 @@
         177,
         156
       ],
+      "comment_inline": "Read RX[1] = station number",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(net_rx_ptr),y",
@@ -33853,6 +33919,7 @@
         90,
         179
       ],
+      "comment_inline": "Print as decimal (no leading zeros)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_num_no_leading",
@@ -34080,6 +34147,7 @@
         62,
         41
       ],
+      "comment_inline": "syntax help for *Pass / *I am",
       "type": "string",
       "string": "((:<CR>)<password>)"
     },
@@ -34361,6 +34429,7 @@
         62,
         41
       ],
+      "comment_inline": "syntax help for *PS / *Pollps",
       "type": "string",
       "string": "(<ps type>)|(<stn. id.>)"
     },
@@ -34417,6 +34486,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Null terminator",
       "type": "byte",
       "values": [
         0
@@ -34535,6 +34605,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "Idx 1: &FF = no syntax string for this index",
       "type": "byte",
       "values": [
         255
@@ -34573,6 +34644,7 @@
       "bytes": [
         61
       ],
+      "comment_inline": "Idx 4: \\\"<filename> (<offset>...)\\\"",
       "type": "byte",
       "values": [
         61
@@ -34605,6 +34677,7 @@
       "bytes": [
         119
       ],
+      "comment_inline": "Idx 7: \\\"(:<CR>) <password>...\\\"",
       "type": "byte",
       "values": [
         119
@@ -34775,9 +34848,9 @@
       "comment_inline": "Unconditionally sets V=1 (bit 6 of operand &FF)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 37384,
@@ -38276,6 +38349,7 @@
       "bytes": [
         32
       ],
+      "comment_inline": "prot src bit 1 -> out bit 5",
       "type": "byte",
       "values": [
         32
@@ -38297,6 +38371,7 @@
       "bytes": [
         2
       ],
+      "comment_inline": "prot src bit 3 -> out bit 1",
       "type": "byte",
       "values": [
         2
@@ -38329,6 +38404,7 @@
       "bytes": [
         8
       ],
+      "comment_inline": "access src bit 1 -> out bit 3",
       "type": "byte",
       "values": [
         8
@@ -38350,6 +38426,7 @@
       "bytes": [
         16
       ],
+      "comment_inline": "access src bit 3 -> out bit 4",
       "type": "byte",
       "values": [
         16
@@ -38371,6 +38448,7 @@
       "bytes": [
         2
       ],
+      "comment_inline": "access src bit 5 -> out bit 1",
       "type": "byte",
       "values": [
         2
@@ -41703,6 +41781,7 @@
       "bytes": [
         96
       ],
+      "comment_inline": "Return",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -42681,6 +42760,7 @@
       "bytes": [
         250
       ],
+      "comment_inline": "X=1: CMOS &01 (port)",
       "type": "code",
       "mnemonic": "plx"
     },
@@ -42804,6 +42884,11 @@
       "labels": [
         "dispatch_help_command"
       ],
+      "sub_labels": {
+        "38534": [
+          "help_topic_template"
+        ]
+      },
       "comment_inline": "JMP svc4_dispatch_lookup -- shared parser dispatch",
       "type": "code",
       "mnemonic": "jmp",
@@ -43874,6 +43959,7 @@
       "bytes": [
         153
       ],
+      "comment_inline": "Offset 1: txcb_port = &99 (FS command port)",
       "type": "byte",
       "values": [
         153
@@ -43929,8 +44015,9 @@
         255
       ],
       "labels": [
-        "l9767"
+        "always_set_v_byte"
       ],
+      "comment_inline": "Offset 6: padding &FF; doubles as the always_set_v_byte BIT $abs target",
       "xref_summaries": [
         "&9767 referenced 20 times by &8c8c, &9205, &993b, &9a68, &9e2c, &a016, &a3cf, &a4cc, &a66e, &a699, &a6d0, &ae22, &b35a, &b41c, &b59e, &b62e, &b6c6, &b929, &b967, &bc52"
       ],
@@ -47068,9 +47155,9 @@
       "comment_inline": "Read first message byte (the error code)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39188,
@@ -47108,9 +47195,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39194,
@@ -47380,9 +47467,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 39230,
@@ -47482,9 +47569,9 @@
       "comment_inline": "Read first message byte (error code)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39245,
@@ -47547,9 +47634,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39256,
@@ -47800,9 +47887,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39292,
@@ -47964,9 +48051,9 @@
       "comment_inline": "Read first message byte (error code)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39315,
@@ -48004,9 +48091,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39321,
@@ -48076,7 +48163,7 @@
       ],
       "sub_labels": {
         "39329": [
-          "l99a1"
+          "bad_prefix_table"
         ]
       },
       "comment_inline": "Loop while X != 0",
@@ -48260,9 +48347,9 @@
       "comment_inline": "Get next prefix character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l99a1,x",
+      "operand": "bad_prefix_table,x",
       "target": 39329,
-      "target_label": "l99a1"
+      "target_label": "bad_prefix_table"
     },
     {
       "addr": 39349,
@@ -48846,9 +48933,9 @@
       "comment_inline": "Read current spool file handle",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "sub_c8ee1",
+      "operand": "osbyte_x0",
       "target": 36577,
-      "target_label": "sub_c8ee1"
+      "target_label": "osbyte_x0"
     },
     {
       "addr": 39422,
@@ -49111,9 +49198,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9aa4,y",
+      "operand": "error_msg_table,y",
       "target": 39588,
-      "target_label": "l9aa4"
+      "target_label": "error_msg_table"
     },
     {
       "addr": 39458,
@@ -49620,9 +49707,9 @@
       "comment_inline": "Set V: suppress leading zeros",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 39531,
@@ -50121,7 +50208,7 @@
         160
       ],
       "labels": [
-        "l9aa4"
+        "error_msg_table"
       ],
       "xref_summaries": [
         "&9aa4 used as index base 8 times by &9911, &9917, &994a, &9955, &9979, &9990, &9996, &9a1f"
@@ -50222,6 +50309,7 @@
         111,
         114
       ],
+      "comment_inline": "err_net_error = &A1",
       "type": "string",
       "string": "Net error"
     },
@@ -50230,6 +50318,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Null terminator",
       "type": "byte",
       "values": [
         0
@@ -50266,12 +50355,23 @@
     {
       "addr": 39620,
       "bytes": [
-        0,
-        163
+        0
       ],
       "type": "byte",
       "values": [
-        0,
+        0
+      ]
+    },
+    {
+      "addr": 39621,
+      "bytes": [
+        163
+      ],
+      "labels": [
+        "msg_no_clock"
+      ],
+      "type": "byte",
+      "values": [
         163
       ]
     },
@@ -50372,12 +50472,23 @@
     {
       "addr": 39650,
       "bytes": [
-        0,
-        165
+        0
       ],
       "type": "byte",
       "values": [
-        0,
+        0
+      ]
+    },
+    {
+      "addr": 39651,
+      "bytes": [
+        165
+      ],
+      "labels": [
+        "msg_no_reply"
+      ],
+      "type": "byte",
+      "values": [
         165
       ]
     },
@@ -50415,6 +50526,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Null terminator",
       "type": "byte",
       "values": [
         0
@@ -50438,6 +50550,10 @@
         110,
         103
       ],
+      "labels": [
+        "msg_not_listening"
+      ],
+      "comment_inline": "Suffix string (offset &56 in lookup)",
       "type": "string",
       "string": " not listening"
     },
@@ -50513,6 +50629,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Null terminator",
       "type": "byte",
       "values": [
         0
@@ -51244,6 +51361,7 @@
       "bytes": [
         253
       ],
+      "comment_inline": "Offset 3: &FD skip (preserve dest net)",
       "type": "byte",
       "values": [
         253
@@ -51254,6 +51372,7 @@
       "bytes": [
         58
       ],
+      "comment_inline": "Offset 4: buf start lo (&3A) -> &0D3A",
       "type": "byte",
       "values": [
         58
@@ -51306,6 +51425,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "Offset 9: buf end hi (&0D) -> &0D3E",
       "type": "byte",
       "values": [
         13
@@ -56304,9 +56424,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 40495,
@@ -59638,9 +59758,9 @@
       "comment_inline": "Set V flag (skip directory check)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 40985,
@@ -60576,7 +60696,7 @@
         240,
         6
       ],
-      "comment_inline": "ALWAYS branch to send close request",
+      "comment_inline": "ALWAYS branch to send close request Save to fs_work_6",
       "type": "code",
       "mnemonic": "beq",
       "operand": "send_close_request",
@@ -61523,6 +61643,7 @@
       "bytes": [
         2
       ],
+      "comment_inline": "Idx 1: AND mask = &02 (extract CMOS &11 bit 1)",
       "type": "byte",
       "values": [
         2
@@ -61544,6 +61665,7 @@
       "bytes": [
         6
       ],
+      "comment_inline": "Idx 3: AND mask = &06 (extract CMOS &11 bits 1,2)",
       "type": "byte",
       "values": [
         6
@@ -61565,6 +61687,7 @@
       "bytes": [
         243
       ],
+      "comment_inline": "Idx 5: AND mask = &F3 (clear CMOS &11 bits 2,3)",
       "type": "byte",
       "values": [
         243
@@ -61575,6 +61698,7 @@
       "bytes": [
         207
       ],
+      "comment_inline": "Idx 6: AND mask = &CF (clear CMOS &11 bits 4,5)",
       "type": "byte",
       "values": [
         207
@@ -64981,7 +65105,7 @@
         229,
         254
       ],
-      "comment_inline": "Write to tube data register 3",
+      "comment_inline": "Write to tube data register 3 Store Y to fs_urd_handle",
       "type": "code",
       "mnemonic": "sta",
       "operand": "tube_data_register_3",
@@ -65267,7 +65391,7 @@
         5,
         193
       ],
-      "comment_inline": "Store in fs_cmd_data",
+      "comment_inline": "Store in fs_cmd_data Store Y to fs_csd_handle",
       "type": "code",
       "mnemonic": "sty",
       "operand": "hazel_txcb_data",
@@ -66044,9 +66168,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 41938,
@@ -67134,9 +67258,9 @@
       "comment_inline": "Load dispatch hi byte from cmd_dispatch_hi_table+X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la782,x",
+      "operand": "cmd_dispatch_hi_table,x",
       "target": 42882,
-      "target_label": "la782"
+      "target_label": "cmd_dispatch_hi_table"
     },
     {
       "addr": 42089,
@@ -67157,9 +67281,9 @@
       "comment_inline": "Load dispatch lo byte from cmd_dispatch_lo_table+X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la781,x",
+      "operand": "cmd_dispatch_lo_table,x",
       "target": 42881,
-      "target_label": "la781"
+      "target_label": "cmd_dispatch_lo_table"
     },
     {
       "addr": 42093,
@@ -67619,9 +67743,9 @@
       "comment_inline": "Match: valid command boundary",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "ca4b4",
+      "operand": "separator_char_table",
       "target": 42164,
-      "target_label": "ca4b4"
+      "target_label": "separator_char_table"
     },
     {
       "addr": 42148,
@@ -67757,7 +67881,7 @@
         104
       ],
       "labels": [
-        "ca4b4"
+        "separator_char_table"
       ],
       "xref_summaries": [
         "&a4b4 referenced 1 time by &a4a2"
@@ -67958,9 +68082,9 @@
       "comment_inline": "Force V=1: entry validated as match",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 42191,
@@ -69628,9 +69752,9 @@
       "comment_inline": "Low byte = &6F",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "ca5f3",
+      "operand": "library_path_string",
       "target": 42483,
-      "target_label": "ca5f3"
+      "target_label": "library_path_string"
     },
     {
       "addr": 42441,
@@ -69841,8 +69965,9 @@
         178
       ],
       "labels": [
-        "ca5f3"
+        "library_path_string"
       ],
+      "comment_inline": "Copy parsed arg to TX buffer with X=0",
       "xref_summaries": [
         "&a5f3 referenced 1 time by &a5c7"
       ],
@@ -69864,6 +69989,7 @@
         160,
         0
       ],
+      "comment_inline": "Y=0",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#0"
@@ -70618,9 +70744,9 @@
       "comment_inline": "BIT always_set_v_byte: V <- 1 (match found)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 42609,
@@ -70922,9 +71048,9 @@
       "comment_inline": "BIT always_set_v_byte: V <- 1 (match found)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 42652,
@@ -71294,9 +71420,9 @@
       "comment_inline": "Set V flag (station match found)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 42707,
@@ -71735,6 +71861,7 @@
       "labels": [
         "ca71f"
       ],
+      "comment_inline": "X=&11: CMOS RAM byte index",
       "xref_summaries": [
         "&a71f referenced 1 time by &a70d"
       ],
@@ -72006,9 +72133,9 @@
       "comment_inline": "Auto-boot flag was set: skip CTRL check, dispatch boot via boot_select_cmd",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "ca773",
+      "operand": "boot_select_cmd",
       "target": 42867,
-      "target_label": "ca773"
+      "target_label": "boot_select_cmd"
     },
     {
       "addr": 42826,
@@ -72064,9 +72191,9 @@
       "comment_inline": "CTRL not pressed: proceed to boot",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "ca773",
+      "operand": "boot_select_cmd",
       "target": 42867,
-      "target_label": "ca773"
+      "target_label": "boot_select_cmd"
     },
     {
       "addr": 42836,
@@ -72117,6 +72244,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -72150,6 +72278,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -72158,14 +72287,12 @@
     {
       "addr": 42863,
       "bytes": [
-        110,
-        85,
-        92,
-        98
+        110
       ],
       "labels": [
-        "la76f"
+        "boot_cmd_lo_table"
       ],
+      "comment_inline": "Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead",
       "xref_summaries": [
         "&a76f used as index base 1 time by &a778"
       ],
@@ -72175,8 +72302,43 @@
           "kind": "indexed"
         }
       ],
-      "type": "string",
-      "string": "nU\\b"
+      "type": "byte",
+      "values": [
+        110
+      ]
+    },
+    {
+      "addr": 42864,
+      "bytes": [
+        85
+      ],
+      "comment_inline": "Y=1: lo byte of boot_cmd_load_str (&A741) \u2014 'L.-NET-!Boot'",
+      "type": "byte",
+      "values": [
+        85
+      ]
+    },
+    {
+      "addr": 42865,
+      "bytes": [
+        92
+      ],
+      "comment_inline": "Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') \u2014 '!Boot' on current FS",
+      "type": "byte",
+      "values": [
+        92
+      ]
+    },
+    {
+      "addr": 42866,
+      "bytes": [
+        98
+      ],
+      "comment_inline": "Y=3: lo byte of boot_cmd_exec_str (&A74E) \u2014 'E.-NET-!Boot'",
+      "type": "byte",
+      "values": [
+        98
+      ]
     },
     {
       "addr": 42867,
@@ -72186,7 +72348,7 @@
         192
       ],
       "labels": [
-        "ca773"
+        "boot_select_cmd"
       ],
       "xref_summaries": [
         "&a773 referenced 2 times by &a748, &a752"
@@ -72213,6 +72375,7 @@
         240,
         220
       ],
+      "comment_inline": "Z (boot type 0): cancel boot via boot_cancel_rts",
       "type": "code",
       "mnemonic": "beq",
       "operand": "boot_cancel_rts",
@@ -72241,9 +72404,9 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "la76f,y",
+      "operand": "boot_cmd_lo_table,y",
       "target": 42863,
-      "target_label": "la76f"
+      "target_label": "boot_cmd_lo_table"
     },
     {
       "addr": 42875,
@@ -72273,25 +72436,13 @@
     {
       "addr": 42880,
       "bytes": [
-        78,
-        101,
-        116
+        78
       ],
       "labels": [
         "cmd_table_fs"
       ],
-      "sub_labels": {
-        "42881": [
-          "la781"
-        ],
-        "42882": [
-          "la782"
-        ]
-      },
       "xref_summaries": [
-        "&a780 used as index base 11 times by &8bfd, &8c0c, &8c14, &8c21, &946a, &9472, &95ed, &a474, &a479, &a489, &a4c0",
-        "&a781 used as index base 2 times by &8cac, &a46a",
-        "&a782 used as index base 2 times by &8ca8, &a466"
+        "&a780 used as index base 11 times by &8bfd, &8c0c, &8c14, &8c21, &946a, &9472, &95ed, &a474, &a479, &a489, &a4c0"
       ],
       "references": [
         {
@@ -72339,18 +72490,64 @@
           "kind": "indexed"
         }
       ],
-      "type": "string",
-      "string": "Net"
+      "type": "byte",
+      "values": [
+        78
+      ]
     },
     {
-      "addr": 42883,
+      "addr": 42881,
       "bytes": [
+        101
+      ],
+      "labels": [
+        "cmd_dispatch_lo_table"
+      ],
+      "xref_summaries": [
+        "&a781 used as index base 2 times by &8cac, &a46a"
+      ],
+      "references": [
+        {
+          "addr": 36012,
+          "kind": "indexed"
+        },
+        {
+          "addr": 42090,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
+        101
+      ]
+    },
+    {
+      "addr": 42882,
+      "bytes": [
+        116,
         128,
         94,
         139
       ],
+      "labels": [
+        "cmd_dispatch_hi_table"
+      ],
+      "xref_summaries": [
+        "&a782 used as index base 2 times by &8ca8, &a466"
+      ],
+      "references": [
+        {
+          "addr": 36008,
+          "kind": "indexed"
+        },
+        {
+          "addr": 42086,
+          "kind": "indexed"
+        }
+      ],
       "type": "byte",
       "values": [
+        116,
         128,
         94,
         139
@@ -72487,16 +72684,32 @@
       "bytes": [
         196,
         112,
-        189,
-        128,
-        128
+        189
       ],
       "type": "byte",
       "values": [
         196,
         112,
-        189,
-        128,
+        189
+      ]
+    },
+    {
+      "addr": 42931,
+      "bytes": [
+        128
+      ],
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42932,
+      "bytes": [
+        128
+      ],
+      "type": "byte",
+      "values": [
         128
       ]
     },
@@ -72647,7 +72860,7 @@
         109
       ],
       "labels": [
-        "la7dd"
+        "cmd_table_nfs_iam"
       ],
       "xref_summaries": [
         "&a7dd used as index base 1 time by &8de0"
@@ -72916,6 +73129,9 @@
         236,
         149
       ],
+      "labels": [
+        "cmd_table_syntax_help"
+      ],
       "type": "byte",
       "values": [
         70,
@@ -72975,8 +73191,28 @@
       "bytes": [
         128,
         23,
-        150,
+        150
+      ],
+      "type": "byte",
+      "values": [
         128,
+        23,
+        150
+      ]
+    },
+    {
+      "addr": 43073,
+      "bytes": [
+        128
+      ],
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43074,
+      "bytes": [
         70,
         83,
         129,
@@ -72990,10 +73226,6 @@
       ],
       "type": "byte",
       "values": [
-        128,
-        23,
-        150,
-        128,
         70,
         83,
         129,
@@ -73023,18 +73255,34 @@
       "bytes": [
         128,
         64,
-        150,
-        128,
-        24
+        150
       ],
       "type": "byte",
       "values": [
         128,
         64,
-        150,
+        150
+      ]
+    },
+    {
+      "addr": 43092,
+      "bytes": [
         128,
         24
-      ]
+      ],
+      "labels": [
+        "sub_ca854"
+      ],
+      "sub_labels": {
+        "43093": [
+          "svc_8_osword_disp"
+        ]
+      },
+      "type": "code",
+      "mnemonic": "bra",
+      "operand": "osword_store_svc_state",
+      "target": 43118,
+      "target_label": "osword_store_svc_state"
     },
     {
       "addr": 43094,
@@ -73136,12 +73384,20 @@
         "loop_save_osword_ws"
       ],
       "comment_inline": "Read svc_state[Y] (frame slot)",
-      "type": "byte",
-      "values": [
-        185,
-        169,
-        0
-      ]
+      "xref_summaries": [
+        "&a863 referenced 1 time by &a86e"
+      ],
+      "references": [
+        {
+          "addr": 43118,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "svc_state,y",
+      "target": 169,
+      "target_label": "svc_state"
     },
     {
       "addr": 43110,
@@ -73149,10 +73405,8 @@
         72
       ],
       "comment_inline": "Save on stack",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 43111,
@@ -73162,12 +73416,11 @@
         0
       ],
       "comment_inline": "Load OSWORD parameter byte",
-      "type": "byte",
-      "values": [
-        185,
-        237,
-        0
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "tx_imm_idx_base,y",
+      "target": 237,
+      "target_label": "tx_imm_idx_base"
     },
     {
       "addr": 43114,
@@ -73177,12 +73430,11 @@
         0
       ],
       "comment_inline": "Copy parameter to workspace",
-      "type": "byte",
-      "values": [
-        153,
-        169,
-        0
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "svc_state,y",
+      "target": 169,
+      "target_label": "svc_state"
     },
     {
       "addr": 43117,
@@ -73190,10 +73442,8 @@
         136
       ],
       "comment_inline": "Next slot",
-      "type": "byte",
-      "values": [
-        136
-      ]
+      "type": "code",
+      "mnemonic": "dey"
     },
     {
       "addr": 43118,
@@ -73205,11 +73455,20 @@
         "osword_store_svc_state"
       ],
       "comment_inline": "Loop until Y wraps",
-      "type": "byte",
-      "values": [
-        208,
-        243
-      ]
+      "xref_summaries": [
+        "&a86e referenced 1 time by &a854"
+      ],
+      "references": [
+        {
+          "addr": 43092,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_save_osword_ws",
+      "target": 43107,
+      "target_label": "loop_save_osword_ws"
     },
     {
       "addr": 43120,
@@ -73219,12 +73478,11 @@
         168
       ],
       "comment_inline": "Set up dispatch and save state",
-      "type": "byte",
-      "values": [
-        32,
-        125,
-        168
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osword_setup_handler",
+      "target": 43133,
+      "target_label": "osword_setup_handler"
     },
     {
       "addr": 43123,
@@ -73233,11 +73491,9 @@
         250
       ],
       "comment_inline": "Y=&FA: restore 6 workspace bytes",
-      "type": "byte",
-      "values": [
-        160,
-        250
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#&fa"
     },
     {
       "addr": 43125,
@@ -73248,10 +73504,17 @@
         "loop_restore_osword_ws"
       ],
       "comment_inline": "Restore saved workspace byte",
-      "type": "byte",
-      "values": [
-        104
-      ]
+      "xref_summaries": [
+        "&a875 referenced 1 time by &a87a"
+      ],
+      "references": [
+        {
+          "addr": 43130,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "pla"
     },
     {
       "addr": 43126,
@@ -73261,12 +73524,11 @@
         255
       ],
       "comment_inline": "Store to osword_flag workspace",
-      "type": "byte",
-      "values": [
-        153,
-        176,
-        255
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "nmi_buf_idx_base,y",
+      "target": 65456,
+      "target_label": "nmi_buf_idx_base"
     },
     {
       "addr": 43129,
@@ -73274,10 +73536,8 @@
         200
       ],
       "comment_inline": "Next byte",
-      "type": "byte",
-      "values": [
-        200
-      ]
+      "type": "code",
+      "mnemonic": "iny"
     },
     {
       "addr": 43130,
@@ -73286,11 +73546,11 @@
         249
       ],
       "comment_inline": "Loop until all 6 restored",
-      "type": "byte",
-      "values": [
-        208,
-        249
-      ]
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_restore_osword_ws",
+      "target": 43125,
+      "target_label": "loop_restore_osword_ws"
     },
     {
       "addr": 43132,
@@ -73298,10 +73558,8 @@
         96
       ],
       "comment_inline": "Return from svc_8_osword",
-      "type": "byte",
-      "values": [
-        96
-      ]
+      "type": "code",
+      "mnemonic": "rts"
     },
     {
       "addr": 43133,
@@ -73314,6 +73572,15 @@
         "osword_setup_handler"
       ],
       "comment_inline": "X = OSWORD index (0-6)",
+      "xref_summaries": [
+        "&a87d referenced 1 time by &a870"
+      ],
+      "references": [
+        {
+          "addr": 43120,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "lda",
       "operand": "la891,x",
@@ -75431,9 +75698,9 @@
       "comment_inline": "Read dispatch lo from osword_13_dispatch_lo+X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la9c8,x",
+      "operand": "osword_13_dispatch_lo,x",
       "target": 43464,
-      "target_label": "la9c8"
+      "target_label": "osword_13_dispatch_lo"
     },
     {
       "addr": 43462,
@@ -75488,7 +75755,7 @@
         200
       ],
       "labels": [
-        "la9c8"
+        "osword_13_dispatch_lo"
       ],
       "xref_summaries": [
         "&a9c8 used as index base 1 time by &a9c3"
@@ -79227,7 +79494,7 @@
       ],
       "sub_labels": {
         "44005": [
-          "labe5"
+          "bridge_err_table"
         ]
       },
       "comment_inline": "Compare with bridge status",
@@ -79381,6 +79648,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "TX 2: dest station = &FF (broadcast)",
       "type": "byte",
       "values": [
         255
@@ -79391,6 +79659,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "TX 3: dest network = &FF (all nets)",
       "type": "byte",
       "values": [
         255
@@ -79448,29 +79717,74 @@
     {
       "addr": 44030,
       "bytes": [
-        156,
-        0,
-        0,
-        114,
-        13,
-        255,
-        255,
-        116,
-        13,
-        255,
-        255
+        156
       ],
       "comment_inline": "RX 1: port = &9C (bridge discovery)",
       "type": "byte",
       "values": [
-        156,
-        0,
+        156
+      ]
+    },
+    {
+      "addr": 44031,
+      "bytes": [
+        0
+      ],
+      "comment_inline": "RX 2: station = &00 (any)",
+      "type": "byte",
+      "values": [
+        0
+      ]
+    },
+    {
+      "addr": 44032,
+      "bytes": [
         0,
         114,
+        13
+      ],
+      "comment_inline": "RX 3: network = &00 (any)",
+      "type": "byte",
+      "values": [
+        0,
+        114,
+        13
+      ]
+    },
+    {
+      "addr": 44035,
+      "bytes": [
+        255
+      ],
+      "comment_inline": "RX 6: extended addr fill (&FF)",
+      "type": "byte",
+      "values": [
+        255
+      ]
+    },
+    {
+      "addr": 44036,
+      "bytes": [
+        255,
+        116
+      ],
+      "comment_inline": "RX 7: extended addr fill (&FF)",
+      "type": "byte",
+      "values": [
+        255,
+        116
+      ]
+    },
+    {
+      "addr": 44038,
+      "bytes": [
         13,
         255,
-        255,
-        116,
+        255
+      ],
+      "comment_inline": "RX 9: buf end hi (&0D) -> &0D74",
+      "type": "byte",
+      "values": [
         13,
         255,
         255
@@ -79618,9 +79932,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "labe5,y",
+      "operand": "bridge_err_table,y",
       "target": 44005,
-      "target_label": "labe5"
+      "target_label": "bridge_err_table"
     },
     {
       "addr": 44060,
@@ -81605,9 +81919,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lad49,x",
+      "operand": "netv_dispatch_hi,x",
       "target": 44361,
-      "target_label": "lad49"
+      "target_label": "netv_dispatch_hi"
     },
     {
       "addr": 44344,
@@ -81628,9 +81942,9 @@
       "comment_inline": "Load handler low byte from lo-table column X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lad40,x",
+      "operand": "netv_dispatch_lo,x",
       "target": 44352,
-      "target_label": "lad40"
+      "target_label": "netv_dispatch_lo"
     },
     {
       "addr": 44348,
@@ -81674,29 +81988,13 @@
         121,
         135,
         131,
-        242,
-        142,
-        174,
-        174,
-        174,
-        173,
-        174,
-        142,
-        173,
-        173,
-        186
+        242
       ],
       "labels": [
-        "lad40"
+        "netv_dispatch_lo"
       ],
-      "sub_labels": {
-        "44361": [
-          "lad49"
-        ]
-      },
       "xref_summaries": [
-        "&ad40 used as index base 1 time by &ad39",
-        "&ad49 used as index base 1 time by &ad35"
+        "&ad40 used as index base 1 time by &ad39"
       ],
       "references": [
         {
@@ -81714,18 +82012,55 @@
         121,
         135,
         131,
-        242,
-        142,
-        174,
-        174,
-        174,
-        173,
-        174,
-        142,
-        173,
-        173,
-        186
+        242
       ]
+    },
+    {
+      "addr": 44361,
+      "bytes": [
+        142,
+        174,
+        174,
+        174,
+        173,
+        174,
+        142,
+        173,
+        173
+      ],
+      "labels": [
+        "netv_dispatch_hi"
+      ],
+      "xref_summaries": [
+        "&ad49 used as index base 1 time by &ad35"
+      ],
+      "references": [
+        {
+          "addr": 44341,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
+        142,
+        174,
+        174,
+        174,
+        173,
+        174,
+        142,
+        173,
+        173
+      ]
+    },
+    {
+      "addr": 44370,
+      "bytes": [
+        186
+      ],
+      "comment_inline": "Read the MOS stack frame holding caller flags",
+      "type": "code",
+      "mnemonic": "tsx"
     },
     {
       "addr": 44371,
@@ -81735,12 +82070,11 @@
         1
       ],
       "comment_inline": "Shift carry out of caller P (stack[&106+X])",
-      "type": "byte",
-      "values": [
-        126,
-        6,
-        1
-      ]
+      "type": "code",
+      "mnemonic": "ror",
+      "operand": "stack_page_6,x",
+      "target": 262,
+      "target_label": "stack_page_6"
     },
     {
       "addr": 44374,
@@ -81750,12 +82084,11 @@
         1
       ],
       "comment_inline": "Carry is now cleared in caller P",
-      "type": "byte",
-      "values": [
-        30,
-        6,
-        1
-      ]
+      "type": "code",
+      "mnemonic": "asl",
+      "operand": "stack_page_6,x",
+      "target": 262,
+      "target_label": "stack_page_6"
     },
     {
       "addr": 44377,
@@ -81763,10 +82096,8 @@
         152
       ],
       "comment_inline": "A = original Y",
-      "type": "byte",
-      "values": [
-        152
-      ]
+      "type": "code",
+      "mnemonic": "tya"
     },
     {
       "addr": 44378,
@@ -81775,11 +82106,9 @@
         218
       ],
       "comment_inline": "Y=&DA: workspace osword-4 result offset",
-      "type": "byte",
-      "values": [
-        160,
-        218
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#&da"
     },
     {
       "addr": 44380,
@@ -81788,11 +82117,11 @@
         158
       ],
       "comment_inline": "Store Y at (nfs_workspace)+&DA",
-      "type": "byte",
-      "values": [
-        145,
-        158
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(nfs_workspace),y",
+      "target": 158,
+      "target_label": "nfs_workspace"
     },
     {
       "addr": 44382,
@@ -81801,11 +82130,9 @@
         0
       ],
       "comment_inline": "A=0: clear A for the abort path",
-      "type": "byte",
-      "values": [
-        169,
-        0
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#0"
     },
     {
       "addr": 44384,
@@ -82808,6 +83135,7 @@
       "bytes": [
         9
       ],
+      "comment_inline": "Range 1+2: OSWORD &09",
       "type": "byte",
       "values": [
         9
@@ -82839,6 +83167,7 @@
       "bytes": [
         21
       ],
+      "comment_inline": "Range 1+2: OSWORD &15",
       "type": "byte",
       "values": [
         21
@@ -82934,6 +83263,7 @@
       "bytes": [
         15
       ],
+      "comment_inline": "Range 2 only: OSWORD &0F",
       "type": "byte",
       "values": [
         15
@@ -82944,6 +83274,7 @@
       "bytes": [
         121
       ],
+      "comment_inline": "Range 2 only: OSWORD &79",
       "type": "byte",
       "values": [
         121
@@ -82974,6 +83305,7 @@
       "bytes": [
         135
       ],
+      "comment_inline": "Range 2 only: OSWORD &87",
       "type": "byte",
       "values": [
         135
@@ -83319,9 +83651,9 @@
       "comment_inline": "BIT &FF unconditionally sets V (the always_set_v_byte trick)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 44581,
@@ -84668,7 +85000,7 @@
         106,
         13
       ],
-      "comment_inline": "Load spool control state",
+      "comment_inline": "Load spool control state Equal: take fill path",
       "type": "code",
       "mnemonic": "lda",
       "operand": "ws_0d6a",
@@ -84733,7 +85065,7 @@
         106,
         13
       ],
-      "comment_inline": "Store updated state",
+      "comment_inline": "Store updated state Stop: process_spool_data and return",
       "type": "code",
       "mnemonic": "sta",
       "operand": "ws_0d6a",
@@ -85601,9 +85933,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb043,x",
+      "operand": "rx_palette_txcb_template,x",
       "target": 45123,
-      "target_label": "lb043"
+      "target_label": "rx_palette_txcb_template"
     },
     {
       "addr": 44877,
@@ -87024,6 +87356,7 @@
       "bytes": [
         159
       ],
+      "comment_inline": "port=&9F",
       "type": "byte",
       "values": [
         159
@@ -87056,6 +87389,7 @@
       "bytes": [
         183
       ],
+      "comment_inline": "buf start lo (&9F)",
       "type": "byte",
       "values": [
         183
@@ -87066,6 +87400,7 @@
       "bytes": [
         142
       ],
+      "comment_inline": "buf start hi (&8E); start = &8E9F",
       "type": "byte",
       "values": [
         142
@@ -87076,6 +87411,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "buf start ext lo=&FF",
       "type": "byte",
       "values": [
         255
@@ -87086,6 +87422,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "buf start ext hi=&FF",
       "type": "byte",
       "values": [
         255
@@ -87096,6 +87433,7 @@
       "bytes": [
         191
       ],
+      "comment_inline": "buf end lo (&A7)",
       "type": "byte",
       "values": [
         191
@@ -87106,6 +87444,7 @@
       "bytes": [
         142
       ],
+      "comment_inline": "buf end hi (&8E); end = &8EA7",
       "type": "byte",
       "values": [
         142
@@ -87116,6 +87455,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "buf end ext lo=&FF",
       "type": "byte",
       "values": [
         255
@@ -87126,6 +87466,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "buf end ext hi=&FF",
       "type": "byte",
       "values": [
         255
@@ -87134,20 +87475,12 @@
     {
       "addr": 45123,
       "bytes": [
-        127,
-        158,
-        253,
-        253,
-        46,
-        252,
-        255,
-        255,
-        49,
-        252
+        127
       ],
       "labels": [
-        "lb043"
+        "rx_palette_txcb_template"
       ],
+      "comment_inline": "ctrl=&7F (RX listen)",
       "xref_summaries": [
         "&b043 used as index base 1 time by &af4a"
       ],
@@ -87159,13 +87492,67 @@
       ],
       "type": "byte",
       "values": [
-        127,
-        158,
+        127
+      ]
+    },
+    {
+      "addr": 45124,
+      "bytes": [
+        158
+      ],
+      "comment_inline": "port=&9E",
+      "type": "byte",
+      "values": [
+        158
+      ]
+    },
+    {
+      "addr": 45125,
+      "bytes": [
         253,
         253,
-        46,
-        252,
+        46
+      ],
+      "comment_inline": "skip: preserve dest station",
+      "type": "byte",
+      "values": [
+        253,
+        253,
+        46
+      ]
+    },
+    {
+      "addr": 45128,
+      "bytes": [
+        252
+      ],
+      "comment_inline": "buf start hi=page ptr (&FC)",
+      "type": "byte",
+      "values": [
+        252
+      ]
+    },
+    {
+      "addr": 45129,
+      "bytes": [
+        255
+      ],
+      "comment_inline": "buf start ext lo=&FF",
+      "type": "byte",
+      "values": [
+        255
+      ]
+    },
+    {
+      "addr": 45130,
+      "bytes": [
         255,
+        49,
+        252
+      ],
+      "comment_inline": "buf start ext hi=&FF",
+      "type": "byte",
+      "values": [
         255,
         49,
         252
@@ -88070,7 +88457,7 @@
       "labels": [
         "cmd_cdir_indirect_dispatch"
       ],
-      "comment_inline": "JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir",
+      "comment_inline": "JMP (cdir_unused_dispatch_table,X) -- never executed; see cmd_cdir Save command line offset Push onto stack",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "(cdir_unused_dispatch_table,x)",
@@ -88244,9 +88631,9 @@
       "comment_inline": "Compare size with threshold",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "lb107,x",
+      "operand": "cdir_size_thresholds,x",
       "target": 45319,
-      "target_label": "lb107"
+      "target_label": "cdir_size_thresholds"
     },
     {
       "addr": 45297,
@@ -88381,7 +88768,7 @@
       ],
       "sub_labels": {
         "45319": [
-          "lb107"
+          "cdir_size_thresholds"
         ]
       },
       "comment_inline": "Send command to file server",
@@ -88435,6 +88822,7 @@
       "bytes": [
         29
       ],
+      "comment_inline": "Index 4: threshold 29",
       "type": "byte",
       "values": [
         29
@@ -88465,6 +88853,7 @@
       "bytes": [
         59
       ],
+      "comment_inline": "Index 7: threshold 59",
       "type": "byte",
       "values": [
         59
@@ -88668,7 +89057,7 @@
         246
       ],
       "labels": [
-        "lb121"
+        "cdir_size_done"
       ],
       "xref_summaries": [
         "&b121 used as index base 1 time by &8fa0"
@@ -88689,6 +89078,7 @@
       "bytes": [
         255
       ],
+      "comment_inline": "cdir_size_done[1] = &FF -> tx_retry_count (retry counter init)",
       "type": "byte",
       "values": [
         255
@@ -89423,6 +89813,7 @@
         18,
         193
       ],
+      "comment_inline": "Read hazel_txcb_type (FS reply opcode)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "hazel_txcb_type",
@@ -89476,9 +89867,9 @@
       ],
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb1b8",
+      "operand": "cat_after_label_print",
       "target": 45496,
-      "target_label": "cb1b8"
+      "target_label": "cat_after_label_print"
     },
     {
       "addr": 45486,
@@ -89528,8 +89919,9 @@
         194
       ],
       "labels": [
-        "cb1b8"
+        "cat_after_label_print"
       ],
+      "comment_inline": "Read hazel_fs_lib_flags",
       "xref_summaries": [
         "&b1b8 referenced 1 time by &b1ac"
       ],
@@ -89666,6 +90058,7 @@
         5,
         192
       ],
+      "comment_inline": "Read hazel_fs_flags",
       "type": "code",
       "mnemonic": "lda",
       "operand": "hazel_fs_flags",
@@ -89739,8 +90132,9 @@
         178
       ],
       "labels": [
-        "loop_cb1e7"
+        "loop_print_dir_format"
       ],
+      "comment_inline": "Look up option byte at the resolved offset",
       "xref_summaries": [
         "&b1e7 referenced 1 time by &b1f0"
       ],
@@ -89752,9 +90146,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb2cf,y",
+      "operand": "option_offset_table,y",
       "target": 45775,
-      "target_label": "lb2cf"
+      "target_label": "option_offset_table"
     },
     {
       "addr": 45546,
@@ -89762,6 +90156,7 @@
         48,
         6
       ],
+      "comment_inline": "Bit 7 of A set (negative): print directory header",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "print_dir_header",
@@ -89775,6 +90170,7 @@
         4,
         146
       ],
+      "comment_inline": "Print char (no spool)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_char_no_spool",
@@ -89786,6 +90182,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance Y",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -89798,9 +90195,9 @@
       "comment_inline": "Loop until Y wraps",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_cb1e7",
+      "operand": "loop_print_dir_format",
       "target": 45543,
-      "target_label": "loop_cb1e7"
+      "target_label": "loop_print_dir_format"
     },
     {
       "addr": 45554,
@@ -89848,6 +90245,7 @@
         162,
         17
       ],
+      "comment_inline": "X=&11: filename offset in TX buffer",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&11"
@@ -89859,6 +90257,7 @@
         77,
         178
       ],
+      "comment_inline": "Print 10-char filename",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_10_chars",
@@ -89892,6 +90291,7 @@
         46,
         32
       ],
+      "comment_inline": "label for *Ex output",
       "type": "string",
       "string": "     Lib. "
     },
@@ -89901,6 +90301,7 @@
         162,
         27
       ],
+      "comment_inline": "X=&1B: extension offset in TX buffer",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&1b"
@@ -91274,24 +91675,32 @@
       "bytes": [
         47,
         60,
-        99,
+        99
+      ],
+      "type": "string",
+      "string": "/<c"
+    },
+    {
+      "addr": 45775,
+      "bytes": [
         79,
         102,
         102
       ],
       "labels": [
-        "sub_cb2cc"
+        "option_offset_table"
       ],
-      "sub_labels": {
-        "45775": [
-          "lb2cf"
-        ]
-      },
       "xref_summaries": [
         "&b2cf used as index base 1 time by &b1e7"
       ],
+      "references": [
+        {
+          "addr": 45543,
+          "kind": "indexed"
+        }
+      ],
       "type": "string",
-      "string": "/<cOff"
+      "string": "Off"
     },
     {
       "addr": 45778,
@@ -91741,6 +92150,7 @@
       "labels": [
         "sub_cb302"
       ],
+      "comment_inline": "Read fs_lib_flags (now at &C271 in 4.21)",
       "xref_summaries": [
         "&b302 referenced 15 times by &8e6b, &94ce, &9506, &9c26, &a05c, &a179, &a4fb, &a508, &a599, &a5a3, &ac72, &b0d6, &b1bc, &b38a, &b71c"
       ],
@@ -91862,11 +92272,13 @@
         162,
         0
       ],
-      "type": "byte",
-      "values": [
-        162,
-        0
-      ]
+      "labels": [
+        "ex_init_scan_x0"
+      ],
+      "comment_inline": "X=0: scan from start of TX entry",
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "#0"
     },
     {
       "addr": 45840,
@@ -91916,9 +92328,9 @@
       "comment_inline": "Non-printable: take CR-newline path at col_sep_print_cr",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb32c",
+      "operand": "col_sep_print_cr",
       "target": 45868,
-      "target_label": "cb32c"
+      "target_label": "col_sep_print_cr"
     },
     {
       "addr": 45847,
@@ -91954,9 +92366,9 @@
       "comment_inline": "Negative: *Ex mode (one-per-line) -- skip column logic, just print newline",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "cb32a",
+      "operand": "col_sep_eol_check",
       "target": 45866,
-      "target_label": "cb32a"
+      "target_label": "col_sep_eol_check"
     },
     {
       "addr": 45851,
@@ -92009,9 +92421,9 @@
       "comment_inline": "Wrapped to 0: end of row, print newline",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "cb32a",
+      "operand": "col_sep_eol_check",
       "target": 45866,
-      "target_label": "cb32a"
+      "target_label": "col_sep_eol_check"
     },
     {
       "addr": 45859,
@@ -92044,9 +92456,9 @@
       ],
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb32f",
+      "operand": "col_sep_print_char",
       "target": 45871,
-      "target_label": "cb32f"
+      "target_label": "col_sep_print_char"
     },
     {
       "addr": 45866,
@@ -92055,8 +92467,9 @@
         13
       ],
       "labels": [
-        "cb32a"
+        "col_sep_eol_check"
       ],
+      "comment_inline": "A=&0D: CR character",
       "xref_summaries": [
         "&b32a referenced 2 times by &b319, &b321"
       ],
@@ -92082,8 +92495,9 @@
         146
       ],
       "labels": [
-        "cb32c"
+        "col_sep_print_cr"
       ],
+      "comment_inline": "Print CR (no spool)",
       "xref_summaries": [
         "&b32c referenced 1 time by &b315"
       ],
@@ -92105,8 +92519,9 @@
         232
       ],
       "labels": [
-        "cb32f"
+        "col_sep_print_char"
       ],
+      "comment_inline": "Next entry",
       "xref_summaries": [
         "&b32f referenced 1 time by &b328"
       ],
@@ -92457,9 +92872,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 45917,
@@ -93813,9 +94228,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8dbf,x",
+      "operand": "ps_template_base,x",
       "target": 36287,
-      "target_label": "l8dbf"
+      "target_label": "ps_template_base"
     },
     {
       "addr": 46101,
@@ -93892,9 +94307,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 46111,
@@ -94994,6 +95409,7 @@
       "bytes": [
         184
       ],
+      "comment_inline": "Clear V so the BVC below is taken",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -95120,6 +95536,7 @@
       "bytes": [
         96
       ],
+      "comment_inline": "Return; caller now prints the actual server (file or printer) address",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -95753,7 +96170,7 @@
       ],
       "sub_labels": {
         "46392": [
-          "lb538"
+          "ps_print_template"
         ]
       },
       "comment_inline": "Write another buffer page + two &FF sentinels",
@@ -96462,6 +96879,7 @@
       "bytes": [
         159
       ],
+      "comment_inline": "Port &9F (printer server)",
       "type": "byte",
       "values": [
         159
@@ -96597,9 +97015,9 @@
       "comment_inline": "Set V so the next BVS branches over the padding (we just printed digits, no padding needed)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 46497,
@@ -96622,9 +97040,9 @@
       ],
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "cb5aa",
+      "operand": "local_net_prefix",
       "target": 46506,
-      "target_label": "cb5aa"
+      "target_label": "local_net_prefix"
     },
     {
       "addr": 46499,
@@ -96658,8 +97076,9 @@
         181
       ],
       "labels": [
-        "cb5aa"
+        "local_net_prefix"
       ],
+      "comment_inline": "Read station number (fs_work_5)",
       "xref_summaries": [
         "&b5aa referenced 1 time by &b5a1"
       ],
@@ -96717,6 +97136,7 @@
       "bytes": [
         159
       ],
+      "comment_inline": "Offset 1: txcb_port = &9F (PS port)",
       "type": "byte",
       "values": [
         159
@@ -96760,6 +97180,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Offset 5: buf1 start hi (page from net_rx_ptr)",
       "type": "byte",
       "values": [
         0
@@ -97559,9 +97980,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 46641,
@@ -98302,6 +98723,7 @@
         230,
         174
       ],
+      "comment_inline": "Advance work_ae to next status byte (lo)",
       "type": "code",
       "mnemonic": "inc",
       "operand": "work_ae",
@@ -98388,6 +98810,7 @@
         230,
         174
       ],
+      "comment_inline": "Advance work_ae to next status byte (lo)",
       "type": "code",
       "mnemonic": "inc",
       "operand": "work_ae",
@@ -98400,6 +98823,7 @@
         161,
         174
       ],
+      "comment_inline": "Read network number byte via (work_ae,X)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(work_ae,x)",
@@ -98429,9 +98853,9 @@
       "comment_inline": "Set V flag",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 46793,
@@ -98512,9 +98936,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb538,y",
+      "operand": "ps_print_template,y",
       "target": 46392,
-      "target_label": "lb538"
+      "target_label": "ps_print_template"
     },
     {
       "addr": 46804,
@@ -101098,7 +101522,7 @@
       ],
       "sub_labels": {
         "47178": [
-          "lb84a"
+          "net_chan_err_strings"
         ]
       },
       "comment_inline": "Generate 'Net channel' error",
@@ -101435,9 +101859,9 @@
       "comment_inline": "Load 'Net channel' string byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb84a,x",
+      "operand": "net_chan_err_strings,x",
       "target": 47178,
-      "target_label": "lb84a"
+      "target_label": "net_chan_err_strings"
     },
     {
       "addr": 47251,
@@ -101568,9 +101992,9 @@
       "comment_inline": "Load ' not on this...' suffix byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb84a,y",
+      "operand": "net_chan_err_strings,y",
       "target": 47178,
-      "target_label": "lb84a"
+      "target_label": "net_chan_err_strings"
     },
     {
       "addr": 47271,
@@ -102332,9 +102756,9 @@
       "comment_inline": "Branch always to scan entry",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 47404,
@@ -102807,9 +103231,9 @@
       "comment_inline": "Set V flag (first pass marker)",
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 47466,
@@ -107445,9 +107869,9 @@
       ],
       "type": "code",
       "mnemonic": "bit",
-      "operand": "l9767",
+      "operand": "always_set_v_byte",
       "target": 38759,
-      "target_label": "l9767"
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 48213,
@@ -110332,6 +110756,7 @@
         160,
         0
       ],
+      "comment_inline": "Y=0: rewind to start of line buffer",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#0"
