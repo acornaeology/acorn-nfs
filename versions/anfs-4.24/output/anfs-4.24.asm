@@ -1956,7 +1956,7 @@ l8494 = sub_c8492+2
     equb &a9, &01, &85, &a3, &a9, &fc, &85, &a2, &a0, &02, &b9, &27   ; 84f2: a9 01 85... ......
     equb &80, &99, &37, &0d, &88, &10, &f7, &ad, &71, &0d, &8d, &36   ; 84fe: 80 99 37... ..7...
     equb &0d, &a9, &3a, &85, &a4, &a9, &0c, &85, &a5, &d0, &c4, &c6   ; 850a: 0d a9 3a... ..:...
-    equb &bb, &9d, &9d, &9d, &e0, &e0, &f1                            ; 8516: bb 9d 9d... ......
+    equb &bb, &9d, &9d, &9d, &e0, &e0, &f1                            ; 8516: bb 9d 9d... ......   ; Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow
 ; &851d referenced 1 time by &83a4
 .c851d
     lda port_buf_len                                                  ; 851d: a5 a2       ..       ; Get buffer position for reply header
@@ -5248,7 +5248,7 @@ l8dbf = load_transfer_params+1
     equb &66                                                          ; 91fb: 66          f        ; Idx 6: continued <dir> string region
     equb &77                                                          ; 91fc: 77          w        ; Idx 7: "(:<CR>) <password>..."
     equb &9a                                                          ; 91fd: 9a          .        ; Idx 8: "(<stn.id.>|<ps type>)"
-    equb &b3                                                          ; 91fe: b3          .        ; Station-ID field pointer table (4 bytes)
+    equb &b3                                                          ; 91fe: b3          .        ; Syntax-table offset entry (into syn_opt_dir)
     equb &cf                                                          ; 91ff: cf          .     
     equb &a6                                                          ; 9200: a6          .     
     equb &e9                                                          ; 9201: e9          .     
@@ -11607,7 +11607,7 @@ labe5 = compare_bridge_status+1
     equb &ff                                                          ; abf3: ff          .        ; TX 2: dest station = &FF (broadcast)
     equb &ff                                                          ; abf4: ff          .        ; TX 3: dest network = &FF (all nets)
     equs "BRIDGE"                                                     ; abf5: 42 52 49... BRI...   ; TX 4-9: immediate data payload
-    equb &9c                                                          ; abfb: 9c          .        ; TX 11: &9C (data byte)
+    equb &9c                                                          ; abfb: 9c          .        ; TX init data byte &9C
     equb &00                                                          ; abfc: 00          .        ; TX 11: &00 (terminator)
 .bridge_rxcb_init_data
     equb &7f                                                          ; abfd: 7f          .        ; RX 0: ctrl = &7F (receive)
@@ -12114,7 +12114,7 @@ labe5 = compare_bridge_status+1
 .osword_claim_codes
     equb &04                                                          ; ade1: 04          .        ; Range 1+2: OSWORD &04
     equb &09                                                          ; ade2: 09          .        ; Range 1+2: OSWORD &09
-    equb &0a                                                          ; ade3: 0a          .        ; Range 1+2: OSWORD &13 (net info)
+    equb &0a                                                          ; ade3: 0a          .        ; Range 1+2: OSWORD &0A
     equb &14                                                          ; ade4: 14          .        ; Range 1+2: OSWORD &14
     equb &15                                                          ; ade5: 15          .        ; Range 1+2: OSWORD &15
     equb &9a                                                          ; ade6: 9a          .     

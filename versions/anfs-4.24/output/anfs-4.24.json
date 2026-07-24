@@ -14967,6 +14967,7 @@
         224,
         241
       ],
+      "comment_inline": "Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow",
       "type": "byte",
       "values": [
         169,
@@ -36256,7 +36257,7 @@
       "bytes": [
         179
       ],
-      "comment_inline": "Station-ID field pointer table (4 bytes)",
+      "comment_inline": "Syntax-table offset entry (into syn_opt_dir)",
       "type": "byte",
       "values": [
         179
@@ -82083,7 +82084,7 @@
       "bytes": [
         156
       ],
-      "comment_inline": "TX 11: &9C (data byte)",
+      "comment_inline": "TX init data byte &9C",
       "type": "byte",
       "values": [
         156
@@ -85753,7 +85754,7 @@
       "bytes": [
         10
       ],
-      "comment_inline": "Range 1+2: OSWORD &13 (net info)",
+      "comment_inline": "Range 1+2: OSWORD &0A",
       "type": "byte",
       "values": [
         10
