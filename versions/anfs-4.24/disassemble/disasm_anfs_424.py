@@ -145,7 +145,7 @@ handler_names = [
 d.use_environment("acorn_mos")
 d.use_environment("acorn_master_hardware")
 d.use_environment(
-    "acorn_sideways_rom", rom_title="ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)"
+    "acorn_sideways_rom", rom_title="ANFS ROM 4.24 disassembly (Acorn Advanced Network Filing System)"
 )
 d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
@@ -19397,6 +19397,48 @@ d.comment(0x8150, "Clear decimal mode before scanning the port slots", align=Ali
 d.comment(0x835A, "Clear decimal mode: the RXCB-pointer ADC below must be binary", align=Align.INLINE)
 d.comment(0x8476, "Clear decimal mode: the operation-index SBC below must be binary", align=Align.INLINE)
 d.comment(0x85AD, "Clear decimal mode before the binary transfer-size arithmetic", align=Align.INLINE)
+
+
+# Structural-alignment fills: comments carried verbatim from 4.21 (variant 1)
+# for instructions that align 1:1 and share the same mnemonic + mode.
+d.comment(0x851F, "Clear carry for offset addition", align=Align.INLINE)
+d.comment(0x864A, "Save X on stack", align=Align.INLINE)
+d.comment(0x86B9, "Save interrupt state", align=Align.INLINE)
+d.comment(0x86BA, "Disable interrupts for ADLC access", align=Align.INLINE)
+d.comment(0x86C8, "INACTIVE not set -- re-enable NMIs and loop", align=Align.INLINE)
+d.comment(0x8C0C, "Read cmd_table_fs+X (entry name byte)", align=Align.INLINE)
+d.comment(0x8CCF, "Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)", align=Align.INLINE)
+d.comment(0x90E4, "Print as decimal (no leading zeros)", align=Align.INLINE)
+d.comment(0x95B9, "NOP -- bit-7 terminator + resume opcode for the preceding inline string", align=Align.INLINE)
+d.comment(0xA216, "Pull operation code", align=Align.INLINE)
+d.comment(0xA217, "Shift right: check bit 0 (direction)", align=Align.INLINE)
+d.comment(0xA218, "Push updated code", align=Align.INLINE)
+d.comment(0xA219, "Carry clear: OSBGET (read)", align=Align.INLINE)
+d.comment(0xA5F3, "Copy parsed arg to TX buffer with X=0", align=Align.INLINE)
+d.comment(0xAF94, "Pop saved TX cmd", align=Align.INLINE)
+d.comment(0xAF96, "Non-zero: retry from start_spool_retry", align=Align.INLINE)
+d.comment(0xAFAF, "Not 1: take printer_busy_msg path", align=Align.INLINE)
+d.comment(0xAFB1, "A=&AB: 'Printer off line' error code", align=Align.INLINE)
+d.comment(0xAFB3, "Raise via error_inline_log (never returns)", align=Align.INLINE)
+d.comment(0xB0A1, "Store at (nfs_workspace)+Y", align=Align.INLINE)
+d.comment(0xB1E4, "Look up option-string offset for index X", align=Align.INLINE)
+d.comment(0xB1E7, "Look up option byte at the resolved offset", align=Align.INLINE)
+d.comment(0xB1EC, "Print char (no spool)", align=Align.INLINE)
+d.comment(0xB1FE, "Print 10-char filename", align=Align.INLINE)
+d.comment(0xB201, "Print inline 'attr-bits' fragment", align=Align.INLINE)
+d.comment(0xB32C, "Print CR (no spool)", align=Align.INLINE)
+d.comment(0xB404, "Load PS server address", align=Align.INLINE)
+d.comment(0xB4AF, "Print station number and newline", align=Align.INLINE)
+d.comment(0xB611, "Print ' \"'", align=Align.INLINE)
+d.comment(0xB62A, "Bit-7 terminator from preceding stringhi", align=Align.INLINE)
+d.comment(0xB637, "Pop saved slot index", align=Align.INLINE)
+d.comment(0xB669, "Ensure V clear so next BVC always taken", align=Align.INLINE)
+d.comment(0xB674, "Status = 2?", align=Align.INLINE)
+d.comment(0xB676, "No: check for busy", align=Align.INLINE)
+d.comment(0xB678, "Print 'jammed'", align=Align.INLINE)
+d.comment(0xB683, "Clear V", align=Align.INLINE)
+d.comment(0xB686, "Status = 1?", align=Align.INLINE)
+d.comment(0xB69D, "Not 1 or 2: default to jammed", align=Align.INLINE)
 
 import sys
 

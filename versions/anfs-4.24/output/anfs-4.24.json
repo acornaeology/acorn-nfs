@@ -6631,7 +6631,7 @@
         "language_entry"
       ],
       "comments_before_label": [
-        "# ANFS ROM 4.21 (variant 1) disassembly (Acorn Advanced Network Filing System)"
+        "# ANFS ROM 4.24 disassembly (Acorn Advanced Network Filing System)"
       ],
       "comment_inline": "no-language sentinel (rom_type bit 6 clear)",
       "type": "byte",
@@ -15040,6 +15040,7 @@
       "bytes": [
         24
       ],
+      "comment_inline": "Clear carry for offset addition",
       "type": "code",
       "mnemonic": "clc"
     },
@@ -17013,6 +17014,7 @@
       "labels": [
         "tx_setup_from_txcb"
       ],
+      "comment_inline": "Save X on stack",
       "xref_summaries": [
         "&864a referenced 3 times by &9bc1, &a94a, &ac3e"
       ],
@@ -17793,6 +17795,7 @@
       "labels": [
         "c86b9"
       ],
+      "comment_inline": "Save interrupt state",
       "xref_summaries": [
         "&86b9 referenced 3 times by &86e8, &86ed, &86f2"
       ],
@@ -17818,6 +17821,7 @@
       "bytes": [
         120
       ],
+      "comment_inline": "Disable interrupts for ADLC access",
       "type": "code",
       "mnemonic": "sei"
     },
@@ -17889,6 +17893,7 @@
         240,
         17
       ],
+      "comment_inline": "INACTIVE not set -- re-enable NMIs and loop",
       "type": "code",
       "mnemonic": "beq",
       "operand": "c86db",
@@ -27474,6 +27479,7 @@
         128,
         167
       ],
+      "comment_inline": "Read cmd_table_fs+X (entry name byte)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "cmd_table_fs,x",
@@ -28748,6 +28754,7 @@
         206,
         144
       ],
+      "comment_inline": "Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "print_station_id",
@@ -35394,6 +35401,7 @@
         90,
         179
       ],
+      "comment_inline": "Print as decimal (no leading zeros)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_num_no_leading",
@@ -43054,6 +43062,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "NOP -- bit-7 terminator + resume opcode for the preceding inline string",
       "type": "code",
       "mnemonic": "nop"
     },
@@ -64899,6 +64908,7 @@
       "bytes": [
         104
       ],
+      "comment_inline": "Pull operation code",
       "type": "code",
       "mnemonic": "pla"
     },
@@ -64907,6 +64917,7 @@
       "bytes": [
         74
       ],
+      "comment_inline": "Shift right: check bit 0 (direction)",
       "type": "code",
       "mnemonic": "lsr"
     },
@@ -64915,6 +64926,7 @@
       "bytes": [
         72
       ],
+      "comment_inline": "Push updated code",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -64924,6 +64936,7 @@
         144,
         18
       ],
+      "comment_inline": "Carry clear: OSBGET (read)",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "store_direction_flag",
@@ -71559,6 +71572,7 @@
       "labels": [
         "ca5f3"
       ],
+      "comment_inline": "Copy parsed arg to TX buffer with X=0",
       "xref_summaries": [
         "&a5f3 referenced 1 time by &a5c7"
       ],
@@ -88821,6 +88835,7 @@
       "labels": [
         "caf94"
       ],
+      "comment_inline": "Pop saved TX cmd",
       "xref_summaries": [
         "&af94 referenced 1 time by &af7d"
       ],
@@ -88847,6 +88862,7 @@
         208,
         142
       ],
+      "comment_inline": "Non-zero: retry from start_spool_retry",
       "type": "code",
       "mnemonic": "bne",
       "operand": "start_spool_retry",
@@ -88959,6 +88975,7 @@
         208,
         22
       ],
+      "comment_inline": "Not 1: take printer_busy_msg path",
       "type": "code",
       "mnemonic": "bne",
       "operand": "cafc7",
@@ -88971,6 +88988,7 @@
         169,
         171
       ],
+      "comment_inline": "A=&AB: 'Printer off line' error code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ab"
@@ -88982,6 +89000,7 @@
         190,
         153
       ],
+      "comment_inline": "Raise via error_inline_log (never returns)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "error_inline_log",
@@ -90605,6 +90624,7 @@
         145,
         158
       ],
+      "comment_inline": "Store at (nfs_workspace)+Y",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -92586,6 +92606,7 @@
         203,
         178
       ],
+      "comment_inline": "Look up option-string offset for index X",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "option_str_offset_data,x",
@@ -92602,6 +92623,7 @@
       "labels": [
         "loop_cb1e7"
       ],
+      "comment_inline": "Look up option byte at the resolved offset",
       "xref_summaries": [
         "&b1e7 referenced 1 time by &b1f0"
       ],
@@ -92637,6 +92659,7 @@
         4,
         146
       ],
+      "comment_inline": "Print char (no spool)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_char_no_spool",
@@ -92723,6 +92746,7 @@
         77,
         178
       ],
+      "comment_inline": "Print 10-char filename",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_10_chars",
@@ -92736,6 +92760,7 @@
         147,
         146
       ],
+      "comment_inline": "Print inline 'attr-bits' fragment",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_inline_no_spool",
@@ -94963,6 +94988,7 @@
       "labels": [
         "cb32c"
       ],
+      "comment_inline": "Print CR (no spool)",
       "xref_summaries": [
         "&b32c referenced 1 time by &b315"
       ],
@@ -96592,6 +96618,7 @@
         227,
         180
       ],
+      "comment_inline": "Load PS server address",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "load_ps_server_addr",
@@ -97725,6 +97752,7 @@
       "labels": [
         "cb4af"
       ],
+      "comment_inline": "Print station number and newline",
       "xref_summaries": [
         "&b4af referenced 1 time by &b4a1"
       ],
@@ -100251,6 +100279,7 @@
         106,
         146
       ],
+      "comment_inline": "Print ' \"'",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "print_inline",
@@ -100411,6 +100440,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "Bit-7 terminator from preceding stringhi",
       "type": "code",
       "mnemonic": "nop"
     },
@@ -100486,6 +100516,7 @@
       "labels": [
         "loop_cb637"
       ],
+      "comment_inline": "Pop saved slot index",
       "xref_summaries": [
         "&b637 referenced 1 time by &b69d"
       ],
@@ -100785,6 +100816,7 @@
       "bytes": [
         184
       ],
+      "comment_inline": "Ensure V clear so next BVC always taken",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -100874,6 +100906,7 @@
         201,
         96
       ],
+      "comment_inline": "Status = 2?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&60"
@@ -100884,6 +100917,7 @@
         208,
         14
       ],
+      "comment_inline": "No: check for busy",
       "type": "code",
       "mnemonic": "bne",
       "operand": "cb686",
@@ -100900,6 +100934,7 @@
       "labels": [
         "cb678"
       ],
+      "comment_inline": "Print 'jammed'",
       "xref_summaries": [
         "&b678 referenced 1 time by &b672"
       ],
@@ -100935,6 +100970,7 @@
       "bytes": [
         184
       ],
+      "comment_inline": "Clear V",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -100959,6 +100995,7 @@
       "labels": [
         "cb686"
       ],
+      "comment_inline": "Status = 1?",
       "xref_summaries": [
         "&b686 referenced 1 time by &b676"
       ],
@@ -101123,6 +101160,7 @@
         208,
         152
       ],
+      "comment_inline": "Not 1 or 2: default to jammed",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_cb637",
