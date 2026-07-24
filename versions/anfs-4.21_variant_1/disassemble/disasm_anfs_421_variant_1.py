@@ -1404,7 +1404,7 @@ d.comment(0x80AE, "Flag &40 = broadcast frame", align=Align.INLINE)
 d.comment(0x80B0, "Store broadcast flag in net_frame_flags", align=Align.INLINE)
 d.label(0x80B3, "accept_frame")
 
-d.comment(0x80B3, "Install nmi_rx_scout_net NMI handler", align=Align.INLINE)
+d.comment(0x80B3, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x80B5, "Install next handler", align=Align.INLINE)
 d.entry(0x80B8)
 d.subroutine(
@@ -1672,7 +1672,7 @@ ADLC from scout-ACK TX mode to data-frame RX mode, then `JMP`s to
 
 d.comment(0x81B8, "CR1=&82: TX_RESET | RIE (switch to RX for data frame)", align=Align.INLINE)
 d.comment(0x81BA, "Write CR1: switch to RX for data frame", align=Align.INLINE)
-d.comment(0x81BD, "Install nmi_data_rx at &81E7", align=Align.INLINE)
+d.comment(0x81BD, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x81BF, "Install nmi_data_rx and return from NMI", align=Align.INLINE)
 d.entry(0x81C2)
 d.subroutine(
@@ -1699,7 +1699,7 @@ d.comment(0x81C7, "No AP: wrong frame or error", align=Align.INLINE)
 d.comment(0x81C9, "Read first byte (dest station)", align=Align.INLINE)
 d.comment(0x81CC, "Compare to our station ID (tx_src_stn copy)", align=Align.INLINE)
 d.comment(0x81CF, "Not for us: error path", align=Align.INLINE)
-d.comment(0x81D1, "Install nmi_data_rx_net check handler", align=Align.INLINE)
+d.comment(0x81D1, "Next NMI handler address (low)", align=Align.INLINE)
 d.comment(0x81D3, "Set NMI vector via RAM shim", align=Align.INLINE)
 d.label(0x81D6, "nmi_data_rx_net")
 
@@ -2038,7 +2038,7 @@ d.comment(0x8306, "Write dest station to TX FIFO", align=Align.INLINE)
 d.comment(0x8309, "Load dest network from RX scout buffer", align=Align.INLINE)
 d.comment(0x830C, "Write dest net byte to FIFO", align=Align.INLINE)
 d.comment(0x830F, "Next NMI handler address (low)", align=Align.INLINE)
-d.comment(0x8311, "High byte of nmi_ack_tx_src", align=Align.INLINE)
+d.comment(0x8311, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x8313, "Set NMI vector to ack_tx_src handler", align=Align.INLINE)
 d.entry(0x8316)
 d.subroutine(
@@ -3537,8 +3537,8 @@ de-asserting in between.""",
 
 d.comment(0x8723, "CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE", align=Align.INLINE)
 d.comment(0x8725, "Write to ADLC CR2", align=Align.INLINE)
-d.comment(0x8728, "Install NMI handler at &8728 (TX completion)", align=Align.INLINE)
-d.comment(0x872A, "High byte of handler address", align=Align.INLINE)
+d.comment(0x8728, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x872A, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x872C, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.entry(0x872F)
 d.subroutine(
@@ -3702,8 +3702,8 @@ d.comment(0x87AC, "TDRA not ready -- error", align=Align.INLINE)
 d.comment(0x87AE, "Write dest station to TX FIFO", align=Align.INLINE)
 d.comment(0x87B1, "Write dest network to TX FIFO", align=Align.INLINE)
 d.comment(0x87B4, "Write dest network to TX FIFO", align=Align.INLINE)
-d.comment(0x87B7, "Install handler at &87B7 (write src addr for scout ACK)", align=Align.INLINE)
-d.comment(0x87B9, "High byte &87 of handler address", align=Align.INLINE)
+d.comment(0x87B7, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x87B9, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x87BB, "Set NMI vector and return", align=Align.INLINE)
 d.entry(0x87BE)
 d.subroutine(
@@ -3763,8 +3763,8 @@ d.comment(0x87D7, "Y=&87: high byte of nmi_data_tx", align=Align.INLINE)
 d.comment(0x87D9, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.label(0x87DC, "install_imm_data_nmi")
 
-d.comment(0x87DC, "Install nmi_imm_data at &8837", align=Align.INLINE)
-d.comment(0x87DE, "High byte of handler address", align=Align.INLINE)
+d.comment(0x87DC, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x87DE, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x87E0, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.entry(0x87E3)
 d.subroutine(
@@ -3847,8 +3847,8 @@ d.comment(0x882B, "CR2=&3F: TX_LAST_DATA (close data frame)", align=Align.INLINE
 d.comment(0x882D, "Write CR2 to close frame", align=Align.INLINE)
 d.comment(0x8830, "Check tx_flags for next action", align=Align.INLINE)
 d.comment(0x8833, "Bit7 clear: error, install saved handler", align=Align.INLINE)
-d.comment(0x8835, "Install discard_reset_listen at &83F2", align=Align.INLINE)
-d.comment(0x8837, "High byte of &83F2 handler", align=Align.INLINE)
+d.comment(0x8835, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x8837, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x8839, "Set NMI vector and return", align=Align.INLINE)
 d.label(0x883C, "install_saved_handler")
 
@@ -3934,8 +3934,8 @@ next NMI handler via [`set_nmi_vector`](address:0D0E).""",
 
 d.comment(0x8886, "CR1=&82: TX_RESET | RIE (switch to RX for final ACK)", align=Align.INLINE)
 d.comment(0x8888, "Write to ADLC CR1", align=Align.INLINE)
-d.comment(0x888B, "Install nmi_final_ack handler", align=Align.INLINE)
-d.comment(0x888D, "High byte of handler address", align=Align.INLINE)
+d.comment(0x888B, "Next NMI handler address (low)", align=Align.INLINE)
+d.comment(0x888D, "Next NMI handler address (high)", align=Align.INLINE)
 d.comment(0x888F, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.entry(0x8892)
 d.subroutine(
@@ -19362,6 +19362,21 @@ d.expr(0x9C1A, "<(hazel_parse_buf)")
 d.expr(0x9C1E, ">(hazel_parse_buf)")
 
 d.expr(0x8747, "<(nmi_reply_scout)")
+
+d.expr(0x80B4, "<(nmi_rx_scout_net)")
+d.expr(0x81BE, "<(nmi_data_rx)")
+d.expr(0x81D2, "<(nmi_data_rx_net)")
+d.expr(0x8312, ">(nmi_ack_tx_src)")
+d.expr(0x8729, "<(nmi_tx_complete)")
+d.expr(0x872B, ">(nmi_tx_complete)")
+d.expr(0x87B8, "<(nmi_scout_ack_src)")
+d.expr(0x87BA, ">(nmi_scout_ack_src)")
+d.expr(0x87DD, "<(nmi_data_tx_tube)")
+d.expr(0x87DF, ">(nmi_data_tx_tube)")
+d.expr(0x8836, "<(discard_reset_rx)")
+d.expr(0x8838, ">(discard_reset_rx)")
+d.expr(0x888C, "<(nmi_final_ack)")
+d.expr(0x888E, ">(nmi_final_ack)")
 
 ir = d.disassemble()
 output = str(

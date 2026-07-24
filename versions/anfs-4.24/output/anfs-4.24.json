@@ -7719,7 +7719,7 @@
       "labels": [
         "accept_frame"
       ],
-      "comment_inline": "Install nmi_rx_scout_net NMI handler",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&80b5 referenced 1 time by &80aa"
       ],
@@ -7731,7 +7731,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ba"
+      "operand": "#<(nmi_rx_scout_net)"
     },
     {
       "addr": 32951,
@@ -9484,10 +9484,10 @@
         169,
         197
       ],
-      "comment_inline": "Install nmi_data_rx at &81E7",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&c5"
+      "operand": "#<(nmi_data_rx)"
     },
     {
       "addr": 33218,
@@ -9591,10 +9591,10 @@
         169,
         217
       ],
-      "comment_inline": "Install nmi_data_rx_net check handler",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&d9"
+      "operand": "#<(nmi_data_rx_net)"
     },
     {
       "addr": 33238,
@@ -11715,10 +11715,10 @@
         160,
         131
       ],
-      "comment_inline": "High byte of nmi_ack_tx_src",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&83"
+      "operand": "#>(nmi_ack_tx_src)"
     },
     {
       "addr": 33571,
@@ -20725,10 +20725,10 @@
         169,
         141
       ],
-      "comment_inline": "Install handler at &8886 (write src addr for scout ACK)",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&8d"
+      "operand": "#<(nmi_scout_ack_src)"
     },
     {
       "addr": 34952,
@@ -20736,10 +20736,10 @@
         160,
         136
       ],
-      "comment_inline": "High byte &87 of handler address",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&88"
+      "operand": "#>(nmi_scout_ack_src)"
     },
     {
       "addr": 34954,
@@ -20945,7 +20945,7 @@
       "labels": [
         "install_imm_data_nmi"
       ],
-      "comment_inline": "Install nmi_imm_data at &8906",
+      "comment_inline": "Next NMI handler address (low)",
       "xref_summaries": [
         "&88ab referenced 1 time by &88a2"
       ],
@@ -20957,7 +20957,7 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&14"
+      "operand": "#<(nmi_data_tx_tube)"
     },
     {
       "addr": 34989,
@@ -20965,10 +20965,10 @@
         160,
         137
       ],
-      "comment_inline": "High byte of handler address",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&89"
+      "operand": "#>(nmi_data_tx_tube)"
     },
     {
       "addr": 34991,
@@ -21579,10 +21579,10 @@
         169,
         247
       ],
-      "comment_inline": "Install discard_reset_listen at &8404",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&f7"
+      "operand": "#<(discard_reset_rx)"
     },
     {
       "addr": 35078,
@@ -21590,10 +21590,10 @@
         160,
         131
       ],
-      "comment_inline": "High byte of &8404 handler",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&83"
+      "operand": "#>(discard_reset_rx)"
     },
     {
       "addr": 35080,
@@ -22169,10 +22169,10 @@
         169,
         97
       ],
-      "comment_inline": "Install nmi_final_ack handler",
+      "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&61"
+      "operand": "#<(nmi_final_ack)"
     },
     {
       "addr": 35164,
@@ -22180,10 +22180,10 @@
         160,
         137
       ],
-      "comment_inline": "High byte of handler address",
+      "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&89"
+      "operand": "#>(nmi_final_ack)"
     },
     {
       "addr": 35166,

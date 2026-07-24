@@ -901,7 +901,7 @@ rom_header_byte2 = rom_header_byte1+1
     sta net_frame_flags                                               ; 80b0: 8d 3e 0d    .>.      ; Store broadcast flag in net_frame_flags
 ; &80b3 referenced 1 time by &80a8
 .accept_frame
-    lda #&b8                                                          ; 80b3: a9 b8       ..       ; Install nmi_rx_scout_net NMI handler
+    lda #<(nmi_rx_scout_net)                                          ; 80b3: a9 b8       ..       ; Next NMI handler address (low)
     jmp install_nmi_handler                                           ; 80b5: 4c 11 0d    L..      ; Install next handler
 ; ***************************************************************************************
 ; RX scout second byte handler
@@ -1132,7 +1132,7 @@ rom_header_byte2 = rom_header_byte1+1
 .data_rx_setup
     lda #&82                                                          ; 81b8: a9 82       ..       ; CR1=&82: TX_RESET | RIE (switch to RX for data frame)
     sta econet_control1_or_status1                                    ; 81ba: 8d a0 fe    ...      ; Write CR1: switch to RX for data frame
-    lda #&c2                                                          ; 81bd: a9 c2       ..       ; Install nmi_data_rx at &81E7
+    lda #<(nmi_data_rx)                                               ; 81bd: a9 c2       ..       ; Next NMI handler address (low)
     jmp install_nmi_handler                                           ; 81bf: 4c 11 0d    L..      ; Install nmi_data_rx and return from NMI
 ; ***************************************************************************************
 ; Data frame RX handler (four-way handshake)
@@ -1152,7 +1152,7 @@ rom_header_byte2 = rom_header_byte1+1
     lda econet_data_continue_frame                                    ; 81c9: ad a2 fe    ...      ; Read first byte (dest station)
     cmp tx_src_stn                                                    ; 81cc: cd 22 0d    .".      ; Compare to our station ID (tx_src_stn copy)
     bne nmi_error_dispatch                                            ; 81cf: d0 44       .D       ; Not for us: error path
-    lda #&d6                                                          ; 81d1: a9 d6       ..       ; Install nmi_data_rx_net check handler
+    lda #<(nmi_data_rx_net)                                           ; 81d1: a9 d6       ..       ; Next NMI handler address (low)
     jmp install_nmi_handler                                           ; 81d3: 4c 11 0d    L..      ; Set NMI vector via RAM shim
 ; ***************************************************************************************
 ; NMI handler: validate dest-net byte of data frame
@@ -1428,7 +1428,7 @@ rom_header_byte2 = rom_header_byte1+1
     lda scout_src_net                                                 ; 8309: ad 2f 0d    ./.      ; Load dest network from RX scout buffer
     sta econet_data_continue_frame                                    ; 830c: 8d a2 fe    ...      ; Write dest net byte to FIFO
     lda #<(nmi_ack_tx_src)                                            ; 830f: a9 16       ..       ; Next NMI handler address (low)
-    ldy #&83                                                          ; 8311: a0 83       ..       ; High byte of nmi_ack_tx_src
+    ldy #>(nmi_ack_tx_src)                                            ; 8311: a0 83       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 8313: 4c 0e 0d    L..      ; Set NMI vector to ack_tx_src handler
 ; ***************************************************************************************
 ; ACK TX continuation
@@ -2655,8 +2655,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 .tx_last_data
     lda #&3f ; '?'                                                    ; 8723: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 8725: 8d a1 fe    ...      ; Write to ADLC CR2
-    lda #&2f ; '/'                                                    ; 8728: a9 2f       ./       ; Install NMI handler at &8728 (TX completion)
-    ldy #&87                                                          ; 872a: a0 87       ..       ; High byte of handler address
+    lda #<(nmi_tx_complete)                                           ; 8728: a9 2f       ./       ; Next NMI handler address (low)
+    ldy #>(nmi_tx_complete)                                           ; 872a: a0 87       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 872c: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
@@ -2788,8 +2788,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta econet_data_continue_frame                                    ; 87ae: 8d a2 fe    ...      ; Write dest station to TX FIFO
     lda tx_dst_net                                                    ; 87b1: ad 21 0d    .!.      ; Write dest network to TX FIFO
     sta econet_data_continue_frame                                    ; 87b4: 8d a2 fe    ...      ; Write dest network to TX FIFO
-    lda #&be                                                          ; 87b7: a9 be       ..       ; Install handler at &87B7 (write src addr for scout ACK)
-    ldy #&87                                                          ; 87b9: a0 87       ..       ; High byte &87 of handler address
+    lda #<(nmi_scout_ack_src)                                         ; 87b7: a9 be       ..       ; Next NMI handler address (low)
+    ldy #>(nmi_scout_ack_src)                                         ; 87b9: a0 87       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 87bb: 4c 0e 0d    L..      ; Set NMI vector and return
 ; ***************************************************************************************
 ; TX scout ACK: write source address
@@ -2836,8 +2836,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     jmp set_nmi_vector                                                ; 87d9: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &87dc referenced 1 time by &87d3
 .install_imm_data_nmi
-    lda #&45 ; 'E'                                                    ; 87dc: a9 45       .E       ; Install nmi_imm_data at &8837
-    ldy #&88                                                          ; 87de: a0 88       ..       ; High byte of handler address
+    lda #<(nmi_data_tx_tube)                                          ; 87dc: a9 45       .E       ; Next NMI handler address (low)
+    ldy #>(nmi_data_tx_tube)                                          ; 87de: a0 88       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 87e0: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; TX data phase: send payload
@@ -2908,8 +2908,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta econet_control23_or_status2                                   ; 882d: 8d a1 fe    ...      ; Write CR2 to close frame
     lda net_frame_flags                                               ; 8830: ad 3e 0d    .>.      ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 8833: 10 07       ..       ; Bit7 clear: error, install saved handler
-    lda #&e5                                                          ; 8835: a9 e5       ..       ; Install discard_reset_listen at &83F2
-    ldy #&83                                                          ; 8837: a0 83       ..       ; High byte of &83F2 handler
+    lda #<(discard_reset_rx)                                          ; 8835: a9 e5       ..       ; Next NMI handler address (low)
+    ldy #>(discard_reset_rx)                                          ; 8837: a0 83       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 8839: 4c 0e 0d    L..      ; Set NMI vector and return
 ; &883c referenced 1 time by &8833
 .install_saved_handler
@@ -2979,8 +2979,8 @@ tx_flags_table = check_tube_irq_loop+1
 .handshake_await_ack
     lda #&82                                                          ; 8886: a9 82       ..       ; CR1=&82: TX_RESET | RIE (switch to RX for final ACK)
     sta econet_control1_or_status1                                    ; 8888: 8d a0 fe    ...      ; Write to ADLC CR1
-    lda #&92                                                          ; 888b: a9 92       ..       ; Install nmi_final_ack handler
-    ldy #&88                                                          ; 888d: a0 88       ..       ; High byte of handler address
+    lda #<(nmi_final_ack)                                             ; 888b: a9 92       ..       ; Next NMI handler address (low)
+    ldy #>(nmi_final_ack)                                             ; 888d: a0 88       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 888f: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; RX final ACK handler
