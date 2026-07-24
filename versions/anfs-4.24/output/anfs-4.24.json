@@ -12461,6 +12461,7 @@
       "bytes": [
         216
       ],
+      "comment_inline": "Unreached &D8 (CLD) byte after the RTS",
       "type": "byte",
       "values": [
         216
@@ -23393,6 +23394,7 @@
         5,
         10
       ],
+      "comment_inline": "Padding before the service-dispatch low-byte table",
       "type": "byte",
       "values": [
         5,
@@ -36254,6 +36256,7 @@
       "bytes": [
         179
       ],
+      "comment_inline": "Station-ID field pointer table (4 bytes)",
       "type": "byte",
       "values": [
         179
@@ -74999,6 +75002,7 @@
         0,
         0
       ],
+      "comment_inline": "*HELP 'On' interactive-matcher entry: sub-table default word &8E44, keyword 'On', dispatch via &8E45",
       "type": "byte",
       "values": [
         128,
@@ -75201,6 +75205,7 @@
         33,
         150
       ],
+      "comment_inline": "NoSpace dispatch target (&9621)",
       "type": "word",
       "values": [
         38433
@@ -75236,6 +75241,7 @@
         23,
         150
       ],
+      "comment_inline": "Space dispatch target (&9617)",
       "type": "word",
       "values": [
         38423
@@ -75352,6 +75358,7 @@
         64,
         150
       ],
+      "comment_inline": "Space dispatch target (&9640)",
       "type": "word",
       "values": [
         38464
@@ -82076,6 +82083,7 @@
       "bytes": [
         156
       ],
+      "comment_inline": "TX 11: &9C (data byte)",
       "type": "byte",
       "values": [
         156
@@ -85745,6 +85753,7 @@
       "bytes": [
         10
       ],
+      "comment_inline": "Range 1+2: OSWORD &13 (net info)",
       "type": "byte",
       "values": [
         10
@@ -90000,6 +90009,7 @@
       "bytes": [
         183
       ],
+      "comment_inline": "buf start lo",
       "type": "byte",
       "values": [
         183

@@ -1552,7 +1552,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8396 referenced 1 time by &8354
 .return_rx_complete
     rts                                                               ; 8396: 60          `        ; Return
-    equb &d8                                                          ; 8397: d8          .     
+    equb &d8                                                          ; 8397: d8          .        ; Unreached &D8 (CLD) byte after the RTS
 ; ***************************************************************************************
 ; Post-ACK frame-complete NMI handler
 ;
@@ -3275,7 +3275,7 @@ nmi_shim_source = reset_enter_listen+2
 l8a1e = sub_c8a1d+1
     bit enable_net_nmis                                               ; 8a1d: 2c 3c fe    ,<.      ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
     rti                                                               ; 8a20: 40          @        ; Return from interrupt
-    equb &05, &0a                                                     ; 8a21: 05 0a       ..    
+    equb &05, &0a                                                     ; 8a21: 05 0a       ..       ; Padding before the service-dispatch low-byte table
 ; &8a23 used as index base 1 time by &8e82
 .l8a23
     equb &0c                                                          ; 8a23: 0c          .        ; &00: placeholder (never reached)
@@ -5248,7 +5248,7 @@ l8dbf = load_transfer_params+1
     equb &66                                                          ; 91fb: 66          f        ; Idx 6: continued <dir> string region
     equb &77                                                          ; 91fc: 77          w        ; Idx 7: "(:<CR>) <password>..."
     equb &9a                                                          ; 91fd: 9a          .        ; Idx 8: "(<stn.id.>|<ps type>)"
-    equb &b3                                                          ; 91fe: b3          .     
+    equb &b3                                                          ; 91fe: b3          .        ; Station-ID field pointer table (4 bytes)
     equb &cf                                                          ; 91ff: cf          .     
     equb &a6                                                          ; 9200: a6          .     
     equb &e9                                                          ; 9201: e9          .     
@@ -10732,7 +10732,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equs "Wipe"                                                       ; a807: 57 69 70... Wip...   ; syn 1: (<dir>) -- delete with confirm
     equb &81                                                          ; a80b: 81          .        ; syn &1
     equw cmd_wipe-1                                                   ; a80c: 1b b7       ..    
-    equb &80, &44, &8e, &4f, &6e, &80, &00, &00                       ; a80e: 80 44 8e... .D....
+    equb &80, &44, &8e, &4f, &6e, &80, &00, &00                       ; a80e: 80 44 8e... .D....   ; *HELP 'On' interactive-matcher entry: sub-table default word &8E44, keyword 'On', dispatch via &8E45
     equs "Net"                                                        ; a816: 4e 65 74    Net      ; *HELP NET
     equb &80                                                          ; a819: 80          .        ; no syn
     equw help_net-1                                                   ; a81a: e9 8b       ..    
@@ -10749,10 +10749,10 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equw set_fs_or_ps_cmos_station-1                                  ; a82d: ec 95       ..    
     equs "NoSpace"                                                    ; a82f: 4e 6f 53... NoS...   ; caller &9623
     equb &80                                                          ; a836: 80          .        ; no syn
-    equw &9621                                                        ; a837: 21 96       !.    
+    equw &9621                                                        ; a837: 21 96       !.       ; NoSpace dispatch target (&9621)
     equs "Space"                                                      ; a839: 53 70 61... Spa...   ; caller &9619
     equb &80                                                          ; a83e: 80          .        ; no syn
-    equw &9617                                                        ; a83f: 17 96       ..    
+    equw &9617                                                        ; a83f: 17 96       ..       ; Space dispatch target (&9617)
     equb &80                                                          ; a841: 80          .        ; Sub-tables 4/5 separator
     equs "FS"                                                         ; a842: 46 53       FS       ; caller &9670
     equb &81                                                          ; a844: 81          .        ; syn &1
@@ -10762,7 +10762,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equw print_ps_address-1                                           ; a84a: 61 96       a.    
     equs "Space"                                                      ; a84c: 53 70 61... Spa...   ; caller &9641
     equb &80                                                          ; a851: 80          .        ; no syn
-    equw &9640                                                        ; a852: 40 96       @.    
+    equw &9640                                                        ; a852: 40 96       @.       ; Space dispatch target (&9640)
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
 ;
@@ -11607,7 +11607,7 @@ labe5 = compare_bridge_status+1
     equb &ff                                                          ; abf3: ff          .        ; TX 2: dest station = &FF (broadcast)
     equb &ff                                                          ; abf4: ff          .        ; TX 3: dest network = &FF (all nets)
     equs "BRIDGE"                                                     ; abf5: 42 52 49... BRI...   ; TX 4-9: immediate data payload
-    equb &9c                                                          ; abfb: 9c          .     
+    equb &9c                                                          ; abfb: 9c          .        ; TX 11: &9C (data byte)
     equb &00                                                          ; abfc: 00          .        ; TX 11: &00 (terminator)
 .bridge_rxcb_init_data
     equb &7f                                                          ; abfd: 7f          .        ; RX 0: ctrl = &7F (receive)
@@ -12114,7 +12114,7 @@ labe5 = compare_bridge_status+1
 .osword_claim_codes
     equb &04                                                          ; ade1: 04          .        ; Range 1+2: OSWORD &04
     equb &09                                                          ; ade2: 09          .        ; Range 1+2: OSWORD &09
-    equb &0a                                                          ; ade3: 0a          .     
+    equb &0a                                                          ; ade3: 0a          .        ; Range 1+2: OSWORD &13 (net info)
     equb &14                                                          ; ade4: 14          .        ; Range 1+2: OSWORD &14
     equb &15                                                          ; ade5: 15          .        ; Range 1+2: OSWORD &15
     equb &9a                                                          ; ade6: 9a          .     
@@ -12645,7 +12645,7 @@ labe5 = compare_bridge_status+1
     equb &9f                                                          ; b038: 9f          .        ; port=&9F
     equb &00                                                          ; b039: 00          .        ; dest station=&00 (filled later)
     equb &00                                                          ; b03a: 00          .        ; dest network=&00 (filled later)
-    equb &b7                                                          ; b03b: b7          .     
+    equb &b7                                                          ; b03b: b7          .        ; buf start lo
     equb &8e                                                          ; b03c: 8e          .        ; buf start hi (&8E); start = &8EB7
     equb &ff                                                          ; b03d: ff          .        ; buf start ext lo=&FF
     equb &ff                                                          ; b03e: ff          .        ; buf start ext hi=&FF
