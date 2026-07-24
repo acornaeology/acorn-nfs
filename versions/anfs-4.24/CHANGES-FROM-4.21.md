@@ -9,12 +9,8 @@ match at the same offset because almost every operand shifted as code
 grew and moved.
 
 The differences are refinements rather than a redesign: a scattering of
-defensive fixes and a handful of routines compacted or reshaped. (The
-big move of workspace into HAZEL already happened at 4.18 → 4.21 and is
-unchanged here.) None of the version's external behaviour changes in a
-way a user would notice; the value of cataloguing them is that each
-shifts addresses downstream and each is a place where a carried-over
-4.21 annotation would otherwise be wrong.
+defensive fixes and a handful of routines compacted or reshaped. None
+changes externally-visible behaviour.
 
 ## ROM header
 
@@ -112,17 +108,9 @@ Several TXCB field offsets shift by `+1` (e.g. the destination-offset
 load `LDY #&2C`→`LDY #&2D` and the control-byte `LDA #&21`→`LDA #&22`),
 reflecting a one-byte growth in the transmit control block layout.
 
-(The page-`&10`→HAZEL-`&C2` and `&0E`→`&C0` workspace moves that a
-carried-over comment might suggest are *not* 4.24 changes — that
-migration is the 4.18 → 4.21 step, documented in
-[CHANGES-FROM-4.18.md](../anfs-4.21_variant_1/CHANGES-FROM-4.18.md). The
-4.21 code already used `&C2`/`&C0`; only some 4.21 *comments* still said
-`&10`/`&0E`, and those stale comments are corrected in both drivers.)
-
 ## Dispatch-table bases
 
-Every PHA/PHA/RTS dispatch table shifts with the code around it. The
-4.24 bases, read from each dispatcher's operand:
+Every PHA/PHA/RTS dispatch table shifts with the code around it:
 
 | Table | 4.21 (lo / hi) | 4.24 (lo / hi) |
 |---|---|---|
