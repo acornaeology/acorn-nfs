@@ -58,7 +58,7 @@ _svc_dispatch_entries = [
     (0x0006, 0x802A, "svc5_irq_check", "svc &05: IRQ check"),
     (0x0007, 0x8E88, "dispatch_rts", "no-op (RTS only)"),
     (0x0008, 0x8EF0, "svc_7_osbyte", "svc &07: unrecognised OSBYTE"),
-# UNMAPPED:     (0x09, 0xA83C, "svc_8_osword_disp", "svc &08: OSWORD dispatch"),
+    (0x0009, 0xA855, "svc_8_osword_disp", "svc &08: OSWORD dispatch"),
     (0x000A, 0x8C76, "svc_9_help", "svc &09: *HELP"),
     (0x000B, 0x8E88, "dispatch_rts", "no-op (RTS only)"),
     (0x000C, 0x806E, "econet_restore", "svc &0B: NMI release"),
@@ -91,7 +91,7 @@ _svc_dispatch_entries = [
     (0x0027, 0xB131, "ps_scan_resume", "PS scan tail (after pop_requeue)"),
     (0x0028, 0xB38A, "cmd_info_dispatch", "*Info dispatch"),
     (0x0029, 0xA4F0, "check_urd_present", "URD-present check"),
-# UNMAPPED:     (0x2A, 0xB2DB, "ex_init_scan_x0", "*Ex scan init"),
+    (0x002A, 0xB30E, "ex_init_scan_x0", "*Ex scan init"),
     (0x002B, 0xA6E9, "fsreply_1_boot", "FS reply 1: copy handles + boot"),
     (0x002C, 0xA6F9, "fsreply_2_copy_handles", "FS reply 2: copy handles"),
     (0x002D, 0xA64C, "fsreply_3_set_csd", "FS reply 3: set CSD"),
@@ -102,35 +102,35 @@ _svc_dispatch_entries = [
     (0x0032, 0xA429, "net_3_close_handle", "net handle 3: close handle"),
 ]
 _cmd_table_fs_entries = [
-# UNMAPPED:     (0xA76C, "Net", 0xA76F, 0x80, 0xA770, "cmd_net_check_hw", "Econet HW check + select NFS"),
-# UNMAPPED:     (0xA772, "Pollps", 0xA778, 0x88, 0xA779, "cmd_pollps", "syn 8: (<stn. id.>|<ps type>)"),
-# UNMAPPED:     (0xA77B, "Prot", 0xA77F, 0x80, 0xA780, "cmd_prot", "toggle CMOS protection bit"),
-# UNMAPPED:     (0xA782, "PS", 0xA784, 0x88, 0xA785, "cmd_ps", "syn 8: (<stn. id.>|<ps type>)"),
-# UNMAPPED:     (0xA787, "Roff", 0xA78B, 0x80, 0xA78C, "cmd_roff", "printer offline"),
-# UNMAPPED:     (0xA78E, "Unprot", 0xA794, 0x80, 0xA795, "cmd_unprot", "toggle CMOS protection bit"),
-# UNMAPPED:     (0xA797, "Wdump", 0xA79C, 0xC4, 0xA79D, "cmd_dump", "syn 4 -- *DUMP alias"),
-# UNMAPPED:     (0xA7A1, "Access", 0xA7A7, 0xC9, 0xA7A8, "cmd_fs_operation", "syn 9: <obj> (L)(W)(R)..."),
-# UNMAPPED:     (0xA7AA, "Bye", 0xA7AD, 0x80, 0xA7AE, "cmd_bye", "log off FS"),
-# UNMAPPED:     (0xA7B0, "Cdir", 0xA7B4, 0xC6, 0xA7B5, "cmd_cdir", "syn 6 -- create directory"),
-# UNMAPPED:     (0xA7B7, "Dir", 0xA7BA, 0x81, 0xA7BB, "cmd_dir", "syn 1: (<dir>)"),
-# UNMAPPED:     (0xA7BD, "Flip", 0xA7C1, 0x80, 0xA7C2, "cmd_flip", "swap fs/private workspace"),
-# UNMAPPED:     (0xA7C4, "FS", 0xA7C6, 0x8B, 0xA7C7, "cmd_fs", "syn &B -- file-server selection"),
-# UNMAPPED:     (0xA7C9, "I am", 0xA7CD, 0xC2, 0xA7CE, "cmd_iam_save_ctx", "syn 2: (<stn>) <user>..."),
-# UNMAPPED:     (0xA7D0, "Lcat", 0xA7D4, 0x81, 0xA7D5, "cmd_lcat", "syn 1: (<dir>) -- *CAT of library"),
-# UNMAPPED:     (0xA7D7, "Lex", 0xA7DA, 0x81, 0xA7DB, "cmd_lex", "syn 1: (<dir>) -- *EX of library"),
-# UNMAPPED:     (0xA7DD, "Lib", 0xA7E0, 0xC5, 0xA7E1, "cmd_fs_operation", "syn 5: <dir> -- set library"),
+    (0xA780, "Net", 0xA783, 0x0080, 0xA784, "cmd_net_check_hw", "Econet HW check + select NFS"),
+    (0xA786, "Pollps", 0xA78C, 0x0088, 0xA78D, "cmd_pollps", "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA78F, "Prot", 0xA793, 0x0080, 0xA794, "cmd_prot", "toggle CMOS protection bit"),
+    (0xA796, "PS", 0xA798, 0x0088, 0xA799, "cmd_ps", "syn 8: (<stn. id.>|<ps type>)"),
+    (0xA79B, "Roff", 0xA79F, 0x0080, 0xA7A0, "cmd_roff", "printer offline"),
+    (0xA7A2, "Unprot", 0xA7A8, 0x0080, 0xA7A9, "cmd_unprot", "toggle CMOS protection bit"),
+    (0xA7AB, "Wdump", 0xA7B0, 0x00C4, 0xA7B1, "cmd_dump", "syn 4 -- *DUMP alias"),
+    (0xA7B5, "Access", 0xA7BB, 0x00C9, 0xA7BC, "cmd_fs_operation", "syn 9: <obj> (L)(W)(R)..."),
+    (0xA7BE, "Bye", 0xA7C1, 0x0080, 0xA7C2, "cmd_bye", "log off FS"),
+    (0xA7C4, "Cdir", 0xA7C8, 0x00C6, 0xA7C9, "cmd_cdir", "syn 6 -- create directory"),
+    (0xA7CB, "Dir", 0xA7CE, 0x0081, 0xA7CF, "cmd_dir", "syn 1: (<dir>)"),
+    (0xA7D1, "Flip", 0xA7D5, 0x0080, 0xA7D6, "cmd_flip", "swap fs/private workspace"),
+    (0xA7D8, "FS", 0xA7DA, 0x008B, 0xA7DB, "cmd_fs", "syn &B -- file-server selection"),
+    (0xA7DD, "I am", 0xA7E1, 0x00C2, 0xA7E2, "cmd_iam_save_ctx", "syn 2: (<stn>) <user>..."),
+    (0xA7E4, "Lcat", 0xA7E8, 0x0081, 0xA7E9, "cmd_lcat", "syn 1: (<dir>) -- *CAT of library"),
+    (0xA7EB, "Lex", 0xA7EE, 0x0081, 0xA7EF, "cmd_lex", "syn 1: (<dir>) -- *EX of library"),
+    (0xA7F1, "Lib", 0xA7F4, 0x00C5, 0xA7F5, "cmd_fs_operation", "syn 5: <dir> -- set library"),
 # UNMAPPED:     (0xA7E3, "Pass", 0xA7E7, 0xC7, 0xA7E8, "cmd_pass", "syn 7: <pass> ..."),
 # UNMAPPED:     (0xA7EA, "Rename", 0xA7F0, 0xCA, 0xA7F1, "cmd_rename", "syn &A: <old> <new>"),
 # UNMAPPED:     (0xA7F3, "Wipe", 0xA7F7, 0x81, 0xA7F8, "cmd_wipe", "syn 1: (<dir>) -- delete with confirm"),
 # UNMAPPED:     (0xA7FD, "Net", 0xA800, 0x80, 0xA801, "help_net", "*HELP NET"),
-# UNMAPPED:     (0xA803, "Utils", 0xA808, 0x80, 0xA809, "help_utils", "*HELP UTILS"),
-# UNMAPPED:     (0xA80C, "FS", 0xA80E, 0xC1, 0xA80F, "set_fs_or_ps_cmos_station", "FS not selected"),
-# UNMAPPED:     (0xA811, "PS", 0xA813, 0xC3, 0xA814, "set_fs_or_ps_cmos_station", "PS not selected"),
-# UNMAPPED:     (0xA816, "NoSpace", 0xA81D, 0x80, 0xA81E, None, "caller &9623"),
-# UNMAPPED:     (0xA820, "Space", 0xA825, 0x80, 0xA826, None, "caller &9619"),
-# UNMAPPED:     (0xA829, "FS", 0xA82B, 0x81, 0xA82C, "print_fs_address", "caller &9670"),
-# UNMAPPED:     (0xA82E, "PS", 0xA830, 0x83, 0xA831, "print_ps_address", "caller &965F"),
-# UNMAPPED:     (0xA833, "Space", 0xA838, 0x80, 0xA839, None, "caller &9641"),
+    (0xA81C, "Utils", 0xA821, 0x0080, 0xA822, "help_utils", "*HELP UTILS"),
+    (0xA825, "FS", 0xA827, 0x00C1, 0xA828, "set_fs_or_ps_cmos_station", "FS not selected"),
+    (0xA82A, "PS", 0xA82C, 0x00C3, 0xA82D, "set_fs_or_ps_cmos_station", "PS not selected"),
+    (0xA82F, "NoSpace", 0xA836, 0x0080, 0xA837, None, "caller &9623"),
+    (0xA839, "Space", 0xA83E, 0x0080, 0xA83F, None, "caller &9619"),
+    (0xA842, "FS", 0xA844, 0x0081, 0xA845, "print_fs_address", "caller &9670"),
+    (0xA847, "PS", 0xA849, 0x0083, 0xA84A, "print_ps_address", "caller &965F"),
+    (0xA84C, "Space", 0xA851, 0x0080, 0xA852, None, "caller &9641"),
 ]
 _ev_dispatch = ["ev_filev", "ev_argsv", "ev_bgetv", "ev_bputv", "ev_gbpbv", "ev_findv", "ev_fscv"]
 handler_names = [
@@ -149,35 +149,35 @@ d.use_environment(
 )
 d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
-# UNMAPPED: for idx, name, role in _netv_dispatch_entries:
-# UNMAPPED:     d.expr(0xAD20 + idx, "<(%s-1)" % name)
-# UNMAPPED:     d.expr(0xAD29 + idx, ">(%s-1)" % name)
-# UNMAPPED:     d.comment(0xAD20 + idx, "reason &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
-# UNMAPPED:     d.comment(0xAD29 + idx, "reason &%02X: %s" % (idx, name), align=Align.INLINE)
-# UNMAPPED: for idx, name, role in _osword_13_entries:
-# UNMAPPED:     d.expr(0xA9A8 + idx, "<(%s-1)" % name)
-# UNMAPPED (orphan body):     d.expr(0xA9DA + idx, ">(%s-1)" % name)
-# UNMAPPED:     d.comment(0xA9A8 + idx, "sub &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
-# UNMAPPED (orphan body):     d.comment(0xA9DA + idx, "sub &%02X: %s" % (idx, name), align=Align.INLINE)
+for idx, name, role in _netv_dispatch_entries:
+    d.expr(0xAD40 + idx, "<(%s-1)" % name)
+    d.expr(0xAD49 + idx, ">(%s-1)" % name)
+    d.comment(0xAD40 + idx, "reason &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
+    d.comment(0xAD49 + idx, "reason &%02X: %s" % (idx, name), align=Align.INLINE)
+for idx, name, role in _osword_13_entries:
+    d.expr(0xA9C8 + idx, "<(%s-1)" % name)
+    d.expr(0xA9DA + idx, ">(%s-1)" % name)
+    d.comment(0xA9C8 + idx, "sub &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
+    d.comment(0xA9DA + idx, "sub &%02X: %s" % (idx, name), align=Align.INLINE)
 
-# UNMAPPED: for idx, target, name, desc in _svc_dispatch_entries:
-# UNMAPPED (orphan body):     if name is not None:
-# UNMAPPED:         d.expr(0x89ED + idx, "<(%s-1)" % name)
-# UNMAPPED:         d.expr(0x8A20 + idx, ">(%s-1)" % name)
-# UNMAPPED:     d.comment(0x89ED + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
-# UNMAPPED:     d.comment(0x8A20 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
+for idx, target, name, desc in _svc_dispatch_entries:
+    if name is not None:
+        d.expr(0x8A23 + idx, "<(%s-1)" % name)
+        d.expr(0x8A56 + idx, ">(%s-1)" % name)
+    d.comment(0x8A23 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
+    d.comment(0x8A56 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
 d.index_base(0x0001, "zp_ptr_hi", length=1, group="zero_page")
 
 d.index_base(0x0002, "zp_work_2", length=1, group="zero_page")
 
-# UNMAPPED: for i, (name, handler_label) in enumerate(handler_names):
-# UNMAPPED:     base_addr = 0x8EB5 + i * 3
-# UNMAPPED (orphan body):     d.word(base_addr)
-# UNMAPPED (orphan body):     d.expr(base_addr, handler_label)
-# UNMAPPED (orphan body):     d.comment(base_addr, "%s handler" % name, align=Align.INLINE)
-# UNMAPPED (orphan body):     if i < 6:
-# UNMAPPED (orphan body):         d.byte(base_addr + 2, 1)
-# UNMAPPED (orphan body):         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
+for i, (name, handler_label) in enumerate(handler_names):
+    base_addr = 0x8ECD + i * 3
+    d.word(base_addr)
+    d.expr(base_addr, handler_label)
+    d.comment(base_addr, "%s handler" % name, align=Align.INLINE)
+    if i < 6:
+        d.byte(base_addr + 2, 1)
+        d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
 d.index_base(0x0003, "zp_work_3", length=1, group="zero_page")
 
@@ -2648,7 +2648,7 @@ d.comment(0x84BC, "Port workspace offset = &2E", align=Align.INLINE)
 d.comment(0x84BE, "Store as port_ws_offset", align=Align.INLINE)
 d.comment(0x84C0, "RX buffer page = &0D", align=Align.INLINE)
 d.comment(0x84C2, "Store as rx_buf_offset", align=Align.INLINE)
-# UNMAPPED: d.expr_label(0x84B8, "tx_done_dispatch_lo-&83")
+d.expr_label(0x84C3, "tx_done_dispatch_lo-&83")
 d.comment(0x84C4, "Enter POKE data-receive path", align=Align.INLINE)
 d.subroutine(
     0x84C7,
@@ -2817,54 +2817,54 @@ d.comment(0x855C, "Increment buffer pointer high byte", align=Align.INLINE)
 d.label(0x855E, "rts_advance_buf")
 
 d.comment(0x855E, "Return", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x853B,
-# UNMAPPED:     "tx_done_dispatch_lo",
-# UNMAPPED:     title="TX done dispatch lo-byte table (5 entries)",
-# UNMAPPED:     description="""Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
-# UNMAPPED: `&83`-`&87`. Read by the dispatch at
-# UNMAPPED: [`dispatch_svc5`](address:8048) via
-# UNMAPPED: `LDA tx_done_dispatch_lo-&83,Y` (the operand lands mid-instruction
-# UNMAPPED: inside [`set_rx_buf_len_hi`](address:84BE)). The dispatch
-# UNMAPPED: trampoline pushes `&85` as the high byte, so targets are
-# UNMAPPED: `&85xx+1`. Entries for `Y < &83` read from preceding code bytes
-# UNMAPPED: and are not valid operation types. Per-entry inline comments
-# UNMAPPED: identify each TX operation type's handler.""",
-# UNMAPPED: )
-# UNMAPPED: for i in range(5):
-# UNMAPPED:     d.byte(0x853B + i)
-# UNMAPPED: d.expr(0x853B, "<(tx_done_jsr-1)")
+d.subroutine(
+    0x855F,
+    "tx_done_dispatch_lo",
+    title="TX done dispatch lo-byte table (5 entries)",
+    description="""Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
+`&83`-`&87`. Read by the dispatch at
+[`dispatch_svc5`](address:8048) via
+`LDA tx_done_dispatch_lo-&83,Y` (the operand lands mid-instruction
+inside [`set_rx_buf_len_hi`](address:84BE)). The dispatch
+trampoline pushes `&85` as the high byte, so targets are
+`&85xx+1`. Entries for `Y < &83` read from preceding code bytes
+and are not valid operation types. Per-entry inline comments
+identify each TX operation type's handler.""",
+)
+for i in range(5):
+    d.byte(0x855F + i)
+d.expr(0x855F, "<(tx_done_jsr-1)")
 d.comment(0x855F, "op &83: remote JSR", align=Align.INLINE)
-# UNMAPPED: d.expr(0x853C, "<(tx_done_econet_event-1)")
+d.expr(0x8560, "<(tx_done_econet_event-1)")
 d.comment(0x8560, "op &84: fire Econet event", align=Align.INLINE)
-# UNMAPPED: d.expr(0x853D, "<(tx_done_os_proc-1)")
+d.expr(0x8561, "<(tx_done_os_proc-1)")
 d.comment(0x8561, "op &85: OSProc call", align=Align.INLINE)
-# UNMAPPED: d.expr(0x853E, "<(tx_done_halt-1)")
+d.expr(0x8562, "<(tx_done_halt-1)")
 d.comment(0x8562, "op &86: HALT", align=Align.INLINE)
-# UNMAPPED: d.expr(0x853F, "<(tx_done_continue-1)")
+d.expr(0x8563, "<(tx_done_continue-1)")
 d.comment(0x8563, "op &87: CONTINUE", align=Align.INLINE)
 d.entry(0x8564)
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8540,
-# UNMAPPED:     "tx_done_jsr",
-# UNMAPPED:     title="TX done: remote JSR execution",
-# UNMAPPED:     description="""Executes the Econet Remote Subroutine Jump (immediate operation
-# UNMAPPED: `&83`), now running in deferred IRQ context after
-# UNMAPPED: [`svc5_irq_check`](address:8028) picked up the ACCCON IRR latch --
-# UNMAPPED: so the JSR happens safely outside the NMI handler.
-# UNMAPPED: 
-# UNMAPPED: Pushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so
-# UNMAPPED: `RTS` returns to [`tx_done_exit`](address:8582) when the remote
-# UNMAPPED: routine completes, then does `JMP` indirect through
-# UNMAPPED: [`exec_addr_lo`](address:0D66) to call the remote-supplied JSR
-# UNMAPPED: target. When that routine returns via `RTS`, control resumes at
-# UNMAPPED: [`tx_done_exit`](address:8582) which tidies up TX state.""",
-# UNMAPPED: )
+d.subroutine(
+    0x8564,
+    "tx_done_jsr",
+    title="TX done: remote JSR execution",
+    description="""Executes the Econet Remote Subroutine Jump (immediate operation
+`&83`), now running in deferred IRQ context after
+[`svc5_irq_check`](address:8028) picked up the ACCCON IRR latch --
+so the JSR happens safely outside the NMI handler.
+
+Pushes ([`tx_done_exit`](address:8582) ` - 1`) on the stack so
+`RTS` returns to [`tx_done_exit`](address:8582) when the remote
+routine completes, then does `JMP` indirect through
+[`exec_addr_lo`](address:0D66) to call the remote-supplied JSR
+target. When that routine returns via `RTS`, control resumes at
+[`tx_done_exit`](address:8582) which tidies up TX state.""",
+)
 
 
-# UNMAPPED: d.comment(0x8540, "A=&85: high byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
+d.comment(0x8564, "A=&85: high byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
 d.comment(0x8566, "Push hi byte on stack", align=Align.INLINE)
 d.comment(0x8567, "A=&81: low byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
 d.comment(0x8569, "Push lo byte on stack", align=Align.INLINE)
@@ -4932,8 +4932,8 @@ d.comment(0x8C02, "End of table: finish up", align=Align.INLINE)
 d.label(0x8C05, "print_indent")
 
 d.comment(0x8C05, "Print two-space indent", align=Align.INLINE)
-# UNMAPPED: d.comment(0x8BE5, "Y=9: cmd_table_fs sub-table 1 offset", align=Align.INLINE)
-# UNMAPPED: d.comment(0x8BE7, "Read cmd_table_fs+X (entry name byte)", align=Align.INLINE)
+d.comment(0x8C0A, "Y=9: cmd_table_fs sub-table 1 offset", align=Align.INLINE)
+d.comment(0x8C0C, "Read cmd_table_fs+X (entry name byte)", align=Align.INLINE)
 d.label(0x8C0F, "loop_print_cmd_name")
 
 
@@ -5163,29 +5163,29 @@ station number.""",
 d.comment(0x8CB8, "Print version string via inline", align=Align.INLINE)
 d.label(0x8CBB, "version_string_cr")
 
-# UNMAPPED: d.comment(0x8CA9, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
-# UNMAPPED: d.comment(
-# UNMAPPED:     0x8CAA,
-# UNMAPPED:     "Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8CAD,
-# UNMAPPED:     "get_ws_page",
-# UNMAPPED:     title="Read workspace page number for current ROM slot",
-# UNMAPPED:     description="""Indexes into the MOS per-ROM workspace table
-# UNMAPPED: [`rom_ws_pages`](address:0DF0) using `romsel_copy` (`&F4`) as
-# UNMAPPED: the ROM slot. Holds a copy of the slot byte in `Y`, then runs a
-# UNMAPPED: `ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CB3`–`&8CB6` that
-# UNMAPPED: restores `A` to the original byte while leaving the saved-flags
-# UNMAPPED: register reflecting bit 6 of the original byte (the ADLC-absent
-# UNMAPPED: flag). Falls through to whichever caller-specific tail follows.""",
-# UNMAPPED:     on_exit={
-# UNMAPPED:         "a": "workspace page byte (preserved through ROL/ROR)",
-# UNMAPPED:         "y": "same byte (set by `TAY` before the rotate trick)",
-# UNMAPPED:         "n": "set to bit 6 of the original byte (ADLC-absent flag)",
-# UNMAPPED:     },
-# UNMAPPED: )
+d.comment(0x8CCE, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
+d.comment(
+    0x8CCF,
+    "Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)",
+    align=Align.INLINE,
+)
+d.subroutine(
+    0x8CD2,
+    "get_ws_page",
+    title="Read workspace page number for current ROM slot",
+    description="""Indexes into the MOS per-ROM workspace table
+[`rom_ws_pages`](address:0DF0) using `romsel_copy` (`&F4`) as
+the ROM slot. Holds a copy of the slot byte in `Y`, then runs a
+`ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CB3`–`&8CB6` that
+restores `A` to the original byte while leaving the saved-flags
+register reflecting bit 6 of the original byte (the ADLC-absent
+flag). Falls through to whichever caller-specific tail follows.""",
+    on_exit={
+        "a": "workspace page byte (preserved through ROL/ROR)",
+        "y": "same byte (set by `TAY` before the rotate trick)",
+        "n": "set to bit 6 of the original byte (ADLC-absent flag)",
+    },
+)
 
 
 d.comment(0x8CD2, "Y = current ROM slot number from MOS copy at &F4", align=Align.INLINE)
@@ -5742,11 +5742,11 @@ d.banner(
 the ROM reports for service &25 (FS name + info reply).""",
 )
 
-# UNMAPPED: d.comment(
-# UNMAPPED:     0x8E80,
-# UNMAPPED:     "11-byte template (length 5 in [0], then '       TEN'); copied to (&F2),Y by copy_template_to_zp",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
+d.comment(
+    0x8E98,
+    "11-byte template (length 5 in [0], then '       TEN'); copied to (&F2),Y by copy_template_to_zp",
+    align=Align.INLINE,
+)
 d.comment(0x8EA2, "Test bit 6 of fs_flags (NFS currently selected?)", align=Align.INLINE)
 d.entry(0x8EA2)
 d.subroutine(
@@ -5847,52 +5847,52 @@ byte.""",
 )
 
 d.comment(0x8EE1, "X=0 then fall through into osbyte_yff", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8EC9,
-# UNMAPPED:     "osbyte_x0",
-# UNMAPPED:     title="OSBYTE wrapper with X=0, Y=&FF",
-# UNMAPPED:     description="""Sets X=0 and falls through to osbyte_yff to also
-# UNMAPPED: set Y=&FF. Provides a single call to execute
-# UNMAPPED: OSBYTE with A as the function code. Used by
-# UNMAPPED: adlc_init, init_adlc_and_vectors, and Econet
-# UNMAPPED: OSBYTE handling.""",
-# UNMAPPED:     on_entry={"a": "OSBYTE function code"},
-# UNMAPPED:     on_exit={"x": "0", "y": "&FF"},
-# UNMAPPED: )
+d.subroutine(
+    0x8EE1,
+    "osbyte_x0",
+    title="OSBYTE wrapper with X=0, Y=&FF",
+    description="""Sets X=0 and falls through to osbyte_yff to also
+set Y=&FF. Provides a single call to execute
+OSBYTE with A as the function code. Used by
+adlc_init, init_adlc_and_vectors, and Econet
+OSBYTE handling.""",
+    on_entry={"a": "OSBYTE function code"},
+    on_exit={"x": "0", "y": "&FF"},
+)
 
 
 d.label(0x8EE1, "osbyte_x0")
 
 d.comment(0x8EE3, "Y=&FF: 'read' parameter for OSBYTE", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8ECB,
-# UNMAPPED:     "osbyte_yff",
-# UNMAPPED:     title="OSBYTE wrapper with Y=&FF",
-# UNMAPPED:     description="""Sets Y=&FF and JMPs to the MOS OSBYTE entry
-# UNMAPPED: point. X must already be set by the caller. The
-# UNMAPPED: osbyte_x0 entry point falls through to here after
-# UNMAPPED: setting X=0.""",
-# UNMAPPED:     on_entry={"a": "OSBYTE function code", "x": "OSBYTE X parameter"},
-# UNMAPPED:     on_exit={"y": "&FF"},
-# UNMAPPED: )
+d.subroutine(
+    0x8EE3,
+    "osbyte_yff",
+    title="OSBYTE wrapper with Y=&FF",
+    description="""Sets Y=&FF and JMPs to the MOS OSBYTE entry
+point. X must already be set by the caller. The
+osbyte_x0 entry point falls through to here after
+setting X=0.""",
+    on_entry={"a": "OSBYTE function code", "x": "OSBYTE X parameter"},
+    on_exit={"y": "&FF"},
+)
 
 d.label(0x8EE3, "osbyte_yff")
 
 
 d.label(0x8EE5, "jmp_osbyte")
 
-# UNMAPPED: d.comment(0x8ECD, "Tail-call OSBYTE", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8ED2,
-# UNMAPPED:     "osbyte_x0_y0",
-# UNMAPPED:     title="OSBYTE wrapper with X=0, Y=0",
-# UNMAPPED:     description="""Sets `X=0` and `Y=0` then branches to `jmp_osbyte`. Called from
-# UNMAPPED: the Econet OSBYTE dispatch chain to handle OSBYTEs that require
-# UNMAPPED: both `X` and `Y` cleared. The unconditional `BEQ` (after `LDY
-# UNMAPPED: #0` sets `Z`) reaches the `JMP osbyte` instruction.""",
-# UNMAPPED:     on_entry={"a": "OSBYTE number"},
-# UNMAPPED:     on_exit={"x": "0", "y": "0"},
-# UNMAPPED: )
+d.comment(0x8EE5, "Tail-call OSBYTE", align=Align.INLINE)
+d.subroutine(
+    0x8EEA,
+    "osbyte_x0_y0",
+    title="OSBYTE wrapper with X=0, Y=0",
+    description="""Sets `X=0` and `Y=0` then branches to `jmp_osbyte`. Called from
+the Econet OSBYTE dispatch chain to handle OSBYTEs that require
+both `X` and `Y` cleared. The unconditional `BEQ` (after `LDY
+#0` sets `Z`) reaches the `JMP osbyte` instruction.""",
+    on_entry={"a": "OSBYTE number"},
+    on_exit={"x": "0", "y": "0"},
+)
 
 
 d.comment(0x8EEA, "X=0: clear OSBYTE X arg", align=Align.INLINE)
@@ -6430,7 +6430,7 @@ Called by [`print_version_header`](address:8C93) and
 
 d.comment(0x90CE, "Print 'Station ' inline string", align=Align.INLINE)
 d.comment(0x90D3, "Print 'Econet Station ' via inline", align=Align.INLINE)
-# UNMAPPED: d.comment(0x90D9, "Y=1: PB station-byte offset", align=Align.INLINE)
+d.comment(0x90E0, "Y=1: PB station-byte offset", align=Align.INLINE)
 d.comment(0x90E2, "Read RX[1] = station number", align=Align.INLINE)
 d.comment(0x90E4, "Print as decimal (no leading zeros)", align=Align.INLINE)
 d.comment(0x90E7, "Space character", align=Align.INLINE)
@@ -7736,11 +7736,11 @@ no-arg help and `*STATUS` displays.""",
 )
 
 
-# UNMAPPED: d.comment(
-# UNMAPPED:     0x95C5,
-# UNMAPPED:     "CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
+d.comment(
+    0x95C4,
+    "CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)",
+    align=Align.INLINE,
+)
 d.comment(
     0x95C5,
     "BVC: V was just cleared -> always taken; falls into the shared 'S       ' tail at &95CD",
@@ -7759,7 +7759,7 @@ no-arg help and `*STATUS` displays.""",
 )
 
 
-# UNMAPPED: d.comment(0x95CC, "NOP -- bit-7 terminator; falls through into the shared 'S       ' tail at &95CD", align=Align.INLINE)
+d.comment(0x95CB, "NOP -- bit-7 terminator; falls through into the shared 'S       ' tail at &95CD", align=Align.INLINE)
 d.label(0x95CC, "print_field_tail_s")
 
 d.comment(
@@ -7767,7 +7767,7 @@ d.comment(
     "Print 'S       ' (S + 7 spaces) -- the shared 8-char field used by both 'FS' and 'PS' callers",
     align=Align.INLINE,
 )
-# UNMAPPED: d.comment(0x95D8, "Bit-7 terminator", align=Align.INLINE)
+d.comment(0x95D7, "Bit-7 terminator", align=Align.INLINE)
 d.comment(0x95D8, "Return", align=Align.INLINE)
 d.comment(
     0x95D9,
@@ -7784,7 +7784,7 @@ no-argument help via [`print_fs_ps_help`](address:959A).""",
 )
 
 
-# UNMAPPED: d.comment(0x95E7, "Bit-7 terminator", align=Align.INLINE)
+d.comment(0x95E6, "Bit-7 terminator", align=Align.INLINE)
 d.comment(0x95E7, "Return", align=Align.INLINE)
 d.label(0x95E8, "dispatch_fs_ps_with_arg")
 
@@ -7955,50 +7955,42 @@ d.comment(0x9651, "Bit-7 terminator + resume", align=Align.INLINE)
 d.comment(0x9652, "Print 'Space        ' or similar via inline", align=Align.INLINE)
 d.label(0x9652, "parse_object_space_print")
 
-# UNMAPPED: d.comment(0x965C, "Bit-7 terminator + resume opcode", align=Align.INLINE)
-# UNMAPPED: d.label(0x965F, "print_ps_address")
+d.comment(0x965C, "Bit-7 terminator + resume opcode", align=Align.INLINE)
+d.subroutine(
+    0x9662,
+    "print_ps_address",
+    title="Print printer-server address from CMOS",
+    description="""Prints the printer server's saved `network.station` from
+CMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared
+tail at [`print_cmos_pair`](address:9668), which prints CMOS[X] then
+CMOS[X-1] separated by a `.`.
 
-# UNMAPPED: d.comment(0x965F, "X=4: CMOS RAM byte 4 (network number)", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x965F,
-# UNMAPPED:     "print_ps_address",
-# UNMAPPED:     title="Print printer-server address from CMOS",
-# UNMAPPED:     description="""Reads the printer-server's saved network number from CMOS byte
-# UNMAPPED: &04, prints it as decimal (no leading zeros), prints a `.`
-# UNMAPPED: separator, then sets `X=3` and falls into
-# UNMAPPED: [`print_cmos_decimal_nl`](address:967F) to read CMOS &03 and
-# UNMAPPED: print the printer-server station with a trailing newline.
-# UNMAPPED: Returns via the [`print_cmos_done`](address:9689) trampoline.""",
-# UNMAPPED: )
+In 4.24 the two entry points share one body: `print_fs_address` (`X=2`)
+falls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,
+skipping the `LDX #2`.""",
+)
 
+d.comment(0x9662, "X=4: CMOS RAM byte 4 (PS network number)", align=Align.INLINE)
+d.comment(0x9664, "Branch into shared tail (X already set)", align=Align.INLINE)
+d.subroutine(
+    0x9666,
+    "print_fs_address",
+    title="Print file-server address from CMOS",
+    description="""Prints the file server's saved `network.station` from
+CMOS RAM. Sets `X=2` (the FS network byte) and falls into the shared tail
+[`print_cmos_pair`](address:9668). See [`print_ps_address`](address:9662)
+for the shared-body structure.""",
+)
 
-# UNMAPPED: d.comment(0x9661, "Read CMOS &04 via osbyte_a1", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9664, "A = CMOS &04 value", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9665, "Print as decimal (no leading zeros)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9668, "Print '.' separator via inline", align=Align.INLINE)
-# UNMAPPED: d.comment(0x966C, "X=3: CMOS &03 (PS station)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x966E, "BRA print_cmos_decimal_nl: shared print-and-trail", align=Align.INLINE)
-# UNMAPPED: d.label(0x9670, "print_fs_address")
-
-# UNMAPPED: d.comment(0x9670, "X=2: CMOS &02 (FS network)", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x9670,
-# UNMAPPED:     "print_fs_address",
-# UNMAPPED:     title="Print file-server address from CMOS",
-# UNMAPPED:     description="""Reads the file-server's saved network number from CMOS byte
-# UNMAPPED: &02, prints it as decimal (no leading zeros), prints a `.`
-# UNMAPPED: separator, then sets `X=1` and falls into
-# UNMAPPED: [`print_cmos_decimal_nl`](address:967F) to read CMOS &01 and
-# UNMAPPED: print the file-server station with a trailing newline. Returns
-# UNMAPPED: via the [`print_cmos_done`](address:9689) trampoline.""",
-# UNMAPPED: )
-
-
-d.comment(0x9669, "Read CMOS &02 via osbyte_a1", align=Align.INLINE)
-d.comment(0x966C, "A = CMOS &02", align=Align.INLINE)
-d.comment(0x966D, "Print as decimal", align=Align.INLINE)
+d.comment(0x9666, "X=2: CMOS RAM byte 2 (FS network number)", align=Align.INLINE)
+d.label(0x9668, "print_cmos_pair")
+d.comment(0x9668, "Save network-byte index across the first print", align=Align.INLINE)
+d.comment(0x9669, "Read CMOS[X] (network number) via osbyte_a1", align=Align.INLINE)
+d.comment(0x966C, "A = CMOS network byte", align=Align.INLINE)
+d.comment(0x966D, "Print as decimal (no leading zeros)", align=Align.INLINE)
 d.comment(0x9670, "Print '.' separator via inline", align=Align.INLINE)
-d.comment(0x9674, "X=1: CMOS &01 (port)", align=Align.INLINE)
+d.comment(0x9674, "PLX terminator: restore X (network index)", align=Align.INLINE)
+d.comment(0x9675, "X-1: the station byte sits just below the network byte", align=Align.INLINE)
 d.label(0x9676, "print_cmos_decimal_nl")
 
 d.comment(0x9676, "Read CMOS X via osbyte_a1", align=Align.INLINE)
@@ -8253,7 +8245,7 @@ d.label(0x9768, "bit_test_ff")
 d.comment(0x9768, "Offset 7: txcb_pos = &FF (also labelled bit_test_ff)", align=Align.INLINE)
 d.comment(0x9769, "Offset 8: txcb_end lo = &FF", align=Align.INLINE)
 d.comment(0x976A, "Offset 9: txcb_end hi = &C1 (buffer end &C1FF)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x976D, "Offset 10: extended-addr fill (&FF)", align=Align.INLINE)
+d.comment(0x976B, "Offset 10: extended-addr fill (&FF)", align=Align.INLINE)
 d.comment(0x976C, "Offset 11: extended-addr fill (&FF)", align=Align.INLINE)
 d.label(0x976D, "send_request_nowrite")
 
@@ -9226,41 +9218,41 @@ table reflows automatically if a message string is edited.""",
 )
 for i in range(12):
     d.byte(0x9A98 + i)
-# UNMAPPED (broken ref): d.expr(0x9A99, "msg_net_error - error_msg_table")
-# UNMAPPED: d.expr(0x9A9C, "msg_station - error_msg_table")
-# UNMAPPED: d.expr(0x9A9D, "msg_no_clock - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9A9C, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9A9D, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9A9E, "msg_escape - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9A9F, "msg_bad_option - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9AA0, "msg_no_reply - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9AA1, "msg_not_listening - error_msg_table")
-# UNMAPPED: d.expr(0x9AA4, "msg_on_channel - error_msg_table")
-# UNMAPPED (broken ref): d.expr(0x9AA3, "msg_not_present - error_msg_table")
+d.expr(0x9A99, "msg_net_error - error_msg_table")
+d.expr(0x9A9A, "msg_station - error_msg_table")
+d.expr(0x9A9B, "msg_no_clock - error_msg_table")
+d.expr(0x9A9C, "msg_escape - error_msg_table")
+d.expr(0x9A9D, "msg_escape - error_msg_table")
+d.expr(0x9A9E, "msg_escape - error_msg_table")
+d.expr(0x9A9F, "msg_bad_option - error_msg_table")
+d.expr(0x9AA0, "msg_no_reply - error_msg_table")
+d.expr(0x9AA1, "msg_not_listening - error_msg_table")
+d.expr(0x9AA2, "msg_on_channel - error_msg_table")
+d.expr(0x9AA3, "msg_not_present - error_msg_table")
 
 d.index_base(0x9AA4, "error_msg_table")
-# UNMAPPED: d.banner(
-# UNMAPPED:     0x9AA6,
-# UNMAPPED:     title="Net-error message strings",
-# UNMAPPED:     description="""Body of error-text fragments referenced by
-# UNMAPPED: [`net_error_lookup_data`](address:9A9A). Two layouts coexist:
-# UNMAPPED: 
-# UNMAPPED: 1. **Error entries** (offsets 0..&3F) — one byte holding the BRK
-# UNMAPPED:    error code, immediately followed by the null-terminated
-# UNMAPPED:    message string:
-# UNMAPPED: 
-# UNMAPPED:    ```
-# UNMAPPED:    <err_code> <message-bytes...> &00
-# UNMAPPED:    ```
-# UNMAPPED: 
-# UNMAPPED: 2. **Suffix entries** (offsets &56, &65, &71) — bare
-# UNMAPPED:    null-terminated strings appended to a built-up error message;
-# UNMAPPED:    no leading error-code byte.
-# UNMAPPED: 
-# UNMAPPED: Per-byte inline comments below name each error code and message;
-# UNMAPPED: the bytes from this table are read by `build_simple_error` and
-# UNMAPPED: `build_no_reply_error` when classifying a network reply.""",
-# UNMAPPED: )
+d.banner(
+    0x9AA4,
+    title="Net-error message strings",
+    description="""Body of error-text fragments referenced by
+[`net_error_lookup_data`](address:9A9A). Two layouts coexist:
+
+1. **Error entries** (offsets 0..&3F) — one byte holding the BRK
+   error code, immediately followed by the null-terminated
+   message string:
+
+   ```
+   <err_code> <message-bytes...> &00
+   ```
+
+2. **Suffix entries** (offsets &56, &65, &71) — bare
+   null-terminated strings appended to a built-up error message;
+   no leading error-code byte.
+
+Per-byte inline comments below name each error code and message;
+the bytes from this table are read by `build_simple_error` and
+`build_no_reply_error` when classifying a network reply.""",
+)
 
 d.comment(0x9AA5, "err_line_jammed = &A0", align=Align.INLINE)
 d.comment(0x9AB0, "Null terminator", align=Align.INLINE)
@@ -9284,7 +9276,7 @@ d.label(0x9AD7, "msg_bad_option")
 
 d.byte(0x9AD7)
 d.comment(0x9AD7, "Error &CB: Bad option", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9AE4, "Null terminator + Error &A5: No reply from station", align=Align.INLINE)
+d.comment(0x9AE2, "Null terminator + Error &A5: No reply from station", align=Align.INLINE)
 d.label(0x9AE3, "msg_no_reply")
 
 d.comment(0x9AE4, "err_no_reply = &A5 message body", align=Align.INLINE)
@@ -9442,11 +9434,11 @@ d.comment(0x9B75, "Offset 2: &FD skip (preserve dest stn)", align=Align.INLINE)
 d.comment(0x9B76, "Offset 3: &FD skip (preserve dest net)", align=Align.INLINE)
 d.comment(0x9B77, "Offset 4: buf start lo (&3A) -> &0D3A", align=Align.INLINE)
 d.comment(0x9B78, "Offset 5: buf start hi (&0D) -> &0D3A", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9B7B, "Offset 6: extended-addr fill (&FF)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9B7C, "Offset 7: extended-addr fill (&FF)", align=Align.INLINE)
+d.comment(0x9B79, "Offset 6: extended-addr fill (&FF)", align=Align.INLINE)
+d.comment(0x9B7A, "Offset 7: extended-addr fill (&FF)", align=Align.INLINE)
 d.comment(0x9B7B, "Offset 8: buf end lo (&3E) -> &0D3E", align=Align.INLINE)
 d.comment(0x9B7C, "Offset 9: buf end hi (&0D) -> &0D3E", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9B7F, "Offset 10: extended-addr fill (&FF)", align=Align.INLINE)
+d.comment(0x9B7D, "Offset 10: extended-addr fill (&FF)", align=Align.INLINE)
 d.comment(0x9B7E, "Offset 11: extended-addr fill (&FF)", align=Align.INLINE)
 d.label(0x9B7F, "init_tx_ptr_for_pass")
 
@@ -10803,15 +10795,15 @@ d.comment(0xA122, "X=&11: target CMOS byte for write-back", align=Align.INLINE)
 d.label(0xA124, "osopt_cmos_writeback_jsr")
 
 d.comment(0xA124, "Write CMOS RAM byte (Y) to byte index (X)", align=Align.INLINE)
-# UNMAPPED: d.label(
-# UNMAPPED:     0xA0FF,
-# UNMAPPED:     "cmos_attr_table",
-# UNMAPPED:     description="""Indexing-base alias of [`cmos_opt_mask_table`](address:A103) - 4.
-# UNMAPPED: `LDA cmos_attr_table,X` at &A0ED with X=4..7 reads the read-masks 1, 2, 4, 6 from the underlying table; those values double as bit-shift counts that left-align the new field into CMOS &11. The byte at &A0FF is inside the operand of the JSR at &A0FE and is never read directly.""",
-# UNMAPPED:     length=1,
-# UNMAPPED:     group="idx_base",
-# UNMAPPED:     access="r",
-# UNMAPPED: )
+d.label(
+    0xA125,
+    "cmos_attr_table",
+    description="""Indexing-base alias of [`cmos_opt_mask_table`](address:A103) - 4.
+`LDA cmos_attr_table,X` at &A0ED with X=4..7 reads the read-masks 1, 2, 4, 6 from the underlying table; those values double as bit-shift counts that left-align the new field into CMOS &11. The byte at &A0FF is inside the operand of the JSR at &A0FE and is never read directly.""",
+    length=1,
+    group="idx_base",
+    access="r",
+)
 
 d.comment(0xA127, "Tail-branch into the OSARGS done path", align=Align.INLINE)
 d.index_base(0xA129, "cmos_opt_mask_table")
@@ -11843,8 +11835,8 @@ d.comment(0xA4B2, "Effective unconditional jump", align=Align.INLINE)
 d.comment(0xA4B3, "CR (carriage return)", align=Align.INLINE)
 d.label(0xA4B4, "separator_char_table")
 
-# UNMAPPED: d.comment(0xA4A0, "Restore matched-name length", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA4A1, "Y = matched-name length", align=Align.INLINE)
+d.comment(0xA4B4, "Restore matched-name length", align=Align.INLINE)
+d.comment(0xA4B5, "Y = matched-name length", align=Align.INLINE)
 d.label(0xA4B6, "loop_skip_trail_spaces")
 
 d.subroutine(
@@ -12461,48 +12453,48 @@ it's used here rather than a plain `*FindLib`.""",
 )
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xA70B,
-# UNMAPPED:     "boot_try_findlib",
-# UNMAPPED:     title="If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
-# UNMAPPED:     description="""Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1
-# UNMAPPED: (the auto-CLI / auto-run-FindLib flag). If clear, returns
-# UNMAPPED: immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
-# UNMAPPED: (`-NET-FindLib<CR>`). Falls through to
-# UNMAPPED: [`boot_persist_fs_maybe`](address:A71C) in either case.
-# UNMAPPED: 
-# UNMAPPED: #### Why the `-NET-` prefix
-# UNMAPPED: 
-# UNMAPPED: `-NET-` is MOS's hyphen-bracketed filing-system selector. The
-# UNMAPPED: general form `-FS-COMMAND` makes `FS` the temporary *active* FS
-# UNMAPPED: for this OSCLI without touching the currently-selected default,
-# UNMAPPED: then parses `COMMAND`. If `COMMAND` matches an internal MOS
-# UNMAPPED: command it runs normally; on the unknown-command fallthrough
-# UNMAPPED: the temp-FS bit suppresses the service-4 ROM broadcast and
-# UNMAPPED: dispatches via FSCV,3 directly to the selected FS. `NET` is
-# UNMAPPED: the short name registered by the NFS / ANFS ROM (others
-# UNMAPPED: register `DISC`, `ADFS`, `TAPE`).
-# UNMAPPED: 
-# UNMAPPED: NFS is already the current FS by the time this code runs.
-# UNMAPPED: [`svc_3_autoboot`](address:8CC7) selects it via
-# UNMAPPED: [`select_fs_via_cmd_net_fs`](address:8B52) before the
-# UNMAPPED: synchronous `*I AM` exchange on the cold-boot path, and the
-# UNMAPPED: user-typed `*I AM` route requires `*NET` first because `*I AM`
-# UNMAPPED: is itself an NFS `*` command.
-# UNMAPPED: 
-# UNMAPPED: The prefix therefore provides defensive routing, not FS
-# UNMAPPED: selection. A plain `*FindLib` would broadcast service-4 to all
-# UNMAPPED: sideways ROMs before falling through to FSCV,3, exposing the
-# UNMAPPED: command to interception by any ROM that has claimed `FindLib`
-# UNMAPPED: (including by abbreviation). The `-NET-` form sets the temp-FS
-# UNMAPPED: bit, which suppresses the broadcast and dispatches via FSCV,3
-# UNMAPPED: directly to NFS, so the lookup deterministically hits NFS's
-# UNMAPPED: `*RUN`-from-library path.
-# UNMAPPED: 
-# UNMAPPED: The same routing is used by
-# UNMAPPED: [`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and
-# UNMAPPED: [`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`).""",
-# UNMAPPED: )
+d.subroutine(
+    0xA71F,
+    "boot_try_findlib",
+    title="If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
+    description="""Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1
+(the auto-CLI / auto-run-FindLib flag). If clear, returns
+immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A6FE)
+(`-NET-FindLib<CR>`). Falls through to
+[`boot_persist_fs_maybe`](address:A71C) in either case.
+
+#### Why the `-NET-` prefix
+
+`-NET-` is MOS's hyphen-bracketed filing-system selector. The
+general form `-FS-COMMAND` makes `FS` the temporary *active* FS
+for this OSCLI without touching the currently-selected default,
+then parses `COMMAND`. If `COMMAND` matches an internal MOS
+command it runs normally; on the unknown-command fallthrough
+the temp-FS bit suppresses the service-4 ROM broadcast and
+dispatches via FSCV,3 directly to the selected FS. `NET` is
+the short name registered by the NFS / ANFS ROM (others
+register `DISC`, `ADFS`, `TAPE`).
+
+NFS is already the current FS by the time this code runs.
+[`svc_3_autoboot`](address:8CC7) selects it via
+[`select_fs_via_cmd_net_fs`](address:8B52) before the
+synchronous `*I AM` exchange on the cold-boot path, and the
+user-typed `*I AM` route requires `*NET` first because `*I AM`
+is itself an NFS `*` command.
+
+The prefix therefore provides defensive routing, not FS
+selection. A plain `*FindLib` would broadcast service-4 to all
+sideways ROMs before falling through to FSCV,3, exposing the
+command to interception by any ROM that has claimed `FindLib`
+(including by abbreviation). The `-NET-` form sets the temp-FS
+bit, which suppresses the broadcast and dispatches via FSCV,3
+directly to NFS, so the lookup deterministically hits NFS's
+`*RUN`-from-library path.
+
+The same routing is used by
+[`boot_cmd_load_str`](address:A741) (`L.-NET-!Boot`) and
+[`boot_cmd_exec_str`](address:A74E) (`E.-NET-!Boot`).""",
+)
 
 
 d.comment(0xA71F, "X=&11: CMOS RAM byte index", align=Align.INLINE)
@@ -12510,8 +12502,8 @@ d.comment(0xA721, "Read CMOS &11 via osbyte_a1", align=Align.INLINE)
 d.comment(0xA724, "Result to A", align=Align.INLINE)
 d.comment(0xA725, "Mask bit 1 (auto-CLI flag)", align=Align.INLINE)
 d.comment(0xA727, "Bit clear: skip auto-CLI", align=Align.INLINE)
-# UNMAPPED: d.expr(0xA716, "<findlib_oscli_cmd")
-# UNMAPPED: d.expr(0xA718, ">findlib_oscli_cmd")
+d.expr(0xA72A, "<findlib_oscli_cmd")
+d.expr(0xA72C, ">findlib_oscli_cmd")
 d.comment(0xA72D, "OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)", align=Align.INLINE)
 d.comment(0xA730, "Pop saved A", align=Align.INLINE)
 d.label(0xA730, "boot_persist_fs_maybe")
@@ -12571,59 +12563,59 @@ d.comment(0xA762, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing se
 d.comment(0xA76E, "CR terminator", align=Align.INLINE)
 d.index_base(0xA76F, "boot_cmd_lo_table")
 
-# UNMAPPED: d.banner(
-# UNMAPPED:     0xA75B,
-# UNMAPPED:     title="Boot-command low-byte index table",
-# UNMAPPED:     description="""Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in
-# UNMAPPED: [`boot_cmd_oscli`](address:A764). Combined with `Y=&A7` (high
-# UNMAPPED: byte, supplied by `boot_cmd_oscli` after the lookup), each entry
-# UNMAPPED: yields a pointer to a CR-terminated boot command in the `&A7xx`
-# UNMAPPED: page.
-# UNMAPPED: 
-# UNMAPPED: Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
-# UNMAPPED: because [`boot_select_cmd`](address:A75F) `BEQ`s out when
-# UNMAPPED: `hazel_fs_flags` is zero.
-# UNMAPPED: 
-# UNMAPPED: Index 2 (`&48`) lands inside
-# UNMAPPED: [`boot_cmd_load_str`](address:A741) — at offset 7, on its `!`
-# UNMAPPED: byte — so OSCLI reads `"!Boot<CR>"` from the middle of the same
-# UNMAPPED: string used at index 1. This packs the "run `*!Boot` on the
-# UNMAPPED: current FS" variant into the same data as the load-via-NFS
-# UNMAPPED: form, saving a third CR-terminated string.""",
-# UNMAPPED: )
+d.banner(
+    0xA76F,
+    title="Boot-command low-byte index table",
+    description="""Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in
+[`boot_cmd_oscli`](address:A764). Combined with `Y=&A7` (high
+byte, supplied by `boot_cmd_oscli` after the lookup), each entry
+yields a pointer to a CR-terminated boot command in the `&A7xx`
+page.
+
+Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
+because [`boot_select_cmd`](address:A75F) `BEQ`s out when
+`hazel_fs_flags` is zero.
+
+Index 2 (`&48`) lands inside
+[`boot_cmd_load_str`](address:A741) — at offset 7, on its `!`
+byte — so OSCLI reads `"!Boot<CR>"` from the middle of the same
+string used at index 1. This packs the "run `*!Boot` on the
+current FS" variant into the same data as the load-via-NFS
+form, saving a third CR-terminated string.""",
+)
 
 d.byte(0xA76F)
 d.byte(0xA770)
 d.byte(0xA771)
 d.byte(0xA772)
 d.comment(0xA76F, "Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead", align=Align.INLINE)
-# UNMAPPED: d.expr(0xA75C, "<boot_cmd_load_str")
+d.expr(0xA770, "<boot_cmd_load_str")
 d.comment(0xA770, "Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'", align=Align.INLINE)
-# UNMAPPED: d.expr(0xA75D, "<(boot_cmd_load_str + 7)")
+d.expr(0xA771, "<(boot_cmd_load_str + 7)")
 d.comment(0xA771, "Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS", align=Align.INLINE)
-# UNMAPPED: d.expr(0xA75E, "<boot_cmd_exec_str")
+d.expr(0xA772, "<boot_cmd_exec_str")
 d.comment(0xA772, "Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'", align=Align.INLINE)
 d.label(0xA773, "boot_select_cmd")
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xA75F,
-# UNMAPPED:     "boot_select_cmd",
-# UNMAPPED:     title="Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
-# UNMAPPED:     description="""Two-instruction gate at the head of the boot-OSCLI dispatch.
-# UNMAPPED: Loads `Y` from [`hazel_fs_flags`](address:C005) (the boot-type
-# UNMAPPED: byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
-# UNMAPPED: `BEQ`s into [`boot_cancel_rts`](address:A740) — the empty / no-op
-# UNMAPPED: boot case. Otherwise falls through into
-# UNMAPPED: [`boot_cmd_oscli`](address:A764) with `Y` already loaded as the
-# UNMAPPED: index into [`boot_cmd_lo_table`](address:A75B).
-# UNMAPPED: 
-# UNMAPPED: Two callers, both from [`check_auto_boot_flag`](address:A726):
-# UNMAPPED: the `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)
-# UNMAPPED: and the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).""",
-# UNMAPPED: )
+d.subroutine(
+    0xA773,
+    "boot_select_cmd",
+    title="Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
+    description="""Two-instruction gate at the head of the boot-OSCLI dispatch.
+Loads `Y` from [`hazel_fs_flags`](address:C005) (the boot-type
+byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
+`BEQ`s into [`boot_cancel_rts`](address:A740) — the empty / no-op
+boot case. Otherwise falls through into
+[`boot_cmd_oscli`](address:A764) with `Y` already loaded as the
+index into [`boot_cmd_lo_table`](address:A75B).
+
+Two callers, both from [`check_auto_boot_flag`](address:A726):
+the `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)
+and the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).""",
+)
 
 
-# UNMAPPED: d.comment(0xA75F, "Y = boot-type byte from FS reply (0..3)", align=Align.INLINE)
+d.comment(0xA773, "Y = boot-type byte from FS reply (0..3)", align=Align.INLINE)
 d.comment(0xA776, "Z (boot type 0): cancel boot via boot_cancel_rts", align=Align.INLINE)
 d.label(0xA778, "boot_cmd_oscli")
 
@@ -12661,30 +12653,30 @@ entry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS
 arrives at `target`. Per-entry inline comments below name the
 command, syntax-template index, and dispatch target.""",
 )
-# UNMAPPED: for name_addr, name, flag_addr, flag_byte, lo_addr, target_label, role in _cmd_table_fs_entries:
-# UNMAPPED (orphan body):     name_len = flag_addr - name_addr
-# UNMAPPED (orphan body):     if name_len > 1:
-# UNMAPPED (orphan body):         d.string(name_addr, name_len)
-# UNMAPPED (orphan body):     else:
-# UNMAPPED (orphan body):         d.byte(name_addr)
-# UNMAPPED (orphan body):     d.byte(flag_addr)
-# UNMAPPED (orphan body):     d.word(lo_addr)
-# UNMAPPED (orphan body):     if target_label is not None:
-# UNMAPPED (orphan body):         d.expr(lo_addr, "%s-1" % target_label)
-# UNMAPPED (orphan body):     d.comment(name_addr, role, align=Align.INLINE)
-# UNMAPPED (orphan body):     syn_idx = flag_byte & 0x001F
-# UNMAPPED (orphan body):     flag_parts = ["no syn"] if syn_idx == 0 else ["syn &%X" % syn_idx]
-# UNMAPPED (orphan body):     if flag_byte & 0x0040:
-# UNMAPPED (orphan body):         flag_parts.append("V if no arg")
-# UNMAPPED (orphan body):     d.comment(flag_addr, ", ".join(flag_parts), align=Align.INLINE)
+for name_addr, name, flag_addr, flag_byte, lo_addr, target_label, role in _cmd_table_fs_entries:
+    name_len = flag_addr - name_addr
+    if name_len > 1:
+        d.string(name_addr, name_len)
+    else:
+        d.byte(name_addr)
+    d.byte(flag_addr)
+    d.word(lo_addr)
+    if target_label is not None:
+        d.expr(lo_addr, "%s-1" % target_label)
+    d.comment(name_addr, role, align=Align.INLINE)
+    syn_idx = flag_byte & 0x001F
+    flag_parts = ["no syn"] if syn_idx == 0 else ["syn &%X" % syn_idx]
+    if flag_byte & 0x0040:
+        flag_parts.append("V if no arg")
+    d.comment(flag_addr, ", ".join(flag_parts), align=Align.INLINE)
 d.label(0xA781, "cmd_dispatch_lo_table")
 
 d.label(0xA782, "cmd_dispatch_hi_table")
 
 d.byte(0xA7B3)
-# UNMAPPED: d.comment(0xA79F, "Sub-table 1 end (walker reads &80 -> stop)", align=Align.INLINE)
+d.comment(0xA7B3, "Sub-table 1 end (walker reads &80 -> stop)", align=Align.INLINE)
 d.byte(0xA7B4)
-# UNMAPPED: d.comment(0xA7A0, "Padding (alignment before sub-table 2)", align=Align.INLINE)
+d.comment(0xA7B4, "Padding (alignment before sub-table 2)", align=Align.INLINE)
 d.label(0xA7B5, "cmd_table_nfs")
 
 d.index_base(0xA7DD, "cmd_table_nfs_iam")
@@ -12701,29 +12693,29 @@ d.byte(0xA824)
 d.comment(0xA824, "Sub-table 3 end (walker reads &80 -> stop)", align=Align.INLINE)
 d.label(0xA825, "cmd_table_syntax_help")
 d.byte(0xA841)
-# UNMAPPED: d.comment(0xA828, "Sub-tables 4/5 separator", align=Align.INLINE)
+d.comment(0xA841, "Sub-tables 4/5 separator", align=Align.INLINE)
 
-# UNMAPPED: d.comment(0xA83B, "BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame", align=Align.INLINE)
+d.comment(0xA854, "BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame", align=Align.INLINE)
 d.entry(0xA854)
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xA83B,
-# UNMAPPED:     "svc_8_osword",
-# UNMAPPED:     title="Service 8: unrecognised OSWORD",
-# UNMAPPED:     description="""Handles MOS service call 8 (unrecognised OSWORD).
-# UNMAPPED: Filters OSWORD codes &0E-&14 by subtracting &0E (via
-# UNMAPPED: CLC/SBC &0D) and rejecting values outside 0-6. For
-# UNMAPPED: valid codes, calls osword_setup_handler to push the
-# UNMAPPED: dispatch address, then copies 3 bytes from the RX
-# UNMAPPED: buffer to osword_flag workspace.""",
-# UNMAPPED:     on_entry={"a": "OSWORD number (from osbyte_a_copy)", "y": "parameter passed by service-call dispatch"},
-# UNMAPPED: )
+d.subroutine(
+    0xA854,
+    "svc_8_osword",
+    title="Service 8: unrecognised OSWORD",
+    description="""Handles MOS service call 8 (unrecognised OSWORD).
+Filters OSWORD codes &0E-&14 by subtracting &0E (via
+CLC/SBC &0D) and rejecting values outside 0-6. For
+valid codes, calls osword_setup_handler to push the
+dispatch address, then copies 3 bytes from the RX
+buffer to osword_flag workspace.""",
+    on_entry={"a": "OSWORD number (from osbyte_a_copy)", "y": "parameter passed by service-call dispatch"},
+)
 
 
 d.label(0xA855, "svc_8_osword_disp")
 
-# UNMAPPED: d.comment(0xA83C, "CLC so SBC subtracts value+1", align=Align.INLINE)
+d.comment(0xA855, "CLC so SBC subtracts value+1", align=Align.INLINE)
 d.comment(0xA856, "OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)", align=Align.INLINE)
 d.comment(0xA858, "A = OSWORD - &0E (CLC+SBC = -&0E)", align=Align.INLINE)
 d.comment(0xA85A, "Below &0E: not ours, return", align=Align.INLINE)
@@ -13072,19 +13064,19 @@ d.comment(0xA9C6, "Push lo for RTS dispatch", align=Align.INLINE)
 d.label(0xA9C7, "rts_osword_13")
 d.comment(0xA9C7, "RTS -> dispatched OSWORD &13 sub-handler", align=Align.INLINE)
 d.index_base(0xA9C8, "osword_13_dispatch_lo")
-# UNMAPPED: d.banner(
-# UNMAPPED:     0xA9A8,
-# UNMAPPED:     title="OSWORD &13 dispatch low-byte table (18 entries)",
-# UNMAPPED:     description="""Read by [`osword_13_dispatch`](address:A99A) as `LDA &A9A8,X`. Paired
-# UNMAPPED: with the high-byte half at [`osword_13_dispatch_hi`](address:A9BA).
-# UNMAPPED: Sub-codes 0..&11 cover read/set station, read/write workspace pair,
-# UNMAPPED: read/write protection, read/set handles, read RX flag/port/error,
-# UNMAPPED: read context, read/write CSD, read free buffers, read/write context
-# UNMAPPED: 3, and bridge query.""",
-# UNMAPPED: )
-# UNMAPPED: for addr in range(0xA9A8, 0xA9BA):
-# UNMAPPED (orphan body):     d.byte(addr)
-# UNMAPPED (orphan body): 
+d.banner(
+    0xA9C8,
+    title="OSWORD &13 dispatch low-byte table (18 entries)",
+    description="""Read by [`osword_13_dispatch`](address:A99A) as `LDA &A9A8,X`. Paired
+with the high-byte half at [`osword_13_dispatch_hi`](address:A9BA).
+Sub-codes 0..&11 cover read/set station, read/write workspace pair,
+read/write protection, read/set handles, read RX flag/port/error,
+read context, read/write CSD, read free buffers, read/write context
+3, and bridge query.""",
+)
+for addr in range(0xA9C8, 0xA9DA):
+    d.byte(addr)
+
 d.index_base(0xA9DA, "osword_13_dispatch_hi")
 d.banner(
     0xA9DA,
@@ -14064,45 +14056,45 @@ d.comment(0xAD3C, "Push lo so RTS pulls (lo, hi)+1 -> handler entry", align=Alig
 d.comment(0xAD3D, "Reload original OSWORD number into A for the handler", align=Align.INLINE)
 d.comment(0xAD3F, "RTS jumps to handler with A=OSWORD number", align=Align.INLINE)
 d.index_base(0xAD40, "netv_dispatch_lo")
-# UNMAPPED: d.banner(
-# UNMAPPED:     0xAD20,
-# UNMAPPED:     title="NETV reason-code dispatch low-byte table (9 entries)",
-# UNMAPPED:     description="""Read by [`push_osword_handler_addr`](address:AD15) as
-# UNMAPPED: `LDA &AD20,X`. Paired with the high-byte half at
-# UNMAPPED: [`netv_dispatch_hi`](address:AD29). The wrapper at
-# UNMAPPED: [`netv_handler`](address:ACFC) reads the original A from the MOS
-# UNMAPPED: stack frame (`&0103,X` after TSX) and gates 9..&FF away to
-# UNMAPPED: [`return_6`](address:AD0E) before dispatching reasons 0..8.""",
-# UNMAPPED: )
-# UNMAPPED: for addr in range(0xAD20, 0xAD29):
-# UNMAPPED (orphan body):     d.byte(addr)
-# UNMAPPED (orphan body): 
+d.banner(
+    0xAD40,
+    title="NETV reason-code dispatch low-byte table (9 entries)",
+    description="""Read by [`push_osword_handler_addr`](address:AD15) as
+`LDA &AD20,X`. Paired with the high-byte half at
+[`netv_dispatch_hi`](address:AD29). The wrapper at
+[`netv_handler`](address:ACFC) reads the original A from the MOS
+stack frame (`&0103,X` after TSX) and gates 9..&FF away to
+[`return_6`](address:AD0E) before dispatching reasons 0..8.""",
+)
+for addr in range(0xAD40, 0xAD49):
+    d.byte(addr)
+
 d.index_base(0xAD49, "netv_dispatch_hi")
-# UNMAPPED: d.banner(
-# UNMAPPED:     0xAD29,
-# UNMAPPED:     title="NETV reason-code dispatch high-byte table (9 entries)",
-# UNMAPPED:     description="""Read by [`push_osword_handler_addr`](address:AD15) as
-# UNMAPPED: `LDA &AD29,X`. The dispatcher pushes the hi byte first then the
-# UNMAPPED: lo, so RTS lands on `target` (the table stores `target-1`).""",
-# UNMAPPED: )
-# UNMAPPED: for addr in range(0xAD29, 0xAD32):
-# UNMAPPED (orphan body):     d.byte(addr)
+d.banner(
+    0xAD49,
+    title="NETV reason-code dispatch high-byte table (9 entries)",
+    description="""Read by [`push_osword_handler_addr`](address:AD15) as
+`LDA &AD29,X`. The dispatcher pushes the hi byte first then the
+lo, so RTS lands on `target` (the table stores `target-1`).""",
+)
+for addr in range(0xAD49, 0xAD52):
+    d.byte(addr)
 d.entry(0xAD52)
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xAD32,
-# UNMAPPED:     "osword_4_handler",
-# UNMAPPED:     title="OSWORD &04 handler: clear C, send abort",
-# UNMAPPED:     description="""Reaches the stack via `TSX`, clears bit 0 of the stacked processor
-# UNMAPPED: status (`ROR stack_page_6,X` then `ASL stack_page_6,X` -- a
-# UNMAPPED: read-modify cycle that lands the carry-out where bit 0 of the
-# UNMAPPED: saved P was), so the caller resumes with `C=0`. Stores the
-# UNMAPPED: caller's `Y` into NFS workspace at offset `&DA`, then falls
-# UNMAPPED: through to [`tx_econet_abort`](address:AD40) with `A=0` to
-# UNMAPPED: transmit a clean disconnect packet.""",
-# UNMAPPED:     on_entry={"y": "OSWORD parameter byte (saved into nfs_workspace+&DA)"},
-# UNMAPPED: )
+d.subroutine(
+    0xAD52,
+    "osword_4_handler",
+    title="OSWORD &04 handler: clear C, send abort",
+    description="""Reaches the stack via `TSX`, clears bit 0 of the stacked processor
+status (`ROR stack_page_6,X` then `ASL stack_page_6,X` -- a
+read-modify cycle that lands the carry-out where bit 0 of the
+saved P was), so the caller resumes with `C=0`. Stores the
+caller's `Y` into NFS workspace at offset `&DA`, then falls
+through to [`tx_econet_abort`](address:AD40) with `A=0` to
+transmit a clean disconnect packet.""",
+    on_entry={"y": "OSWORD parameter byte (saved into nfs_workspace+&DA)"},
+)
 
 
 d.comment(0xAD52, "Read the MOS stack frame holding caller flags", align=Align.INLINE)
@@ -14844,17 +14836,17 @@ d.comment(0xB040, "buf end hi (&8E); end = &8EA7", align=Align.INLINE)
 d.comment(0xB041, "buf end ext lo=&FF", align=Align.INLINE)
 d.comment(0xB042, "buf end ext hi=&FF", align=Align.INLINE)
 d.index_base(0xB043, "rx_palette_txcb_template")
-# UNMAPPED: d.banner(
-# UNMAPPED:     0xB00E,
-# UNMAPPED:     title="Palette-RX control-block template (12 bytes)",
-# UNMAPPED:     description="""12-byte template used by the *PS / palette-RX paths. Copied with
-# UNMAPPED: marker processing: `&FD` skips the destination byte (preserving
-# UNMAPPED: the existing field), `&FC` substitutes `net_rx_ptr_hi` (the
-# UNMAPPED: caller's RX-buffer page). Filled in over the workspace TXCB by
-# UNMAPPED: the broadcast-RX setup before the request is dispatched.""",
-# UNMAPPED: )
-# UNMAPPED: for i in range(12):
-# UNMAPPED:     d.byte(0xB00E + i)
+d.banner(
+    0xB043,
+    title="Palette-RX control-block template (12 bytes)",
+    description="""12-byte template used by the *PS / palette-RX paths. Copied with
+marker processing: `&FD` skips the destination byte (preserving
+the existing field), `&FC` substitutes `net_rx_ptr_hi` (the
+caller's RX-buffer page). Filled in over the workspace TXCB by
+the broadcast-RX setup before the request is dispatched.""",
+)
+for i in range(12):
+    d.byte(0xB043 + i)
 
 d.comment(0xB043, "ctrl=&7F (RX listen)", align=Align.INLINE)
 d.comment(0xB044, "port=&9E", align=Align.INLINE)
@@ -15017,22 +15009,22 @@ d.entry(0xB0D3)
 d.entry(0xB0D4)
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xB0A1,
-# UNMAPPED:     "cmd_cdir",
-# UNMAPPED:     title="*CDir command handler",
-# UNMAPPED:     description="""Parses an optional allocation size argument: if absent, defaults to
-# UNMAPPED: index 2 (standard 19-entry directory, `&200` bytes); if present,
-# UNMAPPED: parses the decimal value and searches a 26-entry threshold table to
-# UNMAPPED: find the matching allocation size index. Parses the directory name
-# UNMAPPED: via `parse_filename_arg`, copies it to the TX buffer, and sends FS
-# UNMAPPED: command code `&1B` to create the directory.
-# UNMAPPED: 
-# UNMAPPED: Reached via PHA/PHA/RTS dispatch from `cmd_table_fs` entry
-# UNMAPPED: [`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0A0`
-# UNMAPPED: happens to decode as `JMP (cdir_unused_dispatch_table,X)` but is never executed.""",
-# UNMAPPED:     on_entry={"y": "command line offset in text pointer"},
-# UNMAPPED: )
+d.subroutine(
+    0xB0D4,
+    "cmd_cdir",
+    title="*CDir command handler",
+    description="""Parses an optional allocation size argument: if absent, defaults to
+index 2 (standard 19-entry directory, `&200` bytes); if present,
+parses the decimal value and searches a 26-entry threshold table to
+find the matching allocation size index. Parses the directory name
+via `parse_filename_arg`, copies it to the TX buffer, and sends FS
+command code `&1B` to create the directory.
+
+Reached via PHA/PHA/RTS dispatch from `cmd_table_fs` entry
+[`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0A0`
+happens to decode as `JMP (cdir_unused_dispatch_table,X)` but is never executed.""",
+    on_entry={"y": "command line offset in text pointer"},
+)
 
 
 d.comment(0xB0D4, "Save command line offset", align=Align.INLINE)
@@ -15103,11 +15095,11 @@ d.comment(0xB11E, "Index 23: threshold 216", align=Align.INLINE)
 d.comment(0xB11F, "Index 24: threshold 226", align=Align.INLINE)
 d.comment(0xB120, "Index 25: threshold 236", align=Align.INLINE)
 d.index_base(0xB121, "cdir_size_done")
-# UNMAPPED: d.comment(
-# UNMAPPED:     0xB0EE,
-# UNMAPPED:     "Index 26: threshold &F6 (246) -- last cdir-size threshold; doubles as cdir_size_done[0] (unread by init loop)",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
+d.comment(
+    0xB121,
+    "Index 26: threshold &F6 (246) -- last cdir-size threshold; doubles as cdir_size_done[0] (unread by init loop)",
+    align=Align.INLINE,
+)
 d.comment(0xB122, "cdir_size_done[1] = &FF -> tx_retry_count (retry counter init)", align=Align.INLINE)
 d.byte(0xB123)
 d.comment(0xB123, "cdir_size_done[2] = &28 -> rx_wait_timeout (40 retries)", align=Align.INLINE)
@@ -15239,9 +15231,9 @@ d.comment(0xB18B, "Print '('", align=Align.INLINE)
 d.comment(0xB18F, "Load FS object-type code from hazel_txcb_objtype (file/dir/etc)", align=Align.INLINE)
 d.comment(0xB195, "Print ')     ' to close the type-code field", align=Align.INLINE)
 d.comment(0xB19E, "Read hazel_txcb_type (FS reply opcode)", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB16E, "Non-zero (private library): take the public-label branch", align=Align.INLINE)
+d.comment(0xB1A1, "Non-zero (private library): take the public-label branch", align=Align.INLINE)
 d.comment(0xB1A3, "Print 'Owner' + CR", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB179, "Non-zero: branch to cat_after_label_print", align=Align.INLINE)
+d.comment(0xB1AC, "Non-zero: branch to cat_after_label_print", align=Align.INLINE)
 d.label(0xB1AE, "print_public_label")
 
 d.comment(0xB1AE, "Print 'Public' + CR", align=Align.INLINE)
@@ -15260,7 +15252,7 @@ d.comment(0xB1D8, "Read hazel_fs_flags", align=Align.INLINE)
 d.comment(0xB1DB, "Transfer to X for table lookup", align=Align.INLINE)
 d.comment(0xB1DC, "Print option as hex", align=Align.INLINE)
 d.comment(0xB1DF, "Print ' ('", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB1B1, "Look up option-string offset for index X", align=Align.INLINE)
+d.comment(0xB1E4, "Look up option-string offset for index X", align=Align.INLINE)
 d.label(0xB1E7, "loop_print_dir_format")
 
 d.comment(0xB1E7, "Look up option byte at the resolved offset", align=Align.INLINE)
@@ -15273,7 +15265,7 @@ d.label(0xB1F2, "print_dir_header")
 d.comment(0xB1F2, "Print ')\\rDir. ' header for the directory listing", align=Align.INLINE)
 d.comment(0xB1FC, "X=&11: filename offset in TX buffer", align=Align.INLINE)
 d.comment(0xB1FE, "Print 10-char filename", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB1CE, "Print inline 'attr-bits' fragment", align=Align.INLINE)
+d.comment(0xB201, "Print inline 'attr-bits' fragment", align=Align.INLINE)
 d.comment(0xB204, "label for *Ex output", align=Align.INLINE)
 d.comment(0xB20E, "X=&1B: extension offset in TX buffer", align=Align.INLINE)
 d.comment(0xB210, "Print 10-char extension", align=Align.INLINE)
@@ -15570,16 +15562,16 @@ d.comment(0xB2FB, "All trailing spaces consumed (or none present)", align=Align.
 d.label(0xB2FD, "rts_copy_arg")
 
 d.comment(0xB2FD, "Return", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xB2CF,
-# UNMAPPED:     "mask_owner_access",
-# UNMAPPED:     title="Clear FS selection flags from options word",
-# UNMAPPED:     description="""`AND`s the `&C271` (`hazel_fs_lib_flags`) byte with `&1F`, clearing the
-# UNMAPPED: FS selection flag (bit 6) and other high bits to retain only the
-# UNMAPPED: 5-bit owner-access mask. Called before parsing to reset the prefix
-# UNMAPPED: state from a previous command. 12 callers.""",
-# UNMAPPED:     on_exit={"a": "masked value"},
-# UNMAPPED: )
+d.subroutine(
+    0xB302,
+    "mask_owner_access",
+    title="Clear FS selection flags from options word",
+    description="""`AND`s the `&C271` (`hazel_fs_lib_flags`) byte with `&1F`, clearing the
+FS selection flag (bit 6) and other high bits to retain only the
+5-bit owner-access mask. Called before parsing to reset the prefix
+state from a previous command. 12 callers.""",
+    on_exit={"a": "masked value"},
+)
 
 
 d.comment(0xB302, "Read fs_lib_flags (now at &C271 in 4.21)", align=Align.INLINE)
@@ -15618,7 +15610,7 @@ d.comment(0xB31D, "Wrap to 0..3 (4 columns per row)", align=Align.INLINE)
 d.comment(0xB31F, "Save the new column index", align=Align.INLINE)
 d.comment(0xB321, "Wrapped to 0: end of row, print newline", align=Align.INLINE)
 d.comment(0xB323, "Mid-row: print 2-space column separator via inline", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB2F5, "Non-zero: take col_sep_print_char tail", align=Align.INLINE)
+d.comment(0xB328, "Non-zero: take col_sep_print_char tail", align=Align.INLINE)
 d.comment(0xB32A, "A=&0D: CR character", align=Align.INLINE)
 d.label(0xB32A, "col_sep_eol_check")
 
@@ -16113,12 +16105,12 @@ d.subroutine(
 
 
 d.comment(0xB4C8, "Print 'Printer' via inline string", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB497, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
+d.comment(0xB4D2, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
 d.label(0xB4D3, "print_server_is_suffix")
 
 d.comment(0xB4D3, "Print ' server is ' via inline string", align=Align.INLINE)
 d.comment(0xB4D6, "fragment for 'File/Printer server is ...' messages", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB4A6, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
+d.comment(0xB4E1, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
 d.comment(0xB4E2, "Return; caller now prints the actual server (file or printer) address", align=Align.INLINE)
 d.label(0xB4E3, "load_ps_server_addr")
 
@@ -16526,7 +16518,7 @@ d.comment(0xB64E, "Store pointer low", align=Align.INLINE)
 d.comment(0xB650, "Clear V flag", align=Align.INLINE)
 d.comment(0xB651, "Print station address (V=0)", align=Align.INLINE)
 d.comment(0xB654, "Print ' is '", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB649, "X=0: indexed-indirect access mode", align=Align.INLINE)
+d.comment(0xB65B, "X=0: indexed-indirect access mode", align=Align.INLINE)
 d.comment(0xB65D, "Read printer status byte", align=Align.INLINE)
 d.comment(0xB65F, "Non-zero: not ready", align=Align.INLINE)
 d.comment(0xB661, "Print 'ready'", align=Align.INLINE)
@@ -16808,7 +16800,7 @@ d.comment(0xB7A2, "Advance index", align=Align.INLINE)
 d.comment(0xB7A3, "End of TX[5+X] name field at offset &3E?", align=Align.INLINE)
 d.comment(0xB7A5, "No: continue printing", align=Align.INLINE)
 d.comment(0xB7A7, "Print 'Wipe? ' help suffix via inline string", align=Align.INLINE)
-# UNMAPPED: d.comment(0xB783, "Bit-7 terminator + resume", align=Align.INLINE)
+d.comment(0xB7AC, "Bit-7 terminator + resume", align=Align.INLINE)
 d.comment(0xB7AD, "Re-prompt user with prompt_yn", align=Align.INLINE)
 d.label(0xB7B0, "check_wipe_response")
 
@@ -18280,7 +18272,7 @@ d.comment(0xBE31, "Read low nibble of starting address from (work_ae),Y", align=
 d.comment(0xBE33, "Save it (we'll print it 16 times incrementing each iteration)", align=Align.INLINE)
 d.comment(0xBE34, "Print '<CR>Address  : ' header via inline string", align=Align.INLINE)
 d.comment(0xBE37, "*Dump column header", align=Align.INLINE)
-# UNMAPPED: d.comment(0xBE13, "X=&0F: print 16 column-number digits", align=Align.INLINE)
+d.comment(0xBE43, "X=&0F: print 16 column-number digits", align=Align.INLINE)
 d.comment(0xBE45, "Pull the starting low nibble back into A", align=Align.INLINE)
 d.comment(0xBE46, "Print A as two hex digits + space", align=Align.INLINE)
 d.label(0xBE46, "loop_print_hex_row")
@@ -18292,7 +18284,7 @@ d.comment(0xBE4E, "Step column counter", align=Align.INLINE)
 d.comment(0xBE4F, "Loop while X >= 0 (16 iterations)", align=Align.INLINE)
 d.comment(0xBE51, "Print ':    ASCII data<CR><CR>' trailer via inline", align=Align.INLINE)
 d.comment(0xBE54, "*Dump trailer", align=Align.INLINE)
-# UNMAPPED: d.comment(0xBE35, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
+d.comment(0xBE65, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
 d.comment(0xBE66, "Return", align=Align.INLINE)
 d.label(0xBE67, "print_hex_and_space")
 

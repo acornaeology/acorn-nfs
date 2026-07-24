@@ -466,6 +466,41 @@ def main():
     print(f"  Added {identity_count} identity mappings", file=sys.stderr)
     print(f"  Total mapped addresses: {len(addr_map)}", file=sys.stderr)
 
+    # Interpolation pass. The opcode map only covers CODE addresses; data
+    # tables and some code labels sit at ROM addresses absent from the
+    # opcode stream, so they were never mapped. For each such ROM address,
+    # if the nearest mapped code below and above agree on the shift (the
+    # target sits inside a uniformly-relocated run), the relocation is
+    # content-preserving and we can map it. A window cap keeps the guess
+    # local so a rewrite that nets to zero displacement can't smear a far
+    # anchor's delta across it.
+    import bisect
+    print("Interpolating data / label addresses in uniform-shift runs...",
+          file=sys.stderr)
+    romkeys = sorted(k for k in addr_map if 0x8000 <= k <= 0xBFFF)
+    romvals = {k: addr_map[k] for k in romkeys}
+    WINDOW = 120
+    interp_count = 0
+    interpolated = {}
+    for addr in range(0x8000, 0xC000):
+        if addr in addr_map:
+            continue
+        i = bisect.bisect_left(romkeys, addr)
+        if i == 0 or i >= len(romkeys):
+            continue
+        below = romkeys[i - 1]
+        above = romkeys[i]
+        if addr - below > WINDOW or above - addr > WINDOW:
+            continue
+        d1 = romvals[below] - below
+        d2 = romvals[above] - above
+        if d1 == d2:
+            interpolated[addr] = addr + d1
+            interp_count += 1
+    addr_map.update(interpolated)
+    print(f"  Interpolated {interp_count} addresses", file=sys.stderr)
+    print(f"  Total mapped addresses: {len(addr_map)}", file=sys.stderr)
+
     print("\nTransforming script...", file=sys.stderr)
     script_text = script_filepath.read_text()
     result = transform_script(script_text, addr_map)
