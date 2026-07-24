@@ -300,9 +300,9 @@
       "addr": 32842,
       "name": "dispatch_svc5",
       "title": "Service-5 PHA/PHA/RTS dispatch tail",
-      "description": "Builds an `RTS`-target on the stack from the\n[`tx_done_dispatch_lo`](address:84B8) low-byte table and a hard-\ncoded high byte of `&85`, then falls through into the shared\n[`svc_5_unknown_irq`](address:8051) `RTS` to land on the matching\n[`tx_done_dispatch_lo`](address:84B8)+`Y` page-`&85` handler.",
+      "description": "Builds an `RTS`-target on the stack from the\n[`svc5_dispatch_lo`](address:84BC) low-byte table and a hard-\ncoded high byte of `&85`, then falls through into the shared\n[`svc_5_unknown_irq`](address:8051) `RTS` to land on the matching\n[`svc5_dispatch_lo`](address:84BC)+`Y` page-`&85` handler.",
       "on_entry": {
-        "y": "tx_done_dispatch_lo offset (post-&83 base bias)"
+        "y": "svc5_dispatch_lo offset (post-&83 base bias)"
       },
       "fall_through": true
     },
@@ -534,7 +534,7 @@
       "addr": 33894,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8536) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:802A)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\nthe immediate-op dispatch table (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8536) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:802A)) and dispatches via the\n[`svc5_dispatch_lo`](address:84BC) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 33950,
@@ -1003,7 +1003,7 @@
       "addr": 35820,
       "name": "print_cmd_table",
       "title": "Print *HELP command listing with optional header",
-      "description": "| `V` flag | Action |\n|---|---|\n| set   | save `X`/`Y`, call [`print_version_header`](address:8CB8) to show the ROM version string and station number, restore `X`/`Y` |\n| clear | output a newline only |\n\nEither path then falls through to\n[`print_cmd_table_loop`](address:8BD5) to enumerate\ncommands.",
+      "description": "| `V` flag | Action |\n|---|---|\n| set   | save `X`/`Y`, call [`print_version_header`](address:8CB8) to show the ROM version string and station number, restore `X`/`Y` |\n| clear | output a newline only |\n\nEither path then falls through to\n[`print_cmd_table`](address:8BEC) to enumerate\ncommands.",
       "on_entry": {
         "x": "offset into cmd_table_fs",
         "v": "set=print version header, clear=newline only"
@@ -1548,7 +1548,7 @@
       "addr": 37563,
       "name": "parse_addr_arg",
       "title": "Parse decimal or hex station address argument",
-      "description": "Reads characters from the command argument at `(fs_crc_lo),Y`.\nSupports `&` prefix for hex, `.` separator for net.station\naddresses, and plain decimal. Returns the result in `fs_load_addr_2`\n(and `A`). Raises [`Bad hex`](address:934A), `Bad number`,\n[`Bad station number`](address:9357), and overflow errors as\nappropriate. The body uses the standard 6502 idioms: `ASL ASL ASL\nASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`\nfor decimal `*10`. Two named callers: from `&A3C9` and `&A3F2`.",
+      "description": "Reads characters from the command argument at `(fs_crc_lo),Y`.\nSupports `&` prefix for hex, `.` separator for net.station\naddresses, and plain decimal. Returns the result in `fs_load_addr_2`\n(and `A`). Raises [`Bad hex`](address:934A), `Bad number`,\n[`Bad station number`](address:9360), and overflow errors as\nappropriate. The body uses the standard 6502 idioms: `ASL ASL ASL\nASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`\nfor decimal `*10`. Two named callers: from `&A3C9` and `&A3F2`.",
       "on_entry": {
         "y": "index into command-string buffer at (fs_crc_lo),Y",
         "a": "ignored"
@@ -1702,7 +1702,7 @@
       "addr": 37930,
       "name": "cmd_fs_operation",
       "title": "Shared *Access / *Delete / *Info / *Lib command handler",
-      "description": "Copies the command name to the TX buffer, parses a quoted\nfilename argument via [`parse_quoted_arg`](address:9488), and\nchecks the access prefix. Validates the filename does not start\nwith `'&'`, then falls through to\n[`read_filename_char`](address:9453) to copy remaining\ncharacters and send the request. Raises\n[`Bad file name`](address:9437) if a bare `CR` is found where\na filename was expected.",
+      "description": "Copies the command name to the TX buffer, parses a quoted\nfilename argument via [`parse_quoted_arg`](address:9488), and\nchecks the access prefix. Validates the filename does not start\nwith `'&'`, then falls through to\n[`read_filename_char`](address:9453) to copy remaining\ncharacters and send the request. Raises\n[`Bad file name`](address:943C) if a bare `CR` is found where\na filename was expected.",
       "on_entry": {
         "y": "command line offset in text pointer",
         "x": "byte offset within cmd_table_fs identifying which of the four shared commands was matched (Access, Delete, Info, or Lib)"
@@ -1815,7 +1815,7 @@
       "addr": 38381,
       "name": "set_fs_or_ps_cmos_station",
       "title": "Write FS/PS station+network to CMOS RAM",
-      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A828`](address:A80F), `*PS` at\n[`&A82D`](address:A814)) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](address:A3D8) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](address:9611), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](address:8C89).",
+      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A841`](address:A841), `*PS` at\n`&A846`) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](address:A3D8) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](address:9611), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](address:8C89).",
       "on_entry": {
         "x": "offset in cmd_table_fs of the matched entry's flag byte"
       },
@@ -1825,7 +1825,7 @@
       "addr": 38417,
       "name": "osbyte_a2",
       "title": "OSBYTE &A2 (write Master CMOS RAM byte)",
-      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](address:95BD) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](address:8C89), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9616 \u2192 &8C89).\n\n`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next\nlabelled routine is [`cmd_space`](address:9618). Counterpart of\n[`osbyte_a1`](address:8EB2) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](address:95ED) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n[`&962D`](address:962E) inside [`cmd_nospace`](address:9622), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](address:A124).",
+      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](address:95BD) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](address:8C89), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9616 \u2192 &8C89).\n\n`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next\nlabelled routine is [`cmd_space`](address:9618). Counterpart of\n[`osbyte_a1`](address:8EB2) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](address:95ED) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n`&962C` inside [`cmd_nospace`](address:9622), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](address:A124).",
       "on_entry": {
         "x": "CMOS RAM byte index",
         "y": "value to write"
@@ -3751,7 +3751,7 @@
       "addr": 46096,
       "name": "copy_ps_data",
       "title": "Copy 8-byte printer server template to RX buffer",
-      "description": "Copies 8 bytes of default printer server data into the RX buffer\nat the current `Y` offset. Uses indexed addressing: `LDA\nps_template_base,X` with `X` starting at `&F8`, so the effective\nread address is `ps_template_base+&F8 = ps_template_data`\n([`&8EB7`](address:8E9F)). The 6502 trick reaches data 248\nbytes past the base label in a single instruction; the base\naddress (`ps_template_base`) deliberately falls inside the operand\nbyte of a JSR instruction at `&8DA6` -- see\ndocs/analysis/authors-easter-egg.md.",
+      "description": "Copies 8 bytes of default printer server data into the RX buffer\nat the current `Y` offset. Uses indexed addressing: `LDA\nps_template_base,X` with `X` starting at `&F8`, so the effective\nread address is `ps_template_base+&F8 = ps_template_data`\n(`&8EB7`). The 6502 trick reaches data 248\nbytes past the base label in a single instruction; the base\naddress (`ps_template_base`) deliberately falls inside the operand\nbyte of a JSR instruction at `&8DA6` -- see\ndocs/analysis/authors-easter-egg.md.",
       "on_entry": {
         "y": "destination offset within the RX buffer"
       },
@@ -26746,9 +26746,9 @@
       "comment_inline": "Store into FS workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 35728,
@@ -34803,9 +34803,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 36976,
@@ -74021,7 +74021,18 @@
         45,
         78,
         101,
-        116,
+        116
+      ],
+      "labels": [
+        "boot_cmd_load_str"
+      ],
+      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
+      "type": "string",
+      "string": "L.-Net"
+    },
+    {
+      "addr": 42843,
+      "bytes": [
         45,
         33,
         66,
@@ -74030,11 +74041,10 @@
         116
       ],
       "labels": [
-        "boot_cmd_load_str"
+        "boot_cmd_lo_table"
       ],
-      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
       "type": "string",
-      "string": "L.-Net-!Boot"
+      "string": "-!Boot"
     },
     {
       "addr": 42849,
@@ -78470,9 +78480,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbfff,y",
+      "operand": "hazel_minus_1,y",
       "target": 49151,
-      "target_label": "lbfff"
+      "target_label": "hazel_minus_1"
     },
     {
       "addr": 43508,
@@ -78609,9 +78619,9 @@
       "comment_inline": "Store to fs_server_base",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "lbfff,y",
+      "operand": "hazel_minus_1,y",
       "target": 49151,
-      "target_label": "lbfff"
+      "target_label": "hazel_minus_1"
     },
     {
       "addr": 43529,
@@ -83023,9 +83033,9 @@
       "comment_inline": "Zero: use workspace default value",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "skip_fn_space_cont,y",
+      "operand": "hazel_minus_1a,y",
       "target": 49126,
-      "target_label": "skip_fn_space_cont"
+      "target_label": "hazel_minus_1a"
     },
     {
       "addr": 44157,
@@ -83309,9 +83319,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 44200,
@@ -116813,6 +116823,8 @@
         249
       ],
       "labels": [
+        "hazel_minus_1a",
+        "hazel_idx_bases",
         "skip_fn_space_cont"
       ],
       "comment_inline": "Yes: keep skipping",
@@ -117013,26 +117025,9 @@
         255,
         255,
         255,
-        255,
-        255,
         255
       ],
-      "labels": [
-        "sub_cbff8"
-      ],
-      "sub_labels": {
-        "49150": [
-          "lbffe"
-        ],
-        "49151": [
-          "lbfff"
-        ]
-      },
       "comment_inline": "ROM-tail padding (30 bytes &FF)",
-      "xref_summaries": [
-        "&bffe used as index base 3 times by &8b8d, &906d, &aca5",
-        "&bfff used as index base 2 times by &a9f1, &aa06"
-      ],
       "type": "byte",
       "values": [
         255,
@@ -117040,8 +117035,63 @@
         255,
         255,
         255,
-        255,
-        255,
+        255
+      ]
+    },
+    {
+      "addr": 49150,
+      "bytes": [
+        255
+      ],
+      "labels": [
+        "hazel_minus_2"
+      ],
+      "comment_inline": "Base for `hazel_minus_2,Y` reads/writes -- `&BFFE + Y` reaches into HAZEL for Y >= 2",
+      "xref_summaries": [
+        "&bffe used as index base 3 times by &8b8d, &906d, &aca5"
+      ],
+      "references": [
+        {
+          "addr": 35725,
+          "kind": "indexed"
+        },
+        {
+          "addr": 36973,
+          "kind": "indexed"
+        },
+        {
+          "addr": 44197,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
+        255
+      ]
+    },
+    {
+      "addr": 49151,
+      "bytes": [
+        255
+      ],
+      "labels": [
+        "hazel_minus_1"
+      ],
+      "xref_summaries": [
+        "&bfff used as index base 2 times by &a9f1, &aa06"
+      ],
+      "references": [
+        {
+          "addr": 43505,
+          "kind": "indexed"
+        },
+        {
+          "addr": 43526,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
         255
       ]
     }

@@ -788,12 +788,12 @@ rom_header_byte2 = rom_header_byte1+1
 ; ***************************************************************************************
 ; Service-5 PHA/PHA/RTS dispatch tail
 ;
-; Builds an RTS-target on the stack from the tx_done_dispatch_lo low-byte table and a
-; hard- coded high byte of &85, then falls through into the shared svc_5_unknown_irq RTS
-; to land on the matching tx_done_dispatch_lo+Y page-&85 handler.
+; Builds an RTS-target on the stack from the svc5_dispatch_lo low-byte table and a hard-
+; coded high byte of &85, then falls through into the shared svc_5_unknown_irq RTS to
+; land on the matching svc5_dispatch_lo+Y page-&85 handler.
 ;
 ; On Entry:
-;     Y: tx_done_dispatch_lo offset (post-&83 base bias)
+;     Y: svc5_dispatch_lo offset (post-&83 base bias)
 ; &804a referenced 1 time by &803d
 .dispatch_svc5
     lda #&85                                                          ; 804a: a9 85       ..       ; Push return addr high (&85)
@@ -1819,16 +1819,16 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; For &81..&86, converts the code to a 0-based index and tests against the per-station
 ; protection mask prot_status to determine whether this station accepts the operation. If
-; accepted, dispatches via imm_op_dispatch_lo (PHA/PHA/RTS).
+; accepted, dispatches via the immediate-op dispatch table (PHA/PHA/RTS).
 ;
 ; The execute-class operations (&83 JSR, &84 UserProc, &85 OSProc, &86 HALT, &87
 ; CONTINUE) cannot run inside the NMI receive handler -- a JSR into user code or an OS
 ; call is unsafe there -- so they are not run inline. They are completed later from
 ; normal IRQ context: setup_sr_tx records the operation in tx_op_type and sets the Master
 ; 128 ACCCON IRR latch (bit 7 at &FE34), which raises an IRQ that the ROM picks up as
-; service call &05 (svc5_irq_check) and dispatches via the tx_done_dispatch_lo table.
-; PEEK, POKE and machine-type (&81 / &82 / &88) only touch memory and reply immediately,
-; so they run here.
+; service call &05 (svc5_irq_check) and dispatches via the svc5_dispatch_lo table. PEEK,
+; POKE and machine-type (&81 / &82 / &88) only touch memory and reply immediately, so
+; they run here.
 ;
 ; Builds the reply by storing data length, station / network, and control byte into the
 ; RX buffer header.
@@ -3722,7 +3722,7 @@ l8a1e = nmi_return_inton+1
 ; &8b8b referenced 1 time by &8b93
 .loop_copy_fs_ctx
     lda (net_rx_ptr),y                                                ; 8b8b: b1 9c       ..       ; Load byte from receive block
-    sta lbffe,y                                                       ; 8b8d: 99 fe bf    ...      ; Store into FS workspace
+    sta hazel_minus_2,y                                               ; 8b8d: 99 fe bf    ...      ; Store into FS workspace
     dey                                                               ; 8b90: 88          .        ; Decrement index
     cpy #1                                                            ; 8b91: c0 01       ..       ; Reached offset 1?
     bne loop_copy_fs_ctx                                              ; 8b93: d0 f6       ..       ; No: continue copying
@@ -3811,7 +3811,7 @@ l8a1e = nmi_return_inton+1
 ; | set    | save X/Y, call print_version_header to show the ROM version string and station number, restore X/Y |
 ; | clear  | output a newline only                                                                              |
 ;
-; Either path then falls through to print_cmd_table_loop to enumerate commands.
+; Either path then falls through to print_cmd_table to enumerate commands.
 ;
 ; On Entry:
 ;     X: offset into cmd_table_fs
@@ -5071,7 +5071,7 @@ l8dbf = load_transfer_params+1
     ldy #9                                                            ; 906b: a0 09       ..       ; Y=9: end of FS context block
 ; &906d referenced 1 time by &9075
 .loop_restore_ctx
-    lda lbffe,y                                                       ; 906d: b9 fe bf    ...      ; Load FS context byte
+    lda hazel_minus_2,y                                               ; 906d: b9 fe bf    ...      ; Load FS context byte
     sta (net_rx_ptr),y                                                ; 9070: 91 9c       ..       ; Store into receive block
     dey                                                               ; 9072: 88          .        ; Decrement index
     cpy #1                                                            ; 9073: c0 01       ..       ; Reached offset 1?
@@ -6385,8 +6385,8 @@ l8dbf = load_transfer_params+1
 ; ***************************************************************************************
 ; Write FS/PS station+network to CMOS RAM
 ;
-; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A828, *PS at
-; &A82D) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A841, *PS at
+; &A846) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
 ; saved address.
 ;
 ; The flag byte's low 6 bits (AND #&3F) double as the CMOS byte index for the relevant
@@ -6442,7 +6442,7 @@ l8dbf = load_transfer_params+1
 ; cmd_space. Counterpart of osbyte_a1 (read).
 ;
 ; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA
-; shortcut at &962D inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
+; shortcut at &962C inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
 ; byte &11 ending at osopt_cmos_writeback_jsr.
 ;
 ; On Entry:
@@ -10628,7 +10628,9 @@ la125 = osopt_cmos_writeback_jsr+1
 .boot_cancel_rts
     rts                                                               ; a754: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
 .boot_cmd_load_str
-    equs "L.-Net-!Boot"                                               ; a755: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
+    equs "L.-Net"                                                     ; a755: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
+.boot_cmd_lo_table
+    equs "-!Boot"                                                     ; a75b: 2d 21 42... -!B...
     equb &0d                                                          ; a761: 0d          .        ; CR terminator
 .boot_cmd_exec_str
     equs "E.-Net-!Boot"                                               ; a762: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
@@ -11137,7 +11139,7 @@ la891 = la88a+7
     ldy #2                                                            ; a9ef: a0 02       ..       ; Y=2: copy 2 bytes
 ; &a9f1 referenced 1 time by &a9f7
 .loop_copy_station
-    lda lbfff,y                                                       ; a9f1: b9 ff bf    ...      ; Load station byte
+    lda hazel_minus_1,y                                               ; a9f1: b9 ff bf    ...      ; Load station byte
     sta (osword_pb_ptr),y                                             ; a9f4: 91 f0       ..       ; Store to PB[Y]
     dey                                                               ; a9f6: 88          .        ; Step back
     bne loop_copy_station                                             ; a9f7: d0 f8       ..       ; Loop for bytes 2..1
@@ -11158,7 +11160,7 @@ la891 = la88a+7
 ; &aa04 referenced 1 time by &aa0a
 .loop_store_station
     lda (osword_pb_ptr),y                                             ; aa04: b1 f0       ..       ; Load new station byte from PB
-    sta lbfff,y                                                       ; aa06: 99 ff bf    ...      ; Store to fs_server_base
+    sta hazel_minus_1,y                                               ; aa06: 99 ff bf    ...      ; Store to fs_server_base
     dey                                                               ; aa09: 88          .        ; Step back to previous byte
     bne loop_store_station                                            ; aa0a: d0 f8       ..       ; Loop for bytes 2..1
     jsr clear_if_station_match                                        ; aa0c: 20 39 8e     9.      ; Clear handles if station matches
@@ -11731,7 +11733,7 @@ labe5 = compare_bridge_status+1
 .loop_copy_txcb_init
     lda init_txcb,y                                                   ; ac75: b9 49 97    .I.      ; Load TXCB init byte
     bne store_txcb_init_byte                                          ; ac78: d0 03       ..       ; Non-zero: use template value
-    lda skip_fn_space_cont,y                                          ; ac7a: b9 e6 bf    ...      ; Zero: use workspace default value
+    lda hazel_minus_1a,y                                              ; ac7a: b9 e6 bf    ...      ; Zero: use workspace default value
 ; &ac7d referenced 1 time by &ac78
 .store_txcb_init_byte
     sta (nfs_workspace),y                                             ; ac7d: 91 9e       ..       ; Store to workspace
@@ -11764,7 +11766,7 @@ labe5 = compare_bridge_status+1
     iny                                                               ; aca4: c8          .        ; Advance index
 ; &aca5 referenced 1 time by &acad
 .loop_copy_ws_to_pb
-    lda lbffe,y                                                       ; aca5: b9 fe bf    ...      ; Load workspace data
+    lda hazel_minus_2,y                                               ; aca5: b9 fe bf    ...      ; Load workspace data
     sta (ws_ptr_hi),y                                                 ; aca8: 91 ac       ..       ; Store to parameter block
     iny                                                               ; acaa: c8          .        ; Next byte
     cpy #7                                                            ; acab: c0 07       ..       ; Until Y reaches 7
@@ -16177,6 +16179,8 @@ net_chan_err_strings = err_net_chan_not_found+2
     lda (os_text_ptr),y                                               ; bfe2: b1 f2       ..       ; Read next byte
     cmp #&20 ; ' '                                                    ; bfe4: c9 20       .        ; Still a space?
 ; &bfe6 used as index base 1 time by &ac7a
+.hazel_minus_1a
+.hazel_idx_bases
 .skip_fn_space_cont
     beq loop_skip_fn_spaces                                           ; bfe6: f0 f9       ..       ; Yes: keep skipping
 ; &bfe8 referenced 1 time by &bfdb
@@ -16244,12 +16248,13 @@ net_chan_err_strings = err_net_chan_not_found+2
 .rom_tail_padding
     equb &ff, &ff                                                     ; bff5: ff ff       ..       ; ROM-tail padding (2 bytes &FF)
     equb &ff                                                          ; bff7: ff          .        ; ROM-tail padding (1 byte &FF; on its own line for annotation)
-.sub_cbff8
+    equb &ff, &ff, &ff, &ff, &ff, &ff                                 ; bff8: ff ff ff... ......   ; ROM-tail padding (30 bytes &FF)
 ; &bffe used as index base 3 times by &8b8d, &906d, &aca5
-lbffe = sub_cbff8+6
+.hazel_minus_2
+    equb &ff                                                          ; bffe: ff          .        ; Base for hazel_minus_2,Y reads/writes -- &BFFE + Y reaches into HAZEL for Y >= 2
 ; &bfff used as index base 2 times by &a9f1, &aa06
-lbfff = sub_cbff8+7
-    equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff                       ; bff8: ff ff ff... ......   ; ROM-tail padding (30 bytes &FF)
+.hazel_minus_1
+    equb &ff                                                          ; bfff: ff          .     
 .pydis_end
 
 save pydis_start, pydis_end
@@ -16481,6 +16486,7 @@ save pydis_start, pydis_end
 ;     hazel_fcb_station_lo:                     3
 ;     hazel_fs_error_code:                      3
 ;     hazel_fs_messages_flag:                   3
+;     hazel_minus_2:                            3
 ;     hazel_parse_buf_1:                        3
 ;     hazel_pass_counter:                       3
 ;     hazel_txcb_lib:                           3
@@ -16488,7 +16494,6 @@ save pydis_start, pydis_end
 ;     hazel_txcb_size_hi:                       3
 ;     inx16:                                    3
 ;     jmp_restore_fs_ctx:                       3
-;     lbffe:                                    3
 ;     load_ps_server_addr:                      3
 ;     loop_ps_delay:                            3
 ;     match_fs_cmd:                             3
@@ -16620,6 +16625,7 @@ save pydis_start, pydis_end
 ;     hazel_fcb_slot_2:                         2
 ;     hazel_fcb_slot_3:                         2
 ;     hazel_fs_opts_addend:                     2
+;     hazel_minus_1:                            2
 ;     hazel_net_reply_buf_0:                    2
 ;     hazel_net_reply_buf_1:                    2
 ;     hazel_net_reply_buf_2:                    2
@@ -16642,7 +16648,6 @@ save pydis_start, pydis_end
 ;     init_wipe_counters:                       2
 ;     init_ws_copy_wide:                        2
 ;     is_decimal_digit:                         2
-;     lbfff:                                    2
 ;     lookup_cat_entry_0:                       2
 ;     lookup_chan_by_char:                      2
 ;     loop_copy_arg_char:                       2
@@ -17012,6 +17017,8 @@ save pydis_start, pydis_end
 ;     hazel_fcb_addr_mid_minus20:               1
 ;     hazel_fcb_network:                        1
 ;     hazel_fs_reply_byte:                      1
+;     hazel_idx_bases:                          1
+;     hazel_minus_1a:                           1
 ;     hazel_net_reply_buf_3:                    1
 ;     hazel_parse_buf_2:                        1
 ;     hazel_retry_counter:                      1
@@ -17644,8 +17651,6 @@ save pydis_start, pydis_end
 ;     la891
 ;     labe5
 ;     lb538
-;     lbffe
-;     lbfff
 ;     return_1
 ;     return_2
 ;     return_3
@@ -17656,7 +17661,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     sub_c8492
 ;     sub_c85c0
-;     sub_cbff8
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
@@ -17667,4 +17671,4 @@ save pydis_start, pydis_end
 ;     Number of data bytes     = 883 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1294 bytes
-;     Number of strings        = 152
+;     Number of strings        = 153

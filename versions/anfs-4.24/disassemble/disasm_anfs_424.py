@@ -1269,11 +1269,11 @@ d.subroutine(
     "dispatch_svc5",
     title="Service-5 PHA/PHA/RTS dispatch tail",
     description="""Builds an `RTS`-target on the stack from the
-[`tx_done_dispatch_lo`](address:84B8) low-byte table and a hard-
+[`svc5_dispatch_lo`](address:84BC) low-byte table and a hard-
 coded high byte of `&85`, then falls through into the shared
 [`svc_5_unknown_irq`](address:8051) `RTS` to land on the matching
-[`tx_done_dispatch_lo`](address:84B8)+`Y` page-`&85` handler.""",
-    on_entry={"y": "tx_done_dispatch_lo offset (post-&83 base bias)"},
+[`svc5_dispatch_lo`](address:84BC)+`Y` page-`&85` handler.""",
+    on_entry={"y": "svc5_dispatch_lo offset (post-&83 base bias)"},
 )
 
 
@@ -2506,7 +2506,7 @@ For `&81`..`&86`, converts the code to a 0-based index and tests
 against the per-station protection mask
 [`prot_status`](address:0D68) to determine whether this
 station accepts the operation. If accepted, dispatches via
-[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).
+the immediate-op dispatch table (PHA/PHA/RTS).
 
 The execute-class operations (`&83` JSR, `&84` UserProc, `&85`
 OSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI
@@ -2517,7 +2517,7 @@ operation in [`tx_op_type`](address:0D65) and sets the Master 128
 ACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the
 ROM picks up as service call `&05`
 ([`svc5_irq_check`](address:802A)) and dispatches via the
-[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and
+[`svc5_dispatch_lo`](address:84BC) table. PEEK, POKE and
 machine-type (`&81` / `&82` / `&88`) only touch memory and reply
 immediately, so they run here.
 
@@ -4877,7 +4877,7 @@ d.subroutine(
 | clear | output a newline only |
 
 Either path then falls through to
-[`print_cmd_table_loop`](address:8BD5) to enumerate
+[`print_cmd_table`](address:8BEC) to enumerate
 commands.""",
     on_entry={"x": "offset into cmd_table_fs", "v": "set=print version header, clear=newline only"},
 )
@@ -6862,7 +6862,7 @@ d.subroutine(
 Supports `&` prefix for hex, `.` separator for net.station
 addresses, and plain decimal. Returns the result in `fs_load_addr_2`
 (and `A`). Raises [`Bad hex`](address:934A), `Bad number`,
-[`Bad station number`](address:9357), and overflow errors as
+[`Bad station number`](address:9360), and overflow errors as
 appropriate. The body uses the standard 6502 idioms: `ASL ASL ASL
 ASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`
 for decimal `*10`. Two named callers: from `&A3C9` and `&A3F2`.""",
@@ -7368,7 +7368,7 @@ checks the access prefix. Validates the filename does not start
 with `'&'`, then falls through to
 [`read_filename_char`](address:9453) to copy remaining
 characters and send the request. Raises
-[`Bad file name`](address:9437) if a bare `CR` is found where
+[`Bad file name`](address:943C) if a bare `CR` is found where
 a filename was expected.""",
     on_entry={
         "y": "command line offset in text pointer",
@@ -7801,8 +7801,8 @@ d.subroutine(
     "set_fs_or_ps_cmos_station",
     title="Write FS/PS station+network to CMOS RAM",
     description="""Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
-(`*FS` at [`&A828`](address:A80F), `*PS` at
-[`&A82D`](address:A814)) when the caller supplies a `<net>.<stn>`
+(`*FS` at [`&A841`](address:A841), `*PS` at
+`&A846`) when the caller supplies a `<net>.<stn>`
 argument or wants to inspect/update the saved address.
 
 The flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte
@@ -7872,7 +7872,7 @@ labelled routine is [`cmd_space`](address:9618). Counterpart of
 
 Callers: [`set_fs_or_ps_cmos_station`](address:95ED) (once via
 `JSR`, once via fall-through), the `BRA` shortcut at
-[`&962D`](address:962E) inside [`cmd_nospace`](address:9622), and
+`&962C` inside [`cmd_nospace`](address:9622), and
 an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
 [`osopt_cmos_writeback_jsr`](address:A124).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"},
@@ -15946,7 +15946,7 @@ d.subroutine(
 at the current `Y` offset. Uses indexed addressing: `LDA
 ps_template_base,X` with `X` starting at `&F8`, so the effective
 read address is `ps_template_base+&F8 = ps_template_data`
-([`&8EB7`](address:8E9F)). The 6502 trick reaches data 248
+(`&8EB7`). The 6502 trick reaches data 248
 bytes past the base label in a single instruction; the base
 address (`ps_template_base`) deliberately falls inside the operand
 byte of a JSR instruction at `&8DA6` -- see
@@ -19441,6 +19441,12 @@ d.comment(0xB686, "Status = 1?", align=Align.INLINE)
 d.comment(0xB69D, "Not 1 or 2: default to jammed", align=Align.INLINE)
 
 # --- manual coverage-gap annotations ---
+d.index_base(0xA75B, "boot_cmd_lo_table")
+d.index_base(0xBFE6, "hazel_minus_1a")
+d.index_base(0xBFE6, "hazel_idx_bases")
+d.index_base(0xBFFE, "hazel_minus_2")
+d.comment(0xBFFE, "Base for `hazel_minus_2,Y` reads/writes -- `&BFFE + Y` reaches into HAZEL for Y >= 2", align=Align.INLINE)
+d.index_base(0xBFFF, "hazel_minus_1")
 d.label(0x80EA, "nmi_scout_data")
 d.label(0x87FC, "nmi_tx_switch_rx")
 d.label(0x882E, "nmi_reply_cont")
