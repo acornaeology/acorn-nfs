@@ -475,6 +475,8 @@ def main():
     # local so a rewrite that nets to zero displacement can't smear a far
     # anchor's delta across it.
     import bisect
+    from fantasm.api.mos6502 import opcode_tables
+    lengths, _ = opcode_tables(CPU_B)
     print("Interpolating data / label addresses in uniform-shift runs...",
           file=sys.stderr)
     romkeys = sorted(k for k in addr_map if 0x8000 <= k <= 0xBFFF)
@@ -482,6 +484,21 @@ def main():
     WINDOW = 120
     interp_count = 0
     interpolated = {}
+
+    def bytes_match(src, dst):
+        # Require the instruction/item bytes at the 4.21 source to be
+        # identical to those at the 4.24 candidate, so an annotation only
+        # relocates onto genuinely-unchanged code/data. Uses the 65C02
+        # opcode length at the source (min 1) as the comparison window;
+        # this catches operand-only edits (e.g. `lda #1` -> `lda #&2e`)
+        # that a bare position match would smear a stale comment across.
+        oa = src - 0x8000
+        ob = dst - 0x8000
+        L = max(1, lengths[data_a[oa]])
+        if ob + L > len(data_b) or oa + L > len(data_a):
+            return False
+        return data_a[oa:oa + L] == data_b[ob:ob + L]
+
     for addr in range(0x8000, 0xC000):
         if addr in addr_map:
             continue
@@ -494,7 +511,7 @@ def main():
             continue
         d1 = romvals[below] - below
         d2 = romvals[above] - above
-        if d1 == d2:
+        if d1 == d2 and bytes_match(addr, addr + d1):
             interpolated[addr] = addr + d1
             interp_count += 1
     addr_map.update(interpolated)

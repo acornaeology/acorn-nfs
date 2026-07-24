@@ -2032,21 +2032,8 @@ l8494 = sub_c8492+2
 ; &855e referenced 3 times by &8552, &8556, &855a
 .rts_advance_buf
     rts                                                               ; 855e: 60          `        ; Return
-; ***************************************************************************************
-; TX done dispatch lo-byte table (5 entries)
-;
-; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types &83-&87. Read by the
-; dispatch at dispatch_svc5 via LDA tx_done_dispatch_lo-&83,Y (the operand lands
-; mid-instruction inside set_rx_buf_len_hi). The dispatch trampoline pushes &85 as the
-; high byte, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes
-; and are not valid operation types. Per-entry inline comments identify each TX operation
-; type's handler.
-.tx_done_dispatch_lo
-    equb <(tx_done_jsr-1)                                             ; 855f: 63          c        ; op &83: remote JSR
-    equb <(tx_done_econet_event-1)                                    ; 8560: 6c          l        ; op &84: fire Econet event
-    equb <(tx_done_os_proc-1)                                         ; 8561: 7a          z        ; op &85: OSProc call
-    equb <(tx_done_halt-1)                                            ; 8562: 86          .        ; op &86: HALT
-    equb <(tx_done_continue-1)                                        ; 8563: 9d          .        ; op &87: CONTINUE
+    equs "clz"                                                        ; 855f: 63 6c 7a    clz   
+    equb &86, &9d                                                     ; 8562: 86 9d       ..    
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
@@ -3364,8 +3351,7 @@ l8a1e = sub_c8a1d+1
     equb >(fsreply_5_set_lib-1)                                       ; 8a85: a6          .        ; &2F: FS reply 5: set library
     equb >(net_1_read_handle-1)                                       ; 8a86: a4          .        ; &30: net handle 1: read handle
     equb >(net_2_read_entry-1)                                        ; 8a87: a4          .        ; &31: net handle 2: read handle entry
-    equb >(net_3_close_handle-1)                                      ; 8a88: a4          .        ; &32: net handle 3: close handle
-    equb &8b                                                          ; 8a89: 8b          .        ; padding (table has only 51 entries)
+    equb >(net_3_close_handle-1), &8b                                 ; 8a88: a4 8b       ..       ; &32: net handle 3: close handle
 ; ***************************************************************************************
 ; Service call dispatch (Master 128)
 ;
@@ -3821,7 +3807,7 @@ l8a1e = sub_c8a1d+1
     jsr print_inline                                                  ; 8c05: 20 6a 92     j.      ; Print two-space indent
     equs "  "                                                         ; 8c08: 20 20             
     ldy #9                                                            ; 8c0a: a0 09       ..       ; Y=9: cmd_table_fs sub-table 1 offset
-    lda cmd_table_fs,x                                                ; 8c0c: bd 80 a7    ...      ; Read cmd_table_fs+X (entry name byte)
+    lda cmd_table_fs,x                                                ; 8c0c: bd 80 a7    ...   
 ; &8c0f referenced 1 time by &8c17
 .loop_print_cmd_name
     jsr osasci                                                        ; 8c0f: 20 e3 ff     ..   
@@ -4030,7 +4016,7 @@ l8a1e = sub_c8a1d+1
 .version_string_cr
     equb &0d, "Advanced NFS 4.24", &0d                                ; 8cbb: 0d 41 64... .Ad...
     nop                                                               ; 8cce: ea          .        ; NOP -- bit-7 terminator + harmless resume opcode
-    jmp print_station_id                                              ; 8ccf: 4c ce 90    L..      ; Tail-call print_station_id to append ' Econet Station <n>' (and ' No Clock' if appropriate)
+    jmp print_station_id                                              ; 8ccf: 4c ce 90    L..   
 ; ***************************************************************************************
 ; Read workspace page number for current ROM slot
 ;
@@ -4270,7 +4256,7 @@ l8a1e = sub_c8a1d+1
 ; before continuing into the *I am / *Pass station-and-credential parser.
 .load_transfer_params
 ; &8dbf used as index base 1 time by &b412
-ps_template_base = load_transfer_params+1
+l8dbf = load_transfer_params+1
     jsr set_xfer_params                                               ; 8dbe: 20 dc 93     ..      ; Set up transfer parameters
     ply                                                               ; 8dc1: 7a          z     
     lda (fs_options),y                                                ; 8dc2: b1 bb       ..       ; Load first option byte
@@ -5147,7 +5133,7 @@ ps_template_base = load_transfer_params+1
     equs "Econet Station "                                            ; 90d1: 45 63 6f... Eco...   ; Print 'Econet Station ' via inline
     ldy #1                                                            ; 90e0: a0 01       ..       ; Y=1: PB station-byte offset
     lda (net_rx_ptr),y                                                ; 90e2: b1 9c       ..       ; Read RX[1] = station number
-    jsr print_num_no_leading                                          ; 90e4: 20 5a b3     Z.      ; Print as decimal (no leading zeros)
+    jsr print_num_no_leading                                          ; 90e4: 20 5a b3     Z.   
     lda #&20 ; ' '                                                    ; 90e7: a9 20       .        ; Space character
     bit econet_control23_or_status2                                   ; 90e9: 2c a1 fe    ,..      ; Check ADLC status register 2
     beq done_print_newline                                            ; 90ec: f0 0d       ..       ; Clock present: skip warning
@@ -6533,7 +6519,6 @@ ps_template_base = load_transfer_params+1
 ; dispatch. Note the '!Help.' bytes immediately following are an unrelated inline string
 ; used by the filename walker, not part of this routine's body.
 .dispatch_help_command
-help_topic_template = dispatch_help_command+1
     jmp svc4_dispatch_lookup                                          ; 9685: 4c 6b 8c    Lk.      ; JMP svc4_dispatch_lookup -- shared parser dispatch
     equs "!Help.*"                                                    ; 9688: 21 48 65... !He...   ; '!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)
     equb &0d                                                          ; 968f: 0d          .     
@@ -9048,7 +9033,7 @@ bad_prefix_table = bad_str_anchor+1
     and cmos_opt_mask_table,x                                         ; a10e: 3d 29 a1    =).      ; Mask CMOS &11 with cmos_opt_mask_table[X]
     ply                                                               ; a111: 7a          z     
     pha                                                               ; a112: 48          H        ; Push CMOS value
-    lda cmos_attr_table,x                                             ; a113: bd 25 a1    .%.      ; Load shift count from cmos_attr_table[X]
+    lda la125,x                                                       ; a113: bd 25 a1    .%.      ; Load shift count from cmos_attr_table[X]
     tax                                                               ; a116: aa          .        ; Value to X
     tya                                                               ; a117: 98          .        ; Caller's Y back to A as the value to shift
 ; &a118 referenced 1 time by &a11a
@@ -9063,7 +9048,7 @@ bad_prefix_table = bad_str_anchor+1
     ldx #&11                                                          ; a122: a2 11       ..       ; X=&11: target CMOS byte for write-back
 .osopt_cmos_writeback_jsr
 ; &a125 used as index base 1 time by &a113
-cmos_attr_table = osopt_cmos_writeback_jsr+1
+la125 = osopt_cmos_writeback_jsr+1
     jsr osbyte_a2                                                     ; a124: 20 11 96     ..      ; Write CMOS RAM byte (Y) to byte index (X)
     bra done_close                                                    ; a127: 80 99       ..       ; Tail-branch into the OSARGS done path
 ; ***************************************************************************************
@@ -10185,7 +10170,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; &a5c4 referenced 1 time by &a5ca
 .loop_check_exec_bytes
     inc hazel_txcb_flag,x                                             ; a5c4: fe 06 c1    ...      ; Increment execution address byte
-    bne library_path_string                                           ; a5c7: d0 2a       .*       ; Low byte = &6F
+    bne ca5f3                                                         ; a5c7: d0 2a       .*       ; Low byte = &6F
     dex                                                               ; a5c9: ca          .        ; Set osword_flag
     bne loop_check_exec_bytes                                         ; a5ca: d0 f8       ..       ; Loop until all checked
     lda #&93                                                          ; a5cc: a9 93       ..       ; A=&93: error code 'Bad command'
@@ -10217,8 +10202,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .library_dir_prefix
     equs "Library."                                                   ; a5eb: 4c 69 62... Lib...   ; Continue shift
 ; &a5f3 referenced 1 time by &a5c7
-.library_path_string
-    jsr copy_arg_to_buf_x0                                            ; a5f3: 20 d2 b2     ..      ; Copy parsed arg to TX buffer with X=0
+.ca5f3
+    jsr copy_arg_to_buf_x0                                            ; a5f3: 20 d2 b2     ..   
     ldy #0                                                            ; a5f6: a0 00       ..       ; Y=0
     clc                                                               ; a5f8: 18          .        ; For the loop entry
     jsr gsinit                                                        ; a5f9: 20 c2 ff     ..      ; Transfer found slot to A
@@ -10535,8 +10520,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     tya                                                               ; a724: 98          .        ; Result to A
     and #2                                                            ; a725: 29 02       ).       ; Mask bit 1 (auto-CLI flag)
     beq boot_persist_fs_maybe                                         ; a727: f0 07       ..       ; Bit clear: skip auto-CLI
-    ldx #<findlib_oscli_cmd                                           ; a729: a2 12       ..    
-    ldy #>findlib_oscli_cmd                                           ; a72b: a0 a7       ..    
+    ldx #&12                                                          ; a729: a2 12       ..    
+    ldy #&a7                                                          ; a72b: a0 a7       ..    
     jsr oscli                                                         ; a72d: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)
 ; &a730 referenced 1 time by &a727
 .boot_persist_fs_maybe
@@ -10587,27 +10572,10 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     equb &0d                                                          ; a761: 0d          .        ; CR terminator
 .boot_cmd_exec_str
     equs "E.-Net-!Boot"                                               ; a762: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
-    equb &0d                                                          ; a76e: 0d          .        ; CR terminator
-; ***************************************************************************************
-; Boot-command low-byte index table
-;
-; Four-byte table of OSCLI-pointer low bytes, indexed by Y in boot_cmd_oscli. Combined
-; with Y=&A7 (high byte, supplied by boot_cmd_oscli after the lookup), each entry yields
-; a pointer to a CR-terminated boot command in the &A7xx page.
-;
-; Three reachable entries (Y = 1, 2, 3); Y=0 is unreachable because boot_select_cmd BEQs
-; out when hazel_fs_flags is zero.
-;
-; Index 2 (&48) lands inside boot_cmd_load_str — at offset 7, on its ! byte — so OSCLI
-; reads "!Boot<CR>" from the middle of the same string used at index 1. This packs the
-; "run *!Boot on the current FS" variant into the same data as the load-via-NFS form,
-; saving a third CR-terminated string.
+    equb &0d                                                          ; a76e: 0d          .     
 ; &a76f used as index base 1 time by &a778
-.boot_cmd_lo_table
-    equb &6e                                                          ; a76f: 6e          n        ; Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead
-    equb <boot_cmd_load_str                                           ; a770: 55          U        ; Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'
-    equb <(boot_cmd_load_str + 7)                                     ; a771: 5c          \        ; Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS
-    equb <boot_cmd_exec_str                                           ; a772: 62          b        ; Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'
+.la76f
+    equs "nU\b"                                                       ; a76f: 6e 55 5c... nU\...
 ; ***************************************************************************************
 ; Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli
 ;
@@ -10640,7 +10608,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;     Y: boot-command index (1=load, 2=run-on-current-FS, 3=exec)
 ; &a778 referenced 1 time by &a5e8
 .boot_cmd_oscli
-    ldx boot_cmd_lo_table,y                                           ; a778: be 6f a7    .o.      ; Load boot-command low byte from boot_cmd_lo_table[Y]
+    ldx la76f,y                                                       ; a778: be 6f a7    .o.      ; Load boot-command low byte from boot_cmd_lo_table[Y]
     ldy #&a7                                                          ; a77b: a0 a7       ..       ; Y=&A7: high byte (boot strings live in &A7xx)
     jmp oscli                                                         ; a77d: 4c f7 ff    L..      ; Tail-jump to OSCLI to execute the boot command
 ; ***************************************************************************************
@@ -10712,14 +10680,19 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equs "Lib"                                                        ; a7f1: 4c 69 62    Lib      ; syn 5: <dir> -- set library
     equb &c5                                                          ; a7f4: c5          .        ; syn &5, V if no arg
     equw cmd_fs_operation-1                                           ; a7f5: 29 94       ).    
-    equs "Pass"                                                       ; a7f7: 50 61 73... Pas...
-    equb &c7, &ec, &8d                                                ; a7fb: c7 ec 8d    ...   
-    equs "Rename"                                                     ; a7fe: 52 65 6e... Ren...
-    equb &ca, &c9, &94                                                ; a804: ca c9 94    ...   
-    equs "Wipe"                                                       ; a807: 57 69 70... Wip...
-    equb &81, &1b, &b7, &80, &44, &8e, &4f, &6e, &80, &00, &00        ; a80b: 81 1b b7... ......
-    equs "Net"                                                        ; a816: 4e 65 74    Net   
-    equb &80, &e9, &8b                                                ; a819: 80 e9 8b    ...   
+    equs "Pass"                                                       ; a7f7: 50 61 73... Pas...   ; syn 7: <pass> ...
+    equb &c7                                                          ; a7fb: c7          .        ; syn &7, V if no arg
+    equw cmd_pass-1                                                   ; a7fc: ec 8d       ..    
+    equs "Rename"                                                     ; a7fe: 52 65 6e... Ren...   ; syn &A: <old> <new>
+    equb &ca                                                          ; a804: ca          .        ; syn &A, V if no arg
+    equw cmd_rename-1                                                 ; a805: c9 94       ..    
+    equs "Wipe"                                                       ; a807: 57 69 70... Wip...   ; syn 1: (<dir>) -- delete with confirm
+    equb &81                                                          ; a80b: 81          .        ; syn &1
+    equw cmd_wipe-1                                                   ; a80c: 1b b7       ..    
+    equb &80, &44, &8e, &4f, &6e, &80, &00, &00                       ; a80e: 80 44 8e... .D....
+    equs "Net"                                                        ; a816: 4e 65 74    Net      ; *HELP NET
+    equb &80                                                          ; a819: 80          .        ; no syn
+    equw help_net-1                                                   ; a81a: e9 8b       ..    
     equs "Utils"                                                      ; a81c: 55 74 69... Uti...   ; *HELP UTILS
     equb &80                                                          ; a821: 80          .        ; no syn
     equw help_utils-1                                                 ; a822: e5 8b       ..    
@@ -11036,20 +11009,13 @@ la891 = la88a+7
     bcs rts_osword_13                                                 ; a9bd: b0 08       ..       ; Out of range: return
     lda osword_13_dispatch_hi,x                                       ; a9bf: bd da a9    ...      ; Read dispatch hi from osword_13_dispatch_hi+X
     pha                                                               ; a9c2: 48          H        ; Push hi for RTS dispatch
-    lda osword_13_dispatch_lo,x                                       ; a9c3: bd c8 a9    ...      ; Read dispatch lo from osword_13_dispatch_lo+X
+    lda la9c8,x                                                       ; a9c3: bd c8 a9    ...      ; Read dispatch lo from osword_13_dispatch_lo+X
     pha                                                               ; a9c6: 48          H        ; Push lo for RTS dispatch
 ; &a9c7 referenced 1 time by &a9bd
 .rts_osword_13
     rts                                                               ; a9c7: 60          `        ; RTS -> dispatched OSWORD &13 sub-handler
-; ***************************************************************************************
-; OSWORD &13 dispatch low-byte table (18 entries)
-;
-; Read by osword_13_dispatch as LDA &A9A8,X. Paired with the high-byte half at
-; osword_13_dispatch_hi. Sub-codes 0..&11 cover read/set station, read/write workspace
-; pair, read/write protection, read/set handles, read RX flag/port/error, read context,
-; read/write CSD, read free buffers, read/write context 3, and bridge query.
 ; &a9c8 used as index base 1 time by &a9c3
-.osword_13_dispatch_lo
+.la9c8
     equb <(osword_13_read_station-1)                                  ; a9c8: eb          .        ; sub &00: osword_13_read_station (read FS station)
     equb <(osword_13_set_station-1)                                   ; a9c9: f9          .        ; sub &01: osword_13_set_station (set FS station)
     equb <(osword_13_read_ws_pair-1)                                  ; a9ca: b0          .        ; sub &02: osword_13_read_ws_pair (read workspace pair)
@@ -11577,7 +11543,7 @@ la891 = la88a+7
     beq use_default_station                                           ; abe2: f0 07       ..       ; Zero: use default station
 .compare_bridge_status
 ; &abe5 used as index base 1 time by &ac19
-bridge_err_table = compare_bridge_status+1
+labe5 = compare_bridge_status+1
     eor bridge_status                                                 ; abe4: 4d 72 0d    Mr.      ; Compare with bridge status
     bne rts_bridge_query                                              ; abe7: d0 07       ..       ; Non-zero: take return path
     beq store_bridge_station                                          ; abe9: f0 03       ..       ; Same: confirm station
@@ -11628,7 +11594,7 @@ bridge_err_table = compare_bridge_status+1
     ror econet_flags                                                  ; ac16: 6e 61 0d    na.      ; Rotate econet_flags right (save flag)
 ; &ac19 referenced 1 time by &ac25
 .loop_copy_bridge_init
-    lda bridge_err_table,y                                            ; ac19: b9 e5 ab    ...      ; Load init data byte
+    lda labe5,y                                                       ; ac19: b9 e5 ab    ...      ; Load init data byte
     sta (nfs_workspace),y                                             ; ac1c: 91 9e       ..       ; Store to workspace
     lda bridge_txcb_init_table,x                                      ; ac1e: bd f1 ab    ...      ; Load TXCB template byte
     sta txcb_ctrl,x                                                   ; ac21: 95 c0       ..       ; Store to TX control block
@@ -11919,19 +11885,12 @@ bridge_err_table = compare_bridge_status+1
 .push_osword_handler_addr
     lda netv_dispatch_hi,x                                            ; ad35: bd 49 ad    .I.      ; Load handler high byte from hi-table column X
     pha                                                               ; ad38: 48          H        ; Push for the eventual RTS dispatch
-    lda netv_dispatch_lo,x                                            ; ad39: bd 40 ad    .@.      ; Load handler low byte from lo-table column X
+    lda lad40,x                                                       ; ad39: bd 40 ad    .@.      ; Load handler low byte from lo-table column X
     pha                                                               ; ad3c: 48          H        ; Push lo so RTS pulls (lo, hi)+1 -> handler entry
     lda osbyte_a_copy                                                 ; ad3d: a5 ef       ..       ; Reload original OSWORD number into A for the handler
     rts                                                               ; ad3f: 60          `        ; RTS jumps to handler with A=OSWORD number
-; ***************************************************************************************
-; NETV reason-code dispatch low-byte table (9 entries)
-;
-; Read by push_osword_handler_addr as LDA &AD20,X. Paired with the high-byte half at
-; netv_dispatch_hi. The wrapper at netv_handler reads the original A from the MOS stack
-; frame (&0103,X after TSX) and gates 9..&FF away to return_6 before dispatching reasons
-; 0..8.
 ; &ad40 used as index base 1 time by &ad39
-.netv_dispatch_lo
+.lad40
     equb <(dispatch_rts-1)                                            ; ad40: 87          .        ; reason &00: dispatch_rts (no-op (RTS only))
     equb <(netv_print_data-1)                                         ; ad41: 8e          .        ; reason &01: netv_print_data (NETV reason 1: print data)
     equb <(netv_print_data-1)                                         ; ad42: 8e          .        ; reason &02: netv_print_data (NETV reason 2: print data (alias))
@@ -12642,11 +12601,11 @@ bridge_err_table = compare_bridge_status+1
     equb &9f                                                          ; b038: 9f          .        ; port=&9F
     equb &00                                                          ; b039: 00          .        ; dest station=&00 (filled later)
     equb &00                                                          ; b03a: 00          .        ; dest network=&00 (filled later)
-    equb &b7                                                          ; b03b: b7          .        ; buf start lo (&9F)
+    equb &b7                                                          ; b03b: b7          .     
     equb &8e                                                          ; b03c: 8e          .        ; buf start hi (&8E); start = &8E9F
     equb &ff                                                          ; b03d: ff          .        ; buf start ext lo=&FF
     equb &ff                                                          ; b03e: ff          .        ; buf start ext hi=&FF
-    equb &bf                                                          ; b03f: bf          .        ; buf end lo (&A7)
+    equb &bf                                                          ; b03f: bf          .     
     equb &8e                                                          ; b040: 8e          .        ; buf end hi (&8E); end = &8EA7
     equb &ff                                                          ; b041: ff          .        ; buf end ext lo=&FF
     equb &ff                                                          ; b042: ff          .        ; buf end ext hi=&FF
@@ -12661,7 +12620,7 @@ bridge_err_table = compare_bridge_status+1
 .rx_palette_txcb_template
     equb &7f                                                          ; b043: 7f          .        ; ctrl=&7F (RX listen)
     equb &9e                                                          ; b044: 9e          .        ; port=&9E
-    equb &fd                                                          ; b045: fd          .        ; skip: preserve dest station
+    equb &fd                                                          ; b045: fd          .     
     equb &fd                                                          ; b046: fd          .     
     equb &2e                                                          ; b047: 2e          .     
     equb &fc                                                          ; b048: fc          .        ; buf start hi=page ptr (&FC)
@@ -13028,21 +12987,21 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_hex_byte_no_spool                                       ; b1dc: 20 55 92     U.      ; Print option as hex
     jsr print_inline_no_spool                                         ; b1df: 20 93 92     ..      ; Print ' ('
     equs " ("                                                         ; b1e2: 20 28        (    
-    ldy option_str_offset_data,x                                      ; b1e4: bc cb b2    ...      ; Look up option-string offset for index X
+    ldy option_str_offset_data,x                                      ; b1e4: bc cb b2    ...   
 ; &b1e7 referenced 1 time by &b1f0
-.loop_print_dir_format
-    lda option_offset_table,y                                         ; b1e7: b9 cf b2    ...      ; Look up option byte at the resolved offset
+.loop_cb1e7
+    lda option_offset_table,y                                         ; b1e7: b9 cf b2    ...   
     bmi print_dir_header                                              ; b1ea: 30 06       0.       ; Bit 7 of A set (negative): print directory header
-    jsr print_char_no_spool                                           ; b1ec: 20 04 92     ..      ; Print char (no spool)
+    jsr print_char_no_spool                                           ; b1ec: 20 04 92     ..   
     iny                                                               ; b1ef: c8          .        ; Advance Y
-    bne loop_print_dir_format                                         ; b1f0: d0 f5       ..       ; Loop until Y wraps
+    bne loop_cb1e7                                                    ; b1f0: d0 f5       ..       ; Loop until Y wraps
 ; &b1f2 referenced 1 time by &b1ea
 .print_dir_header
     jsr print_inline_no_spool                                         ; b1f2: 20 93 92     ..      ; Print ')\rDir. ' header for the directory listing
     equs ")", &0d, "Dir. "                                            ; b1f5: 29 0d 44... ).D...
     ldx #&11                                                          ; b1fc: a2 11       ..       ; X=&11: filename offset in TX buffer
-    jsr print_10_chars                                                ; b1fe: 20 4d b2     M.      ; Print 10-char filename
-    jsr print_inline_no_spool                                         ; b201: 20 93 92     ..      ; Print inline 'attr-bits' fragment
+    jsr print_10_chars                                                ; b1fe: 20 4d b2     M.   
+    jsr print_inline_no_spool                                         ; b201: 20 93 92     ..   
     equs "     Lib. "                                                 ; b204: 20 20 20...    ...   ; label for *Ex output
     ldx #&1b                                                          ; b20e: a2 1b       ..       ; X=&1B: extension offset in TX buffer
     jsr print_10_chars                                                ; b210: 20 4d b2     M.      ; Print 10-char extension
@@ -13325,7 +13284,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .loop_scan_entries
     lda hazel_txcb_data,x                                             ; b310: bd 05 c1    ...      ; Read entry byte at hazel_txcb_data+X
     bmi rts_copy_arg                                                  ; b313: 30 e8       0.       ; Bit 7 set: end-of-entries -> return
-    bne col_sep_print_cr                                              ; b315: d0 15       ..       ; Non-printable: take CR-newline path at col_sep_print_cr
+    bne cb32c                                                         ; b315: d0 15       ..       ; Non-printable: take CR-newline path at col_sep_print_cr
 ; ***************************************************************************************
 ; Print column separator or newline for *Ex/*Cat
 ;
@@ -13349,8 +13308,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .col_sep_eol_check
     lda #&0d                                                          ; b32a: a9 0d       ..       ; A=&0D: CR character
 ; &b32c referenced 1 time by &b315
-.col_sep_print_cr
-    jsr print_char_no_spool                                           ; b32c: 20 04 92     ..      ; Print CR (no spool)
+.cb32c
+    jsr print_char_no_spool                                           ; b32c: 20 04 92     ..   
 ; &b32f referenced 1 time by &b328
 .col_sep_print_char
     inx                                                               ; b32f: e8          .        ; Next entry
@@ -13657,7 +13616,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ldx #&f8                                                          ; b410: a2 f8       ..       ; X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F)
 ; &b412 referenced 1 time by &b419
 .loop_copy_ps_tmpl
-    lda ps_template_base,x                                            ; b412: bd bf 8d    ...      ; Read template byte from ps_template_data + (X-&F8)
+    lda l8dbf,x                                                       ; b412: bd bf 8d    ...      ; Read template byte from ps_template_data + (X-&F8)
     sta (net_rx_ptr),y                                                ; b415: 91 9c       ..       ; Store into RX buffer at offset Y
     iny                                                               ; b417: c8          .        ; Step destination
     inx                                                               ; b418: e8          .        ; Step source -- wraps from &FF to &00 to terminate
@@ -13887,7 +13846,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     sta (nfs_workspace),y                                             ; b535: 91 9e       ..       ; Store as second-link byte
 .write_ps_slot_hi_link
 ; &b538 used as index base 1 time by &b6d1
-ps_print_template = write_ps_slot_hi_link+1
+lb538 = write_ps_slot_hi_link+1
     jsr write_ps_slot_byte_ff                                         ; b537: 20 57 b5     W.      ; Write another buffer page + two &FF sentinels
     jmp skip_next_ps_slot                                             ; b53a: 4c 11 b5    L..      ; Continue scanning slots
 ; &b53d referenced 2 times by &b504, &b50b
@@ -14232,7 +14191,7 @@ ps_print_template = write_ps_slot_hi_link+1
     ldy #&78 ; 'x'                                                    ; b6cf: a0 78       .x       ; Start at offset &78
 ; &b6d1 referenced 1 time by &b6e3
 .loop_copy_slot_tmpl
-    lda ps_print_template,y                                           ; b6d1: b9 38 b5    .8.      ; Load template byte
+    lda lb538,y                                                       ; b6d1: b9 38 b5    .8.      ; Load template byte
     cpy #&7d ; '}'                                                    ; b6d4: c0 7d       .}       ; At offset &7D?
     beq subst_rx_page_byte                                            ; b6d6: f0 04       ..       ; Yes: substitute RX page
     cpy #&81                                                          ; b6d8: c0 81       ..       ; At offset &81?
@@ -16769,12 +16728,10 @@ save pydis_start, pydis_end
 ;     bad_prefix_table:                         1
 ;     begin_prot_encode:                        1
 ;     boot_cancel_rts:                          1
-;     boot_cmd_lo_table:                        1
 ;     boot_cmd_oscli:                           1
 ;     boot_persist_fs_maybe:                    1
 ;     boot_try_findlib:                         1
 ;     bra_target_svc_return:                    1
-;     bridge_err_table:                         1
 ;     bridge_found:                             1
 ;     bridge_responded:                         1
 ;     bridge_txcb_init_table:                   1
@@ -16785,6 +16742,7 @@ save pydis_start, pydis_end
 ;     c851d:                                    1
 ;     c85b9:                                    1
 ;     c9fb6:                                    1
+;     ca5f3:                                    1
 ;     caf94:                                    1
 ;     cafad:                                    1
 ;     cafc7:                                    1
@@ -16793,6 +16751,7 @@ save pydis_start, pydis_end
 ;     call_fscv:                                1
 ;     cat_after_label_print:                    1
 ;     cat_set_lib_flag:                         1
+;     cb32c:                                    1
 ;     cb4af:                                    1
 ;     cb62b:                                    1
 ;     cb66c:                                    1
@@ -16856,10 +16815,8 @@ save pydis_start, pydis_end
 ;     cmd_syntax_strings:                       1
 ;     cmd_syntax_table:                         1
 ;     cmd_table_nfs_iam:                        1
-;     cmos_attr_table:                          1
 ;     cmos_opt_mask_table:                      1
 ;     col_sep_print_char:                       1
-;     col_sep_print_cr:                         1
 ;     commit_workspace_pages:                   1
 ;     complete_nfs_init:                        1
 ;     copy_addr_loop:                           1
@@ -17048,11 +17005,17 @@ save pydis_start, pydis_end
 ;     l8a1e:                                    1
 ;     l8a23:                                    1
 ;     l8a56:                                    1
+;     l8dbf:                                    1
+;     la125:                                    1
+;     la76f:                                    1
 ;     la88a:                                    1
 ;     la891:                                    1
+;     la9c8:                                    1
+;     labe5:                                    1
+;     lad40:                                    1
 ;     last_break_type:                          1
+;     lb538:                                    1
 ;     library_dir_prefix:                       1
-;     library_path_string:                      1
 ;     library_tried:                            1
 ;     load_chan_handle:                         1
 ;     load_char:                                1
@@ -17069,6 +17032,7 @@ save pydis_start, pydis_end
 ;     loop_bcd_add:                             1
 ;     loop_bridge_tx_delay:                     1
 ;     loop_build_wipe_cmd:                      1
+;     loop_cb1e7:                               1
 ;     loop_cb637:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
@@ -17182,7 +17146,6 @@ save pydis_start, pydis_end
 ;     loop_pop_ps_slot:                         1
 ;     loop_print_addr_byte:                     1
 ;     loop_print_cmd_name:                      1
-;     loop_print_dir_format:                    1
 ;     loop_print_dump_ascii:                    1
 ;     loop_print_dump_hex:                      1
 ;     loop_print_filename:                      1
@@ -17257,7 +17220,6 @@ save pydis_start, pydis_end
 ;     net_error_close_spool:                    1
 ;     netv:                                     1
 ;     netv_dispatch_hi:                         1
-;     netv_dispatch_lo:                         1
 ;     next_flag_entry:                          1
 ;     next_hex_char:                            1
 ;     next_scout_byte:                          1
@@ -17298,7 +17260,6 @@ save pydis_start, pydis_end
 ;     osfind_with_channel:                      1
 ;     osopt_check_cmos_protect:                 1
 ;     osword_13_dispatch_hi:                    1
-;     osword_13_dispatch_lo:                    1
 ;     osword_13_read_ctx_3:                     1
 ;     osword_13_write_ctx_3:                    1
 ;     osword_claim_codes:                       1
@@ -17341,8 +17302,6 @@ save pydis_start, pydis_end
 ;     private_ws_set_bit:                       1
 ;     process_reply_code:                       1
 ;     prot_bit_encode_table:                    1
-;     ps_print_template:                        1
-;     ps_template_base:                         1
 ;     ps_tx_header_template:                    1
 ;     push_osword_handler_addr:                 1
 ;     read_cat_info:                            1
@@ -17612,9 +17571,11 @@ save pydis_start, pydis_end
 ;     c9fab
 ;     c9faf
 ;     c9fb6
+;     ca5f3
 ;     caf94
 ;     cafad
 ;     cafc7
+;     cb32c
 ;     cb4af
 ;     cb62b
 ;     cb66c
@@ -17632,10 +17593,18 @@ save pydis_start, pydis_end
 ;     l8a1e
 ;     l8a23
 ;     l8a56
+;     l8dbf
+;     la125
+;     la76f
 ;     la88a
 ;     la891
+;     la9c8
+;     labe5
+;     lad40
+;     lb538
 ;     lbffe
 ;     lbfff
+;     loop_cb1e7
 ;     loop_cb637
 ;     return_1
 ;     return_2
@@ -17659,7 +17628,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2263 bytes (14%)
 ;
 ;     Number of instructions   = 6960
-;     Number of data bytes     = 898 bytes
-;     Number of data words     = 78 bytes
-;     Number of string bytes   = 1287 bytes
-;     Number of strings        = 150
+;     Number of data bytes     = 883 bytes
+;     Number of data words     = 86 bytes
+;     Number of string bytes   = 1294 bytes
+;     Number of strings        = 152
