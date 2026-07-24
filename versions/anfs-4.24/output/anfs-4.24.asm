@@ -1325,8 +1325,8 @@ rom_header_byte2 = rom_header_byte1+1
     lda escapable                                                     ; 8288: a5 97       ..    
     sta acccon                                                        ; 828a: 8d 34 fe    .4.   
     lda econet_data_continue_frame                                    ; 828d: ad a2 fe    ...   
-    ldy port_buf_len                                                  ; 8290: a4 a2       ..    
-    sta (open_port_buf),y                                             ; 8292: 91 a4       ..    
+    ldy port_buf_len                                                  ; 8290: a4 a2       ..       ; Y = current buffer write offset
+    sta (open_port_buf),y                                             ; 8292: 91 a4       ..       ; Store last byte in port receive buffer
     pla                                                               ; 8294: 68          h     
     sta acccon                                                        ; 8295: 8d 34 fe    .4.   
     inc port_buf_len                                                  ; 8298: e6 a2       ..       ; Advance buffer write offset
@@ -1959,7 +1959,7 @@ l8494 = sub_c8492+2
     equb &bb, &9d, &9d, &9d, &e0, &e0, &f1                            ; 8516: bb 9d 9d... ......
 ; &851d referenced 1 time by &83a4
 .c851d
-    lda port_buf_len                                                  ; 851d: a5 a2       ..    
+    lda port_buf_len                                                  ; 851d: a5 a2       ..       ; Get buffer position for reply header
     clc                                                               ; 851f: 18          .     
     adc #&80                                                          ; 8520: 69 80       i.       ; Data offset = buf_len + &80 (past header)
     ldy #&7f                                                          ; 8522: a0 7f       ..       ; Y=&7F: reply data length slot
@@ -2156,7 +2156,7 @@ l8494 = sub_c8492+2
 ; &85ad referenced 3 times by &819d, &84d4, &87a4
 .sub_c85ad
     cld                                                               ; 85ad: d8          .     
-    lda acccon                                                        ; 85ae: ad 34 fe    .4.   
+    lda acccon                                                        ; 85ae: ad 34 fe    .4.      ; Read ACCCON (Master 128 access-control register)
     ora #8                                                            ; 85b1: 09 08       ..       ; Set bit 3 of A (transfer-mode flag)
     sta escapable                                                     ; 85b3: 85 97       ..       ; Store as escapable mode
     ldy #7                                                            ; 85b5: a0 07       ..       ; Y=7: scout-bytes counter
@@ -2349,11 +2349,11 @@ l85c1 = sub_c85c0+1
     sei                                                               ; 86ba: 78          x     
     lda #&40 ; '@'                                                    ; 86bb: a9 40       .@    
     sta l0d1c                                                         ; 86bd: 8d 1c 0d    ...   
-    bit disable_net_nmis                                              ; 86c0: 2c 38 fe    ,8.   
-    lda #4                                                            ; 86c3: a9 04       ..    
-    bit econet_control23_or_status2                                   ; 86c5: 2c a1 fe    ,..   
+    bit disable_net_nmis                                              ; 86c0: 2c 38 fe    ,8.      ; INTOFF -- disable NMIs
+    lda #4                                                            ; 86c3: a9 04       ..       ; A=&04: INACTIVE bit mask for SR2 test
+    bit econet_control23_or_status2                                   ; 86c5: 2c a1 fe    ,..      ; Z = &04 AND SR2 -- tests INACTIVE
     beq c86db                                                         ; 86c8: f0 11       ..    
-    lda econet_control1_or_status1                                    ; 86ca: ad a0 fe    ...   
+    lda econet_control1_or_status1                                    ; 86ca: ad a0 fe    ...      ; Read SR1 (acknowledge pending interrupt)
     bmi c86db                                                         ; 86cd: 30 0c       0.    
     lda #&67 ; 'g'                                                    ; 86cf: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 86d1: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
@@ -3171,10 +3171,10 @@ tx_flags_table = check_tube_irq_loop+1
     bne poll_nmi_idle                                                 ; 89e3: d0 f9       ..       ; Not idle: spin and wait
     lda nmi_jmp_hi                                                    ; 89e5: ad 0d 0d    ...      ; Read current NMI handler high byte
     cmp #&80                                                          ; 89e8: c9 80       ..    
-    bne poll_nmi_idle                                                 ; 89ea: d0 f2       ..    
+    bne poll_nmi_idle                                                 ; 89ea: d0 f2       ..       ; Not idle: spin and wait
     lda #&40 ; '@'                                                    ; 89ec: a9 40       .@    
     sta l0d1c                                                         ; 89ee: 8d 1c 0d    ...   
-    bit disable_net_nmis                                              ; 89f1: 2c 38 fe    ,8.   
+    bit disable_net_nmis                                              ; 89f1: 2c 38 fe    ,8.      ; INTOFF: disable NMIs
     lda #0                                                            ; 89f4: a9 00       ..    
     sta tx_complete_flag                                              ; 89f6: 8d 60 0d    .`.      ; TX not in progress
     sta econet_init_flag                                              ; 89f9: 8d 62 0d    .b.      ; Econet not initialised
@@ -3408,7 +3408,7 @@ l8a1e = sub_c8a1d+1
     jsr osbyte                                                        ; 8a94: 20 f4 ff     ..      ; X=1, OS 1.20 or American OS
     lda l8a1e,x                                                       ; 8a97: bd 1e 8a    ...      ; X is the host OS version (0=1.00, 1=1.20, 3=Master, 4=Master Terminal, 5=Master Compact)
     sta spool_control_flag                                            ; 8a9a: 8d 71 0d    .q.   
-    cpx #3                                                            ; 8a9d: e0 03       ..    
+    cpx #3                                                            ; 8a9d: e0 03       ..       ; OS 3.2/3.5 (Master 128)?
     bcs restore_rom_slot                                              ; 8a9f: b0 21       .!    
     txa                                                               ; 8aa1: 8a          .        ; Transfer OS version to A
     php                                                               ; 8aa2: 08          .        ; Save flags (Z set if OS 1.00) across print
@@ -4096,10 +4096,10 @@ l8a1e = sub_c8a1d+1
     jsr select_fs_via_cmd_net_fs                                      ; 8d02: 20 78 8b     x.      ; Select NFS as current filing system
     jsr print_station_id                                              ; 8d05: 20 ce 90     ..   
     jsr osnewl                                                        ; 8d08: 20 e7 ff     ..   
-    lda #0                                                            ; 8d0b: a9 00       ..    
-    sta svc_state                                                     ; 8d0d: 85 a9       ..    
-    ldx ws_page                                                       ; 8d0f: a6 a8       ..    
-    bne rts_setup_ws_ptr                                              ; 8d11: d0 d8       ..    
+    lda #0                                                            ; 8d0b: a9 00       ..       ; A=0: clear svc_state marker
+    sta svc_state                                                     ; 8d0d: 85 a9       ..       ; Store -> svc_state
+    ldx ws_page                                                       ; 8d0f: a6 a8       ..       ; Get workspace page
+    bne rts_setup_ws_ptr                                              ; 8d11: d0 d8       ..       ; Non-zero: already initialised, return
     lda #4                                                            ; 8d13: a9 04       ..    
     tsb hazel_fs_lib_flags                                            ; 8d15: 0c 71 c2    .q.   
     ldx #&3e ; '>'                                                    ; 8d18: a2 3e       .>       ; X=&3E: boot filename address low
@@ -6523,27 +6523,31 @@ l8dbf = load_transfer_params+1
     equs "!Help.*"                                                    ; 9688: 21 48 65... !He...   ; '!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)
     equb &0d                                                          ; 968f: 0d          .     
     equs "Z,l"                                                        ; 9690: 5a 2c 6c    Z,l   
-    equb &0d, &50, &19, &a5, &f2, &85, &ae, &a5, &f3, &85, &af, &b1   ; 9693: 0d 50 19... .P....
-    equb &ae                                                          ; 969f: ae          .     
+    equb &0d, &50, &19                                                ; 9693: 0d 50 19    .P.   
+    equb &a5, &f2                                                     ; 9696: a5 f2       ..       ; Copy os_text_ptr lo to work_ae
+    equb &85, &ae                                                     ; 9698: 85 ae       ..       ; Store -> work_ae
+    equb &a5, &f3                                                     ; 969a: a5 f3       ..       ; Copy os_text_ptr hi
+    equb &85, &af, &b1, &ae                                           ; 969c: 85 af b1... ......   ; Store -> addr_work
     equs "IO)_"                                                       ; 96a0: 49 4f 29... IO)...
     equb &d0, &09, &c8, &b1, &ae                                      ; 96a4: d0 09 c8... ......
     equs "IN)_"                                                       ; 96a9: 49 4e 29... IN)...
-    equb &f0, &02, &7a, &60                                           ; 96ad: f0 02 7a... ..z...
+    equb &f0, &02, &7a, &60                                           ; 96ad: f0 02 7a... ..z...   ; Equal: continue checking pattern
     equb &5a                                                          ; 96b1: 5a          Z        ; Match: save Y
     equb &20, &73, &8b                                                ; 96b2: 20 73 8b     s.      ; Ensure NFS is selected (auto-select if needed)
 .match_char_process
     equb &7a                                                          ; 96b5: 7a          z     
 .loop_skip_non_spaces
     equb &c8                                                          ; 96b6: c8          .        ; Advance Y to next char
-    equb &b1, &ae, &2c, &67, &97, &c9, &20, &90, &03, &f0, &f4, &b8   ; 96b7: b1 ae 2c... ..,...   ; Read text byte at (work_ae)+Y
+    equb &b1, &ae, &2c, &67, &97                                      ; 96b7: b1 ae 2c... ..,...   ; Read text byte at (work_ae)+Y
+    equb &c9, &20, &90, &03, &f0, &f4, &b8                            ; 96bc: c9 20 90... . ....   ; Is it space?
     equb &8c, &05, &c1                                                ; 96c3: 8c 05 c1    ...      ; Save Y as hazel_txcb_data (cmd buffer ptr)
     equb &8c, &06, &c1                                                ; 96c6: 8c 06 c1    ...      ; Save Y as hazel_txcb_flag (cmd flag)
     equb &a2, &01                                                     ; 96c9: a2 01       ..       ; X=1: index for template walk
 .loop_copy_command_suffix
     equb &e8                                                          ; 96cb: e8          .        ; Advance template index
     equb &bd, &86, &96                                                ; 96cc: bd 86 96    ...      ; Read template byte from help_topic_template+X
-    equb &9d, &05, &c1, &50, &07, &c9, &0d, &d0, &f3, &c8, &80, &17   ; 96cf: 9d 05 c1... ......
-    equb &c9, &2e, &d0, &ec                                           ; 96db: c9 2e d0... ......   ; Store at hazel_txcb_data+X
+    equb &9d, &05, &c1, &50, &07, &c9, &0d, &d0, &f3, &c8, &80, &17   ; 96cf: 9d 05 c1... ......   ; Store at hazel_txcb_data+X
+    equb &c9, &2e, &d0, &ec                                           ; 96db: c9 2e d0... ......   ; Compare with '.' (template terminator)
 .loop_copy_topic_name
     equb &e8                                                          ; 96df: e8          .        ; Advance dest index
     equb &b1, &ae                                                     ; 96e0: b1 ae       ..       ; Read topic char at (work_ae),Y
@@ -6570,9 +6574,9 @@ l8dbf = load_transfer_params+1
     equb &20, &d7, &ff                                                ; 9708: 20 d7 ff     ..   
     equb &90, &16                                                     ; 970b: 90 16       ..       ; C clear: byte read OK -> print it
     equb &a9, &00, &20, &ce, &ff, &20, &e7, &ff, &7a, &88, &88, &c8   ; 970d: a9 00 20... .. ...
-    equb &b1, &ae, &c9, &20, &90, &90, &f0, &f7, &80, &9f, &24, &ff   ; 9719: b1 ae c9... ......
-    equb &10, &03, &4c, &5d, &bd, &20, &ee, &ff, &c9, &0d, &d0, &d7   ; 9725: 10 03 4c... ..L...
-    equb &ae, &6a, &02                                                ; 9731: ae 6a 02    .j.      ; A=0: OSFIND close mode
+    equb &b1, &ae, &c9, &20, &90, &90, &f0, &f7, &80, &9f, &24, &ff   ; 9719: b1 ae c9... ......   ; A=0: OSFIND close mode
+    equb &10, &03, &4c, &5d, &bd, &20, &ee, &ff                       ; 9725: 10 03 4c... ..L...   ; Bit 7 clear: not escaping, continue
+    equb &c9, &0d, &d0, &d7, &ae, &6a, &02                            ; 972d: c9 0d d0... ......   ; Compare with CR
     equb &d0, &d2, &20, &e7, &ff                                      ; 9734: d0 d2 20... .. ...   ; Non-zero: paged mode pending -> handle Escape
     equb &80, &cd                                                     ; 9739: 80 cd       ..       ; BRA back to read next byte
 ; ***************************************************************************************
@@ -10785,7 +10789,8 @@ svc_8_osword_disp = svc_8_osword+1
 ; &a891 used as index base 1 time by &a87d
 la891 = la88a+7
     equb &97, &88, &2f, &4c, &a4, &b9, &66, &a8, &a8, &a9, &a9, &a9   ; a88a: 97 88 2f... ../...
-    equb &a9, &ac                                                     ; a896: a9 ac       ..    
+    equb &a9                                                          ; a896: a9          .     
+    equb &ac                                                          ; a897: ac          .        ; Load template source pointer
     equs "H s"                                                        ; a898: 48 20 73    H s   
     equb &8b, &68, &3a, &f0, &10, &c9, &03, &f0, &0c, &1a             ; a89b: 8b 68 3a... .h:...
     equb &f0, &60                                                     ; a8a5: f0 60       .`       ; Equal: take save_txcb_and_convert path
@@ -12511,7 +12516,7 @@ labe5 = compare_bridge_status+1
     equs "Printer off line", &00                                      ; afb6: 50 72 69... Pri...
 ; &afc7 referenced 1 time by &afaf
 .cafc7
-    lda #&a7                                                          ; afc7: a9 a7       ..    
+    lda #&a7                                                          ; afc7: a9 a7       ..       ; A=&A7: 'Printer jammed' error code
     jsr error_inline_log                                              ; afc9: 20 be 99     ..      ; Raise via error_inline_log (never returns)
     equs "Printer jammed", &00                                        ; afcc: 50 72 69... Pri...
 ; ***************************************************************************************
@@ -12710,7 +12715,7 @@ labe5 = compare_bridge_status+1
 .serialise_palette_entry
     lda vdu_mode                                                      ; b09b: ad 55 03    .U.      ; Read vdu_mode (current palette index)
     tax                                                               ; b09e: aa          .     
-    ora #&40 ; '@'                                                    ; b09f: 09 40       .@    
+    ora #&40 ; '@'                                                    ; b09f: 09 40       .@       ; Mark as palette entry
     sta (nfs_workspace),y                                             ; b0a1: 91 9e       ..    
     inc nfs_workspace                                                 ; b0a3: e6 9e       ..       ; Advance workspace
     tya                                                               ; b0a5: 98          .        ; A = current Y (= 0)
@@ -14071,7 +14076,7 @@ lb538 = write_ps_slot_hi_link+1
     beq cb62b                                                         ; b60f: f0 1a       ..    
     jsr print_inline                                                  ; b611: 20 6a 92     j.   
     equb &22                                                          ; b614: 22          "     
-    ldy #&18                                                          ; b615: a0 18       ..    
+    ldy #&18                                                          ; b615: a0 18       ..       ; Y=&18: name field offset in RX buffer
 ; &b617 referenced 1 time by &b623
 .loop_print_poll_name
     lda (net_rx_ptr),y                                                ; b617: b1 9c       ..       ; Get character from name field

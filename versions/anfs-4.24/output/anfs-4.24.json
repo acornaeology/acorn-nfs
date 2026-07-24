@@ -10785,6 +10785,7 @@
         164,
         162
       ],
+      "comment_inline": "Y = current buffer write offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "port_buf_len",
@@ -10797,6 +10798,7 @@
         145,
         164
       ],
+      "comment_inline": "Store last byte in port receive buffer",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(open_port_buf),y",
@@ -14975,6 +14977,7 @@
       "labels": [
         "c851d"
       ],
+      "comment_inline": "Get buffer position for reply header",
       "xref_summaries": [
         "&851d referenced 1 time by &83a4"
       ],
@@ -15938,6 +15941,7 @@
         52,
         254
       ],
+      "comment_inline": "Read ACCCON (Master 128 access-control register)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "acccon",
@@ -17804,6 +17808,7 @@
         56,
         254
       ],
+      "comment_inline": "INTOFF -- disable NMIs",
       "type": "code",
       "mnemonic": "bit",
       "operand": "disable_net_nmis",
@@ -17816,6 +17821,7 @@
         169,
         4
       ],
+      "comment_inline": "A=&04: INACTIVE bit mask for SR2 test",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -17827,6 +17833,7 @@
         161,
         254
       ],
+      "comment_inline": "Z = &04 AND SR2 -- tests INACTIVE",
       "type": "code",
       "mnemonic": "bit",
       "operand": "econet_control23_or_status2",
@@ -17852,6 +17859,7 @@
         160,
         254
       ],
+      "comment_inline": "Read SR1 (acknowledge pending interrupt)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "econet_control1_or_status1",
@@ -22977,6 +22985,7 @@
         208,
         242
       ],
+      "comment_inline": "Not idle: spin and wait",
       "type": "code",
       "mnemonic": "bne",
       "operand": "poll_nmi_idle",
@@ -23013,6 +23022,7 @@
         56,
         254
       ],
+      "comment_inline": "INTOFF: disable NMIs",
       "type": "code",
       "mnemonic": "bit",
       "operand": "disable_net_nmis",
@@ -24867,6 +24877,7 @@
         224,
         3
       ],
+      "comment_inline": "OS 3.2/3.5 (Master 128)?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#3"
@@ -29138,6 +29149,7 @@
         169,
         0
       ],
+      "comment_inline": "A=0: clear svc_state marker",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#0"
@@ -29148,6 +29160,7 @@
         133,
         169
       ],
+      "comment_inline": "Store -> svc_state",
       "type": "code",
       "mnemonic": "sta",
       "operand": "svc_state",
@@ -29160,6 +29173,7 @@
         166,
         168
       ],
+      "comment_inline": "Get workspace page",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "ws_page",
@@ -29172,6 +29186,7 @@
         208,
         216
       ],
+      "comment_inline": "Non-zero: already initialised, return",
       "type": "code",
       "mnemonic": "bne",
       "operand": "rts_setup_ws_ptr",
@@ -44357,29 +44372,65 @@
       "bytes": [
         13,
         80,
-        25,
-        165,
-        242,
-        133,
-        174,
-        165,
-        243,
-        133,
-        175,
-        177,
-        174
+        25
       ],
       "type": "byte",
       "values": [
         13,
         80,
-        25,
+        25
+      ]
+    },
+    {
+      "addr": 38550,
+      "bytes": [
         165,
-        242,
+        242
+      ],
+      "comment_inline": "Copy os_text_ptr lo to work_ae",
+      "type": "byte",
+      "values": [
+        165,
+        242
+      ]
+    },
+    {
+      "addr": 38552,
+      "bytes": [
         133,
-        174,
+        174
+      ],
+      "comment_inline": "Store -> work_ae",
+      "type": "byte",
+      "values": [
+        133,
+        174
+      ]
+    },
+    {
+      "addr": 38554,
+      "bytes": [
         165,
-        243,
+        243
+      ],
+      "comment_inline": "Copy os_text_ptr hi",
+      "type": "byte",
+      "values": [
+        165,
+        243
+      ]
+    },
+    {
+      "addr": 38556,
+      "bytes": [
+        133,
+        175,
+        177,
+        174
+      ],
+      "comment_inline": "Store -> addr_work",
+      "type": "byte",
+      "values": [
         133,
         175,
         177,
@@ -44434,6 +44485,7 @@
         122,
         96
       ],
+      "comment_inline": "Equal: continue checking pattern",
       "type": "byte",
       "values": [
         240,
@@ -44502,14 +44554,7 @@
         174,
         44,
         103,
-        151,
-        201,
-        32,
-        144,
-        3,
-        240,
-        244,
-        184
+        151
       ],
       "comment_inline": "Read text byte at (work_ae)+Y",
       "type": "byte",
@@ -44518,7 +44563,23 @@
         174,
         44,
         103,
-        151,
+        151
+      ]
+    },
+    {
+      "addr": 38588,
+      "bytes": [
+        201,
+        32,
+        144,
+        3,
+        240,
+        244,
+        184
+      ],
+      "comment_inline": "Is it space?",
+      "type": "byte",
+      "values": [
         201,
         32,
         144,
@@ -44614,11 +44675,7 @@
         243,
         200,
         128,
-        23,
-        201,
-        46,
-        208,
-        236
+        23
       ],
       "comment_inline": "Store at hazel_txcb_data+X",
       "type": "byte",
@@ -44634,7 +44691,20 @@
         243,
         200,
         128,
-        23,
+        23
+      ]
+    },
+    {
+      "addr": 38619,
+      "bytes": [
+        201,
+        46,
+        208,
+        236
+      ],
+      "comment_inline": "Compare with '.' (template terminator)",
+      "type": "byte",
+      "values": [
         201,
         46,
         208,
@@ -44959,22 +45029,7 @@
         128,
         159,
         36,
-        255,
-        16,
-        3,
-        76,
-        93,
-        189,
-        32,
-        238,
-        255,
-        201,
-        13,
-        208,
-        215,
-        174,
-        106,
-        2
+        255
       ],
       "comment_inline": "A=0: OSFIND close mode",
       "type": "byte",
@@ -45002,7 +45057,12 @@
         128,
         159,
         36,
-        255,
+        255
+      ]
+    },
+    {
+      "addr": 38693,
+      "bytes": [
         16,
         3,
         76,
@@ -45010,7 +45070,35 @@
         189,
         32,
         238,
-        255,
+        255
+      ],
+      "comment_inline": "Bit 7 clear: not escaping, continue",
+      "type": "byte",
+      "values": [
+        16,
+        3,
+        76,
+        93,
+        189,
+        32,
+        238,
+        255
+      ]
+    },
+    {
+      "addr": 38701,
+      "bytes": [
+        201,
+        13,
+        208,
+        215,
+        174,
+        106,
+        2
+      ],
+      "comment_inline": "Compare with CR",
+      "type": "byte",
+      "values": [
         201,
         13,
         208,
@@ -75478,8 +75566,7 @@
         169,
         169,
         169,
-        169,
-        172
+        169
       ],
       "labels": [
         "la88a"
@@ -75513,7 +75600,17 @@
         169,
         169,
         169,
-        169,
+        169
+      ]
+    },
+    {
+      "addr": 43159,
+      "bytes": [
+        172
+      ],
+      "comment_inline": "Load template source pointer",
+      "type": "byte",
+      "values": [
         172
       ]
     },
@@ -88881,6 +88978,7 @@
       "labels": [
         "cafc7"
       ],
+      "comment_inline": "A=&A7: 'Printer jammed' error code",
       "xref_summaries": [
         "&afc7 referenced 1 time by &afaf"
       ],
@@ -90453,6 +90551,7 @@
         9,
         64
       ],
+      "comment_inline": "Mark as palette entry",
       "type": "code",
       "mnemonic": "ora",
       "operand": "#&40"
@@ -100129,6 +100228,7 @@
         160,
         24
       ],
+      "comment_inline": "Y=&18: name field offset in RX buffer",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&18"
