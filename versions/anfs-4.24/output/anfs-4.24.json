@@ -9783,7 +9783,7 @@
         169,
         38
       ],
-      "comment_inline": "A=&23: low byte of nmi_data_rx_bulk (&8223)",
+      "comment_inline": "A=&26: low byte of nmi_data_rx_bulk (&8226)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&26"
@@ -9849,7 +9849,7 @@
       "labels": [
         "install_tube_rx"
       ],
-      "comment_inline": "A=&91: low byte of nmi_data_rx_tube (&8291)",
+      "comment_inline": "A=&A1: low byte of nmi_data_rx_tube (&82A1)",
       "xref_summaries": [
         "&820d referenced 1 time by &81ff"
       ],
@@ -11626,7 +11626,7 @@
         169,
         38
       ],
-      "comment_inline": "A=&16: low byte of nmi_ack_tx_src (&8316)",
+      "comment_inline": "A=&26: low byte of nmi_ack_tx_src (&8326)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&26"
@@ -13144,7 +13144,7 @@
       "labels": [
         "set_nmi_rx_scout"
       ],
-      "comment_inline": "A=&9B: low byte of nmi_rx_scout",
+      "comment_inline": "A=&9D: low byte of nmi_rx_scout",
       "xref_summaries": [
         "&83fd referenced 2 times by &80cd, &80e4"
       ],
@@ -15477,7 +15477,7 @@
         169,
         165
       ],
-      "comment_inline": "A=&81: low byte of tx_done_exit-1 (&8581)",
+      "comment_inline": "A=&A5: low byte of tx_done_exit-1 (&85A5)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&a5"
@@ -18403,7 +18403,7 @@
         162,
         182
       ],
-      "comment_inline": "X=&E7: low byte of nmi_tx_data (&86E7)",
+      "comment_inline": "X=&B6: low byte of nmi_tx_data (&87B6)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&b6"
@@ -18620,7 +18620,7 @@
         169,
         135
       ],
-      "comment_inline": "A=&86: high byte of tx_ctrl_* dispatch target",
+      "comment_inline": "A=&87: high byte of tx_ctrl_* dispatch target",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&87"
@@ -20165,7 +20165,7 @@
         169,
         69
       ],
-      "comment_inline": "A=&76: low byte of nmi_reply_validate (&8776)",
+      "comment_inline": "A=&45: low byte of nmi_reply_validate (&8845)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&45"
@@ -20790,7 +20790,7 @@
         169,
         186
       ],
-      "comment_inline": "A=&EB: low byte of nmi_data_tx alt-entry (&87EB)",
+      "comment_inline": "A=&BA: low byte of nmi_data_tx alt-entry (&88BA)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ba"
@@ -20801,7 +20801,7 @@
         160,
         136
       ],
-      "comment_inline": "Y=&87: high byte of nmi_data_tx",
+      "comment_inline": "Y=&88: high byte of nmi_data_tx",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&88"
@@ -22171,7 +22171,7 @@
         169,
         117
       ],
-      "comment_inline": "A=&A6: low byte of nmi_final_ack_net (&88A6)",
+      "comment_inline": "A=&75: low byte of nmi_final_ack_net (&8975)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&75"
@@ -28426,7 +28426,7 @@
         162,
         150
       ],
-      "comment_inline": "X=&91: help command table start",
+      "comment_inline": "X=&96: help command table start",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&96"
@@ -29207,7 +29207,7 @@
         162,
         62
       ],
-      "comment_inline": "X=&1C: boot filename address low",
+      "comment_inline": "X=&3E: boot filename address low",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&3e"
@@ -43278,7 +43278,7 @@
       "labels": [
         "dispatch_fs_ps_with_arg"
       ],
-      "comment_inline": "X=&A0: index into svc4 dispatch table (no-arg path)",
+      "comment_inline": "X=&A5: index into svc4 dispatch table (no-arg path)",
       "xref_summaries": [
         "&95e8 referenced 1 time by &95a3"
       ],
@@ -44286,7 +44286,7 @@
       "labels": [
         "help_dispatch_setup"
       ],
-      "comment_inline": "X=&BD: setup index for the dispatch chain",
+      "comment_inline": "X=&C2: setup index for the dispatch chain",
       "xref_summaries": [
         "&9683 referenced 1 time by &9633"
       ],
@@ -54149,7 +54149,7 @@
         169,
         192
       ],
-      "comment_inline": "A=&0E: high byte of fs_filename_buf buffer",
+      "comment_inline": "A=&C0: high byte of fs_filename_buf buffer",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&c0"
@@ -87731,7 +87731,7 @@
         160,
         34
       ],
-      "comment_inline": "Y=&21: spool_buf_idx reset value",
+      "comment_inline": "Y=&22: spool_buf_idx reset value",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&22"
@@ -87980,7 +87980,7 @@
         160,
         45
       ],
-      "comment_inline": "Y=&2C: dest TXCB offset",
+      "comment_inline": "Y=&2D: dest TXCB offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&2d"
@@ -88129,7 +88129,7 @@
         160,
         37
       ],
-      "comment_inline": "Y=&24: dest offset in TXCB",
+      "comment_inline": "Y=&25: dest offset in TXCB",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&25"
@@ -88361,7 +88361,7 @@
         169,
         34
       ],
-      "comment_inline": "A=&21: TXCB control byte",
+      "comment_inline": "A=&22: TXCB control byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&22"
@@ -88503,7 +88503,7 @@
         160,
         46
       ],
-      "comment_inline": "Y=&2D: spool result-byte offset",
+      "comment_inline": "Y=&2E: spool result-byte offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&2e"
@@ -106241,7 +106241,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL workspace page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
@@ -106251,7 +106251,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Return; X/Y point to &10CA",
+      "comment_inline": "Return; X/Y point to &C2CA",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -106713,7 +106713,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL workspace page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
@@ -107546,7 +107546,7 @@
         160,
         194
       ],
-      "comment_inline": "Y=&10: page &10",
+      "comment_inline": "Y=&C2: HAZEL workspace page &C2",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&c2"
