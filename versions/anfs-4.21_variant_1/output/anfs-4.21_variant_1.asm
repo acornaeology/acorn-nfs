@@ -2714,7 +2714,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda econet_data_continue_frame                                    ; 8752: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8755: cd 22 0d    .".      ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8758: d0 19       ..       ; Not our station -- error/reject
-    lda #&5f ; '_'                                                    ; 875a: a9 5f       ._       ; Install next handler at &8758 (reply continuation)
+    lda #&5f ; '_'                                                    ; 875a: a9 5f       ._       ; Install nmi_reply_cont continuation handler (low)
     jmp install_nmi_handler                                           ; 875c: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; RX reply continuation handler

@@ -3608,7 +3608,7 @@ d.comment(0x8750, "No AP -- error", align=Align.INLINE)
 d.comment(0x8752, "Read first RX byte (destination station)", align=Align.INLINE)
 d.comment(0x8755, "Compare to our station ID (workspace copy)", align=Align.INLINE)
 d.comment(0x8758, "Not our station -- error/reject", align=Align.INLINE)
-d.comment(0x875A, "Install next handler at &8758 (reply continuation)", align=Align.INLINE)
+d.comment(0x875A, "Install nmi_reply_cont continuation handler (low)", align=Align.INLINE)
 d.comment(0x875C, "Install continuation handler", align=Align.INLINE)
 d.entry(0x875F)
 d.subroutine(

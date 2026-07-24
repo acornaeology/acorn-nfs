@@ -16008,7 +16008,7 @@
       "labels": [
         "install_reply_scout"
       ],
-      "comment_inline": "Install RX reply handler at &8744",
+      "comment_inline": "Install nmi_reply_scout handler (low)",
       "xref_summaries": [
         "&8749 referenced 1 time by &8744"
       ],
@@ -16124,7 +16124,7 @@
         169,
         98
       ],
-      "comment_inline": "Install next handler at &8758 (reply continuation)",
+      "comment_inline": "Install nmi_reply_cont continuation handler (low)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&62"

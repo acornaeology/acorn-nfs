@@ -3445,7 +3445,7 @@ d.comment(0x8744, "bit0 clear: install reply handler", align=Align.INLINE)
 d.comment(0x8746, "bit0 set -- four-way handshake data phase", align=Align.INLINE)
 d.label(0x8749, "install_reply_scout")
 
-d.comment(0x8749, "Install RX reply handler at &8744", align=Align.INLINE)
+d.comment(0x8749, "Install nmi_reply_scout handler (low)", align=Align.INLINE)
 d.comment(0x874B, "Install handler and RTI", align=Align.INLINE)
 d.entry(0x874E)
 d.subroutine(
@@ -3466,7 +3466,7 @@ d.comment(0x8753, "No AP -- error", align=Align.INLINE)
 d.comment(0x8755, "Read first RX byte (destination station)", align=Align.INLINE)
 d.comment(0x8758, "Compare to our station ID (INTOFF side effect)", align=Align.INLINE)
 d.comment(0x875B, "Not our station -- error/reject", align=Align.INLINE)
-d.comment(0x875D, "Install next handler at &8758 (reply continuation)", align=Align.INLINE)
+d.comment(0x875D, "Install nmi_reply_cont continuation handler (low)", align=Align.INLINE)
 d.comment(0x875F, "Install continuation handler", align=Align.INLINE)
 d.entry(0x8762)
 d.subroutine(

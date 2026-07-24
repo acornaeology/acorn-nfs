@@ -19280,7 +19280,7 @@
         169,
         95
       ],
-      "comment_inline": "Install next handler at &8758 (reply continuation)",
+      "comment_inline": "Install nmi_reply_cont continuation handler (low)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&5f"

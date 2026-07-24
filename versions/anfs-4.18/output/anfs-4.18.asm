@@ -3102,7 +3102,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     jmp handshake_await_ack                                           ; 8746: 4c 78 88    Lx.      ; bit0 set -- four-way handshake data phase
 ; &8749 referenced 1 time by &8744
 .install_reply_scout
-    lda #&4e ; 'N'                                                    ; 8749: a9 4e       .N       ; Install RX reply handler at &8744
+    lda #&4e ; 'N'                                                    ; 8749: a9 4e       .N       ; Install nmi_reply_scout handler (low)
     jmp install_nmi_handler                                           ; 874b: 4c 11 0d    L..      ; Install handler and RTI
 ; ***************************************************************************************
 ; Scout-ACK reception (step 2 of four-way handshake)
@@ -3125,7 +3125,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda econet_data_continue_frame                                    ; 8755: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp station_id_disable_net_nmis                                   ; 8758: cd 18 fe    ...      ; Compare to our station ID (INTOFF side effect)
     bne reject_reply                                                  ; 875b: d0 19       ..       ; Not our station -- error/reject
-    lda #&62 ; 'b'                                                    ; 875d: a9 62       .b       ; Install next handler at &8758 (reply continuation)
+    lda #&62 ; 'b'                                                    ; 875d: a9 62       .b       ; Install nmi_reply_cont continuation handler (low)
     jmp install_nmi_handler                                           ; 875f: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; Scout-ACK continuation: destination-network check
