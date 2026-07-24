@@ -2321,7 +2321,7 @@ the [`discard_reset_rx`](address:83E5) /
 [`reset_adlc_rx_listen`](address:83E8) chain, used to put the
 NMI vector back to scout-handling after a discard or reset.
 
-Two callers: `&80CB` (after init) and `&80E2` (after error).""",
+Two callers: `&80CD` (after init) and `&80E4` (after error).""",
 )
 
 
@@ -2374,7 +2374,7 @@ following `BNE` in
 
 Both paths walk the four-byte buffer pointer and end via
 [`scout_copy_done`](address:842B) which restores `X` and returns.
-Single caller: [`port_match_found`](address:8195) at `&81A4`.""",
+Single caller: [`port_match_found`](address:8195) at `&81A7`.""",
 )
 
 
@@ -2606,7 +2606,8 @@ d.subroutine(
 the 2-byte remote address from [`scout_data`](address:0D32)
 into the execution-address workspace at
 [`exec_addr_lo`](address:0D66) / [`exec_addr_hi`](address:0D67),
-then jumps to the common data-receive path at `&81C1`.
+then jumps to the common data-receive path via
+[`send_data_rx_ack`](address:81AA).
 
 Used for operation types `&83` (JSR), `&84` (UserProc), and
 `&85` (OSProc).""",
@@ -2868,7 +2869,7 @@ target. When that routine returns via `RTS`, control resumes at
 
 d.comment(0x8564, "A=&85: high byte of tx_done_exit-1 (&8581)", align=Align.INLINE)
 d.comment(0x8566, "Push hi byte on stack", align=Align.INLINE)
-d.comment(0x8567, "A=&A5: low byte of tx_done_exit-1 (&85A5)", align=Align.INLINE)
+d.comment(0x8567, "A=&A5: low byte of tx_done_exit-1", align=Align.INLINE)
 d.comment(0x8569, "Push lo byte on stack", align=Align.INLINE)
 d.comment(0x856A, "Call remote JSR; RTS to tx_done_exit", align=Align.INLINE)
 
@@ -2986,9 +2987,9 @@ d.subroutine(
 `PHA`/`PHA`/`RTS` jump), loads `A=0` (success status), and `RTS`
 to the caller.
 
-Five inbound refs: a tail-jump from `&8042` (the SVC 5 IRQ-check
+Five inbound refs: a tail-jump from `&8044` (the SVC 5 IRQ-check
 path in [`svc5_irq_check`](address:8028)), plus the JMPs at
-`&8554`, `&8560`, `&8568`, and the fall-through at `&8578`.""",
+`&8554`, `&8584`, `&858C`, and the fall-through at `&8578`.""",
     on_exit={"a": "0 (success status)", "x, y": "restored from stack"},
 )
 
@@ -3388,7 +3389,7 @@ loop when Y reaches `&10`, `PLP` restores the saved carry, and
 
 Falls through (or is reached via the dispatch from
 [`tx_prepare`](address:864A) when port != 0) to
-`setup_data_xfer` at `&86A9`, which dispatches between broadcast
+`setup_data_xfer` at `&8770`, which dispatches between broadcast
 and unicast based on whether `tx_dst_stn` and `tx_dst_net` are
 both `&FF`.""",
 )
@@ -3532,7 +3533,7 @@ de-asserting in between.""",
 
 d.comment(0x87F2, "CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE", align=Align.INLINE)
 d.comment(0x87F4, "Write to ADLC CR2", align=Align.INLINE)
-d.comment(0x87F7, "Install NMI handler at &8728 (TX completion)", align=Align.INLINE)
+d.comment(0x87F7, "Install NMI handler at &87F7 (TX completion)", align=Align.INLINE)
 # UNMAPPED: d.comment(0x872A, "High byte of handler address", align=Align.INLINE)
 d.comment(0x87F9, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.entry(0x87FC)
@@ -3603,7 +3604,7 @@ d.comment(0x881F, "No AP -- error", align=Align.INLINE)
 d.comment(0x8821, "Read first RX byte (destination station)", align=Align.INLINE)
 d.comment(0x8824, "Compare to our station ID (workspace copy)", align=Align.INLINE)
 d.comment(0x8827, "Not our station -- error/reject", align=Align.INLINE)
-d.comment(0x8829, "Install next handler at &8758 (reply continuation)", align=Align.INLINE)
+d.comment(0x8829, "Install next handler at &8827 (reply continuation)", align=Align.INLINE)
 d.comment(0x882B, "Install continuation handler", align=Align.INLINE)
 d.entry(0x882E)
 d.subroutine(
@@ -3630,7 +3631,7 @@ d.comment(0x8833, "Read destination network byte", align=Align.INLINE)
 d.comment(0x8836, "Non-zero -- network mismatch, error", align=Align.INLINE)
 d.comment(0x8838, "A=&45: low byte of nmi_reply_validate (&8845)", align=Align.INLINE)
 d.comment(0x883A, "Test SR1 IRQ (N=bit7) -- more data ready?", align=Align.INLINE)
-d.comment(0x883D, "IRQ set -- fall through to &8779", align=Align.INLINE)
+d.comment(0x883D, "IRQ set -- fall through to &8848", align=Align.INLINE)
 d.comment(0x883F, "IRQ not set -- install handler", align=Align.INLINE)
 d.label(0x8842, "reject_reply")
 
@@ -3697,7 +3698,7 @@ d.comment(0x887B, "TDRA not ready -- error", align=Align.INLINE)
 d.comment(0x887D, "Write dest station to TX FIFO", align=Align.INLINE)
 d.comment(0x8880, "Write dest network to TX FIFO", align=Align.INLINE)
 d.comment(0x8883, "Write dest network to TX FIFO", align=Align.INLINE)
-d.comment(0x8886, "Install handler at &87B7 (write src addr for scout ACK)", align=Align.INLINE)
+d.comment(0x8886, "Install handler at &8886 (write src addr for scout ACK)", align=Align.INLINE)
 d.comment(0x8888, "High byte &87 of handler address", align=Align.INLINE)
 d.comment(0x888A, "Set NMI vector and return", align=Align.INLINE)
 d.entry(0x888D)
@@ -3758,7 +3759,7 @@ d.comment(0x88A6, "Y=&88: high byte of nmi_data_tx", align=Align.INLINE)
 d.comment(0x88A8, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.label(0x88AB, "install_imm_data_nmi")
 
-d.comment(0x88AB, "Install nmi_imm_data at &8837", align=Align.INLINE)
+d.comment(0x88AB, "Install nmi_imm_data at &8906", align=Align.INLINE)
 d.comment(0x88AD, "High byte of handler address", align=Align.INLINE)
 d.comment(0x88AF, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.entry(0x88B2)
@@ -3842,8 +3843,8 @@ d.comment(0x88FA, "CR2=&3F: TX_LAST_DATA (close data frame)", align=Align.INLINE
 d.comment(0x88FC, "Write CR2 to close frame", align=Align.INLINE)
 d.comment(0x88FF, "Check tx_flags for next action", align=Align.INLINE)
 d.comment(0x8902, "Bit7 clear: error, install saved handler", align=Align.INLINE)
-d.comment(0x8904, "Install discard_reset_listen at &83F2", align=Align.INLINE)
-d.comment(0x8906, "High byte of &83F2 handler", align=Align.INLINE)
+d.comment(0x8904, "Install discard_reset_listen at &8404", align=Align.INLINE)
+d.comment(0x8906, "High byte of &8404 handler", align=Align.INLINE)
 d.comment(0x8908, "Set NMI vector and return", align=Align.INLINE)
 d.label(0x890B, "install_saved_handler")
 
@@ -4388,7 +4389,7 @@ d.comment(0x8A20, "Return from interrupt", align=Align.INLINE)
 # UNMAPPED:     0x89ED,
 # UNMAPPED:     title="svc_dispatch low-byte table (51 entries)",
 # UNMAPPED:     description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
-# UNMAPPED: [`svc_dispatch`](address:8E61) as `LDA &89ED,X`. Paired with
+# UNMAPPED: [`svc_dispatch`](address:8E61) as `LDA &8A23,X`. Paired with
 # UNMAPPED: the high-byte half at [`svc_dispatch_hi`](address:8A20).
 # UNMAPPED: 
 # UNMAPPED: Index 0 is a placeholder (target value unused – never reached);
@@ -4922,7 +4923,7 @@ d.subroutine(
 | clear | `print_indent` (continue with this entry) |
 | set   | `JMP done_print_table` (end of table reached) |
 
-Single caller (the `BNE` retry at `&8C22` in
+Single caller (the `BNE` retry at `&8C47` in
 [`print_cmd_table`](address:8BC6)'s outer loop).""",
     on_entry={"x": "current cmd_table_fs offset"},
 )
@@ -5108,7 +5109,7 @@ original service number so the next ROM in the chain sees the
 unclaimed call.
 
 Reached from the four service-handler escape paths at `&8C4C`,
-`&8C91`, `&8CD5`, and `&95BE` that hand a request back to MOS
+`&8C91`, `&8CFA`, and `&95BD` that hand a request back to MOS
 without acting on it.""",
     on_exit={"y": "ws_page (restored command-line offset)"},
 )
@@ -5140,7 +5141,7 @@ d.comment(0x8CA8, "Load dispatch address high", align=Align.INLINE)
 d.comment(0x8CAB, "Push dispatch high for RTS", align=Align.INLINE)
 d.comment(0x8CAC, "Load dispatch address low", align=Align.INLINE)
 d.comment(0x8CAF, "Push dispatch low for RTS", align=Align.INLINE)
-d.comment(0x8CB0, "Dispatch via RTS (returns to &8C80)", align=Align.INLINE)
+d.comment(0x8CB0, "Dispatch via RTS (returns to &8CA5)", align=Align.INLINE)
 d.label(0x8CB1, "skip_if_no_match")
 
 d.comment(0x8CB1, "Restore flags from before match", align=Align.INLINE)
@@ -5178,7 +5179,7 @@ d.subroutine(
     description="""Indexes into the MOS per-ROM workspace table
 [`rom_ws_pages`](address:0DF0) using `romsel_copy` (`&F4`) as
 the ROM slot. Holds a copy of the slot byte in `Y`, then runs a
-`ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CB3`–`&8CB6` that
+`ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CD8`–`&8CB6` that
 restores `A` to the original byte while leaving the saved-flags
 register reflecting bit 6 of the original byte (the ADLC-absent
 flag). Falls through to whichever caller-specific tail follows.""",
@@ -5283,7 +5284,7 @@ through `vec_fscv` to invoke the FSCV vector. The FSCV handler
 returns to whatever invoked `notify_new_fs` -- this is a
 fire-and-forget notification, not a return-to-caller call.
 
-Single caller (&8b60 inside the FS-selection sequence).""",
+Single caller (&8b86 inside the FS-selection sequence).""",
     on_entry={},
     on_exit={"a": "6 (clobbered by FSCV handler)"},
 )
@@ -5577,7 +5578,7 @@ d.subroutine(
 | any other | fall through to `pass_send_cmd` (send as normal FS request) |
 
 Single caller (the FS command-name post-match path at
-`&9597`).""",
+`&959C`).""",
 )
 
 
@@ -5606,8 +5607,8 @@ d.subroutine(
 | non-zero | load [`hazel_txcb_data`](address:C105) (first reply byte), `Y=&25` (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
 
 Two callers: the fall-through from
-[`check_urd_prefix`](address:8E2D) (`&8E1F` via
-`pass_send_cmd`) and the `JMP` from `send_fs_request` (`&9460`).""",
+[`check_urd_prefix`](address:8E2D) (`&8E37` via
+`pass_send_cmd`) and the `JMP` from `send_fs_request` (`&9465`).""",
     on_entry={"y": "extra dispatch offset (0 from send_fs_request, non-zero for some specialised paths)"},
 )
 
@@ -5670,7 +5671,7 @@ the target address (high then low byte) from
 subroutine. Used for all service dispatch, FS command execution,
 and OSBYTE handler routing.
 
-Routine extent is &8E61-&8E70 (the `RTS` is the dispatch). The
+Routine extent is &8E61-&8E88 (the `RTS` is the dispatch). The
 short Master service handlers at
 [`noop_dey_rts`](address:8E71) (svc &24),
 [`copy_template_to_zp`](address:8E73) (svc &25) and
@@ -5725,7 +5726,7 @@ Returns via the shared `RTS` at
 
 d.label(0x8E8D, "loop_copy_return_template")
 
-d.comment(0x8E8D, "Load template byte X from &8E7F+X", align=Align.INLINE)
+d.comment(0x8E8D, "Load template byte X from &8E97+X", align=Align.INLINE)
 d.comment(0x8E90, "Store at (&F2),Y", align=Align.INLINE)
 d.comment(0x8E92, "Advance destination cursor", align=Align.INLINE)
 d.comment(0x8E93, "Step to previous template byte", align=Align.INLINE)
@@ -5814,7 +5815,7 @@ d.comment(
 Default printer server configuration data, read
 indirectly by copy_ps_data via LDA ps_template_base,X
 with X=&F8..&FF (reaching ps_template_base+&F8 =
-&8E9F). Contains "PRINT " (6 bytes) as the default
+&8EB7). Contains "PRINT " (6 bytes) as the default
 printer server name, followed by &01 and &00 as
 default status bytes. Absent from NFS versions;
 unique to ANFS.""",
@@ -6047,7 +6048,7 @@ d.subroutine(
     "nfs_init_body",
     title="ANFS initialisation body",
     description="""Reached only via PHA/PHA/RTS dispatch (table index 22 in the
-svc_dispatch table at `&89ED` / `&8A20`). Carries out the bring-up
+svc_dispatch table at `&8A23` / `&8A20`). Carries out the bring-up
 sequence after page allocation:
 
 - Clears `ws_page` / `tx_complete_flag` and the receive-block
@@ -6068,7 +6069,7 @@ sequence after page allocation:
   FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`
   for protection setup.
 
-Returns via `RTS` at `&903B`.
+Returns via `RTS` at `&9042`.
 
 Reached via Master 128 service call `&27` (= 39 decimal),
 documented in the *Advanced Reference Manual for the BBC Master*:
@@ -6554,7 +6555,7 @@ captured by spool, then restores the previous handle on exit.
 
 Called from [`service_handler`](address:8A54) (`&8A7C`) after
 the `'Bad ROM <slot>'` message, and from two other diagnostic
-sites (`&8E10`, `&9D3E`).""",
+sites (`&8E28`, `&9D3C`).""",
     on_entry={},
     on_exit={
         "a, x, y, p": "preserved (print_char_no_spool brackets the call with full register save/restore via PHA/PHP/PLP/PLA)"
@@ -6579,13 +6580,13 @@ d.subroutine(
    captured); otherwise leaves spool closed for the duration of
    the print.
 3. `PLP`s the inner `P`, then routes to OSASCI (the `BIT` trick
-   set `V=1`, so the `BVC` at `&9220` is not taken).
+   set `V=1`, so the `BVC` at `&9229` is not taken).
 4. Final OSBYTE `&C7` with `Y=&FF` either no-ops (if spool
    already restored) or writes `OLD` back (if it was deferred).
 5. Pulls `A`, `Y`, `X`, `P` and returns.
 
-Eight inner-ROM callers: `&925F`, `&92A4`, `&9D30`, `&9D5C`,
-`&B21F`, `&B2F9`, `&B321`, `&B752`.""",
+Eight inner-ROM callers: `&9268`, `&92AD`, `&9D2E`, `&9D5A`,
+`&B21F`, `&B2F9`, `&B321`, `&B77B`.""",
     on_entry={"a": "byte to print as ASCII char (CR is translated by OSASCI)"},
 )
 
@@ -6599,7 +6600,7 @@ d.subroutine(
     title="Print A via OSWRCH (raw, no CR translation), bypass *SPOOL",
     description="""As [`print_char_no_spool`](address:91FB) but the inner
 `PHP`/`CLV` at `&9201` forces `V=0` in the saved flags, so the
-`BVC` at `&9220` takes the `OSWRCH` branch instead of `OSASCI`.
+`BVC` at `&9229` takes the `OSWRCH` branch instead of `OSASCI`.
 
 Used when the caller wants to emit a raw byte (e.g. a VDU
 control code) without `CR` translation. Sole caller in this ROM
@@ -6609,7 +6610,7 @@ is at `&8DE6`.""",
 
 
 d.comment(0x920A, "Alt entry: save caller's flags BEFORE forcing V=0", align=Align.INLINE)
-d.comment(0x920B, "Force V=0 -> OSWRCH path at &9220 (raw byte)", align=Align.INLINE)
+d.comment(0x920B, "Force V=0 -> OSWRCH path at &9229 (raw byte)", align=Align.INLINE)
 d.label(0x920C, "save_regs_print_no_spool")
 
 d.comment(0x920C, "Save X", align=Align.INLINE)
@@ -6705,7 +6706,7 @@ wrapper), so the digits don't appear in any active spool capture.
 Saves `A`, extracts the high nibble (`LSR` x4), prints it via
 [`print_hex_nybble_no_spool`](address:9255), then restores `A` and
 falls through for the low nibble. Sole caller:
-[`print_5_hex_bytes`](address:9D4F) at `&9D53`.""",
+[`print_5_hex_bytes`](address:9D4F) at `&9D51`.""",
     on_entry={"a": "byte to print"},
     on_exit={"a": "preserved"},
 )
@@ -6813,9 +6814,9 @@ Used by status output that should not be saved to a spool file
 arguments inside [`cmd_ex`](address:B103)'s directory
 listing).
 
-Six callers: `&981A` (`recv_and_process_reply`), `&B158`/`&B162`
-([`cmd_ex`](address:B103)), `&B2F0` (`ex_print_col_sep`),
-`&B75E` ([`cmd_wipe`](address:B6F3)), `&B7CB`
+Six callers: `&9818` (`recv_and_process_reply`), `&B18B`/`&B195`
+([`cmd_ex`](address:B103)), `&B323` (`ex_print_col_sep`),
+`&B787` ([`cmd_wipe`](address:B6F3)), `&B7CB`
 (`prompt_yn`).""",
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)", "x": "corrupted (by print_char_no_spool)", "y": "0"},
 )
@@ -6861,7 +6862,7 @@ addresses, and plain decimal. Returns the result in `fs_load_addr_2`
 [`Bad station number`](address:9357), and overflow errors as
 appropriate. The body uses the standard 6502 idioms: `ASL ASL ASL
 ASL` + `ADC` for hex-digit accumulation, and `result*2 + result*8`
-for decimal `*10`. Two named callers: from `&A3C9` and `&A3DE`.""",
+for decimal `*10`. Two named callers: from `&A3C9` and `&A3F2`.""",
     on_entry={"y": "index into command-string buffer at (fs_crc_lo),Y", "a": "ignored"},
     on_exit={"c": "set if a number was parsed"},
 )
@@ -7233,7 +7234,7 @@ d.subroutine(
     description="""PHP / LSR need_release_tube / PLP / RTS. Shifts bit 0 of
 need_release_tube into carry while clearing it, then restores the
 caller's flags so the operation is invisible to NZC-sensitive
-code. Single caller (&9B72 in the recv-and-classify reply path).""",
+code. Single caller (&9B70 in the recv-and-classify reply path).""",
 )
 
 
@@ -7461,8 +7462,8 @@ d.subroutine(
     description="""Loads `Y=0` (so dispatch lookups don't add an offset) and
 tail-jumps to [`send_cmd_and_dispatch`](address:8E3C). Two
 callers: [`read_filename_char`](address:944E)'s `BEQ` on
-`CR` (`&9457`) and the `*RUN` argument-handling tail at
-`&9537`.""",
+`CR` (`&945C`) and the `*RUN` argument-handling tail at
+`&953C`.""",
 )
 
 
@@ -7745,7 +7746,7 @@ d.comment(
 )
 d.comment(
     0x95C5,
-    "BVC: V was just cleared -> always taken; falls into the shared 'S       ' tail at &95CD",
+    "BVC: V was just cleared -> always taken; falls into the shared 'S       ' tail at &95CC",
     align=Align.INLINE,
 )
 d.comment(0x95C7, "Print 'F' prefix", align=Align.INLINE)
@@ -7761,7 +7762,7 @@ no-arg help and `*STATUS` displays.""",
 )
 
 
-d.comment(0x95CB, "NOP -- bit-7 terminator; falls through into the shared 'S       ' tail at &95CD", align=Align.INLINE)
+d.comment(0x95CB, "NOP -- bit-7 terminator; falls through into the shared 'S       ' tail at &95CC", align=Align.INLINE)
 d.label(0x95CC, "print_field_tail_s")
 
 d.comment(
@@ -7797,8 +7798,8 @@ d.subroutine(
     "set_fs_or_ps_cmos_station",
     title="Write FS/PS station+network to Master 128 CMOS RAM",
     description="""Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
-(`*FS` at [`&A80F`](address:A80F), `*PS` at
-[`&A814`](address:A814)) when the caller supplies a `<net>.<stn>`
+(`*FS` at [`&A828`](address:A80F), `*PS` at
+[`&A82D`](address:A814)) when the caller supplies a `<net>.<stn>`
 argument or wants to inspect/update the saved address.
 
 The flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte
@@ -7855,12 +7856,12 @@ d.subroutine(
     0x9611,
     "osbyte_a2",
     title="OSBYTE &A2 (write Master CMOS RAM byte)",
-    description="""Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BE`. Writes
+    description="""Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes
 the Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.
 The trailing `BRA` lands on
 [`bra_target_svc_return`](address:95BE) (a 3-byte `JMP` trampoline
 to [`svc_return_unclaimed`](address:8C64), reached this way
-because `BRA`'s 8-bit displacement can't span &9617 → &8C64).
+because `BRA`'s 8-bit displacement can't span &9616 → &8C89).
 
 `osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
 labelled routine is [`cmd_space`](address:9619). Counterpart of
@@ -7868,7 +7869,7 @@ labelled routine is [`cmd_space`](address:9619). Counterpart of
 
 Callers: [`set_fs_or_ps_cmos_station`](address:95EE) (once via
 `JSR`, once via fall-through), the `BRA` shortcut at
-[`&962E`](address:962E) inside [`cmd_nospace`](address:9623), and
+[`&962D`](address:962E) inside [`cmd_nospace`](address:9623), and
 an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
 [`osopt_cmos_writeback_jsr`](address:A0FE).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"},
@@ -7916,7 +7917,7 @@ d.subroutine(
     "osbyte_a2_value_tya",
     title="Shared CMOS write-back tail",
     description="""Common tail used by [`cmd_space`](address:9619) (via `BRA` from
-&9621 with the new value already in `A`) and
+&9620 with the new value already in `A`) and
 [`cmd_nospace`](address:9623) (fall-through with the new value in
 `A`). `TAY` moves the byte to `Y`, then `LDX #&11` reloads the
 CMOS index and `BRA osbyte_a2` performs the write.""",
@@ -8614,7 +8615,7 @@ d.subroutine(
     title="Acknowledge escape (if pressed) and classify reply",
     description="""If escape_flag bit 7 is clear OR need_release_tube bit 7 is clear (so AND result has bit 7 clear), returns immediately via return_1. Otherwise acknowledges escape via OSBYTE &7E (clears the escape condition and runs escape effects), loads A=6 (a synthesized 'Escape' error class), and tail-jumps to classify_reply_error to build the 'Escape' BRK error block.
 
-Two callers: cmd_pass (&8DEF) for password-entry escape, and send_net_packet (&9B48) for in-flight TX escape.""",
+Two callers: cmd_pass (&8E07) for password-entry escape, and send_net_packet (&9B46) for in-flight TX escape.""",
     on_entry={},
     on_exit={"a": "preserved (return) or never returns (escape path)"},
 )
@@ -8629,7 +8630,7 @@ d.subroutine(
     description="""Issues OSBYTE &7E (acknowledge_escape -- clears the escape condition
 and runs any registered escape effects), loads A=6, and tail-jumps to
 classify_reply_error which builds the Escape error. Reached from
-&98EF (after recv_and_process_reply detects escape) and &B7DF
+&98EF (after recv_and_process_reply detects escape) and &B808
 (cmd_wipe's per-iteration escape check). Never returns -- the
 classify_reply_error path triggers BRK.""",
     on_exit={"a": "6 (Escape error code passed to classify_reply_error)"},
@@ -8780,7 +8781,7 @@ d.comment(0x9906, "Return", align=Align.INLINE)
 d.label(0x9907, "build_no_reply_error")
 
 d.comment(0x9907, "X=8: net_error_lookup_data offset for 'No reply' message", align=Align.INLINE)
-d.comment(0x9909, "Y = message offset within the string table (&9AA6 base)", align=Align.INLINE)
+d.comment(0x9909, "Y = message offset within the string table (&9AA4 base)", align=Align.INLINE)
 d.comment(0x990C, "X=0: error-text buffer index", align=Align.INLINE)
 d.comment(0x990E, "Zero the &0100 length byte (length will be filled in later)", align=Align.INLINE)
 d.comment(0x9911, "Read first message byte (the error code)", align=Align.INLINE)
@@ -8831,7 +8832,7 @@ d.subroutine(
     description="""Single-byte prologue to
 [`classify_reply_error`](address:993D): `LDA (net_tx_ptr,X)`
 reads the FS reply status byte, then falls through. Single
-caller (`&9B6C`, after a recv-and-classify path that already
+caller (`&9B6A`, after a recv-and-classify path that already
 has `X` set).""",
     on_entry={"x": "indirect index into net_tx_ptr"},
 )
@@ -8854,7 +8855,7 @@ error class 0..7), saves the class on the stack, and dispatches:
 | other | `build_simple_error` |
 
 Two callers: [`raise_escape_error`](address:9895) (with
-`A=6`) and the FS reply dispatch at `&A0BD`.""",
+`A=6`) and the FS reply dispatch at `&A0E3`.""",
     on_entry={"a": "error code byte"},
 )
 
@@ -9865,7 +9866,7 @@ d.subroutine(
     title="Receive FS reply and stash result byte",
     description="""JSRs recv_and_process_reply, then falls through to store_result
 (STX hazel_txcb_result; LDY #&0E to point at the protection-bits offset).
-Single caller (the dispatch at &9C82).""",
+Single caller (the dispatch at &9C80).""",
     on_exit={"x": "FS result byte (also written to hazel_txcb_result)", "y": "&0E (FS options offset for protection)"},
 )
 
@@ -10163,7 +10164,7 @@ d.subroutine(
 | `7`    | [`setup_dir_display`](address:9CB5) (`*INFO` expansion) |
 | `> 7`  | `skip_if_error` (routes through [`finalise_and_return`](address:9FB6)) |
 
-Single caller (`&9CB2` in the OSWORD `&13` handler entry).""",
+Single caller (`&9CB0` in the OSWORD `&13` handler entry).""",
     on_entry={"a": "OSWORD sub-op code"},
 )
 
@@ -10495,7 +10496,7 @@ d.subroutine(
     description="""Single-instruction wrapper: JSR process_all_fcbs to walk every FCB
 slot and close each open file in turn, then fall through to
 return_with_last_flag (which loads fs_last_byte_flag and finalises
-caller state). Single caller (the OSFIND close-all path at &9EBA).""",
+caller state). Single caller (the OSFIND close-all path at &9EB8).""",
     on_exit={"a": "fs_last_byte_flag (loaded by return_with_last_flag)"},
 )
 
@@ -10511,7 +10512,7 @@ d.subroutine(
 finalise_and_return, which clears the receive-attribute byte and
 restores caller's X/Y. The 12 inbound refs are mostly fall-through
 exits from FS reply handlers that need to return the last-byte
-status to their caller; only one site (&9FAE) reaches it via JSR.""",
+status to their caller; only one site (&9FD4) reaches it via JSR.""",
     on_exit={
         "a": "fs_last_byte_flag",
         "x": "fs_options (restored by finalise_and_return)",
@@ -10556,7 +10557,7 @@ d.subroutine(
 | `1`   | close one channel | go to `done_file_open` |
 | `0`   | close all channels | load `A=5` (close-all return code) and fall through |
 
-Single caller (the OSFIND vector table at `&9EED`).""",
+Single caller (the OSFIND vector table at `&9EEB`).""",
     on_entry={"a": "OSFIND function code (0=close-all, 1=close-one, >=2 = open variants)"},
 )
 
@@ -10580,8 +10581,8 @@ d.subroutine(
     description="""Loads A=0 and falls through to shift_and_finalise (LSR A / BPL
 finalise_and_return). The LSR-then-BPL is the standard FS-handler
 'success exit with carry clear' idiom. Two callers: the post-
-return path at &9FD6 and the catalogue tail at tail_update_
-catalogue (&A329).""",
+return path at &9FFC and the catalogue tail at tail_update_
+catalogue (&A33D).""",
     on_exit={"a": "0", "c": "0 (LSR of 0)"},
 )
 
@@ -10970,7 +10971,7 @@ d.subroutine(
 INY / INX / BNE loop_adjust_byte / RTS. The BNE retries until X
 has cycled through all 4 bytes; once X overflows back to 0 the
 loop exits and the RTS returns. Single caller (the loop-body fall-
-through at &A13F).""",
+through at &A165).""",
     on_entry={"a": "byte to store", "y": "current FS-options index", "x": "remaining-byte counter"},
 )
 
@@ -11285,7 +11286,7 @@ d.subroutine(
 (no Tube co-pro), branch forward to store_station_result and skip
 the next compare; otherwise CMP (fs_options),Y to validate the
 caller's station matches the saved Tube station. Falls through to
-write_data_block. Single caller (&A16A in the OSWORD write path).""",
+write_data_block. Single caller (&A190 in the OSWORD write path).""",
     on_entry={"y": "ignored (forced to 4)"},
 )
 
@@ -11396,7 +11397,7 @@ d.subroutine(
     title="Catalogue-update exit (JMP clear_result)",
     description="""Single-instruction tail: JMP clear_result -- shared exit for the
 catalogue-update paths after they have finished writing the new
-entry. Two callers: &A300 (the success path) and &A38D (the
+entry. Two callers: &A314 (the success path) and &A38D (the
 no-change path). Never returns directly (clear_result loads A=0
 and tail-falls into finalise_and_return).""",
 )
@@ -11627,7 +11628,7 @@ d.comment(
     0xA408, "ASL doubles the halved value (effectively undoes the ROR's divide while reusing C)", align=Align.INLINE
 )
 d.comment(0xA409, "Y = A_orig * 12 (the 12-byte-aligned index)", align=Align.INLINE)
-d.comment(0xA40A, "Recover A_orig * 4 (left on the stack at &A3EB)", align=Align.INLINE)
+d.comment(0xA40A, "Recover A_orig * 4 (left on the stack at &A3FF)", align=Align.INLINE)
 d.comment(0xA40B, "Above &48 (i.e. A_orig * 4 >= 72, A_orig >= 18)?", align=Align.INLINE)
 d.comment(0xA40D, "No: keep computed Y", align=Align.INLINE)
 d.comment(0xA40F, "Yes: clamp Y to 0 (out of range)", align=Align.INLINE)
@@ -12067,7 +12068,7 @@ incrementing each byte. If any byte becomes non-zero (BNE),
 branches forward to library_path_string (the OSCLI dispatch path). When all four
 INC operations leave a zero result the address was &FFFFFFFF + 1 =
 0 -- not a valid exec address -- and the routine falls through to
-the no-exec-address handler. Single caller (&A51C in the *RUN
+the no-exec-address handler. Single caller (&A530 in the *RUN
 handler).""",
     on_entry={"a": "exec address bytes already in hazel_txcb_flag..hazel_exec_addr"},
     on_exit={"x": "0 if no valid exec; non-zero branch otherwise"},
@@ -12092,7 +12093,7 @@ d.subroutine(
     description="""Loads the saved OSWORD parameter byte at hazel_txcb_data, calls alloc_fcb_slot
 to obtain a free channel index in A, transfers it into Y, then
 clears the per-channel attribute byte at hazel_fcb_status,X. Used by the
-*RUN argument-handling path at &A538 once the file is opened, to
+*RUN argument-handling path at &A54C once the file is opened, to
 reserve a channel for the running program.""",
     on_exit={"a": "channel attribute byte (cleared to 0)", "x": "FCB slot index", "y": "FCB slot index (copy of X)"},
 )
@@ -12168,7 +12169,7 @@ d.subroutine(
     description="""Single-instruction wrapper: JSR find_station_bit3 to record the
 new current-selected-directory (CSD) station in the table, then
 JMP return_with_last_flag to clean up and return. Single caller
-(the FS reply dispatch at &9594).""",
+(the FS reply dispatch at &9599).""",
     on_exit={"a": "fs_last_byte_flag (loaded by return_with_last_flag)"},
 )
 
@@ -12370,7 +12371,7 @@ The pushed byte is **not** consumed by `fsreply_2_copy_handles`
 itself — that routine only copies the per-handle table and uses
 `PHP`/`PLP` for its own Carry handling. The matching `PLA` lives
 much further down the boot chain, in
-[`boot_persist_fs_maybe`](address:A71C) at `&A71C`, which
+[`boot_persist_fs_maybe`](address:A71C) at `&A730`, which
 tests the recovered boot-type byte against `2` to decide whether
 to call OSBYTE `&6D`. Anyone following the stack across this
 fall-through should look past `fsreply_2_copy_handles` and
@@ -12385,7 +12386,7 @@ d.comment(0xA6EE, "Set boot-pending bit on fs_flags (TSB = test-and-set)", align
 d.comment(0xA6F1, "C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)", align=Align.INLINE)
 d.comment(0xA6F2, "Load boot-type byte from FS reply (hazel_txcb_result)", align=Align.INLINE)
 d.comment(0xA6F5, "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)", align=Align.INLINE)
-d.comment(0xA6F8, "Push boot-type byte (popped later by boot_persist_fs_maybe at &A71C)", align=Align.INLINE)
+d.comment(0xA6F8, "Push boot-type byte (popped later by boot_persist_fs_maybe at &A730)", align=Align.INLINE)
 d.label(0xA6F9, "fsreply_2_copy_handles")
 
 d.subroutine(
@@ -12418,11 +12419,11 @@ Two entry contracts:
   the dispatcher arrives with Carry clear, so `BCS` at `&A6F9`
   is not taken and the routine exits via
   `JMP return_with_last_flag` without ever reaching the `PLA`
-  at `&A71C`. The stack contract is satisfied trivially.
+  at `&A730`. The stack contract is satisfied trivially.
 - **Fall-through from [`fsreply_1_boot`](address:A6D5)** —
   fsreply_1_boot pushes A (the boot-type byte) and `SEC`s
   before falling in, so `BCS` is taken and the boot path runs;
-  the `PLA` at `&A71C` then pops the boot-type byte cleanly.
+  the `PLA` at `&A730` then pops the boot-type byte cleanly.
 
 Direct dispatch with Carry set is not part of the contract;
 the boot path requires the pre-pushed A from fsreply_1_boot.""",
@@ -12612,7 +12613,7 @@ boot case. Otherwise falls through into
 index into [`boot_cmd_lo_table`](address:A75B).
 
 Two callers, both from [`check_auto_boot_flag`](address:A726):
-the `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)
+the `BNE` at `&A748` (auto-boot flag was set, skip CTRL check)
 and the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).""",
 )
 
@@ -12632,7 +12633,7 @@ command string.
 
 Two entry paths:
 
-- `JMP` tail-call from `&A5D4` with `Y=3` hardcoded — forces the
+- `JMP` tail-call from `&A5E8` with `Y=3` hardcoded — forces the
   exec-via-NFS boot ([`boot_cmd_exec_str`](address:A74E)).
 - Fall-through from [`boot_select_cmd`](address:A75F) with `Y` already
   loaded from [`hazel_fs_flags`](address:C005) — the normal logon-boot
@@ -13363,7 +13364,7 @@ flag layouts that ANFS uses internally; nothing in this ROM flushes
 them to the live System VIA. Two callers:
 [`nfs_init_body`](address:8F38) at `&8FA6` (where A is `0` or
 `&FF` based on FS-options bit 6) and
-[`cmd_prot`](address:B6D2) at `&B6D9` (the *Prot path).
+[`cmd_prot`](address:B6D2) at `&B702` (the *Prot path).
 A 2-store-and-return convenience to keep both call sites flat.""",
     on_entry={"a": "value to mirror into both workspace bytes"},
 )
@@ -13895,7 +13896,7 @@ d.subroutine(
     "handle_tx_request",
     title="Sub-code 0: copy PB station/network into RX block, dispatch burst",
     description="""Sub-code-0 path of [`osword_14_handler`](address:AC47), reached
-via the `BCC handle_tx_request` at `&AC49` when the caller's `A`
+via the `BCC handle_tx_request` at `&AC69` when the caller's `A`
 is 0. Reads two bytes from the OSWORD parameter block:
 
 | Reg setup | Source     | Stored at        |
@@ -13960,7 +13961,7 @@ d.subroutine(
     "handle_burst_xfer",
     title="OSWORD &14 burst-transfer path: extend buffer end and TX",
     description="""Reached from [`handle_tx_request`](address:ACB7)'s `BNE` at
-`&ACCC`. Calls [`init_ws_copy_wide`](address:ADFE) to copy the
+`&ACEC`. Calls [`init_ws_copy_wide`](address:ADFE) to copy the
 workspace TXCB template into the wide-mode workspace slot, then
 extends the buffer end-byte at `(net_rx_ptr)+&7B` by `3` to
 account for the 3-byte burst header before falling through into
@@ -14830,7 +14831,7 @@ d.comment(0xB038, "port=&9F", align=Align.INLINE)
 d.comment(0xB039, "dest station=&00 (filled later)", align=Align.INLINE)
 d.comment(0xB03A, "dest network=&00 (filled later)", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB006, "buf start lo (&9F)", align=Align.INLINE)
-d.comment(0xB03C, "buf start hi (&8E); start = &8E9F", align=Align.INLINE)
+d.comment(0xB03C, "buf start hi (&8E); start = &8EB7", align=Align.INLINE)
 d.comment(0xB03D, "buf start ext lo=&FF", align=Align.INLINE)
 d.comment(0xB03E, "buf start ext hi=&FF", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB00A, "buf end lo (&A7)", align=Align.INLINE)
@@ -15023,7 +15024,7 @@ via `parse_filename_arg`, copies it to the TX buffer, and sends FS
 command code `&1B` to create the directory.
 
 Reached via PHA/PHA/RTS dispatch from `cmd_table_fs` entry
-[`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0A0`
+[`*Cdir`](address:A7B0); the byte at the entry-1 address `&B0D3`
 happens to decode as `JMP (cdir_unused_dispatch_table,X)` but is never executed.""",
     on_entry={"y": "command line offset in text pointer"},
 )
@@ -15645,7 +15646,7 @@ d.subroutine(
     0xB343,
     "print_dec_digit_no_spool",
     title="Print one decimal digit, *SPOOL-bypassing",
-    description="As print_decimal_digit (&B338) but emits via print_char_no_spool. fs_error_ptr is used as scratch storage for the divisor and is preserved across the print.",
+    description="As print_decimal_digit (&B36B) but emits via print_char_no_spool. fs_error_ptr is used as scratch storage for the divisor and is preserved across the print.",
     on_entry={"a": "divisor (100, 10, or 1)", "y": "value to divide"},
     on_exit={"y": "remainder after division"},
 )
@@ -15944,7 +15945,7 @@ d.subroutine(
 at the current `Y` offset. Uses indexed addressing: `LDA
 ps_template_base,X` with `X` starting at `&F8`, so the effective
 read address is `ps_template_base+&F8 = ps_template_data`
-([`&8E9F`](address:8E9F)). The 6502 trick reaches data 248
+([`&8EB7`](address:8E9F)). The 6502 trick reaches data 248
 bytes past the base label in a single instruction; the base
 address (`ps_template_base`) deliberately falls inside the operand
 byte of a JSR instruction at `&8DA6` -- see
@@ -15955,7 +15956,7 @@ docs/analysis/authors-easter-egg.md.""",
 
 d.comment(
     0xB410,
-    "X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F)",
+    "X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8EB7)",
     align=Align.INLINE,
 )
 d.label(0xB412, "loop_copy_ps_tmpl")
@@ -16730,7 +16731,7 @@ d.subroutine(
 current iteration in fs_work_5. Writes the function code into
 TXCB[5] and TXCB[7], copies the iteration index to TXCB[6], and
 falls through to the TXCB-build / send sequence. Single caller
-(the BNE retry at &B73F that loops cmd_wipe over each match).""",
+(the BNE retry at &B768 that loops cmd_wipe over each match).""",
 )
 
 
@@ -16813,7 +16814,7 @@ d.comment(0xB7B6, "Yes: echo the keypress", align=Align.INLINE)
 d.comment(0xB7B9, "X=0: start scanning the parse-buffer name", align=Align.INLINE)
 d.comment(0xB7BB, "Read first parse-buffer byte at hazel_parse_buf", align=Align.INLINE)
 d.comment(0xB7BE, "Is it CR (no path component)?", align=Align.INLINE)
-d.comment(0xB7C0, "Yes: use leaf-name only path at &B7BD", align=Align.INLINE)
+d.comment(0xB7C0, "Yes: use leaf-name only path at &B7E6", align=Align.INLINE)
 d.label(0xB7C2, "loop_build_wipe_cmd")
 
 d.comment(0xB7C2, "Read parse-buffer byte at hazel_parse_buf+X", align=Align.INLINE)
@@ -17520,7 +17521,7 @@ d.subroutine(
     description="""Y=0..&0C loop: PLA / STA fs_load_addr,Y / INY / CPY #&0D / BNE.
 Restores the 13-byte FS-options block that save_fcb_context pushed
 on the stack, undoing the protection the wipe/scan path put in
-place. Two callers: the JMP at &BA1B (close-and-restore exit) and
+place. Two callers: the JMP at &BA4B (close-and-restore exit) and
 the BNE retry at &BABE.""",
 )
 
@@ -18114,7 +18115,7 @@ reads up to 16 bytes from the open file via OSBGET into the line
 buffer at (work_ae). On EOF mid-line, breaks to clean-up; on a
 full line, falls through to the formatting and print stage.
 Reachable from the alignment branch at &BD54 and the per-line tail
-at &BDF9.""",
+at &BE29.""",
 )
 
 
@@ -18146,8 +18147,8 @@ d.subroutine(
     title="Drain saved bytes off stack and close",
     description="""Pulls X+1 bytes off the 6502 stack (clearing the temporary 21-byte
 buffer cmd_dump uses to render each line) and tail-jumps to
-close_ws_file. Reached from the in-line BPL at &BD7B and the
-fall-through tail at &BDFE.""",
+close_ws_file. Reached from the in-line BPL at &BDAB and the
+fall-through tail at &BE2E.""",
     on_entry={"x": "stack-byte count - 1 (caller sets it to &14 or &15)"},
 )
 
@@ -18205,7 +18206,7 @@ d.subroutine(
     title="*DUMP per-column advance and end-of-line check",
     description="""INY (next buffer offset), CPY #&10. End -> done_print_separator.
 Otherwise DEX (decrement byte counter); BPL loop_print_dump_hex
-to print the next byte. Single caller (the BPL at &BDCC after
+to print the next byte. Single caller (the BPL at &BDFC after
 short-line padding).""",
     on_entry={"x": "remaining bytes - 1", "y": "buffer offset"},
 )

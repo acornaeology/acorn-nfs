@@ -1672,7 +1672,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; the discard_reset_rx / reset_adlc_rx_listen chain, used to put the NMI vector back to
 ; scout-handling after a discard or reset.
 ;
-; Two callers: &80CB (after init) and &80E2 (after error).
+; Two callers: &80CD (after init) and &80E4 (after error).
 ; &83fd referenced 2 times by &80cd, &80e4
 .set_nmi_rx_scout
     lda #&9d                                                          ; 83fd: a9 9d       ..       ; A=&9D: low byte of nmi_rx_scout
@@ -1711,7 +1711,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; | set   | branch to copy_scout_via_tube (Tube R3 write)                                                                                      |
 ;
 ; Both paths walk the four-byte buffer pointer and end via scout_copy_done which restores
-; X and returns. Single caller: port_match_found at &81A4.
+; X and returns. Single caller: port_match_found at &81A7.
 ; &8412 referenced 1 time by &81a7
 .copy_scout_to_buffer
     txa                                                               ; 8412: 8a          .        ; Save X on stack
@@ -1884,7 +1884,7 @@ l8494 = sub_c8492+2
 ;
 ; Sets up the port buffer to receive remote-procedure data. Copies the 2-byte remote
 ; address from scout_data into the execution-address workspace at exec_addr_lo /
-; exec_addr_hi, then jumps to the common data-receive path at &81C1.
+; exec_addr_hi, then jumps to the common data-receive path via send_data_rx_ack.
 ;
 ; Used for operation types &83 (JSR), &84 (UserProc), and &85 (OSProc).
 .rx_imm_exec
@@ -2048,7 +2048,7 @@ l8494 = sub_c8492+2
 .tx_done_jsr
     lda #&85                                                          ; 8564: a9 85       ..       ; A=&85: high byte of tx_done_exit-1 (&8581)
     pha                                                               ; 8566: 48          H        ; Push hi byte on stack
-    lda #&a5                                                          ; 8567: a9 a5       ..       ; A=&A5: low byte of tx_done_exit-1 (&85A5)
+    lda #&a5                                                          ; 8567: a9 a5       ..       ; A=&A5: low byte of tx_done_exit-1
     pha                                                               ; 8569: 48          H        ; Push lo byte on stack
     jmp (exec_addr_lo)                                                ; 856a: 6c 66 0d    lf.      ; Call remote JSR; RTS to tx_done_exit
 ; ***************************************************************************************
@@ -2139,8 +2139,8 @@ l8494 = sub_c8492+2
 ; saved Y and X off the stack (the dispatcher pushed them before the PHA/PHA/RTS jump),
 ; loads A=0 (success status), and RTS to the caller.
 ;
-; Five inbound refs: a tail-jump from &8042 (the SVC 5 IRQ-check path in svc5_irq_check),
-; plus the JMPs at &8554, &8560, &8568, and the fall-through at &8578.
+; Five inbound refs: a tail-jump from &8044 (the SVC 5 IRQ-check path in svc5_irq_check),
+; plus the JMPs at &8554, &8584, &858C, and the fall-through at &8578.
 ;
 ; On Exit:
 ;     A: 0 (success status)
@@ -2534,7 +2534,7 @@ l872d = sub_c872b+2
 ; saved carry, and BNE skips the buffer-setup code if the transfer size is zero.
 ;
 ; Falls through (or is reached via the dispatch from tx_prepare when port != 0) to
-; setup_data_xfer at &86A9, which dispatches between broadcast and unicast based on
+; setup_data_xfer at &8770, which dispatches between broadcast and unicast based on
 ; whether tx_dst_stn and tx_dst_net are both &FF.
 .tx_ctrl_proc
     cpy #&10                                                          ; 8769: c0 10       ..       ; Compare Y with 16-byte boundary
@@ -2662,7 +2662,7 @@ l872d = sub_c872b+2
 .tx_last_data
     lda #&3f ; '?'                                                    ; 87f2: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 87f4: 8d a1 fe    ...      ; Write to ADLC CR2
-    lda #&fc                                                          ; 87f7: a9 fc       ..       ; Install NMI handler at &8728 (TX completion)
+    lda #&fc                                                          ; 87f7: a9 fc       ..       ; Install NMI handler at &87F7 (TX completion)
     jmp install_nmi_handler                                           ; 87f9: 4c 11 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
@@ -2720,7 +2720,7 @@ l872d = sub_c872b+2
     lda econet_data_continue_frame                                    ; 8821: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8824: cd 22 0d    .".      ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8827: d0 19       ..       ; Not our station -- error/reject
-    lda #&2e ; '.'                                                    ; 8829: a9 2e       ..       ; Install next handler at &8758 (reply continuation)
+    lda #&2e ; '.'                                                    ; 8829: a9 2e       ..       ; Install next handler at &8827 (reply continuation)
     jmp install_nmi_handler                                           ; 882b: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; RX reply continuation handler
@@ -2741,7 +2741,7 @@ l872d = sub_c872b+2
     bne reject_reply                                                  ; 8836: d0 0a       ..       ; Non-zero -- network mismatch, error
     lda #&45 ; 'E'                                                    ; 8838: a9 45       .E       ; A=&45: low byte of nmi_reply_validate (&8845)
     bit econet_control1_or_status1                                    ; 883a: 2c a0 fe    ,..      ; Test SR1 IRQ (N=bit7) -- more data ready?
-    bmi nmi_reply_validate                                            ; 883d: 30 06       0.       ; IRQ set -- fall through to &8779
+    bmi nmi_reply_validate                                            ; 883d: 30 06       0.       ; IRQ set -- fall through to &8848
     jmp install_nmi_handler                                           ; 883f: 4c 11 0d    L..      ; IRQ not set -- install handler
 ; ***************************************************************************************
 ; Abandon reply scout (1-instruction trampoline)
@@ -2795,7 +2795,7 @@ l872d = sub_c872b+2
     sta econet_data_continue_frame                                    ; 887d: 8d a2 fe    ...      ; Write dest station to TX FIFO
     lda tx_dst_net                                                    ; 8880: ad 21 0d    .!.      ; Write dest network to TX FIFO
     sta econet_data_continue_frame                                    ; 8883: 8d a2 fe    ...      ; Write dest network to TX FIFO
-    lda #&8d                                                          ; 8886: a9 8d       ..       ; Install handler at &87B7 (write src addr for scout ACK)
+    lda #&8d                                                          ; 8886: a9 8d       ..       ; Install handler at &8886 (write src addr for scout ACK)
     ldy #&88                                                          ; 8888: a0 88       ..       ; High byte &87 of handler address
     jmp set_nmi_vector                                                ; 888a: 4c 0e 0d    L..      ; Set NMI vector and return
 ; ***************************************************************************************
@@ -2843,7 +2843,7 @@ l872d = sub_c872b+2
     jmp set_nmi_vector                                                ; 88a8: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &88ab referenced 1 time by &88a2
 .install_imm_data_nmi
-    lda #&14                                                          ; 88ab: a9 14       ..       ; Install nmi_imm_data at &8837
+    lda #&14                                                          ; 88ab: a9 14       ..       ; Install nmi_imm_data at &8906
     ldy #&89                                                          ; 88ad: a0 89       ..       ; High byte of handler address
     jmp set_nmi_vector                                                ; 88af: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
@@ -2915,8 +2915,8 @@ l872d = sub_c872b+2
     sta econet_control23_or_status2                                   ; 88fc: 8d a1 fe    ...      ; Write CR2 to close frame
     lda rx_src_net                                                    ; 88ff: ad 3e 0d    .>.      ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 8902: 10 07       ..       ; Bit7 clear: error, install saved handler
-    lda #&f7                                                          ; 8904: a9 f7       ..       ; Install discard_reset_listen at &83F2
-    ldy #&83                                                          ; 8906: a0 83       ..       ; High byte of &83F2 handler
+    lda #&f7                                                          ; 8904: a9 f7       ..       ; Install discard_reset_listen at &8404
+    ldy #&83                                                          ; 8906: a0 83       ..       ; High byte of &8404 handler
     jmp set_nmi_vector                                                ; 8908: 4c 0e 0d    L..      ; Set NMI vector and return
 ; &890b referenced 1 time by &8902
 .install_saved_handler
@@ -3793,7 +3793,7 @@ l8a1e = sub_c8a1d+1
 ; | clear | print_indent (continue with this entry)     |
 ; | set   | JMP done_print_table (end of table reached) |
 ;
-; Single caller (the BNE retry at &8C22 in print_cmd_table's outer loop).
+; Single caller (the BNE retry at &8C47 in print_cmd_table's outer loop).
 ;
 ; On Entry:
 ;     X: current cmd_table_fs offset
@@ -3962,7 +3962,7 @@ l8a1e = sub_c8a1d+1
 ; clearing A – preserving the original service number so the next ROM in the chain sees
 ; the unclaimed call.
 ;
-; Reached from the four service-handler escape paths at &8C4C, &8C91, &8CD5, and &95BE
+; Reached from the four service-handler escape paths at &8C4C, &8C91, &8CFA, and &95BD
 ; that hand a request back to MOS without acting on it.
 ;
 ; On Exit:
@@ -3995,7 +3995,7 @@ l8a1e = sub_c8a1d+1
     pha                                                               ; 8cab: 48          H        ; Push dispatch high for RTS
     lda cmd_dispatch_lo_table,x                                       ; 8cac: bd 81 a7    ...      ; Load dispatch address low
     pha                                                               ; 8caf: 48          H        ; Push dispatch low for RTS
-    rts                                                               ; 8cb0: 60          `        ; Dispatch via RTS (returns to &8C80)
+    rts                                                               ; 8cb0: 60          `        ; Dispatch via RTS (returns to &8CA5)
 ; &8cb1 referenced 1 time by &8c9f
 .skip_if_no_match
     plp                                                               ; 8cb1: 28          (        ; Restore flags from before match
@@ -4022,7 +4022,7 @@ l8a1e = sub_c8a1d+1
 ;
 ; Indexes into the MOS per-ROM workspace table rom_ws_pages using romsel_copy (&F4) as
 ; the ROM slot. Holds a copy of the slot byte in Y, then runs a ROL / PHP / ROR / PLP
-; sequence at &8CB3–&8CB6 that restores A to the original byte while leaving the
+; sequence at &8CD8–&8CB6 that restores A to the original byte while leaving the
 ; saved-flags register reflecting bit 6 of the original byte (the ADLC-absent flag).
 ; Falls through to whichever caller-specific tail follows.
 ;
@@ -4113,7 +4113,7 @@ l8a1e = sub_c8a1d+1
 ; whatever invoked notify_new_fs -- this is a fire-and-forget notification, not a
 ; return-to-caller call.
 ;
-; Single caller (&8b60 inside the FS-selection sequence).
+; Single caller (&8b86 inside the FS-selection sequence).
 ;
 ; On Exit:
 ;     A: 6 (clobbered by FSCV handler)
@@ -4375,7 +4375,7 @@ l8dbf = load_transfer_params+1
 ; | '&' (URD prefix marker) | JMP cmd_run_via_urd                                       |
 ; | any other               | fall through to pass_send_cmd (send as normal FS request) |
 ;
-; Single caller (the FS command-name post-match path at &9597).
+; Single caller (the FS command-name post-match path at &959C).
 ; &8e45 referenced 1 time by &959c
 .check_urd_prefix
     ldy #0                                                            ; 8e45: a0 00       ..       ; Y=0: first character offset
@@ -4398,8 +4398,8 @@ l8dbf = load_transfer_params+1
 ; | 0          | branch to the no-reply path (dispatch_rts)                                                                                            |
 ; | non-zero   | load hazel_txcb_data (first reply byte), Y=&25 (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
 ;
-; Two callers: the fall-through from check_urd_prefix (&8E1F via pass_send_cmd) and the
-; JMP from send_fs_request (&9460).
+; Two callers: the fall-through from check_urd_prefix (&8E37 via pass_send_cmd) and the
+; JMP from send_fs_request (&9465).
 ;
 ; On Entry:
 ;     Y: extra dispatch offset (0 from send_fs_request, non-zero for some specialised paths)
@@ -4448,7 +4448,7 @@ l8dbf = load_transfer_params+1
 ; jumps to the target subroutine. Used for all service dispatch, FS command execution,
 ; and OSBYTE handler routing.
 ;
-; Routine extent is &8E61-&8E70 (the RTS is the dispatch). The short Master service
+; Routine extent is &8E61-&8E88 (the RTS is the dispatch). The short Master service
 ; handlers at noop_dey_rts (svc &24), copy_template_to_zp (svc &25) and
 ; svc_26_close_all_files sit immediately after.
 ;
@@ -4494,7 +4494,7 @@ l8dbf = load_transfer_params+1
     ldx #&0a                                                          ; 8e8b: a2 0a       ..       ; X = 10 (top of 11-byte template)
 ; &8e8d referenced 1 time by &8e94
 .loop_copy_return_template
-    lda fs_info_template,x                                            ; 8e8d: bd 97 8e    ...      ; Load template byte X from &8E7F+X
+    lda fs_info_template,x                                            ; 8e8d: bd 97 8e    ...      ; Load template byte X from &8E97+X
     sta (os_text_ptr),y                                               ; 8e90: 91 f2       ..       ; Store at (&F2),Y
     iny                                                               ; 8e92: c8          .        ; Advance destination cursor
     dex                                                               ; 8e93: ca          .        ; Step to previous template byte
@@ -4562,7 +4562,7 @@ l8dbf = load_transfer_params+1
     jmp osbyte                                                        ; 8eb4: 4c f4 ff    L..      ; Read CMOS RAM/EEPROM byte (Master and B+) or Tube ID (Compact)
 ; Printer server template (8 bytes)
 ;
-; Default printer server configuration data, read indirectly by copy_ps_data via LDA ps_template_base,X with X=&F8..&FF (reaching ps_template_base+&F8 = &8E9F). Contains "PRINT " (6 bytes) as the default printer server name, followed by &01 and &00 as default status bytes. Absent from NFS versions; unique to ANFS.
+; Default printer server configuration data, read indirectly by copy_ps_data via LDA ps_template_base,X with X=&F8..&FF (reaching ps_template_base+&F8 = &8EB7). Contains "PRINT " (6 bytes) as the default printer server name, followed by &01 and &00 as default status bytes. Absent from NFS versions; unique to ANFS.
 ; ***************************************************************************************
 ; Printer-server name template (8 bytes)
 ;
@@ -4782,7 +4782,7 @@ l8dbf = load_transfer_params+1
 ; ANFS initialisation body
 ;
 ; Reached only via PHA/PHA/RTS dispatch (table index 22 in the svc_dispatch table at
-; &89ED / &8A20). Carries out the bring-up sequence after page allocation:
+; &8A23 / &8A20). Carries out the bring-up sequence after page allocation:
 ;
 ; - Clears ws_page / tx_complete_flag and the receive-block remote-op flag.
 ; - On warm reset (last_break_type non-zero) and fs_flags bit 4 set, calls setup_ws_ptr
@@ -4797,7 +4797,7 @@ l8dbf = load_transfer_params+1
 ;   init_adlc_and_vectors to install NETV / FSCV / etc., handle_spool_ctrl_byte and
 ;   init_bridge_poll for protection setup.
 ;
-; Returns via RTS at &903B.
+; Returns via RTS at &9042.
 ;
 ; Reached via Master 128 service call &27 (= 39 decimal), documented in the Advanced
 ; Reference Manual for the BBC Master:
@@ -5226,7 +5226,7 @@ l8dbf = load_transfer_params+1
 ; captured by spool, then restores the previous handle on exit.
 ;
 ; Called from service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two
-; other diagnostic sites (&8E10, &9D3E).
+; other diagnostic sites (&8E28, &9D3C).
 ;
 ; On Exit:
 ;     A, X, Y, P: preserved (print_char_no_spool brackets the call with full register save/restore via PHA/PHP/PLP/PLA)
@@ -5244,13 +5244,13 @@ l8dbf = load_transfer_params+1
 ; 2. If the previous handle was in the NFS-issued range &21..&2F, calls OSBYTE &C7 again
 ;    with X=OLD, Y=0 to restore the spool before the print (so the print is captured);
 ;    otherwise leaves spool closed for the duration of the print.
-; 3. PLPs the inner P, then routes to OSASCI (the BIT trick set V=1, so the BVC at &9220
+; 3. PLPs the inner P, then routes to OSASCI (the BIT trick set V=1, so the BVC at &9229
 ;    is not taken).
 ; 4. Final OSBYTE &C7 with Y=&FF either no-ops (if spool already restored) or writes OLD
 ;    back (if it was deferred).
 ; 5. Pulls A, Y, X, P and returns.
 ;
-; Eight inner-ROM callers: &925F, &92A4, &9D30, &9D5C, &B21F, &B2F9, &B321, &B752.
+; Eight inner-ROM callers: &9268, &92AD, &9D2E, &9D5A, &B21F, &B2F9, &B321, &B77B.
 ;
 ; On Entry:
 ;     A: byte to print as ASCII char (CR is translated by OSASCI)
@@ -5263,7 +5263,7 @@ l8dbf = load_transfer_params+1
 ; Print A via OSWRCH (raw, no CR translation), bypass *SPOOL
 ;
 ; As print_char_no_spool but the inner PHP/CLV at &9201 forces V=0 in the saved flags, so
-; the BVC at &9220 takes the OSWRCH branch instead of OSASCI.
+; the BVC at &9229 takes the OSWRCH branch instead of OSASCI.
 ;
 ; Used when the caller wants to emit a raw byte (e.g. a VDU control code) without CR
 ; translation. Sole caller in this ROM is at &8DE6.
@@ -5273,7 +5273,7 @@ l8dbf = load_transfer_params+1
 ; &920a referenced 2 times by &8dfe, &b797
 .print_byte_no_spool
     php                                                               ; 920a: 08          .        ; Alt entry: save caller's flags BEFORE forcing V=0
-    clv                                                               ; 920b: b8          .        ; Force V=0 -> OSWRCH path at &9220 (raw byte)
+    clv                                                               ; 920b: b8          .        ; Force V=0 -> OSWRCH path at &9229 (raw byte)
 ; &920c referenced 1 time by &9208
 .save_regs_print_no_spool
     phx                                                               ; 920c: da          .        ; Save X
@@ -5362,7 +5362,7 @@ l8dbf = load_transfer_params+1
 ; OSASCI wrapper), so the digits don't appear in any active spool capture. Saves A,
 ; extracts the high nibble (LSR x4), prints it via print_hex_nybble_no_spool, then
 ; restores A and falls through for the low nibble. Sole caller: print_5_hex_bytes at
-; &9D53.
+; &9D51.
 ;
 ; On Entry:
 ;     A: byte to print
@@ -5463,8 +5463,8 @@ l8dbf = load_transfer_params+1
 ; recv_and_process_reply 'Data Lost' warning, and inline-string arguments inside cmd_ex's
 ; directory listing).
 ;
-; Six callers: &981A (recv_and_process_reply), &B158/&B162 (cmd_ex), &B2F0
-; (ex_print_col_sep), &B75E (cmd_wipe), &B7CB (prompt_yn).
+; Six callers: &9818 (recv_and_process_reply), &B18B/&B195 (cmd_ex), &B323
+; (ex_print_col_sep), &B787 (cmd_wipe), &B7CB (prompt_yn).
 ;
 ; On Exit:
 ;     A: terminator byte (bit 7 set, also next opcode)
@@ -5508,7 +5508,7 @@ l8dbf = load_transfer_params+1
 ; fs_load_addr_2 (and A). Raises Bad hex, Bad number, Bad station number, and overflow
 ; errors as appropriate. The body uses the standard 6502 idioms: ASL ASL ASL ASL + ADC
 ; for hex-digit accumulation, and result*2 + result*8 for decimal *10. Two named callers:
-; from &A3C9 and &A3DE.
+; from &A3C9 and &A3F2.
 ;
 ; On Entry:
 ;     Y: index into command-string buffer at (fs_crc_lo),Y
@@ -5845,7 +5845,7 @@ l8dbf = load_transfer_params+1
 ;
 ; PHP / LSR need_release_tube / PLP / RTS. Shifts bit 0 of need_release_tube into carry
 ; while clearing it, then restores the caller's flags so the operation is invisible to
-; NZC-sensitive code. Single caller (&9B72 in the recv-and-classify reply path).
+; NZC-sensitive code. Single caller (&9B70 in the recv-and-classify reply path).
 ; &93e6 referenced 1 time by &9b70
 .clear_escapable
     php                                                               ; 93e6: 08          .        ; Save flags so the LSR doesn't disturb caller's NZC
@@ -6028,8 +6028,8 @@ l8dbf = load_transfer_params+1
 ; Send FS command with no extra dispatch offset
 ;
 ; Loads Y=0 (so dispatch lookups don't add an offset) and tail-jumps to
-; send_cmd_and_dispatch. Two callers: read_filename_char's BEQ on CR (&9457) and the *RUN
-; argument-handling tail at &9537.
+; send_cmd_and_dispatch. Two callers: read_filename_char's BEQ on CR (&945C) and the *RUN
+; argument-handling tail at &953C.
 ; &9463 referenced 2 times by &945c, &953c
 .send_fs_request
     ldy #0                                                            ; 9463: a0 00       ..       ; Y=0: ensure offset starts from beginning of TX command buffer
@@ -6296,7 +6296,7 @@ l8dbf = load_transfer_params+1
     jsr print_inline                                                  ; 95c0: 20 6a 92     j.      ; Print 'P' prefix
     equs "P"                                                          ; 95c3: 50          P     
     clv                                                               ; 95c4: b8          .        ; CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)
-    bvc print_field_tail_s                                            ; 95c5: 50 05       P.       ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
+    bvc print_field_tail_s                                            ; 95c5: 50 05       P.       ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CC
 ; ***************************************************************************************
 ; Print 'FS ' 9-column header
 ;
@@ -6307,7 +6307,7 @@ l8dbf = load_transfer_params+1
 .print_fs_station
     jsr print_inline                                                  ; 95c7: 20 6a 92     j.      ; Print 'F' prefix
     equs "F"                                                          ; 95ca: 46          F     
-    nop                                                               ; 95cb: ea          .        ; NOP -- bit-7 terminator; falls through into the shared 'S ' tail at &95CD
+    nop                                                               ; 95cb: ea          .        ; NOP -- bit-7 terminator; falls through into the shared 'S ' tail at &95CC
 ; &95cc referenced 1 time by &95c5
 .print_field_tail_s
     jsr print_inline                                                  ; 95cc: 20 6a 92     j.      ; Print 'S ' (S + 7 spaces) -- the shared 8-char field used by both 'FS' and 'PS' callers
@@ -6332,8 +6332,8 @@ l8dbf = load_transfer_params+1
 ; ***************************************************************************************
 ; Write FS/PS station+network to Master 128 CMOS RAM
 ;
-; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A80F, *PS at
-; &A814) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A828, *PS at
+; &A82D) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
 ; saved address.
 ;
 ; The flag byte's low 6 bits (AND #&3F) double as the CMOS byte index for the relevant
@@ -6380,16 +6380,16 @@ l8dbf = load_transfer_params+1
 ; ***************************************************************************************
 ; OSBYTE &A2 (write Master CMOS RAM byte)
 ;
-; Three instructions: LDA #&A2 / JSR OSBYTE / BRA &95BE. Writes the Master 128 CMOS RAM
+; Three instructions: LDA #&A2 / JSR OSBYTE / BRA &95BD. Writes the Master 128 CMOS RAM
 ; byte indexed by X with the value in Y. The trailing BRA lands on bra_target_svc_return
 ; (a 3-byte JMP trampoline to svc_return_unclaimed, reached this way because BRA's 8-bit
-; displacement can't span &9617 → &8C64).
+; displacement can't span &9616 → &8C89).
 ;
 ; osbyte_a2 ends at &9618 (3 instructions, 8 bytes); the next labelled routine is
 ; cmd_space. Counterpart of osbyte_a1 (read).
 ;
 ; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA
-; shortcut at &962E inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
+; shortcut at &962D inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
 ; byte &11 ending at osopt_cmos_writeback_jsr.
 ;
 ; On Entry:
@@ -6426,7 +6426,7 @@ l8dbf = load_transfer_params+1
 ; ***************************************************************************************
 ; Shared CMOS write-back tail
 ;
-; Common tail used by cmd_space (via BRA from &9621 with the new value already in A) and
+; Common tail used by cmd_space (via BRA from &9620 with the new value already in A) and
 ; cmd_nospace (fall-through with the new value in A). TAY moves the byte to Y, then LDX
 ; #&11 reloads the CMOS index and BRA osbyte_a2 performs the write.
 ; &962a referenced 1 time by &9620
@@ -6982,7 +6982,7 @@ l8dbf = load_transfer_params+1
 ; synthesized 'Escape' error class), and tail-jumps to classify_reply_error to build the
 ; 'Escape' BRK error block.
 ;
-; Two callers: cmd_pass (&8DEF) for password-entry escape, and send_net_packet (&9B48)
+; Two callers: cmd_pass (&8E07) for password-entry escape, and send_net_packet (&9B46)
 ; for in-flight TX escape.
 ;
 ; On Exit:
@@ -6998,7 +6998,7 @@ l8dbf = load_transfer_params+1
 ; Issues OSBYTE &7E (acknowledge_escape -- clears the escape condition and runs any
 ; registered escape effects), loads A=6, and tail-jumps to classify_reply_error which
 ; builds the Escape error. Reached from &98EF (after recv_and_process_reply detects
-; escape) and &B7DF (cmd_wipe's per-iteration escape check). Never returns -- the
+; escape) and &B808 (cmd_wipe's per-iteration escape check). Never returns -- the
 ; classify_reply_error path triggers BRK.
 ;
 ; On Exit:
@@ -7132,7 +7132,7 @@ l8dbf = load_transfer_params+1
 ; &9907 referenced 1 time by &98fb
 .build_no_reply_error
     ldx #8                                                            ; 9907: a2 08       ..       ; X=8: net_error_lookup_data offset for 'No reply' message
-    ldy net_error_lookup_data,x                                       ; 9909: bc 98 9a    ...      ; Y = message offset within the string table (&9AA6 base)
+    ldy net_error_lookup_data,x                                       ; 9909: bc 98 9a    ...      ; Y = message offset within the string table (&9AA4 base)
     ldx #0                                                            ; 990c: a2 00       ..       ; X=0: error-text buffer index
     stx error_block                                                   ; 990e: 8e 00 01    ...      ; Zero the &0100 length byte (length will be filled in later)
     lda error_msg_table,y                                             ; 9911: b9 a4 9a    ...      ; Read first message byte (the error code)
@@ -7178,7 +7178,7 @@ l8dbf = load_transfer_params+1
 ; Load reply byte and classify error
 ;
 ; Single-byte prologue to classify_reply_error: LDA (net_tx_ptr,X) reads the FS reply
-; status byte, then falls through. Single caller (&9B6C, after a recv-and-classify path
+; status byte, then falls through. Single caller (&9B6A, after a recv-and-classify path
 ; that already has X set).
 ;
 ; On Entry:
@@ -7198,7 +7198,7 @@ l8dbf = load_transfer_params+1
 ; | 2 (station-related) | multi-line build_no_reply_error |
 ; | other               | build_simple_error              |
 ;
-; Two callers: raise_escape_error (with A=6) and the FS reply dispatch at &A0BD.
+; Two callers: raise_escape_error (with A=6) and the FS reply dispatch at &A0E3.
 ;
 ; On Entry:
 ;     A: error code byte
@@ -8130,7 +8130,7 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; JSRs recv_and_process_reply, then falls through to store_result (STX hazel_txcb_result;
 ; LDY #&0E to point at the protection-bits offset). Single caller (the dispatch at
-; &9C82).
+; &9C80).
 ;
 ; On Exit:
 ;     X: FS result byte (also written to hazel_txcb_result)
@@ -8407,7 +8407,7 @@ bad_prefix_table = bad_str_anchor+1
 ; | 7     | setup_dir_display (*INFO expansion)                |
 ; | > 7   | skip_if_error (routes through finalise_and_return) |
 ;
-; Single caller (&9CB2 in the OSWORD &13 handler entry).
+; Single caller (&9CB0 in the OSWORD &13 handler entry).
 ;
 ; On Entry:
 ;     A: OSWORD sub-op code
@@ -8752,7 +8752,7 @@ bad_prefix_table = bad_str_anchor+1
 ; Single-instruction wrapper: JSR process_all_fcbs to walk every FCB slot and close each
 ; open file in turn, then fall through to return_with_last_flag (which loads
 ; fs_last_byte_flag and finalises caller state). Single caller (the OSFIND close-all path
-; at &9EBA).
+; at &9EB8).
 ;
 ; On Exit:
 ;     A: fs_last_byte_flag (loaded by return_with_last_flag)
@@ -8765,7 +8765,7 @@ bad_prefix_table = bad_str_anchor+1
 ; Loads fs_last_byte_flag (&BD) into A and falls through to finalise_and_return, which
 ; clears the receive-attribute byte and restores caller's X/Y. The 12 inbound refs are
 ; mostly fall-through exits from FS reply handlers that need to return the last-byte
-; status to their caller; only one site (&9FAE) reaches it via JSR.
+; status to their caller; only one site (&9FD4) reaches it via JSR.
 ;
 ; On Exit:
 ;     A: fs_last_byte_flag
@@ -8813,7 +8813,7 @@ bad_prefix_table = bad_str_anchor+1
 ; | 1   | close one channel                | go to done_file_open                              |
 ; | 0   | close all channels               | load A=5 (close-all return code) and fall through |
 ;
-; Single caller (the OSFIND vector table at &9EED).
+; Single caller (the OSFIND vector table at &9EEB).
 ;
 ; On Entry:
 ;     A: OSFIND function code (0=close-all, 1=close-one, >=2 = open variants)
@@ -8833,8 +8833,8 @@ bad_prefix_table = bad_str_anchor+1
 ;
 ; Loads A=0 and falls through to shift_and_finalise (LSR A / BPL finalise_and_return).
 ; The LSR-then-BPL is the standard FS-handler 'success exit with carry clear' idiom. Two
-; callers: the post- return path at &9FD6 and the catalogue tail at tail_update_
-; catalogue (&A329).
+; callers: the post- return path at &9FFC and the catalogue tail at tail_update_
+; catalogue (&A33D).
 ;
 ; On Exit:
 ;     A: 0
@@ -9184,7 +9184,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; Tail of the address-adjustment 4-byte loop: STA (fs_options),Y / INY / INX / BNE
 ; loop_adjust_byte / RTS. The BNE retries until X has cycled through all 4 bytes; once X
 ; overflows back to 0 the loop exits and the RTS returns. Single caller (the loop-body
-; fall- through at &A13F).
+; fall- through at &A165).
 ;
 ; On Entry:
 ;     A: byte to store
@@ -9470,7 +9470,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; Y=4 (FS-options offset for station). If tube_present is zero (no Tube co-pro), branch
 ; forward to store_station_result and skip the next compare; otherwise CMP (fs_options),Y
 ; to validate the caller's station matches the saved Tube station. Falls through to
-; write_data_block. Single caller (&A16A in the OSWORD write path).
+; write_data_block. Single caller (&A190 in the OSWORD write path).
 ;
 ; On Entry:
 ;     Y: ignored (forced to 4)
@@ -9575,7 +9575,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; Catalogue-update exit (JMP clear_result)
 ;
 ; Single-instruction tail: JMP clear_result -- shared exit for the catalogue-update paths
-; after they have finished writing the new entry. Two callers: &A300 (the success path)
+; after they have finished writing the new entry. Two callers: &A314 (the success path)
 ; and &A38D (the no-change path). Never returns directly (clear_result loads A=0 and
 ; tail-falls into finalise_and_return).
 ; &a33d referenced 2 times by &a314, &a3a1
@@ -9770,7 +9770,7 @@ la125 = osopt_cmos_writeback_jsr+1
     plp                                                               ; a407: 28          (        ; Restore the saved C (from the third ASL)
     asl a                                                             ; a408: 0a          .        ; ASL doubles the halved value (effectively undoes the ROR's divide while reusing C)
     tay                                                               ; a409: a8          .        ; Y = A_orig * 12 (the 12-byte-aligned index)
-    pla                                                               ; a40a: 68          h        ; Recover A_orig * 4 (left on the stack at &A3EB)
+    pla                                                               ; a40a: 68          h        ; Recover A_orig * 4 (left on the stack at &A3FF)
     cmp #&48 ; 'H'                                                    ; a40b: c9 48       .H       ; Above &48 (i.e. A_orig * 4 >= 72, A_orig >= 18)?
     bcc rts_2bit_index                                                ; a40d: 90 03       ..       ; No: keep computed Y
     ldy #0                                                            ; a40f: a0 00       ..       ; Yes: clamp Y to 0 (out of range)
@@ -10157,7 +10157,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; (BNE), branches forward to library_path_string (the OSCLI dispatch path). When all four
 ; INC operations leave a zero result the address was &FFFFFFFF + 1 = 0 -- not a valid
 ; exec address -- and the routine falls through to the no-exec-address handler. Single
-; caller (&A51C in the *RUN handler).
+; caller (&A530 in the *RUN handler).
 ;
 ; On Entry:
 ;     A: exec address bytes already in hazel_txcb_flag..hazel_exec_addr
@@ -10181,7 +10181,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ;
 ; Loads the saved OSWORD parameter byte at hazel_txcb_data, calls alloc_fcb_slot to
 ; obtain a free channel index in A, transfers it into Y, then clears the per-channel
-; attribute byte at hazel_fcb_status,X. Used by the *RUN argument-handling path at &A538
+; attribute byte at hazel_fcb_status,X. Used by the *RUN argument-handling path at &A54C
 ; once the file is opened, to reserve a channel for the running program.
 ;
 ; On Exit:
@@ -10255,7 +10255,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ;
 ; Single-instruction wrapper: JSR find_station_bit3 to record the new
 ; current-selected-directory (CSD) station in the table, then JMP return_with_last_flag
-; to clean up and return. Single caller (the FS reply dispatch at &9594).
+; to clean up and return. Single caller (the FS reply dispatch at &9599).
 ;
 ; On Exit:
 ;     A: fs_last_byte_flag (loaded by return_with_last_flag)
@@ -10422,7 +10422,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ;
 ; The pushed byte is not consumed by fsreply_2_copy_handles itself — that routine only
 ; copies the per-handle table and uses PHP/PLP for its own Carry handling. The matching
-; PLA lives much further down the boot chain, in boot_persist_fs_maybe at &A71C, which
+; PLA lives much further down the boot chain, in boot_persist_fs_maybe at &A730, which
 ; tests the recovered boot-type byte against 2 to decide whether to call OSBYTE &6D.
 ; Anyone following the stack across this fall-through should look past
 ; fsreply_2_copy_handles and boot_try_findlib to find the pop.
@@ -10433,7 +10433,7 @@ la125 = osopt_cmos_writeback_jsr+1
     sec                                                               ; a6f1: 38          8        ; C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)
     lda hazel_txcb_result                                             ; a6f2: ad 08 c1    ...      ; Load boot-type byte from FS reply (hazel_txcb_result)
     sta hazel_fs_flags                                                ; a6f5: 8d 05 c0    ...      ; Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)
-    pha                                                               ; a6f8: 48          H        ; Push boot-type byte (popped later by boot_persist_fs_maybe at &A71C)
+    pha                                                               ; a6f8: 48          H        ; Push boot-type byte (popped later by boot_persist_fs_maybe at &A730)
 ; ***************************************************************************************
 ; FS reply 2: install handles and (optionally) boot
 ;
@@ -10451,10 +10451,10 @@ la125 = osopt_cmos_writeback_jsr+1
 ;
 ; - Direct dispatch via the FS-reply table entry at &2C — the dispatcher arrives with
 ;   Carry clear, so BCS at &A6F9 is not taken and the routine exits via JMP
-;   return_with_last_flag without ever reaching the PLA at &A71C. The stack contract is
+;   return_with_last_flag without ever reaching the PLA at &A730. The stack contract is
 ;   satisfied trivially.
 ; - Fall-through from fsreply_1_boot — fsreply_1_boot pushes A (the boot-type byte) and
-;   SECs before falling in, so BCS is taken and the boot path runs; the PLA at &A71C then
+;   SECs before falling in, so BCS is taken and the boot path runs; the PLA at &A730 then
 ;   pops the boot-type byte cleanly.
 ;
 ; Direct dispatch with Carry set is not part of the contract; the boot path requires the
@@ -10584,7 +10584,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; zero, BEQs into boot_cancel_rts — the empty / no-op boot case. Otherwise falls through
 ; into boot_cmd_oscli with Y already loaded as the index into boot_cmd_lo_table.
 ;
-; Two callers, both from check_auto_boot_flag: the BNE at &A734 (auto-boot flag was set,
+; Two callers, both from check_auto_boot_flag: the BNE at &A748 (auto-boot flag was set,
 ; skip CTRL check) and the BPL at &A73E (CTRL not pressed, proceed to boot).
 ; &a773 referenced 2 times by &a748, &a752
 .boot_select_cmd
@@ -10599,7 +10599,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ;
 ; Two entry paths:
 ;
-; - JMP tail-call from &A5D4 with Y=3 hardcoded — forces the exec-via-NFS boot
+; - JMP tail-call from &A5E8 with Y=3 hardcoded — forces the exec-via-NFS boot
 ;   (boot_cmd_exec_str).
 ; - Fall-through from boot_select_cmd with Y already loaded from hazel_fs_flags — the
 ;   normal logon-boot path, dispatching on the FS-supplied boot type.
@@ -11278,7 +11278,7 @@ la891 = la88a+7
 ; Copies A to both prot_status and prot_status_save, then RTS. The bytes carry
 ; ACR/SR-style flag layouts that ANFS uses internally; nothing in this ROM flushes them
 ; to the live System VIA. Two callers: nfs_init_body at &8FA6 (where A is 0 or &FF based
-; on FS-options bit 6) and cmd_prot at &B6D9 (the *Prot path). A 2-store-and-return
+; on FS-options bit 6) and cmd_prot at &B702 (the *Prot path). A 2-store-and-return
 ; convenience to keep both call sites flat.
 ;
 ; On Entry:
@@ -11740,7 +11740,7 @@ labe5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; Sub-code 0: copy PB station/network into RX block, dispatch burst
 ;
-; Sub-code-0 path of osword_14_handler, reached via the BCC handle_tx_request at &AC49
+; Sub-code-0 path of osword_14_handler, reached via the BCC handle_tx_request at &AC69
 ; when the caller's A is 0. Reads two bytes from the OSWORD parameter block:
 ;
 ; | Reg setup | Source                                        | Stored at                       |
@@ -11801,7 +11801,7 @@ labe5 = compare_bridge_status+1
 ; ***************************************************************************************
 ; OSWORD &14 burst-transfer path: extend buffer end and TX
 ;
-; Reached from handle_tx_request's BNE at &ACCC. Calls init_ws_copy_wide to copy the
+; Reached from handle_tx_request's BNE at &ACEC. Calls init_ws_copy_wide to copy the
 ; workspace TXCB template into the wide-mode workspace slot, then extends the buffer
 ; end-byte at (net_rx_ptr)+&7B by 3 to account for the 3-byte burst header before falling
 ; through into enable_irq_and_poll, which re-enables IRQs and tail-jumps to
@@ -12602,7 +12602,7 @@ labe5 = compare_bridge_status+1
     equb &00                                                          ; b039: 00          .        ; dest station=&00 (filled later)
     equb &00                                                          ; b03a: 00          .        ; dest network=&00 (filled later)
     equb &b7                                                          ; b03b: b7          .     
-    equb &8e                                                          ; b03c: 8e          .        ; buf start hi (&8E); start = &8E9F
+    equb &8e                                                          ; b03c: 8e          .        ; buf start hi (&8E); start = &8EB7
     equb &ff                                                          ; b03d: ff          .        ; buf start ext lo=&FF
     equb &ff                                                          ; b03e: ff          .        ; buf start ext hi=&FF
     equb &bf                                                          ; b03f: bf          .     
@@ -12777,7 +12777,7 @@ labe5 = compare_bridge_status+1
 ; code &1B to create the directory.
 ;
 ; Reached via PHA/PHA/RTS dispatch from cmd_table_fs entry *Cdir; the byte at the entry-1
-; address &B0A0 happens to decode as JMP (cdir_unused_dispatch_table,X) but is never
+; address &B0D3 happens to decode as JMP (cdir_unused_dispatch_table,X) but is never
 ; executed.
 ;
 ; On Entry:
@@ -13336,7 +13336,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Print one decimal digit, *SPOOL-bypassing
 ;
-; As print_decimal_digit (&B338) but emits via print_char_no_spool. fs_error_ptr is used
+; As print_decimal_digit (&B36B) but emits via print_char_no_spool. fs_error_ptr is used
 ; as scratch storage for the divisor and is preserved across the print.
 ;
 ; On Entry:
@@ -13600,7 +13600,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ;
 ; Copies 8 bytes of default printer server data into the RX buffer at the current Y
 ; offset. Uses indexed addressing: LDA ps_template_base,X with X starting at &F8, so the
-; effective read address is ps_template_base+&F8 = ps_template_data (&8E9F). The 6502
+; effective read address is ps_template_base+&F8 = ps_template_data (&8EB7). The 6502
 ; trick reaches data 248 bytes past the base label in a single instruction; the base
 ; address (ps_template_base) deliberately falls inside the operand byte of a JSR
 ; instruction at &8DA6 -- see docs/analysis/authors-easter-egg.md.
@@ -13613,7 +13613,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ;     X: 0 (loop terminator)
 ;     A: last template byte
 .copy_ps_data
-    ldx #&f8                                                          ; b410: a2 f8       ..       ; X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8E9F)
+    ldx #&f8                                                          ; b410: a2 f8       ..       ; X=&F8: walks 0..7 via wraparound (loads from ps_template_base+&F8 = ps_template_data &8EB7)
 ; &b412 referenced 1 time by &b419
 .loop_copy_ps_tmpl
     lda l8dbf,x                                                       ; b412: bd bf 8d    ...      ; Read template byte from ps_template_data + (X-&F8)
@@ -14313,7 +14313,7 @@ lb538 = write_ps_slot_hi_link+1
 ; Issues FS function-code 1 ('examine directory entry') for the current iteration in
 ; fs_work_5. Writes the function code into TXCB[5] and TXCB[7], copies the iteration
 ; index to TXCB[6], and falls through to the TXCB-build / send sequence. Single caller
-; (the BNE retry at &B73F that loops cmd_wipe over each match).
+; (the BNE retry at &B768 that loops cmd_wipe over each match).
 ; &b72c referenced 1 time by &b768
 .request_next_wipe
     lda #1                                                            ; b72c: a9 01       ..       ; FS function code byte 0 = 1 (examine)
@@ -14396,7 +14396,7 @@ lb538 = write_ps_slot_hi_link+1
     ldx #0                                                            ; b7b9: a2 00       ..       ; X=0: start scanning the parse-buffer name
     lda hazel_parse_buf,x                                             ; b7bb: bd 30 c0    .0.      ; Read first parse-buffer byte at hazel_parse_buf
     cmp #&0d                                                          ; b7be: c9 0d       ..       ; Is it CR (no path component)?
-    beq use_wipe_leaf_name                                            ; b7c0: f0 24       .$       ; Yes: use leaf-name only path at &B7BD
+    beq use_wipe_leaf_name                                            ; b7c0: f0 24       .$       ; Yes: use leaf-name only path at &B7E6
 ; &b7c2 referenced 1 time by &b7d7
 .loop_build_wipe_cmd
     lda hazel_parse_buf,x                                             ; b7c2: bd 30 c0    .0.      ; Read parse-buffer byte at hazel_parse_buf+X
@@ -15055,7 +15055,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;
 ; Y=0..&0C loop: PLA / STA fs_load_addr,Y / INY / CPY #&0D / BNE. Restores the 13-byte
 ; FS-options block that save_fcb_context pushed on the stack, undoing the protection the
-; wipe/scan path put in place. Two callers: the JMP at &BA1B (close-and-restore exit) and
+; wipe/scan path put in place. Two callers: the JMP at &BA4B (close-and-restore exit) and
 ; the BNE retry at &BABE.
 ; &bae7 referenced 2 times by &ba4b, &baee
 .loop_restore_workspace
@@ -15616,7 +15616,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Body of cmd_dump's outer line loop. Calls abort_if_escape, then reads up to 16 bytes
 ; from the open file via OSBGET into the line buffer at (work_ae). On EOF mid-line,
 ; breaks to clean-up; on a full line, falls through to the formatting and print stage.
-; Reachable from the alignment branch at &BD54 and the per-line tail at &BDF9.
+; Reachable from the alignment branch at &BD54 and the per-line tail at &BE29.
 ; &bd89 referenced 2 times by &bd84, &be29
 .loop_dump_line
     jsr abort_if_escape                                               ; bd89: 20 55 bd     U.      ; Test escape and abort if pressed
@@ -15644,7 +15644,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;
 ; Pulls X+1 bytes off the 6502 stack (clearing the temporary 21-byte buffer cmd_dump uses
 ; to render each line) and tail-jumps to close_ws_file. Reached from the in-line BPL at
-; &BD7B and the fall-through tail at &BDFE.
+; &BDAB and the fall-through tail at &BE2E.
 ;
 ; On Entry:
 ;     X: stack-byte count - 1 (caller sets it to &14 or &15)
@@ -15701,7 +15701,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ;
 ; INY (next buffer offset), CPY #&10. End -> done_print_separator. Otherwise DEX
 ; (decrement byte counter); BPL loop_print_dump_hex to print the next byte. Single caller
-; (the BPL at &BDCC after short-line padding).
+; (the BPL at &BDFC after short-line padding).
 ;
 ; On Entry:
 ;     X: remaining bytes - 1
