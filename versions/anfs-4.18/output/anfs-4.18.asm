@@ -9368,7 +9368,7 @@ bad_prefix = bad_str_anchor+1
 ;
 ; Fire-and-forget from the caller's perspective: the routine sets up nmi_tx_block and the
 ; OSWORD parameter block, then JMPs to tx_begin and the four-way handshake runs entirely
-; under NMI (nmi_tx_data (&8702) → tx_last_data → nmi_tx_complete → nmi_reply_scout).
+; under NMI (nmi_tx_data (&86EA) → tx_last_data → nmi_tx_complete → nmi_reply_scout).
 ; This bypasses send_net_packet and poll_adlc_tx_status, which poll synchronously for
 ; completion – there is no retry loop here.
 ;

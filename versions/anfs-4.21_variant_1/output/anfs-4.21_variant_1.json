@@ -304,7 +304,7 @@
       "addr": 32840,
       "name": "dispatch_svc5",
       "title": "Service-5 PHA/PHA/RTS dispatch tail",
-      "description": "Builds an `RTS`-target on the stack from the\n[`tx_done_dispatch_lo`](address:84B8) low-byte table and a hard-\ncoded high byte of `&85`, then falls through into the shared\n[`svc_5_unknown_irq`](address:804F) `RTS` to land on the matching\n[`tx_done_dispatch_lo`](address:84B8)+`Y` page-`&85` handler.",
+      "description": "Builds an `RTS`-target on the stack from the\n[`tx_done_dispatch_lo`](address:853B) low-byte table and a hard-\ncoded high byte of `&85`, then falls through into the shared\n[`svc_5_unknown_irq`](address:804F) `RTS` to land on the matching\n[`tx_done_dispatch_lo`](address:853B)+`Y` page-`&85` handler.",
       "on_entry": {
         "y": "tx_done_dispatch_lo offset (post-&83 base bias)"
       },
@@ -538,7 +538,7 @@
       "addr": 33876,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](address:0D30) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](address:0D68) to determine whether this\nstation accepts the operation. If accepted, dispatches via\n[`imm_op_dispatch_lo`](address:848B) (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](address:8512) records the\noperation in [`tx_op_type`](address:0D65) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](address:8028)) and dispatches via the\n[`tx_done_dispatch_lo`](address:853B) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 33931,
@@ -1253,7 +1253,7 @@
       "addr": 36105,
       "name": "svc_dispatch_idx_2",
       "title": "svc_dispatch table[2] handler",
-      "description": "Reached only via PHA/PHA/RTS dispatch from the\n[`svc_dispatch`](address:89ED) table at index 2. Pushes `Y`\nonto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the\nEconet station-flags byte), calls [`osbyte_a1`](address:8E9A) to\nread it, then ANDs the result with `&01` (bit 0 = \"use page &0B\nfallback\") and pulls `Y` back. Used by the workspace-allocation\npath to discover whether the user has overridden the default\nprivate workspace base.",
+      "description": "Reached only via PHA/PHA/RTS dispatch from the\n[`svc_dispatch`](address:8E61) table at index 2. Pushes `Y`\nonto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the\nEconet station-flags byte), calls [`osbyte_a1`](address:8E9A) to\nread it, then ANDs the result with `&01` (bit 0 = \"use page &0B\nfallback\") and pulls `Y` back. Used by the workspace-allocation\npath to discover whether the user has overridden the default\nprivate workspace base.",
       "on_exit": {
         "a": "0 or 1 (CMOS bit 0 of station-flags byte)"
       }
@@ -1296,7 +1296,7 @@
       "addr": 36385,
       "name": "clear_if_station_match",
       "title": "Clear hazel_fs_network if it matches the bridge status byte",
-      "description": "Calls [`init_bridge_poll`](address:ABE9) (returning the\n[`spool_control_flag`](address:0D71) bridge status byte in `A`,\neither freshly populated or already cached from a previous\ninvocation) and EORs it with\n[`hazel_fs_network`](address:C001). When the two match (`EOR`\nresult is zero), zeroes `hazel_fs_network` so subsequent FS\noperations fall back to the local network.\n\nCalled by [`cmd_iam`](address:8D91) and\n[`osword_13_set_station`](address:A9EC) when reconciling a\nparsed file-server station address against the bridge state.",
+      "description": "Calls [`init_bridge_poll`](address:ABE9) (returning the\n[`spool_control_flag`](address:0D71) bridge status byte in `A`,\neither freshly populated or already cached from a previous\ninvocation) and EORs it with\n[`hazel_fs_network`](address:C001). When the two match (`EOR`\nresult is zero), zeroes `hazel_fs_network` so subsequent FS\noperations fall back to the local network.\n\nCalled by [`cmd_iam`](address:8D91) and\n[`osword_13_set_station`](address:A9DA) when reconciling a\nparsed file-server station address against the bridge state.",
       "on_exit": {
         "a": "0 if cleared (match), bridge-XOR-network otherwise"
       }
@@ -1373,7 +1373,7 @@
       "addr": 36506,
       "name": "osbyte_a1",
       "title": "OSBYTE &A1 (read Master CMOS RAM byte)",
-      "description": "Loads `A=&A1` and tail-jumps to `OSBYTE` \u2013 reads the Master 128\nCMOS RAM byte indexed by `X`. Two callers:\n[`format_filename_field`](address:A0E3) and\n[`flip_set_station_boot`](address:A70D).\n\n**Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as\nthe leading slot of the vector-dispatch table that\n[`write_vector_entry`](address:904F) reads via\n`LDA osbyte_a1,Y` \u2013 a deliberate overlap so the routine's body\ndoubles as table data.",
+      "description": "Loads `A=&A1` and tail-jumps to `OSBYTE` \u2013 reads the Master 128\nCMOS RAM byte indexed by `X`. Two callers:\n[`format_filename_field`](address:9E82) and\n[`flip_set_station_boot`](address:A6A6).\n\n**Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as\nthe leading slot of the vector-dispatch table that\n[`write_vector_entry`](address:904F) reads via\n`LDA osbyte_a1,Y` \u2013 a deliberate overlap so the routine's body\ndoubles as table data.",
       "on_entry": {
         "x": "CMOS RAM byte index"
       },
@@ -1934,14 +1934,14 @@
       "addr": 38425,
       "name": "cmd_space",
       "title": "*Space command: enable space-remaining display",
-      "description": "Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for\n`*Space`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),\nsets bit 0 of the value, then `BRA`s to the shared write-back tail\nat [`osbyte_a2_value_tya`](address:962B).",
+      "description": "Reached via the [`cmd_table_fs`](address:A76C) dispatch entry for\n`*Space`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),\nsets bit 0 of the value, then `BRA`s to the shared write-back tail\nat [`osbyte_a2_value_tya`](address:962B).",
       "fall_through": true
     },
     {
       "addr": 38435,
       "name": "cmd_nospace",
       "title": "*NoSpace command: disable space-remaining display",
-      "description": "Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for\n`*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),\nclears bit 0 of the value, falls through to\n[`osbyte_a2_value_tya`](address:962B), and `BRA`s back into\n[`osbyte_a2`](address:9612) to write CMOS &11 = `Y`.",
+      "description": "Reached via the [`cmd_table_fs`](address:A76C) dispatch entry for\n`*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),\nclears bit 0 of the value, falls through to\n[`osbyte_a2_value_tya`](address:962B), and `BRA`s back into\n[`osbyte_a2`](address:9612) to write CMOS &11 = `Y`.",
       "fall_through": true
     },
     {
@@ -4592,7 +4592,7 @@
       "addr": 36511,
       "name": "ps_template_data",
       "title": "Printer-server name template (8 bytes)",
-      "description": "Eight bytes (`\"PRINT \"` then `&01 &00`) read by\n[`copy_ps_data`](address:B3D5) via the indexed-base trick\n`LDA ps_template_base+X` with `X=&F8..&FF`. The base label\n`ps_template_base` resolves to `ps_template_data - &F8` so the\nindexed access lands on the bytes here. Default contents installed\ninto the Printer-Server name slot during ANFS initialisation.",
+      "description": "Eight bytes (`\"PRINT \"` then `&01 &00`) read by\n[`copy_ps_data`](address:B3D7) via the indexed-base trick\n`LDA ps_template_base+X` with `X=&F8..&FF`. The base label\n`ps_template_base` resolves to `ps_template_data - &F8` so the\nindexed access lands on the bytes here. Default contents installed\ninto the Printer-Server name slot during ANFS initialisation.",
       "align": "before_label"
     },
     {
@@ -4683,7 +4683,7 @@
       "addr": 44320,
       "name": "netv_dispatch_lo",
       "title": "NETV reason-code dispatch low-byte table (9 entries)",
-      "description": "Read by [`push_osword_handler_addr`](address:AD15) as\n`LDA &AD20,X`. Paired with the high-byte half at\n[`netv_dispatch_hi`](address:AD29). The wrapper at\n[`netv_handler`](address:ACFC) reads the original A from the MOS\nstack frame (`&0103,X` after TSX) and gates 9..&FF away to\n[`return_6`](address:AD0E) before dispatching reasons 0..8.",
+      "description": "Read by [`push_osword_handler_addr`](address:AD15) as\n`LDA &AD20,X`. Paired with the high-byte half at\n[`netv_dispatch_hi`](address:AD29). The wrapper at\n[`netv_handler`](address:ACFC) reads the original A from the MOS\nstack frame (`&0103,X` after TSX) and gates 9..&FF away to\n[`return_6`](address:B7E2) before dispatching reasons 0..8.",
       "align": "before_label"
     },
     {

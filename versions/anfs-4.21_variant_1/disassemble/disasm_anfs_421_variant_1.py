@@ -1267,10 +1267,10 @@ d.subroutine(
     "dispatch_svc5",
     title="Service-5 PHA/PHA/RTS dispatch tail",
     description="""Builds an `RTS`-target on the stack from the
-[`tx_done_dispatch_lo`](address:84B8) low-byte table and a hard-
+[`tx_done_dispatch_lo`](address:853B) low-byte table and a hard-
 coded high byte of `&85`, then falls through into the shared
 [`svc_5_unknown_irq`](address:804F) `RTS` to land on the matching
-[`tx_done_dispatch_lo`](address:84B8)+`Y` page-`&85` handler.""",
+[`tx_done_dispatch_lo`](address:853B)+`Y` page-`&85` handler.""",
     on_entry={"y": "tx_done_dispatch_lo offset (post-&83 base bias)"},
 )
 
@@ -2515,7 +2515,7 @@ operation in [`tx_op_type`](address:0D65) and sets the Master 128
 ACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the
 ROM picks up as service call `&05`
 ([`svc5_irq_check`](address:8028)) and dispatches via the
-[`tx_done_dispatch_lo`](address:84B8) table. PEEK, POKE and
+[`tx_done_dispatch_lo`](address:853B) table. PEEK, POKE and
 machine-type (`&81` / `&82` / `&88`) only touch memory and reply
 immediately, so they run here.
 
@@ -5333,7 +5333,7 @@ d.subroutine(
     "svc_dispatch_idx_2",
     title="svc_dispatch table[2] handler",
     description="""Reached only via PHA/PHA/RTS dispatch from the
-[`svc_dispatch`](address:89ED) table at index 2. Pushes `Y`
+[`svc_dispatch`](address:8E61) table at index 2. Pushes `Y`
 onto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the
 Econet station-flags byte), calls [`osbyte_a1`](address:8E9A) to
 read it, then ANDs the result with `&01` (bit 0 = "use page &0B
@@ -5563,7 +5563,7 @@ result is zero), zeroes `hazel_fs_network` so subsequent FS
 operations fall back to the local network.
 
 Called by [`cmd_iam`](address:8D91) and
-[`osword_13_set_station`](address:A9EC) when reconciling a
+[`osword_13_set_station`](address:A9DA) when reconciling a
 parsed file-server station address against the bridge state.""",
     on_exit={"a": "0 if cleared (match), bridge-XOR-network otherwise"},
 )
@@ -5802,8 +5802,8 @@ d.subroutine(
     title="OSBYTE &A1 (read Master CMOS RAM byte)",
     description="""Loads `A=&A1` and tail-jumps to `OSBYTE` – reads the Master 128
 CMOS RAM byte indexed by `X`. Two callers:
-[`format_filename_field`](address:A0E3) and
-[`flip_set_station_boot`](address:A70D).
+[`format_filename_field`](address:9E82) and
+[`flip_set_station_boot`](address:A6A6).
 
 **Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as
 the leading slot of the vector-dispatch table that
@@ -5833,7 +5833,7 @@ d.banner(
     0x8E9F,
     title="Printer-server name template (8 bytes)",
     description="""Eight bytes (`"PRINT "` then `&01 &00`) read by
-[`copy_ps_data`](address:B3D5) via the indexed-base trick
+[`copy_ps_data`](address:B3D7) via the indexed-base trick
 `LDA ps_template_base+X` with `X=&F8..&FF`. The base label
 `ps_template_base` resolves to `ps_template_data - &F8` so the
 indexed access lands on the bytes here. Default contents installed
@@ -7889,7 +7889,7 @@ d.subroutine(
     0x9619,
     "cmd_space",
     title="*Space command: enable space-remaining display",
-    description="""Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for
+    description="""Reached via the [`cmd_table_fs`](address:A76C) dispatch entry for
 `*Space`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),
 sets bit 0 of the value, then `BRA`s to the shared write-back tail
 at [`osbyte_a2_value_tya`](address:962B).""",
@@ -7906,7 +7906,7 @@ d.subroutine(
     0x9623,
     "cmd_nospace",
     title="*NoSpace command: disable space-remaining display",
-    description="""Reached via the [`cmd_table_fs`](address:A4D6) dispatch entry for
+    description="""Reached via the [`cmd_table_fs`](address:A76C) dispatch entry for
 `*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](address:8E9A),
 clears bit 0 of the value, falls through to
 [`osbyte_a2_value_tya`](address:962B), and `BRA`s back into
@@ -14080,7 +14080,7 @@ d.banner(
 [`netv_dispatch_hi`](address:AD29). The wrapper at
 [`netv_handler`](address:ACFC) reads the original A from the MOS
 stack frame (`&0103,X` after TSX) and gates 9..&FF away to
-[`return_6`](address:AD0E) before dispatching reasons 0..8.""",
+[`return_6`](address:B7E2) before dispatching reasons 0..8.""",
 )
 for addr in range(0xAD20, 0xAD29):
     d.byte(addr)

@@ -10421,7 +10421,7 @@ d.subroutine(
     title="OSWORD &10 (Econet transmit) handler",
     description="""Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.
 
-Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:858C) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:8702?hex) → `tx_last_data` → [`nmi_tx_complete`](address:8732) → [`nmi_reply_scout`](address:874E)). This bypasses [`send_net_packet`](address:983F) and [`poll_adlc_tx_status`](address:98C9), which poll synchronously for completion – there is no retry loop here.
+Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:858C) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:86EA?hex) → `tx_last_data` → [`nmi_tx_complete`](address:8732) → [`nmi_reply_scout`](address:874E)). This bypasses [`send_net_packet`](address:983F) and [`poll_adlc_tx_status`](address:98C9), which poll synchronously for completion – there is no retry loop here.
 
 Sequence:
 
