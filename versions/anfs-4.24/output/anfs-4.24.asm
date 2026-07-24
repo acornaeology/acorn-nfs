@@ -798,7 +798,7 @@ rom_header_byte2 = rom_header_byte1+1
 .dispatch_svc5
     lda #&85                                                          ; 804a: a9 85       ..       ; Push return addr high (&85)
     pha                                                               ; 804c: 48          H        ; High byte on stack for RTS
-    lda c84dc,y                                                       ; 804d: b9 dc 84    ...      ; Load dispatch target low byte
+    lda imm_reply_flag,y                                              ; 804d: b9 dc 84    ...      ; Load dispatch target low byte
     pha                                                               ; 8050: 48          H        ; Low byte on stack for RTS
 ; ***************************************************************************************
 ; Service-5 unknown-IRQ tail (PHA/PHA/RTS landing)
@@ -1571,7 +1571,7 @@ rom_header_byte2 = rom_header_byte1+1
     ldy scout_ctrl                                                    ; 839d: ac 30 0d    .0.      ; Port=0: load control byte
     cpy #&82                                                          ; 83a0: c0 82       ..       ; Ctrl = &82 (POKE)?
     beq rx_complete_update_rxcb                                       ; 83a2: f0 03       ..       ; Yes: POKE also needs data transfer
-    jmp c851d                                                         ; 83a4: 4c 1d 85    L..      ; Other port-0 ops: immediate dispatch
+    jmp imm_op_build_reply                                            ; 83a4: 4c 1d 85    L..      ; Other port-0 ops: immediate dispatch
 ; ***************************************************************************************
 ; Complete RX and update RXCB
 ;
@@ -1940,7 +1940,7 @@ l8494 = sub_c8492+2
 .set_tx_reply_flag
     lda rx_src_net                                                    ; 84d9: ad 3e 0d    .>.      ; Mark TX flags bit 7 (reply pending)
 ; &84dc used as index base 1 time by &804d
-.c84dc
+.imm_reply_flag
     ora #&80                                                          ; 84dc: 09 80       ..       ; Set reply pending flag
     sta rx_src_net                                                    ; 84de: 8d 3e 0d    .>.      ; Store updated TX flags
 .rx_imm_halt_cont
@@ -1958,7 +1958,7 @@ l8494 = sub_c8492+2
     equb &0d, &a9, &3a, &85, &a4, &a9, &0c, &85, &a5, &d0, &c4, &c6   ; 850a: 0d a9 3a... ..:...
     equb &bb, &9d, &9d, &9d, &e0, &e0, &f1                            ; 8516: bb 9d 9d... ......   ; Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow
 ; &851d referenced 1 time by &83a4
-.c851d
+.imm_op_build_reply
     lda port_buf_len                                                  ; 851d: a5 a2       ..       ; Get buffer position for reply header
     clc                                                               ; 851f: 18          .        ; Clear carry for offset addition
     adc #&80                                                          ; 8520: 69 80       i.       ; Data offset = buf_len + &80 (past header)
@@ -2372,7 +2372,7 @@ l85c1 = sub_c85c0+1
     pha                                                               ; 86b6: 48          H        ; Push timeout byte 2 on stack
     ldy #&e7                                                          ; 86b7: a0 e7       ..       ; Y=&E7: CR2 value for TX prep (RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
 ; &86b9 referenced 3 times by &86e8, &86ed, &86f2
-.c86b9
+.tx_irq_off
     php                                                               ; 86b9: 08          .        ; Save interrupt state
     sei                                                               ; 86ba: 78          x        ; Disable interrupts for ADLC access
     lda #&40 ; '@'                                                    ; 86bb: a9 40       .@       ; A=&40: 'line inactive' status code
@@ -2380,16 +2380,16 @@ l85c1 = sub_c85c0+1
     bit disable_net_nmis                                              ; 86c0: 2c 38 fe    ,8.      ; INTOFF -- disable NMIs
     lda #4                                                            ; 86c3: a9 04       ..       ; A=&04: INACTIVE bit mask for SR2 test
     bit econet_control23_or_status2                                   ; 86c5: 2c a1 fe    ,..      ; Z = &04 AND SR2 -- tests INACTIVE
-    beq c86db                                                         ; 86c8: f0 11       ..       ; INACTIVE not set -- re-enable NMIs and loop
+    beq set_line_jammed                                               ; 86c8: f0 11       ..       ; INACTIVE not set -- re-enable NMIs and loop
     lda econet_control1_or_status1                                    ; 86ca: ad a0 fe    ...      ; Read SR1 (acknowledge pending interrupt)
-    bmi c86db                                                         ; 86cd: 30 0c       0.       ; N set: line still driven, report jammed
+    bmi set_line_jammed                                               ; 86cd: 30 0c       0.       ; N set: line still driven, report jammed
     lda #&67 ; 'g'                                                    ; 86cf: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 86d1: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 86d4: a9 10       ..       ; A=&10: CTS mask for SR1 bit4
     bit econet_control1_or_status1                                    ; 86d6: 2c a0 fe    ,..      ; Test SR1 CTS present
     bne tx_prepare                                                    ; 86d9: d0 39       .9       ; CTS set -- clock hardware detected, start TX
 ; &86db referenced 2 times by &86c8, &86cd
-.c86db
+.set_line_jammed
     lda #&2c ; ','                                                    ; 86db: a9 2c       .,       ; A=&2C: 'line jammed' status code
     sta l0d1c                                                         ; 86dd: 8d 1c 0d    ...      ; Store net poll-status byte
 .inactive_retry
@@ -2397,11 +2397,11 @@ l85c1 = sub_c85c0+1
     plp                                                               ; 86e3: 28          (        ; Restore interrupt state
     tsx                                                               ; 86e4: ba          .        ; 3-byte timeout counter on stack
     inc error_text,x                                                  ; 86e5: fe 01 01    ...      ; Increment timeout counter byte 1
-    bne c86b9                                                         ; 86e8: d0 cf       ..       ; Not overflowed: retry INACTIVE test
+    bne tx_irq_off                                                    ; 86e8: d0 cf       ..       ; Not overflowed: retry INACTIVE test
     inc stack_page_2,x                                                ; 86ea: fe 02 01    ...      ; Increment timeout counter byte 2
-    bne c86b9                                                         ; 86ed: d0 ca       ..       ; Not overflowed: retry INACTIVE test
+    bne tx_irq_off                                                    ; 86ed: d0 ca       ..       ; Not overflowed: retry INACTIVE test
     inc stack_page_3,x                                                ; 86ef: fe 03 01    ...      ; Increment timeout counter byte 3
-    bne c86b9                                                         ; 86f2: d0 c5       ..       ; Not overflowed: retry INACTIVE test
+    bne tx_irq_off                                                    ; 86f2: d0 c5       ..       ; Not overflowed: retry INACTIVE test
     beq tx_line_jammed                                                ; 86f4: f0 04       ..       ; Zero: report line jammed
 ; ***************************************************************************************
 ; Raise TX 'Bad control byte' (&44) error
@@ -2485,9 +2485,9 @@ l85c1 = sub_c85c0+1
     sec                                                               ; 8726: 38          8        ; SEC: prepare carry for ROR into bit 7
     ror prot_flags                                                    ; 8727: 66 99       f.       ; Rotate carry into bit 7 of prot_flags (Tube-claimed)
     lda #&2c ; ','                                                    ; 8729: a9 2c       .,       ; A=&2C: 'line jammed' status code
-.sub_c872b
+.tx_enable_nmis
 ; &872d used as index base 1 time by &8748
-l872d = sub_c872b+2
+l872d = tx_enable_nmis+2
     sta l0d1c                                                         ; 872b: 8d 1c 0d    ...      ; Store net poll-status byte
     bit enable_net_nmis                                               ; 872e: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (Master &FE3C)
     lda tx_port                                                       ; 8731: ad 25 0d    .%.      ; Load destination port number
@@ -8767,29 +8767,29 @@ bad_prefix_table = bad_str_anchor+1
     lda fs_block_offset                                               ; 9f85: a5 bc       ..       ; Load channel handle from fs_block_offset
     jsr attr_to_chan_index                                            ; 9f87: 20 2e b8     ..      ; Convert handle to FCB channel index in X
     lda hazel_txcb_size_hi                                            ; 9f8a: ad 0a c1    ...      ; Test high transfer-size byte first
-    bne c9faf                                                         ; 9f8d: d0 20       .        ; Non-zero: pointer below extent, send request
+    bne argsv_send_request                                            ; 9f8d: d0 20       .        ; Non-zero: pointer below extent, send request
     lda hazel_fcb_addr_hi,x                                           ; 9f8f: bd 20 c2    . .      ; Compare FCB pointer high byte...
     cmp hazel_exec_addr                                               ; 9f92: cd 09 c1    ...      ; ...against extent high byte
-    bcc c9faf                                                         ; 9f95: 90 18       ..       ; Pointer < extent: send request
-    bne c9fab                                                         ; 9f97: d0 12       ..       ; Pointer > extent: clamp path
+    bcc argsv_send_request                                            ; 9f95: 90 18       ..       ; Pointer < extent: send request
+    bne argsv_clamp_zero                                              ; 9f97: d0 12       ..       ; Pointer > extent: clamp path
     lda hazel_fcb_addr_mid,x                                          ; 9f99: bd 10 c2    ...      ; Compare FCB pointer mid byte...
     cmp hazel_txcb_result                                             ; 9f9c: cd 08 c1    ...      ; ...against extent mid byte
-    bcc c9faf                                                         ; 9f9f: 90 0e       ..       ; Pointer < extent: send request
-    bne c9fab                                                         ; 9fa1: d0 08       ..       ; Pointer > extent: clamp path
+    bcc argsv_send_request                                            ; 9f9f: 90 0e       ..       ; Pointer < extent: send request
+    bne argsv_clamp_zero                                              ; 9fa1: d0 08       ..       ; Pointer > extent: clamp path
     lda hazel_fcb_addr_lo,x                                           ; 9fa3: bd 00 c2    ...      ; Compare FCB pointer low byte...
     cmp hazel_txcb_count                                              ; 9fa6: cd 07 c1    ...      ; ...against extent low byte
-    bcc c9faf                                                         ; 9fa9: 90 04       ..       ; Pointer < extent: send request
+    bcc argsv_send_request                                            ; 9fa9: 90 04       ..       ; Pointer < extent: send request
 ; &9fab referenced 2 times by &9f97, &9fa1
-.c9fab
+.argsv_clamp_zero
     ldx #0                                                            ; 9fab: a2 00       ..       ; X=0: pointer at/beyond extent
-    beq c9fb6                                                         ; 9fad: f0 07       ..       ; Branch to store result (always)
+    beq argsv_store_result                                            ; 9fad: f0 07       ..       ; Branch to store result (always)
 ; &9faf referenced 4 times by &9f8d, &9f95, &9f9f, &9fa9
-.c9faf
+.argsv_send_request
     ldy #&0d                                                          ; 9faf: a0 0d       ..       ; Y=&0D: TX buffer size
     ldx #5                                                            ; 9fb1: a2 05       ..       ; X=5: argument offset
     jsr save_net_tx_cb                                                ; 9fb3: 20 88 97     ..      ; Send TX control block
 ; &9fb6 referenced 1 time by &9fad
-.c9fb6
+.argsv_store_result
     stx fs_last_byte_flag                                             ; 9fb6: 86 bd       ..       ; Store X in last byte flag
     pla                                                               ; 9fb8: 68          h        ; Pull saved zero page offset
     tay                                                               ; 9fb9: a8          .        ; Transfer to Y
@@ -10227,7 +10227,7 @@ la125 = osopt_cmos_writeback_jsr+1
 ; &a5c4 referenced 1 time by &a5ca
 .loop_check_exec_bytes
     inc hazel_txcb_flag,x                                             ; a5c4: fe 06 c1    ...      ; Increment execution address byte
-    bne ca5f3                                                         ; a5c7: d0 2a       .*       ; Low byte = &6F
+    bne run_copy_arg_to_buf                                           ; a5c7: d0 2a       .*       ; Low byte = &6F
     dex                                                               ; a5c9: ca          .        ; Set osword_flag
     bne loop_check_exec_bytes                                         ; a5ca: d0 f8       ..       ; Loop until all checked
     lda #&93                                                          ; a5cc: a9 93       ..       ; A=&93: error code 'Bad command'
@@ -10259,7 +10259,7 @@ la125 = osopt_cmos_writeback_jsr+1
 .library_dir_prefix
     equs "Library."                                                   ; a5eb: 4c 69 62... Lib...   ; Continue shift
 ; &a5f3 referenced 1 time by &a5c7
-.ca5f3
+.run_copy_arg_to_buf
     jsr copy_arg_to_buf_x0                                            ; a5f3: 20 d2 b2     ..      ; Copy parsed arg to TX buffer with X=0
     ldy #0                                                            ; a5f6: a0 00       ..       ; Y=0
     clc                                                               ; a5f8: 18          .        ; For the loop entry
@@ -11728,7 +11728,7 @@ labe5 = compare_bridge_status+1
 .loop_copy_txcb_init
     lda init_txcb,y                                                   ; ac75: b9 49 97    .I.      ; Load TXCB init byte
     bne store_txcb_init_byte                                          ; ac78: d0 03       ..       ; Non-zero: use template value
-    lda cbfe6,y                                                       ; ac7a: b9 e6 bf    ...      ; Zero: use workspace default value
+    lda skip_fn_space_cont,y                                          ; ac7a: b9 e6 bf    ...      ; Zero: use workspace default value
 ; &ac7d referenced 1 time by &ac78
 .store_txcb_init_byte
     sta (nfs_workspace),y                                             ; ac7d: 91 9e       ..       ; Store to workspace
@@ -12540,7 +12540,7 @@ labe5 = compare_bridge_status+1
     lda (net_rx_ptr),y                                                ; af78: b1 9c       ..       ; Read result via (net_rx_ptr)+Y
     tax                                                               ; af7a: aa          .        ; Copy A to X
     and #7                                                            ; af7b: 29 07       ).       ; Mask the low 3 bits
-    bne caf94                                                         ; af7d: d0 15       ..       ; Other: take retry path
+    bne spool_pop_cmd                                                 ; af7d: d0 15       ..       ; Other: take retry path
 .spool_tx_succeeded
     pla                                                               ; af7f: 68          h        ; Discard saved TX cmd
     pla                                                               ; af80: 68          h        ; Restore vdu_status
@@ -12553,12 +12553,12 @@ labe5 = compare_bridge_status+1
     sta ws_0d6a                                                       ; af90: 8d 6a 0d    .j.      ; Store updated shadow
     rts                                                               ; af93: 60          `        ; Return
 ; &af94 referenced 1 time by &af7d
-.caf94
+.spool_pop_cmd
     pla                                                               ; af94: 68          h        ; Pop saved TX cmd
     dec a                                                             ; af95: 3a          :        ; Decrement
     bne start_spool_retry                                             ; af96: d0 8e       ..       ; Non-zero: retry from start_spool_retry
     dex                                                               ; af98: ca          .        ; Decrement counter
-    bne cafad                                                         ; af99: d0 12       ..       ; Not 1: take printer_busy_msg path
+    bne check_err_code_5                                              ; af99: d0 12       ..       ; Not 1: take printer_busy_msg path
 ; ***************************************************************************************
 ; Raise 'Printer busy' error
 ;
@@ -12571,14 +12571,14 @@ labe5 = compare_bridge_status+1
     jsr error_inline_log                                              ; af9d: 20 be 99     ..      ; Raise via error_inline_log (never returns)
     equs "Printer busy", &00                                          ; afa0: 50 72 69... Pri...
 ; &afad referenced 1 time by &af99
-.cafad
+.check_err_code_5
     cmp #5                                                            ; afad: c9 05       ..       ; Error code = 5?
-    bne cafc7                                                         ; afaf: d0 16       ..       ; Not 1: take printer_busy_msg path
+    bne err_printer_jammed                                            ; afaf: d0 16       ..       ; Not 1: take printer_busy_msg path
     lda #&ab                                                          ; afb1: a9 ab       ..       ; A=&AB: 'Printer off line' error code
     jsr error_inline_log                                              ; afb3: 20 be 99     ..      ; Raise via error_inline_log (never returns)
     equs "Printer off line", &00                                      ; afb6: 50 72 69... Pri...
 ; &afc7 referenced 1 time by &afaf
-.cafc7
+.err_printer_jammed
     lda #&a7                                                          ; afc7: a9 a7       ..       ; A=&A7: 'Printer jammed' error code
     jsr error_inline_log                                              ; afc9: 20 be 99     ..      ; Raise via error_inline_log (never returns)
     equs "Printer jammed", &00                                        ; afcc: 50 72 69... Pri...
@@ -13057,12 +13057,12 @@ cdir_size_thresholds = cdir_dispatch_col+2
     equs " ("                                                         ; b1e2: 20 28        (    
     ldy option_str_offset_data,x                                      ; b1e4: bc cb b2    ...      ; Look up option-string offset for index X
 ; &b1e7 referenced 1 time by &b1f0
-.loop_cb1e7
+.loop_print_option
     lda option_offset_table,y                                         ; b1e7: b9 cf b2    ...      ; Look up option byte at the resolved offset
     bmi print_dir_header                                              ; b1ea: 30 06       0.       ; Bit 7 of A set (negative): print directory header
     jsr print_char_no_spool                                           ; b1ec: 20 04 92     ..      ; Print char (no spool)
     iny                                                               ; b1ef: c8          .        ; Advance Y
-    bne loop_cb1e7                                                    ; b1f0: d0 f5       ..       ; Loop until Y wraps
+    bne loop_print_option                                             ; b1f0: d0 f5       ..       ; Loop until Y wraps
 ; &b1f2 referenced 1 time by &b1ea
 .print_dir_header
     jsr print_inline_no_spool                                         ; b1f2: 20 93 92     ..      ; Print ')\rDir. ' header for the directory listing
@@ -13352,7 +13352,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .loop_scan_entries
     lda hazel_txcb_data,x                                             ; b310: bd 05 c1    ...      ; Read entry byte at hazel_txcb_data+X
     bmi rts_copy_arg                                                  ; b313: 30 e8       0.       ; Bit 7 set: end-of-entries -> return
-    bne cb32c                                                         ; b315: d0 15       ..       ; Non-printable: take CR-newline path at col_sep_print_cr
+    bne print_col_cr                                                  ; b315: d0 15       ..       ; Non-printable: take CR-newline path at col_sep_print_cr
 ; ***************************************************************************************
 ; Print column separator or newline for *Ex/*Cat
 ;
@@ -13376,7 +13376,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .col_sep_eol_check
     lda #&0d                                                          ; b32a: a9 0d       ..       ; A=&0D: CR character
 ; &b32c referenced 1 time by &b315
-.cb32c
+.print_col_cr
     jsr print_char_no_spool                                           ; b32c: 20 04 92     ..      ; Print CR (no spool)
 ; &b32f referenced 1 time by &b328
 .col_sep_print_char
@@ -13771,7 +13771,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_inline                                                  ; b497: 20 6a 92     j.      ; Print 'still ' fragment
     equs "still "                                                     ; b49a: 73 74 69... sti...
     clv                                                               ; b4a0: b8          .        ; Bit-7 terminator (next opcode)
-    bvc cb4af                                                         ; b4a1: 50 0c       P.       ; V clear: branch onward
+    bvc ps_print_info_newline                                         ; b4a1: 50 0c       P.       ; V clear: branch onward
 ; &b4a3 referenced 1 time by &b495
 .print_ps_now
     jsr print_inline                                                  ; b4a3: 20 6a 92     j.      ; Print 'now ' fragment
@@ -13780,7 +13780,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     tya                                                               ; b4ac: 98          .        ; Copy Y to A
     sta (nfs_workspace),y                                             ; b4ad: 91 9e       ..       ; Store the workspace flag at &21
 ; &b4af referenced 1 time by &b4a1
-.cb4af
+.ps_print_info_newline
     jsr print_fs_info_newline                                         ; b4af: 20 cf a3     ..      ; Print station number and newline
 ; ***************************************************************************************
 ; Write printer-server station number into NFS workspace
@@ -14136,7 +14136,7 @@ lb538 = write_ps_slot_hi_link+1
     jsr print_printer_server_is                                       ; b608: 20 c8 b4     ..      ; Print 'Printer server '
     ldy #&21 ; '!'                                                    ; b60b: a0 21       .!       ; Y=&21: PS-entry flag offset in workspace
     lda (nfs_workspace),y                                             ; b60d: b1 9e       ..       ; Load PS-entry flag
-    beq cb62b                                                         ; b60f: f0 1a       ..       ; Zero: slot empty, skip display
+    beq poll_load_server                                              ; b60f: f0 1a       ..       ; Zero: slot empty, skip display
     jsr print_inline                                                  ; b611: 20 6a 92     j.      ; Print ' "'
     equb &22                                                          ; b614: 22          "     
     ldy #&18                                                          ; b615: a0 18       ..       ; Y=&18: name field offset in RX buffer
@@ -14155,19 +14155,19 @@ lb538 = write_ps_slot_hi_link+1
     equb &22, " "                                                     ; b628: 22 20       "     
     nop                                                               ; b62a: ea          .        ; Bit-7 terminator from preceding stringhi
 ; &b62b referenced 1 time by &b60f
-.cb62b
+.poll_load_server
     jsr load_ps_server_addr                                           ; b62b: 20 e3 b4     ..      ; Load this PS server's address for display
     bit always_set_v_byte                                             ; b62e: 2c 67 97    ,g.      ; Set V (always) via always_set_v_byte
     jsr print_station_addr                                            ; b631: 20 91 b5     ..      ; Print the server station address
     jsr osnewl                                                        ; b634: 20 e7 ff     ..      ; Print newline
 ; &b637 referenced 1 time by &b69d
-.loop_cb637
+.loop_next_poll_slot
     pla                                                               ; b637: 68          h        ; Pop saved slot index
     beq return_6                                                      ; b638: f0 65       .e       ; Zero: all slots done, return
     pha                                                               ; b63a: 48          H        ; Save slot offset
     tay                                                               ; b63b: a8          .        ; Transfer to Y
     lda (nfs_workspace),y                                             ; b63c: b1 9e       ..       ; Read slot status byte
-    bpl cb697                                                         ; b63e: 10 57       .W       ; Bit 7 clear: slot inactive
+    bpl poll_mark_slot                                                ; b63e: 10 57       .W       ; Bit 7 clear: slot inactive
     iny                                                               ; b640: c8          .        ; Advance to station number
     iny                                                               ; b641: c8          .        ; Offset+2 in slot
     lda (nfs_workspace),y                                             ; b642: b1 9e       ..       ; Read station number low
@@ -14184,57 +14184,57 @@ lb538 = write_ps_slot_hi_link+1
     equs " is "                                                       ; b657: 20 69 73...  is...
     ldx #0                                                            ; b65b: a2 00       ..       ; X=0: indexed-indirect access mode
     lda (work_ae,x)                                                   ; b65d: a1 ae       ..       ; Read printer status byte
-    bne cb66c                                                         ; b65f: d0 0b       ..       ; Non-zero: not ready
+    bne poll_test_status                                              ; b65f: d0 0b       ..       ; Non-zero: not ready
     jsr print_inline                                                  ; b661: 20 6a 92     j.      ; Print 'ready'
     equs "ready"                                                      ; b664: 72 65 61... rea...
     clv                                                               ; b669: b8          .        ; Ensure V clear so next BVC always taken
-    bvc cb694                                                         ; b66a: 50 28       P(       ; Status ready printed: branch to end-of-entry (always)
+    bvc poll_entry_done                                               ; b66a: 50 28       P(       ; Status ready printed: branch to end-of-entry (always)
 ; &b66c referenced 1 time by &b65f
-.cb66c
+.poll_test_status
     asl a                                                             ; b66c: 0a          .        ; Shift status byte left to test its flag bits...
     asl a                                                             ; b66d: 0a          .        ; ...
     asl a                                                             ; b66e: 0a          .        ; ...
     asl a                                                             ; b66f: 0a          .        ; ...(4 shifts move bits 4-7 into C/N)
-    bcs cb68a                                                         ; b670: b0 18       ..       ; C set: status jammed
-    bmi cb678                                                         ; b672: 30 04       0.       ; N set: status off line
+    bcs poll_print_jammed                                             ; b670: b0 18       ..       ; C set: status jammed
+    bmi poll_print_offline                                            ; b672: 30 04       0.       ; N set: status off line
     cmp #&60 ; '`'                                                    ; b674: c9 60       .`       ; Status = 2?
-    bne cb686                                                         ; b676: d0 0e       ..       ; No: check for busy
+    bne poll_check_busy                                               ; b676: d0 0e       ..       ; No: check for busy
 ; &b678 referenced 1 time by &b672
-.cb678
+.poll_print_offline
     jsr print_inline                                                  ; b678: 20 6a 92     j.      ; Print 'jammed'
     equs "off line"                                                   ; b67b: 6f 66 66... off...
     clv                                                               ; b683: b8          .        ; Clear V
-    bvc cb694                                                         ; b684: 50 0e       P.       ; Off-line printed: branch to end-of-entry (always)
+    bvc poll_entry_done                                               ; b684: 50 0e       P.       ; Off-line printed: branch to end-of-entry (always)
 ; &b686 referenced 1 time by &b676
-.cb686
+.poll_check_busy
     cmp #&10                                                          ; b686: c9 10       ..       ; Status = 1?
-    beq cb6a0                                                         ; b688: f0 16       ..       ; Status = 1: print at cb6a0
+    beq poll_print_busy                                               ; b688: f0 16       ..       ; Status = 1: print at cb6a0
 ; &b68a referenced 1 time by &b670
-.cb68a
+.poll_print_jammed
     jsr print_inline                                                  ; b68a: 20 6a 92     j.      ; Print 'jammed'
     equs "jammed"                                                     ; b68d: 6a 61 6d... jam...
     nop                                                               ; b693: ea          .        ; bit-7 terminator + resume opcode
 ; &b694 referenced 4 times by &b66a, &b684, &b6ad, &b6cd
-.cb694
+.poll_entry_done
     jsr osnewl                                                        ; b694: 20 e7 ff     ..      ; Print newline after the status line
 ; &b697 referenced 1 time by &b63e
-.cb697
+.poll_mark_slot
     pla                                                               ; b697: 68          h        ; Pull saved slot index
     tay                                                               ; b698: a8          .        ; Y = slot index
     lda #&3f ; '?'                                                    ; b699: a9 3f       .?       ; &3F: 'slot processed' marker
     sta (nfs_workspace),y                                             ; b69b: 91 9e       ..       ; Store the &3F marker in the workspace slot
-    bne loop_cb637                                                    ; b69d: d0 98       ..       ; Not 1 or 2: default to jammed
+    bne loop_next_poll_slot                                           ; b69d: d0 98       ..       ; Not 1 or 2: default to jammed
 ; &b69f referenced 1 time by &b638
 .return_6
     rts                                                               ; b69f: 60          `        ; Return
 ; &b6a0 referenced 1 time by &b688
-.cb6a0
+.poll_print_busy
     jsr print_inline                                                  ; b6a0: 20 6a 92     j.      ; Print 'busy'
     equs "busy"                                                       ; b6a3: 62 75 73... bus...
     inc work_ae                                                       ; b6a7: e6 ae       ..       ; Advance work_ae to next status byte (lo)
     lda (work_ae,x)                                                   ; b6a9: a1 ae       ..       ; Read client station number
     sta fs_work_5                                                     ; b6ab: 85 b5       ..       ; Store station low
-    beq cb694                                                         ; b6ad: f0 e5       ..       ; Zero: no client info, skip
+    beq poll_entry_done                                               ; b6ad: f0 e5       ..       ; Zero: no client info, skip
     jsr print_inline                                                  ; b6af: 20 6a 92     j.      ; Print ' with station '
     equs " with station "                                             ; b6b2: 20 77 69...  wi...
     inc work_ae                                                       ; b6c0: e6 ae       ..       ; Advance work_ae to next status byte (lo)
@@ -14243,7 +14243,7 @@ lb538 = write_ps_slot_hi_link+1
     bit always_set_v_byte                                             ; b6c6: 2c 67 97    ,g.      ; Set V flag
     jsr print_station_addr                                            ; b6c9: 20 91 b5     ..      ; Print client station address
     clv                                                               ; b6cc: b8          .        ; Clear V for the unconditional branch
-    bvc cb694                                                         ; b6cd: 50 c5       P.       ; Branch to end-of-entry (always)
+    bvc poll_entry_done                                               ; b6cd: 50 c5       P.       ; Branch to end-of-entry (always)
 ; ***************************************************************************************
 ; Initialise PS slot buffer from template data
 ;
@@ -16175,7 +16175,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     lda (os_text_ptr),y                                               ; bfe2: b1 f2       ..       ; Read next byte
     cmp #&20 ; ' '                                                    ; bfe4: c9 20       .        ; Still a space?
 ; &bfe6 used as index base 1 time by &ac7a
-.cbfe6
+.skip_fn_space_cont
     beq loop_skip_fn_spaces                                           ; bfe6: f0 f9       ..       ; Yes: keep skipping
 ; &bfe8 referenced 1 time by &bfdb
 .done_skip_filename
@@ -16409,9 +16409,8 @@ save pydis_start, pydis_end
 ;     tx_done_exit:                             5
 ;     tx_dst_net:                               5
 ;     verify_ws_checksum:                       5
+;     argsv_send_request:                       4
 ;     byte_to_2bit_index:                       4
-;     c9faf:                                    4
-;     cb694:                                    4
 ;     check_net_error_code:                     4
 ;     commit_state_byte:                        4
 ;     disable_net_nmis:                         4
@@ -16433,6 +16432,7 @@ save pydis_start, pydis_end
 ;     loop_scan_fcb_down:                       4
 ;     nmi_tx_block_hi:                          4
 ;     parse_access_prefix:                      4
+;     poll_entry_done:                          4
 ;     port_match_found:                         4
 ;     print_num_no_leading:                     4
 ;     print_station_addr:                       4
@@ -16452,7 +16452,6 @@ save pydis_start, pydis_end
 ;     advance_buffer_ptr:                       3
 ;     alloc_fcb_with_flags:                     3
 ;     append_byte_to_rxbuf:                     3
-;     c86b9:                                    3
 ;     check_tube_irq_loop:                      3
 ;     clear_channel_flag:                       3
 ;     close_all_net_chans:                      3
@@ -16527,6 +16526,7 @@ save pydis_start, pydis_end
 ;     tx_bad_ctrl_error:                        3
 ;     tx_calc_transfer:                         3
 ;     tx_econet_abort:                          3
+;     tx_irq_off:                               3
 ;     tx_setup_from_txcb:                       3
 ;     update_fcb_flag_bits:                     3
 ;     write_second_tube_byte:                   3
@@ -16545,11 +16545,10 @@ save pydis_start, pydis_end
 ;     append_drv_dot_num:                       2
 ;     append_error_number:                      2
 ;     append_space_and_num:                     2
+;     argsv_clamp_zero:                         2
 ;     boot_select_cmd:                          2
 ;     build_error_block:                        2
 ;     build_simple_error:                       2
-;     c86db:                                    2
-;     c9fab:                                    2
 ;     check_and_setup_txcb:                     2
 ;     check_chan_char:                          2
 ;     check_escape_and_classify:                2
@@ -16730,6 +16729,7 @@ save pydis_start, pydis_end
 ;     send_txcb_swap_addrs:                     2
 ;     send_wipe_request:                        2
 ;     set_conn_active:                          2
+;     set_line_jammed:                          2
 ;     set_nmi_rx_scout:                         2
 ;     set_options_ptr:                          2
 ;     set_text_and_xfer_ptr:                    2
@@ -16791,6 +16791,7 @@ save pydis_start, pydis_end
 ;     alloc_run_fcb:                            1
 ;     append_space:                             1
 ;     append_station_num:                       1
+;     argsv_store_result:                       1
 ;     assign_handle_2:                          1
 ;     assign_handle_3:                          1
 ;     bad_prefix_table:                         1
@@ -16806,29 +16807,12 @@ save pydis_start, pydis_end
 ;     brk_ptr:                                  1
 ;     build_no_reply_error:                     1
 ;     byte_pair_restore:                        1
-;     c84dc:                                    1
-;     c851d:                                    1
 ;     c85b9:                                    1
-;     c9fb6:                                    1
-;     ca5f3:                                    1
-;     caf94:                                    1
-;     cafad:                                    1
-;     cafc7:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     call_fscv:                                1
 ;     cat_after_label_print:                    1
 ;     cat_set_lib_flag:                         1
-;     cb32c:                                    1
-;     cb4af:                                    1
-;     cb62b:                                    1
-;     cb66c:                                    1
-;     cb678:                                    1
-;     cb686:                                    1
-;     cb68a:                                    1
-;     cb697:                                    1
-;     cb6a0:                                    1
-;     cbfe6:                                    1
 ;     cdir_size_done:                           1
 ;     cdir_size_thresholds:                     1
 ;     cdir_unused_dispatch_table:               1
@@ -16841,6 +16825,7 @@ save pydis_start, pydis_end
 ;     check_data_loss:                          1
 ;     check_digit_range:                        1
 ;     check_display_type:                       1
+;     check_err_code_5:                         1
 ;     check_exec_addr:                          1
 ;     check_fifo_loop:                          1
 ;     check_fs_dot:                             1
@@ -16978,6 +16963,7 @@ save pydis_start, pydis_end
 ;     econet_data_terminate_frame:              1
 ;     enable_irq_pending:                       1
 ;     err_printer_busy:                         1
+;     err_printer_jammed:                       1
 ;     error_bad_net_num:                        1
 ;     error_bad_rename:                         1
 ;     error_chan_not_found:                     1
@@ -17040,8 +17026,10 @@ save pydis_start, pydis_end
 ;     help_dispatch_setup:                      1
 ;     help_print_nfs_cmds:                      1
 ;     help_wrap_if_serial:                      1
+;     imm_op_build_reply:                       1
 ;     imm_op_discard:                           1
 ;     imm_param_base:                           1
+;     imm_reply_flag:                           1
 ;     immediate_op:                             1
 ;     inc_rxcb_ptr:                             1
 ;     increment_and_retry:                      1
@@ -17096,8 +17084,6 @@ save pydis_start, pydis_end
 ;     loop_bcd_add:                             1
 ;     loop_bridge_tx_delay:                     1
 ;     loop_build_wipe_cmd:                      1
-;     loop_cb1e7:                               1
-;     loop_cb637:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
 ;     loop_check_handles:                       1
@@ -17199,6 +17185,7 @@ save pydis_start, pydis_end
 ;     loop_next_char:                           1
 ;     loop_next_dump_col:                       1
 ;     loop_next_entry:                          1
+;     loop_next_poll_slot:                      1
 ;     loop_next_reply:                          1
 ;     loop_pad_poll_name:                       1
 ;     loop_pad_ps_name:                         1
@@ -17215,6 +17202,7 @@ save pydis_start, pydis_end
 ;     loop_print_filename:                      1
 ;     loop_print_hex_row:                       1
 ;     loop_print_inline_string:                 1
+;     loop_print_option:                        1
 ;     loop_print_poll_name:                     1
 ;     loop_print_wipe_info:                     1
 ;     loop_process_fcb:                         1
@@ -17340,10 +17328,18 @@ save pydis_start, pydis_end
 ;     pass_send_cmd:                            1
 ;     pass_tx_success:                          1
 ;     peek_retry_count:                         1
+;     poll_check_busy:                          1
+;     poll_load_server:                         1
+;     poll_mark_slot:                           1
+;     poll_print_busy:                          1
+;     poll_print_jammed:                        1
+;     poll_print_offline:                       1
+;     poll_test_status:                         1
 ;     prep_send_tx_cb:                          1
 ;     print_char_terminator:                    1
 ;     print_cmos_done:                          1
 ;     print_cmos_pair:                          1
+;     print_col_cr:                             1
 ;     print_current_fs:                         1
 ;     print_dec_3dig_no_spool:                  1
 ;     print_dir_header:                         1
@@ -17368,6 +17364,7 @@ save pydis_start, pydis_end
 ;     private_ws_set_bit:                       1
 ;     process_reply_code:                       1
 ;     prot_bit_encode_table:                    1
+;     ps_print_info_newline:                    1
 ;     ps_tx_header_template:                    1
 ;     push_osword_handler_addr:                 1
 ;     read_cat_info:                            1
@@ -17436,6 +17433,7 @@ save pydis_start, pydis_end
 ;     rts_store_digit:                          1
 ;     rts_txcb_swap:                            1
 ;     rts_write_ws_pair:                        1
+;     run_copy_arg_to_buf:                      1
 ;     rx_error_reset:                           1
 ;     rx_palette_txcb_template:                 1
 ;     rx_tube_data:                             1
@@ -17505,6 +17503,7 @@ save pydis_start, pydis_end
 ;     skip_buf_setup:                           1
 ;     skip_clear_prot:                          1
 ;     skip_dot_and_spaces:                      1
+;     skip_fn_space_cont:                       1
 ;     skip_if_error:                            1
 ;     skip_if_local_net:                        1
 ;     skip_if_modified_fcb:                     1
@@ -17529,6 +17528,7 @@ save pydis_start, pydis_end
 ;     skip_wipe_locked:                         1
 ;     skip_wipe_to_next:                        1
 ;     spool_control_flag:                       1
+;     spool_pop_cmd:                            1
 ;     start_data_tx:                            1
 ;     start_pass_tx:                            1
 ;     start_spool_retry:                        1
@@ -17629,29 +17629,7 @@ save pydis_start, pydis_end
 ;     zp_0078:                                  1
 
 ; Automatically generated labels:
-;     c84dc
-;     c851d
 ;     c85b9
-;     c86b9
-;     c86db
-;     c9fab
-;     c9faf
-;     c9fb6
-;     ca5f3
-;     caf94
-;     cafad
-;     cafc7
-;     cb32c
-;     cb4af
-;     cb62b
-;     cb66c
-;     cb678
-;     cb686
-;     cb68a
-;     cb694
-;     cb697
-;     cb6a0
-;     cbfe6
 ;     l0d1c
 ;     l8494
 ;     l85c1
@@ -17666,8 +17644,6 @@ save pydis_start, pydis_end
 ;     lb538
 ;     lbffe
 ;     lbfff
-;     loop_cb1e7
-;     loop_cb637
 ;     return_1
 ;     return_2
 ;     return_3
@@ -17678,7 +17654,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     sub_c8492
 ;     sub_c85c0
-;     sub_c872b
 ;     sub_c8a1d
 ;     sub_cbff8
 

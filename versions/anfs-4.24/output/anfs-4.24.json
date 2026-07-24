@@ -7104,9 +7104,9 @@
       "comment_inline": "Load dispatch target low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "c84dc,y",
+      "operand": "imm_reply_flag,y",
       "target": 34012,
-      "target_label": "c84dc"
+      "target_label": "imm_reply_flag"
     },
     {
       "addr": 32848,
@@ -12573,9 +12573,9 @@
       "comment_inline": "Other port-0 ops: immediate dispatch",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "c851d",
+      "operand": "imm_op_build_reply",
       "target": 34077,
-      "target_label": "c851d"
+      "target_label": "imm_op_build_reply"
     },
     {
       "addr": 33703,
@@ -14823,7 +14823,7 @@
         128
       ],
       "labels": [
-        "c84dc"
+        "imm_reply_flag"
       ],
       "comment_inline": "Set reply pending flag",
       "xref_summaries": [
@@ -15050,7 +15050,7 @@
         162
       ],
       "labels": [
-        "c851d"
+        "imm_op_build_reply"
       ],
       "comment_inline": "Get buffer position for reply header",
       "xref_summaries": [
@@ -17830,7 +17830,7 @@
         8
       ],
       "labels": [
-        "c86b9"
+        "tx_irq_off"
       ],
       "comment_inline": "Save interrupt state",
       "xref_summaries": [
@@ -17935,9 +17935,9 @@
       "comment_inline": "INACTIVE not set -- re-enable NMIs and loop",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "c86db",
+      "operand": "set_line_jammed",
       "target": 34523,
-      "target_label": "c86db"
+      "target_label": "set_line_jammed"
     },
     {
       "addr": 34506,
@@ -17962,9 +17962,9 @@
       "comment_inline": "N set: line still driven, report jammed",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "c86db",
+      "operand": "set_line_jammed",
       "target": 34523,
-      "target_label": "c86db"
+      "target_label": "set_line_jammed"
     },
     {
       "addr": 34511,
@@ -18036,7 +18036,7 @@
         44
       ],
       "labels": [
-        "c86db"
+        "set_line_jammed"
       ],
       "comment_inline": "A=&2C: 'line jammed' status code",
       "xref_summaries": [
@@ -18128,9 +18128,9 @@
       "comment_inline": "Not overflowed: retry INACTIVE test",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c86b9",
+      "operand": "tx_irq_off",
       "target": 34489,
-      "target_label": "c86b9"
+      "target_label": "tx_irq_off"
     },
     {
       "addr": 34538,
@@ -18155,9 +18155,9 @@
       "comment_inline": "Not overflowed: retry INACTIVE test",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c86b9",
+      "operand": "tx_irq_off",
       "target": 34489,
-      "target_label": "c86b9"
+      "target_label": "tx_irq_off"
     },
     {
       "addr": 34543,
@@ -18182,9 +18182,9 @@
       "comment_inline": "Not overflowed: retry INACTIVE test",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c86b9",
+      "operand": "tx_irq_off",
       "target": 34489,
-      "target_label": "c86b9"
+      "target_label": "tx_irq_off"
     },
     {
       "addr": 34548,
@@ -18588,7 +18588,7 @@
         13
       ],
       "labels": [
-        "sub_c872b"
+        "tx_enable_nmis"
       ],
       "sub_labels": {
         "34605": [
@@ -60513,9 +60513,9 @@
       "comment_inline": "Non-zero: pointer below extent, send request",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c9faf",
+      "operand": "argsv_send_request",
       "target": 40879,
-      "target_label": "c9faf"
+      "target_label": "argsv_send_request"
     },
     {
       "addr": 40847,
@@ -60554,9 +60554,9 @@
       "comment_inline": "Pointer < extent: send request",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "c9faf",
+      "operand": "argsv_send_request",
       "target": 40879,
-      "target_label": "c9faf"
+      "target_label": "argsv_send_request"
     },
     {
       "addr": 40855,
@@ -60567,9 +60567,9 @@
       "comment_inline": "Pointer > extent: clamp path",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c9fab",
+      "operand": "argsv_clamp_zero",
       "target": 40875,
-      "target_label": "c9fab"
+      "target_label": "argsv_clamp_zero"
     },
     {
       "addr": 40857,
@@ -60608,9 +60608,9 @@
       "comment_inline": "Pointer < extent: send request",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "c9faf",
+      "operand": "argsv_send_request",
       "target": 40879,
-      "target_label": "c9faf"
+      "target_label": "argsv_send_request"
     },
     {
       "addr": 40865,
@@ -60621,9 +60621,9 @@
       "comment_inline": "Pointer > extent: clamp path",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c9fab",
+      "operand": "argsv_clamp_zero",
       "target": 40875,
-      "target_label": "c9fab"
+      "target_label": "argsv_clamp_zero"
     },
     {
       "addr": 40867,
@@ -60662,9 +60662,9 @@
       "comment_inline": "Pointer < extent: send request",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "c9faf",
+      "operand": "argsv_send_request",
       "target": 40879,
-      "target_label": "c9faf"
+      "target_label": "argsv_send_request"
     },
     {
       "addr": 40875,
@@ -60673,7 +60673,7 @@
         0
       ],
       "labels": [
-        "c9fab"
+        "argsv_clamp_zero"
       ],
       "comment_inline": "X=0: pointer at/beyond extent",
       "xref_summaries": [
@@ -60702,9 +60702,9 @@
       "comment_inline": "Branch to store result (always)",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "c9fb6",
+      "operand": "argsv_store_result",
       "target": 40886,
-      "target_label": "c9fb6"
+      "target_label": "argsv_store_result"
     },
     {
       "addr": 40879,
@@ -60713,7 +60713,7 @@
         13
       ],
       "labels": [
-        "c9faf"
+        "argsv_send_request"
       ],
       "comment_inline": "Y=&0D: TX buffer size",
       "xref_summaries": [
@@ -60773,7 +60773,7 @@
         189
       ],
       "labels": [
-        "c9fb6"
+        "argsv_store_result"
       ],
       "comment_inline": "Store X in last byte flag",
       "xref_summaries": [
@@ -71527,9 +71527,9 @@
       "comment_inline": "Low byte = &6F",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "ca5f3",
+      "operand": "run_copy_arg_to_buf",
       "target": 42483,
-      "target_label": "ca5f3"
+      "target_label": "run_copy_arg_to_buf"
     },
     {
       "addr": 42441,
@@ -71740,7 +71740,7 @@
         178
       ],
       "labels": [
-        "ca5f3"
+        "run_copy_arg_to_buf"
       ],
       "comment_inline": "Copy parsed arg to TX buffer with X=0",
       "xref_summaries": [
@@ -83009,9 +83009,9 @@
       "comment_inline": "Zero: use workspace default value",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "cbfe6,y",
+      "operand": "skip_fn_space_cont,y",
       "target": 49126,
-      "target_label": "cbfe6"
+      "target_label": "skip_fn_space_cont"
     },
     {
       "addr": 44157,
@@ -88907,9 +88907,9 @@
       "comment_inline": "Other: take retry path",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "caf94",
+      "operand": "spool_pop_cmd",
       "target": 44948,
-      "target_label": "caf94"
+      "target_label": "spool_pop_cmd"
     },
     {
       "addr": 44927,
@@ -89038,7 +89038,7 @@
         104
       ],
       "labels": [
-        "caf94"
+        "spool_pop_cmd"
       ],
       "comment_inline": "Pop saved TX cmd",
       "xref_summaries": [
@@ -89093,9 +89093,9 @@
       "comment_inline": "Not 1: take printer_busy_msg path",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cafad",
+      "operand": "check_err_code_5",
       "target": 44973,
-      "target_label": "cafad"
+      "target_label": "check_err_code_5"
     },
     {
       "addr": 44955,
@@ -89161,7 +89161,7 @@
         5
       ],
       "labels": [
-        "cafad"
+        "check_err_code_5"
       ],
       "comment_inline": "Error code = 5?",
       "xref_summaries": [
@@ -89186,9 +89186,9 @@
       "comment_inline": "Not 1: take printer_busy_msg path",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cafc7",
+      "operand": "err_printer_jammed",
       "target": 44999,
-      "target_label": "cafc7"
+      "target_label": "err_printer_jammed"
     },
     {
       "addr": 44977,
@@ -89246,7 +89246,7 @@
         167
       ],
       "labels": [
-        "cafc7"
+        "err_printer_jammed"
       ],
       "comment_inline": "A=&A7: 'Printer jammed' error code",
       "xref_summaries": [
@@ -92844,7 +92844,7 @@
         178
       ],
       "labels": [
-        "loop_cb1e7"
+        "loop_print_option"
       ],
       "comment_inline": "Look up option byte at the resolved offset",
       "xref_summaries": [
@@ -92907,9 +92907,9 @@
       "comment_inline": "Loop until Y wraps",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_cb1e7",
+      "operand": "loop_print_option",
       "target": 45543,
-      "target_label": "loop_cb1e7"
+      "target_label": "loop_print_option"
     },
     {
       "addr": 45554,
@@ -95042,9 +95042,9 @@
       "comment_inline": "Non-printable: take CR-newline path at col_sep_print_cr",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb32c",
+      "operand": "print_col_cr",
       "target": 45868,
-      "target_label": "cb32c"
+      "target_label": "print_col_cr"
     },
     {
       "addr": 45847,
@@ -95210,7 +95210,7 @@
         146
       ],
       "labels": [
-        "cb32c"
+        "print_col_cr"
       ],
       "comment_inline": "Print CR (no spool)",
       "xref_summaries": [
@@ -97910,9 +97910,9 @@
       "comment_inline": "V clear: branch onward",
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "cb4af",
+      "operand": "ps_print_info_newline",
       "target": 46255,
-      "target_label": "cb4af"
+      "target_label": "ps_print_info_newline"
     },
     {
       "addr": 46243,
@@ -97992,7 +97992,7 @@
         163
       ],
       "labels": [
-        "cb4af"
+        "ps_print_info_newline"
       ],
       "comment_inline": "Print station number and newline",
       "xref_summaries": [
@@ -100514,9 +100514,9 @@
       "comment_inline": "Zero: slot empty, skip display",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "cb62b",
+      "operand": "poll_load_server",
       "target": 46635,
-      "target_label": "cb62b"
+      "target_label": "poll_load_server"
     },
     {
       "addr": 46609,
@@ -100699,7 +100699,7 @@
         180
       ],
       "labels": [
-        "cb62b"
+        "poll_load_server"
       ],
       "comment_inline": "Load this PS server's address for display",
       "xref_summaries": [
@@ -100765,7 +100765,7 @@
         104
       ],
       "labels": [
-        "loop_cb637"
+        "loop_next_poll_slot"
       ],
       "comment_inline": "Pop saved slot index",
       "xref_summaries": [
@@ -100833,9 +100833,9 @@
       "comment_inline": "Bit 7 clear: slot inactive",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "cb697",
+      "operand": "poll_mark_slot",
       "target": 46743,
-      "target_label": "cb697"
+      "target_label": "poll_mark_slot"
     },
     {
       "addr": 46656,
@@ -101032,9 +101032,9 @@
       "comment_inline": "Non-zero: not ready",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb66c",
+      "operand": "poll_test_status",
       "target": 46700,
-      "target_label": "cb66c"
+      "target_label": "poll_test_status"
     },
     {
       "addr": 46689,
@@ -101080,9 +101080,9 @@
       "comment_inline": "Status ready printed: branch to end-of-entry (always)",
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "cb694",
+      "operand": "poll_entry_done",
       "target": 46740,
-      "target_label": "cb694"
+      "target_label": "poll_entry_done"
     },
     {
       "addr": 46700,
@@ -101090,7 +101090,7 @@
         10
       ],
       "labels": [
-        "cb66c"
+        "poll_test_status"
       ],
       "comment_inline": "Shift status byte left to test its flag bits...",
       "xref_summaries": [
@@ -101141,9 +101141,9 @@
       "comment_inline": "C set: status jammed",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "cb68a",
+      "operand": "poll_print_jammed",
       "target": 46730,
-      "target_label": "cb68a"
+      "target_label": "poll_print_jammed"
     },
     {
       "addr": 46706,
@@ -101154,9 +101154,9 @@
       "comment_inline": "N set: status off line",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "cb678",
+      "operand": "poll_print_offline",
       "target": 46712,
-      "target_label": "cb678"
+      "target_label": "poll_print_offline"
     },
     {
       "addr": 46708,
@@ -101178,9 +101178,9 @@
       "comment_inline": "No: check for busy",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb686",
+      "operand": "poll_check_busy",
       "target": 46726,
-      "target_label": "cb686"
+      "target_label": "poll_check_busy"
     },
     {
       "addr": 46712,
@@ -101190,7 +101190,7 @@
         146
       ],
       "labels": [
-        "cb678"
+        "poll_print_offline"
       ],
       "comment_inline": "Print 'jammed'",
       "xref_summaries": [
@@ -101241,9 +101241,9 @@
       "comment_inline": "Off-line printed: branch to end-of-entry (always)",
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "cb694",
+      "operand": "poll_entry_done",
       "target": 46740,
-      "target_label": "cb694"
+      "target_label": "poll_entry_done"
     },
     {
       "addr": 46726,
@@ -101252,7 +101252,7 @@
         16
       ],
       "labels": [
-        "cb686"
+        "poll_check_busy"
       ],
       "comment_inline": "Status = 1?",
       "xref_summaries": [
@@ -101277,9 +101277,9 @@
       "comment_inline": "Status = 1: print at cb6a0",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "cb6a0",
+      "operand": "poll_print_busy",
       "target": 46752,
-      "target_label": "cb6a0"
+      "target_label": "poll_print_busy"
     },
     {
       "addr": 46730,
@@ -101289,7 +101289,7 @@
         146
       ],
       "labels": [
-        "cb68a"
+        "poll_print_jammed"
       ],
       "comment_inline": "Print 'jammed'",
       "xref_summaries": [
@@ -101337,7 +101337,7 @@
         255
       ],
       "labels": [
-        "cb694"
+        "poll_entry_done"
       ],
       "comment_inline": "Print newline after the status line",
       "xref_summaries": [
@@ -101373,7 +101373,7 @@
         104
       ],
       "labels": [
-        "cb697"
+        "poll_mark_slot"
       ],
       "comment_inline": "Pull saved slot index",
       "xref_summaries": [
@@ -101430,9 +101430,9 @@
       "comment_inline": "Not 1 or 2: default to jammed",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_cb637",
+      "operand": "loop_next_poll_slot",
       "target": 46647,
-      "target_label": "loop_cb637"
+      "target_label": "loop_next_poll_slot"
     },
     {
       "addr": 46751,
@@ -101463,7 +101463,7 @@
         146
       ],
       "labels": [
-        "cb6a0"
+        "poll_print_busy"
       ],
       "comment_inline": "Print 'busy'",
       "xref_summaries": [
@@ -101540,9 +101540,9 @@
       "comment_inline": "Zero: no client info, skip",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "cb694",
+      "operand": "poll_entry_done",
       "target": 46740,
-      "target_label": "cb694"
+      "target_label": "poll_entry_done"
     },
     {
       "addr": 46767,
@@ -101664,9 +101664,9 @@
       "comment_inline": "Branch to end-of-entry (always)",
       "type": "code",
       "mnemonic": "bvc",
-      "operand": "cb694",
+      "operand": "poll_entry_done",
       "target": 46740,
-      "target_label": "cb694"
+      "target_label": "poll_entry_done"
     },
     {
       "addr": 46799,
@@ -116799,7 +116799,7 @@
         249
       ],
       "labels": [
-        "cbfe6"
+        "skip_fn_space_cont"
       ],
       "comment_inline": "Yes: keep skipping",
       "xref_summaries": [
