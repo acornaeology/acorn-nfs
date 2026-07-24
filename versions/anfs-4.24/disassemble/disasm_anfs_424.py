@@ -19441,6 +19441,7 @@ d.comment(0xB686, "Status = 1?", align=Align.INLINE)
 d.comment(0xB69D, "Not 1 or 2: default to jammed", align=Align.INLINE)
 
 # --- manual coverage-gap annotations ---
+d.subroutine(0x8A1D, "nmi_return_inton", title="NMI exit: re-enable NMIs and return", description="""Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`.""")
 d.label(0x84DC, "imm_reply_flag")
 d.label(0x86B9, "tx_irq_off")
 d.label(0x872B, "tx_enable_nmis")

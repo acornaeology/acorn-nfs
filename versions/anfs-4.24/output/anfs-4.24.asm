@@ -3270,9 +3270,14 @@ nmi_shim_source = reset_enter_listen+2
     pla                                                               ; 8a1a: 68          h        ; Restore Y from stack
     tay                                                               ; 8a1b: a8          .        ; Transfer ROM bank to Y
     pla                                                               ; 8a1c: 68          h        ; Restore A from stack
-.sub_c8a1d
+; ***************************************************************************************
+; NMI exit: re-enable NMIs and return
+;
+; Two-instruction NMI tail: BIT enable_net_nmis (INTON, guaranteeing a fresh /NMI edge if
+; the ADLC IRQ is still asserted) then RTI.
+.nmi_return_inton
 ; &8a1e used as index base 1 time by &8a97
-l8a1e = sub_c8a1d+1
+l8a1e = nmi_return_inton+1
     bit enable_net_nmis                                               ; 8a1d: 2c 3c fe    ,<.      ; INTON: guaranteed /NMI edge if ADLC IRQ asserted
     rti                                                               ; 8a20: 40          @        ; Return from interrupt
     equb &05, &0a                                                     ; 8a21: 05 0a       ..       ; Padding before the service-dispatch low-byte table
@@ -17654,7 +17659,6 @@ save pydis_start, pydis_end
 ;     return_8
 ;     sub_c8492
 ;     sub_c85c0
-;     sub_c8a1d
 ;     sub_cbff8
 
 ; Stats:

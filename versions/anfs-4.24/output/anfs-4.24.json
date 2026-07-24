@@ -869,7 +869,8 @@
       "addr": 35343,
       "name": "rom_set_nmi_vector",
       "title": "ROM copy of set_nmi_vector + nmi_rti",
-      "description": "ROM-resident version of the NMI-exit sequence; also the source\nfor the initial copy to RAM at\n[`set_nmi_vector`](address:0D0E).\n\n| RAM target | Function |\n|---|---|\n| [`set_nmi_vector`](address:0D0E) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C) / [`nmi_jmp_hi`](address:0D0D) |\n| [`nmi_rti`](address:0D14) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`enable_net_nmis`](address:FE3C) (INTON) to re-enable the NMI flip-flop before `RTI` |\n\nThe INTON creates a guaranteed falling edge on /NMI if the ADLC\nIRQ is already asserted, ensuring the next handler fires\nimmediately."
+      "description": "ROM-resident version of the NMI-exit sequence; also the source\nfor the initial copy to RAM at\n[`set_nmi_vector`](address:0D0E).\n\n| RAM target | Function |\n|---|---|\n| [`set_nmi_vector`](address:0D0E) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C) / [`nmi_jmp_hi`](address:0D0D) |\n| [`nmi_rti`](address:0D14) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`enable_net_nmis`](address:FE3C) (INTON) to re-enable the NMI flip-flop before `RTI` |\n\nThe INTON creates a guaranteed falling edge on /NMI if the ADLC\nIRQ is already asserted, ensuring the next handler fires\nimmediately.",
+      "fall_through": true
     },
     {
       "addr": 35466,
@@ -4457,6 +4458,12 @@
         "a": "transfer status",
         "c": "set if Tube/shadow address handled, clear otherwise"
       }
+    },
+    {
+      "addr": 35357,
+      "name": "nmi_return_inton",
+      "title": "NMI exit: re-enable NMIs and return",
+      "description": "Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`."
     }
   ],
   "banners": [
@@ -23391,7 +23398,7 @@
         254
       ],
       "labels": [
-        "sub_c8a1d"
+        "nmi_return_inton"
       ],
       "sub_labels": {
         "35358": [
