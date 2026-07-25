@@ -562,7 +562,7 @@
       "addr": 33380,
       "name": "init_fs_vectors",
       "title": "Initialise filing system vectors",
-      "description": "Copies 14 bytes from l829a (&829A) into FILEV-FSCV (&0212),\nsetting all 7 filing system vectors to the extended vector dispatch\naddresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the\nROM pointer table entries with the actual NFS handler addresses. Also\nreached directly from svc_13_select_nfs, bypassing the station display.\nFalls through to issue_vectors_claimed.",
+      "description": "Copies 14 bytes from l829a (&829A) into FILEV-FSCV (&0212),\nsetting all 7 filing system vectors to the extended vector dispatch\naddresses. Calls setup_rom_ptrs_netv to install the\nROM pointer table entries with the actual NFS handler addresses. Also\nreached directly from svc_13_select_nfs, bypassing the station display.\nFalls through to issue_vectors_claimed.",
       "fall_through": true
     },
     {
@@ -582,7 +582,7 @@
       "addr": 33432,
       "name": "fs_vector_addrs",
       "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the ROM pointer table.\n\nBytes 14-33: handler address pairs read by store_rom_ptr_pair.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (store_rom_ptr_pair writes the current ROM\nbank number without reading). The last entry (FSCV) has no\npadding byte."
+      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is\na dispatch address that the MOS uses to look up\nthe handler in the ROM pointer table.\n\nBytes 14-33: handler address pairs read by store_rom_ptr_pair.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (store_rom_ptr_pair writes the current ROM\nbank number without reading). The last entry (FSCV) has no\npadding byte."
     },
     {
       "addr": 33468,
@@ -656,7 +656,7 @@
       "addr": 33709,
       "name": "tx_ctrl_template",
       "title": "TX control block template (TXTAB, 12 bytes)",
-      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
+      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type) onwards). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
     },
     {
       "addr": 33721,
@@ -1670,7 +1670,7 @@
       "addr": 37339,
       "name": "printer_select_handler",
       "title": "Fn 5: printer selection changed (SELECT)",
-      "description": "Called when the printer selection changes. Compares X against\nthe network printer buffer number (&F0). If it matches,\ninitialises the printer buffer pointer (&0D61 = &1F) and\nsets the initial flag byte (&0D60 = &41). Otherwise falls\nthrough to return.",
+      "description": "Called when the printer selection changes. Compares X against\nthe network printer buffer number (&F0). If it matches,\ninitialises the printer buffer pointer (&0D61 = &1F) and\nsets the initial flag byte (pflags = &41). Otherwise falls\nthrough to return.",
       "on_entry": {
         "x": "1-based buffer number"
       }
@@ -1757,14 +1757,14 @@
       "addr": 38549,
       "name": "adlc_init_workspace",
       "title": "Initialise NMI workspace",
-      "description": "Issues OSBYTE &8F with X=&0C (NMI claim service request) before\ncopying the NMI shim. Sub-entry at &9698 skips the service\nrequest for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9F7D) to RAM (&0D00), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
+      "description": "Issues OSBYTE &8F with X=&0C (NMI claim service request) before\ncopying the NMI shim. Sub-entry at &9698 skips the service\nrequest for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9F7D) to RAM (nmi_code_base), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
       "fall_through": true
     },
     {
       "addr": 38552,
       "name": "init_nmi_workspace",
       "title": "Initialise NMI workspace (skip service request)",
-      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\n&0D00, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs."
+      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\nnmi_code_base, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs."
     },
     {
       "addr": 38591,
@@ -1794,7 +1794,7 @@
       "addr": 38712,
       "name": "scout_complete",
       "title": "Scout completion handler",
-      "description": "Reached from the scout data loop when SR2 is non-zero (FV detected).\nDisables PSE to allow individual SR2 bit testing:\n  CR1=&00 (clear all enables)\n  CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits\nThen checks FV (bit1) and RDA (bit7):\n  - No FV (BEQ) -> error &96FE (not a valid frame end)\n  - FV set, no RDA (BPL) -> error &96FE (missing last byte)\n  - FV set, RDA set -> read last byte, process scout\nAfter reading the last byte, the complete scout buffer (&0D3D-&0D48)\ncontains: src_stn, src_net, ctrl, port [, extra_data...].\nThe port byte at &0D40 determines further processing:\n  - Port = 0 -> immediate operation (&9A46)\n  - Port non-zero -> check if it matches an open receive block"
+      "description": "Reached from the scout data loop when SR2 is non-zero (FV detected).\nDisables PSE to allow individual SR2 bit testing:\n  CR1=&00 (clear all enables)\n  CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits\nThen checks FV (bit1) and RDA (bit7):\n  - No FV (BEQ) -> error &96FE (not a valid frame end)\n  - FV set, no RDA (BPL) -> error &96FE (missing last byte)\n  - FV set, RDA set -> read last byte, process scout\nAfter reading the last byte, the complete 12-byte scout buffer at rx_src_stn\ncontains: src_stn, src_net, ctrl, port [, extra_data...].\nThe port byte at &0D40 determines further processing:\n  - Port = 0 -> immediate operation (&9A46)\n  - Port non-zero -> check if it matches an open receive block"
     },
     {
       "addr": 38886,
@@ -1845,7 +1845,7 @@
       "addr": 39228,
       "name": "post_ack_scout",
       "title": "Post-ACK scout processing",
-      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the buffer at &0D3D-&0D48.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
+      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the 12-byte buffer at rx_src_stn.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
     },
     {
       "addr": 39246,
@@ -1921,7 +1921,7 @@
       "addr": 39594,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer at page &7F offset &25 (length &01FC) for\nthe machine type query response, then branches to\nset_tx_reply_flag. Returns system identification data to\nthe remote station.\n\nThe machine-type query (`&88`) is handled inline in the NMI receive\npath \u2014 it only reads memory and posts an immediate reply \u2014 and is NOT\ndeferred via the shift-register interrupt, unlike the execute-class\nops `&83`-`&87`.",
+      "description": "Sets up a buffer at page &7F offset &25 (length 508 bytes) for\nthe machine type query response, then branches to\nset_tx_reply_flag. Returns system identification data to\nthe remote station.\n\nThe machine-type query (`&88`) is handled inline in the NMI receive\npath \u2014 it only reads memory and posts an immediate reply \u2014 and is NOT\ndeferred via the shift-register interrupt, unlike the execute-class\nops `&83`-`&87`.",
       "fall_through": true
     },
     {
@@ -2111,7 +2111,7 @@
       "addr": 40650,
       "name": "tx_calc_transfer",
       "title": "Calculate transfer size",
-      "description": "Computes the number of bytes actually transferred during a data\nframe reception by subtracting RXCB[8..11] (start address) from\nRXCB[4..7] (current pointer), giving the byte count.\nTwo paths: the main path performs a 4-byte subtraction for Tube\ntransfers, storing results to port_buf_len..open_port_buf_hi\n(&A2-&A5). The fallback path (no Tube or buffer addr = &FFFF)\ndoes a 2-byte subtraction using open_port_buf/open_port_buf_hi\n(&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side\neffect of the result area overlapping open_port_buf.",
+      "description": "Computes the number of bytes actually transferred during a data\nframe reception by subtracting RXCB[8..11] (start address) from\nRXCB[4..7] (current pointer), giving the byte count.\nTwo paths: the main path performs a 4-byte subtraction for Tube\ntransfers, storing results to port_buf_len..open_port_buf_hi\n(&A2-&A5). The fallback path (no Tube or buffer address unset)\ndoes a 2-byte subtraction using open_port_buf/open_port_buf_hi\n(&A4/&A5) as scratch. Both paths clobber &A4/&A5 as a side\neffect of the result area overlapping open_port_buf.",
       "on_exit": {
         "c": "1 if transfer set up, 0 if not",
         "x": "preserved"
@@ -2153,7 +2153,7 @@
       "addr": 40829,
       "name": "nmi_bootstrap_entry",
       "title": "Bootstrap NMI entry point (in ROM)",
-      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at &0D00. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96BF."
+      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at nmi_code_base. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96BF). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96BF."
     },
     {
       "addr": 40843,
@@ -7056,7 +7056,7 @@
         33,
         2
       ],
-      "comment_inline": "Set EVNTV high byte at &0221",
+      "comment_inline": "Set EVNTV high byte (EVNTV+1)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "evntv + 1",
@@ -7105,7 +7105,7 @@
         3,
         2
       ],
-      "comment_inline": "Set BRKV high byte at &0203",
+      "comment_inline": "Set BRKV high byte (brkv+1)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "brkv + 1",
@@ -32999,7 +32999,7 @@
         240,
         3
       ],
-      "comment_inline": "Dest station = &FFFF (accept reply from any station)",
+      "comment_inline": "Dest station = broadcast (accept reply from any station)",
       "type": "code",
       "mnemonic": "beq",
       "operand": "openl6",
@@ -33822,7 +33822,7 @@
         169,
         255
       ],
-      "comment_inline": "Set RX end address to &FFFF (accept any length)",
+      "comment_inline": "Set RX end address to max (accept any length)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ff"
@@ -38670,7 +38670,7 @@
         169,
         255
       ],
-      "comment_inline": "End address &FFFF = unlimited data length",
+      "comment_inline": "End address = max (unlimited data length)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ff"
@@ -46850,7 +46850,7 @@
       "labels": [
         "init_nmi_workspace"
       ],
-      "comment_inline": "Copy 32 bytes of NMI shim from ROM to &0D00",
+      "comment_inline": "Copy 32 bytes of NMI shim from ROM to nmi_code_base",
       "xref_summaries": [
         "&9698 referenced 1 time by &06d7[4]"
       ],
@@ -46898,7 +46898,7 @@
         255,
         12
       ],
-      "comment_inline": "Write to NMI shim RAM at &0D00",
+      "comment_inline": "Write to NMI shim RAM (nmi_code_base,Y)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "nmi_code_base,y",

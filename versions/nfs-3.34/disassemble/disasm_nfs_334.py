@@ -1730,7 +1730,7 @@ d.subroutine(
     title="Initialise filing system vectors",
     description="""Copies 14 bytes from fs_vector_addrs (&824D) into FILEV-FSCV (&0212),
 setting all 7 filing system vectors to the extended vector dispatch
-addresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the
+addresses. Calls setup_rom_ptrs_netv to install the
 ROM pointer table entries with the actual NFS handler addresses. Also
 reached directly from select_nfs, bypassing the station display.
 Falls through to issue_vectors_claimed.""",
@@ -1802,7 +1802,7 @@ d.subroutine(
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""Bytes 0-13: extended vector dispatch addresses, copied to
 FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
-a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+a dispatch address that the MOS uses to look up
 the handler in the ROM pointer table.
 
 Bytes 14-33: handler address pairs read by store_rom_ptr_pair.
@@ -2080,7 +2080,7 @@ d.subroutine(
     title="TX control block template (TXTAB, 12 bytes)",
     description="""12-byte template copied to &00C0 by init_tx_ctrl. Defines the
 TX control block for FS commands: control flag, port, station/
-network, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type)–`&0FFF`). The 4-byte
+network, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type) onwards). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""",
 )
 d.byte(0x8334, 1)
@@ -4477,7 +4477,7 @@ d.subroutine(
     description="""The four boot options use OSCLI strings at offsets within page &8C:
   Option 0 (Off):  offset &F6 → &8CF6 = bare CR (empty command)
   Option 1 (Load): offset &E7 → &8CE7 = "L.!BOOT" (dual-purpose:
-      the JMP &212E instruction at &8CE7 has opcode &4C='L' and
+      the byte &4C='L' at &8CE7 is a JMP opcode and
       operand bytes &2E='.' &21='!', forming the string "L.!")
   Option 2 (Run):  offset &E9 → boot_cmd_strings-1 = "!BOOT" (*RUN)
   Option 3 (Exec): offset &EF → &8CEF = "E.!BOOT"
@@ -5287,7 +5287,7 @@ d.comment(0x8FA1, "Store as TX pointer high byte", align=Align.INLINE)
 d.comment(0x8FA3, "Enable interrupts before transmit", align=Align.INLINE)
 d.comment(0x8FA4, "Transmit with full retry", align=Align.INLINE)
 d.comment(0x8FA7, "Y=&2C: RX end address offset", align=Align.INLINE)
-d.comment(0x8FA9, "Set RX end address to &FFFF (accept any length)", align=Align.INLINE)
+d.comment(0x8FA9, "Set RX end address to max (accept any length)", align=Align.INLINE)
 d.comment(0x8FAB, "Store end address low byte (&FF)", align=Align.INLINE)
 d.comment(0x8FAE, "Store end address high byte (&FF)", align=Align.INLINE)
 d.comment(0x8FB0, "Y=&25: port byte in workspace RXCB", align=Align.INLINE)
@@ -6052,7 +6052,7 @@ d.comment(0x9256, "Merge sequence into existing flag byte", align=Align.INLINE)
 d.comment(0x9258, "Save merged flag byte", align=Align.INLINE)
 d.comment(0x9259, "Write flag+sequence to TXCB byte 0", align=Align.INLINE)
 d.comment(0x925B, "Transmit with full retry", align=Align.INLINE)
-d.comment(0x925E, "End address &FFFF = unlimited data length", align=Align.INLINE)
+d.comment(0x925E, "End address = max (unlimited data length)", align=Align.INLINE)
 d.comment(0x9260, "Y=8: end address low offset in TXCB", align=Align.INLINE)
 d.comment(0x9262, "Store &FF to end addr low", align=Align.INLINE)
 d.comment(0x9265, "Store &FF to end addr high (Y=9)", align=Align.INLINE)
@@ -6247,14 +6247,14 @@ d.subroutine(
     0x9681,
     "adlc_init_workspace",
     title="Initialise NMI workspace",
-    description="""Copies NMI shim from ROM to &0D00, stores current ROM bank number
+    description="""Copies NMI shim from ROM to nmi_code_base, stores current ROM bank number
 into shim self-modifying code, sets TX status to &80 (idle/complete),
 saves station ID from &FE18 into TX scout buffer, re-enables NMIs
 by reading &FE20.""",
 )
 
 
-d.comment(0x9681, "Copy NMI shim from ROM to &0D00", align=Align.INLINE)
+d.comment(0x9681, "Copy NMI shim from ROM to nmi_code_base", align=Align.INLINE)
 d.comment(0x9684, "Load current ROM bank number", align=Align.INLINE)
 d.comment(0x9686, "Patch ROM bank into NMI shim", align=Align.INLINE)
 d.comment(0x9689, "A=&80: TX idle/complete status", align=Align.INLINE)
@@ -6307,7 +6307,7 @@ d.comment(0x96CA, "Re-initialize ADLC and NMI", align=Align.INLINE)
 d.subroutine(
     0x96CD,
     "install_nmi_shim",
-    title="Copy NMI shim from ROM (&9FCA) to RAM (&0D00)",
+    title="Copy NMI shim from ROM (&9FCA) to RAM (nmi_code_base)",
     description="Copies 32 bytes. Interrupts are enabled during the copy.",
 )
 
@@ -6317,7 +6317,7 @@ d.comment(0x96CE, "Enable interrupts during copy", align=Align.INLINE)
 d.comment(0x96CF, "Y=&20: copy 32 bytes", align=Align.INLINE)
 d.label(0x96D1, "poll_nmi_complete")
 d.comment(0x96D1, "Load NMI shim byte from ROM table", align=Align.INLINE)
-d.comment(0x96D4, "Store to NMI area at &0D00+Y", align=Align.INLINE)
+d.comment(0x96D4, "Store to NMI area at nmi_code_base+Y", align=Align.INLINE)
 d.comment(0x96D7, "Decrement byte counter", align=Align.INLINE)
 d.comment(0x96D8, "Loop until all bytes copied", align=Align.INLINE)
 d.comment(0x96DA, "Restore interrupt state", align=Align.INLINE)
@@ -6493,7 +6493,7 @@ Then checks FV (bit1) and RDA (bit7):
   - No FV (BEQ) -> error &9737 (not a valid frame end)
   - FV set, no RDA (BPL) -> error &9737 (missing last byte)
   - FV set, RDA set -> read last byte, process scout
-After reading the last byte, the complete scout buffer (&0D3D-&0D48)
+After reading the last byte, the complete 12-byte scout buffer at rx_src_stn
 contains: src_stn, src_net, ctrl, port [, extra_data...].
 The port byte at &0D40 determines further processing:
   - Port = 0 -> immediate operation (&9A59)
@@ -6923,7 +6923,7 @@ d.subroutine(
     "post_ack_scout",
     title="Post-ACK scout processing",
     description="""Called after the scout ACK has been transmitted. Processes the
-received scout data stored in the buffer at &0D3D-&0D48.
+received scout data stored in the 12-byte buffer at rx_src_stn.
 Checks the port byte (&0D40) against open receive blocks to
 find a matching listener. If a match is found, sets up the
 data RX handler chain for the four-way handshake data phase.
@@ -7214,7 +7214,7 @@ d.subroutine(
     0x9AC8,
     "rx_imm_machine_type",
     title="RX immediate: machine type query",
-    description="""Sets up a buffer just below the screen (length &01FC) for
+    description="""Sets up a buffer just below the screen (length 508 bytes) for
 the machine type query response. Returns system
 identification data to the remote station.
 
@@ -8378,7 +8378,7 @@ d.subroutine(
     "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="""An alternate NMI handler that lives in the ROM itself rather than
-in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
+in the RAM workspace at nmi_code_base. Unlike the RAM shim (which uses a
 self-modifying JMP to dispatch to different handlers), this one
 hardcodes JMP nmi_rx_scout (&96F6). Used as the initial NMI handler
 before the workspace has been properly set up during initialisation.

@@ -453,7 +453,7 @@
       "addr": 33303,
       "name": "init_fs_vectors",
       "title": "Initialise filing system vectors",
-      "description": "Copies 14 bytes from fs_vector_addrs (&824D) into FILEV-FSCV (&0212),\nsetting all 7 filing system vectors to the extended vector dispatch\naddresses (&FF1B-&FF2D). Calls setup_rom_ptrs_netv to install the\nROM pointer table entries with the actual NFS handler addresses. Also\nreached directly from select_nfs, bypassing the station display.\nFalls through to issue_vectors_claimed.",
+      "description": "Copies 14 bytes from fs_vector_addrs (&824D) into FILEV-FSCV (&0212),\nsetting all 7 filing system vectors to the extended vector dispatch\naddresses. Calls setup_rom_ptrs_netv to install the\nROM pointer table entries with the actual NFS handler addresses. Also\nreached directly from select_nfs, bypassing the station display.\nFalls through to issue_vectors_claimed.",
       "fall_through": true
     },
     {
@@ -473,7 +473,7 @@
       "addr": 33357,
       "name": "fs_vector_addrs",
       "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the ROM pointer table.\n\nBytes 14-33: handler address pairs read by store_rom_ptr_pair.\nEach entry has addr_lo, addr_hi, then a padding byte that is\noverwritten with the current ROM bank number at runtime. The\nlast entry (FSCV) has no padding byte."
+      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is\na dispatch address that the MOS uses to look up\nthe handler in the ROM pointer table.\n\nBytes 14-33: handler address pairs read by store_rom_ptr_pair.\nEach entry has addr_lo, addr_hi, then a padding byte that is\noverwritten with the current ROM bank number at runtime. The\nlast entry (FSCV) has no padding byte."
     },
     {
       "addr": 33391,
@@ -528,7 +528,7 @@
       "addr": 33588,
       "name": "tx_ctrl_template",
       "title": "TX control block template (TXTAB, 12 bytes)",
-      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
+      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type) onwards). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
     },
     {
       "addr": 33600,
@@ -1090,7 +1090,7 @@
       "addr": 36074,
       "name": "boot_cmd_strings",
       "title": "Boot command strings for auto-boot",
-      "description": "The four boot options use OSCLI strings at offsets within page &8C:\n  Option 0 (Off):  offset &F6 \u2192 &8CF6 = bare CR (empty command)\n  Option 1 (Load): offset &E7 \u2192 &8CE7 = \"L.!BOOT\" (dual-purpose:\n      the JMP &212E instruction at &8CE7 has opcode &4C='L' and\n      operand bytes &2E='.' &21='!', forming the string \"L.!\")\n  Option 2 (Run):  offset &E9 \u2192 boot_cmd_strings-1 = \"!BOOT\" (*RUN)\n  Option 3 (Exec): offset &EF \u2192 &8CEF = \"E.!BOOT\"\n\nThis is a classic BBC ROM space optimisation: the JMP instruction's\nbytes serve double duty as both executable code and ASCII text."
+      "description": "The four boot options use OSCLI strings at offsets within page &8C:\n  Option 0 (Off):  offset &F6 \u2192 &8CF6 = bare CR (empty command)\n  Option 1 (Load): offset &E7 \u2192 &8CE7 = \"L.!BOOT\" (dual-purpose:\n      the byte &4C='L' at &8CE7 is a JMP opcode and\n      operand bytes &2E='.' &21='!', forming the string \"L.!\")\n  Option 2 (Run):  offset &E9 \u2192 boot_cmd_strings-1 = \"!BOOT\" (*RUN)\n  Option 3 (Exec): offset &EF \u2192 &8CEF = \"E.!BOOT\"\n\nThis is a classic BBC ROM space optimisation: the JMP instruction's\nbytes serve double duty as both executable code and ASCII text."
     },
     {
       "addr": 36087,
@@ -1526,7 +1526,7 @@
       "addr": 38529,
       "name": "adlc_init_workspace",
       "title": "Initialise NMI workspace",
-      "description": "Copies NMI shim from ROM to &0D00, stores current ROM bank number\ninto shim self-modifying code, sets TX status to &80 (idle/complete),\nsaves station ID from &FE18 into TX scout buffer, re-enables NMIs\nby reading &FE20."
+      "description": "Copies NMI shim from ROM to nmi_code_base, stores current ROM bank number\ninto shim self-modifying code, sets TX status to &80 (idle/complete),\nsaves station ID from &FE18 into TX scout buffer, re-enables NMIs\nby reading &FE20."
     },
     {
       "addr": 38557,
@@ -1543,7 +1543,7 @@
     {
       "addr": 38605,
       "name": "install_nmi_shim",
-      "title": "Copy NMI shim from ROM (&9FCA) to RAM (&0D00)",
+      "title": "Copy NMI shim from ROM (&9FCA) to RAM (nmi_code_base)",
       "description": "Copies 32 bytes. Interrupts are enabled during the copy."
     },
     {
@@ -1587,7 +1587,7 @@
       "addr": 38769,
       "name": "scout_complete",
       "title": "Scout completion handler",
-      "description": "Reached from the scout data loop when SR2 is non-zero (FV detected).\nDisables PSE to allow individual SR2 bit testing:\n  CR1=&00 (clear all enables)\n  CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits\nThen checks FV (bit1) and RDA (bit7):\n  - No FV (BEQ) -> error &9737 (not a valid frame end)\n  - FV set, no RDA (BPL) -> error &9737 (missing last byte)\n  - FV set, RDA set -> read last byte, process scout\nAfter reading the last byte, the complete scout buffer (&0D3D-&0D48)\ncontains: src_stn, src_net, ctrl, port [, extra_data...].\nThe port byte at &0D40 determines further processing:\n  - Port = 0 -> immediate operation (&9A59)\n  - Port non-zero -> check if it matches an open receive block"
+      "description": "Reached from the scout data loop when SR2 is non-zero (FV detected).\nDisables PSE to allow individual SR2 bit testing:\n  CR1=&00 (clear all enables)\n  CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits\nThen checks FV (bit1) and RDA (bit7):\n  - No FV (BEQ) -> error &9737 (not a valid frame end)\n  - FV set, no RDA (BPL) -> error &9737 (missing last byte)\n  - FV set, RDA set -> read last byte, process scout\nAfter reading the last byte, the complete 12-byte scout buffer at rx_src_stn\ncontains: src_stn, src_net, ctrl, port [, extra_data...].\nThe port byte at &0D40 determines further processing:\n  - Port = 0 -> immediate operation (&9A59)\n  - Port non-zero -> check if it matches an open receive block"
     },
     {
       "addr": 38969,
@@ -1637,7 +1637,7 @@
       "addr": 39355,
       "name": "post_ack_scout",
       "title": "Post-ACK scout processing",
-      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the buffer at &0D3D-&0D48.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
+      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the 12-byte buffer at rx_src_stn.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
     },
     {
       "addr": 39363,
@@ -1695,7 +1695,7 @@
       "addr": 39624,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer just below the screen (length &01FC) for\nthe machine type query response. Returns system\nidentification data to the remote station.\n\nThe machine-type query (`&88`) is handled inline in the NMI receive\npath \u2014 it only reads memory and posts an immediate reply \u2014 and is NOT\ndeferred via the shift-register interrupt, unlike the execute-class\nops `&83`-`&87`."
+      "description": "Sets up a buffer just below the screen (length 508 bytes) for\nthe machine type query response. Returns system\nidentification data to the remote station.\n\nThe machine-type query (`&88`) is handled inline in the NMI receive\npath \u2014 it only reads memory and posts an immediate reply \u2014 and is NOT\ndeferred via the shift-register interrupt, unlike the execute-class\nops `&83`-`&87`."
     },
     {
       "addr": 39643,
@@ -1917,7 +1917,7 @@
       "addr": 40907,
       "name": "nmi_bootstrap_entry",
       "title": "Bootstrap NMI entry point (in ROM)",
-      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at &0D00. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96F6). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96F6."
+      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at nmi_code_base. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&96F6). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &96F6."
     },
     {
       "addr": 40921,
@@ -32662,7 +32662,7 @@
         169,
         255
       ],
-      "comment_inline": "Set RX end address to &FFFF (accept any length)",
+      "comment_inline": "Set RX end address to max (accept any length)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ff"
@@ -38186,7 +38186,7 @@
         169,
         255
       ],
-      "comment_inline": "End address &FFFF = unlimited data length",
+      "comment_inline": "End address = max (unlimited data length)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&ff"
@@ -46299,7 +46299,7 @@
       "labels": [
         "adlc_init_workspace"
       ],
-      "comment_inline": "Copy NMI shim from ROM to &0D00",
+      "comment_inline": "Copy NMI shim from ROM to nmi_code_base",
       "xref_summaries": [
         "&9681 referenced 1 time by &96ca"
       ],
@@ -46809,7 +46809,7 @@
         255,
         12
       ],
-      "comment_inline": "Store to NMI area at &0D00+Y",
+      "comment_inline": "Store to NMI area at nmi_code_base+Y",
       "type": "code",
       "mnemonic": "sta",
       "operand": "nmi_code_base,y",

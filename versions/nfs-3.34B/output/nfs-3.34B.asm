@@ -1886,7 +1886,7 @@ cmd_roff_str = copyright_string+3
 ; Initialise filing system vectors
 ;
 ; Copies 14 bytes from fs_vector_addrs (&824E) into FILEV-FSCV (&0212), setting all 7
-; filing system vectors to the extended vector dispatch addresses (&FF1B-&FF2D). Calls
+; filing system vectors to the extended vector dispatch addresses. Calls
 ; setup_rom_ptrs_netv to install the ROM pointer table entries with the actual NFS
 ; handler addresses. Also reached directly from select_nfs, bypassing the station
 ; display. Falls through to issue_vectors_claimed.
@@ -1939,8 +1939,8 @@ cmd_roff_str = copyright_string+3
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
 ; Bytes 0-13: extended vector dispatch addresses, copied to FILEV-FSCV (&0212) by
-; init_fs_vectors. Each 2-byte pair is a dispatch address (&FF1B-&FF2D) that the MOS uses
-; to look up the handler in the ROM pointer table.
+; init_fs_vectors. Each 2-byte pair is a dispatch address that the MOS uses to look up
+; the handler in the ROM pointer table.
 ;
 ; Bytes 14-33: handler address pairs read by store_rom_ptr_pair. Each entry has addr_lo,
 ; addr_hi, then a padding byte that is overwritten with the current ROM bank number at
@@ -2166,9 +2166,8 @@ cmd_roff_str = copyright_string+3
 ; TX control block template (TXTAB, 12 bytes)
 ;
 ; 12-byte template copied to &00C0 by init_tx_ctrl. Defines the TX control block for FS
-; commands: control flag, port, station/ network, and data buffer pointers
-; (fs_cmd_type–&0FFF). The 4-byte Econet addresses use only the low 2 bytes; upper bytes
-; are &FF.
+; commands: control flag, port, station/ network, and data buffer pointers (fs_cmd_type
+; onwards). The 4-byte Econet addresses use only the low 2 bytes; upper bytes are &FF.
 ; &8335 used as index base 1 time by &8320
 .tx_ctrl_template
     equb &80                                                          ; 8335: 80          .        ; Control flag
@@ -4520,8 +4519,8 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ;
 ; The four boot options use OSCLI strings at offsets within page &8C: Option 0 (Off):
 ; offset &F7 → &8CF7 = bare CR (empty command) Option 1 (Load): offset &E8 → &8CE8 =
-; "L.!BOOT" (dual-purpose: the JMP &212E instruction at &8CE8 has opcode &4C='L' and
-; operand bytes &2E='.' &21='!', forming the string "L.!") Option 2 (Run):  offset &EA →
+; "L.!BOOT" (dual-purpose: the byte &4C='L' at &8CE8 is a JMP opcode and operand bytes
+; &2E='.' &21='!', forming the string "L.!") Option 2 (Run):  offset &EA →
 ; boot_cmd_strings-1 = "!BOOT" (bare filename = *RUN) Option 3 (Exec): offset &F0 → &8CF0
 ; = "E.!BOOT"
 ;
@@ -5156,7 +5155,7 @@ post_reply_check = scan_or_read_rxcb+1
     ldx #&0b                                                          ; 8f27: a2 0b       ..       ; Enable interrupts before transmit
     cpy fs_last_byte_flag                                             ; 8f29: c4 bd       ..       ; Compare Y(1) with saved byte (open/read)
     adc (fs_crc_lo),y                                                 ; 8f2b: 71 be       q.       ; ADC flag: test if slot is in use
-    beq openl6                                                        ; 8f2d: f0 03       ..       ; Dest station = &FFFF (accept reply from any station)
+    beq openl6                                                        ; 8f2d: f0 03       ..       ; Dest station = broadcast (accept reply from any station)
     bmi openl7                                                        ; 8f2f: 30 0e       0.       ; Negative: slot has received data
 ; &8f31 referenced 1 time by &8f41
 .copy_rxcb_to_param
@@ -5269,7 +5268,7 @@ post_reply_check = scan_or_read_rxcb+1
     cli                                                               ; 8fa4: 58          X        ; Enable interrupts before transmit
     jsr tx_poll_timeout                                               ; 8fa5: 20 4f 86     O.      ; Transmit with full retry
     ldy #&2c                                                          ; 8fa8: a0 2c       .,       ; Y=&2C: RX end address offset
-    lda #&ff                                                          ; 8faa: a9 ff       ..       ; Dest station = &FFFF (accept reply from any station)
+    lda #&ff                                                          ; 8faa: a9 ff       ..       ; Dest station = broadcast (accept reply from any station)
     sta (nfs_workspace),y                                             ; 8fac: 91 9e       ..       ; Store end address low byte (&FF)
     iny                                                               ; 8fae: c8          .     
     sta (nfs_workspace),y                                             ; 8faf: 91 9e       ..       ; Store end address high byte (&FF)
@@ -5962,7 +5961,7 @@ post_reply_check = scan_or_read_rxcb+1
     pha                                                               ; 9259: 48          H        ; Save merged flag byte
     sta (net_tx_ptr),y                                                ; 925a: 91 9a       ..       ; Write flag+sequence to TXCB byte 0
     jsr tx_poll_ff                                                    ; 925c: 20 4d 86     M.      ; Transmit with full retry
-    lda #&ff                                                          ; 925f: a9 ff       ..       ; End address &FFFF = unlimited data length
+    lda #&ff                                                          ; 925f: a9 ff       ..       ; End address = max (unlimited data length)
     ldy #8                                                            ; 9261: a0 08       ..       ; Y=8: end address low offset in TXCB
     sta (net_tx_ptr),y                                                ; 9263: 91 9a       ..       ; Store &FF to end addr low
     iny                                                               ; 9265: c8          .     
@@ -6139,12 +6138,12 @@ post_reply_check = scan_or_read_rxcb+1
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ;
-; Copies NMI shim from ROM to &0D00, stores current ROM bank number into shim
+; Copies NMI shim from ROM to nmi_code_base, stores current ROM bank number into shim
 ; self-modifying code, sets TX status to &80 (idle/complete), saves station ID from &FE18
 ; into TX scout buffer, re-enables NMIs by reading &FE20.
 ; &9681 referenced 1 time by &96ca
 .adlc_init_workspace
-    jsr install_nmi_shim                                              ; 9681: 20 cd 96     ..      ; Copy NMI shim from ROM to &0D00
+    jsr install_nmi_shim                                              ; 9681: 20 cd 96     ..      ; Copy NMI shim from ROM to nmi_code_base
     lda romsel_copy                                                   ; 9684: a5 f4       ..       ; Load current ROM bank number
     sta nmi_shim_07                                                   ; 9686: 8d 07 0d    ...      ; Patch ROM bank into NMI shim
     lda #&80                                                          ; 9689: a9 80       ..       ; A=&80: TX idle/complete status
@@ -6192,7 +6191,7 @@ post_reply_check = scan_or_read_rxcb+1
     sta tx_in_progress                                                ; 96c7: 8d 52 0d    .R.      ; Restore TX state
     jmp adlc_init_workspace                                           ; 96ca: 4c 81 96    L..      ; Reinitialise NMI workspace
 ; ***************************************************************************************
-; Copy NMI shim from ROM (&9FCA) to RAM (&0D00)
+; Copy NMI shim from ROM (&9FCA) to RAM (nmi_code_base)
 ;
 ; Copies 32 bytes. Interrupts are enabled during the copy.
 ; &96cd referenced 1 time by &9681
@@ -6203,7 +6202,7 @@ post_reply_check = scan_or_read_rxcb+1
 ; &96d1 referenced 1 time by &96d8
 .copy_nmi_shim_loop
     lda nmi_shim_rom_src,y                                            ; 96d1: b9 ca 9f    ...      ; Load NMI shim byte from ROM
-    sta nmi_code_base,y                                               ; 96d4: 99 ff 0c    ...      ; Store to NMI area at &0D00+Y
+    sta nmi_code_base,y                                               ; 96d4: 99 ff 0c    ...      ; Store to NMI area at nmi_code_base+Y
     dey                                                               ; 96d7: 88          .        ; Decrement byte counter
     bne copy_nmi_shim_loop                                            ; 96d8: d0 f7       ..       ; Loop until all bytes copied
     plp                                                               ; 96da: 28          (        ; Restore interrupt state
@@ -6352,7 +6351,7 @@ post_reply_check = scan_or_read_rxcb+1
 ; - No FV (BEQ) -> error &9737 (not a valid frame end)
 ; - FV set, no RDA (BPL) -> error &9737 (missing last byte)
 ; - FV set, RDA set -> read last byte, process scout After reading the last byte, the
-;   complete scout buffer (&0D3D-&0D48) contains: src_stn, src_net, ctrl, port [,
+;   complete 12-byte scout buffer at rx_src_stn contains: src_stn, src_net, ctrl, port [,
 ;   extra_data...]. The port byte at &0D40 determines further processing:
 ; - Port = 0 -> immediate operation (&9A59)
 ; - Port non-zero -> check if it matches an open receive block
@@ -6742,9 +6741,9 @@ post_reply_check = scan_or_read_rxcb+1
 ; Post-ACK scout processing
 ;
 ; Called after the scout ACK has been transmitted. Processes the received scout data
-; stored in the buffer at &0D3D-&0D48. Checks the port byte (&0D40) against open receive
-; blocks to find a matching listener. If a match is found, sets up the data RX handler
-; chain for the four-way handshake data phase. If no match, discards the frame.
+; stored in the 12-byte buffer at rx_src_stn. Checks the port byte (&0D40) against open
+; receive blocks to find a matching listener. If a match is found, sets up the data RX
+; handler chain for the four-way handshake data phase. If no match, discards the frame.
 .post_ack_scout
     lda rx_port                                                       ; 99bb: ad 40 0d    .@.      ; Check port byte from scout
     bne advance_rx_buffer_ptr                                         ; 99be: d0 03       ..       ; Non-zero port: advance RX buffer
@@ -7009,7 +7008,7 @@ rxcb_buf_hi_operand = load_rxcb_buf_hi+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ;
-; Sets up a buffer in high memory (length #&01FC) for the machine type query response.
+; Sets up a buffer in high memory (length 508 bytes) for the machine type query response.
 ; Returns system identification data to the remote station.
 ;
 ; The machine-type query (&88) is handled inline in the NMI receive path — it only reads
@@ -8037,10 +8036,11 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
 ; Bootstrap NMI entry point (in ROM)
 ;
 ; An alternate NMI handler that lives in the ROM itself rather than in the RAM workspace
-; at &0D00. Unlike the RAM shim (which uses a self-modifying JMP to dispatch to different
-; handlers), this one hardcodes JMP nmi_rx_scout (&96F6). Used as the initial NMI handler
-; before the workspace has been properly set up during initialisation. Same sequence as
-; the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA, LDA romsel, STA &FE30, JMP &96F6.
+; at nmi_code_base. Unlike the RAM shim (which uses a self-modifying JMP to dispatch to
+; different handlers), this one hardcodes JMP nmi_rx_scout (&96F6). Used as the initial
+; NMI handler before the workspace has been properly set up during initialisation. Same
+; sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA, LDA romsel, STA &FE30, JMP
+; &96F6.
 .nmi_bootstrap_entry
     bit station_id_disable_net_nmis                                   ; 9fcb: 2c 18 fe    ,..      ; INTOFF: disable NMIs while switching ROM
     pha                                                               ; 9fce: 48          H        ; Save A
