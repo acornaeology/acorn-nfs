@@ -48701,7 +48701,7 @@
       ],
       "comment_inline": "Clear V: standard send mode (callers set V via save_net_tx_cb_vset for the lib-flag variant)",
       "xref_summaries": [
-        "&978a referenced 23 times by &8e56, &955f, &9582, &9595, &9e4a, &9f2d, &9f3d, &9fb5, &a040, &a0b9, &a0ed, &a1bf, &a2a2, &a35d, &a521, &a549, &b107, &b185, &b1c3, &b232, &b746, &b7dd, &bcdc"
+        "&978a referenced 24 times by &8e56, &955f, &9582, &9595, &9e4a, &9f2d, &9f3d, &9fb5, &a040, &a0b9, &a0ed, &a1bf, &a2a2, &a35d, &a521, &a549, &a8b6, &b107, &b185, &b1c3, &b232, &b746, &b7dd, &bcdc"
       ],
       "references": [
         {
@@ -48766,6 +48766,10 @@
         },
         {
           "addr": 42313,
+          "kind": "direct"
+        },
+        {
+          "addr": 43190,
           "kind": "direct"
         },
         {
@@ -79204,11 +79208,9 @@
         "save_txcb_and_convert"
       ],
       "comment_inline": "X=0: start of TX control block",
-      "type": "byte",
-      "values": [
-        162,
-        0
-      ]
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "#0"
     },
     {
       "addr": 43188,
@@ -79217,11 +79219,9 @@
         16
       ],
       "comment_inline": "Y=&10: length of TXCB to save",
-      "type": "byte",
-      "values": [
-        160,
-        16
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#&10"
     },
     {
       "addr": 43190,
@@ -79231,12 +79231,11 @@
         151
       ],
       "comment_inline": "Save current TX control block",
-      "type": "byte",
-      "values": [
-        32,
-        138,
-        151
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "save_net_tx_cb",
+      "target": 38794,
+      "target_label": "save_net_tx_cb"
     },
     {
       "addr": 43193,
@@ -79246,12 +79245,11 @@
         193
       ],
       "comment_inline": "Load seconds from clock workspace",
-      "type": "byte",
-      "values": [
-        173,
-        9,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_exec_addr",
+      "target": 49417,
+      "target_label": "hazel_exec_addr"
     },
     {
       "addr": 43196,
@@ -79261,12 +79259,11 @@
         169
       ],
       "comment_inline": "Convert binary to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43199,
@@ -79276,12 +79273,11 @@
         193
       ],
       "comment_inline": "Store BCD seconds",
-      "type": "byte",
-      "values": [
-        141,
-        11,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_tx_status",
+      "target": 49419,
+      "target_label": "hazel_txcb_tx_status"
     },
     {
       "addr": 43202,
@@ -79291,12 +79287,11 @@
         193
       ],
       "comment_inline": "Load minutes from clock workspace",
-      "type": "byte",
-      "values": [
-        173,
-        8,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_result",
+      "target": 49416,
+      "target_label": "hazel_txcb_result"
     },
     {
       "addr": 43205,
@@ -79306,12 +79301,11 @@
         169
       ],
       "comment_inline": "Convert binary to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43208,
@@ -79321,12 +79315,11 @@
         193
       ],
       "comment_inline": "Store BCD minutes",
-      "type": "byte",
-      "values": [
-        141,
-        10,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_size_hi",
+      "target": 49418,
+      "target_label": "hazel_txcb_size_hi"
     },
     {
       "addr": 43211,
@@ -79336,12 +79329,11 @@
         193
       ],
       "comment_inline": "Load hours from clock workspace",
-      "type": "byte",
-      "values": [
-        173,
-        7,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_count",
+      "target": 49415,
+      "target_label": "hazel_txcb_count"
     },
     {
       "addr": 43214,
@@ -79351,12 +79343,11 @@
         169
       ],
       "comment_inline": "Convert binary to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43217,
@@ -79366,12 +79357,11 @@
         193
       ],
       "comment_inline": "Store BCD hours",
-      "type": "byte",
-      "values": [
-        141,
-        9,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_exec_addr",
+      "target": 49417,
+      "target_label": "hazel_exec_addr"
     },
     {
       "addr": 43220,
@@ -79380,11 +79370,9 @@
         0
       ],
       "comment_inline": "Clear hours high position",
-      "type": "byte",
-      "values": [
-        169,
-        0
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#0"
     },
     {
       "addr": 43222,
@@ -79394,12 +79382,11 @@
         193
       ],
       "comment_inline": "Store zero",
-      "type": "byte",
-      "values": [
-        141,
-        8,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_result",
+      "target": 49416,
+      "target_label": "hazel_txcb_result"
     },
     {
       "addr": 43225,
@@ -79409,12 +79396,11 @@
         193
       ],
       "comment_inline": "Load day+month byte",
-      "type": "byte",
-      "values": [
-        173,
-        6,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_flag",
+      "target": 49414,
+      "target_label": "hazel_txcb_flag"
     },
     {
       "addr": 43228,
@@ -79422,10 +79408,8 @@
         72
       ],
       "comment_inline": "Save for later high nibble extract",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 43229,
@@ -79435,12 +79419,11 @@
         193
       ],
       "comment_inline": "Load day value",
-      "type": "byte",
-      "values": [
-        173,
-        5,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_data",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
     },
     {
       "addr": 43232,
@@ -79450,12 +79433,11 @@
         169
       ],
       "comment_inline": "Convert day to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43235,
@@ -79465,12 +79447,11 @@
         193
       ],
       "comment_inline": "Store BCD day",
-      "type": "byte",
-      "values": [
-        141,
-        7,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_count",
+      "target": 49415,
+      "target_label": "hazel_txcb_count"
     },
     {
       "addr": 43238,
@@ -79478,10 +79459,8 @@
         104
       ],
       "comment_inline": "Restore day+month byte",
-      "type": "byte",
-      "values": [
-        104
-      ]
+      "type": "code",
+      "mnemonic": "pla"
     },
     {
       "addr": 43239,
@@ -79489,10 +79468,8 @@
         72
       ],
       "comment_inline": "Push current A",
-      "type": "byte",
-      "values": [
-        72
-      ]
+      "type": "code",
+      "mnemonic": "pha"
     },
     {
       "addr": 43240,
@@ -79501,11 +79478,9 @@
         15
       ],
       "comment_inline": "Mask low nibble (month low bits)",
-      "type": "byte",
-      "values": [
-        41,
-        15
-      ]
+      "type": "code",
+      "mnemonic": "and",
+      "operand": "#&0f"
     },
     {
       "addr": 43242,
@@ -79515,12 +79490,11 @@
         169
       ],
       "comment_inline": "Convert to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43245,
@@ -79530,12 +79504,11 @@
         193
       ],
       "comment_inline": "Store BCD month",
-      "type": "byte",
-      "values": [
-        141,
-        6,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_flag",
+      "target": 49414,
+      "target_label": "hazel_txcb_flag"
     },
     {
       "addr": 43248,
@@ -79543,10 +79516,8 @@
         104
       ],
       "comment_inline": "Pop saved value",
-      "type": "byte",
-      "values": [
-        104
-      ]
+      "type": "code",
+      "mnemonic": "pla"
     },
     {
       "addr": 43249,
@@ -79554,10 +79525,8 @@
         74
       ],
       "comment_inline": "Shift high nibble down",
-      "type": "byte",
-      "values": [
-        74
-      ]
+      "type": "code",
+      "mnemonic": "lsr"
     },
     {
       "addr": 43250,
@@ -79565,10 +79534,8 @@
         74
       ],
       "comment_inline": "Divide by 4",
-      "type": "byte",
-      "values": [
-        74
-      ]
+      "type": "code",
+      "mnemonic": "lsr"
     },
     {
       "addr": 43251,
@@ -79576,23 +79543,25 @@
         74
       ],
       "comment_inline": "(continued)",
-      "type": "byte",
-      "values": [
-        74
-      ]
+      "type": "code",
+      "mnemonic": "lsr"
     },
     {
       "addr": 43252,
       "bytes": [
-        74,
-        24
+        74
       ],
       "comment_inline": "4th shift: isolate high nibble",
-      "type": "byte",
-      "values": [
-        74,
+      "type": "code",
+      "mnemonic": "lsr"
+    },
+    {
+      "addr": 43253,
+      "bytes": [
         24
-      ]
+      ],
+      "type": "code",
+      "mnemonic": "clc"
     },
     {
       "addr": 43254,
@@ -79601,11 +79570,9 @@
         81
       ],
       "comment_inline": "Add &51 (offset base)",
-      "type": "byte",
-      "values": [
-        105,
-        81
-      ]
+      "type": "code",
+      "mnemonic": "adc",
+      "operand": "#&51"
     },
     {
       "addr": 43256,
@@ -79615,12 +79582,11 @@
         169
       ],
       "comment_inline": "Convert year to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        35,
-        169
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "bin_to_bcd",
+      "target": 43299,
+      "target_label": "bin_to_bcd"
     },
     {
       "addr": 43259,
@@ -79630,12 +79596,11 @@
         193
       ],
       "comment_inline": "Store BCD year",
-      "type": "byte",
-      "values": [
-        141,
-        5,
-        193
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_data",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
     },
     {
       "addr": 43262,
@@ -79644,11 +79609,9 @@
         6
       ],
       "comment_inline": "Copy 7 bytes (Y=6 down to 0)",
-      "type": "byte",
-      "values": [
-        160,
-        6
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#6"
     },
     {
       "addr": 43264,
@@ -79661,12 +79624,20 @@
         "loop_copy_bcd_to_pb"
       ],
       "comment_inline": "Load BCD byte from workspace",
-      "type": "byte",
-      "values": [
-        185,
-        5,
-        193
-      ]
+      "xref_summaries": [
+        "&a900 referenced 1 time by &a906"
+      ],
+      "references": [
+        {
+          "addr": 43270,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_data,y",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
     },
     {
       "addr": 43267,
@@ -79675,11 +79646,11 @@
         172
       ],
       "comment_inline": "Store to parameter block",
-      "type": "byte",
-      "values": [
-        145,
-        172
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi),y",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
     },
     {
       "addr": 43269,
@@ -79687,10 +79658,8 @@
         136
       ],
       "comment_inline": "Next byte down",
-      "type": "byte",
-      "values": [
-        136
-      ]
+      "type": "code",
+      "mnemonic": "dey"
     },
     {
       "addr": 43270,
@@ -79699,11 +79668,11 @@
         248
       ],
       "comment_inline": "Loop for all 7 bytes",
-      "type": "byte",
-      "values": [
-        16,
-        248
-      ]
+      "type": "code",
+      "mnemonic": "bpl",
+      "operand": "loop_copy_bcd_to_pb",
+      "target": 43264,
+      "target_label": "loop_copy_bcd_to_pb"
     },
     {
       "addr": 43272,
@@ -79711,10 +79680,8 @@
         96
       ],
       "comment_inline": "Return",
-      "type": "byte",
-      "values": [
-        96
-      ]
+      "type": "code",
+      "mnemonic": "rts"
     },
     {
       "addr": 43273,
@@ -79882,6 +79849,35 @@
         "bin_to_bcd"
       ],
       "comment_inline": "Save caller flags (D may be in any state)",
+      "xref_summaries": [
+        "&a923 referenced 6 times by &a8bc, &a8c5, &a8ce, &a8e0, &a8ea, &a8f8"
+      ],
+      "references": [
+        {
+          "addr": 43196,
+          "kind": "direct"
+        },
+        {
+          "addr": 43205,
+          "kind": "direct"
+        },
+        {
+          "addr": 43214,
+          "kind": "direct"
+        },
+        {
+          "addr": 43232,
+          "kind": "direct"
+        },
+        {
+          "addr": 43242,
+          "kind": "direct"
+        },
+        {
+          "addr": 43256,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "php"
     },

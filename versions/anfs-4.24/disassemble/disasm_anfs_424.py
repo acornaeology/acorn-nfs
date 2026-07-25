@@ -19910,6 +19910,8 @@ d.label(0xA891, "osword_subcode_dispatch")
 d.label(0x85C0, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
 
+d.entry(0xA8B0)
+d.entry(0xA921)
 ir = d.disassemble()
 output = str(
     ir.render(

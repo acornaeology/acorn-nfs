@@ -112,7 +112,7 @@ osword_flag                 = &aa  ; OSWORD param byte
 ws_ptr_lo                   = &ab  ; Workspace indirect pointer (lo)
 ; &ab referenced 7 times by &a93d, &a951, &a9a9, &aa9e, &aab5, &b4f5, &b542
 ws_ptr_hi                   = &ac  ; Workspace indirect pointer (hi)
-; &ac referenced 42 times by &a887, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
+; &ac referenced 43 times by &a887, &a903, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
 table_idx                   = &ad  ; OSBYTE/palette table index counter
 ; &ad referenced 5 times by &acd2, &b441, &b5f0, &b6e8, &b6f9
 work_ae                     = &ae  ; Indexed workspace (multi-purpose scratch)
@@ -478,19 +478,19 @@ hazel_txcb_network          = &c103  ; TXCB byte 3: multi-purpose. TXCB destinat
 hazel_txcb_lib              = &c104  ; TXCB byte 4: library handle terminator / transfer-length param 1.
 ; &c104 referenced 1 time by &a2e1; also used as index base 2 times by &b242, &b2f8
 hazel_txcb_data             = &c105  ; TXCB byte 5: first reply-data byte / data start.
-; &c105 referenced 42 times by &8e5e, &954d, &9562, &957b, &9587, &9598, &9d06, &9d14, &9ddc, &9e59, &9e7b, &9efe, &9f12, &a007, &a028, &a02e, &a047, &a0b2, &a0e8, &a1b8, &a1c7, &a201, &a244, &a296, &a2f7, &a359, &a367, &a38c, &a51c, &a524, &a53d, &a5d9, &a6fc, &b0f5, &b16c, &b228, &b236, &b391, &b730, &b749, &ba77, &bcbb; also used as index base 24 times by &8de5, &8df5, &8e22, &9458, &9479, &9482, &94ed, &952f, &9538, &9c7c, &9e19, &9e65, &9ea2, &9f48, &a036, &a30b, &a32a, &b23d, &b251, &b2db, &b312, &b79e, &b7d3, &b7ed
+; &c105 referenced 44 times by &8e5e, &954d, &9562, &957b, &9587, &9598, &9d06, &9d14, &9ddc, &9e59, &9e7b, &9efe, &9f12, &a007, &a028, &a02e, &a047, &a0b2, &a0e8, &a1b8, &a1c7, &a201, &a244, &a296, &a2f7, &a359, &a367, &a38c, &a51c, &a524, &a53d, &a5d9, &a6fc, &a8dd, &a8fb, &b0f5, &b16c, &b228, &b236, &b391, &b730, &b749, &ba77, &bcbb; also used as index base 25 times by &8de5, &8df5, &8e22, &9458, &9479, &9482, &94ed, &952f, &9538, &9c7c, &9e19, &9e65, &9ea2, &9f48, &a036, &a30b, &a32a, &a900, &b23d, &b251, &b2db, &b312, &b79e, &b7d3, &b7ed
 hazel_txcb_flag             = &c106  ; TXCB byte 6: direction flag.
-; &c106 referenced 20 times by &958a, &9e3c, &9f16, &9f77, &a00b, &a074, &a1b2, &a1d0, &a22f, &a2f1, &a346, &a362, &a374, &a38f, &a540, &a702, &b21c, &b396, &b738, &bcc3; also used as index base 7 times by &9d9c, &9e02, &a033, &a20b, &a274, &a5c6, &b77a
+; &c106 referenced 22 times by &958a, &9e3c, &9f16, &9f77, &a00b, &a074, &a1b2, &a1d0, &a22f, &a2f1, &a346, &a362, &a374, &a38f, &a540, &a702, &a8d9, &a8ed, &b21c, &b396, &b738, &bcc3; also used as index base 7 times by &9d9c, &9e02, &a033, &a20b, &a274, &a5c6, &b77a
 hazel_txcb_count            = &c107  ; TXCB byte 7: data count / lock flag.
-; &c107 referenced 8 times by &9fa8, &a07d, &a1d9, &a34d, &a708, &b223, &b733, &bcc9; also used as index base 3 times by &9f22, &9f80, &a380
+; &c107 referenced 10 times by &9fa8, &a07d, &a1d9, &a34d, &a708, &a8cb, &a8e3, &b223, &b733, &bcc9; also used as index base 3 times by &9f22, &9f80, &a380
 hazel_txcb_result           = &c108  ; TXCB byte 8: result / transfer-size lo.
-; &c108 referenced 6 times by &9d0f, &9d91, &9f9e, &a352, &a6f4, &bccf
+; &c108 referenced 8 times by &9d0f, &9d91, &9f9e, &a352, &a6f4, &a8c2, &a8d6, &bccf
 hazel_exec_addr             = &c109
-; &c109 referenced 4 times by &9d94, &9f94, &a64b, &bcd5
+; &c109 referenced 6 times by &9d94, &9f94, &a64b, &a8b9, &a8d1, &bcd5
 hazel_txcb_size_hi          = &c10a
-; &c10a referenced 2 times by &9f8c, &a220; also used as index base 1 time by &a52d
+; &c10a referenced 3 times by &9f8c, &a220, &a8c8; also used as index base 1 time by &a52d
 hazel_txcb_tx_status        = &c10b
-; &c10b referenced 2 times by &a226, &a633
+; &c10b referenced 3 times by &a226, &a633, &a8bf
 hazel_txcb_osword_flag      = &c10c
 ; &c10c referenced 2 times by &a22c, &a636
 hazel_txcb_addr_lo          = &c10d
@@ -6778,7 +6778,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; On Exit:
 ;     A: FS reply status
-; &978a referenced 23 times by &8e56, &955f, &9582, &9595, &9e4a, &9f2d, &9f3d, &9fb5, &a040, &a0b9, &a0ed, &a1bf, &a2a2, &a35d, &a521, &a549, &b107, &b185, &b1c3, &b232, &b746, &b7dd, &bcdc
+; &978a referenced 24 times by &8e56, &955f, &9582, &9595, &9e4a, &9f2d, &9f3d, &9fb5, &a040, &a0b9, &a0ed, &a1bf, &a2a2, &a35d, &a521, &a549, &a8b6, &b107, &b185, &b1c3, &b232, &b746, &b7dd, &bcdc
 .save_net_tx_cb
     clv                                                               ; 978a: b8          .        ; Clear V: standard send mode (callers set V via save_net_tx_cb_vset for the lib-flag variant)
 ; ***************************************************************************************
@@ -10849,45 +10849,47 @@ svc_8_osword_disp = svc_8_osword+1
 .rts_osword_0e
     equb &60                                                          ; a8b1: 60          `        ; Return
 .save_txcb_and_convert
-    equb &a2, &00                                                     ; a8b2: a2 00       ..       ; X=0: start of TX control block
-    equb &a0, &10                                                     ; a8b4: a0 10       ..       ; Y=&10: length of TXCB to save
-    equb &20, &8a, &97                                                ; a8b6: 20 8a 97     ..      ; Save current TX control block
-    equb &ad, &09, &c1                                                ; a8b9: ad 09 c1    ...      ; Load seconds from clock workspace
-    equb &20, &23, &a9                                                ; a8bc: 20 23 a9     #.      ; Convert binary to BCD
-    equb &8d, &0b, &c1                                                ; a8bf: 8d 0b c1    ...      ; Store BCD seconds
-    equb &ad, &08, &c1                                                ; a8c2: ad 08 c1    ...      ; Load minutes from clock workspace
-    equb &20, &23, &a9                                                ; a8c5: 20 23 a9     #.      ; Convert binary to BCD
-    equb &8d, &0a, &c1                                                ; a8c8: 8d 0a c1    ...      ; Store BCD minutes
-    equb &ad, &07, &c1                                                ; a8cb: ad 07 c1    ...      ; Load hours from clock workspace
-    equb &20, &23, &a9                                                ; a8ce: 20 23 a9     #.      ; Convert binary to BCD
-    equb &8d, &09, &c1                                                ; a8d1: 8d 09 c1    ...      ; Store BCD hours
-    equb &a9, &00                                                     ; a8d4: a9 00       ..       ; Clear hours high position
-    equb &8d, &08, &c1                                                ; a8d6: 8d 08 c1    ...      ; Store zero
-    equb &ad, &06, &c1                                                ; a8d9: ad 06 c1    ...      ; Load day+month byte
-    equb &48                                                          ; a8dc: 48          H        ; Save for later high nibble extract
-    equb &ad, &05, &c1                                                ; a8dd: ad 05 c1    ...      ; Load day value
-    equb &20, &23, &a9                                                ; a8e0: 20 23 a9     #.      ; Convert day to BCD
-    equb &8d, &07, &c1                                                ; a8e3: 8d 07 c1    ...      ; Store BCD day
-    equb &68                                                          ; a8e6: 68          h        ; Restore day+month byte
-    equb &48                                                          ; a8e7: 48          H        ; Push current A
-    equb &29, &0f                                                     ; a8e8: 29 0f       ).       ; Mask low nibble (month low bits)
-    equb &20, &23, &a9                                                ; a8ea: 20 23 a9     #.      ; Convert to BCD
-    equb &8d, &06, &c1                                                ; a8ed: 8d 06 c1    ...      ; Store BCD month
-    equb &68                                                          ; a8f0: 68          h        ; Pop saved value
-    equb &4a                                                          ; a8f1: 4a          J        ; Shift high nibble down
-    equb &4a                                                          ; a8f2: 4a          J        ; Divide by 4
-    equb &4a                                                          ; a8f3: 4a          J        ; (continued)
-    equb &4a, &18                                                     ; a8f4: 4a 18       J.       ; 4th shift: isolate high nibble
-    equb &69, &51                                                     ; a8f6: 69 51       iQ       ; Add &51 (offset base)
-    equb &20, &23, &a9                                                ; a8f8: 20 23 a9     #.      ; Convert year to BCD
-    equb &8d, &05, &c1                                                ; a8fb: 8d 05 c1    ...      ; Store BCD year
-    equb &a0, &06                                                     ; a8fe: a0 06       ..       ; Copy 7 bytes (Y=6 down to 0)
+    ldx #0                                                            ; a8b2: a2 00       ..       ; X=0: start of TX control block
+    ldy #&10                                                          ; a8b4: a0 10       ..       ; Y=&10: length of TXCB to save
+    jsr save_net_tx_cb                                                ; a8b6: 20 8a 97     ..      ; Save current TX control block
+    lda hazel_exec_addr                                               ; a8b9: ad 09 c1    ...      ; Load seconds from clock workspace
+    jsr bin_to_bcd                                                    ; a8bc: 20 23 a9     #.      ; Convert binary to BCD
+    sta hazel_txcb_tx_status                                          ; a8bf: 8d 0b c1    ...      ; Store BCD seconds
+    lda hazel_txcb_result                                             ; a8c2: ad 08 c1    ...      ; Load minutes from clock workspace
+    jsr bin_to_bcd                                                    ; a8c5: 20 23 a9     #.      ; Convert binary to BCD
+    sta hazel_txcb_size_hi                                            ; a8c8: 8d 0a c1    ...      ; Store BCD minutes
+    lda hazel_txcb_count                                              ; a8cb: ad 07 c1    ...      ; Load hours from clock workspace
+    jsr bin_to_bcd                                                    ; a8ce: 20 23 a9     #.      ; Convert binary to BCD
+    sta hazel_exec_addr                                               ; a8d1: 8d 09 c1    ...      ; Store BCD hours
+    lda #0                                                            ; a8d4: a9 00       ..       ; Clear hours high position
+    sta hazel_txcb_result                                             ; a8d6: 8d 08 c1    ...      ; Store zero
+    lda hazel_txcb_flag                                               ; a8d9: ad 06 c1    ...      ; Load day+month byte
+    pha                                                               ; a8dc: 48          H        ; Save for later high nibble extract
+    lda hazel_txcb_data                                               ; a8dd: ad 05 c1    ...      ; Load day value
+    jsr bin_to_bcd                                                    ; a8e0: 20 23 a9     #.      ; Convert day to BCD
+    sta hazel_txcb_count                                              ; a8e3: 8d 07 c1    ...      ; Store BCD day
+    pla                                                               ; a8e6: 68          h        ; Restore day+month byte
+    pha                                                               ; a8e7: 48          H        ; Push current A
+    and #&0f                                                          ; a8e8: 29 0f       ).       ; Mask low nibble (month low bits)
+    jsr bin_to_bcd                                                    ; a8ea: 20 23 a9     #.      ; Convert to BCD
+    sta hazel_txcb_flag                                               ; a8ed: 8d 06 c1    ...      ; Store BCD month
+    pla                                                               ; a8f0: 68          h        ; Pop saved value
+    lsr a                                                             ; a8f1: 4a          J        ; Shift high nibble down
+    lsr a                                                             ; a8f2: 4a          J        ; Divide by 4
+    lsr a                                                             ; a8f3: 4a          J        ; (continued)
+    lsr a                                                             ; a8f4: 4a          J        ; 4th shift: isolate high nibble
+    clc                                                               ; a8f5: 18          .     
+    adc #&51                                                          ; a8f6: 69 51       iQ       ; Add &51 (offset base)
+    jsr bin_to_bcd                                                    ; a8f8: 20 23 a9     #.      ; Convert year to BCD
+    sta hazel_txcb_data                                               ; a8fb: 8d 05 c1    ...      ; Store BCD year
+    ldy #6                                                            ; a8fe: a0 06       ..       ; Copy 7 bytes (Y=6 down to 0)
+; &a900 referenced 1 time by &a906
 .loop_copy_bcd_to_pb
-    equb &b9, &05, &c1                                                ; a900: b9 05 c1    ...      ; Load BCD byte from workspace
-    equb &91, &ac                                                     ; a903: 91 ac       ..       ; Store to parameter block
-    equb &88                                                          ; a905: 88          .        ; Next byte down
-    equb &10, &f8                                                     ; a906: 10 f8       ..       ; Loop for all 7 bytes
-    equb &60                                                          ; a908: 60          `        ; Return
+    lda hazel_txcb_data,y                                             ; a900: b9 05 c1    ...      ; Load BCD byte from workspace
+    sta (ws_ptr_hi),y                                                 ; a903: 91 ac       ..       ; Store to parameter block
+    dey                                                               ; a905: 88          .        ; Next byte down
+    bpl loop_copy_bcd_to_pb                                           ; a906: 10 f8       ..       ; Loop for all 7 bytes
+    rts                                                               ; a908: 60          `        ; Return
 .save_txcb_done
     equb &20, &b2, &a8                                                ; a909: 20 b2 a8     ..      ; Convert TXCB date/time bytes to BCD
     equb &a0, &07                                                     ; a90c: a0 07       ..       ; Y=7: copy 8 bytes (Y=7 down to 0)
@@ -10914,6 +10916,7 @@ svc_8_osword_disp = svc_8_osword+1
 ;
 ; On Exit:
 ;     A: BCD equivalent
+; &a923 referenced 6 times by &a8bc, &a8c5, &a8ce, &a8e0, &a8ea, &a8f8
 .bin_to_bcd
     php                                                               ; a923: 08          .        ; Save caller flags (D may be in any state)
     tax                                                               ; a924: aa          .        ; Save A across decimal-mode arithmetic
@@ -16241,11 +16244,11 @@ save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           95
-;     hazel_txcb_data:                         66
+;     hazel_txcb_data:                         69
 ;     fs_options:                              55
 ;     net_rx_ptr:                              52
 ;     econet_control23_or_status2:             46
-;     ws_ptr_hi:                               44
+;     ws_ptr_hi:                               45
 ;     fs_load_addr_2:                          38
 ;     work_ae:                                 38
 ;     econet_data_continue_frame:              37
@@ -16258,13 +16261,13 @@ save pydis_start, pydis_end
 ;     econet_control1_or_status1:              31
 ;     fs_crc_lo:                               31
 ;     fs_flags:                                30
+;     hazel_txcb_flag:                         29
 ;     osbyte:                                  29
-;     hazel_txcb_flag:                         27
 ;     net_frame_flags:                         27
 ;     hazel_fcb_status:                        25
 ;     fs_load_addr:                            24
 ;     fs_work_4:                               24
-;     save_net_tx_cb:                          23
+;     save_net_tx_cb:                          24
 ;     hazel_fcb_flags:                         22
 ;     port_buf_len:                            22
 ;     acccon:                                  20
@@ -16288,6 +16291,7 @@ save pydis_start, pydis_end
 ;     hazel_cur_fcb_index:                     14
 ;     hazel_fcb_state_byte:                    14
 ;     need_release_tube:                       14
+;     hazel_txcb_count:                        13
 ;     net_tx_ptr_hi:                           13
 ;     open_port_buf:                           13
 ;     port_buf_len_hi:                         13
@@ -16304,7 +16308,6 @@ save pydis_start, pydis_end
 ;     fs_load_addr_3:                          11
 ;     fs_work_6:                               11
 ;     hazel_fs_network:                        11
-;     hazel_txcb_count:                        11
 ;     net_rx_ptr_hi:                           11
 ;     nmi_error_dispatch:                      11
 ;     osnewl:                                  11
@@ -16325,6 +16328,7 @@ save pydis_start, pydis_end
 ;     txcb_end:                                 9
 ;     ws_0d6a:                                  9
 ;     error_msg_table:                          8
+;     hazel_txcb_result:                        8
 ;     tube_addr_data_dispatch:                  8
 ;     tx_complete_flag:                         8
 ;     addr_work:                                7
@@ -16343,6 +16347,7 @@ save pydis_start, pydis_end
 ;     vdu_status:                               7
 ;     ws_ptr_lo:                                7
 ;     attr_to_chan_index:                       6
+;     bin_to_bcd:                               6
 ;     bridge_status:                            6
 ;     cond_save_error_code:                     6
 ;     discard_reset_rx:                         6
@@ -16352,11 +16357,11 @@ save pydis_start, pydis_end
 ;     fs_crc_hi:                                6
 ;     fs_work_7:                                6
 ;     fs_ws_ptr:                                6
+;     hazel_exec_addr:                          6
 ;     hazel_fs_context_copy:                    6
 ;     hazel_fs_flags:                           6
 ;     hazel_fs_station:                         6
 ;     hazel_quote_mode:                         6
-;     hazel_txcb_result:                        6
 ;     nmi_rti:                                  6
 ;     os_text_ptr_hi:                           6
 ;     print_newline_no_spool:                   6
@@ -16411,8 +16416,8 @@ save pydis_start, pydis_end
 ;     get_ws_page:                              4
 ;     gsinit:                                   4
 ;     gsread:                                   4
-;     hazel_exec_addr:                          4
 ;     hazel_fcb_attr_ref:                       4
+;     hazel_txcb_size_hi:                       4
 ;     loop_find_fcb:                            4
 ;     loop_poll_tx:                             4
 ;     loop_scan_fcb_down:                       4
@@ -16471,7 +16476,7 @@ save pydis_start, pydis_end
 ;     hazel_pass_counter:                       3
 ;     hazel_txcb_lib:                           3
 ;     hazel_txcb_port:                          3
-;     hazel_txcb_size_hi:                       3
+;     hazel_txcb_tx_status:                     3
 ;     inx16:                                    3
 ;     jmp_restore_fs_ctx:                       3
 ;     load_ps_server_addr:                      3
@@ -16616,7 +16621,6 @@ save pydis_start, pydis_end
 ;     hazel_txcb_func_code:                     2
 ;     hazel_txcb_len:                           2
 ;     hazel_txcb_osword_flag:                   2
-;     hazel_txcb_tx_status:                     2
 ;     hazel_txcb_type:                          2
 ;     help_table_walk_entry:                    2
 ;     imm_op_out_of_range:                      2
@@ -17083,6 +17087,7 @@ save pydis_start, pydis_end
 ;     loop_copy_addr_offset:                    1
 ;     loop_copy_addrs:                          1
 ;     loop_copy_bad_prefix:                     1
+;     loop_copy_bcd_to_pb:                      1
 ;     loop_copy_bridge_init:                    1
 ;     loop_copy_buf_char:                       1
 ;     loop_copy_cat_info:                       1
@@ -17627,11 +17632,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14123 bytes (86%)
-;     Data                     = 2261 bytes (14%)
+;     Code                     = 14210 bytes (87%)
+;     Data                     = 2174 bytes (13%)
 ;
-;     Number of instructions   = 6961
-;     Number of data bytes     = 881 bytes
+;     Number of instructions   = 7000
+;     Number of data bytes     = 794 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1294 bytes
 ;     Number of strings        = 152
