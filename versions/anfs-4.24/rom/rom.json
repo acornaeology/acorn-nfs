@@ -50,10 +50,8 @@
             "path": "CHANGES-FROM-4.21.md",
             "glossary_links": [
                 {"pattern": "ANFS", "occurrence": 0, "term": "NFS"},
-                {"pattern": "NFS", "occurrence": 0, "term": "NFS"},
                 {"pattern": "ROM", "occurrence": 0, "term": "ROM"},
                 {"pattern": "OSWORD", "occurrence": 0, "term": "OSWORD"},
-                {"pattern": "MOS", "occurrence": 0, "term": "MOS"},
                 {"pattern": "Econet", "occurrence": 0, "term": "Econet"},
                 {"pattern": "IRQ", "occurrence": 0, "term": "IRQ"},
                 {"pattern": "NMI", "occurrence": 0, "term": "NMI"},
