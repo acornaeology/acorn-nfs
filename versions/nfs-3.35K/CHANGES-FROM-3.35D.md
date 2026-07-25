@@ -1,9 +1,9 @@
 # Changes from NFS 3.35D to NFS 3.35K
 
 NFS 3.35K is a bug-fix release of Acorn NFS 3.35D for the BBC Micro. The two
-8 KB ROMs are 97.8% identical at the opcode level, with 44 structural change
-blocks. The changes fix several significant bugs — most notably in the BGETV
-EOF hint logic, Tube OSGBPB result handling, and FINDV sequence number
+8 KB [ROM](glossary:rom)s are 97.8% identical at the opcode level, with 44 structural change
+blocks. The changes fix several significant bugs — most notably in the [BGETV](glossary:bgetv)
+[EOF](glossary:eof) hint logic, [Tube](glossary:tube) [OSGBPB](glossary:osgbpb) result handling, and [FINDV](glossary:findv) sequence number
 initialisation — while removing the per-ROM disable feature introduced in
 3.35D and reverting workspace variables to their 3.34B locations.
 
@@ -62,7 +62,7 @@ removed entirely:
 | &80F2        | BCS return_1           | If carry set, ROM is disabled     |
 
 In 3.35D, if bit 7 of `&0DF0+X` (where X is the ROM bank number) was set, NFS
-ignored all service calls except &FE (Tube init) and &FF (full reset). This
+ignored all [service call](glossary:service-call)s except &FE (Tube init) and &FF (full reset). This
 provided a software mechanism to disable NFS without removing the ROM.
 
 In 3.35K, the service handler dispatches all service calls unconditionally.
@@ -78,7 +78,7 @@ The workspace at &0DF0+X is freed.
 | `rom_svc_num`  | &CE   | &A9   | &CE   |
 
 3.35K reverts both to their original &CD/&CE addresses (labelled `nfs_temp`
-and `rom_svc_num` in all versions). Addresses &A8/&A9 are in the MOS
+and `rom_svc_num` in all versions). Addresses &A8/&A9 are in the [MOS](glossary:mos)
 general-purpose scratch area, shared with other ROMs; &CD/&CE are in the
 filing system workspace area reserved for the active filing system. The
 reversion may resolve a conflict where &A8/&A9 were being overwritten by
@@ -144,7 +144,7 @@ A single instruction (`LDY #0`) is inserted at &8526 in 3.35K before a
 ```
 
 In 3.35D, Y could hold any value at this point (it was last set during the
-`handle_bput_bget` common path but may have been modified by the OSBYTE escape
+`handle_bput_bget` common path but may have been modified by the [OSBYTE](glossary:osbyte) escape
 acknowledge call), causing the store to write to an incorrect offset within
 the transmit buffer.
 
@@ -233,7 +233,7 @@ errored handle was restructured.
 ```
 
 In 3.35D, the BEQ at the SPOOL check means that if SPOOL matches, the code
-jumps directly to OSCLI without ever checking the EXEC handle — so if both
+jumps directly to [OSCLI](glossary:oscli) without ever checking the EXEC handle — so if both
 SPOOL and EXEC use the same handle, only the SPOOL close runs.
 
 In 3.35K, both checks always execute: SPOOL is checked first, then EXEC. If
@@ -255,7 +255,7 @@ This is connected to the workspace variable reversion (change 3): &CD is now
 may conflict, so the retry count is read from its absolute workspace copy at
 &0FDE instead.
 
-### 10. *EX file info printing: CSD check removed
+### 10. *EX file info printing: [CSD](glossary:csd) check removed
 
 The `print_file_info` routine (3.35D: &8CFA, 3.35K: &8CFC) had a conditional
 check that is removed in 3.35K:
@@ -271,7 +271,7 @@ check that is removed in 3.35K:
 In 3.35K, these 4 instructions (7 bytes) are removed. The filename is always
 printed in `*EX` output regardless of the CSD handle state.
 
-### 11. OSARGS dispatch simplified
+### 11. [OSARGS](glossary:osargs) dispatch simplified
 
 The OSARGS handler dispatch for Y=0 (filing system query) was reorganised.
 Both versions return the same results:
@@ -309,13 +309,13 @@ count, before falling through to `send_fs_reply_cmd`. In 3.35K, this wrapper
 is eliminated. The two call sites inline the `LDA #&2A` / `STA &B8` sequence
 before calling `send_fs_reply_cmd` directly (at &87B0 and &8A97).
 
-### 15. EVNTV target shifted +3
+### 15. [EVNTV](glossary:evntv) target shifted +3
 
 The EVNTV handler address set during initialisation changed from &06E5
 (3.35D) to &06E8 (3.35K), tracking the shifted position of
-`tube_event_handler` within the page 6 relocated code. The entry point
+`tube_event_handler` within the page 6 [relocated code](glossary:relocated-code). The entry point
 difference reflects a 3-byte code change earlier in page 6. All other vector
-targets (BRKV, WRCHV, RDCHV) are unchanged.
+targets ([BRKV](glossary:brkv), [WRCHV](glossary:wrchv), [RDCHV](glossary:rdchv)) are unchanged.
 
 ### 16. Shifted address operands
 

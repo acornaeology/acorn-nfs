@@ -1,13 +1,13 @@
 # Changes from NFS 3.35K to NFS 3.40
 
 NFS 3.40 is a substantial revision of Acorn NFS 3.35K for the BBC Micro. The
-two 8 KB ROMs are 89.4% identical at the opcode level, with 162 structural
+two 8 KB [ROM](glossary:rom)s are 89.4% identical at the opcode level, with 162 structural
 change blocks. Key changes include: restoration of the per-ROM disable flag
 (removed in 3.35K) with a new hardware-probing mechanism, reversion from
-table-driven to hardcoded vector initialisation (setting only EVNTV and BRKV),
-addition of a Tube character transfer loop during Tube init, expansion of the
+table-driven to hardcoded vector initialisation (setting only [EVNTV](glossary:evntv) and [BRKV](glossary:brkv)),
+addition of a [Tube](glossary:tube) character transfer loop during Tube init, expansion of the
 dispatch table by one entry (service 13: select NFS), a switch from
-non-vectored to vectored WRCH in the Tube main loop, reduction of the NMI
+non-vectored to vectored WRCH in the Tube main loop, reduction of the [NMI](glossary:nmi)
 workspace by 4 bytes, and relocation of print_hex to the end of ROM. A hidden
 developer credits string appears for the first time.
 
@@ -81,10 +81,10 @@ restores it with a completely different implementation. The service handler
 ```
 
 Where 3.35D's version simply checked a software flag, 3.40 actively probes the
-Econet station ID register (&FE18) on first call. If the register reads zero or
+[Econet](glossary:econet) station ID register (&FE18) on first call. If the register reads zero or
 gives inconsistent values between two reads, the ROM disables itself. This
 provides automatic hardware detection: NFS silently disables on machines without
-Econet hardware, avoiding wasted service call overhead.
+Econet hardware, avoiding wasted [service call](glossary:service-call) overhead.
 
 The 9 NOP bytes at &80F7-&80FF likely represent code that was patched out during
 development.
@@ -92,7 +92,7 @@ development.
 ### 3. Service &FE (Tube init) handler rewritten
 
 In 3.35K, the service &FE handler saves X and Y to zero page (`zp_temp_10`/
-`zp_temp_11`) before calling OSBYTE &14 to explode character definitions, then
+`zp_temp_11`) before calling [OSBYTE](glossary:osbyte) &14 to explode character definitions, then
 restores X and branches to the main service dispatch continuation:
 
 ```assembly
@@ -122,13 +122,13 @@ added after exploding characters:
 ```
 
 This reads characters from the Tube co-processor via R1 and outputs them via
-OSWRCH until a zero terminator is received — likely printing co-processor
+[OSWRCH](glossary:oswrch) until a zero terminator is received — likely printing co-processor
 startup or identification messages during Tube initialisation.
 
 ### 4. Vector initialisation reverted to hardcoded (2 vectors only)
 
 3.35K uses a table-driven loop that reads 4 triplets from a data table at
-`return_2`+1 (&816D) and sets 4 vectors: EVNTV, BRKV, RDCHV, and WRCHV.
+`return_2`+1 (&816D) and sets 4 vectors: EVNTV, BRKV, [RDCHV](glossary:rdchv), and [WRCHV](glossary:wrchv).
 
 3.40 reverts to hardcoded LDA/STA pairs but sets only 2 vectors:
 
@@ -180,7 +180,7 @@ All base offsets in the dispatch table shift up by 1:
 |-----------------|------------|-----------|
 | Service calls   | Y=&00      | Y=&00     |
 | Language entry  | Y=&0D      | Y=&0E     |
-| FSCV            | Y=&12      | Y=&13     |
+| [FSCV](glossary:fscv)            | Y=&12      | Y=&13     |
 | FS reply        | Y=&16      | Y=&17     |
 | *NET dispatch   | Y=&20      | Y=&21     |
 
@@ -298,7 +298,7 @@ entries (28 bytes) to 12 entries (24 bytes):
     equb &2d,5, &20,5, &42,5, &a9,5, &d1,5
 ```
 
-Two handler entries were removed. The page 4 relocated code block also shrinks
+Two handler entries were removed. The page 4 [relocated code](glossary:relocated-code) block also shrinks
 from 256 to 249 bytes, consistent with handler removal or consolidation.
 
 ### 12. Tube post-init: new R4 handshake

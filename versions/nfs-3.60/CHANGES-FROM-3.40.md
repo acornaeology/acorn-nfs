@@ -1,16 +1,16 @@
 # Changes from NFS 3.40 to NFS 3.60
 
 NFS 3.60 is a substantial revision of Acorn NFS 3.40 for the BBC Micro. The two
-8 KB ROMs are 89.9% identical at the opcode level, with 118 structural change
-blocks. Key changes include: a rewritten ADLC-based hardware detection mechanism
+8 KB [ROM](glossary:rom)s are 89.9% identical at the opcode level, with 118 structural change
+blocks. Key changes include: a rewritten [ADLC](glossary:adlc)-based hardware detection mechanism
 (replacing the station ID probe), a new escapable flag system for interruptible
 network operations, relocation of `tx_poll_core` and `print_file_info` into the
 FS vector handler region, extraction of `clear_escapable` and
 `save_fscv_args_with_ptrs` as separate subroutines, factoring out
 `inc_buf_counter_32` and `release_tube` from inline code, relocation of
 `adlc_full_reset` / `adlc_rx_listen` / `wait_idle_and_reset` to end of ROM, a
-new `svc5_dispatch` trampoline for page 6 relocated code, NMI interrupt
-protection via PHP/SEI/PLP around the scout handler, a new BGETV entry point
+new `svc5_dispatch` trampoline for page 6 [relocated code](glossary:relocated-code), [NMI](glossary:nmi) interrupt
+protection via PHP/SEI/PLP around the scout handler, a new [BGETV](glossary:bgetv) entry point
 via `clear_escapable`, and the `prot_flags` variable moved from absolute to zero
 page. The developer credits string is removed and the free space at end of ROM
 increases from 8 to 75 bytes.
@@ -58,7 +58,7 @@ The ROM identification string printed by `*HELP` (at &8207 in 3.40, &820B in
 
 ### 2. Per-ROM hardware detection rewritten (ADLC probe)
 
-Both versions disable NFS when Econet hardware is absent, but the detection
+Both versions disable NFS when [Econet](glossary:econet) hardware is absent, but the detection
 mechanism is completely different.
 
 **3.40** (&8100): probes the station ID register at &FE18 on first call:
@@ -107,7 +107,7 @@ mechanism is completely different.
 The key differences:
 
 - **3.40** reads the station ID register (&FE18) twice and compares for bus
-  stability. This probe runs on every service call until the workspace flag is
+  stability. This probe runs on every [service call](glossary:service-call) until the workspace flag is
   set, regardless of service number.
 - **3.60** reads the ADLC status registers SR1 (&FEA0) and SR2 (&FEA1),
   masking out reserved/uninteresting bits. The probe only runs on service 1
@@ -164,7 +164,7 @@ explicitly set `escapable` before escapable operations:
 - `STA escapable` with A=&91 before `filev_save` (&87C1)
 - `STX escapable` with X=non-zero before `*EX` (&8C22)
 - `STY escapable` with Y=&FF before `*INFO` (&8C6D)
-- `STA escapable` with A=non-zero before OSWORD Econet operations (&900F)
+- `STA escapable` with A=non-zero before [OSWORD](glossary:osword) Econet operations (&900F)
 
 This allows NFS to selectively enable escape checking only during long-running
 operations (file transfers, catalogue listings, network transmit), preventing
@@ -305,7 +305,7 @@ The two inline occurrences are replaced with `JSR inc_buf_counter_32`, saving
 approximately 10 bytes of ROM. The subroutine returns Z=1 if the counter wraps
 to zero, which the callers test to detect buffer overflow.
 
-A third call site at &9A1F (in the Tube scout copy path) also uses this
+A third call site at &9A1F (in the [Tube](glossary:tube) scout copy path) also uses this
 routine.
 
 ### 9. release_tube extracted as subroutine
@@ -406,10 +406,10 @@ This appears at two sites: the R4 send at &9377 and the R4 read at &9398.
 Additionally, at &9382 a PLP is inserted after the Tube register access,
 ensuring interrupts are re-enabled promptly.
 
-The protection prevents IRQs from firing during the Tube R4 handshake, which
+The protection prevents [IRQ](glossary:irq)s from firing during the Tube R4 handshake, which
 requires strict byte-level timing between the host and co-processor. Without
 SEI, a VIA timer or keyboard IRQ could delay the handshake long enough for the
-Tube ULA to timeout or the co-processor to misinterpret the protocol state.
+Tube [ULA](glossary:ula) to timeout or the co-processor to misinterpret the protocol state.
 
 ### 14. prot_flags variable moved from &0D60 to zero page &99
 

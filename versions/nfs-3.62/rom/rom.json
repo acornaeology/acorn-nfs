@@ -235,18 +235,6 @@
                     "version": "3.62",
                     "address": "0x0600"
                 }
-            ],
-            "glossary_links": [
-                {
-                    "pattern": "ROM",
-                    "occurrence": 0,
-                    "term": "ROM"
-                },
-                {
-                    "pattern": "relocated code",
-                    "occurrence": 0,
-                    "term": "relocated code"
-                }
             ]
         }
     ]

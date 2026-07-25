@@ -1,7 +1,7 @@
-# Changes from ANFS 4.21 (variant 1) to ANFS 4.24
+# Changes from [ANFS](glossary:nfs) 4.21 (variant 1) to ANFS 4.24
 
-ANFS 4.24 is the next Master 128 ANFS after 4.21 (variant 1). Both are
-65C02 ROMs that keep their filing-system workspace in HAZEL hidden RAM
+ANFS 4.24 is the next [Master 128](glossary:master-128) ANFS after 4.21 (variant 1). Both are
+[65C02](glossary:65c02) [ROM](glossary:rom)s that keep their filing-system workspace in [HAZEL](glossary:hazel) hidden RAM
 at `&C000`–`&C2FF`, so 4.24 inherits the whole Master-128 architecture
 4.21 introduced. The two 16 KB ROMs share **93.9 %** of their opcode
 structure; the byte-level similarity is 85.1 %, and only 2.3 % of bytes
@@ -28,7 +28,7 @@ ahead of it.
 ## Defensive `CLD` guards in the interrupt paths
 
 4.24 adds four `CLD` instructions at the head of paths reachable from
-Econet NMI / IRQ context:
+[Econet](glossary:econet) [NMI](glossary:nmi) / [IRQ](glossary:irq) context:
 
 | Address | Path | Protects |
 |---|---|---|
@@ -43,7 +43,7 @@ computes correctly. 4.21 relied on callers never leaving `D` set. A fifth
 `CLD` byte sits at [`&8397`](address:8397) but is unreached (it follows an
 `RTS`), so it is inert.
 
-## ACCCON-guarded buffer stores
+## [ACCCON](glossary:acccon)-guarded buffer stores
 
 The Master 128 reaches the Econet receive buffer through shadow / HAZEL
 paging, controlled by [`ACCCON`](address:FE34). 4.24 widens the
@@ -68,7 +68,7 @@ B Robertson, J Wills).
 ## `print_fs_address` / `print_ps_address` share one tail
 
 4.21 had two near-identical routines that each read a `network.station`
-pair from CMOS and printed it. 4.24 folds them into one body:
+pair from [CMOS](glossary:cmos) and printed it. 4.24 folds them into one body:
 [`print_ps_address`](address:9662) loads `X=4` and branches into the
 shared tail; [`print_fs_address`](address:9666) loads `X=2` and falls
 straight in. The shared tail [`print_cmos_pair`](address:9668) prints
@@ -115,6 +115,6 @@ Every PHA/PHA/RTS dispatch table shifts with the code around it:
 | Table | 4.21 (lo / hi) | 4.24 (lo / hi) |
 |---|---|---|
 | Service call | `&89ED` / `&8A20` | `&8A23` / `&8A56` |
-| OSWORD `&13` | `&A9A8` / `&A9BA` | `&A9C8` / `&A9DA` |
+| [OSWORD](glossary:osword) `&13` | `&A9A8` / `&A9BA` | `&A9C8` / `&A9DA` |
 | NETV | `&AD20` / `&AD29` | `&AD40` / `&AD49` |
 | Extended vectors | `&8EB5` | `&8ECD` |

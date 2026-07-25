@@ -1,17 +1,17 @@
-# Changes from ANFS 4.18 to ANFS 4.21 (variant 1)
+# Changes from [ANFS](glossary:nfs) 4.18 to ANFS 4.21 (variant 1)
 
 ANFS 4.18 was the last ANFS to run on a Model B. ANFS 4.21
-(variant 1) is the first to run on a Master 128 – and the first to
-*refuse* to run on anything else. Between the two ROMs sits Acorn's
+(variant 1) is the first to run on a [Master 128](glossary:master-128) – and the first to
+*refuse* to run on anything else. Between the two [ROM](glossary:rom)s sits Acorn's
 biggest 8-bit hardware reshuffle, and ANFS's rewrite is shaped by it
 through and through.
 
-The two 16 KB sideways ROMs share 86.7 % of their opcode structure
+The two 16 KB [sideways ROM](glossary:sideways-rom)s share 86.7 % of their opcode structure
 but only 1.7 % of their bytes match at the same offset. Almost every operand
 has shifted, because the workspace has moved off-page and the ROM
 title gained a few bytes. The interesting changes lie underneath
 that arithmetic: the Model B's constraints – no hidden RAM, plain
-6502 instruction set, direct VIA access – pushed 4.18 into
+6502 instruction set, direct [VIA](glossary:via) access – pushed 4.18 into
 workarounds the Master makes unnecessary, and 4.21 takes them all
 apart.
 
@@ -25,8 +25,8 @@ the Master Compact, are sent away unclaimed:
 |---|---|---|
 | 1.x | BBC Model B | reject |
 | 2.x | BBC Model B+ | reject |
-| 3.x | Master 128 (MOS 3.20 / 3.50) | proceed |
-| 4.0 | Master Econet Terminal | proceed |
+| 3.x | Master 128 ([MOS](glossary:mos) 3.20 / 3.50) | proceed |
+| 4.0 | Master [Econet](glossary:econet) Terminal | proceed |
 | 5.0 | Master Compact | reject |
 
 A reject silently returns service unclaimed, so MOS keeps looking
@@ -43,12 +43,12 @@ project labels its first specimen "variant 1" to keep them apart.
 The relationship between the variants – their relative ordering,
 if any – is not known.
 
-## HAZEL: hidden RAM under the OS
+## [HAZEL](glossary:hazel): hidden RAM under the OS
 
 The structural change with the broadest consequences is the move
 from MOS workspace in main RAM to **HAZEL**, the Master 128's 8 KB
 of hidden RAM at `&C000`–`&DFFF`. HAZEL sits underneath the MOS VDU drivers in the
-address map and is reached by setting bit Y (bit 3) of the ACCCON
+address map and is reached by setting bit Y (bit 3) of the [ACCCON](glossary:acccon)
 register at [`&FE34`](address:FE34) – when ACCCON.Y is set, reads
 and writes to `&C000`–`&DFFF` go to HAZEL instead of the OS ROM.
 Filing systems are HAZEL's intended client; ANFS occupies the
@@ -105,7 +105,7 @@ padding are invisible to the user; what matters is that the labels
 at the right offsets exist so the assembler can resolve
 `hazel_minus_2,Y` to `&BFFE,Y`.
 
-## 65C02 instructions
+## [65C02](glossary:65c02) instructions
 
 Because the host-OS gate guarantees a Master, the assembler runs in
 65C02 mode. About a dozen new instructions show up across the ROM:
@@ -135,7 +135,7 @@ instructions paid for the new code.
 
 ## Interrupts, deferred work, and the System VIA
 
-NFS 3.65 and ANFS 4.18 both poked the System VIA directly to
+[NFS](glossary:nfs) 3.65 and ANFS 4.18 both poked the System VIA directly to
 drive the ADLC clock. 3.65's
 [`imm_op_setup`](address:9B22@3.65) is the textbook example –
 it writes IER bit 2 to mask the SR interrupt, reads-modifies-
@@ -154,7 +154,7 @@ this ROM ever flushes them to the live VIA registers.
 
 Why this works on a Master without the per-packet SR setup
 4.18 needed is a deeper question than this article can answer.
-The plausible explanation is that the Master's NMI claim path
+The plausible explanation is that the Master's [NMI](glossary:nmi) claim path
 uses different facilities entirely (the `master_intoff` register
 at `&FE38` rather than the Model B's `&FE18` station-ID read),
 and that the ADLC clocking the SR-mode-2 setup arranged is
@@ -162,7 +162,7 @@ either configured once at NMI claim time or supplied by Master
 MOS without ANFS having to reach for it. The factual delta from
 4.18 is the easier claim: eleven VIA writes became zero.
 
-The IRQ entry [`svc5_irq_check`](address:8028) lives at the same
+The [IRQ](glossary:irq) entry [`svc5_irq_check`](address:8028) lives at the same
 address `&8028` in both ROMs, but the body is unrecognisable:
 
 ```
@@ -178,7 +178,7 @@ address `&8028` in both ROMs, but the body is unrecognisable:
 
 The deferred-work flag at `&0D65` is set by IRQ and NMI paths when
 they spot work that can't be done in the interrupt context –
-because MOS may be holding the VIA, or shadow RAM is paged the
+because MOS may be holding the VIA, or [shadow RAM](glossary:shadow-ram) is paged the
 wrong way for the address the handler wanted to touch. The next
 service-handler entry, which runs with the interrupt cleared and
 the OS in a known state, consumes the flag, restores ACCCON, and
@@ -187,13 +187,13 @@ the ISR, drain it in non-IRQ code* pattern, but the architectural
 reason for it is explicit: the Master's memory paging makes some
 operations unsafe inside the ISR.
 
-The Master's `&27` service call ("Reset has occurred") follows the
+The Master's `&27` [service call](glossary:service-call) ("Reset has occurred") follows the
 same discipline. ANFS uses it specifically to claim NMIs for
 Econet receive – because the Master MOS no longer offers workspace
 on a soft `BREAK`, a 4.18 lifecycle assumption that 4.21 has to
 abandon.
 
-## OSWORD &13: clean errors instead of quiet zeroes
+## [OSWORD](glossary:osword) &13: clean errors instead of quiet zeroes
 
 OSWORD `&13` is ANFS's API surface – clients use it to read and
 write the saved file-server station, the receive-channel handles,
@@ -214,7 +214,7 @@ The new behaviour is more aggressive than the old quiet-zero, but
 it's more honest: the client either gets real data or a real
 error, never a confusable success with a misleading payload.
 
-## Protection moves into CMOS
+## Protection moves into [CMOS](glossary:cmos)
 
 `*PROT` and `*UNPROT` in 4.18 took protection-type keywords
 (`Halt`, `Peek`, `Poke`, `Jsr`, `Proc`, `Utils`) and accumulated
@@ -227,7 +227,7 @@ body itself was more. The mask was lost on `BREAK`.
 [`cmd_prot`](address:B6D2) and [`cmd_unprot`](address:B6D6) in
 4.21 take **no arguments**. They're each a four-instruction toggle
 of bit 6 of CMOS RAM byte `&11` (the Master's Econet station-flags
-byte) via OSBYTE `&A1` (read CMOS) and OSBYTE `&A2` (write CMOS),
+byte) via [OSBYTE](glossary:osbyte) `&A1` (read CMOS) and OSBYTE `&A2` (write CMOS),
 with the new value also mirrored into a workspace byte pair at
 `&0D68` / `&0D69`:
 
@@ -278,7 +278,7 @@ shadow-VIA path, the deferred-work IRQ machinery, and
 ## In sum
 
 4.21 v1 is a leaner client running on a richer host. The Model B's
-constraints pushed 4.18 into workarounds: relocated workspace
+constraints pushed 4.18 into workarounds: [relocated](glossary:relocated-code) workspace
 pages, hand-rolled push/pop sequences, direct VIA writes, persistent
 state held in volatile RAM. The Master 128 dissolves all of those
 constraints, and 4.21 takes them apart in favour of HAZEL workspace,

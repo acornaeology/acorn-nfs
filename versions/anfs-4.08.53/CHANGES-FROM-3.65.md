@@ -1,16 +1,16 @@
 # Changes from NFS 3.65 to ANFS 4.08.53
 
 ANFS 4.08.53 (Advanced Network Filing System) is the successor to NFS 3.65, the
-final release of Acorn's original NFS. The ROM doubles from 8 KB (&8000-&9FFF) to
+final release of Acorn's original NFS. The [ROM](glossary:rom) doubles from 8 KB (&8000-&9FFF) to
 16 KB (&8000-&BFFF), adding extensive new functionality including a full filing
 system client, multi-platform OS support, and a vastly expanded star command set.
 This document does not catalogue every new feature; instead it focuses on changes
-to the Econet protocol stack and other code inherited from NFS 3.65 — bug fixes,
+to the [Econet](glossary:econet) protocol stack and other code inherited from NFS 3.65 — bug fixes,
 robustness improvements, and architectural refinements.
 
 The Econet protocol stack (NFS &965E-&9FD1 → ANFS &8025-&89BC) is the dominant
 shared region, containing approximately 2,300 bytes of opcode-matched code across
-48 blocks. The Tube host pages 4 and 5 are byte-identical; page 6 is 74% matched;
+48 blocks. The [Tube](glossary:tube) host pages 4 and 5 are byte-identical; page 6 is 74% matched;
 the zero-page BRK handler block is 70% matched.
 
 ## Summary statistics
@@ -125,7 +125,7 @@ This aligns with Acorn's standard MOS error message style.
 
 ### 3. check_escape: explicit error class
 
-NFS 3.65's `check_escape` acknowledges the escape condition via OSBYTE &7E,
+NFS 3.65's `check_escape` acknowledges the escape condition via [OSBYTE](glossary:osbyte) &7E,
 then jumps to `nlisne` which masks the low 3 bits of A to select the error
 message. This works because OSBYTE &7E returns A=&7E, and &7E AND &07 = 6,
 which indexes the "Escape" entry. But the error class is an implicit side
@@ -200,7 +200,7 @@ error occurs, it checks whether the error code matches the current spool
 This ensures that spool/exec files are properly closed for any network error,
 not just those occurring during explicit BGET/BPUT calls.
 
-### 6. NMI claim guard in adlc_init
+### 6. [NMI](glossary:nmi) claim guard in adlc_init
 
 NFS 3.65's `adlc_init` issues OSBYTE &8F with X=&0C (NMI claim service
 request) and unconditionally falls through to initialise the NMI workspace,
@@ -230,7 +230,7 @@ ANFS 4.08.53 (&807C-&8089):
     ldy #&20                 ; Copy NMI shim...
 ```
 
-After the service call returns, ANFS checks whether Y was modified (indicating
+After the [service call](glossary:service-call) returns, ANFS checks whether Y was modified (indicating
 another ROM claimed the NMI). If so, it skips the NMI workspace initialisation
 entirely. This prevents ANFS from overwriting another ROM's NMI handler — a
 correctness issue on machines with multiple Econet-aware ROMs.
@@ -239,7 +239,7 @@ correctness issue on machines with multiple Econet-aware ROMs.
 
 The most architecturally significant change to the protocol stack. NFS 3.65
 introduced a self-modifying NMI disable mechanism (in `CHANGES-FROM-3.62.md`,
-section "Self-modifying INTOFF mechanism"): a byte at &0D1C within the NMI
+section "Self-modifying [INTOFF](glossary:intoff) mechanism"): a byte at &0D1C within the NMI
 dispatch shim at &0D00 is toggled between `BIT` (&2C, NMI enabled) and `RTI`
 (&40, NMI disabled) opcodes. Writing &40 causes the NMI handler to return
 immediately; writing &2C allows it to proceed.
@@ -288,7 +288,7 @@ coincides with an incoming NMI edge.
 
 This pattern is applied consistently across all locations where NFS 3.65 used
 self-modification:
-- `test_inactive_retry` / `inactive_retry` (INACTIVE polling loop)
+- `test_inactive_retry` / `inactive_retry` ([INACTIVE](glossary:inactive) polling loop)
 - `tx_prepare` (NMI re-enable after TX setup)
 - `wait_idle_and_reset` → `save_econet_state` (NMI release)
 
@@ -298,7 +298,7 @@ sequences are absent from ANFS.
 ### 8. tx_calc_transfer: Tube/IO address detection widened
 
 NFS 3.65's `tx_calc_transfer` checks whether the buffer address is in Tube
-space by ANDing bytes 6 and 7 of the RXCB and comparing the result to &FF.
+space by ANDing bytes 6 and 7 of the [RXCB](glossary:rxcb) and comparing the result to &FF.
 This only detects addresses where both bytes are &FF — i.e. the &FFFFxxxx
 range.
 
@@ -367,7 +367,7 @@ stores it for later use, enabling ANFS to run correctly on:
 This cross-platform support is new to ANFS; NFS was exclusively a BBC Model B
 ROM.
 
-### 11. Page 6 relocated code: VDU stream relay replaces trampolines
+### 11. Page 6 [relocated](glossary:relocated-code) code: VDU stream relay replaces trampolines
 
 NFS 3.65's page 6 tail (&06CE-&06FF) contains 29 bytes of &FF padding
 followed by four JMP trampolines that dispatch to the main ROM code:
@@ -492,7 +492,7 @@ ANFS 4.08.53 `save_econet_state` (&898C):
 Key subroutines matched by opcode-level comparison, grouped by functional
 area. Addresses are in the main ROM unless noted.
 
-### ADLC init/reset
+### [ADLC](glossary:adlc) init/reset
 
 | NFS 3.65 | ANFS 4.08.53 | Subroutine                      |
 |----------|--------------|---------------------------------|
@@ -501,7 +501,7 @@ area. Addresses are in the main ROM unless noted.
 | &9F70    | &895F        | adlc_full_reset                 |
 | &9F7F    | &896E        | adlc_rx_listen                  |
 
-### NMI scout handling
+### NMI [scout](glossary:scout) handling
 
 | NFS 3.65 | ANFS 4.08.53 | Subroutine                      |
 |----------|--------------|---------------------------------|
@@ -537,7 +537,7 @@ area. Addresses are in the main ROM unless noted.
 |----------|--------------|---------------------------------|
 | &9D63    | &8744        | RX reply scout handler          |
 | &9DD6    | &87B7        | TX scout ACK                    |
-| &9E83    | &886E        | Four-way handshake RX switch    |
+| &9E83    | &886E        | [Four-way handshake](glossary:four-way-handshake) RX switch    |
 | &9E8F    | &887A        | RX final ACK handler            |
 
 ### Utility

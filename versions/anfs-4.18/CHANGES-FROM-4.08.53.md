@@ -2,8 +2,8 @@
 
 ANFS 4.18 is the last version of Acorn's Advanced Network Filing System for the
 BBC Model B and B+ series; subsequent ANFS releases target the Master series.
-The two 16 KB ROMs are 95.6% identical at the opcode level, with 148 structural
-change blocks. The changes include several bug fixes to Tube co-processor
+The two 16 KB [ROM](glossary:rom)s are 95.6% identical at the opcode level, with 148 structural
+change blocks. The changes include several bug fixes to [Tube](glossary:tube) co-processor
 support and filing system workspace handling, a restructured network receive
 control block, and small optimisations throughout.
 
@@ -88,7 +88,7 @@ bracket. Interrupts are briefly re-enabled between pages (PLP restores the
 original state), so the system remains responsive during multi-page transfers
 while each individual page copy is atomic.
 
-### 2. OSBYTE &FD replaced by direct LDX &028D
+### 2. [OSBYTE](glossary:osbyte) &FD replaced by direct LDX &028D
 
 The Tube startup path reads the last break type to distinguish soft breaks
 (re-initialise) from hard breaks (full ROM transfer).
@@ -111,12 +111,12 @@ The Tube startup path reads the last break type to distinguish soft breaks
 
 The OS stores the last break type at &028D. Reading it directly saves 3 bytes
 and ~50 cycles (the OSBYTE dispatch overhead), recovering space in the
-tight 256-byte page 4 relocated block. The page 4 block shrinks from 256 to
+tight 256-byte page 4 [relocated](glossary:relocated-code) block. The page 4 block shrinks from 256 to
 252 bytes as a result of this and other savings.
 
-### 3. Event dispatch via EVNTV vector
+### 3. Event dispatch via [EVNTV](glossary:evntv) vector
 
-4.08.53 fires the Econet receive event by loading the event number in Y and
+4.08.53 fires the [Econet](glossary:econet) receive event by loading the event number in Y and
 jumping to `tx_done_fire_event`, which calls OSEVEN (&FFBF).
 
 4.08.53 (`svc5_irq_check`, &804D):
@@ -139,10 +139,10 @@ the EVNTV calling convention. This allows third-party software that hooks
 EVNTV to intercept Econet events without also intercepting the OS dispatch
 layer.
 
-### 4. OSWORD workspace preservation
+### 4. [OSWORD](glossary:osword) workspace preservation
 
-4.08.53's `svc_8_osword` handler copies OSWORD parameters from the MOS
-parameter block at &00ED directly into the NFS workspace at `svc_state`
+4.08.53's `svc_8_osword` handler copies OSWORD parameters from the [MOS](glossary:mos)
+parameter block at &00ED directly into the [NFS](glossary:nfs) workspace at `svc_state`
 (&00A9) without saving the original contents. If an OSWORD arrived during
 an in-progress filing system operation, the workspace was silently corrupted.
 
@@ -202,7 +202,7 @@ batch operations like `*BYE`.
 
 ### 6. Receive control block layout restructured
 
-The network receive control block (RXCB) layout changed. Several offsets
+The network receive control block ([RXCB](glossary:rxcb)) layout changed. Several offsets
 used to access fields within the RXCB shifted:
 
 | Field                  | 4.08.53 offset | 4.18 offset |
@@ -279,7 +279,7 @@ file server, fixing commands with accidental trailing whitespace.
 ### 10. '&' prefix handled on unrecognised star commands
 
 In ANFS, the `&` prefix on filenames means "resolve relative to the User Root
-Directory (URD) rather than the Current Selected Directory (CSD)". When
+Directory (URD) rather than the Current Selected Directory ([CSD](glossary:csd))". When
 `parse_access_prefix` encounters a leading `&`, it strips the character
 and sets bit 6 of `fs_lib_flags`. Later, when `save_net_tx_cb` builds the
 packet for the file server, it checks bit 6 and substitutes the URD handle
@@ -287,7 +287,7 @@ into the CSD handle slot of the command header. The file server then resolves
 the path relative to the user's root directory.
 
 Commands like `*RUN` already handle the `&` prefix via `parse_access_prefix`.
-However, in 4.08.53, unrecognised star commands (FSCV code 3) are forwarded
+However, in 4.08.53, unrecognised star commands ([FSCV](glossary:fscv) code 3) are forwarded
 to the file server without prefix parsing. If a user types `*&myfile`
 (intending to run `myfile` from the user root directory), the raw `&myfile`
 string is sent to the file server, which does not understand the `&` prefix

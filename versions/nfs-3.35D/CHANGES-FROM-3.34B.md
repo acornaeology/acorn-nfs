@@ -53,10 +53,10 @@ Entirely new code at &807D-&80B3 adds two capabilities to the `*NET` command:
 fileserver station and network numbers (stored at &0E00 and &0E01). In 3.34B,
 changing the fileserver required the `*I AM` command; `*NET` only dispatched
 internal sub-commands (`*NET1` through `*NET4`), which manage file handles for
-Econet remote file operations. Despite the `*` prefix notation, these are not
-user-invocable commands — the MOS command parser
+[Econet](glossary:econet) remote file operations. Despite the `*` prefix notation, these are not
+user-invocable commands — the [MOS](glossary:mos) command parser
 requires a space or terminator after `NET`, so typing `*NET1` at the command
-line does not match; the sub-commands are reached only through internal OSCLI calls within the ROM.
+line does not match; the sub-commands are reached only through internal [OSCLI](glossary:oscli) calls within the ROM.
 
 The parser at &8088 calls the existing `parse_decimal` routine (at &85FD)
 twice if a dot separator is present. The first number becomes the network
@@ -65,8 +65,8 @@ station (&0E00). It handles both `station` and `network.station` forms.
 
 **Colon command continuation:** If a colon (`:`) is found in the command text,
 the code echoes the colon and reads interactive input character by character
-via OSRDCH (&80A7), appending it to the command buffer.
-After CR is received, the combined text is forwarded to the
+via [OSRDCH](glossary:osrdch) (&80A7), appending it to the command buffer.
+After [CR](glossary:cr) is received, the combined text is forwarded to the
 fileserver. This enables constructs like
 `*NET 123:command` where the text after the colon is typed interactively.
 
@@ -75,7 +75,7 @@ fileserver. This enables constructs like
 The service handler at &80EA gains a new guard. Before dispatching any service
 call, 3.35D reads the byte at `&0DF0+X` (where X is the ROM bank number,
 within the NFS workspace page at &0D00-&0DFF). If bit 7 of that byte is set,
-the ROM returns immediately without processing the service call:
+the ROM returns immediately without processing the [service call](glossary:service-call):
 
 | Runtime addr | Instruction            | Purpose                           |
 |--------------|------------------------|-----------------------------------|
@@ -86,7 +86,7 @@ the ROM returns immediately without processing the service call:
 | &80F0        | BMI c80f4              | If &FE/&FF, skip disable check    |
 | &80F2        | BCS return_1           | If carry set, ROM is disabled     |
 
-Service calls &FE (Tube init) and &FF (full reset) bypass this check, since
+Service calls &FE ([Tube](glossary:tube) init) and &FF (full reset) bypass this check, since
 they are needed regardless of the disable state. This provides a mechanism
 for the MOS or another ROM to selectively disable NFS without removing the
 ROM physically.
@@ -96,7 +96,7 @@ ROM physically.
 The hardcoded LDA/STA pairs in 3.34B's `init_vectors_and_copy` (at &80C8)
 have been replaced by a data-driven loop at &810D-&8123. The loop reads four
 triplets from a table at &8177, each containing (low byte, high byte, vector
-offset), and stores the 16-bit addresses for BRKV, WRCHV, RDCHV, and EVNTV at
+offset), and stores the 16-bit addresses for [BRKV](glossary:brkv), [WRCHV](glossary:wrchv), [RDCHV](glossary:rdchv), and [EVNTV](glossary:evntv) at
 &0200+offset:
 
 | Vector | Address | 3.34B value | 3.35D value |
@@ -135,14 +135,14 @@ block), which is copied from ROM to RAM during initialisation.
 to R1. The `tube_send_r4` routine continues to use R4 for outbound data in
 all three versions.
 
-The BBC Micro Tube ULA register pairs:
+The BBC Micro Tube [ULA](glossary:ula) register pairs:
 
 - R1 (&FEE0/&FEE1): events, escape signalling, and (in 3.34/3.35D) WRCH
 - R2 (&FEE2/&FEE3): command bytes and general data transfer
 - R3 (&FEE4/&FEE5): multi-byte data transfers
 - R4 (&FEE6/&FEE7): one-byte transfers
 
-### 6. GSINIT/GSREAD filename parsing for FSCV
+### 6. [GSINIT](glossary:gsinit)/[GSREAD](glossary:gsread) filename parsing for [FSCV](glossary:fscv)
 
 In 3.34B, FSCV codes 2 (`*/`), 3 (unrecognised `*` command), and 4 (`*RUN`)
 all dispatch to the same handler (`fscv_star_handler`). In 3.35D, codes 2 and
@@ -168,7 +168,7 @@ replaced by a lookup table containing the 8 possible control register values,
 indexed by the claim type in X. The lookup table approach is more compact and
 easier to extend.
 
-### 8. OSBYTE &C6 replaces &C7 in error handler
+### 8. [OSBYTE](glossary:osbyte) &C6 replaces &C7 in error handler
 
 In the error handling path (3.34B: &83E8, 3.35D: &8432), the OSBYTE call
 changed from &C7 (read/write `*SPOOL` file handle) to &C6 (read/write `*EXEC`
@@ -233,7 +233,7 @@ This eliminates the contiguous 21-byte data block (17 string bytes + 4 offset
 bytes) by reusing existing code bytes as the offset table and embedding the
 string data in gaps between instructions.
 
-### 11. CSD check added to print_file_info
+### 11. [CSD](glossary:csd) check added to print_file_info
 
 The `print_file_info` routine (&8CFA) gains a conditional check at entry that
 is not present in 3.34B:

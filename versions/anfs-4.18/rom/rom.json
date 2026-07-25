@@ -227,68 +227,6 @@
                     "version": "4.18",
                     "address": "0x0600"
                 }
-            ],
-            "glossary_links": [
-                {
-                    "pattern": "NFS",
-                    "occurrence": 6,
-                    "term": "NFS"
-                },
-                {
-                    "pattern": "ROM",
-                    "occurrence": 0,
-                    "term": "ROM"
-                },
-                {
-                    "pattern": "Tube",
-                    "occurrence": 0,
-                    "term": "Tube"
-                },
-                {
-                    "pattern": "OSBYTE",
-                    "occurrence": 0,
-                    "term": "OSBYTE"
-                },
-                {
-                    "pattern": "EVNTV",
-                    "occurrence": 0,
-                    "term": "EVNTV"
-                },
-                {
-                    "pattern": "Econet",
-                    "occurrence": 0,
-                    "term": "Econet"
-                },
-                {
-                    "pattern": "OSWORD",
-                    "occurrence": 0,
-                    "term": "OSWORD"
-                },
-                {
-                    "pattern": "MOS",
-                    "occurrence": 0,
-                    "term": "MOS"
-                },
-                {
-                    "pattern": "RXCB",
-                    "occurrence": 0,
-                    "term": "RXCB"
-                },
-                {
-                    "pattern": "FSCV",
-                    "occurrence": 0,
-                    "term": "FSCV"
-                },
-                {
-                    "pattern": "CSD",
-                    "occurrence": 0,
-                    "term": "CSD"
-                },
-                {
-                    "pattern": "relocated",
-                    "occurrence": 0,
-                    "term": "relocated code"
-                }
             ]
         }
     ]

@@ -318,18 +318,6 @@
                     "version": "3.34B",
                     "address": "0x06FF"
                 }
-            ],
-            "glossary_links": [
-                {
-                    "pattern": "Tube",
-                    "occurrence": 0,
-                    "term": "Tube"
-                },
-                {
-                    "pattern": "ULA",
-                    "occurrence": 0,
-                    "term": "ULA"
-                }
             ]
         }
     ]

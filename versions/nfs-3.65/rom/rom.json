@@ -199,28 +199,6 @@
                     "version": "3.65",
                     "address": "0x9633"
                 }
-            ],
-            "glossary_links": [
-                {
-                    "pattern": "ROM",
-                    "occurrence": 0,
-                    "term": "ROM"
-                },
-                {
-                    "pattern": "relocated",
-                    "occurrence": 0,
-                    "term": "relocated code"
-                },
-                {
-                    "pattern": "ADLC",
-                    "occurrence": 0,
-                    "term": "ADLC"
-                },
-                {
-                    "pattern": "NMI",
-                    "occurrence": 0,
-                    "term": "NMI"
-                }
             ]
         }
     ]

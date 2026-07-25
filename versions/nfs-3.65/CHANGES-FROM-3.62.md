@@ -1,6 +1,6 @@
 # Changes from NFS 3.62 to NFS 3.65
 
-NFS 3.65 is the final release of Acorn NFS. Compared to 3.62, the two ROMs
+NFS 3.65 is the final release of Acorn NFS. Compared to 3.62, the two [ROM](glossary:rom)s
 are 96.8% identical at the opcode level (34 change blocks). Most code shifts
 uniformly due to the shorter ROM title, but there are two significant
 functional changes to the Econet hardware handling.
@@ -21,7 +21,7 @@ saving 4 bytes and shifting all subsequent header data and code addresses.
 ## NOP padding removed (14 bytes saved)
 
 **Service handler entry (9 NOPs at &80F7 in 3.62).**
-The 9 NOP instructions described as "bus settling time for ADLC probe" were
+The 9 NOP instructions described as "bus settling time for [ADLC](glossary:adlc) probe" were
 removed entirely. The service handler now begins immediately with PHA / CMP.
 
 **svc_4_star_command padding (5 NOPs at &81B0 in 3.62).**
@@ -52,7 +52,7 @@ carry dependency. The `SEC` return convention was dropped.
 
 ## Self-modifying INTOFF mechanism (STA &0D1C)
 
-This is the most significant functional change. In 3.62, NMIs were disabled
+This is the most significant functional change. In 3.62, [NMI](glossary:nmi)s were disabled
 by reading the Econet station ID register (`BIT &FE18`), which has the
 side-effect of clearing the NMI enable latch. In 3.65, a new RAM workspace
 byte at &0D1C is used as a self-modifying opcode within the NMI dispatch
@@ -95,7 +95,7 @@ boundary (&97xx to &98xx), making the one-byte install insufficient.
 
 ## Relocated code changes
 
-The four relocated blocks shift +3 bytes in ROM source address:
+The four [relocated](glossary:relocated-code) blocks shift +3 bytes in ROM source address:
 
 | Block     | 3.62 source | 3.65 source | Runtime  |
 |-----------|-------------|-------------|----------|

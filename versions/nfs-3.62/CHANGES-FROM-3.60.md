@@ -1,7 +1,7 @@
 # Changes from NFS 3.60 to NFS 3.62
 
 NFS 3.62 is a minimal bug-fix release of Acorn NFS 3.60 for the BBC Micro.
-The two 8 KB ROMs are 99.7% identical at the opcode level, with only 16 bytes
+The two 8 KB [ROM](glossary:rom)s are 99.7% identical at the opcode level, with only 16 bytes
 differing. The single functional change fixes a command-matching bug where
 `*EXEC` was incorrectly caught by the `*EX` entry in the command table.
 
@@ -78,7 +78,7 @@ in 3.60, &9FB4 → &9FB5 in 3.62.
 
 ## Relocated code blocks
 
-All four relocated code blocks are byte-identical between 3.60 and 3.62,
+All four [relocated code](glossary:relocated-code) blocks are byte-identical between 3.60 and 3.62,
 at the same ROM source addresses:
 
 | Block     | ROM source | Runtime dest | Length  |
