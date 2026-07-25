@@ -32,7 +32,7 @@ the Master Compact, are sent away unclaimed:
 A reject silently returns service unclaimed, so MOS keeps looking
 for a filing system without ANFS interfering with anything it
 shouldn't. There was no equivalent gate in 4.18 –
-[`service_handler`](address:8A15@4.18) dispatched directly. The
+[`service_handler`](label:service_handler@4.18) dispatched directly. The
 service entry-point itself shifts from `&8A15` (4.18) to
 [`&8A54`](address:8A54), most of which is the gate code.
 
@@ -114,8 +114,8 @@ Because the host-OS gate guarantees a Master, the assembler runs in
   4.18 prologues that needed to save both registers wrote
   `TXA / PHA / TYA / PHA`, costing 8 bytes and 14 cycles for the
   round-trip; the 65C02 form does the same in 4 bytes and 6 cycles.
-  See [`copy_fs_cmd_name`](address:9463) or
-  [`parse_fs_ps_args`](address:A3C4) for typical examples.
+  See [`copy_fs_cmd_name`](label:copy_fs_cmd_name) or
+  [`parse_fs_ps_args`](label:parse_fs_ps_args) for typical examples.
 - **`BRA`** is an unconditional branch that costs 1 byte and 1 cycle
   less than `JMP abs` (within ±127 bytes).
 - **`STZ`** stores zero without needing a register; it replaces
@@ -147,7 +147,7 @@ accesses in 4.18 in total.
 
 In ANFS 4.21 these are *all* gone. A bytewise scan finds zero
 direct accesses to `&FE40`–`&FE4F` anywhere in the 16 KB ROM.
-[`setup_sr_tx`](address:8512) survives in name and updates a
+[`setup_sr_tx`](label:setup_sr_tx) survives in name and updates a
 pair of ACR/SR-format bytes at `&0D68` / `&0D69`, but those
 bytes are read and written only by ANFS itself – nothing in
 this ROM ever flushes them to the live VIA registers.
@@ -162,7 +162,7 @@ either configured once at NMI claim time or supplied by Master
 MOS without ANFS having to reach for it. The factual delta from
 4.18 is the easier claim: eleven VIA writes became zero.
 
-The [IRQ](glossary:irq) entry [`svc5_irq_check`](address:8028) lives at the same
+The [IRQ](glossary:irq) entry [`svc5_irq_check`](label:svc5_irq_check) lives at the same
 address `&8028` in both ROMs, but the body is unrecognisable:
 
 ```
@@ -205,7 +205,7 @@ whether the FS was inactive or whether the FS was *on* station
 `0.0`.
 
 4.21 wraps every OSWORD `&13` sub-handler in an
-[`ensure_fs_selected`](address:8B4D) prologue. It tests bit 7 of
+[`ensure_fs_selected`](label:ensure_fs_selected) prologue. It tests bit 7 of
 `fs_flags` and, if clear, calls [`cmd_net_fs`](address:9776) to
 make ANFS the active filing system. On selection failure it raises
 a `'net checksum'` error (`&AA`).
@@ -224,7 +224,7 @@ meaning "protect against all of them". The keyword-parser table
 and the per-keyword bit-encoding ran to fifty-odd bytes; the parser
 body itself was more. The mask was lost on `BREAK`.
 
-[`cmd_prot`](address:B6D2) and [`cmd_unprot`](address:B6D6) in
+[`cmd_prot`](label:cmd_prot) and [`cmd_unprot`](label:cmd_unprot) in
 4.21 take **no arguments**. They're each a four-instruction toggle
 of bit 6 of CMOS RAM byte `&11` (the Master's Econet station-flags
 byte) via [OSBYTE](glossary:osbyte) `&A1` (read CMOS) and OSBYTE `&A2` (write CMOS),

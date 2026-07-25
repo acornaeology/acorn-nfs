@@ -50,7 +50,7 @@ paging, controlled by [`ACCCON`](address:FE34). 4.24 widens the
 save-restore of `ACCCON` around the buffer writes. The clearest new
 instance is the last-data-byte store at [`&8284`](address:8284): it
 saves `ACCCON`, switches to the caller's paging value in
-[`escapable`](address:0097), performs the `(open_port_buf),Y` store, then
+[`escapable`](label:escapable), performs the `(open_port_buf),Y` store, then
 restores `ACCCON` — so the write lands in the correct RAM regardless of
 what the interrupted foreground had paged in.
 
@@ -59,7 +59,7 @@ what the interrupted foreground had paged in.
 The `*` credits keyword handler drops its hand-written character-emit
 loop. Where 4.21 walked `credits_keyword_start` byte by byte through
 `OSASCI`, 4.24 emits the same text with a single `jsr`
-[`print_inline`](address:926A) (at [`&8D59`](address:8D59)) over the
+[`print_inline`](label:print_inline) (at [`&8D59`](address:8D59)) over the
 inline, high-bit-terminated string at [`&8D5C`](address:8D5C). The `&EA`
 (`NOP`) terminator doubles as the resume opcode and falls through to the
 `RTS`. The string still lists the four authors (B Cockburn, J Dunn,
@@ -69,9 +69,9 @@ B Robertson, J Wills).
 
 4.21 had two near-identical routines that each read a `network.station`
 pair from [CMOS](glossary:cmos) and printed it. 4.24 folds them into one body:
-[`print_ps_address`](address:9662) loads `X=4` and branches into the
-shared tail; [`print_fs_address`](address:9666) loads `X=2` and falls
-straight in. The shared tail [`print_cmos_pair`](address:9668) prints
+[`print_ps_address`](label:print_ps_address) loads `X=4` and branches into the
+shared tail; [`print_fs_address`](label:print_fs_address) loads `X=2` and falls
+straight in. The shared tail [`print_cmos_pair`](label:print_cmos_pair) prints
 `CMOS[X]`, a `.`, then `CMOS[X-1]`, deriving the station index with
 `PHX` / `PLX` / `DEX` instead of a second literal `LDX`.
 
