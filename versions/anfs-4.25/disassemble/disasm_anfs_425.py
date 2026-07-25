@@ -18763,14 +18763,14 @@ d.comment(0xBFFA, "ROM-tail padding (30 bytes &FF)", align=Align.INLINE)
 # UNMAPPED:     "Base for `hazel_minus_1a,Y` reads in loop_copy_txcb_init -- `&BFE6 + Y` reaches into HAZEL for Y >= &1A",
 # UNMAPPED:     align=Align.INLINE,
 # UNMAPPED: )
-# UNMAPPED: d.index_base(0xBFFE, "hazel_minus_2")
+d.index_base(0xBFFE, "hazel_minus_2")
 
 # UNMAPPED: d.comment(
 # UNMAPPED:     0xBFFE,
 # UNMAPPED:     "Base for `hazel_minus_2,Y` reads/writes -- `&BFFE + Y` reaches into HAZEL for Y >= 2 (used by loop_copy_fs_ctx, loop_restore_ctx, loop_copy_ws_to_pb)",
 # UNMAPPED:     align=Align.INLINE,
 # UNMAPPED: )
-# UNMAPPED: d.index_base(0xBFFF, "hazel_minus_1")
+d.index_base(0xBFFF, "hazel_minus_1")
 
 # UNMAPPED: d.comment(
 # UNMAPPED:     0xBFFF,
@@ -19502,11 +19502,11 @@ d.subroutine(0x8A1F, "nmi_return_inton", title="NMI exit: re-enable NMIs and ret
 d.label(0x84DC, "imm_reply_flag")
 d.label(0x86BB, "tx_irq_off")
 d.label(0x872D, "tx_enable_nmis")
-# UNMAPPED: d.label(0xA5F3, "run_copy_arg_to_buf")
+d.label(0xA5F5, "run_copy_arg_to_buf")
 d.label(0xAF96, "spool_pop_cmd")
 d.label(0xAFAF, "check_err_code_5")
 d.label(0xAFC9, "err_printer_jammed")
-# UNMAPPED: d.label(0xB32C, "print_col_cr")
+d.label(0xB32E, "print_col_cr")
 d.label(0xB4B1, "ps_print_info_newline")
 d.label(0xBFE8, "skip_fn_space_cont")
 d.label(0x86DD, "set_line_jammed")
@@ -19514,7 +19514,7 @@ d.label(0x851D, "imm_op_build_reply")
 d.label(0x9FAD, "argsv_clamp_zero")
 d.label(0x9FB1, "argsv_send_request")
 d.label(0x9FB8, "argsv_store_result")
-# UNMAPPED: d.label(0xB1E7, "loop_print_option")
+d.label(0xB1E9, "loop_print_option")
 d.label(0xB639, "loop_next_poll_slot")
 d.label(0xB66E, "poll_test_status")
 d.label(0xB67A, "poll_print_offline")
@@ -19523,7 +19523,7 @@ d.label(0xB68C, "poll_print_jammed")
 d.label(0xB696, "poll_entry_done")
 d.label(0xB699, "poll_mark_slot")
 d.label(0xB6A2, "poll_print_busy")
-# UNMAPPED: d.label(0xB62B, "poll_load_server")
+d.label(0xB62D, "poll_load_server")
 d.index_base(0x8A25, "svc_dispatch_lo")
 d.banner(0x8A25, title="svc_dispatch low-byte table (51 entries)",
     description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
@@ -19532,17 +19532,17 @@ half at [`svc_dispatch_hi`](label:svc_dispatch_hi). Index 0 is an unused placeho
 indices 1..50 cover service handlers, language replies, FSCV reasons, FS
 replies and net-handle / OSWORD &13 trampolines. Per-entry inline comments
 give each slot's dispatch.""")
-# UNMAPPED: d.index_base(0x8A56, "svc_dispatch_hi")
+d.index_base(0x8A58, "svc_dispatch_hi")
 # UNMAPPED: d.banner(0x8A56, title="svc_dispatch high-byte table (51 entries + 1 padding)",
 # UNMAPPED:     description="""High-byte half of the `PHA`/`PHA`/`RTS` dispatch table read as
 # UNMAPPED: `LDA &8A56,X`. The dispatcher pushes the high byte first then the low, so
 # UNMAPPED: `RTS` lands on target (each stored value is handler-1).""")
-# UNMAPPED: d.index_base(0xA9C8, "osword_13_dispatch_lo")
+d.index_base(0xA9CA, "osword_13_dispatch_lo")
 # UNMAPPED: d.banner(0xA9C8, title="OSWORD &13 dispatch low-byte table (18 entries)",
 # UNMAPPED:     description="""Low-byte half of the OSWORD &13 sub-reason `PHA`/`PHA`/`RTS`
 # UNMAPPED: dispatch, read as `LDA &A9C8,X`; paired with
 # UNMAPPED: [`osword_13_dispatch_hi`](label:osword_13_dispatch_hi).""")
-# UNMAPPED: d.index_base(0xAD40, "netv_dispatch_lo")
+d.index_base(0xAD42, "netv_dispatch_lo")
 # UNMAPPED: d.banner(0xAD40, title="NETV reason-code dispatch low-byte table (9 entries)",
 # UNMAPPED:     description="""Low-byte half of the NETV reason-code `PHA`/`PHA`/`RTS`
 # UNMAPPED: dispatch, read as `LDA &AD40,X`; paired with

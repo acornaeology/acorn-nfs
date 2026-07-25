@@ -24421,7 +24421,37 @@
         83,
         20,
         26,
-        42,
+        42
+      ],
+      "type": "byte",
+      "values": [
+        158,
+        208,
+        50,
+        6,
+        68,
+        6,
+        76,
+        121,
+        248,
+        137,
+        50,
+        139,
+        241,
+        15,
+        234,
+        250,
+        77,
+        6,
+        83,
+        20,
+        26,
+        42
+      ]
+    },
+    {
+      "addr": 35416,
+      "bytes": [
         17,
         142,
         141,
@@ -24476,40 +24506,19 @@
         139
       ],
       "labels": [
-        "sub_c8a42"
+        "svc_dispatch_hi"
       ],
-      "sub_labels": {
-        "35416": [
-          "l8a58"
-        ]
-      },
       "xref_summaries": [
         "&8a58 used as index base 1 time by &8e80"
       ],
+      "references": [
+        {
+          "addr": 36480,
+          "kind": "indexed"
+        }
+      ],
       "type": "byte",
       "values": [
-        158,
-        208,
-        50,
-        6,
-        68,
-        6,
-        76,
-        121,
-        248,
-        137,
-        50,
-        139,
-        241,
-        15,
-        234,
-        250,
-        77,
-        6,
-        83,
-        20,
-        26,
-        42,
         17,
         142,
         141,
@@ -26457,9 +26466,9 @@
       "comment_inline": "Store into FS workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 35730,
@@ -31242,9 +31251,9 @@
       "comment_inline": "Load dispatch address high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8a58,x",
+      "operand": "svc_dispatch_hi,x",
       "target": 35416,
-      "target_label": "l8a58"
+      "target_label": "svc_dispatch_hi"
     },
     {
       "addr": 36483,
@@ -34461,9 +34470,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 36978,
@@ -71517,9 +71526,9 @@
       "comment_inline": "Low byte = &6F",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "ca5f5",
+      "operand": "run_copy_arg_to_buf",
       "target": 42485,
-      "target_label": "ca5f5"
+      "target_label": "run_copy_arg_to_buf"
     },
     {
       "addr": 42443,
@@ -71730,7 +71739,7 @@
         178
       ],
       "labels": [
-        "ca5f5"
+        "run_copy_arg_to_buf"
       ],
       "comment_inline": "Copy parsed arg to TX buffer with X=0",
       "xref_summaries": [
@@ -77486,9 +77495,9 @@
       "comment_inline": "Read dispatch lo from osword_13_dispatch_lo+X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la9ca,x",
+      "operand": "osword_13_dispatch_lo,x",
       "target": 43466,
-      "target_label": "la9ca"
+      "target_label": "osword_13_dispatch_lo"
     },
     {
       "addr": 43464,
@@ -77543,7 +77552,7 @@
         202
       ],
       "labels": [
-        "la9ca"
+        "osword_13_dispatch_lo"
       ],
       "xref_summaries": [
         "&a9ca used as index base 1 time by &a9c5"
@@ -77821,9 +77830,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbfff,y",
+      "operand": "hazel_minus_1,y",
       "target": 49151,
-      "target_label": "lbfff"
+      "target_label": "hazel_minus_1"
     },
     {
       "addr": 43510,
@@ -77960,9 +77969,9 @@
       "comment_inline": "Store to fs_server_base",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "lbfff,y",
+      "operand": "hazel_minus_1,y",
       "target": 49151,
-      "target_label": "lbfff"
+      "target_label": "hazel_minus_1"
     },
     {
       "addr": 43531,
@@ -82666,9 +82675,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lbffe,y",
+      "operand": "hazel_minus_2,y",
       "target": 49150,
-      "target_label": "lbffe"
+      "target_label": "hazel_minus_2"
     },
     {
       "addr": 44202,
@@ -83749,9 +83758,9 @@
       "comment_inline": "Load handler low byte from lo-table column X",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lad42,x",
+      "operand": "netv_dispatch_lo,x",
       "target": 44354,
-      "target_label": "lad42"
+      "target_label": "netv_dispatch_lo"
     },
     {
       "addr": 44350,
@@ -83798,7 +83807,7 @@
         244
       ],
       "labels": [
-        "lad42"
+        "netv_dispatch_lo"
       ],
       "xref_summaries": [
         "&ad42 used as index base 1 time by &ad3b"
@@ -92096,7 +92105,7 @@
         178
       ],
       "labels": [
-        "loop_cb1e9"
+        "loop_print_option"
       ],
       "comment_inline": "Look up option byte at the resolved offset",
       "xref_summaries": [
@@ -92159,9 +92168,9 @@
       "comment_inline": "Loop until Y wraps",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_cb1e9",
+      "operand": "loop_print_option",
       "target": 45545,
-      "target_label": "loop_cb1e9"
+      "target_label": "loop_print_option"
     },
     {
       "addr": 45556,
@@ -94304,9 +94313,9 @@
       "comment_inline": "Non-printable: take CR-newline path at col_sep_print_cr",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "cb32e",
+      "operand": "print_col_cr",
       "target": 45870,
-      "target_label": "cb32e"
+      "target_label": "print_col_cr"
     },
     {
       "addr": 45849,
@@ -94472,7 +94481,7 @@
         146
       ],
       "labels": [
-        "cb32e"
+        "print_col_cr"
       ],
       "comment_inline": "Print CR (no spool)",
       "xref_summaries": [
@@ -99786,9 +99795,9 @@
       "comment_inline": "Zero: slot empty, skip display",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "cb62d",
+      "operand": "poll_load_server",
       "target": 46637,
-      "target_label": "cb62d"
+      "target_label": "poll_load_server"
     },
     {
       "addr": 46611,
@@ -99972,7 +99981,7 @@
         180
       ],
       "labels": [
-        "cb62d"
+        "poll_load_server"
       ],
       "comment_inline": "Load this PS server's address for display",
       "xref_summaries": [
@@ -116350,33 +116359,70 @@
         255,
         255,
         255,
-        255,
-        255,
         255
       ],
-      "labels": [
-        "sub_cbffa"
-      ],
-      "sub_labels": {
-        "49150": [
-          "lbffe"
-        ],
-        "49151": [
-          "lbfff"
-        ]
-      },
       "comment_inline": "ROM-tail padding (30 bytes &FF)",
-      "xref_summaries": [
-        "&bffe used as index base 3 times by &8b8f, &906f, &aca7",
-        "&bfff used as index base 2 times by &a9f3, &aa08"
-      ],
       "type": "byte",
       "values": [
         255,
         255,
         255,
-        255,
-        255,
+        255
+      ]
+    },
+    {
+      "addr": 49150,
+      "bytes": [
+        255
+      ],
+      "labels": [
+        "hazel_minus_2"
+      ],
+      "xref_summaries": [
+        "&bffe used as index base 3 times by &8b8f, &906f, &aca7"
+      ],
+      "references": [
+        {
+          "addr": 35727,
+          "kind": "indexed"
+        },
+        {
+          "addr": 36975,
+          "kind": "indexed"
+        },
+        {
+          "addr": 44199,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
+        255
+      ]
+    },
+    {
+      "addr": 49151,
+      "bytes": [
+        255
+      ],
+      "labels": [
+        "hazel_minus_1"
+      ],
+      "xref_summaries": [
+        "&bfff used as index base 2 times by &a9f3, &aa08"
+      ],
+      "references": [
+        {
+          "addr": 43507,
+          "kind": "indexed"
+        },
+        {
+          "addr": 43528,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
         255
       ]
     }
