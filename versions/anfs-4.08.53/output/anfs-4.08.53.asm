@@ -1083,7 +1083,7 @@ oscli                                  = &fff7
     lda #&ad                                                          ; be7f: a9 ad       .. :06ef[2]         ; EVNTV low byte (&AD)
     sta evntv                                                         ; be81: 8d 20 02    . . :06f1[2]        ; Store in EVNTV vector low
     lda #6                                                            ; be84: a9 06       .. :06f4[2]         ; EVNTV high byte (page 6)
-    sta evntv+1                                                       ; be86: 8d 21 02    .!. :06f6[2]        ; Store in EVNTV vector high
+    sta evntv + 1                                                     ; be86: 8d 21 02    .!. :06f6[2]        ; Store in EVNTV vector high
     lda #&16                                                          ; be89: a9 16       .. :06f9[2]         ; BRKV low byte (&16)
     sta brkv                                                          ; be8b: 8d 02 02    ... :06fb[2]        ; Store in BRKV vector
     lda #0                                                            ; be8e: a9 00       .. :06fe[2]         ; A=0
@@ -2389,7 +2389,7 @@ service_handler_lo = service_entry+1
     ldy scout_ctrl                                                    ; 8468: ac 30 0d    .0.      ; Reload ctrl byte for dispatch table
     lda #&84                                                          ; 846b: a9 84       ..       ; Hi byte: all handlers are in page &84
     pha                                                               ; 846d: 48          H        ; Push hi byte for PHA/PHA/RTS dispatch
-    lda imm_op_dispatch_lo-&81,y                                      ; 846e: b9 fd 83    ...      ; Load handler low byte from jump table
+    lda imm_op_dispatch_lo - &81,y                                    ; 846e: b9 fd 83    ...      ; Load handler low byte from jump table
     pha                                                               ; 8471: 48          H        ; Push handler low byte
     rts                                                               ; 8472: 60          `        ; RTS dispatches to handler
 ; &8473 referenced 1 time by &841f
@@ -2405,14 +2405,14 @@ service_handler_lo = service_entry+1
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 847b: 4c 2b 82    L+.      ; Jump to discard handler
 .imm_op_dispatch_lo
-    equb <(rx_imm_peek-1)                                             ; 847e: c0          .        ; Ctrl &81: PEEK
-    equb <(rx_imm_poke-1)                                             ; 847f: a3          .        ; Ctrl &82: POKE
-    equb <(rx_imm_exec-1)                                             ; 8480: 85          .        ; Ctrl &83: JSR
-    equb <(rx_imm_exec-1)                                             ; 8481: 85          .        ; Ctrl &84: UserProc
-    equb <(rx_imm_exec-1)                                             ; 8482: 85          .        ; Ctrl &85: OSProc
-    equb <(rx_imm_halt_cont-1)                                        ; 8483: da          .        ; Ctrl &86: HALT
-    equb <(rx_imm_halt_cont-1)                                        ; 8484: da          .        ; Ctrl &87: CONTINUE
-    equb <(rx_imm_machine_type-1)                                     ; 8485: ae          .        ; Ctrl &88: machine type query
+    equb <(rx_imm_peek - 1)                                           ; 847e: c0          .        ; Ctrl &81: PEEK
+    equb <(rx_imm_poke - 1)                                           ; 847f: a3          .        ; Ctrl &82: POKE
+    equb <(rx_imm_exec - 1)                                           ; 8480: 85          .        ; Ctrl &83: JSR
+    equb <(rx_imm_exec - 1)                                           ; 8481: 85          .        ; Ctrl &84: UserProc
+    equb <(rx_imm_exec - 1)                                           ; 8482: 85          .        ; Ctrl &85: OSProc
+    equb <(rx_imm_halt_cont - 1)                                      ; 8483: da          .        ; Ctrl &86: HALT
+    equb <(rx_imm_halt_cont - 1)                                      ; 8484: da          .        ; Ctrl &87: CONTINUE
+    equb <(rx_imm_machine_type - 1)                                   ; 8485: ae          .        ; Ctrl &88: machine type query
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
 ;
@@ -2567,11 +2567,11 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ;
 ; - Y). High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes and are not valid operation types.
 .tx_done_dispatch_lo
-    equb <(tx_done_jsr-1)                                             ; 8534: 38          8        ; Y=&83: lo &38 -> tx_done_jsr (&8539)
-    equb <(tx_done_econet_event-1)                                    ; 8535: 41          A        ; Y=&84: lo &41 -> tx_done_econet_event
-    equb <(tx_done_os_proc-1)                                         ; 8536: 4f          O        ; Y=&85: lo &4F -> tx_done_os_proc
-    equb <(tx_done_halt-1)                                            ; 8537: 5b          [        ; Y=&86: lo &5B -> tx_done_halt
-    equb <(tx_done_continue-1)                                        ; 8538: 72          r        ; Y=&87: lo &72 -> tx_done_continue
+    equb <(tx_done_jsr - 1)                                           ; 8534: 38          8        ; Y=&83: lo &38 -> tx_done_jsr (&8539)
+    equb <(tx_done_econet_event - 1)                                  ; 8535: 41          A        ; Y=&84: lo &41 -> tx_done_econet_event
+    equb <(tx_done_os_proc - 1)                                       ; 8536: 4f          O        ; Y=&85: lo &4F -> tx_done_os_proc
+    equb <(tx_done_halt - 1)                                          ; 8537: 5b          [        ; Y=&86: lo &5B -> tx_done_halt
+    equb <(tx_done_continue - 1)                                      ; 8538: 72          r        ; Y=&87: lo &72 -> tx_done_continue
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
@@ -2845,14 +2845,14 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 ;
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte types &81-&88. Read by the dispatch at &8672 via LDA intoff_disable_nmi_op,Y (base intoff_test_inactive+1). High byte is always &86, so targets are &86xx+1. Last entry dispatches to tx_ctrl_machine_type at &867F, immediately after the table.
 .tx_ctrl_dispatch_lo
-    equb <(tx_ctrl_peek-1)                                            ; 8677: 82          .        ; Ctrl &81 PEEK: tx_ctrl_peek
-    equb <(tx_ctrl_poke-1)                                            ; 8678: 86          .        ; Ctrl &82 POKE: tx_ctrl_poke
-    equb <(proc_op_status2-1)                                         ; 8679: c8          .        ; Ctrl &83 JSR: proc_op_status2
-    equb <(proc_op_status2-1)                                         ; 867a: c8          .        ; Ctrl &84 UserProc: proc_op_status2
-    equb <(proc_op_status2-1)                                         ; 867b: c8          .        ; Ctrl &85 OSProc: proc_op_status2
-    equb <(tx_ctrl_exit-1)                                            ; 867c: d8          .        ; Ctrl &86 HALT: tx_ctrl_exit
-    equb <(tx_ctrl_exit-1)                                            ; 867d: d8          .        ; Ctrl &87 CONTINUE: tx_ctrl_exit
-    equb <(tx_ctrl_machine_type-1)                                    ; 867e: 7e          ~        ; Ctrl &88 MachType: tx_ctrl_machine_type
+    equb <(tx_ctrl_peek - 1)                                          ; 8677: 82          .        ; Ctrl &81 PEEK: tx_ctrl_peek
+    equb <(tx_ctrl_poke - 1)                                          ; 8678: 86          .        ; Ctrl &82 POKE: tx_ctrl_poke
+    equb <(proc_op_status2 - 1)                                       ; 8679: c8          .        ; Ctrl &83 JSR: proc_op_status2
+    equb <(proc_op_status2 - 1)                                       ; 867a: c8          .        ; Ctrl &84 UserProc: proc_op_status2
+    equb <(proc_op_status2 - 1)                                       ; 867b: c8          .        ; Ctrl &85 OSProc: proc_op_status2
+    equb <(tx_ctrl_exit - 1)                                          ; 867c: d8          .        ; Ctrl &86 HALT: tx_ctrl_exit
+    equb <(tx_ctrl_exit - 1)                                          ; 867d: d8          .        ; Ctrl &87 CONTINUE: tx_ctrl_exit
+    equb <(tx_ctrl_machine_type - 1)                                  ; 867e: 7e          ~        ; Ctrl &88 MachType: tx_ctrl_machine_type
 ; ***************************************************************************************
 ; TX ctrl: machine type query setup
 ;
@@ -3632,81 +3632,81 @@ listen_jmp_hi = reset_enter_listen+2
 ; &89c0 used as index base 1 time by &8e3c
 .svc_dispatch_lo
     equb &04                                                          ; 89c0: 04          .        ; lo - dummy entry (outside ROM range)
-    equb <(dispatch_rts-1)                                            ; 89c1: 41          A        ; lo - Svc 0: already claimed (no-op)
-    equb <(svc_1_abs_workspace-1)                                     ; 89c2: 8e          .        ; lo - Svc 1: absolute workspace
-    equb <(svc_2_private_workspace-1)                                 ; 89c3: a1          .        ; lo - Svc 2: private workspace
-    equb <(svc_3_autoboot-1)                                          ; 89c4: be          .        ; lo - Svc 3: auto-boot
-    equb <(svc_4_star_command-1)                                      ; 89c5: 42          B        ; lo - Svc 4: unrecognised star command
-    equb <(svc5_irq_check-1)                                          ; 89c6: 22          "        ; lo - Svc 5: unrecognised interrupt
-    equb <(dispatch_rts-1)                                            ; 89c7: 41          A        ; lo - Svc 6: BRK (no-op)
-    equb <(svc_7_osbyte-1)                                            ; 89c8: 7b          {        ; lo - Svc 7: unrecognised OSBYTE
-    equb <(svc_8_osword-1)                                            ; 89c9: d5          .        ; lo - Svc 8: unrecognised OSWORD
-    equb <(svc_9_help-1)                                              ; 89ca: 51          Q        ; lo - Svc 9: *HELP
-    equb <(dispatch_rts-1)                                            ; 89cb: 41          A        ; lo - Svc 10: static workspace (no-op)
-    equb <(econet_restore-1)                                          ; 89cc: 84          .        ; lo - Svc 11: NMI release (reclaim NMIs)
-    equb <(wait_idle_and_reset-1)                                     ; 89cd: 78          x        ; lo - Svc 12: NMI claim (save NMI state)
-    equb <(svc_18_fs_select-1)                                        ; 89ce: 04          .        ; lo - Svc 18: filing system selection
-    equb <(lang_0_insert_remote_key-1)                                ; 89cf: b7          .        ; lo - Lang 0: no language / Tube
-    equb <(lang_1_remote_boot-1)                                      ; 89d0: 69          i        ; lo - Lang 1: normal startup
-    equb <(lang_2_save_palette_vdu-1)                                 ; 89d1: 85          .        ; lo - Lang 2: softkey byte (Electron)
-    equb <(lang_3_execute_at_0100-1)                                  ; 89d2: 97          .        ; lo - Lang 3: softkey length (Electron)
-    equb <(lang_4_remote_validated-1)                                 ; 89d3: a7          .        ; lo - Lang 4: remote validated
-    equb <(fscv_0_opt_entry-1)                                        ; 89d4: bb          .        ; lo - FSCV 0: *OPT
-    equb <(fscv_1_eof-1)                                              ; 89d5: e1          .        ; lo - FSCV 1: EOF check
-    equb <(fscv_2_star_run-1)                                         ; 89d6: a8          .        ; lo - FSCV 2: */ (run)
-    equb <(fscv_3_star_cmd-1)                                         ; 89d7: fb          .        ; lo - FSCV 3: unrecognised star command
-    equb <(fscv_2_star_run-1)                                         ; 89d8: a8          .        ; lo - FSCV 4: *RUN
-    equb <(fscv_5_cat-1)                                              ; 89d9: 6d          m        ; lo - FSCV 5: *CAT
-    equb <(fscv_6_shutdown-1)                                         ; 89da: 7f          .        ; lo - FSCV 6: shutdown
-    equb <(fscv_7_read_handles-1)                                     ; 89db: 9b          .        ; lo - FSCV 7: read handle range
-    equb <(fsreply_0_print_dir-1)                                     ; 89dc: 1d          .        ; lo - FS reply: print directory name
-    equb <(fsreply_1_copy_handles_boot-1)                             ; 89dd: 78          x        ; lo - FS reply: copy handles + boot
-    equb <(fsreply_2_copy_handles-1)                                  ; 89de: 82          .        ; lo - FS reply: copy handles
-    equb <(fsreply_3_set_csd-1)                                       ; 89df: db          .        ; lo - FS reply: set CSD handle
-    equb <(fscv_2_star_run-1)                                         ; 89e0: a8          .        ; lo - FS reply: notify + execute
-    equb <(fsreply_5_set_lib-1)                                       ; 89e1: e1          .        ; lo - FS reply: set library handle
-    equb <(net_1_read_handle-1)                                       ; 89e2: cb          .        ; lo - *NET1: read handle from packet
-    equb <(net_2_read_handle_entry-1)                                 ; 89e3: d1          .        ; lo - *NET2: read handle from workspace
-    equb <(net_3_close_handle-1)                                      ; 89e4: e1          .        ; lo - *NET3: close handle
+    equb <(dispatch_rts - 1)                                          ; 89c1: 41          A        ; lo - Svc 0: already claimed (no-op)
+    equb <(svc_1_abs_workspace - 1)                                   ; 89c2: 8e          .        ; lo - Svc 1: absolute workspace
+    equb <(svc_2_private_workspace - 1)                               ; 89c3: a1          .        ; lo - Svc 2: private workspace
+    equb <(svc_3_autoboot - 1)                                        ; 89c4: be          .        ; lo - Svc 3: auto-boot
+    equb <(svc_4_star_command - 1)                                    ; 89c5: 42          B        ; lo - Svc 4: unrecognised star command
+    equb <(svc5_irq_check - 1)                                        ; 89c6: 22          "        ; lo - Svc 5: unrecognised interrupt
+    equb <(dispatch_rts - 1)                                          ; 89c7: 41          A        ; lo - Svc 6: BRK (no-op)
+    equb <(svc_7_osbyte - 1)                                          ; 89c8: 7b          {        ; lo - Svc 7: unrecognised OSBYTE
+    equb <(svc_8_osword - 1)                                          ; 89c9: d5          .        ; lo - Svc 8: unrecognised OSWORD
+    equb <(svc_9_help - 1)                                            ; 89ca: 51          Q        ; lo - Svc 9: *HELP
+    equb <(dispatch_rts - 1)                                          ; 89cb: 41          A        ; lo - Svc 10: static workspace (no-op)
+    equb <(econet_restore - 1)                                        ; 89cc: 84          .        ; lo - Svc 11: NMI release (reclaim NMIs)
+    equb <(wait_idle_and_reset - 1)                                   ; 89cd: 78          x        ; lo - Svc 12: NMI claim (save NMI state)
+    equb <(svc_18_fs_select - 1)                                      ; 89ce: 04          .        ; lo - Svc 18: filing system selection
+    equb <(lang_0_insert_remote_key - 1)                              ; 89cf: b7          .        ; lo - Lang 0: no language / Tube
+    equb <(lang_1_remote_boot - 1)                                    ; 89d0: 69          i        ; lo - Lang 1: normal startup
+    equb <(lang_2_save_palette_vdu - 1)                               ; 89d1: 85          .        ; lo - Lang 2: softkey byte (Electron)
+    equb <(lang_3_execute_at_0100 - 1)                                ; 89d2: 97          .        ; lo - Lang 3: softkey length (Electron)
+    equb <(lang_4_remote_validated - 1)                               ; 89d3: a7          .        ; lo - Lang 4: remote validated
+    equb <(fscv_0_opt_entry - 1)                                      ; 89d4: bb          .        ; lo - FSCV 0: *OPT
+    equb <(fscv_1_eof - 1)                                            ; 89d5: e1          .        ; lo - FSCV 1: EOF check
+    equb <(fscv_2_star_run - 1)                                       ; 89d6: a8          .        ; lo - FSCV 2: */ (run)
+    equb <(fscv_3_star_cmd - 1)                                       ; 89d7: fb          .        ; lo - FSCV 3: unrecognised star command
+    equb <(fscv_2_star_run - 1)                                       ; 89d8: a8          .        ; lo - FSCV 4: *RUN
+    equb <(fscv_5_cat - 1)                                            ; 89d9: 6d          m        ; lo - FSCV 5: *CAT
+    equb <(fscv_6_shutdown - 1)                                       ; 89da: 7f          .        ; lo - FSCV 6: shutdown
+    equb <(fscv_7_read_handles - 1)                                   ; 89db: 9b          .        ; lo - FSCV 7: read handle range
+    equb <(fsreply_0_print_dir - 1)                                   ; 89dc: 1d          .        ; lo - FS reply: print directory name
+    equb <(fsreply_1_copy_handles_boot - 1)                           ; 89dd: 78          x        ; lo - FS reply: copy handles + boot
+    equb <(fsreply_2_copy_handles - 1)                                ; 89de: 82          .        ; lo - FS reply: copy handles
+    equb <(fsreply_3_set_csd - 1)                                     ; 89df: db          .        ; lo - FS reply: set CSD handle
+    equb <(fscv_2_star_run - 1)                                       ; 89e0: a8          .        ; lo - FS reply: notify + execute
+    equb <(fsreply_5_set_lib - 1)                                     ; 89e1: e1          .        ; lo - FS reply: set library handle
+    equb <(net_1_read_handle - 1)                                     ; 89e2: cb          .        ; lo - *NET1: read handle from packet
+    equb <(net_2_read_handle_entry - 1)                               ; 89e3: d1          .        ; lo - *NET2: read handle from workspace
+    equb <(net_3_close_handle - 1)                                    ; 89e4: e1          .        ; lo - *NET3: close handle
 ; &89e5 used as index base 1 time by &8e38
 .svc_dispatch_hi
     equb &cb                                                          ; 89e5: cb          .        ; hi - dummy entry (outside ROM range)
-    equb >(dispatch_rts-1)                                            ; 89e6: 8e          .        ; hi - Svc 0: already claimed (no-op)
-    equb >(svc_1_abs_workspace-1)                                     ; 89e7: 8e          .        ; hi - Svc 1: absolute workspace
-    equb >(svc_2_private_workspace-1)                                 ; 89e8: 8e          .        ; hi - Svc 2: private workspace
-    equb >(svc_3_autoboot-1)                                          ; 89e9: 8c          .        ; hi - Svc 3: auto-boot
-    equb >(svc_4_star_command-1)                                      ; 89ea: 8c          .        ; hi - Svc 4: unrecognised star command
-    equb >(svc5_irq_check-1)                                          ; 89eb: 80          .        ; hi - Svc 5: unrecognised interrupt
-    equb >(dispatch_rts-1)                                            ; 89ec: 8e          .        ; hi - Svc 6: BRK (no-op)
-    equb >(svc_7_osbyte-1)                                            ; 89ed: 8e          .        ; hi - Svc 7: unrecognised OSBYTE
-    equb >(svc_8_osword-1)                                            ; 89ee: a4          .        ; hi - Svc 8: unrecognised OSWORD
-    equb >(svc_9_help-1)                                              ; 89ef: 8c          .        ; hi - Svc 9: *HELP
-    equb >(dispatch_rts-1)                                            ; 89f0: 8e          .        ; hi - Svc 10: static workspace (no-op)
-    equb >(econet_restore-1)                                          ; 89f1: 80          .        ; hi - Svc 11: NMI release (reclaim NMIs)
-    equb >(wait_idle_and_reset-1)                                     ; 89f2: 89          .        ; hi - Svc 12: NMI claim (save NMI state)
-    equb >(svc_18_fs_select-1)                                        ; 89f3: 8b          .        ; hi - Svc 18: filing system selection
-    equb >(lang_0_insert_remote_key-1)                                ; 89f4: 95          .        ; hi - Lang 0: no language / Tube
-    equb >(lang_1_remote_boot-1)                                      ; 89f5: 95          .        ; hi - Lang 1: normal startup
-    equb >(lang_2_save_palette_vdu-1)                                 ; 89f6: ac          .        ; hi - Lang 2: softkey byte (Electron)
-    equb >(lang_3_execute_at_0100-1)                                  ; 89f7: 95          .        ; hi - Lang 3: softkey length (Electron)
-    equb >(lang_4_remote_validated-1)                                 ; 89f8: 95          .        ; hi - Lang 4: remote validated
-    equb >(fscv_0_opt_entry-1)                                        ; 89f9: 9d          .        ; hi - FSCV 0: *OPT
-    equb >(fscv_1_eof-1)                                              ; 89fa: 9d          .        ; hi - FSCV 1: EOF check
-    equb >(fscv_2_star_run-1)                                         ; 89fb: a1          .        ; hi - FSCV 2: */ (run)
-    equb >(fscv_3_star_cmd-1)                                         ; 89fc: a0          .        ; hi - FSCV 3: unrecognised star command
-    equb >(fscv_2_star_run-1)                                         ; 89fd: a1          .        ; hi - FSCV 4: *RUN
-    equb >(fscv_5_cat-1)                                              ; 89fe: ad          .        ; hi - FSCV 5: *CAT
-    equb >(fscv_6_shutdown-1)                                         ; 89ff: 8f          .        ; hi - FSCV 6: shutdown
-    equb >(fscv_7_read_handles-1)                                     ; 8a00: 92          .        ; hi - FSCV 7: read handle range
-    equb >(fsreply_0_print_dir-1)                                     ; 8a01: af          .        ; hi - FS reply: print directory name
-    equb >(fsreply_1_copy_handles_boot-1)                             ; 8a02: a3          .        ; hi - FS reply: copy handles + boot
-    equb >(fsreply_2_copy_handles-1)                                  ; 8a03: a3          .        ; hi - FS reply: copy handles
-    equb >(fsreply_3_set_csd-1)                                       ; 8a04: a2          .        ; hi - FS reply: set CSD handle
-    equb >(fscv_2_star_run-1)                                         ; 8a05: a1          .        ; hi - FS reply: notify + execute
-    equb >(fsreply_5_set_lib-1)                                       ; 8a06: a2          .        ; hi - FS reply: set library handle
-    equb >(net_1_read_handle-1)                                       ; 8a07: a0          .        ; hi - *NET1: read handle from packet
-    equb >(net_2_read_handle_entry-1)                                 ; 8a08: a0          .        ; hi - *NET2: read handle from workspace
-    equb >(net_3_close_handle-1)                                      ; 8a09: a0          .        ; hi - *NET3: close handle
+    equb >(dispatch_rts - 1)                                          ; 89e6: 8e          .        ; hi - Svc 0: already claimed (no-op)
+    equb >(svc_1_abs_workspace - 1)                                   ; 89e7: 8e          .        ; hi - Svc 1: absolute workspace
+    equb >(svc_2_private_workspace - 1)                               ; 89e8: 8e          .        ; hi - Svc 2: private workspace
+    equb >(svc_3_autoboot - 1)                                        ; 89e9: 8c          .        ; hi - Svc 3: auto-boot
+    equb >(svc_4_star_command - 1)                                    ; 89ea: 8c          .        ; hi - Svc 4: unrecognised star command
+    equb >(svc5_irq_check - 1)                                        ; 89eb: 80          .        ; hi - Svc 5: unrecognised interrupt
+    equb >(dispatch_rts - 1)                                          ; 89ec: 8e          .        ; hi - Svc 6: BRK (no-op)
+    equb >(svc_7_osbyte - 1)                                          ; 89ed: 8e          .        ; hi - Svc 7: unrecognised OSBYTE
+    equb >(svc_8_osword - 1)                                          ; 89ee: a4          .        ; hi - Svc 8: unrecognised OSWORD
+    equb >(svc_9_help - 1)                                            ; 89ef: 8c          .        ; hi - Svc 9: *HELP
+    equb >(dispatch_rts - 1)                                          ; 89f0: 8e          .        ; hi - Svc 10: static workspace (no-op)
+    equb >(econet_restore - 1)                                        ; 89f1: 80          .        ; hi - Svc 11: NMI release (reclaim NMIs)
+    equb >(wait_idle_and_reset - 1)                                   ; 89f2: 89          .        ; hi - Svc 12: NMI claim (save NMI state)
+    equb >(svc_18_fs_select - 1)                                      ; 89f3: 8b          .        ; hi - Svc 18: filing system selection
+    equb >(lang_0_insert_remote_key - 1)                              ; 89f4: 95          .        ; hi - Lang 0: no language / Tube
+    equb >(lang_1_remote_boot - 1)                                    ; 89f5: 95          .        ; hi - Lang 1: normal startup
+    equb >(lang_2_save_palette_vdu - 1)                               ; 89f6: ac          .        ; hi - Lang 2: softkey byte (Electron)
+    equb >(lang_3_execute_at_0100 - 1)                                ; 89f7: 95          .        ; hi - Lang 3: softkey length (Electron)
+    equb >(lang_4_remote_validated - 1)                               ; 89f8: 95          .        ; hi - Lang 4: remote validated
+    equb >(fscv_0_opt_entry - 1)                                      ; 89f9: 9d          .        ; hi - FSCV 0: *OPT
+    equb >(fscv_1_eof - 1)                                            ; 89fa: 9d          .        ; hi - FSCV 1: EOF check
+    equb >(fscv_2_star_run - 1)                                       ; 89fb: a1          .        ; hi - FSCV 2: */ (run)
+    equb >(fscv_3_star_cmd - 1)                                       ; 89fc: a0          .        ; hi - FSCV 3: unrecognised star command
+    equb >(fscv_2_star_run - 1)                                       ; 89fd: a1          .        ; hi - FSCV 4: *RUN
+    equb >(fscv_5_cat - 1)                                            ; 89fe: ad          .        ; hi - FSCV 5: *CAT
+    equb >(fscv_6_shutdown - 1)                                       ; 89ff: 8f          .        ; hi - FSCV 6: shutdown
+    equb >(fscv_7_read_handles - 1)                                   ; 8a00: 92          .        ; hi - FSCV 7: read handle range
+    equb >(fsreply_0_print_dir - 1)                                   ; 8a01: af          .        ; hi - FS reply: print directory name
+    equb >(fsreply_1_copy_handles_boot - 1)                           ; 8a02: a3          .        ; hi - FS reply: copy handles + boot
+    equb >(fsreply_2_copy_handles - 1)                                ; 8a03: a3          .        ; hi - FS reply: copy handles
+    equb >(fsreply_3_set_csd - 1)                                     ; 8a04: a2          .        ; hi - FS reply: set CSD handle
+    equb >(fscv_2_star_run - 1)                                       ; 8a05: a1          .        ; hi - FS reply: notify + execute
+    equb >(fsreply_5_set_lib - 1)                                     ; 8a06: a2          .        ; hi - FS reply: set library handle
+    equb >(net_1_read_handle - 1)                                     ; 8a07: a0          .        ; hi - *NET1: read handle from packet
+    equb >(net_2_read_handle_entry - 1)                               ; 8a08: a0          .        ; hi - *NET2: read handle from workspace
+    equb >(net_3_close_handle - 1)                                    ; 8a09: a0          .        ; hi - *NET3: close handle
     equb &8a                                                          ; 8a0a: 8a          .     
 ; ***************************************************************************************
 ; Service call dispatch
@@ -5113,7 +5113,7 @@ ws_init_data = error_bad_station+2
 ; &910e used as index base 1 time by &8bd1
 .cmd_syntax_table
     equb syn_iam - cmd_syntax_strings - 2                             ; 910e: 06          .        ; Idx 0: (no syntax)
-    equb (syn_opt_dir - cmd_syntax_strings - 1) AND &FF               ; 910f: ff          .        ; Idx 1: "(<dir>)" (Y wraps via &FF)
+    equb (syn_opt_dir - cmd_syntax_strings - 1) AND &ff               ; 910f: ff          .        ; Idx 1: "(<dir>)" (Y wraps via &FF)
     equb syn_iam - cmd_syntax_strings - 1                             ; 9110: 07          .        ; Idx 2: "(<stn.id.>) <user id.>..."
     equb syn_object - cmd_syntax_strings - 1                          ; 9111: 34          4        ; Idx 3: "<object>"
     equb syn_file_offset - cmd_syntax_strings - 1                     ; 9112: 3d          =        ; Idx 4: "<filename> (<offset>...)"
@@ -8957,98 +8957,98 @@ bad_prefix = bad_str_anchor+1
 .cmd_table_fs_hi
     equs "ose"                                                        ; a3da: 6f 73 65    ose      ; *Close cont (dispatch hi base)
     equb &80                                                          ; a3dd: 80          .        ; No syntax
-    equw cmd_close-1                                                  ; a3de: 7e b9       ~.       ; Dispatch addr-1
+    equw cmd_close - 1                                                ; a3de: 7e b9       ~.       ; Dispatch addr-1
     equs "Dump"                                                       ; a3e0: 44 75 6d... Dum...   ; *Dump
     equb &c4                                                          ; a3e4: c4          .        ; V no arg; syn 4: <filename> ...
-    equw cmd_dump-1                                                   ; a3e5: 05 ba       ..       ; Dispatch addr-1
+    equw cmd_dump - 1                                                 ; a3e5: 05 ba       ..       ; Dispatch addr-1
     equs "Net"                                                        ; a3e7: 4e 65 74    Net      ; *Net (select NFS)
     equb &80                                                          ; a3ea: 80          .        ; No syntax
-    equw cmd_net_fs-1                                                 ; a3eb: 0d 8b       ..       ; Dispatch addr-1
+    equw cmd_net_fs - 1                                               ; a3eb: 0d 8b       ..       ; Dispatch addr-1
     equs "Pollps"                                                     ; a3ed: 50 6f 6c... Pol...   ; *Pollps
     equb &88                                                          ; a3f3: 88          .        ; Syn 8: (<stn. id.>|<ps type>)
-    equw cmd_pollps-1                                                 ; a3f4: 9e b1       ..       ; Dispatch addr-1
+    equw cmd_pollps - 1                                               ; a3f4: 9e b1       ..       ; Dispatch addr-1
     equs "Print"                                                      ; a3f6: 50 72 69... Pri...   ; *Print
     equb &cc                                                          ; a3fb: cc          .        ; V no arg; syn 12: <filename>
-    equw cmd_print-1                                                  ; a3fc: 87 b9       ..       ; Dispatch addr-1
+    equw cmd_print - 1                                                ; a3fc: 87 b9       ..       ; Dispatch addr-1
     equs "Prot"                                                       ; a3fe: 50 72 6f... Pro...   ; *Prot
     equb &8e                                                          ; a402: 8e          .        ; Syn 14: (protection-type keywords)
-    equw cmd_prot-1                                                   ; a403: ef b2       ..       ; Dispatch addr-1
+    equw cmd_prot - 1                                                 ; a403: ef b2       ..       ; Dispatch addr-1
     equs "PS"                                                         ; a405: 50 53       PS       ; *PS; syn 8: (<stn. id.>|<ps type>)
     equb &88                                                          ; a407: 88          .     
-    equw cmd_ps-1                                                     ; a408: cd af       ..       ; Dispatch addr-1
+    equw cmd_ps - 1                                                   ; a408: cd af       ..       ; Dispatch addr-1
     equs "Roff"                                                       ; a40a: 52 6f 66... Rof...   ; *Roff
     equb &80                                                          ; a40e: 80          .        ; No syntax
-    equw cmd_roff-1                                                   ; a40f: cb 8a       ..       ; Dispatch addr-1
+    equw cmd_roff - 1                                                 ; a40f: cb 8a       ..       ; Dispatch addr-1
     equs "Type"                                                       ; a411: 54 79 70... Typ...   ; *Type
     equb &cc                                                          ; a415: cc          .        ; V no arg; syn 12: <filename>
-    equw cmd_type-1                                                   ; a416: 84 b9       ..       ; Dispatch addr-1
+    equw cmd_type - 1                                                 ; a416: 84 b9       ..       ; Dispatch addr-1
     equs "Unprot"                                                     ; a418: 55 6e 70... Unp...   ; *Unprot
     equb &8e                                                          ; a41e: 8e          .        ; Syn 14: (protection-type keywords)
-    equw cmd_unprot-1                                                 ; a41f: 20 b3        .       ; Dispatch addr-1
+    equw cmd_unprot - 1                                               ; a41f: 20 b3        .       ; Dispatch addr-1
     equb &80                                                          ; a421: 80          .        ; End of utility sub-table
 .cmd_table_nfs
     equs "Access"                                                     ; a422: 41 63 63... Acc...   ; *Access
     equb &c9                                                          ; a428: c9          .        ; V no arg; syn 9: <obj> (L)(W)(R)...
-    equw cmd_fs_operation-1                                           ; a429: d1 92       ..       ; Dispatch addr-1
+    equw cmd_fs_operation - 1                                         ; a429: d1 92       ..       ; Dispatch addr-1
     equs "Bye"                                                        ; a42b: 42 79 65    Bye      ; *Bye
     equb &80                                                          ; a42e: 80          .        ; No syntax
-    equw cmd_bye-1                                                    ; a42f: 89 94       ..       ; Dispatch addr-1
+    equw cmd_bye - 1                                                  ; a42f: 89 94       ..       ; Dispatch addr-1
     equs "Cdir"                                                       ; a431: 43 64 69... Cdi...   ; *Cdir
     equb &c6                                                          ; a435: c6          .        ; V no arg; syn 6: <dir> (<number>)
-    equw cmd_cdir-1                                                   ; a436: fd ac       ..       ; Dispatch addr-1
+    equw cmd_cdir - 1                                                 ; a436: fd ac       ..       ; Dispatch addr-1
     equs "Delete"                                                     ; a438: 44 65 6c... Del...   ; *Delete
     equb &c3                                                          ; a43e: c3          .        ; V no arg; syn 3: <object>
-    equw cmd_fs_operation-1                                           ; a43f: d1 92       ..       ; Dispatch addr-1
+    equw cmd_fs_operation - 1                                         ; a43f: d1 92       ..       ; Dispatch addr-1
     equs "Dir"                                                        ; a441: 44 69 72    Dir      ; *Dir
     equb &81                                                          ; a444: 81          .        ; Syn 1: (<dir>)
-    equw cmd_dir-1                                                    ; a445: c8 93       ..       ; Dispatch addr-1
+    equw cmd_dir - 1                                                  ; a445: c8 93       ..       ; Dispatch addr-1
     equs "Ex"                                                         ; a447: 45 78       Ex       ; *Ex; syn 1: (<dir>)
     equb &81                                                          ; a449: 81          .     
-    equw cmd_ex-1                                                     ; a44a: 58 ad       X.       ; Dispatch addr-1
+    equw cmd_ex - 1                                                   ; a44a: 58 ad       X.       ; Dispatch addr-1
     equs "Flip"                                                       ; a44c: 46 6c 69... Fli...   ; *Flip
     equb &80                                                          ; a450: 80          .        ; No syntax
-    equw cmd_flip-1                                                   ; a451: 3d a3       =.       ; Dispatch addr-1
+    equw cmd_flip - 1                                                 ; a451: 3d a3       =.       ; Dispatch addr-1
     equs "FS"                                                         ; a453: 46 53       FS       ; *FS; syn 11: (<stn. id.>)
     equb &8b                                                          ; a455: 8b          .     
-    equw cmd_fs-1                                                     ; a456: 62 a0       b.       ; Dispatch addr-1
+    equw cmd_fs - 1                                                   ; a456: 62 a0       b.       ; Dispatch addr-1
     equs "Info"                                                       ; a458: 49 6e 66... Inf...   ; *Info
     equb &c3                                                          ; a45c: c3          .        ; V no arg; syn 3: <object>
-    equw cmd_fs_operation-1                                           ; a45d: d1 92       ..       ; Dispatch addr-1
+    equw cmd_fs_operation - 1                                         ; a45d: d1 92       ..       ; Dispatch addr-1
 ; &a45f used as index base 1 time by &8da4
 .cmd_table_nfs_iam
     equs "I am"                                                       ; a45f: 49 20 61... I a...   ; *I am
     equb &c2                                                          ; a463: c2          .        ; V no arg; syn 2: (<stn>) <user>...
-    equw cmd_iam-1                                                    ; a464: 6d 8d       m.       ; Dispatch addr-1
+    equw cmd_iam - 1                                                  ; a464: 6d 8d       m.       ; Dispatch addr-1
     equs "Lcat"                                                       ; a466: 4c 63 61... Lca...   ; *Lcat
     equb &81                                                          ; a46a: 81          .        ; Syn 1: (<dir>)
-    equw cmd_lcat-1                                                   ; a46b: 4c ad       L.       ; Dispatch addr-1
+    equw cmd_lcat - 1                                                 ; a46b: 4c ad       L.       ; Dispatch addr-1
     equs "Lex"                                                        ; a46d: 4c 65 78    Lex      ; *Lex
     equb &81                                                          ; a470: 81          .        ; Syn 1: (<dir>)
-    equw cmd_lex-1                                                    ; a471: 52 ad       R.       ; Dispatch addr-1
+    equw cmd_lex - 1                                                  ; a471: 52 ad       R.       ; Dispatch addr-1
     equs "Lib"                                                        ; a473: 4c 69 62    Lib      ; *Lib
     equb &c5                                                          ; a476: c5          .        ; V no arg; syn 5: <dir>
-    equw cmd_fs_operation-1                                           ; a477: d1 92       ..       ; Dispatch addr-1
+    equw cmd_fs_operation - 1                                         ; a477: d1 92       ..       ; Dispatch addr-1
     equs "Pass"                                                       ; a479: 50 61 73... Pas...   ; *Pass
     equb &c7                                                          ; a47d: c7          .        ; V no arg; syn 7: <pass> ...
-    equw cmd_pass-1                                                   ; a47e: b0 8d       ..       ; Dispatch addr-1
+    equw cmd_pass - 1                                                 ; a47e: b0 8d       ..       ; Dispatch addr-1
     equs "Remove"                                                     ; a480: 52 65 6d... Rem...   ; *Remove
     equb &c3                                                          ; a486: c3          .        ; V no arg; syn 3: <object>
-    equw cmd_remove-1                                                 ; a487: 45 af       E.       ; Dispatch addr-1
+    equw cmd_remove - 1                                               ; a487: 45 af       E.       ; Dispatch addr-1
     equs "Rename"                                                     ; a489: 52 65 6e... Ren...   ; *Rename
     equb &ca                                                          ; a48f: ca          .        ; V no arg; syn 10: <file> <new file>
-    equw cmd_rename-1                                                 ; a490: 76 93       v.       ; Dispatch addr-1
+    equw cmd_rename - 1                                               ; a490: 76 93       v.       ; Dispatch addr-1
     equs "Wipe"                                                       ; a492: 57 69 70... Wip...   ; *Wipe
     equb &81                                                          ; a496: 81          .        ; Syn 1: (<dir>)
-    equw cmd_wipe-1                                                   ; a497: 3c b3       <.       ; Dispatch addr-1
+    equw cmd_wipe - 1                                                 ; a497: 3c b3       <.       ; Dispatch addr-1
     equb &80                                                          ; a499: 80          .        ; End of NFS sub-table
 .cmd_table_help
     equb &09, &8e                                                     ; a49a: 09 8e       ..       ; &09/&8E: before help-only entries
     equs "Net"                                                        ; a49c: 4e 65 74    Net      ; *Net (local)
     equb &80                                                          ; a49f: 80          .        ; No syntax
-    equw help_net-1                                                   ; a4a0: 8a 8b       ..       ; Dispatch addr-1
+    equw help_net - 1                                                 ; a4a0: 8a 8b       ..       ; Dispatch addr-1
     equs "Utils"                                                      ; a4a2: 55 74 69... Uti...   ; *Utils
     equb &80                                                          ; a4a7: 80          .        ; No syntax
-    equw help_utils-1                                                 ; a4a8: 86 8b       ..       ; Dispatch addr-1
+    equw help_utils - 1                                               ; a4a8: 86 8b       ..       ; Dispatch addr-1
     equb &80                                                          ; a4aa: 80          .        ; End of help topic sub-table
 ; *Prot/*Unprot protection-type keyword table. The names are protection types (Halt, Peek, Poke, Jsr, Proc, Utils), not *Access file attributes. Each entry: ASCII name + flag byte (&80+) + OR mask + AND mask. *Prot ORs the lo byte, *Unprot ANDs the hi byte, to set/clear individual protection bits. Also listed by *HELP Prot/*HELP Unprot via the shared commands handler (syntax index 14). Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt
 .cmd_table_copro
@@ -9133,22 +9133,22 @@ bad_prefix = bad_str_anchor+1
 ; OSWORD dispatch table (7 entries, split lo/hi). PHA/PHA/RTS dispatch used by svc_8_osword. Maps OSWORD codes &0E-&14 to handler routines.
 ; &a508 used as index base 1 time by &a4f4
 .osword_dispatch_lo_table
-    equb <(osword_0e_handler-1)                                       ; a508: 15          .        ; lo-&0E: Read clock
-    equb <(rts_osword_setup-1)                                        ; a509: 06          .        ; lo-&0F: (unimplemented)
-    equb <(osword_10_handler-1)                                       ; a50a: 8a          .        ; lo-&10: Transmit
-    equb <(osword_11_handler-1)                                       ; a50b: a7          .        ; lo-&11: Receive
-    equb <(osword_12_handler-1)                                       ; a50c: 1b          .        ; lo-&12: Read station info
-    equb <(osword_13_dispatch-1)                                      ; a50d: 30          0        ; lo-&13: Misc operations
-    equb <(osword_14_handler-1)                                       ; a50e: cf          .        ; lo-&14: Bridge/net config
+    equb <(osword_0e_handler - 1)                                     ; a508: 15          .        ; lo-&0E: Read clock
+    equb <(rts_osword_setup - 1)                                      ; a509: 06          .        ; lo-&0F: (unimplemented)
+    equb <(osword_10_handler - 1)                                     ; a50a: 8a          .        ; lo-&10: Transmit
+    equb <(osword_11_handler - 1)                                     ; a50b: a7          .        ; lo-&11: Receive
+    equb <(osword_12_handler - 1)                                     ; a50c: 1b          .        ; lo-&12: Read station info
+    equb <(osword_13_dispatch - 1)                                    ; a50d: 30          0        ; lo-&13: Misc operations
+    equb <(osword_14_handler - 1)                                     ; a50e: cf          .        ; lo-&14: Bridge/net config
 ; &a50f used as index base 1 time by &a4f0
 .osword_dispatch_hi_table
-    equb >(osword_0e_handler-1)                                       ; a50f: a5          .        ; hi-&0E: Read clock
-    equb >(rts_osword_setup-1)                                        ; a510: a5          .        ; hi-&0F: (unimplemented)
-    equb >(osword_10_handler-1)                                       ; a511: a5          .        ; hi-&10: Transmit
-    equb >(osword_11_handler-1)                                       ; a512: a5          .        ; hi-&11: Receive
-    equb >(osword_12_handler-1)                                       ; a513: a6          .        ; hi-&12: Read station info
-    equb >(osword_13_dispatch-1)                                      ; a514: a6          .        ; hi-&13: Misc operations
-    equb >(osword_14_handler-1)                                       ; a515: a8          .        ; hi-&14: Bridge/net config
+    equb >(osword_0e_handler - 1)                                     ; a50f: a5          .        ; hi-&0E: Read clock
+    equb >(rts_osword_setup - 1)                                      ; a510: a5          .        ; hi-&0F: (unimplemented)
+    equb >(osword_10_handler - 1)                                     ; a511: a5          .        ; hi-&10: Transmit
+    equb >(osword_11_handler - 1)                                     ; a512: a5          .        ; hi-&11: Receive
+    equb >(osword_12_handler - 1)                                     ; a513: a6          .        ; hi-&12: Read station info
+    equb >(osword_13_dispatch - 1)                                    ; a514: a6          .        ; hi-&13: Misc operations
+    equb >(osword_14_handler - 1)                                     ; a515: a8          .        ; hi-&14: Bridge/net config
 .osword_0e_handler
     pha                                                               ; a516: 48          H        ; Save A for later test
     bit fs_flags                                                      ; a517: 2c 6c 0d    ,l.      ; Test station active flag
@@ -9396,44 +9396,44 @@ bad_prefix = bad_str_anchor+1
     rts                                                               ; a63e: 60          `        ; RTS dispatches to handler
 ; &a63f used as index base 1 time by &a63a
 .osword_13_lo_table
-    equb <(osword_13_read_station-1)                                  ; a63f: 62          b        ; lo-sub 0: read FS station
-    equb <(osword_13_set_station-1)                                   ; a640: 75          u        ; lo-sub 1: set FS station
-    equb <(osword_13_read_ws_pair-1)                                  ; a641: 09          .        ; lo-sub 2: read workspace pair
-    equb <(osword_13_write_ws_pair-1)                                 ; a642: 15          .        ; lo-sub 3: write workspace pair
-    equb <(osword_13_read_prot-1)                                     ; a643: 2a          *        ; lo-sub 4: read protection mask
-    equb <(osword_13_write_prot-1)                                    ; a644: 30          0        ; lo-sub 5: write protection mask
-    equb <(osword_13_read_handles-1)                                  ; a645: 36          6        ; lo-sub 6: read FCB handles
-    equb <(osword_13_set_handles-1)                                   ; a646: 46          F        ; lo-sub 7: set FCB handles
-    equb <(osword_13_read_rx_flag-1)                                  ; a647: e6          .        ; lo-sub 8: read RX flag
-    equb <(osword_13_read_rx_port-1)                                  ; a648: ef          .        ; lo-sub 9: read RX port
-    equb <(osword_13_read_error-1)                                    ; a649: fd          .        ; lo-sub 10: read error flag
-    equb <(osword_13_read_context-1)                                  ; a64a: 03          .        ; lo-sub 11: read context byte
-    equb <(osword_13_read_csd-1)                                      ; a64b: ea          .        ; lo-sub 12: read CSD path
-    equb <(osword_13_write_csd-1)                                     ; a64c: ed          .        ; lo-sub 13: write CSD path
-    equb <(osword_13_read_free_bufs-1)                                ; a64d: 09          .        ; lo-sub 14: read free buffers
-    equb <(osword_13_read_ctx_3-1)                                    ; a64e: 13          .        ; lo-sub 15: read 3 context bytes
-    equb <(osword_13_write_ctx_3-1)                                   ; a64f: 1e          .        ; lo-sub 16: write 3 context bytes
-    equb <(osword_13_bridge_query-1)                                  ; a650: 29          )        ; lo-sub 17: query bridge status
+    equb <(osword_13_read_station - 1)                                ; a63f: 62          b        ; lo-sub 0: read FS station
+    equb <(osword_13_set_station - 1)                                 ; a640: 75          u        ; lo-sub 1: set FS station
+    equb <(osword_13_read_ws_pair - 1)                                ; a641: 09          .        ; lo-sub 2: read workspace pair
+    equb <(osword_13_write_ws_pair - 1)                               ; a642: 15          .        ; lo-sub 3: write workspace pair
+    equb <(osword_13_read_prot - 1)                                   ; a643: 2a          *        ; lo-sub 4: read protection mask
+    equb <(osword_13_write_prot - 1)                                  ; a644: 30          0        ; lo-sub 5: write protection mask
+    equb <(osword_13_read_handles - 1)                                ; a645: 36          6        ; lo-sub 6: read FCB handles
+    equb <(osword_13_set_handles - 1)                                 ; a646: 46          F        ; lo-sub 7: set FCB handles
+    equb <(osword_13_read_rx_flag - 1)                                ; a647: e6          .        ; lo-sub 8: read RX flag
+    equb <(osword_13_read_rx_port - 1)                                ; a648: ef          .        ; lo-sub 9: read RX port
+    equb <(osword_13_read_error - 1)                                  ; a649: fd          .        ; lo-sub 10: read error flag
+    equb <(osword_13_read_context - 1)                                ; a64a: 03          .        ; lo-sub 11: read context byte
+    equb <(osword_13_read_csd - 1)                                    ; a64b: ea          .        ; lo-sub 12: read CSD path
+    equb <(osword_13_write_csd - 1)                                   ; a64c: ed          .        ; lo-sub 13: write CSD path
+    equb <(osword_13_read_free_bufs - 1)                              ; a64d: 09          .        ; lo-sub 14: read free buffers
+    equb <(osword_13_read_ctx_3 - 1)                                  ; a64e: 13          .        ; lo-sub 15: read 3 context bytes
+    equb <(osword_13_write_ctx_3 - 1)                                 ; a64f: 1e          .        ; lo-sub 16: write 3 context bytes
+    equb <(osword_13_bridge_query - 1)                                ; a650: 29          )        ; lo-sub 17: query bridge status
 ; &a651 used as index base 1 time by &a636
 .osword_13_hi_table
-    equb >(osword_13_read_station-1)                                  ; a651: a6          .        ; hi-sub 0: read FS station
-    equb >(osword_13_set_station-1)                                   ; a652: a6          .        ; hi-sub 1: set FS station
-    equb >(osword_13_read_ws_pair-1)                                  ; a653: a7          .        ; hi-sub 2: read workspace pair
-    equb >(osword_13_write_ws_pair-1)                                 ; a654: a7          .        ; hi-sub 3: write workspace pair
-    equb >(osword_13_read_prot-1)                                     ; a655: a7          .        ; hi-sub 4: read protection mask
-    equb >(osword_13_write_prot-1)                                    ; a656: a7          .        ; hi-sub 5: write protection mask
-    equb >(osword_13_read_handles-1)                                  ; a657: a7          .        ; hi-sub 6: read FCB handles
-    equb >(osword_13_set_handles-1)                                   ; a658: a7          .        ; hi-sub 7: set FCB handles
-    equb >(osword_13_read_rx_flag-1)                                  ; a659: a7          .        ; hi-sub 8: read RX flag
-    equb >(osword_13_read_rx_port-1)                                  ; a65a: a7          .        ; hi-sub 9: read RX port
-    equb >(osword_13_read_error-1)                                    ; a65b: a7          .        ; hi-sub 10: read error flag
-    equb >(osword_13_read_context-1)                                  ; a65c: a8          .        ; hi-sub 11: read context byte
-    equb >(osword_13_read_csd-1)                                      ; a65d: a6          .        ; hi-sub 12: read CSD path
-    equb >(osword_13_write_csd-1)                                     ; a65e: a6          .        ; hi-sub 13: write CSD path
-    equb >(osword_13_read_free_bufs-1)                                ; a65f: a8          .        ; hi-sub 14: read free buffers
-    equb >(osword_13_read_ctx_3-1)                                    ; a660: a8          .        ; hi-sub 15: read 3 context bytes
-    equb >(osword_13_write_ctx_3-1)                                   ; a661: a8          .        ; hi-sub 16: write 3 context bytes
-    equb >(osword_13_bridge_query-1)                                  ; a662: a8          .        ; hi-sub 17: query bridge status
+    equb >(osword_13_read_station - 1)                                ; a651: a6          .        ; hi-sub 0: read FS station
+    equb >(osword_13_set_station - 1)                                 ; a652: a6          .        ; hi-sub 1: set FS station
+    equb >(osword_13_read_ws_pair - 1)                                ; a653: a7          .        ; hi-sub 2: read workspace pair
+    equb >(osword_13_write_ws_pair - 1)                               ; a654: a7          .        ; hi-sub 3: write workspace pair
+    equb >(osword_13_read_prot - 1)                                   ; a655: a7          .        ; hi-sub 4: read protection mask
+    equb >(osword_13_write_prot - 1)                                  ; a656: a7          .        ; hi-sub 5: write protection mask
+    equb >(osword_13_read_handles - 1)                                ; a657: a7          .        ; hi-sub 6: read FCB handles
+    equb >(osword_13_set_handles - 1)                                 ; a658: a7          .        ; hi-sub 7: set FCB handles
+    equb >(osword_13_read_rx_flag - 1)                                ; a659: a7          .        ; hi-sub 8: read RX flag
+    equb >(osword_13_read_rx_port - 1)                                ; a65a: a7          .        ; hi-sub 9: read RX port
+    equb >(osword_13_read_error - 1)                                  ; a65b: a7          .        ; hi-sub 10: read error flag
+    equb >(osword_13_read_context - 1)                                ; a65c: a8          .        ; hi-sub 11: read context byte
+    equb >(osword_13_read_csd - 1)                                    ; a65d: a6          .        ; hi-sub 12: read CSD path
+    equb >(osword_13_write_csd - 1)                                   ; a65e: a6          .        ; hi-sub 13: write CSD path
+    equb >(osword_13_read_free_bufs - 1)                              ; a65f: a8          .        ; hi-sub 14: read free buffers
+    equb >(osword_13_read_ctx_3 - 1)                                  ; a660: a8          .        ; hi-sub 15: read 3 context bytes
+    equb >(osword_13_write_ctx_3 - 1)                                 ; a661: a8          .        ; hi-sub 16: write 3 context bytes
+    equb >(osword_13_bridge_query - 1)                                ; a662: a8          .        ; hi-sub 17: query bridge status
 ; ***************************************************************************************
 ; OSWORD &13 sub 0: read file server station
 ;
@@ -10148,26 +10148,26 @@ bridge_ws_init_data = compare_bridge_status+1
 ; 9-entry PHA/PHA/RTS table for OSWORD numbers 0-8. push_osword_handler_addr indexes by the OSWORD number, pushes the handler address-1, then RTS dispatches to the handler with the OSWORD number reloaded in A.
 ; &a98c used as index base 1 time by &a985
 .osword_handler_lo_table
-    equb <(dispatch_rts-1)                                            ; a98c: 41          A        ; lo OSWORD 0: no-op (RTS)
-    equb <(netv_print_data-1)                                         ; a98d: da          .        ; lo OSWORD 1: printer spool data
-    equb <(netv_print_data-1)                                         ; a98e: da          .        ; lo OSWORD 2: printer spool data
-    equb <(netv_print_data-1)                                         ; a98f: da          .        ; lo OSWORD 3: printer spool data
-    equb <(osword_4_handler-1)                                        ; a990: 9d          .        ; lo OSWORD 4: clear carry + abort
-    equb <(netv_spool_check-1)                                        ; a991: c5          .        ; lo OSWORD 5: spool buffer check
-    equb <(dispatch_rts-1)                                            ; a992: 41          A        ; lo OSWORD 6: no-op (RTS)
-    equb <(netv_claim_release-1)                                      ; a993: cf          .        ; lo OSWORD 7: claim/release handler
-    equb <(osword_8_handler-1)                                        ; a994: 3e          >        ; lo OSWORD 8: copy PB + abort
+    equb <(dispatch_rts - 1)                                          ; a98c: 41          A        ; lo OSWORD 0: no-op (RTS)
+    equb <(netv_print_data - 1)                                       ; a98d: da          .        ; lo OSWORD 1: printer spool data
+    equb <(netv_print_data - 1)                                       ; a98e: da          .        ; lo OSWORD 2: printer spool data
+    equb <(netv_print_data - 1)                                       ; a98f: da          .        ; lo OSWORD 3: printer spool data
+    equb <(osword_4_handler - 1)                                      ; a990: 9d          .        ; lo OSWORD 4: clear carry + abort
+    equb <(netv_spool_check - 1)                                      ; a991: c5          .        ; lo OSWORD 5: spool buffer check
+    equb <(dispatch_rts - 1)                                          ; a992: 41          A        ; lo OSWORD 6: no-op (RTS)
+    equb <(netv_claim_release - 1)                                    ; a993: cf          .        ; lo OSWORD 7: claim/release handler
+    equb <(osword_8_handler - 1)                                      ; a994: 3e          >        ; lo OSWORD 8: copy PB + abort
 ; &a995 used as index base 1 time by &a981
 .osword_handler_hi_table
-    equb >(dispatch_rts-1)                                            ; a995: 8e          .        ; hi OSWORD 0: no-op (RTS)
-    equb >(netv_print_data-1)                                         ; a996: aa          .        ; hi OSWORD 1: printer spool data
-    equb >(netv_print_data-1)                                         ; a997: aa          .        ; hi OSWORD 2: printer spool data
-    equb >(netv_print_data-1)                                         ; a998: aa          .        ; hi OSWORD 3: printer spool data
-    equb >(osword_4_handler-1)                                        ; a999: a9          .        ; hi OSWORD 4: clear carry + abort
-    equb >(netv_spool_check-1)                                        ; a99a: aa          .        ; hi OSWORD 5: spool buffer check
-    equb >(dispatch_rts-1)                                            ; a99b: 8e          .        ; hi OSWORD 6: no-op (RTS)
-    equb >(netv_claim_release-1)                                      ; a99c: a9          .        ; hi OSWORD 7: claim/release handler
-    equb >(osword_8_handler-1)                                        ; a99d: aa          .        ; hi OSWORD 8: copy PB + abort
+    equb >(dispatch_rts - 1)                                          ; a995: 8e          .        ; hi OSWORD 0: no-op (RTS)
+    equb >(netv_print_data - 1)                                       ; a996: aa          .        ; hi OSWORD 1: printer spool data
+    equb >(netv_print_data - 1)                                       ; a997: aa          .        ; hi OSWORD 2: printer spool data
+    equb >(netv_print_data - 1)                                       ; a998: aa          .        ; hi OSWORD 3: printer spool data
+    equb >(osword_4_handler - 1)                                      ; a999: a9          .        ; hi OSWORD 4: clear carry + abort
+    equb >(netv_spool_check - 1)                                      ; a99a: aa          .        ; hi OSWORD 5: spool buffer check
+    equb >(dispatch_rts - 1)                                          ; a99b: 8e          .        ; hi OSWORD 6: no-op (RTS)
+    equb >(netv_claim_release - 1)                                    ; a99c: a9          .        ; hi OSWORD 7: claim/release handler
+    equb >(osword_8_handler - 1)                                      ; a99d: aa          .        ; hi OSWORD 8: copy PB + abort
 ; ***************************************************************************************
 ; OSWORD 4 handler: clear carry and send abort
 ;
@@ -13975,7 +13975,7 @@ net_channel_err_string = err_net_chan_not_found+2
 ; Resume normal ROM address space
 ;
 ; The preceding 512 bytes are the source data for two relocated code blocks (see move() calls): page 5 source -> &0500-&05FF (Tube host code) page 6 source -> &0600-&06FF (Econet handlers) py8dis assembles those blocks at their runtime addresses (&0500/&0600) via org directives. This org restores the origin to the actual ROM address for the remaining non-relocated code.
-    sta brkv+1                                                        ; be90: 8d 03 02    ...      ; Store BRK vector high byte
+    sta brkv + 1                                                      ; be90: 8d 03 02    ...      ; Store BRK vector high byte
     lda #&8e                                                          ; be93: a9 8e       ..       ; A=&8E: Tube control register value
     sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...      ; Write Tube control register
     ldy #0                                                            ; be98: a0 00       ..       ; Y=0: copy 256 bytes per page
@@ -14570,7 +14570,7 @@ save pydis_start, pydis_end
 ;     bridge_txcb_init_table:                   1
 ;     bridge_ws_init_data:                      1
 ;     brkv:                                     1
-;     brkv+1:                                   1
+;     brkv + 1:                                 1
 ;     build_no_reply_error:                     1
 ;     build_simple_error:                       1
 ;     bytex:                                    1
@@ -14755,7 +14755,7 @@ save pydis_start, pydis_end
 ;     error_printer_jammed:                     1
 ;     error_syntax:                             1
 ;     evntv:                                    1
-;     evntv+1:                                  1
+;     evntv + 1:                                1
 ;     ex_print_col_sep:                         1
 ;     ex_set_lib_flag:                          1
 ;     extract_digit_value:                      1
@@ -14796,7 +14796,7 @@ save pydis_start, pydis_end
 ;     help_print_nfs_cmds:                      1
 ;     imm_op_build_reply:                       1
 ;     imm_op_discard:                           1
-;     imm_op_dispatch_lo-&81:                   1
+;     imm_op_dispatch_lo - &81:                 1
 ;     imm_param_base:                           1
 ;     immediate_op:                             1
 ;     inactive_retry:                           1

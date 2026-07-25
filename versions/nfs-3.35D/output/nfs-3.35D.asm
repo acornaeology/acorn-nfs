@@ -1361,81 +1361,81 @@ cmd_roff_str = copyright_string+3
 ; | &16    | FS reply handlers      | 27–32   |
 ; | &20    | *NET1–4 sub-commands   | 33–36   |
 .dispatch_0_lo
-    equb <(return_2-1)                                                ; 8021: 75          u        ; lo - Svc 0: already claimed (no-op)
-    equb <(svc_1_abs_workspace-1)                                     ; 8022: ab          .        ; lo - Svc 1: absolute workspace
-    equb <(svc_2_private_workspace-1)                                 ; 8023: b4          .        ; lo - Svc 2: private workspace
-    equb <(svc_3_autoboot-1)                                          ; 8024: 0c          .        ; lo - Svc 3: auto-boot
-    equb <(svc_4_star_command-1)                                      ; 8025: 82          .        ; lo - Svc 4: unrecognised star command
-    equb <(svc_5_unknown_irq-1)                                       ; 8026: 6b          k        ; lo - Svc 5: unrecognised interrupt
-    equb <(return_2-1)                                                ; 8027: 75          u        ; lo - Svc 6: BRK (no-op)
-    equb <(dispatch_net_cmd-1)                                        ; 8028: 68          h        ; lo - Svc 7: unrecognised OSBYTE
-    equb <(svc_8_osword-1)                                            ; 8029: 7d          }        ; lo - Svc 8: unrecognised OSWORD
-    equb <(svc_9_help-1)                                              ; 802a: f6          .        ; lo - Svc 9: *HELP
-    equb <(return_2-1)                                                ; 802b: 75          u        ; lo - Svc 10: static workspace (no-op)
-    equb <(svc_11_nmi_claim-1)                                        ; 802c: 68          h        ; lo - Svc 11: NMI release (reclaim NMIs)
-    equb <(svc_12_nmi_release-1)                                      ; 802d: 65          e        ; lo - Svc 12: NMI claim (save NMI state)
-    equb <(lang_0_insert_remote_key-1)                                ; 802e: c4          .        ; lo - Lang 0: no language / Tube
-    equb <(lang_1_remote_boot-1)                                      ; 802f: 76          v        ; lo - Lang 1: normal startup
-    equb <(lang_2_save_palette_vdu-1)                                 ; 8030: a3          .        ; lo - Lang 2: softkey byte (Electron)
-    equb <(lang_3_execute_at_0100-1)                                  ; 8031: a4          .        ; lo - Lang 3: softkey length (Electron)
-    equb <(lang_4_remote_validated-1)                                 ; 8032: b4          .        ; lo - Lang 4: remote validated
-    equb <(fscv_0_opt-1)                                              ; 8033: cb          .        ; lo - FSCV 0: *OPT
-    equb <(fscv_1_eof-1)                                              ; 8034: 50          P        ; lo - FSCV 1: EOF check
-    equb <(fscv_2_star_run-1)                                         ; 8035: c6          .        ; lo - FSCV 2: */ (run)
-    equb <(fscv_3_star_cmd-1)                                         ; 8036: b3          .        ; lo - FSCV 3: unrecognised star command
-    equb <(fscv_2_star_run-1)                                         ; 8037: c6          .        ; lo - FSCV 4: *RUN
-    equb <(fscv_5_cat-1)                                              ; 8038: ff          .        ; lo - FSCV 5: *CAT
-    equb <(fscv_6_shutdown-1)                                         ; 8039: 40          @        ; lo - FSCV 6: shutdown
-    equb <(fscv_7_read_handles-1)                                     ; 803a: 55          U        ; lo - FSCV 7: read handle range
-    equb <(fsreply_0_print_dir-1)                                     ; 803b: 5e          ^        ; lo - FS reply: print directory name
-    equb <(fsreply_1_copy_handles_boot-1)                             ; 803c: 27          '        ; lo - FS reply: copy handles + boot
-    equb <(fsreply_2_copy_handles-1)                                  ; 803d: 28          (        ; lo - FS reply: copy handles
-    equb <(fsreply_3_set_csd-1)                                       ; 803e: 21          !        ; lo - FS reply: set CSD handle
-    equb <(fsreply_4_notify_exec-1)                                   ; 803f: cc          .        ; lo - FS reply: notify + execute
-    equb <(fsreply_5_set_lib-1)                                       ; 8040: 1c          .        ; lo - FS reply: set library handle
-    equb <(net_1_read_handle-1)                                       ; 8041: 42          B        ; lo - *NET1: read handle from packet
-    equb <(net_2_read_handle_entry-1)                                 ; 8042: 5d          ]        ; lo - *NET2: read handle from workspace
-    equb <(net_3_close_handle-1)                                      ; 8043: 6d          m        ; lo - *NET3: close handle
+    equb <(return_2 - 1)                                              ; 8021: 75          u        ; lo - Svc 0: already claimed (no-op)
+    equb <(svc_1_abs_workspace - 1)                                   ; 8022: ab          .        ; lo - Svc 1: absolute workspace
+    equb <(svc_2_private_workspace - 1)                               ; 8023: b4          .        ; lo - Svc 2: private workspace
+    equb <(svc_3_autoboot - 1)                                        ; 8024: 0c          .        ; lo - Svc 3: auto-boot
+    equb <(svc_4_star_command - 1)                                    ; 8025: 82          .        ; lo - Svc 4: unrecognised star command
+    equb <(svc_5_unknown_irq - 1)                                     ; 8026: 6b          k        ; lo - Svc 5: unrecognised interrupt
+    equb <(return_2 - 1)                                              ; 8027: 75          u        ; lo - Svc 6: BRK (no-op)
+    equb <(dispatch_net_cmd - 1)                                      ; 8028: 68          h        ; lo - Svc 7: unrecognised OSBYTE
+    equb <(svc_8_osword - 1)                                          ; 8029: 7d          }        ; lo - Svc 8: unrecognised OSWORD
+    equb <(svc_9_help - 1)                                            ; 802a: f6          .        ; lo - Svc 9: *HELP
+    equb <(return_2 - 1)                                              ; 802b: 75          u        ; lo - Svc 10: static workspace (no-op)
+    equb <(svc_11_nmi_claim - 1)                                      ; 802c: 68          h        ; lo - Svc 11: NMI release (reclaim NMIs)
+    equb <(svc_12_nmi_release - 1)                                    ; 802d: 65          e        ; lo - Svc 12: NMI claim (save NMI state)
+    equb <(lang_0_insert_remote_key - 1)                              ; 802e: c4          .        ; lo - Lang 0: no language / Tube
+    equb <(lang_1_remote_boot - 1)                                    ; 802f: 76          v        ; lo - Lang 1: normal startup
+    equb <(lang_2_save_palette_vdu - 1)                               ; 8030: a3          .        ; lo - Lang 2: softkey byte (Electron)
+    equb <(lang_3_execute_at_0100 - 1)                                ; 8031: a4          .        ; lo - Lang 3: softkey length (Electron)
+    equb <(lang_4_remote_validated - 1)                               ; 8032: b4          .        ; lo - Lang 4: remote validated
+    equb <(fscv_0_opt - 1)                                            ; 8033: cb          .        ; lo - FSCV 0: *OPT
+    equb <(fscv_1_eof - 1)                                            ; 8034: 50          P        ; lo - FSCV 1: EOF check
+    equb <(fscv_2_star_run - 1)                                       ; 8035: c6          .        ; lo - FSCV 2: */ (run)
+    equb <(fscv_3_star_cmd - 1)                                       ; 8036: b3          .        ; lo - FSCV 3: unrecognised star command
+    equb <(fscv_2_star_run - 1)                                       ; 8037: c6          .        ; lo - FSCV 4: *RUN
+    equb <(fscv_5_cat - 1)                                            ; 8038: ff          .        ; lo - FSCV 5: *CAT
+    equb <(fscv_6_shutdown - 1)                                       ; 8039: 40          @        ; lo - FSCV 6: shutdown
+    equb <(fscv_7_read_handles - 1)                                   ; 803a: 55          U        ; lo - FSCV 7: read handle range
+    equb <(fsreply_0_print_dir - 1)                                   ; 803b: 5e          ^        ; lo - FS reply: print directory name
+    equb <(fsreply_1_copy_handles_boot - 1)                           ; 803c: 27          '        ; lo - FS reply: copy handles + boot
+    equb <(fsreply_2_copy_handles - 1)                                ; 803d: 28          (        ; lo - FS reply: copy handles
+    equb <(fsreply_3_set_csd - 1)                                     ; 803e: 21          !        ; lo - FS reply: set CSD handle
+    equb <(fsreply_4_notify_exec - 1)                                 ; 803f: cc          .        ; lo - FS reply: notify + execute
+    equb <(fsreply_5_set_lib - 1)                                     ; 8040: 1c          .        ; lo - FS reply: set library handle
+    equb <(net_1_read_handle - 1)                                     ; 8041: 42          B        ; lo - *NET1: read handle from packet
+    equb <(net_2_read_handle_entry - 1)                               ; 8042: 5d          ]        ; lo - *NET2: read handle from workspace
+    equb <(net_3_close_handle - 1)                                    ; 8043: 6d          m        ; lo - *NET3: close handle
 ; &8044 used as index base 1 time by &80df
-    equb <(net_4_resume_remote-1)                                     ; 8044: 89          .        ; lo - *NET4: resume remote
+    equb <(net_4_resume_remote - 1)                                   ; 8044: 89          .        ; lo - *NET4: resume remote
 ; Dispatch table: high bytes of (handler_address − 1). Paired with dispatch_0_lo. Together they form a table of 37 handler addresses, used via the PHA/PHA/RTS trick at dispatch.
 .dispatch_0_hi
-    equb >(return_2-1)                                                ; 8045: 81          .        ; hi - Svc 0: already claimed (no-op)
-    equb >(svc_1_abs_workspace-1)                                     ; 8046: 82          .        ; hi - Svc 1: absolute workspace
-    equb >(svc_2_private_workspace-1)                                 ; 8047: 82          .        ; hi - Svc 2: private workspace
-    equb >(svc_3_autoboot-1)                                          ; 8048: 82          .        ; hi - Svc 3: auto-boot
-    equb >(svc_4_star_command-1)                                      ; 8049: 81          .        ; hi - Svc 4: unrecognised star command
-    equb >(svc_5_unknown_irq-1)                                       ; 804a: 96          .        ; hi - Svc 5: unrecognised interrupt
-    equb >(return_2-1)                                                ; 804b: 81          .        ; hi - Svc 6: BRK (no-op)
-    equb >(dispatch_net_cmd-1)                                        ; 804c: 80          .        ; hi - Svc 7: unrecognised OSBYTE
-    equb >(svc_8_osword-1)                                            ; 804d: 8e          .        ; hi - Svc 8: unrecognised OSWORD
-    equb >(svc_9_help-1)                                              ; 804e: 81          .        ; hi - Svc 9: *HELP
-    equb >(return_2-1)                                                ; 804f: 81          .        ; hi - Svc 10: static workspace (no-op)
-    equb >(svc_11_nmi_claim-1)                                        ; 8050: 96          .        ; hi - Svc 11: NMI release (reclaim NMIs)
-    equb >(svc_12_nmi_release-1)                                      ; 8051: 96          .        ; hi - Svc 12: NMI claim (save NMI state)
-    equb >(lang_0_insert_remote_key-1)                                ; 8052: 84          .        ; hi - Lang 0: no language / Tube
-    equb >(lang_1_remote_boot-1)                                      ; 8053: 84          .        ; hi - Lang 1: normal startup
-    equb >(lang_2_save_palette_vdu-1)                                 ; 8054: 92          .        ; hi - Lang 2: softkey byte (Electron)
-    equb >(lang_3_execute_at_0100-1)                                  ; 8055: 84          .        ; hi - Lang 3: softkey length (Electron)
-    equb >(lang_4_remote_validated-1)                                 ; 8056: 84          .        ; hi - Lang 4: remote validated
-    equb >(fscv_0_opt-1)                                              ; 8057: 89          .        ; hi - FSCV 0: *OPT
-    equb >(fscv_1_eof-1)                                              ; 8058: 88          .        ; hi - FSCV 1: EOF check
-    equb >(fscv_2_star_run-1)                                         ; 8059: 8d          .        ; hi - FSCV 2: */ (run)
-    equb >(fscv_3_star_cmd-1)                                         ; 805a: 8b          .        ; hi - FSCV 3: unrecognised star command
-    equb >(fscv_2_star_run-1)                                         ; 805b: 8d          .        ; hi - FSCV 4: *RUN
-    equb >(fscv_5_cat-1)                                              ; 805c: 8b          .        ; hi - FSCV 5: *CAT
-    equb >(fscv_6_shutdown-1)                                         ; 805d: 83          .        ; hi - FSCV 6: shutdown
-    equb >(fscv_7_read_handles-1)                                     ; 805e: 86          .        ; hi - FSCV 7: read handle range
-    equb >(fsreply_0_print_dir-1)                                     ; 805f: 8d          .        ; hi - FS reply: print directory name
-    equb >(fsreply_1_copy_handles_boot-1)                             ; 8060: 8e          .        ; hi - FS reply: copy handles + boot
-    equb >(fsreply_2_copy_handles-1)                                  ; 8061: 8e          .        ; hi - FS reply: copy handles
-    equb >(fsreply_3_set_csd-1)                                       ; 8062: 8e          .        ; hi - FS reply: set CSD handle
-    equb >(fsreply_4_notify_exec-1)                                   ; 8063: 8d          .        ; hi - FS reply: notify + execute
-    equb >(fsreply_5_set_lib-1)                                       ; 8064: 8e          .        ; hi - FS reply: set library handle
-    equb >(net_1_read_handle-1)                                       ; 8065: 8e          .        ; hi - *NET1: read handle from packet
-    equb >(net_2_read_handle_entry-1)                                 ; 8066: 8e          .        ; hi - *NET2: read handle from workspace
-    equb >(net_3_close_handle-1)                                      ; 8067: 8e          .        ; hi - *NET3: close handle
-    equb >(net_4_resume_remote-1)                                     ; 8068: 81          .        ; hi - *NET4: resume remote
+    equb >(return_2 - 1)                                              ; 8045: 81          .        ; hi - Svc 0: already claimed (no-op)
+    equb >(svc_1_abs_workspace - 1)                                   ; 8046: 82          .        ; hi - Svc 1: absolute workspace
+    equb >(svc_2_private_workspace - 1)                               ; 8047: 82          .        ; hi - Svc 2: private workspace
+    equb >(svc_3_autoboot - 1)                                        ; 8048: 82          .        ; hi - Svc 3: auto-boot
+    equb >(svc_4_star_command - 1)                                    ; 8049: 81          .        ; hi - Svc 4: unrecognised star command
+    equb >(svc_5_unknown_irq - 1)                                     ; 804a: 96          .        ; hi - Svc 5: unrecognised interrupt
+    equb >(return_2 - 1)                                              ; 804b: 81          .        ; hi - Svc 6: BRK (no-op)
+    equb >(dispatch_net_cmd - 1)                                      ; 804c: 80          .        ; hi - Svc 7: unrecognised OSBYTE
+    equb >(svc_8_osword - 1)                                          ; 804d: 8e          .        ; hi - Svc 8: unrecognised OSWORD
+    equb >(svc_9_help - 1)                                            ; 804e: 81          .        ; hi - Svc 9: *HELP
+    equb >(return_2 - 1)                                              ; 804f: 81          .        ; hi - Svc 10: static workspace (no-op)
+    equb >(svc_11_nmi_claim - 1)                                      ; 8050: 96          .        ; hi - Svc 11: NMI release (reclaim NMIs)
+    equb >(svc_12_nmi_release - 1)                                    ; 8051: 96          .        ; hi - Svc 12: NMI claim (save NMI state)
+    equb >(lang_0_insert_remote_key - 1)                              ; 8052: 84          .        ; hi - Lang 0: no language / Tube
+    equb >(lang_1_remote_boot - 1)                                    ; 8053: 84          .        ; hi - Lang 1: normal startup
+    equb >(lang_2_save_palette_vdu - 1)                               ; 8054: 92          .        ; hi - Lang 2: softkey byte (Electron)
+    equb >(lang_3_execute_at_0100 - 1)                                ; 8055: 84          .        ; hi - Lang 3: softkey length (Electron)
+    equb >(lang_4_remote_validated - 1)                               ; 8056: 84          .        ; hi - Lang 4: remote validated
+    equb >(fscv_0_opt - 1)                                            ; 8057: 89          .        ; hi - FSCV 0: *OPT
+    equb >(fscv_1_eof - 1)                                            ; 8058: 88          .        ; hi - FSCV 1: EOF check
+    equb >(fscv_2_star_run - 1)                                       ; 8059: 8d          .        ; hi - FSCV 2: */ (run)
+    equb >(fscv_3_star_cmd - 1)                                       ; 805a: 8b          .        ; hi - FSCV 3: unrecognised star command
+    equb >(fscv_2_star_run - 1)                                       ; 805b: 8d          .        ; hi - FSCV 4: *RUN
+    equb >(fscv_5_cat - 1)                                            ; 805c: 8b          .        ; hi - FSCV 5: *CAT
+    equb >(fscv_6_shutdown - 1)                                       ; 805d: 83          .        ; hi - FSCV 6: shutdown
+    equb >(fscv_7_read_handles - 1)                                   ; 805e: 86          .        ; hi - FSCV 7: read handle range
+    equb >(fsreply_0_print_dir - 1)                                   ; 805f: 8d          .        ; hi - FS reply: print directory name
+    equb >(fsreply_1_copy_handles_boot - 1)                           ; 8060: 8e          .        ; hi - FS reply: copy handles + boot
+    equb >(fsreply_2_copy_handles - 1)                                ; 8061: 8e          .        ; hi - FS reply: copy handles
+    equb >(fsreply_3_set_csd - 1)                                     ; 8062: 8e          .        ; hi - FS reply: set CSD handle
+    equb >(fsreply_4_notify_exec - 1)                                 ; 8063: 8d          .        ; hi - FS reply: notify + execute
+    equb >(fsreply_5_set_lib - 1)                                     ; 8064: 8e          .        ; hi - FS reply: set library handle
+    equb >(net_1_read_handle - 1)                                     ; 8065: 8e          .        ; hi - *NET1: read handle from packet
+    equb >(net_2_read_handle_entry - 1)                               ; 8066: 8e          .        ; hi - *NET2: read handle from workspace
+    equb >(net_3_close_handle - 1)                                    ; 8067: 8e          .        ; hi - *NET3: close handle
+    equb >(net_4_resume_remote - 1)                                   ; 8068: 81          .        ; hi - *NET4: resume remote
 ; ***************************************************************************************
 ; *NET command dispatcher
 ;
@@ -1601,9 +1601,9 @@ cmd_roff_str = copyright_string+3
     dey                                                               ; 80db: 88          .        ; Decrement base offset counter
     bpl dispatch                                                      ; 80dc: 10 fc       ..       ; Loop until Y exhausted
     tay                                                               ; 80de: a8          .        ; Y=&FF (no further use)
-    lda dispatch_0_hi-1,x                                             ; 80df: bd 44 80    .D.      ; Load high byte of (handler - 1) from table
+    lda dispatch_0_hi - 1,x                                           ; 80df: bd 44 80    .D.      ; Load high byte of (handler - 1) from table
     pha                                                               ; 80e2: 48          H        ; Push high byte onto stack
-    lda dispatch_0_lo-1,x                                             ; 80e3: bd 20 80    . .      ; Load low byte of (handler - 1) from table
+    lda dispatch_0_lo - 1,x                                           ; 80e3: bd 20 80    . .      ; Load low byte of (handler - 1) from table
     pha                                                               ; 80e6: 48          H        ; Push low byte onto stack
     ldx fs_options                                                    ; 80e7: a6 bb       ..       ; Restore X (fileserver options) for use by handler
 ; &80e9 referenced 7 times by &806d, &8071, &80be, &80cc, &80d6, &80f2, &80fc
@@ -1673,7 +1673,7 @@ cmd_roff_str = copyright_string+3
     ldx return_2,y                                                    ; 8111: be 76 81    .v.      ; Load vector offset from table
     dey                                                               ; 8114: 88          .        ; Previous table byte
     lda return_2,y                                                    ; 8115: b9 76 81    .v.      ; Load vector high byte from table
-    sta userv+1,x                                                     ; 8118: 9d 01 02    ...      ; Store high byte at &0201+X
+    sta userv + 1,x                                                   ; 8118: 9d 01 02    ...      ; Store high byte at &0201+X
     dey                                                               ; 811b: 88          .        ; Previous table byte
     lda return_2,y                                                    ; 811c: b9 76 81    .v.      ; Load vector low byte from table
     sta userv,x                                                       ; 811f: 9d 00 02    ...      ; Store low byte at &0200+X
@@ -5053,20 +5053,20 @@ osword_12_handler = restore_rx_flags+2
     rts                                                               ; 8ea6: 60          `        ; RTS dispatches to pushed handler address
 ; &8ea7 used as index base 1 time by &8e93
 .osword_0f_tbl_lo
-    equb <(osword_0f_handler-1)                                       ; 8ea7: bf          .        ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
-    equb <(osword_10_handler-1)                                       ; 8ea8: 6d          m     
+    equb <(osword_0f_handler - 1)                                     ; 8ea7: bf          .        ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    equb <(osword_10_handler - 1)                                     ; 8ea8: 6d          m     
 .fs_osword_tbl_lo
-    equb <(osword_11_handler-1)                                       ; 8ea9: d9          .     
-    equb <(osword_12_dispatch-1)                                      ; 8eaa: fe          .     
-    equb <(econet_tx_rx-1)                                            ; 8eab: ec          .     
+    equb <(osword_11_handler - 1)                                     ; 8ea9: d9          .     
+    equb <(osword_12_dispatch - 1)                                    ; 8eaa: fe          .     
+    equb <(econet_tx_rx - 1)                                          ; 8eab: ec          .     
 ; &8eac used as index base 1 time by &8e8f
 .osword_0f_tbl_hi
-    equb >(osword_0f_handler-1)                                       ; 8eac: 8e          .        ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
-    equb >(osword_10_handler-1)                                       ; 8ead: 8f          .     
+    equb >(osword_0f_handler - 1)                                     ; 8eac: 8e          .        ; Dispatch table: high bytes for OSWORD &0F-&13 handlers
+    equb >(osword_10_handler - 1)                                     ; 8ead: 8f          .     
 .fs_osword_tbl_hi
-    equb >(osword_11_handler-1)                                       ; 8eae: 8e          .     
-    equb >(osword_12_dispatch-1)                                      ; 8eaf: 8e          .     
-    equb >(econet_tx_rx-1)                                            ; 8eb0: 8f          .     
+    equb >(osword_11_handler - 1)                                     ; 8eae: 8e          .     
+    equb >(osword_12_dispatch - 1)                                    ; 8eaf: 8e          .     
+    equb >(econet_tx_rx - 1)                                          ; 8eb0: 8f          .     
 ; ***************************************************************************************
 ; Bidirectional block copy between OSWORD param block and workspace.
 ;
@@ -5536,26 +5536,26 @@ osword_12_handler = restore_rx_flags+2
     rts                                                               ; 909f: 60          `        ; RTS dispatches to pushed handler
 ; &90a0 used as index base 1 time by &9099
 .osword_tbl_lo
-    equb <(return_2-1)                                                ; 90a0: 75          u     
-    equb <(remote_print_handler-1)                                    ; 90a1: d8          .     
-    equb <(remote_print_handler-1)                                    ; 90a2: d8          .     
-    equb <(remote_print_handler-1)                                    ; 90a3: d8          .     
-    equb <(nwrch_handler-1)                                           ; 90a4: b1          .     
-    equb <(printer_select_handler-1)                                  ; 90a5: c8          .     
-    equb <(return_2-1)                                                ; 90a6: 75          u     
-    equb <(remote_cmd_dispatch-1)                                     ; 90a7: d7          .     
-    equb <(remote_cmd_data-1)                                         ; 90a8: 41          A     
+    equb <(return_2 - 1)                                              ; 90a0: 75          u     
+    equb <(remote_print_handler - 1)                                  ; 90a1: d8          .     
+    equb <(remote_print_handler - 1)                                  ; 90a2: d8          .     
+    equb <(remote_print_handler - 1)                                  ; 90a3: d8          .     
+    equb <(nwrch_handler - 1)                                         ; 90a4: b1          .     
+    equb <(printer_select_handler - 1)                                ; 90a5: c8          .     
+    equb <(return_2 - 1)                                              ; 90a6: 75          u     
+    equb <(remote_cmd_dispatch - 1)                                   ; 90a7: d7          .     
+    equb <(remote_cmd_data - 1)                                       ; 90a8: 41          A     
 ; &90a9 used as index base 1 time by &9095
 .osword_tbl_hi
-    equb >(return_2-1)                                                ; 90a9: 81          .     
-    equb >(remote_print_handler-1)                                    ; 90aa: 91          .     
-    equb >(remote_print_handler-1)                                    ; 90ab: 91          .     
-    equb >(remote_print_handler-1)                                    ; 90ac: 91          .     
-    equb >(nwrch_handler-1)                                           ; 90ad: 90          .     
-    equb >(printer_select_handler-1)                                  ; 90ae: 91          .     
-    equb >(return_2-1)                                                ; 90af: 81          .     
-    equb >(remote_cmd_dispatch-1)                                     ; 90b0: 90          .     
-    equb >(remote_cmd_data-1)                                         ; 90b1: 91          .     
+    equb >(return_2 - 1)                                              ; 90a9: 81          .     
+    equb >(remote_print_handler - 1)                                  ; 90aa: 91          .     
+    equb >(remote_print_handler - 1)                                  ; 90ab: 91          .     
+    equb >(remote_print_handler - 1)                                  ; 90ac: 91          .     
+    equb >(nwrch_handler - 1)                                         ; 90ad: 90          .     
+    equb >(printer_select_handler - 1)                                ; 90ae: 91          .     
+    equb >(return_2 - 1)                                              ; 90af: 81          .     
+    equb >(remote_cmd_dispatch - 1)                                   ; 90b0: 90          .     
+    equb >(remote_cmd_data - 1)                                       ; 90b1: 91          .     
 ; ***************************************************************************************
 ; NETVEC reason 4: write character to network (NWRCH)
 ;
@@ -7023,22 +7023,22 @@ rx_port_operand = skip_buf_ptr_update+2
 ; &9aa2 referenced 2 times by &9a74, &9a78
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 9aa2: 4c 94 98    L..      ; Jump to discard handler
-    equb <(rx_imm_peek-1)                                             ; 9aa5: f0          .     
-    equb <(rx_imm_poke-1)                                             ; 9aa6: d2          .     
-    equb <(rx_imm_exec-1)                                             ; 9aa7: b4          .     
-    equb <(rx_imm_exec-1)                                             ; 9aa8: b4          .     
-    equb <(rx_imm_exec-1)                                             ; 9aa9: b4          .     
-    equb <(rx_imm_halt_cont-1)                                        ; 9aaa: 16          .     
-    equb <(rx_imm_halt_cont-1)                                        ; 9aab: 16          .     
-    equb <(rx_imm_machine_type-1)                                     ; 9aac: dd          .     
-    equb >(rx_imm_peek-1)                                             ; 9aad: 9a          .     
-    equb >(rx_imm_poke-1)                                             ; 9aae: 9a          .     
-    equb >(rx_imm_exec-1)                                             ; 9aaf: 9a          .     
-    equb >(rx_imm_exec-1)                                             ; 9ab0: 9a          .     
-    equb >(rx_imm_exec-1)                                             ; 9ab1: 9a          .     
-    equb >(rx_imm_halt_cont-1)                                        ; 9ab2: 9b          .     
-    equb >(rx_imm_halt_cont-1)                                        ; 9ab3: 9b          .     
-    equb >(rx_imm_machine_type-1)                                     ; 9ab4: 9a          .     
+    equb <(rx_imm_peek - 1)                                           ; 9aa5: f0          .     
+    equb <(rx_imm_poke - 1)                                           ; 9aa6: d2          .     
+    equb <(rx_imm_exec - 1)                                           ; 9aa7: b4          .     
+    equb <(rx_imm_exec - 1)                                           ; 9aa8: b4          .     
+    equb <(rx_imm_exec - 1)                                           ; 9aa9: b4          .     
+    equb <(rx_imm_halt_cont - 1)                                      ; 9aaa: 16          .     
+    equb <(rx_imm_halt_cont - 1)                                      ; 9aab: 16          .     
+    equb <(rx_imm_machine_type - 1)                                   ; 9aac: dd          .     
+    equb >(rx_imm_peek - 1)                                           ; 9aad: 9a          .     
+    equb >(rx_imm_poke - 1)                                           ; 9aae: 9a          .     
+    equb >(rx_imm_exec - 1)                                           ; 9aaf: 9a          .     
+    equb >(rx_imm_exec - 1)                                           ; 9ab0: 9a          .     
+    equb >(rx_imm_exec - 1)                                           ; 9ab1: 9a          .     
+    equb >(rx_imm_halt_cont - 1)                                      ; 9ab2: 9b          .     
+    equb >(rx_imm_halt_cont - 1)                                      ; 9ab3: 9b          .     
+    equb >(rx_imm_machine_type - 1)                                   ; 9ab4: 9a          .     
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
 ;
@@ -7251,16 +7251,16 @@ tx_nmi_lo_operand = tx_nmi_setup+1
     lda tx_cr2_operand,y                                              ; 9b9b: b9 1d 9b    ...      ; Load handler addr lo from table
     pha                                                               ; 9b9e: 48          H        ; Push handler lo
     rts                                                               ; 9b9f: 60          `        ; Dispatch via RTS (addr-1 on stack)
-    equb <(tx_done_jsr-1)                                             ; 9ba0: a9          .     
-    equb <(tx_done_user_proc-1)                                       ; 9ba1: b2          .     
-    equb <(tx_done_os_proc-1)                                         ; 9ba2: c0          .     
-    equb <(tx_done_halt-1)                                            ; 9ba3: cc          .     
-    equb <(tx_done_continue-1)                                        ; 9ba4: e3          .     
-    equb >(tx_done_jsr-1)                                             ; 9ba5: 9b          .     
-    equb >(tx_done_user_proc-1)                                       ; 9ba6: 9b          .     
-    equb >(tx_done_os_proc-1)                                         ; 9ba7: 9b          .     
-    equb >(tx_done_halt-1)                                            ; 9ba8: 9b          .     
-    equb >(tx_done_continue-1)                                        ; 9ba9: 9b          .     
+    equb <(tx_done_jsr - 1)                                           ; 9ba0: a9          .     
+    equb <(tx_done_user_proc - 1)                                     ; 9ba1: b2          .     
+    equb <(tx_done_os_proc - 1)                                       ; 9ba2: c0          .     
+    equb <(tx_done_halt - 1)                                          ; 9ba3: cc          .     
+    equb <(tx_done_continue - 1)                                      ; 9ba4: e3          .     
+    equb >(tx_done_jsr - 1)                                           ; 9ba5: 9b          .     
+    equb >(tx_done_user_proc - 1)                                     ; 9ba6: 9b          .     
+    equb >(tx_done_os_proc - 1)                                       ; 9ba7: 9b          .     
+    equb >(tx_done_halt - 1)                                          ; 9ba8: 9b          .     
+    equb >(tx_done_continue - 1)                                      ; 9ba9: 9b          .     
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
@@ -7516,22 +7516,22 @@ sr2_test_operand = test_line_idle+2
     lda intoff_test_inactive,y                                        ; 9cde: b9 62 9c    .b.      ; Look up handler address low from table
     pha                                                               ; 9ce1: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9ce2: 60          `        ; RTS dispatches to control-byte handler
-    equb <(tx_ctrl_peek-1)                                            ; 9ce3: f6          .     
-    equb <(tx_ctrl_poke-1)                                            ; 9ce4: fa          .     
-    equb <(tx_ctrl_proc-1)                                            ; 9ce5: 19          .     
-    equb <(tx_ctrl_proc-1)                                            ; 9ce6: 19          .     
-    equb <(tx_ctrl_proc-1)                                            ; 9ce7: 19          .     
-    equb <(tx_ctrl_exit-1)                                            ; 9ce8: 53          S     
-    equb <(tx_ctrl_exit-1)                                            ; 9ce9: 53          S     
-    equb <(imm_op_status3-1)                                          ; 9cea: f2          .     
-    equb >(tx_ctrl_peek-1)                                            ; 9ceb: 9c          .     
-    equb >(tx_ctrl_poke-1)                                            ; 9cec: 9c          .     
-    equb >(tx_ctrl_proc-1)                                            ; 9ced: 9d          .     
-    equb >(tx_ctrl_proc-1)                                            ; 9cee: 9d          .     
-    equb >(tx_ctrl_proc-1)                                            ; 9cef: 9d          .     
-    equb >(tx_ctrl_exit-1)                                            ; 9cf0: 9d          .     
-    equb >(tx_ctrl_exit-1)                                            ; 9cf1: 9d          .     
-    equb >(imm_op_status3-1)                                          ; 9cf2: 9c          .     
+    equb <(tx_ctrl_peek - 1)                                          ; 9ce3: f6          .     
+    equb <(tx_ctrl_poke - 1)                                          ; 9ce4: fa          .     
+    equb <(tx_ctrl_proc - 1)                                          ; 9ce5: 19          .     
+    equb <(tx_ctrl_proc - 1)                                          ; 9ce6: 19          .     
+    equb <(tx_ctrl_proc - 1)                                          ; 9ce7: 19          .     
+    equb <(tx_ctrl_exit - 1)                                          ; 9ce8: 53          S     
+    equb <(tx_ctrl_exit - 1)                                          ; 9ce9: 53          S     
+    equb <(imm_op_status3 - 1)                                        ; 9cea: f2          .     
+    equb >(tx_ctrl_peek - 1)                                          ; 9ceb: 9c          .     
+    equb >(tx_ctrl_poke - 1)                                          ; 9cec: 9c          .     
+    equb >(tx_ctrl_proc - 1)                                          ; 9ced: 9d          .     
+    equb >(tx_ctrl_proc - 1)                                          ; 9cee: 9d          .     
+    equb >(tx_ctrl_proc - 1)                                          ; 9cef: 9d          .     
+    equb >(tx_ctrl_exit - 1)                                          ; 9cf0: 9d          .     
+    equb >(tx_ctrl_exit - 1)                                          ; 9cf1: 9d          .     
+    equb >(imm_op_status3 - 1)                                        ; 9cf2: 9c          .     
 .imm_op_status3
     lda #3                                                            ; 9cf3: a9 03       ..       ; A=3: scout_status for PEEK
     bne store_status_calc_xfer                                        ; 9cf5: d0 25       .%    
@@ -8572,8 +8572,8 @@ save pydis_start, pydis_end
 ;     delay_between_tx:                         1
 ;     delay_nmi_disable:                        1
 ;     direct_attr_copy:                         1
-;     dispatch_0_hi-1:                          1
-;     dispatch_0_lo-1:                          1
+;     dispatch_0_hi - 1:                        1
+;     dispatch_0_lo - 1:                        1
 ;     dispatch_cmd:                             1
 ;     dispatch_fs_error:                        1
 ;     dispatch_service:                         1
@@ -8934,7 +8934,7 @@ save pydis_start, pydis_end
 ;     txcb_pos:                                 1
 ;     update_sequence_return:                   1
 ;     userv:                                    1
-;     userv+1:                                  1
+;     userv + 1:                                1
 ;     wait_fs_reply:                            1
 ;     wait_nmi_ready:                           1
 ;     work_ae:                                  1

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "schema_version": 2,
+    "schema_version": 4,
     "load_addr": 32768,
     "end_addr": 40960
   },
@@ -178,6 +178,7 @@
       "value": 8
     }
   ],
+  "macros": [],
   "subroutines": [
     {
       "addr": 65465,
@@ -2521,107 +2522,181 @@
     "osbyte": 65524,
     "oscli": 65527
   },
-  "memory_map": [],
-  "index_bases": [
+  "memory_map": [
     {
       "addr": 2,
-      "name": "zp_work_2"
+      "name": "zp_work_2",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3,
-      "name": "zp_work_3"
+      "name": "zp_work_3",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 174,
-      "name": "work_ae"
+      "name": "work_ae",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 175,
-      "name": "addr_work"
+      "name": "addr_work",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 194,
-      "name": "txcb_dest"
+      "name": "txcb_dest",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 199,
-      "name": "txcb_pos"
+      "name": "txcb_pos",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 257,
-      "name": "error_text"
+      "name": "error_text",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 258,
-      "name": "stk_timeout_mid"
+      "name": "stk_timeout_mid",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 259,
-      "name": "stk_frame_3"
+      "name": "stk_frame_3",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 260,
-      "name": "stk_timeout_hi"
+      "name": "stk_timeout_hi",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 262,
-      "name": "stk_frame_p"
+      "name": "stk_frame_p",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 296,
-      "name": "tube_osword_pb"
+      "name": "tube_osword_pb",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 1792,
-      "name": "string_buf"
+      "name": "string_buf",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3327,
-      "name": "nmi_code_base"
+      "name": "nmi_code_base",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3354,
-      "name": "nmi_shim_1a"
+      "name": "nmi_shim_1a",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3366,
-      "name": "tx_data_start"
+      "name": "tx_data_start",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3393,
-      "name": "rx_remote_addr"
+      "name": "rx_remote_addr",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3558,
-      "name": "nmi_sub_table"
+      "name": "nmi_sub_table",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3563,
-      "name": "fs_state_deb"
+      "name": "fs_state_deb",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3568,
-      "name": "rom_ws_table"
+      "name": "rom_ws_table",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3582,
-      "name": "fs_context_base"
+      "name": "fs_context_base",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3632,
-      "name": "fs_filename_buf"
+      "name": "fs_filename_buf",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3831,
-      "name": "fs_reply_data"
+      "name": "fs_reply_data",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3853,
-      "name": "fs_file_len"
+      "name": "fs_file_len",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 4064,
-      "name": "fs_error_buf"
+      "name": "fs_error_buf",
+      "access": [
+        "b"
+      ]
     }
   ],
   "regions": [],
@@ -2752,7 +2827,18 @@
         16
       ],
       "expressions": [
-        "copyright - language_entry"
+        {
+          "text": "copyright - language_entry",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "copyright"
+            },
+            "right": {
+              "sym": "language_entry"
+            }
+          }
+        }
       ]
     },
     {
@@ -2866,7 +2952,18 @@
         0
       ],
       "expressions": [
-        "msg_line_jammed - error_msg_table"
+        {
+          "text": "msg_line_jammed - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_line_jammed"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2880,7 +2977,18 @@
         13
       ],
       "expressions": [
-        "msg_net_error - error_msg_table"
+        {
+          "text": "msg_net_error - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_net_error"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2894,7 +3002,18 @@
         24
       ],
       "expressions": [
-        "msg_not_listening - error_msg_table"
+        {
+          "text": "msg_not_listening - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_not_listening"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2908,7 +3027,18 @@
         39
       ],
       "expressions": [
-        "msg_no_clock - error_msg_table"
+        {
+          "text": "msg_no_clock - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_no_clock"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2922,7 +3052,18 @@
         49
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2936,7 +3077,18 @@
         49
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2950,7 +3102,18 @@
         49
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2964,7 +3127,18 @@
         57
       ],
       "expressions": [
-        "msg_bad_option - error_msg_table"
+        {
+          "text": "msg_bad_option - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_bad_option"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -2978,7 +3152,18 @@
         69
       ],
       "expressions": [
-        "msg_no_reply - error_msg_table"
+        {
+          "text": "msg_no_reply - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_no_reply"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -3051,7 +3236,23 @@
         245
       ],
       "expressions": [
-        "<(return_1-1)"
+        {
+          "text": "<(return_1 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3065,7 +3266,23 @@
         187
       ],
       "expressions": [
-        "<(svc_1_abs_workspace-1)"
+        {
+          "text": "<(svc_1_abs_workspace - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33468,
+                "name": "svc_1_abs_workspace"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3079,7 +3296,23 @@
         196
       ],
       "expressions": [
-        "<(svc_2_private_workspace-1)"
+        {
+          "text": "<(svc_2_private_workspace - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33477,
+                "name": "svc_2_private_workspace"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3093,7 +3326,23 @@
         28
       ],
       "expressions": [
-        "<(svc_3_autoboot-1)"
+        {
+          "text": "<(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33309,
+                "name": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3107,7 +3356,23 @@
         180
       ],
       "expressions": [
-        "<(svc_4_star_command-1)"
+        {
+          "text": "<(svc_4_star_command - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33205,
+                "name": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3121,7 +3386,23 @@
         59
       ],
       "expressions": [
-        "<(svc5_irq_check-1)"
+        {
+          "text": "<(svc5_irq_check - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38460,
+                "name": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3135,7 +3416,23 @@
         245
       ],
       "expressions": [
-        "<(return_1-1)"
+        {
+          "text": "<(return_1 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3149,7 +3446,23 @@
         110
       ],
       "expressions": [
-        "<(dispatch_net_cmd-1)"
+        {
+          "text": "<(dispatch_net_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 32879,
+                "name": "dispatch_net_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3163,7 +3476,23 @@
         134
       ],
       "expressions": [
-        "<(svc_8_osword-1)"
+        {
+          "text": "<(svc_8_osword - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36487,
+                "name": "svc_8_osword"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3177,7 +3506,23 @@
         7
       ],
       "expressions": [
-        "<(svc_9_help-1)"
+        {
+          "text": "<(svc_9_help - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33288,
+                "name": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3191,7 +3536,23 @@
         245
       ],
       "expressions": [
-        "<(return_1-1)"
+        {
+          "text": "<(return_1 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3205,7 +3566,23 @@
         56
       ],
       "expressions": [
-        "<(econet_restore-1)"
+        {
+          "text": "<(econet_restore - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38457,
+                "name": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3219,7 +3596,23 @@
         53
       ],
       "expressions": [
-        "<(econet_save-1)"
+        {
+          "text": "<(econet_save - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38454,
+                "name": "econet_save"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3233,7 +3626,23 @@
         240
       ],
       "expressions": [
-        "<(svc_13_select_nfs-1)"
+        {
+          "text": "<(svc_13_select_nfs - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33265,
+                "name": "svc_13_select_nfs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3247,7 +3656,23 @@
         252
       ],
       "expressions": [
-        "<(lang_0_insert_remote_key-1)"
+        {
+          "text": "<(lang_0_insert_remote_key - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34045,
+                "name": "lang_0_insert_remote_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3261,7 +3686,23 @@
         174
       ],
       "expressions": [
-        "<(lang_1_remote_boot-1)"
+        {
+          "text": "<(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33967,
+                "name": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3275,7 +3716,23 @@
         170
       ],
       "expressions": [
-        "<(lang_2_save_palette_vdu-1)"
+        {
+          "text": "<(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37547,
+                "name": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3289,7 +3746,23 @@
         220
       ],
       "expressions": [
-        "<(lang_3_execute_at_0100-1)"
+        {
+          "text": "<(lang_3_execute_at_0100 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34013,
+                "name": "lang_3_execute_at_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3303,7 +3776,23 @@
         236
       ],
       "expressions": [
-        "<(lang_4_remote_validated-1)"
+        {
+          "text": "<(lang_4_remote_validated - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34029,
+                "name": "lang_4_remote_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3317,7 +3806,23 @@
         43
       ],
       "expressions": [
-        "<(fscv_0_opt_entry-1)"
+        {
+          "text": "<(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35372,
+                "name": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3331,7 +3836,23 @@
         172
       ],
       "expressions": [
-        "<(fscv_1_eof-1)"
+        {
+          "text": "<(fscv_1_eof - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34989,
+                "name": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3345,7 +3866,23 @@
         219
       ],
       "expressions": [
-        "<(fscv_2_star_run-1)"
+        {
+          "text": "<(fscv_2_star_run - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36316,
+                "name": "fscv_2_star_run"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3359,7 +3896,23 @@
         26
       ],
       "expressions": [
-        "<(fscv_3_star_cmd-1)"
+        {
+          "text": "<(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35867,
+                "name": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3373,7 +3926,23 @@
         219
       ],
       "expressions": [
-        "<(fscv_2_star_run-1)"
+        {
+          "text": "<(fscv_2_star_run - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36316,
+                "name": "fscv_2_star_run"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3387,7 +3956,23 @@
         102
       ],
       "expressions": [
-        "<(fscv_5_cat-1)"
+        {
+          "text": "<(fscv_5_cat - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35943,
+                "name": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3401,7 +3986,23 @@
         80
       ],
       "expressions": [
-        "<(fscv_6_shutdown-1)"
+        {
+          "text": "<(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33617,
+                "name": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3415,7 +4016,23 @@
         202
       ],
       "expressions": [
-        "<(fscv_7_read_handles-1)"
+        {
+          "text": "<(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34507,
+                "name": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3429,7 +4046,23 @@
         149
       ],
       "expressions": [
-        "<(fsreply_0_print_dir-1)"
+        {
+          "text": "<(fsreply_0_print_dir - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36246,
+                "name": "fsreply_0_print_dir"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3443,7 +4076,23 @@
         55
       ],
       "expressions": [
-        "<(fsreply_1_copy_handles_boot-1)"
+        {
+          "text": "<(fsreply_1_copy_handles_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36408,
+                "name": "fsreply_1_copy_handles_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3457,7 +4106,23 @@
         56
       ],
       "expressions": [
-        "<(fsreply_2_copy_handles-1)"
+        {
+          "text": "<(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36409,
+                "name": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3471,7 +4136,23 @@
         49
       ],
       "expressions": [
-        "<(fsreply_3_set_csd-1)"
+        {
+          "text": "<(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36402,
+                "name": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3485,7 +4166,23 @@
         225
       ],
       "expressions": [
-        "<(fsreply_4_notify_exec-1)"
+        {
+          "text": "<(fsreply_4_notify_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36322,
+                "name": "fsreply_4_notify_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3499,7 +4196,23 @@
         44
       ],
       "expressions": [
-        "<(fsreply_5_set_lib-1)"
+        {
+          "text": "<(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36397,
+                "name": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3513,7 +4226,23 @@
         102
       ],
       "expressions": [
-        "<(net_1_read_handle-1)"
+        {
+          "text": "<(net_1_read_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36455,
+                "name": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3527,7 +4256,23 @@
         108
       ],
       "expressions": [
-        "<(net_2_read_handle_entry-1)"
+        {
+          "text": "<(net_2_read_handle_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36461,
+                "name": "net_2_read_handle_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3541,7 +4286,23 @@
         124
       ],
       "expressions": [
-        "<(net_3_close_handle-1)"
+        {
+          "text": "<(net_3_close_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36477,
+                "name": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3564,7 +4325,23 @@
         187
       ],
       "expressions": [
-        "<(net_4_resume_remote-1)"
+        {
+          "text": "<(net_4_resume_remote - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33212,
+                "name": "net_4_resume_remote"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3584,7 +4361,23 @@
         128
       ],
       "expressions": [
-        ">(return_1-1)"
+        {
+          "text": ">(return_1 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3598,7 +4391,23 @@
         130
       ],
       "expressions": [
-        ">(svc_1_abs_workspace-1)"
+        {
+          "text": ">(svc_1_abs_workspace - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33468,
+                "name": "svc_1_abs_workspace"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3612,7 +4421,23 @@
         130
       ],
       "expressions": [
-        ">(svc_2_private_workspace-1)"
+        {
+          "text": ">(svc_2_private_workspace - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33477,
+                "name": "svc_2_private_workspace"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3626,7 +4451,23 @@
         130
       ],
       "expressions": [
-        ">(svc_3_autoboot-1)"
+        {
+          "text": ">(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33309,
+                "name": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3640,7 +4481,23 @@
         129
       ],
       "expressions": [
-        ">(svc_4_star_command-1)"
+        {
+          "text": ">(svc_4_star_command - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33205,
+                "name": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3654,7 +4511,23 @@
         150
       ],
       "expressions": [
-        ">(svc5_irq_check-1)"
+        {
+          "text": ">(svc5_irq_check - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38460,
+                "name": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3668,7 +4541,23 @@
         128
       ],
       "expressions": [
-        ">(return_1-1)"
+        {
+          "text": ">(return_1 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3682,7 +4571,23 @@
         128
       ],
       "expressions": [
-        ">(dispatch_net_cmd-1)"
+        {
+          "text": ">(dispatch_net_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 32879,
+                "name": "dispatch_net_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3696,7 +4601,23 @@
         142
       ],
       "expressions": [
-        ">(svc_8_osword-1)"
+        {
+          "text": ">(svc_8_osword - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36487,
+                "name": "svc_8_osword"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3710,7 +4631,23 @@
         130
       ],
       "expressions": [
-        ">(svc_9_help-1)"
+        {
+          "text": ">(svc_9_help - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33288,
+                "name": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3724,7 +4661,23 @@
         128
       ],
       "expressions": [
-        ">(return_1-1)"
+        {
+          "text": ">(return_1 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3738,7 +4691,23 @@
         150
       ],
       "expressions": [
-        ">(econet_restore-1)"
+        {
+          "text": ">(econet_restore - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38457,
+                "name": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3752,7 +4721,23 @@
         150
       ],
       "expressions": [
-        ">(econet_save-1)"
+        {
+          "text": ">(econet_save - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 38454,
+                "name": "econet_save"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3766,7 +4751,23 @@
         129
       ],
       "expressions": [
-        ">(svc_13_select_nfs-1)"
+        {
+          "text": ">(svc_13_select_nfs - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33265,
+                "name": "svc_13_select_nfs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3780,7 +4781,23 @@
         132
       ],
       "expressions": [
-        ">(lang_0_insert_remote_key-1)"
+        {
+          "text": ">(lang_0_insert_remote_key - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34045,
+                "name": "lang_0_insert_remote_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3794,7 +4811,23 @@
         132
       ],
       "expressions": [
-        ">(lang_1_remote_boot-1)"
+        {
+          "text": ">(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33967,
+                "name": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3808,7 +4841,23 @@
         146
       ],
       "expressions": [
-        ">(lang_2_save_palette_vdu-1)"
+        {
+          "text": ">(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37547,
+                "name": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3822,7 +4871,23 @@
         132
       ],
       "expressions": [
-        ">(lang_3_execute_at_0100-1)"
+        {
+          "text": ">(lang_3_execute_at_0100 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34013,
+                "name": "lang_3_execute_at_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3836,7 +4901,23 @@
         132
       ],
       "expressions": [
-        ">(lang_4_remote_validated-1)"
+        {
+          "text": ">(lang_4_remote_validated - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34029,
+                "name": "lang_4_remote_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3850,7 +4931,23 @@
         138
       ],
       "expressions": [
-        ">(fscv_0_opt_entry-1)"
+        {
+          "text": ">(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35372,
+                "name": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3864,7 +4961,23 @@
         136
       ],
       "expressions": [
-        ">(fscv_1_eof-1)"
+        {
+          "text": ">(fscv_1_eof - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34989,
+                "name": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3878,7 +4991,23 @@
         141
       ],
       "expressions": [
-        ">(fscv_2_star_run-1)"
+        {
+          "text": ">(fscv_2_star_run - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36316,
+                "name": "fscv_2_star_run"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3892,7 +5021,23 @@
         140
       ],
       "expressions": [
-        ">(fscv_3_star_cmd-1)"
+        {
+          "text": ">(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35867,
+                "name": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3906,7 +5051,23 @@
         141
       ],
       "expressions": [
-        ">(fscv_2_star_run-1)"
+        {
+          "text": ">(fscv_2_star_run - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36316,
+                "name": "fscv_2_star_run"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3920,7 +5081,23 @@
         140
       ],
       "expressions": [
-        ">(fscv_5_cat-1)"
+        {
+          "text": ">(fscv_5_cat - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 35943,
+                "name": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3934,7 +5111,23 @@
         131
       ],
       "expressions": [
-        ">(fscv_6_shutdown-1)"
+        {
+          "text": ">(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33617,
+                "name": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3948,7 +5141,23 @@
         134
       ],
       "expressions": [
-        ">(fscv_7_read_handles-1)"
+        {
+          "text": ">(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 34507,
+                "name": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3962,7 +5171,23 @@
         141
       ],
       "expressions": [
-        ">(fsreply_0_print_dir-1)"
+        {
+          "text": ">(fsreply_0_print_dir - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36246,
+                "name": "fsreply_0_print_dir"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3976,7 +5201,23 @@
         142
       ],
       "expressions": [
-        ">(fsreply_1_copy_handles_boot-1)"
+        {
+          "text": ">(fsreply_1_copy_handles_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36408,
+                "name": "fsreply_1_copy_handles_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -3990,7 +5231,23 @@
         142
       ],
       "expressions": [
-        ">(fsreply_2_copy_handles-1)"
+        {
+          "text": ">(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36409,
+                "name": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4004,7 +5261,23 @@
         142
       ],
       "expressions": [
-        ">(fsreply_3_set_csd-1)"
+        {
+          "text": ">(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36402,
+                "name": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4018,7 +5291,23 @@
         141
       ],
       "expressions": [
-        ">(fsreply_4_notify_exec-1)"
+        {
+          "text": ">(fsreply_4_notify_exec - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36322,
+                "name": "fsreply_4_notify_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4032,7 +5321,23 @@
         142
       ],
       "expressions": [
-        ">(fsreply_5_set_lib-1)"
+        {
+          "text": ">(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36397,
+                "name": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4046,7 +5351,23 @@
         142
       ],
       "expressions": [
-        ">(net_1_read_handle-1)"
+        {
+          "text": ">(net_1_read_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36455,
+                "name": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4060,7 +5381,23 @@
         142
       ],
       "expressions": [
-        ">(net_2_read_handle_entry-1)"
+        {
+          "text": ">(net_2_read_handle_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36461,
+                "name": "net_2_read_handle_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4074,7 +5411,23 @@
         142
       ],
       "expressions": [
-        ">(net_3_close_handle-1)"
+        {
+          "text": ">(net_3_close_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36477,
+                "name": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4088,7 +5441,23 @@
         129
       ],
       "expressions": [
-        ">(net_4_resume_remote-1)"
+        {
+          "text": ">(net_4_resume_remote - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33212,
+                "name": "net_4_resume_remote"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -4965,7 +6334,7 @@
       "comment_inline": "Load high byte of (handler - 1) from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "dispatch_0_hi-1,x",
+      "operand": "dispatch_0_hi - 1,x",
       "target": 32841
     },
     {
@@ -4987,7 +6356,7 @@
       "comment_inline": "Load low byte of (handler - 1) from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "dispatch_0_lo-1,x",
+      "operand": "dispatch_0_lo - 1,x",
       "target": 32804
     },
     {
@@ -5459,7 +6828,13 @@
       "comment_inline": "OSBYTE &14: explode character RAM",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_explode_chars"
+      "operand": "#osbyte_explode_chars",
+      "expr": {
+        "text": "osbyte_explode_chars",
+        "tree": {
+          "sym": "osbyte_explode_chars"
+        }
+      }
     },
     {
       "addr": 33073,
@@ -5631,7 +7006,7 @@
       "comment_inline": "Set EVNTV high byte at &0221",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "evntv+1",
+      "operand": "evntv + 1",
       "target": 545
     },
     {
@@ -5680,7 +7055,7 @@
       "comment_inline": "Set BRKV high byte at &0203",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "brkv+1",
+      "operand": "brkv + 1",
       "target": 515
     },
     {
@@ -6376,7 +7751,19 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#cmd_roff_str - binary_version"
+      "operand": "#cmd_roff_str - binary_version",
+      "expr": {
+        "text": "cmd_roff_str - binary_version",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "cmd_roff_str"
+          },
+          "right": {
+            "sym": "binary_version"
+          }
+        }
+      }
     },
     {
       "addr": 33207,
@@ -6494,7 +7881,13 @@
       "comment_inline": "OSBYTE &C9: Econet keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_kbd_disable"
+      "operand": "#osbyte_econet_kbd_disable",
+      "expr": {
+        "text": "osbyte_econet_kbd_disable",
+        "tree": {
+          "sym": "osbyte_econet_kbd_disable"
+        }
+      }
     },
     {
       "addr": 33226,
@@ -6569,7 +7962,13 @@
       "comment_inline": "OSBYTE &CE: first system mask to reset",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_oscall_intercept"
+      "operand": "#osbyte_econet_oscall_intercept",
+      "expr": {
+        "text": "osbyte_econet_oscall_intercept",
+        "tree": {
+          "sym": "osbyte_econet_oscall_intercept"
+        }
+      }
     },
     {
       "addr": 33238,
@@ -6740,7 +8139,19 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#cmd_net_str - binary_version"
+      "operand": "#cmd_net_str - binary_version",
+      "expr": {
+        "text": "cmd_net_str - binary_version",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "cmd_net_str"
+          },
+          "right": {
+            "sym": "binary_version"
+          }
+        }
+      }
     },
     {
       "addr": 33260,
@@ -7058,7 +8469,13 @@
       "comment_inline": "OSBYTE &7A: scan keyboard",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_scan_keyboard_from_16"
+      "operand": "#osbyte_scan_keyboard_from_16",
+      "expr": {
+        "text": "osbyte_scan_keyboard_from_16",
+        "tree": {
+          "sym": "osbyte_scan_keyboard_from_16"
+        }
+      }
     },
     {
       "addr": 33314,
@@ -7139,7 +8556,13 @@
       "comment_inline": "OSBYTE &78: clear key-pressed state",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_write_keys_pressed"
+      "operand": "#osbyte_write_keys_pressed",
+      "expr": {
+        "text": "osbyte_write_keys_pressed",
+        "tree": {
+          "sym": "osbyte_write_keys_pressed"
+        }
+      }
     },
     {
       "addr": 33327,
@@ -7528,7 +8951,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_issue_service_request"
+      "operand": "#osbyte_issue_service_request",
+      "expr": {
+        "text": "osbyte_issue_service_request",
+        "tree": {
+          "sym": "osbyte_issue_service_request"
+        }
+      }
     },
     {
       "addr": 33405,
@@ -8169,7 +9598,13 @@
       "comment_inline": "OSBYTE &FD: read type of last reset",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_last_break_type"
+      "operand": "#osbyte_last_break_type",
+      "expr": {
+        "text": "osbyte_last_break_type",
+        "tree": {
+          "sym": "osbyte_last_break_type"
+        }
+      }
     },
     {
       "addr": 33502,
@@ -8618,7 +10053,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_rom_ptr_table_low"
+      "operand": "#osbyte_read_rom_ptr_table_low",
+      "expr": {
+        "text": "osbyte_read_rom_ptr_table_low",
+        "tree": {
+          "sym": "osbyte_read_rom_ptr_table_low"
+        }
+      }
     },
     {
       "addr": 33575,
@@ -8989,7 +10430,13 @@
       "comment_inline": "A=&77: OSBYTE close spool/exec",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 33631,
@@ -9850,7 +11297,13 @@
       "comment_inline": "A=&77: OSBYTE close spool/exec",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 33730,
@@ -11003,7 +12456,13 @@
       "comment_inline": "A=&C6: read *EXEC file handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_exec_file_handle"
+      "operand": "#osbyte_exec_file_handle",
+      "expr": {
+        "text": "osbyte_exec_file_handle",
+        "tree": {
+          "sym": "osbyte_exec_file_handle"
+        }
+      }
     },
     {
       "addr": 33886,
@@ -11552,7 +13011,13 @@
       "comment_inline": "OSBYTE &7E: acknowledge escape condition",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_acknowledge_escape"
+      "operand": "#osbyte_acknowledge_escape",
+      "expr": {
+        "text": "osbyte_acknowledge_escape",
+        "tree": {
+          "sym": "osbyte_acknowledge_escape"
+        }
+      }
     },
     {
       "addr": 33961,
@@ -11868,7 +13333,13 @@
       "comment_inline": "Disable keyboard for remote session",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_kbd_disable"
+      "operand": "#osbyte_econet_kbd_disable",
+      "expr": {
+        "text": "osbyte_econet_kbd_disable",
+        "tree": {
+          "sym": "osbyte_econet_kbd_disable"
+        }
+      }
     },
     {
       "addr": 34010,
@@ -12172,7 +13643,13 @@
       "comment_inline": "OSBYTE &99: insert char into input buffer",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_insert_input_buffer"
+      "operand": "#osbyte_insert_input_buffer",
+      "expr": {
+        "text": "osbyte_insert_input_buffer",
+        "tree": {
+          "sym": "osbyte_insert_input_buffer"
+        }
+      }
     },
     {
       "addr": 34057,
@@ -21421,7 +22898,13 @@
       "comment_inline": "Close SPOOL/EXEC before FS close-all",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 35349,
@@ -29346,7 +30829,24 @@
         }
       ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_0f_handler - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "ref": 36546,
+              "name": "osword_0f_handler"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 36536,
@@ -29371,7 +30871,23 @@
         193
       ],
       "expressions": [
-        "<(osword_0f_handler-1)"
+        {
+          "text": "<(osword_0f_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36546,
+                "name": "osword_0f_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29385,7 +30901,23 @@
         123
       ],
       "expressions": [
-        "<(osword_10_handler-1)"
+        {
+          "text": "<(osword_10_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36732,
+                "name": "osword_10_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29399,7 +30931,23 @@
         219
       ],
       "expressions": [
-        "<(osword_11_handler-1)"
+        {
+          "text": "<(osword_11_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36572,
+                "name": "osword_11_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29413,7 +30961,23 @@
         0
       ],
       "expressions": [
-        "<(osword_12_dispatch-1)"
+        {
+          "text": "<(osword_12_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36609,
+                "name": "osword_12_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29427,7 +30991,23 @@
         239
       ],
       "expressions": [
-        "<(econet_tx_rx-1)"
+        {
+          "text": "<(econet_tx_rx - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36848,
+                "name": "econet_tx_rx"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29453,7 +31033,23 @@
         142
       ],
       "expressions": [
-        ">(osword_0f_handler-1)"
+        {
+          "text": ">(osword_0f_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36546,
+                "name": "osword_0f_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29467,7 +31063,23 @@
         143
       ],
       "expressions": [
-        ">(osword_10_handler-1)"
+        {
+          "text": ">(osword_10_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36732,
+                "name": "osword_10_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29481,7 +31093,23 @@
         142
       ],
       "expressions": [
-        ">(osword_11_handler-1)"
+        {
+          "text": ">(osword_11_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36572,
+                "name": "osword_11_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29495,7 +31123,23 @@
         143
       ],
       "expressions": [
-        ">(osword_12_dispatch-1)"
+        {
+          "text": ">(osword_12_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36609,
+                "name": "osword_12_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -29509,7 +31153,23 @@
         143
       ],
       "expressions": [
-        ">(econet_tx_rx-1)"
+        {
+          "text": ">(econet_tx_rx - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 36848,
+                "name": "econet_tx_rx"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -32995,7 +34655,24 @@
       ],
       "comment_inline": "RTS dispatches to pushed handler",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(return_1 - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "ref": 33014,
+              "name": "return_1"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 37028,
@@ -33020,7 +34697,23 @@
         245
       ],
       "expressions": [
-        "<(return_1-1)"
+        {
+          "text": "<(return_1 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33034,7 +34727,23 @@
         233
       ],
       "expressions": [
-        "<(remote_print_handler-1)"
+        {
+          "text": "<(remote_print_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33048,7 +34757,23 @@
         233
       ],
       "expressions": [
-        "<(remote_print_handler-1)"
+        {
+          "text": "<(remote_print_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33062,7 +34787,23 @@
         233
       ],
       "expressions": [
-        "<(remote_print_handler-1)"
+        {
+          "text": "<(remote_print_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33076,7 +34817,23 @@
         181
       ],
       "expressions": [
-        "<(net_write_char_handler-1)"
+        {
+          "text": "<(net_write_char_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37046,
+                "name": "net_write_char_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33090,7 +34847,23 @@
         218
       ],
       "expressions": [
-        "<(printer_select_handler-1)"
+        {
+          "text": "<(printer_select_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37339,
+                "name": "printer_select_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33104,7 +34877,23 @@
         245
       ],
       "expressions": [
-        "<(return_1-1)"
+        {
+          "text": "<(return_1 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33118,7 +34907,23 @@
         231
       ],
       "expressions": [
-        "<(remote_cmd_dispatch-1)"
+        {
+          "text": "<(remote_cmd_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37096,
+                "name": "remote_cmd_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33132,7 +34937,23 @@
         83
       ],
       "expressions": [
-        "<(remote_osword_handler-1)"
+        {
+          "text": "<(remote_osword_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37204,
+                "name": "remote_osword_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33158,7 +34979,23 @@
         128
       ],
       "expressions": [
-        ">(return_1-1)"
+        {
+          "text": ">(return_1 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33172,7 +35009,23 @@
         145
       ],
       "expressions": [
-        ">(remote_print_handler-1)"
+        {
+          "text": ">(remote_print_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33186,7 +35039,23 @@
         145
       ],
       "expressions": [
-        ">(remote_print_handler-1)"
+        {
+          "text": ">(remote_print_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33200,7 +35069,23 @@
         145
       ],
       "expressions": [
-        ">(remote_print_handler-1)"
+        {
+          "text": ">(remote_print_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37354,
+                "name": "remote_print_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33214,7 +35099,23 @@
         144
       ],
       "expressions": [
-        ">(net_write_char_handler-1)"
+        {
+          "text": ">(net_write_char_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37046,
+                "name": "net_write_char_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33228,7 +35129,23 @@
         145
       ],
       "expressions": [
-        ">(printer_select_handler-1)"
+        {
+          "text": ">(printer_select_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37339,
+                "name": "printer_select_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33242,7 +35159,23 @@
         128
       ],
       "expressions": [
-        ">(return_1-1)"
+        {
+          "text": ">(return_1 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 33014,
+                "name": "return_1"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33256,7 +35189,23 @@
         144
       ],
       "expressions": [
-        ">(remote_cmd_dispatch-1)"
+        {
+          "text": ">(remote_cmd_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37096,
+                "name": "remote_cmd_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -33270,7 +35219,23 @@
         145
       ],
       "expressions": [
-        ">(remote_osword_handler-1)"
+        {
+          "text": ">(remote_osword_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 37204,
+                "name": "remote_osword_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -35730,7 +37695,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_buffer"
+      "operand": "#osbyte_read_buffer",
+      "expr": {
+        "text": "osbyte_read_buffer",
+        "tree": {
+          "sym": "osbyte_read_buffer"
+        }
+      }
     },
     {
       "addr": 37371,
@@ -35741,7 +37712,13 @@
       "comment_inline": "X=3: printer buffer number",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#buffer_printer"
+      "operand": "#buffer_printer",
+      "expr": {
+        "text": "buffer_printer",
+        "tree": {
+          "sym": "buffer_printer"
+        }
+      }
     },
     {
       "addr": 37373,
@@ -37170,7 +39147,13 @@
       "comment_inline": "OSWORD &0B: read palette for logical colour",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osword_read_palette"
+      "operand": "#osword_read_palette",
+      "expr": {
+        "text": "osword_read_palette",
+        "tree": {
+          "sym": "osword_read_palette"
+        }
+      }
     },
     {
       "addr": 37578,
@@ -39585,7 +41568,13 @@
       "comment_inline": "OSBYTE &FD: what type of reset was this?",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_last_break_type"
+      "operand": "#osbyte_last_break_type",
+      "expr": {
+        "text": "osbyte_last_break_type",
+        "tree": {
+          "sym": "osbyte_last_break_type"
+        }
+      }
     },
     {
       "addr": 1170,
@@ -40397,7 +42386,13 @@
       "binary_addr": 37985,
       "comment_inline": "Return with pointers initialised",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "tube_osrdch",
+        "tree": {
+          "sym": "tube_osrdch"
+        }
+      }
     },
     {
       "addr": 1280,
@@ -40429,7 +42424,12 @@
         1335
       ],
       "expressions": [
-        "tube_osrdch"
+        {
+          "text": "tube_osrdch",
+          "tree": {
+            "sym": "tube_osrdch"
+          }
+        }
       ]
     },
     {
@@ -40445,7 +42445,12 @@
         1430
       ],
       "expressions": [
-        "tube_oscli"
+        {
+          "text": "tube_oscli",
+          "tree": {
+            "sym": "tube_oscli"
+          }
+        }
       ]
     },
     {
@@ -40461,7 +42466,12 @@
         1522
       ],
       "expressions": [
-        "tube_osbyte_2param"
+        {
+          "text": "tube_osbyte_2param",
+          "tree": {
+            "sym": "tube_osbyte_2param"
+          }
+        }
       ]
     },
     {
@@ -40477,7 +42487,12 @@
         1543
       ],
       "expressions": [
-        "tube_osbyte_long"
+        {
+          "text": "tube_osbyte_long",
+          "tree": {
+            "sym": "tube_osbyte_long"
+          }
+        }
       ]
     },
     {
@@ -40493,7 +42508,12 @@
         1575
       ],
       "expressions": [
-        "tube_osword"
+        {
+          "text": "tube_osword",
+          "tree": {
+            "sym": "tube_osword"
+          }
+        }
       ]
     },
     {
@@ -40509,7 +42529,12 @@
         1640
       ],
       "expressions": [
-        "tube_osword_rdln"
+        {
+          "text": "tube_osword_rdln",
+          "tree": {
+            "sym": "tube_osword_rdln"
+          }
+        }
       ]
     },
     {
@@ -40525,7 +42550,12 @@
         1374
       ],
       "expressions": [
-        "tube_osargs"
+        {
+          "text": "tube_osargs",
+          "tree": {
+            "sym": "tube_osargs"
+          }
+        }
       ]
     },
     {
@@ -40541,7 +42571,12 @@
         1325
       ],
       "expressions": [
-        "tube_osbget"
+        {
+          "text": "tube_osbget",
+          "tree": {
+            "sym": "tube_osbget"
+          }
+        }
       ]
     },
     {
@@ -40557,7 +42592,12 @@
         1312
       ],
       "expressions": [
-        "tube_osbput"
+        {
+          "text": "tube_osbput",
+          "tree": {
+            "sym": "tube_osbput"
+          }
+        }
       ]
     },
     {
@@ -40573,7 +42613,12 @@
         1346
       ],
       "expressions": [
-        "tube_osfind"
+        {
+          "text": "tube_osfind",
+          "tree": {
+            "sym": "tube_osfind"
+          }
+        }
       ]
     },
     {
@@ -40589,7 +42634,12 @@
         1449
       ],
       "expressions": [
-        "tube_osfile"
+        {
+          "text": "tube_osfile",
+          "tree": {
+            "sym": "tube_osfile"
+          }
+        }
       ]
     },
     {
@@ -40605,7 +42655,12 @@
         1489
       ],
       "expressions": [
-        "tube_osgbpb"
+        {
+          "text": "tube_osgbpb",
+          "tree": {
+            "sym": "tube_osgbpb"
+          }
+        }
       ]
     },
     {
@@ -41081,7 +43136,13 @@
       "comment_inline": "A=0: close command for OSFIND",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osfind_close"
+      "operand": "#osfind_close",
+      "expr": {
+        "text": "osfind_close",
+        "tree": {
+          "sym": "osfind_close"
+        }
+      }
     },
     {
       "addr": 1368,
@@ -42833,7 +44894,16 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#<(tube_osword_pb)"
+      "operand": "#<(tube_osword_pb)",
+      "expr": {
+        "text": "<(tube_osword_pb)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "tube_osword_pb"
+          }
+        }
+      }
     },
     {
       "addr": 1607,
@@ -42845,7 +44915,16 @@
       "comment_inline": "Y=&01: param block at &0128",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(tube_osword_pb)"
+      "operand": "#>(tube_osword_pb)",
+      "expr": {
+        "text": ">(tube_osword_pb)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "tube_osword_pb"
+          }
+        }
+      }
     },
     {
       "addr": 1609,
@@ -44568,7 +46647,13 @@
       "comment_inline": "OSBYTE &EA: check Tube co-processor",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_tube_presence"
+      "operand": "#osbyte_read_tube_presence",
+      "expr": {
+        "text": "osbyte_read_tube_presence",
+        "tree": {
+          "sym": "osbyte_read_tube_presence"
+        }
+      }
     },
     {
       "addr": 38530,
@@ -44642,7 +46727,13 @@
       "comment_inline": "OSBYTE &8F: issue service request",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_issue_service_request"
+      "operand": "#osbyte_issue_service_request",
+      "expr": {
+        "text": "osbyte_issue_service_request",
+        "tree": {
+          "sym": "osbyte_issue_service_request"
+        }
+      }
     },
     {
       "addr": 38545,
@@ -51169,7 +53260,7 @@
       "comment_inline": "Load handler low byte from jump table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "imm_op_dispatch_lo-&81,y",
+      "operand": "imm_op_dispatch_lo - &81,y",
       "target": 39416
     },
     {
@@ -51313,7 +53404,22 @@
         187
       ],
       "expressions": [
-        "<(rx_imm_peek-1)"
+        {
+          "text": "<(rx_imm_peek - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_peek"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51327,7 +53433,22 @@
         158
       ],
       "expressions": [
-        "<(rx_imm_poke-1)"
+        {
+          "text": "<(rx_imm_poke - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_poke"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51341,7 +53462,22 @@
         128
       ],
       "expressions": [
-        "<(rx_imm_exec-1)"
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51355,7 +53491,22 @@
         128
       ],
       "expressions": [
-        "<(rx_imm_exec-1)"
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51369,7 +53520,22 @@
         128
       ],
       "expressions": [
-        "<(rx_imm_exec-1)"
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51383,7 +53549,22 @@
         213
       ],
       "expressions": [
-        "<(rx_imm_halt_cont-1)"
+        {
+          "text": "<(rx_imm_halt_cont - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_halt_cont"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51397,7 +53578,22 @@
         213
       ],
       "expressions": [
-        "<(rx_imm_halt_cont-1)"
+        {
+          "text": "<(rx_imm_halt_cont - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_halt_cont"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -51411,7 +53607,22 @@
         169
       ],
       "expressions": [
-        "<(rx_imm_machine_type-1)"
+        {
+          "text": "<(rx_imm_machine_type - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_machine_type"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -52444,7 +54655,13 @@
       "comment_inline": "Y=8: network event type",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#event_network_error"
+      "operand": "#event_network_error",
+      "expr": {
+        "text": "event_network_error",
+        "tree": {
+          "sym": "event_network_error"
+        }
+      }
     },
     {
       "addr": 39728,

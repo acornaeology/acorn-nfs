@@ -1,6 +1,6 @@
 {
   "meta": {
-    "schema_version": 2,
+    "schema_version": 4,
     "load_addr": 32768,
     "end_addr": 49152
   },
@@ -186,6 +186,7 @@
       "value": 64
     }
   ],
+  "macros": [],
   "subroutines": [
     {
       "addr": 65465,
@@ -5132,53 +5133,128 @@
   },
   "memory_map": [
     {
+      "addr": 0,
+      "name": "zp_ptr_lo",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 1,
+      "name": "zp_ptr_hi",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 2,
+      "name": "zp_work_2",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3,
+      "name": "zp_work_3",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
       "addr": 16,
       "name": "zp_temp_10",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 17,
       "name": "zp_temp_11",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 18,
       "name": "tube_data_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 19,
       "name": "tube_data_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 20,
       "name": "tube_claim_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
+    },
+    {
+      "addr": 21,
+      "name": "tube_claimed_id",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 32,
+      "name": "tx_buffer_scratch",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 38,
       "name": "parse_separator_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 99,
       "name": "zp_0063",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "(false ref from inline string data)"
     },
     {
@@ -5186,7 +5262,10 @@
       "name": "zp_0078",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "(false ref from inline string data)"
     },
     {
@@ -5194,7 +5273,10 @@
       "name": "escapable",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "b7=respond to Escape flag"
     },
     {
@@ -5202,7 +5284,10 @@
       "name": "need_release_tube",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "b7=need to release Tube"
     },
     {
@@ -5210,7 +5295,10 @@
       "name": "prot_flags",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "PFLAGS: printer / protocol status flags."
     },
     {
@@ -5218,7 +5306,11 @@
       "name": "net_tx_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "NetTx control block pointer (low)"
     },
     {
@@ -5226,7 +5318,10 @@
       "name": "net_tx_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NetTx control block pointer (high)"
     },
     {
@@ -5234,7 +5329,10 @@
       "name": "net_rx_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NetRx control blocks pointer (low byte). Pairs with [`net_rx_ptr_hi`](address:009D)."
     },
     {
@@ -5242,7 +5340,10 @@
       "name": "net_rx_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NetRx control blocks pointer (high byte). Pairs with [`net_rx_ptr`](address:009C) (low)."
     },
     {
@@ -5250,7 +5351,11 @@
       "name": "nfs_workspace",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "General NFS workspace pointer (low)"
     },
     {
@@ -5258,7 +5363,10 @@
       "name": "nfs_workspace_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "General NFS workspace pointer (high)"
     },
     {
@@ -5266,7 +5374,10 @@
       "name": "nmi_tx_block",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NMI TX block pointer (low byte). Address of the TX control block currently being transmitted by the NMI handler."
     },
     {
@@ -5274,7 +5385,10 @@
       "name": "nmi_tx_block_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Block to be transmitted (high)"
     },
     {
@@ -5282,7 +5396,10 @@
       "name": "port_buf_len",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Open port buffer length (low)"
     },
     {
@@ -5290,7 +5407,10 @@
       "name": "port_buf_len_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Open port buffer length (high)"
     },
     {
@@ -5298,7 +5418,10 @@
       "name": "open_port_buf",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Open port buffer address (low)"
     },
     {
@@ -5306,7 +5429,10 @@
       "name": "open_port_buf_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Open port buffer address (high)"
     },
     {
@@ -5314,7 +5440,11 @@
       "name": "port_ws_offset",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Port workspace offset"
     },
     {
@@ -5322,7 +5452,10 @@
       "name": "rx_buf_offset",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Receive buffer offset"
     },
     {
@@ -5330,7 +5463,10 @@
       "name": "ws_page",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Multi-purpose workspace page"
     },
     {
@@ -5338,7 +5474,11 @@
       "name": "svc_state",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Multi-purpose service state"
     },
     {
@@ -5346,7 +5486,11 @@
       "name": "osword_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "OSWORD param byte"
     },
     {
@@ -5354,7 +5498,10 @@
       "name": "ws_ptr_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Workspace indirect pointer (lo)"
     },
     {
@@ -5362,7 +5509,11 @@
       "name": "ws_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Workspace indirect pointer (hi)"
     },
     {
@@ -5370,7 +5521,10 @@
       "name": "table_idx",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "OSBYTE/palette table index counter"
     },
     {
@@ -5378,7 +5532,11 @@
       "name": "work_ae",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Indexed workspace (multi-purpose scratch)"
     },
     {
@@ -5386,7 +5544,11 @@
       "name": "addr_work",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Address work byte for comparison (indexed)"
     },
     {
@@ -5394,7 +5556,11 @@
       "name": "fs_load_addr",
       "length": 4,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "WORK: load/start address (4 bytes)"
     },
     {
@@ -5402,35 +5568,52 @@
       "name": "fs_load_addr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 178,
       "name": "fs_load_addr_2",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 179,
       "name": "fs_load_addr_3",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 180,
       "name": "fs_work_4",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 181,
       "name": "fs_work_5",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FS scratch byte 5. Multi-purpose: *Wipe iteration counter, parsed FS station number, spool drive number, etc."
     },
     {
@@ -5438,7 +5621,10 @@
       "name": "fs_work_6",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FS scratch byte 6. Multi-purpose: *Wipe end-of-buffer offset, parsed FS network number, etc."
     },
     {
@@ -5446,98 +5632,163 @@
       "name": "fs_work_7",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 184,
       "name": "fs_error_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 185,
       "name": "fs_crflag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 186,
       "name": "fs_spool_handle",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 187,
       "name": "fs_options",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 188,
       "name": "fs_block_offset",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 189,
       "name": "fs_last_byte_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 190,
       "name": "fs_crc_lo",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 191,
       "name": "fs_crc_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 192,
       "name": "txcb_ctrl",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 193,
       "name": "txcb_port",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
+    },
+    {
+      "addr": 194,
+      "name": "txcb_dest",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 196,
       "name": "txcb_start",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
+    },
+    {
+      "addr": 199,
+      "name": "txcb_pos",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 200,
       "name": "txcb_end",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
     },
     {
       "addr": 204,
       "name": "fs_ws_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FS workspace page pointer (lo, always 0)"
     },
     {
@@ -5545,85 +5796,168 @@
       "name": "nfs_temp",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 206,
       "name": "rom_svc_num",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 207,
       "name": "fs_spool0",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 208,
       "name": "vdu_status",
       "length": 1,
       "group": "zero_page",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "VDU status register (OSBYTE &75)"
+    },
+    {
+      "addr": 237,
+      "name": "tx_imm_idx_base",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 239,
       "name": "osbyte_a_copy",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 240,
       "name": "osword_pb_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 241,
       "name": "osword_pb_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 243,
       "name": "os_text_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 247,
       "name": "osrdsc_ptr_hi",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 253,
       "name": "brk_ptr",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
     },
     {
       "addr": 255,
       "name": "escape_flag",
       "length": 1,
       "group": "zero_page",
-      "access": "rw"
+      "access": [
+        "r",
+        "w"
+      ]
+    },
+    {
+      "addr": 258,
+      "name": "stack_page_2",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 259,
+      "name": "stack_page_3",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 260,
+      "name": "stack_page_4",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 262,
+      "name": "stack_page_6",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 530,
+      "name": "filev",
+      "length": 2,
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ],
+      "description": "FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init."
     },
     {
       "addr": 532,
       "name": "argsv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "ARGSV pointer (lo, hi, rom). Patched to ANFS's ARGS handler at init."
     },
     {
@@ -5631,7 +5965,10 @@
       "name": "bgetv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "BGETV pointer (lo, hi, rom). Patched to ANFS's BGET handler at init."
     },
     {
@@ -5639,7 +5976,10 @@
       "name": "bputv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "BPUTV pointer (lo, hi, rom). Patched to ANFS's BPUT handler at init."
     },
     {
@@ -5647,7 +5987,10 @@
       "name": "gbpbv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "GBPBV pointer (lo, hi, rom). Patched to ANFS's GBPB handler at init."
     },
     {
@@ -5655,7 +5998,10 @@
       "name": "findv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FINDV pointer (lo, hi, rom). Patched to ANFS's FIND handler at init."
     },
     {
@@ -5663,15 +6009,27 @@
       "name": "fscv",
       "length": 2,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FSCV pointer (lo, hi, rom). Patched to ANFS's FSC handler at init."
+    },
+    {
+      "addr": 672,
+      "name": "rom_type_table",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 848,
       "name": "vdu_screen_mode",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "VDU screen mode set by the OS."
     },
     {
@@ -5679,7 +6037,9 @@
       "name": "vdu_display_start_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "VDU display start address (high byte)."
     },
     {
@@ -5687,15 +6047,27 @@
       "name": "vdu_mode",
       "length": 1,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "VDU current output stream selector.\nDetermines whether `OSWRCH` writes to the screen, printer, serial port, etc. ANFS reads this to decide whether to wrap *HELP syntax lines for serial output."
+    },
+    {
+      "addr": 3327,
+      "name": "nmi_code_base",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3335,
       "name": "nmi_romsel",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "ROM-bank number patched into the NMI shim.\nThe NMI handler runs in the active sideways slot, so the shim begins by paging in the NFS ROM bank (this byte) before dispatching to the body."
     },
     {
@@ -5703,7 +6075,10 @@
       "name": "nmi_jmp_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NMI dispatch JMP-target low byte.\nPatched by [`set_nmi_vector`](address:0D0E) and [`install_nmi_handler`](address:0D11). The NMI shim does `JMP (nmi_jmp_lo)` to reach the current handler."
     },
     {
@@ -5711,7 +6086,10 @@
       "name": "nmi_jmp_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "NMI dispatch JMP-target high byte.\nPaired with [`nmi_jmp_lo`](address:0D0C). Only [`set_nmi_vector`](address:0D0E) writes this; [`install_nmi_handler`](address:0D11) leaves it alone (same-page optimisation)."
     },
     {
@@ -5719,7 +6097,9 @@
       "name": "set_nmi_vector",
       "length": 3,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "NMI vector update (both bytes).\n`STY` [nmi_jmp_hi](address:0D0D) then `STA` [nmi_jmp_lo](address:0D0C), writing the full 16-bit NMI handler address into the JMP-target slot. Falls through to [`nmi_rti`](address:0D14)."
     },
     {
@@ -5727,7 +6107,9 @@
       "name": "install_nmi_handler",
       "length": 3,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "NMI vector update (low byte only).\n`STA` [nmi_jmp_lo](address:0D0C) only, leaving the existing high byte at [`nmi_jmp_hi`](address:0D0D) in place. Same-page optimisation used when the next handler is in the same page as the current one. Falls through to [`nmi_rti`](address:0D14)."
     },
     {
@@ -5735,15 +6117,35 @@
       "name": "nmi_rti",
       "length": 11,
       "group": "ram_workspace",
-      "access": "r",
+      "access": [
+        "r"
+      ],
       "description": "NMI exit shim.\nRestores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_net_nmis` (INTON, re-enables /NMI), and `RTI`s. Reached either as a fall-through from [`set_nmi_vector`](address:0D0E) / [`install_nmi_handler`](address:0D11), or as a direct branch from any NMI handler that has finished early."
+    },
+    {
+      "addr": 3354,
+      "name": "imm_param_base",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3358,
+      "name": "tx_addr_base",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 3360,
       "name": "tx_dst_stn",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Destination station for next TX scout/ACK frame."
     },
     {
@@ -5751,7 +6153,10 @@
       "name": "tx_dst_net",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Destination network for next TX scout/ACK frame."
     },
     {
@@ -5759,7 +6164,11 @@
       "name": "tx_src_stn",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Source-station byte (our local station number). Loaded at init\nfrom the Econet control block at `(net_rx_ptr)+1`. On the Master the\nstation number is configured in CMOS (`*CONFIGURE STATION nnn`)."
     },
     {
@@ -5767,7 +6176,10 @@
       "name": "tx_src_net",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Source-network byte for outgoing scout/ACK frames (typically 0 for local network)."
     },
     {
@@ -5775,7 +6187,10 @@
       "name": "tx_ctrl_byte",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Control byte for next TX scout frame."
     },
     {
@@ -5783,15 +6198,31 @@
       "name": "tx_port",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Destination port for next TX scout frame."
+    },
+    {
+      "addr": 3366,
+      "name": "tx_data_start",
+      "length": 1,
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ],
+      "description": "Start of TX data buffer (used by scout/data frame construction)."
     },
     {
       "addr": 3370,
       "name": "tx_data_len",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Length of the TX data buffer payload, used during scout/data frame construction."
     },
     {
@@ -5799,7 +6230,11 @@
       "name": "scout_buf",
       "length": 12,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Base of the 12-byte RX scout data buffer.\nHolds the most recently received scout frame during reception and ACK transmission."
     },
     {
@@ -5807,7 +6242,10 @@
       "name": "scout_src_net",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Scout source network byte ([`scout_buf`](address:0D2E)+1)."
     },
     {
@@ -5815,7 +6253,10 @@
       "name": "scout_ctrl",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Scout control byte ([`scout_buf`](address:0D2E)+2).\nCarries the immediate-op code (`&81`..`&88`) for port-0 scouts; checked by [`immediate_op`](address:8466)."
     },
     {
@@ -5823,15 +6264,31 @@
       "name": "scout_port",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Scout port byte ([`scout_buf`](address:0D2E)+3)."
+    },
+    {
+      "addr": 3378,
+      "name": "scout_data",
+      "length": 8,
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ],
+      "description": "Scout data payload base ([`scout_buf`](address:0D2E)+4).\nHolds the 4-byte remote address for JSR / UserProc / OSProc immediate ops."
     },
     {
       "addr": 3389,
       "name": "rx_src_stn",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Source station of the received scout frame.\nFirst address byte read by [`nmi_rx_scout`](address:809D) and validated against our station ID."
     },
     {
@@ -5839,7 +6296,10 @@
       "name": "net_frame_flags",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "TX / transfer flags for the current Econet frame, initialised during\nscout receive and carried through the reply and data-TX phases:\n\n| Bit | Meaning |\n|-----|---------|\n| 0 | handshake-data pending |\n| 1 | data transfer routes into the Tube buffer |\n| 6 | broadcast frame (scout addressed to station &FF) |\n| 7 | reply pending / data-TX phase / error-path selector |"
     },
     {
@@ -5847,7 +6307,10 @@
       "name": "rx_ctrl",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Control byte of the received scout frame."
     },
     {
@@ -5855,7 +6318,10 @@
       "name": "rx_port",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Port byte of the received scout frame.\nMatched against the open RXCB list to find a listener (or the immediate-op port range &80..&88)."
     },
     {
@@ -5863,7 +6329,10 @@
       "name": "rx_remote_addr",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Remote address byte for received TX setup."
     },
     {
@@ -5871,7 +6340,10 @@
       "name": "rx_extra_byte",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Extra trailing RX data byte."
     },
     {
@@ -5879,7 +6351,10 @@
       "name": "saved_nmi_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Saved next NMI handler address (low byte).\nWritten by [`ack_tx_write_dest`](address:8308) from the (A=lo, Y=hi) pair on entry, then consumed when the next NMI fires."
     },
     {
@@ -5887,7 +6362,10 @@
       "name": "saved_nmi_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Saved next NMI handler address (high byte).\nPaired with [`saved_nmi_lo`](address:0D43)."
     },
     {
@@ -5895,7 +6373,10 @@
       "name": "tx_flags",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "TX path control flags.\nBit 7: TX path is active (used by [`nmi_error_dispatch`](address:8218) to choose between RX-error reset and TX-fail dispatch).\nBit 0: handshake-data pending.\nBit 1: data-RX into Tube buffer (selected by [`install_data_rx_handler`](address:81FA))."
     },
     {
@@ -5903,7 +6384,10 @@
       "name": "nmi_next_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Next NMI handler address (low byte).\nSaved by the scout / data-RX handler; consumed by [`ack_tx`](address:82EF) when installing the post-ACK NMI handler."
     },
     {
@@ -5911,7 +6395,10 @@
       "name": "nmi_next_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Next NMI handler address (high byte).\nPaired with [`nmi_next_lo`](address:0D4B)."
     },
     {
@@ -5919,7 +6406,10 @@
       "name": "tx_index",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Index into the TX buffer (current byte position)."
     },
     {
@@ -5927,7 +6417,10 @@
       "name": "tx_length",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Total length of the TX data payload."
     },
     {
@@ -5935,7 +6428,10 @@
       "name": "tx_complete_flag",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "TX completion semaphore.\nBit 7 set by the NMI TX-completion handler; polled by `wait_net_tx_ack` to detect frame completion."
     },
     {
@@ -5943,7 +6439,10 @@
       "name": "econet_flags",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Econet control flags.\nBit 7: port-list active. Bit 2: halt requested."
     },
     {
@@ -5951,7 +6450,10 @@
       "name": "econet_init_flag",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Econet-initialised flag.\nBit 7 set when the NMI shim has been installed; checked at every NMI to reject pre-init interrupts."
     },
     {
@@ -5959,7 +6461,10 @@
       "name": "tube_present",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Tube co-processor presence flag.\nProbed at init via OSBYTE `&EA`; read by every TX/RX path that needs to forward data through the Tube."
     },
     {
@@ -5967,7 +6472,10 @@
       "name": "ws_0d64",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "ANFS workspace byte (role TBD)."
     },
     {
@@ -5975,7 +6483,10 @@
       "name": "tx_op_type",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Deferred-work / TX-operation type flag.\nSet by NMI handlers to mark pending work; polled by [`svc5_irq_check`](address:802A) as the dispatch trigger."
     },
     {
@@ -5983,7 +6494,11 @@
       "name": "exec_addr_lo",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Remote execution address (low byte).\nStored by remote-JSR / immediate-op paths; consumed when the queued operation runs."
     },
     {
@@ -5991,7 +6506,10 @@
       "name": "exec_addr_hi",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Remote execution address (high byte).\nPaired with [`exec_addr_lo`](address:0D66)."
     },
     {
@@ -5999,7 +6517,10 @@
       "name": "prot_status",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Econet per-station protection mask (LSTAT): one bit per immediate operation; a set bit bars that operation. Tested by immediate_op; bits 2-4 (JSR/UserProc/OSProc) are raised during a deferred remote call for re-entrancy protection."
     },
     {
@@ -6007,7 +6528,10 @@
       "name": "prot_status_save",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Saved copy of the prot_status protection mask (OLDJSR in Acorn's DNFS source), preserved while bits 2-4 are raised during a deferred remote call so the original mask can be restored afterwards."
     },
     {
@@ -6015,7 +6539,10 @@
       "name": "ws_0d6a",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "ANFS workspace byte (role TBD)."
     },
     {
@@ -6023,7 +6550,10 @@
       "name": "spool_buf_idx",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Spool / printer buffer write index."
     },
     {
@@ -6031,7 +6561,11 @@
       "name": "fs_flags",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Filing-system status flags.\nBit 7: NFS is currently the selected FS; cleared when another FS takes over."
     },
     {
@@ -6039,7 +6573,10 @@
       "name": "tx_retry_count",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Transmit retry count (default `&FF` = 255).\nSettable via OSWORD `&13` PB[1]."
     },
     {
@@ -6047,7 +6584,10 @@
       "name": "rx_wait_timeout",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Receive wait timeout (default `&28` = 40).\nSettable via OSWORD `&13` PB[2]."
     },
     {
@@ -6055,7 +6595,10 @@
       "name": "peek_retry_count",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Machine peek retry count (default `&0A` = 10).\nSettable via OSWORD `&13` PB[3]."
     },
     {
@@ -6063,7 +6606,10 @@
       "name": "spool_control_flag",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Multi-purpose: spool-buffer control flag (printer spooling); also doubles as the bridge-routing-table status byte read by [`init_bridge_poll`](address:AC09) (`&FF` = uninitialised, anything else = bridge already polled)."
     },
     {
@@ -6071,15 +6617,31 @@
       "name": "bridge_status",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Bridge station number (`&FF` = no bridge).\nSet by the bridge-discovery scout reply; checked before any cross-network operation."
+    },
+    {
+      "addr": 3568,
+      "name": "rom_ws_pages",
+      "length": 16,
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ],
+      "description": "MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace."
     },
     {
       "addr": 3843,
       "name": "fs_cmd_csd",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "TXCB port byte / CSD (current selected directory) handle."
     },
     {
@@ -6087,7 +6649,10 @@
       "name": "fs_cmd_data",
       "length": 1,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "TX buffer data start / FS reply data."
     },
     {
@@ -6095,15 +6660,29 @@
       "name": "filename_buf",
       "length": 12,
       "group": "ram_workspace",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Filename display buffer (12 bytes). Used by directory listing and *Info to format filenames."
+    },
+    {
+      "addr": 18584,
+      "name": "cdir_unused_dispatch_table",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49152,
       "name": "hazel_fs_station",
       "length": 11,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Filing-system state block (`&C000`\u2013`&C00A`).\n\nEleven bytes of currently-selected-FS context kept in HAZEL: station / network of the FS, saved prefix station, multi-purpose CSD/library/boot-type slots, FS flags, messages flag, pending-state, error code, last-error, and `*OPT` addend. The first two bytes (`hazel_fs_station`, `hazel_fs_network`) are the FS address used for every TX scout."
     },
     {
@@ -6111,7 +6690,11 @@
       "name": "hazel_fs_network",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "FS network number (sub-byte of the &C000 FS context block)."
     },
     {
@@ -6119,7 +6702,11 @@
       "name": "hazel_fs_context_copy",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Multi-purpose sub-byte of the &C000 block: CSD handle / matched-entry index / Y-indexed base into FS context block."
     },
     {
@@ -6127,7 +6714,10 @@
       "name": "hazel_fs_prefix_stn",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type."
     },
     {
@@ -6135,7 +6725,10 @@
       "name": "hazel_fs_error_code",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "FS error code (sub-byte of the &C000 block)."
     },
     {
@@ -6143,390 +6736,57 @@
       "name": "hazel_fs_last_error",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Last FS error byte (sub-byte of the &C000 block)."
+    },
+    {
+      "addr": 49162,
+      "name": "hazel_fs_opts_addend",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49172,
       "name": "hazel_retry_counter",
       "length": 1,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w"
+      ],
       "description": "Retry counter for the current Econet TX/RX cycle."
+    },
+    {
+      "addr": 49199,
+      "name": "hazel_parse_buf_m1",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49200,
       "name": "hazel_parse_buf",
       "length": 3,
       "group": "hazel",
-      "access": "rw",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
       "description": "Three-byte parse-buffer used for command-line matching (e.g. `*OPT`, `*FS`)."
-    },
-    {
-      "addr": 49408,
-      "name": "hazel_txcb_port",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 0: port number for the next TX scout."
-    },
-    {
-      "addr": 49409,
-      "name": "hazel_txcb_func_code",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 1: function code (FS command number)."
-    },
-    {
-      "addr": 49410,
-      "name": "hazel_txcb_station",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 2: destination station."
-    },
-    {
-      "addr": 49411,
-      "name": "hazel_txcb_network",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 3: multi-purpose.\nTXCB destination network (TX setup) / reply function code (RX context) / `fs_cmd_csd` buffer base (other paths)."
-    },
-    {
-      "addr": 49412,
-      "name": "hazel_txcb_lib",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 4: library handle terminator / transfer-length param 1."
-    },
-    {
-      "addr": 49413,
-      "name": "hazel_txcb_data",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 5: first reply-data byte / data start."
-    },
-    {
-      "addr": 49414,
-      "name": "hazel_txcb_flag",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 6: direction flag."
-    },
-    {
-      "addr": 49415,
-      "name": "hazel_txcb_count",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 7: data count / lock flag."
-    },
-    {
-      "addr": 49416,
-      "name": "hazel_txcb_result",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "TXCB byte 8: result / transfer-size lo."
-    },
-    {
-      "addr": 49777,
-      "name": "hazel_fs_lib_flags",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "FS library / option flags. Bit 2 = auto-boot, bit 7 = library-directory pending. Cleared / tested by *Cat / *Lcat / *Ex / *Lex paths."
-    },
-    {
-      "addr": 49864,
-      "name": "hazel_cur_fcb_index",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "Current FCB index used by the FCB-scan loop in [`process_all_fcbs`](address:BB68). Followed by the channel attribute / reference, byte-counter, buffer pointer and a small block of transfer-state scratch bytes used during file I/O."
-    },
-    {
-      "addr": 49869,
-      "name": "hazel_sentinel_cd",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "Sentinel/scratch byte at HAZEL+&CD, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68)."
-    },
-    {
-      "addr": 49870,
-      "name": "hazel_sentinel_ce",
-      "length": 1,
-      "group": "hazel",
-      "access": "rw",
-      "description": "Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68)."
-    },
-    {
-      "addr": 65064,
-      "name": "fdc_1770_command_or_status",
-      "length": 1,
-      "group": "mmio",
-      "access": "r",
-      "description": "Master 128 1770 floppy-disk-controller command (write) / status\n(read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not\ndo disk I/O; the only access is a discarded read in `set_rom_ws_page`\n(its result is overwritten before use)."
-    },
-    {
-      "addr": 65067,
-      "name": "fdc_1770_data",
-      "length": 1,
-      "group": "mmio",
-      "access": "r",
-      "description": "Master 128 1770 floppy-disk-controller data register, part of the\n`&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only\naccess is a discarded read in `set_rom_ws_page` (its result is\noverwritten before use)."
-    },
-    {
-      "addr": 65076,
-      "name": "acccon",
-      "length": 1,
-      "group": "mmio",
-      "access": "rw",
-      "description": "Master 128 ACCCON access-control register.\n\nBit-by-bit (write-only):\n\n| Bit | Name | Effect when set |\n|---|---|---|\n| 7 | IRR | Interrupt Request: setting it asserts the CPU IRQ line (a software-triggered IRQ) |\n| 6 | TST | Test mode |\n| 5 | IFJ | I/O is JIM |\n| 4 | ITU | Internal Tube |\n| 3 | Y   | HAZEL paged in (`&C000-&DFFF` is hidden RAM) |\n| 2 | X   | LYNNE paged in (`&3000-&7FFF` is shadow RAM) |\n| 1 | E   | shadow RAM owns screen |\n| 0 | D   | shadow RAM for the OS display |\n\nANFS uses bit 7 (IRR) as a deferred-work latch via `TRB`/`TSB`."
-    },
-    {
-      "addr": 65080,
-      "name": "disable_net_nmis",
-      "length": 1,
-      "group": "mmio",
-      "access": "r",
-      "description": "Master 128 INTOFF mirror (NMI-disable side effect).\nReading any byte here disables /NMI re-entry; the byte value itself is irrelevant."
-    },
-    {
-      "addr": 65084,
-      "name": "enable_net_nmis",
-      "length": 1,
-      "group": "mmio",
-      "access": "r",
-      "description": "Master 128 INTON mirror (NMI-enable side effect).\nReading any byte here re-enables /NMI; the byte value itself is irrelevant."
-    },
-    {
-      "addr": 65184,
-      "name": "econet_control1_or_status1",
-      "length": 1,
-      "group": "mmio",
-      "access": "rw",
-      "description": "ADLC control register 1 / status register 1.\nWrite: `CR1` (or `CR3` if `AC=1`). Read: `SR1`.\n\n`SR1` bits: `RDA` (b0), `S2RQ` (b1), `LOOP` (b2), `FD` (b3), `CTS` (b4), `TUF` (b5), `TDRA` (b6), `IRQ` (b7)."
-    },
-    {
-      "addr": 65185,
-      "name": "econet_control23_or_status2",
-      "length": 1,
-      "group": "mmio",
-      "access": "rw",
-      "description": "ADLC control register 2 / status register 2.\nWrite: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.\n\n`SR2` bits: `AP` (b0), `FV` (b1), `RX_IDLE` (b2), `RX_ABRT` (b3), `ERR` (b4), `DCD` (b5), `OVRN` (b6), `RDA` (b7)."
-    },
-    {
-      "addr": 65186,
-      "name": "econet_data_continue_frame",
-      "length": 1,
-      "group": "mmio",
-      "access": "rw",
-      "description": "ADLC TX FIFO continue / RX FIFO read.\nWrite: byte to TX FIFO with `LAST_DATA = 0` (continue frame).\nRead: next byte from RX FIFO."
-    },
-    {
-      "addr": 65187,
-      "name": "econet_data_terminate_frame",
-      "length": 1,
-      "group": "mmio",
-      "access": "rw",
-      "description": "ADLC TX FIFO terminate / RX FIFO read.\nWrite: final byte of frame (`LAST_DATA = 1`; ADLC appends CRC + closing flag).\nRead: next byte from RX FIFO."
-    },
-    {
-      "addr": 65307,
-      "name": "ev_filev",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "FILEV extended-vector dispatcher (file operations: OSFILE, OSFIND)."
-    },
-    {
-      "addr": 65310,
-      "name": "ev_argsv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "ARGSV extended-vector dispatcher (file argument operations: OSARGS)."
-    },
-    {
-      "addr": 65313,
-      "name": "ev_bgetv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "BGETV extended-vector dispatcher (single-byte read: OSBGET)."
-    },
-    {
-      "addr": 65316,
-      "name": "ev_bputv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "BPUTV extended-vector dispatcher (single-byte write: OSBPUT)."
-    },
-    {
-      "addr": 65319,
-      "name": "ev_gbpbv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "GBPBV extended-vector dispatcher (block transfer: OSGBPB)."
-    },
-    {
-      "addr": 65322,
-      "name": "ev_findv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "FINDV extended-vector dispatcher (open / close: OSFIND)."
-    },
-    {
-      "addr": 65325,
-      "name": "ev_fscv",
-      "length": 3,
-      "group": "ext_vectors",
-      "access": "r",
-      "description": "FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands)."
-    }
-  ],
-  "index_bases": [
-    {
-      "addr": 0,
-      "name": "zp_ptr_lo",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 1,
-      "name": "zp_ptr_hi",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 2,
-      "name": "zp_work_2",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 3,
-      "name": "zp_work_3",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 21,
-      "name": "tube_claimed_id",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 32,
-      "name": "tx_buffer_scratch",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 194,
-      "name": "txcb_dest",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 199,
-      "name": "txcb_pos",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 237,
-      "name": "tx_imm_idx_base",
-      "length": 1,
-      "group": "zero_page"
-    },
-    {
-      "addr": 258,
-      "name": "stack_page_2"
-    },
-    {
-      "addr": 259,
-      "name": "stack_page_3"
-    },
-    {
-      "addr": 260,
-      "name": "stack_page_4"
-    },
-    {
-      "addr": 262,
-      "name": "stack_page_6"
-    },
-    {
-      "addr": 530,
-      "name": "filev",
-      "length": 2,
-      "group": "ram_workspace",
-      "description": "FILEV pointer (lo, hi, rom). Patched to ANFS's FILE handler at init."
-    },
-    {
-      "addr": 672,
-      "name": "rom_type_table"
-    },
-    {
-      "addr": 3327,
-      "name": "nmi_code_base"
-    },
-    {
-      "addr": 3354,
-      "name": "imm_param_base"
-    },
-    {
-      "addr": 3358,
-      "name": "tx_addr_base"
-    },
-    {
-      "addr": 3366,
-      "name": "tx_data_start",
-      "length": 1,
-      "group": "ram_workspace",
-      "description": "Start of TX data buffer (used by scout/data frame construction)."
-    },
-    {
-      "addr": 3378,
-      "name": "scout_data",
-      "length": 8,
-      "group": "ram_workspace",
-      "description": "Scout data payload base ([`scout_buf`](address:0D2E)+4).\nHolds the 4-byte remote address for JSR / UserProc / OSProc immediate ops."
-    },
-    {
-      "addr": 3568,
-      "name": "rom_ws_pages",
-      "length": 16,
-      "group": "ram_workspace",
-      "description": "MOS per-ROM workspace page table (16 bytes, one per sideways-ROM slot). Each entry is the high byte of the page allocated to that ROM's absolute workspace."
-    },
-    {
-      "addr": 18584,
-      "name": "cdir_unused_dispatch_table"
-    },
-    {
-      "addr": 49162,
-      "name": "hazel_fs_opts_addend"
-    },
-    {
-      "addr": 49199,
-      "name": "hazel_parse_buf_m1"
     },
     {
       "addr": 49208,
       "name": "hazel_rtc_buffer",
       "length": 25,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "OSWORD `&0E` real-time-clock result buffer."
     },
     {
@@ -6534,33 +6794,160 @@
       "name": "hazel_fs_reply_byte",
       "length": 1,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "Latched first byte of the most recent FS reply."
     },
     {
+      "addr": 49408,
+      "name": "hazel_txcb_port",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 0: port number for the next TX scout."
+    },
+    {
+      "addr": 49409,
+      "name": "hazel_txcb_func_code",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "TXCB byte 1: function code (FS command number)."
+    },
+    {
+      "addr": 49410,
+      "name": "hazel_txcb_station",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 2: destination station."
+    },
+    {
+      "addr": 49411,
+      "name": "hazel_txcb_network",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 3: multi-purpose.\nTXCB destination network (TX setup) / reply function code (RX context) / `fs_cmd_csd` buffer base (other paths)."
+    },
+    {
+      "addr": 49412,
+      "name": "hazel_txcb_lib",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 4: library handle terminator / transfer-length param 1."
+    },
+    {
+      "addr": 49413,
+      "name": "hazel_txcb_data",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 5: first reply-data byte / data start."
+    },
+    {
+      "addr": 49414,
+      "name": "hazel_txcb_flag",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 6: direction flag."
+    },
+    {
+      "addr": 49415,
+      "name": "hazel_txcb_count",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "TXCB byte 7: data count / lock flag."
+    },
+    {
+      "addr": 49416,
+      "name": "hazel_txcb_result",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "TXCB byte 8: result / transfer-size lo."
+    },
+    {
       "addr": 49421,
-      "name": "hazel_txcb_addr_lo"
+      "name": "hazel_txcb_addr_lo",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49608,
-      "name": "hazel_chan_status"
+      "name": "hazel_chan_status",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49632,
-      "name": "hazel_fcb_addr_lo_minus20"
+      "name": "hazel_fcb_addr_lo_minus20",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49648,
-      "name": "hazel_fcb_addr_mid_minus20"
+      "name": "hazel_fcb_addr_mid_minus20",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49663,
-      "name": "hazel_display_buf_minusF4"
+      "name": "hazel_display_buf_minusF4",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49664,
       "name": "hazel_fcb_addr_lo",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): file position byte 0 (low).\nIndexed by channel `0..15`; cleared by [`alloc_fcb_slot`](address:B8D1) on FCB allocation."
     },
     {
@@ -6568,6 +6955,9 @@
       "name": "hazel_fcb_addr_mid",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): file position byte 1 (mid)."
     },
     {
@@ -6575,6 +6965,9 @@
       "name": "hazel_fcb_addr_hi",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): file position byte 2 (high)."
     },
     {
@@ -6582,6 +6975,9 @@
       "name": "hazel_fcb_slot_attr",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): slot occupancy + channel attribute.\nTested for zero by [`alloc_fcb_slot`](address:B8D1) as the slot-free check; set non-zero on allocation."
     },
     {
@@ -6589,6 +6985,9 @@
       "name": "hazel_fcb_state_byte",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): multi-purpose state byte.\nHolds station number for non-OSFIND channels, or open-mode flags for channels created by OSFIND."
     },
     {
@@ -6596,6 +6995,9 @@
       "name": "hazel_fcb_network",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): network number per channel."
     },
     {
@@ -6603,48 +7005,288 @@
       "name": "hazel_fcb_status",
       "length": 16,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "FCB parallel array (16 entries): per-channel status flags.\nHeavily used: bit 6 = connection active (`set_conn_active` / `clear_conn_active` toggle)."
     },
     {
+      "addr": 49777,
+      "name": "hazel_fs_lib_flags",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ],
+      "description": "FS library / option flags. Bit 2 = auto-boot, bit 7 = library-directory pending. Cleared / tested by *Cat / *Lcat / *Ex / *Lex paths."
+    },
+    {
       "addr": 49784,
-      "name": "hazel_fcb_station_lo"
+      "name": "hazel_fcb_station_lo",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49800,
-      "name": "hazel_fcb_station_hi"
+      "name": "hazel_fcb_station_hi",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49816,
-      "name": "hazel_fcb_offset_save"
+      "name": "hazel_fcb_offset_save",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49832,
-      "name": "hazel_fcb_attr_ref"
+      "name": "hazel_fcb_attr_ref",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49848,
-      "name": "hazel_fcb_flags"
+      "name": "hazel_fcb_flags",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 49864,
+      "name": "hazel_cur_fcb_index",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Current FCB index used by the FCB-scan loop in [`process_all_fcbs`](address:BB68). Followed by the channel attribute / reference, byte-counter, buffer pointer and a small block of transfer-state scratch bytes used during file I/O."
+    },
+    {
+      "addr": 49869,
+      "name": "hazel_sentinel_cd",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Sentinel/scratch byte at HAZEL+&CD, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68)."
+    },
+    {
+      "addr": 49870,
+      "name": "hazel_sentinel_ce",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68)."
     },
     {
       "addr": 49873,
-      "name": "hazel_xfer_init_zeros"
+      "name": "hazel_xfer_init_zeros",
+      "access": [
+        "b"
+      ]
     },
     {
       "addr": 49881,
       "name": "hazel_ctx_buffer",
       "length": 1,
       "group": "hazel",
+      "access": [
+        "b"
+      ],
       "description": "HAZEL context buffer (saved register / state block used during FCB processing)."
     },
     {
       "addr": 49907,
-      "name": "hazel_display_buf"
+      "name": "hazel_display_buf",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 65064,
+      "name": "fdc_1770_command_or_status",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r"
+      ],
+      "description": "Master 128 1770 floppy-disk-controller command (write) / status\n(read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not\ndo disk I/O; the only access is a discarded read in `set_rom_ws_page`\n(its result is overwritten before use)."
+    },
+    {
+      "addr": 65067,
+      "name": "fdc_1770_data",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r"
+      ],
+      "description": "Master 128 1770 floppy-disk-controller data register, part of the\n`&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only\naccess is a discarded read in `set_rom_ws_page` (its result is\noverwritten before use)."
+    },
+    {
+      "addr": 65076,
+      "name": "acccon",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Master 128 ACCCON access-control register.\n\nBit-by-bit (write-only):\n\n| Bit | Name | Effect when set |\n|---|---|---|\n| 7 | IRR | Interrupt Request: setting it asserts the CPU IRQ line (a software-triggered IRQ) |\n| 6 | TST | Test mode |\n| 5 | IFJ | I/O is JIM |\n| 4 | ITU | Internal Tube |\n| 3 | Y   | HAZEL paged in (`&C000-&DFFF` is hidden RAM) |\n| 2 | X   | LYNNE paged in (`&3000-&7FFF` is shadow RAM) |\n| 1 | E   | shadow RAM owns screen |\n| 0 | D   | shadow RAM for the OS display |\n\nANFS uses bit 7 (IRR) as a deferred-work latch via `TRB`/`TSB`."
+    },
+    {
+      "addr": 65080,
+      "name": "disable_net_nmis",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r"
+      ],
+      "description": "Master 128 INTOFF mirror (NMI-disable side effect).\nReading any byte here disables /NMI re-entry; the byte value itself is irrelevant."
+    },
+    {
+      "addr": 65084,
+      "name": "enable_net_nmis",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r"
+      ],
+      "description": "Master 128 INTON mirror (NMI-enable side effect).\nReading any byte here re-enables /NMI; the byte value itself is irrelevant."
+    },
+    {
+      "addr": 65184,
+      "name": "econet_control1_or_status1",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "ADLC control register 1 / status register 1.\nWrite: `CR1` (or `CR3` if `AC=1`). Read: `SR1`.\n\n`SR1` bits: `RDA` (b0), `S2RQ` (b1), `LOOP` (b2), `FD` (b3), `CTS` (b4), `TUF` (b5), `TDRA` (b6), `IRQ` (b7)."
+    },
+    {
+      "addr": 65185,
+      "name": "econet_control23_or_status2",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "ADLC control register 2 / status register 2.\nWrite: `CR2` (or `CR4` if `AC=1`). Read: `SR2`.\n\n`SR2` bits: `AP` (b0), `FV` (b1), `RX_IDLE` (b2), `RX_ABRT` (b3), `ERR` (b4), `DCD` (b5), `OVRN` (b6), `RDA` (b7)."
+    },
+    {
+      "addr": 65186,
+      "name": "econet_data_continue_frame",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "ADLC TX FIFO continue / RX FIFO read.\nWrite: byte to TX FIFO with `LAST_DATA = 0` (continue frame).\nRead: next byte from RX FIFO."
+    },
+    {
+      "addr": 65187,
+      "name": "econet_data_terminate_frame",
+      "length": 1,
+      "group": "mmio",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "ADLC TX FIFO terminate / RX FIFO read.\nWrite: final byte of frame (`LAST_DATA = 1`; ADLC appends CRC + closing flag).\nRead: next byte from RX FIFO."
+    },
+    {
+      "addr": 65307,
+      "name": "ev_filev",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "FILEV extended-vector dispatcher (file operations: OSFILE, OSFIND)."
+    },
+    {
+      "addr": 65310,
+      "name": "ev_argsv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "ARGSV extended-vector dispatcher (file argument operations: OSARGS)."
+    },
+    {
+      "addr": 65313,
+      "name": "ev_bgetv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "BGETV extended-vector dispatcher (single-byte read: OSBGET)."
+    },
+    {
+      "addr": 65316,
+      "name": "ev_bputv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "BPUTV extended-vector dispatcher (single-byte write: OSBPUT)."
+    },
+    {
+      "addr": 65319,
+      "name": "ev_gbpbv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "GBPBV extended-vector dispatcher (block transfer: OSGBPB)."
+    },
+    {
+      "addr": 65322,
+      "name": "ev_findv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "FINDV extended-vector dispatcher (open / close: OSFIND)."
+    },
+    {
+      "addr": 65325,
+      "name": "ev_fscv",
+      "length": 3,
+      "group": "ext_vectors",
+      "access": [
+        "r"
+      ],
+      "description": "FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands)."
     },
     {
       "addr": 65456,
       "name": "nmi_buf_idx_base",
       "length": 1,
       "group": "idx_base",
+      "access": [
+        "b"
+      ],
       "description": "NMI buffer indexing-base.\nUsed by the NMI RX setup as `STA nmi_buf_idx_base,Y` with Y values that wrap into low memory; the bytes at `&FFB0` themselves aren't read or written."
     },
     {
@@ -6652,6 +7294,9 @@
       "name": "fcb_workspace_idx_base",
       "length": 1,
       "group": "idx_base",
+      "access": [
+        "b"
+      ],
       "description": "FCB-workspace indexing-base (wraps into ZP).\nUsed by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&FF`; the effective address wraps to `&00B4`..`&00BC` (= `fs_work_4`+0..+8). The byte at `&FFBD` itself is never read."
     }
   ],
@@ -6743,7 +7388,18 @@
         25
       ],
       "expressions": [
-        "copyright - language_entry"
+        {
+          "text": "copyright - language_entry",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "copyright"
+            },
+            "right": {
+              "sym": "language_entry"
+            }
+          }
+        }
       ]
     },
     {
@@ -7731,7 +8387,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_rx_scout_net)"
+      "operand": "#<(nmi_rx_scout_net)",
+      "expr": {
+        "text": "<(nmi_rx_scout_net)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout_net"
+          }
+        }
+      }
     },
     {
       "addr": 32951,
@@ -7939,7 +8604,16 @@
       "comment_inline": "Install scout-data reader (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_scout_data)"
+      "operand": "#<(nmi_scout_data)",
+      "expr": {
+        "text": "<(nmi_scout_data)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_scout_data"
+          }
+        }
+      }
     },
     {
       "addr": 32983,
@@ -9490,7 +10164,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_rx)"
+      "operand": "#<(nmi_data_rx)",
+      "expr": {
+        "text": "<(nmi_data_rx)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx"
+          }
+        }
+      }
     },
     {
       "addr": 33218,
@@ -9597,7 +10280,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_rx_net)"
+      "operand": "#<(nmi_data_rx_net)",
+      "expr": {
+        "text": "<(nmi_data_rx_net)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_net"
+          }
+        }
+      }
     },
     {
       "addr": 33238,
@@ -9859,7 +10551,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_rx_bulk)"
+      "operand": "#<(nmi_data_rx_bulk)",
+      "expr": {
+        "text": "<(nmi_data_rx_bulk)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_bulk"
+          }
+        }
+      }
     },
     {
       "addr": 33283,
@@ -9870,7 +10571,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_data_rx_bulk)"
+      "operand": "#>(nmi_data_rx_bulk)",
+      "expr": {
+        "text": ">(nmi_data_rx_bulk)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_bulk"
+          }
+        }
+      }
     },
     {
       "addr": 33285,
@@ -9934,7 +10644,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_rx_tube)"
+      "operand": "#<(nmi_data_rx_tube)",
+      "expr": {
+        "text": "<(nmi_data_rx_tube)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 33295,
@@ -9945,7 +10664,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_data_rx_tube)"
+      "operand": "#>(nmi_data_rx_tube)",
+      "expr": {
+        "text": ">(nmi_data_rx_tube)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 33297,
@@ -11710,7 +12438,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_ack_tx_src)"
+      "operand": "#<(nmi_ack_tx_src)",
+      "expr": {
+        "text": "<(nmi_ack_tx_src)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_ack_tx_src"
+          }
+        }
+      }
     },
     {
       "addr": 33569,
@@ -11721,7 +12458,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_ack_tx_src)"
+      "operand": "#>(nmi_ack_tx_src)",
+      "expr": {
+        "text": ">(nmi_ack_tx_src)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_ack_tx_src"
+          }
+        }
+      }
     },
     {
       "addr": 33571,
@@ -13243,7 +13989,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_rx_scout)"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 33791,
@@ -13254,7 +14009,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_rx_scout)"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 33793,
@@ -15550,7 +16314,23 @@
       "comment_inline": "tx_done_exit RTS target (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#>(tx_done_exit-1)"
+      "operand": "#>(tx_done_exit - 1)",
+      "expr": {
+        "text": ">(tx_done_exit - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_done_exit"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 34150,
@@ -15570,7 +16350,23 @@
       "comment_inline": "tx_done_exit RTS target (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(tx_done_exit-1)"
+      "operand": "#<(tx_done_exit - 1)",
+      "expr": {
+        "text": "<(tx_done_exit - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_done_exit"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 34153,
@@ -15635,7 +16431,13 @@
       "comment_inline": "Y = 8: Econet event number",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#event_network_error"
+      "operand": "#event_network_error",
+      "expr": {
+        "text": "event_network_error",
+        "tree": {
+          "sym": "event_network_error"
+        }
+      }
     },
     {
       "addr": 34165,
@@ -18516,7 +19318,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#<(nmi_tx_data)"
+      "operand": "#<(nmi_tx_data)",
+      "expr": {
+        "text": "<(nmi_tx_data)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_data"
+          }
+        }
+      }
     },
     {
       "addr": 34590,
@@ -19917,7 +20728,16 @@
       "comment_inline": "Install TX->RX switch handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_tx_switch_rx)"
+      "operand": "#<(nmi_tx_switch_rx)",
+      "expr": {
+        "text": "<(nmi_tx_switch_rx)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_switch_rx"
+          }
+        }
+      }
     },
     {
       "addr": 34809,
@@ -20088,7 +20908,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_reply_scout)"
+      "operand": "#<(nmi_reply_scout)",
+      "expr": {
+        "text": "<(nmi_reply_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_scout"
+          }
+        }
+      }
     },
     {
       "addr": 34837,
@@ -20099,7 +20928,16 @@
       "comment_inline": "Install nmi_reply_scout (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_reply_scout)"
+      "operand": "#>(nmi_reply_scout)",
+      "expr": {
+        "text": ">(nmi_reply_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_reply_scout"
+          }
+        }
+      }
     },
     {
       "addr": 34839,
@@ -20206,7 +21044,16 @@
       "comment_inline": "Install reply-continuation handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_reply_cont)"
+      "operand": "#<(nmi_reply_cont)",
+      "expr": {
+        "text": "<(nmi_reply_cont)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_cont"
+          }
+        }
+      }
     },
     {
       "addr": 34859,
@@ -20288,7 +21135,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_reply_validate)"
+      "operand": "#<(nmi_reply_validate)",
+      "expr": {
+        "text": "<(nmi_reply_validate)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_validate"
+          }
+        }
+      }
     },
     {
       "addr": 34874,
@@ -20732,7 +21588,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_scout_ack_src)"
+      "operand": "#<(nmi_scout_ack_src)",
+      "expr": {
+        "text": "<(nmi_scout_ack_src)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_scout_ack_src"
+          }
+        }
+      }
     },
     {
       "addr": 34952,
@@ -20743,7 +21608,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_scout_ack_src)"
+      "operand": "#>(nmi_scout_ack_src)",
+      "expr": {
+        "text": ">(nmi_scout_ack_src)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_scout_ack_src"
+          }
+        }
+      }
     },
     {
       "addr": 34954,
@@ -20913,7 +21787,16 @@
       "comment_inline": "Install nmi_data_tx alt-entry (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_tx_alt)"
+      "operand": "#<(nmi_data_tx_alt)",
+      "expr": {
+        "text": "<(nmi_data_tx_alt)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx_alt"
+          }
+        }
+      }
     },
     {
       "addr": 34982,
@@ -20961,7 +21844,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_data_tx_tube)"
+      "operand": "#<(nmi_data_tx_tube)",
+      "expr": {
+        "text": "<(nmi_data_tx_tube)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 34989,
@@ -20972,7 +21864,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_data_tx_tube)"
+      "operand": "#>(nmi_data_tx_tube)",
+      "expr": {
+        "text": ">(nmi_data_tx_tube)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_tx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 34991,
@@ -21589,7 +22490,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(discard_reset_rx)"
+      "operand": "#<(discard_reset_rx)",
+      "expr": {
+        "text": "<(discard_reset_rx)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "discard_reset_rx"
+          }
+        }
+      }
     },
     {
       "addr": 35078,
@@ -21600,7 +22510,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(discard_reset_rx)"
+      "operand": "#>(discard_reset_rx)",
+      "expr": {
+        "text": ">(discard_reset_rx)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "discard_reset_rx"
+          }
+        }
+      }
     },
     {
       "addr": 35080,
@@ -22179,7 +23098,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_final_ack)"
+      "operand": "#<(nmi_final_ack)",
+      "expr": {
+        "text": "<(nmi_final_ack)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack"
+          }
+        }
+      }
     },
     {
       "addr": 35164,
@@ -22190,7 +23118,16 @@
       "comment_inline": "Next NMI handler address (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(nmi_final_ack)"
+      "operand": "#>(nmi_final_ack)",
+      "expr": {
+        "text": ">(nmi_final_ack)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_final_ack"
+          }
+        }
+      }
     },
     {
       "addr": 35166,
@@ -22297,7 +23234,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(nmi_final_ack_net)"
+      "operand": "#<(nmi_final_ack_net)",
+      "expr": {
+        "text": "<(nmi_final_ack_net)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack_net"
+          }
+        }
+      }
     },
     {
       "addr": 35186,
@@ -23478,7 +24424,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23492,7 +24453,22 @@
         42
       ],
       "expressions": [
-        "<(svc_dispatch_idx_2-1)"
+        {
+          "text": "<(svc_dispatch_idx_2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_dispatch_idx_2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23506,7 +24482,22 @@
         39
       ],
       "expressions": [
-        "<(svc_2_priv_ws-1)"
+        {
+          "text": "<(svc_2_priv_ws - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_2_priv_ws"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23520,7 +24511,22 @@
         235
       ],
       "expressions": [
-        "<(svc_3_autoboot-1)"
+        {
+          "text": "<(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23534,7 +24540,22 @@
         102
       ],
       "expressions": [
-        "<(svc_4_star_command-1)"
+        {
+          "text": "<(svc_4_star_command - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23548,7 +24569,22 @@
         41
       ],
       "expressions": [
-        "<(svc5_irq_check-1)"
+        {
+          "text": "<(svc5_irq_check - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23562,7 +24598,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23576,7 +24627,22 @@
         239
       ],
       "expressions": [
-        "<(svc_7_osbyte-1)"
+        {
+          "text": "<(svc_7_osbyte - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_7_osbyte"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23590,7 +24656,22 @@
         84
       ],
       "expressions": [
-        "<(svc_8_osword_disp-1)"
+        {
+          "text": "<(svc_8_osword_disp - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_8_osword_disp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23604,7 +24685,22 @@
         117
       ],
       "expressions": [
-        "<(svc_9_help-1)"
+        {
+          "text": "<(svc_9_help - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23618,7 +24714,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23632,7 +24743,22 @@
         109
       ],
       "expressions": [
-        "<(econet_restore-1)"
+        {
+          "text": "<(econet_restore - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23646,7 +24772,22 @@
         216
       ],
       "expressions": [
-        "<(wait_idle_and_reset-1)"
+        {
+          "text": "<(wait_idle_and_reset - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "wait_idle_and_reset"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23662,7 +24803,22 @@
         143
       ],
       "expressions": [
-        "<(svc_18_fs_select-1)",
+        {
+          "text": "<(svc_18_fs_select - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_18_fs_select"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        },
         null
       ]
     },
@@ -23677,7 +24833,22 @@
         0
       ],
       "expressions": [
-        "<(raise_y_to_c8-1)"
+        {
+          "text": "<(raise_y_to_c8 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "raise_y_to_c8"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23691,7 +24862,22 @@
         21
       ],
       "expressions": [
-        "<(set_rom_ws_page-1)"
+        {
+          "text": "<(set_rom_ws_page - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "set_rom_ws_page"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23705,7 +24891,22 @@
         7
       ],
       "expressions": [
-        "<(store_ws_page_count-1)"
+        {
+          "text": "<(store_ws_page_count - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "store_ws_page_count"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23719,7 +24920,22 @@
         136
       ],
       "expressions": [
-        "<(noop_dey_rts-1)"
+        {
+          "text": "<(noop_dey_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "noop_dey_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23733,7 +24949,22 @@
         138
       ],
       "expressions": [
-        "<(copy_template_to_zp-1)"
+        {
+          "text": "<(copy_template_to_zp - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "copy_template_to_zp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23747,7 +24978,22 @@
         161
       ],
       "expressions": [
-        "<(svc_26_close_all_files-1)"
+        {
+          "text": "<(svc_26_close_all_files - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_26_close_all_files"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23761,7 +25007,22 @@
         79
       ],
       "expressions": [
-        "<(nfs_init_body-1)"
+        {
+          "text": "<(nfs_init_body - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "nfs_init_body"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23775,7 +25036,22 @@
         158
       ],
       "expressions": [
-        "<(print_fs_ps_help-1)"
+        {
+          "text": "<(print_fs_ps_help - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "print_fs_ps_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23789,7 +25065,22 @@
         46
       ],
       "expressions": [
-        "<(svc_29_status-1)"
+        {
+          "text": "<(svc_29_status - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_29_status"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23803,7 +25094,22 @@
         172
       ],
       "expressions": [
-        "<(lang_0_insert_key-1)"
+        {
+          "text": "<(lang_0_insert_key - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_0_insert_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23817,7 +25123,22 @@
         77
       ],
       "expressions": [
-        "<(lang_1_remote_boot-1)"
+        {
+          "text": "<(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23831,7 +25152,22 @@
         78
       ],
       "expressions": [
-        "<(lang_2_save_palette_vdu-1)"
+        {
+          "text": "<(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23845,7 +25181,22 @@
         123
       ],
       "expressions": [
-        "<(lang_3_exec_0100-1)"
+        {
+          "text": "<(lang_3_exec_0100 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_3_exec_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23859,7 +25210,22 @@
         156
       ],
       "expressions": [
-        "<(lang_4_validated-1)"
+        {
+          "text": "<(lang_4_validated - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_4_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23873,7 +25239,22 @@
         206
       ],
       "expressions": [
-        "<(fscv_0_opt_entry-1)"
+        {
+          "text": "<(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23887,7 +25268,22 @@
         48
       ],
       "expressions": [
-        "<(fscv_1_eof-1)"
+        {
+          "text": "<(fscv_1_eof - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23901,7 +25297,22 @@
         4
       ],
       "expressions": [
-        "<(cmd_run_via_urd-1)"
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23915,7 +25326,22 @@
         66
       ],
       "expressions": [
-        "<(fscv_3_star_cmd-1)"
+        {
+          "text": "<(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23929,7 +25355,22 @@
         4
       ],
       "expressions": [
-        "<(cmd_run_via_urd-1)"
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23943,7 +25384,22 @@
         74
       ],
       "expressions": [
-        "<(fscv_5_cat-1)"
+        {
+          "text": "<(fscv_5_cat - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23957,7 +25413,22 @@
         119
       ],
       "expressions": [
-        "<(fscv_6_shutdown-1)"
+        {
+          "text": "<(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23971,7 +25442,22 @@
         246
       ],
       "expressions": [
-        "<(fscv_7_read_handles-1)"
+        {
+          "text": "<(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23985,7 +25471,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -23999,7 +25500,22 @@
         48
       ],
       "expressions": [
-        "<(ps_scan_resume-1)"
+        {
+          "text": "<(ps_scan_resume - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ps_scan_resume"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24013,7 +25529,22 @@
         137
       ],
       "expressions": [
-        "<(cmd_info_dispatch-1)"
+        {
+          "text": "<(cmd_info_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_info_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24027,7 +25558,22 @@
         239
       ],
       "expressions": [
-        "<(check_urd_present-1)"
+        {
+          "text": "<(check_urd_present - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "check_urd_present"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24041,7 +25587,22 @@
         13
       ],
       "expressions": [
-        "<(ex_init_scan_x0-1)"
+        {
+          "text": "<(ex_init_scan_x0 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_init_scan_x0"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24055,7 +25616,22 @@
         232
       ],
       "expressions": [
-        "<(fsreply_1_boot-1)"
+        {
+          "text": "<(fsreply_1_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_1_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24069,7 +25645,22 @@
         248
       ],
       "expressions": [
-        "<(fsreply_2_copy_handles-1)"
+        {
+          "text": "<(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24083,7 +25674,22 @@
         75
       ],
       "expressions": [
-        "<(fsreply_3_set_csd-1)"
+        {
+          "text": "<(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24097,7 +25703,22 @@
         4
       ],
       "expressions": [
-        "<(cmd_run_via_urd-1)"
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24111,7 +25732,22 @@
         81
       ],
       "expressions": [
-        "<(fsreply_5_set_lib-1)"
+        {
+          "text": "<(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24125,7 +25761,22 @@
         18
       ],
       "expressions": [
-        "<(net_1_read_handle-1)"
+        {
+          "text": "<(net_1_read_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24139,7 +25790,22 @@
         24
       ],
       "expressions": [
-        "<(net_2_read_entry-1)"
+        {
+          "text": "<(net_2_read_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_2_read_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24153,7 +25819,22 @@
         40
       ],
       "expressions": [
-        "<(net_3_close_handle-1)"
+        {
+          "text": "<(net_3_close_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24190,7 +25871,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24204,7 +25900,22 @@
         141
       ],
       "expressions": [
-        ">(svc_dispatch_idx_2-1)"
+        {
+          "text": ">(svc_dispatch_idx_2 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_dispatch_idx_2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24218,7 +25929,22 @@
         143
       ],
       "expressions": [
-        ">(svc_2_priv_ws-1)"
+        {
+          "text": ">(svc_2_priv_ws - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_2_priv_ws"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24232,7 +25958,22 @@
         140
       ],
       "expressions": [
-        ">(svc_3_autoboot-1)"
+        {
+          "text": ">(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24246,7 +25987,22 @@
         140
       ],
       "expressions": [
-        ">(svc_4_star_command-1)"
+        {
+          "text": ">(svc_4_star_command - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24260,7 +26016,22 @@
         128
       ],
       "expressions": [
-        ">(svc5_irq_check-1)"
+        {
+          "text": ">(svc5_irq_check - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24274,7 +26045,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24288,7 +26074,22 @@
         142
       ],
       "expressions": [
-        ">(svc_7_osbyte-1)"
+        {
+          "text": ">(svc_7_osbyte - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_7_osbyte"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24302,7 +26103,22 @@
         168
       ],
       "expressions": [
-        ">(svc_8_osword_disp-1)"
+        {
+          "text": ">(svc_8_osword_disp - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_8_osword_disp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24316,7 +26132,22 @@
         140
       ],
       "expressions": [
-        ">(svc_9_help-1)"
+        {
+          "text": ">(svc_9_help - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24330,7 +26161,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24344,7 +26190,22 @@
         128
       ],
       "expressions": [
-        ">(econet_restore-1)"
+        {
+          "text": ">(econet_restore - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24358,7 +26219,22 @@
         137
       ],
       "expressions": [
-        ">(wait_idle_and_reset-1)"
+        {
+          "text": ">(wait_idle_and_reset - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "wait_idle_and_reset"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24374,7 +26250,22 @@
         150
       ],
       "expressions": [
-        ">(svc_18_fs_select-1)",
+        {
+          "text": ">(svc_18_fs_select - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_18_fs_select"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        },
         null
       ]
     },
@@ -24389,7 +26280,22 @@
         143
       ],
       "expressions": [
-        ">(raise_y_to_c8-1)"
+        {
+          "text": ">(raise_y_to_c8 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "raise_y_to_c8"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24403,7 +26309,22 @@
         143
       ],
       "expressions": [
-        ">(set_rom_ws_page-1)"
+        {
+          "text": ">(set_rom_ws_page - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "set_rom_ws_page"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24417,7 +26338,22 @@
         143
       ],
       "expressions": [
-        ">(store_ws_page_count-1)"
+        {
+          "text": ">(store_ws_page_count - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "store_ws_page_count"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24431,7 +26367,22 @@
         142
       ],
       "expressions": [
-        ">(noop_dey_rts-1)"
+        {
+          "text": ">(noop_dey_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "noop_dey_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24445,7 +26396,22 @@
         142
       ],
       "expressions": [
-        ">(copy_template_to_zp-1)"
+        {
+          "text": ">(copy_template_to_zp - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "copy_template_to_zp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24459,7 +26425,22 @@
         142
       ],
       "expressions": [
-        ">(svc_26_close_all_files-1)"
+        {
+          "text": ">(svc_26_close_all_files - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_26_close_all_files"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24473,7 +26454,22 @@
         143
       ],
       "expressions": [
-        ">(nfs_init_body-1)"
+        {
+          "text": ">(nfs_init_body - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "nfs_init_body"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24487,7 +26483,22 @@
         149
       ],
       "expressions": [
-        ">(print_fs_ps_help-1)"
+        {
+          "text": ">(print_fs_ps_help - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "print_fs_ps_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24501,7 +26512,22 @@
         150
       ],
       "expressions": [
-        ">(svc_29_status-1)"
+        {
+          "text": ">(svc_29_status - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_29_status"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24515,7 +26541,22 @@
         152
       ],
       "expressions": [
-        ">(lang_0_insert_key-1)"
+        {
+          "text": ">(lang_0_insert_key - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_0_insert_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24529,7 +26570,22 @@
         152
       ],
       "expressions": [
-        ">(lang_1_remote_boot-1)"
+        {
+          "text": ">(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24543,7 +26599,22 @@
         176
       ],
       "expressions": [
-        ">(lang_2_save_palette_vdu-1)"
+        {
+          "text": ">(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24557,7 +26628,22 @@
         152
       ],
       "expressions": [
-        ">(lang_3_exec_0100-1)"
+        {
+          "text": ">(lang_3_exec_0100 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_3_exec_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24571,7 +26657,22 @@
         152
       ],
       "expressions": [
-        ">(lang_4_validated-1)"
+        {
+          "text": ">(lang_4_validated - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_4_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24585,7 +26686,22 @@
         160
       ],
       "expressions": [
-        ">(fscv_0_opt_entry-1)"
+        {
+          "text": ">(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24599,7 +26715,22 @@
         161
       ],
       "expressions": [
-        ">(fscv_1_eof-1)"
+        {
+          "text": ">(fscv_1_eof - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24613,7 +26744,22 @@
         165
       ],
       "expressions": [
-        ">(cmd_run_via_urd-1)"
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24627,7 +26773,22 @@
         164
       ],
       "expressions": [
-        ">(fscv_3_star_cmd-1)"
+        {
+          "text": ">(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24641,7 +26802,22 @@
         165
       ],
       "expressions": [
-        ">(cmd_run_via_urd-1)"
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24655,7 +26831,22 @@
         177
       ],
       "expressions": [
-        ">(fscv_5_cat-1)"
+        {
+          "text": ">(fscv_5_cat - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24669,7 +26860,22 @@
         144
       ],
       "expressions": [
-        ">(fscv_6_shutdown-1)"
+        {
+          "text": ">(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24683,7 +26889,22 @@
         147
       ],
       "expressions": [
-        ">(fscv_7_read_handles-1)"
+        {
+          "text": ">(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24697,7 +26918,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24711,7 +26947,22 @@
         177
       ],
       "expressions": [
-        ">(ps_scan_resume-1)"
+        {
+          "text": ">(ps_scan_resume - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ps_scan_resume"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24725,7 +26976,22 @@
         179
       ],
       "expressions": [
-        ">(cmd_info_dispatch-1)"
+        {
+          "text": ">(cmd_info_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_info_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24739,7 +27005,22 @@
         164
       ],
       "expressions": [
-        ">(check_urd_present-1)"
+        {
+          "text": ">(check_urd_present - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "check_urd_present"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24753,7 +27034,22 @@
         179
       ],
       "expressions": [
-        ">(ex_init_scan_x0-1)"
+        {
+          "text": ">(ex_init_scan_x0 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_init_scan_x0"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24767,7 +27063,22 @@
         166
       ],
       "expressions": [
-        ">(fsreply_1_boot-1)"
+        {
+          "text": ">(fsreply_1_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_1_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24781,7 +27092,22 @@
         166
       ],
       "expressions": [
-        ">(fsreply_2_copy_handles-1)"
+        {
+          "text": ">(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24795,7 +27121,22 @@
         166
       ],
       "expressions": [
-        ">(fsreply_3_set_csd-1)"
+        {
+          "text": ">(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24809,7 +27150,22 @@
         165
       ],
       "expressions": [
-        ">(cmd_run_via_urd-1)"
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24823,7 +27179,22 @@
         166
       ],
       "expressions": [
-        ">(fsreply_5_set_lib-1)"
+        {
+          "text": ">(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24837,7 +27208,22 @@
         164
       ],
       "expressions": [
-        ">(net_1_read_handle-1)"
+        {
+          "text": ">(net_1_read_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24851,7 +27237,22 @@
         164
       ],
       "expressions": [
-        ">(net_2_read_entry-1)"
+        {
+          "text": ">(net_2_read_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_2_read_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -24867,7 +27268,22 @@
         139
       ],
       "expressions": [
-        ">(net_3_close_handle-1)",
+        {
+          "text": ">(net_3_close_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        },
         null
       ]
     },
@@ -24934,7 +27350,13 @@
       "comment_inline": "OSBYTE 0: read OS version",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_os_version"
+      "operand": "#osbyte_read_os_version",
+      "expr": {
+        "text": "osbyte_read_os_version",
+        "tree": {
+          "sym": "osbyte_read_os_version"
+        }
+      }
     },
     {
       "addr": 35474,
@@ -25892,7 +28314,13 @@
       "comment_inline": "OSBYTE &C9: keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_kbd_disable"
+      "operand": "#osbyte_econet_kbd_disable",
+      "expr": {
+        "text": "osbyte_econet_kbd_disable",
+        "tree": {
+          "sym": "osbyte_econet_kbd_disable"
+        }
+      }
     },
     {
       "addr": 35614,
@@ -25967,7 +28395,13 @@
       "comment_inline": "A=&CE: start of key range",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_oscall_intercept"
+      "operand": "#osbyte_econet_oscall_intercept",
+      "expr": {
+        "text": "osbyte_econet_oscall_intercept",
+        "tree": {
+          "sym": "osbyte_econet_oscall_intercept"
+        }
+      }
     },
     {
       "addr": 35626,
@@ -29101,7 +31535,13 @@
       "comment_inline": "OSBYTE &7A: scan keyboard from key 16",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_scan_keyboard_from_16"
+      "operand": "#osbyte_scan_keyboard_from_16",
+      "expr": {
+        "text": "osbyte_scan_keyboard_from_16",
+        "tree": {
+          "sym": "osbyte_scan_keyboard_from_16"
+        }
+      }
     },
     {
       "addr": 36078,
@@ -29217,7 +31657,13 @@
       "comment_inline": "OSBYTE &78: write keys pressed",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_write_keys_pressed"
+      "operand": "#osbyte_write_keys_pressed",
+      "expr": {
+        "text": "osbyte_write_keys_pressed",
+        "tree": {
+          "sym": "osbyte_write_keys_pressed"
+        }
+      }
     },
     {
       "addr": 36095,
@@ -29482,7 +31928,13 @@
       "comment_inline": "A=&8F: OSBYTE 'Issue paged-ROM service request'",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_issue_service_request"
+      "operand": "#osbyte_issue_service_request",
+      "expr": {
+        "text": "osbyte_issue_service_request",
+        "tree": {
+          "sym": "osbyte_issue_service_request"
+        }
+      }
     },
     {
       "addr": 36136,
@@ -30034,7 +32486,13 @@
       "comment_inline": "OSBYTE &77: close SPOOL/EXEC",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 36267,
@@ -31943,7 +34401,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_cmos_ram"
+      "operand": "#osbyte_read_cmos_ram",
+      "expr": {
+        "text": "osbyte_read_cmos_ram",
+        "tree": {
+          "sym": "osbyte_read_cmos_ram"
+        }
+      }
     },
     {
       "addr": 36532,
@@ -32015,7 +34479,12 @@
         65307
       ],
       "expressions": [
-        "ev_filev"
+        {
+          "text": "ev_filev",
+          "tree": {
+            "sym": "ev_filev"
+          }
+        }
       ]
     },
     {
@@ -32030,7 +34499,12 @@
         65310
       ],
       "expressions": [
-        "ev_argsv"
+        {
+          "text": "ev_argsv",
+          "tree": {
+            "sym": "ev_argsv"
+          }
+        }
       ]
     },
     {
@@ -32045,7 +34519,12 @@
         65313
       ],
       "expressions": [
-        "ev_bgetv"
+        {
+          "text": "ev_bgetv",
+          "tree": {
+            "sym": "ev_bgetv"
+          }
+        }
       ]
     },
     {
@@ -32060,7 +34539,12 @@
         65316
       ],
       "expressions": [
-        "ev_bputv"
+        {
+          "text": "ev_bputv",
+          "tree": {
+            "sym": "ev_bputv"
+          }
+        }
       ]
     },
     {
@@ -32075,7 +34559,12 @@
         65319
       ],
       "expressions": [
-        "ev_gbpbv"
+        {
+          "text": "ev_gbpbv",
+          "tree": {
+            "sym": "ev_gbpbv"
+          }
+        }
       ]
     },
     {
@@ -32090,7 +34579,12 @@
         65322
       ],
       "expressions": [
-        "ev_findv"
+        {
+          "text": "ev_findv",
+          "tree": {
+            "sym": "ev_findv"
+          }
+        }
       ]
     },
     {
@@ -32105,7 +34599,12 @@
         65325
       ],
       "expressions": [
-        "ev_fscv"
+        {
+          "text": "ev_fscv",
+          "tree": {
+            "sym": "ev_fscv"
+          }
+        }
       ]
     },
     {
@@ -32120,7 +34619,12 @@
         39968
       ],
       "expressions": [
-        "filev_handler"
+        {
+          "text": "filev_handler",
+          "tree": {
+            "sym": "filev_handler"
+          }
+        }
       ]
     },
     {
@@ -32146,7 +34650,12 @@
         40617
       ],
       "expressions": [
-        "argsv_handler"
+        {
+          "text": "argsv_handler",
+          "tree": {
+            "sym": "argsv_handler"
+          }
+        }
       ]
     },
     {
@@ -32172,7 +34681,12 @@
         48024
       ],
       "expressions": [
-        "bgetv_handler"
+        {
+          "text": "bgetv_handler",
+          "tree": {
+            "sym": "bgetv_handler"
+          }
+        }
       ]
     },
     {
@@ -32198,7 +34712,12 @@
         48151
       ],
       "expressions": [
-        "bputv_handler"
+        {
+          "text": "bputv_handler",
+          "tree": {
+            "sym": "bputv_handler"
+          }
+        }
       ]
     },
     {
@@ -32224,7 +34743,12 @@
         41330
       ],
       "expressions": [
-        "gbpbv_handler"
+        {
+          "text": "gbpbv_handler",
+          "tree": {
+            "sym": "gbpbv_handler"
+          }
+        }
       ]
     },
     {
@@ -32250,7 +34774,12 @@
         41045
       ],
       "expressions": [
-        "findv_handler"
+        {
+          "text": "findv_handler",
+          "tree": {
+            "sym": "findv_handler"
+          }
+        }
       ]
     },
     {
@@ -32276,7 +34805,12 @@
         36451
       ],
       "expressions": [
-        "fscv_handler"
+        {
+          "text": "fscv_handler",
+          "tree": {
+            "sym": "fscv_handler"
+          }
+        }
       ]
     },
     {
@@ -36197,7 +38731,25 @@
         6
       ],
       "expressions": [
-        "syn_iam - syn_opt_dir - 2"
+        {
+          "text": "syn_iam - syn_opt_dir - 2",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "op": "sub",
+              "left": {
+                "sym": "syn_iam"
+              },
+              "right": {
+                "sym": "syn_opt_dir"
+              }
+            },
+            "right": {
+              "int": 2,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -36222,7 +38774,25 @@
         7
       ],
       "expressions": [
-        "syn_iam - syn_opt_dir - 1"
+        {
+          "text": "syn_iam - syn_opt_dir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "op": "sub",
+              "left": {
+                "sym": "syn_iam"
+              },
+              "right": {
+                "sym": "syn_opt_dir"
+              }
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -36236,7 +38806,25 @@
         52
       ],
       "expressions": [
-        "syn_object - syn_opt_dir - 1"
+        {
+          "text": "syn_object - syn_opt_dir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "op": "sub",
+              "left": {
+                "sym": "syn_object"
+              },
+              "right": {
+                "sym": "syn_opt_dir"
+              }
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -36557,7 +39145,13 @@
       "comment_inline": "OSBYTE 199 (read/write *SPOOL file handle)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_spool_file_handle"
+      "operand": "#osbyte_spool_file_handle",
+      "expr": {
+        "text": "osbyte_spool_file_handle",
+        "tree": {
+          "sym": "osbyte_spool_file_handle"
+        }
+      }
     },
     {
       "addr": 37394,
@@ -36798,7 +39392,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_spool_file_handle"
+      "operand": "#osbyte_spool_file_handle",
+      "expr": {
+        "text": "osbyte_spool_file_handle",
+        "tree": {
+          "sym": "osbyte_spool_file_handle"
+        }
+      }
     },
     {
       "addr": 37429,
@@ -43766,7 +46366,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_write_cmos_ram"
+      "operand": "#osbyte_write_cmos_ram",
+      "expr": {
+        "text": "osbyte_write_cmos_ram",
+        "tree": {
+          "sym": "osbyte_write_cmos_ram"
+        }
+      }
     },
     {
       "addr": 38419,
@@ -45979,7 +48585,13 @@
       "comment_inline": "OSBYTE &77 = close *SPOOL and *EXEC files",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 38779,
@@ -47809,7 +50421,13 @@
       "comment_inline": "OSBYTE &C9: read/write Econet keyboard disable",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_econet_kbd_disable"
+      "operand": "#osbyte_econet_kbd_disable",
+      "expr": {
+        "text": "osbyte_econet_kbd_disable",
+        "tree": {
+          "sym": "osbyte_econet_kbd_disable"
+        }
+      }
     },
     {
       "addr": 39033,
@@ -47963,7 +50581,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_acknowledge_escape"
+      "operand": "#osbyte_acknowledge_escape",
+      "expr": {
+        "text": "osbyte_acknowledge_escape",
+        "tree": {
+          "sym": "osbyte_acknowledge_escape"
+        }
+      }
     },
     {
       "addr": 39061,
@@ -48175,7 +50799,13 @@
       "comment_inline": "OSBYTE &99: insert byte into input buffer",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_insert_input_buffer"
+      "operand": "#osbyte_insert_input_buffer",
+      "expr": {
+        "text": "osbyte_insert_input_buffer",
+        "tree": {
+          "sym": "osbyte_insert_input_buffer"
+        }
+      }
     },
     {
       "addr": 39097,
@@ -50800,7 +53430,13 @@
       "comment_inline": "A=0: close file",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osfind_close"
+      "operand": "#osfind_close",
+      "expr": {
+        "text": "osfind_close",
+        "tree": {
+          "sym": "osfind_close"
+        }
+      }
     },
     {
       "addr": 39444,
@@ -51806,7 +54442,18 @@
         13
       ],
       "expressions": [
-        "msg_net_error - error_msg_table"
+        {
+          "text": "msg_net_error - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_net_error"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51819,7 +54466,18 @@
         24
       ],
       "expressions": [
-        "msg_station - error_msg_table"
+        {
+          "text": "msg_station - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_station"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51832,7 +54490,18 @@
         33
       ],
       "expressions": [
-        "msg_no_clock - error_msg_table"
+        {
+          "text": "msg_no_clock - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_no_clock"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51845,7 +54514,18 @@
         43
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51858,7 +54538,18 @@
         43
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51871,7 +54562,18 @@
         43
       ],
       "expressions": [
-        "msg_escape - error_msg_table"
+        {
+          "text": "msg_escape - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_escape"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51884,7 +54586,18 @@
         51
       ],
       "expressions": [
-        "msg_bad_option - error_msg_table"
+        {
+          "text": "msg_bad_option - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_bad_option"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51897,7 +54610,18 @@
         63
       ],
       "expressions": [
-        "msg_no_reply - error_msg_table"
+        {
+          "text": "msg_no_reply - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_no_reply"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51910,7 +54634,18 @@
         86
       ],
       "expressions": [
-        "msg_not_listening - error_msg_table"
+        {
+          "text": "msg_not_listening - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_not_listening"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51923,7 +54658,18 @@
         101
       ],
       "expressions": [
-        "msg_on_channel - error_msg_table"
+        {
+          "text": "msg_on_channel - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_on_channel"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -51936,7 +54682,18 @@
         113
       ],
       "expressions": [
-        "msg_not_present - error_msg_table"
+        {
+          "text": "msg_not_present - error_msg_table",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "msg_not_present"
+            },
+            "right": {
+              "sym": "error_msg_table"
+            }
+          }
+        }
       ]
     },
     {
@@ -54413,7 +57170,16 @@
       "comment_inline": "Parse-buffer pointer (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#<(hazel_parse_buf)"
+      "operand": "#<(hazel_parse_buf)",
+      "expr": {
+        "text": "<(hazel_parse_buf)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "hazel_parse_buf"
+          }
+        }
+      }
     },
     {
       "addr": 39961,
@@ -54437,7 +57203,16 @@
       "comment_inline": "Parse-buffer pointer (high)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#>(hazel_parse_buf)"
+      "operand": "#>(hazel_parse_buf)",
+      "expr": {
+        "text": ">(hazel_parse_buf)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "hazel_parse_buf"
+          }
+        }
+      }
     },
     {
       "addr": 39965,
@@ -62379,7 +65154,13 @@
       "comment_inline": "A=&77: OSBYTE close spool/exec files",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_close_spool_exec"
+      "operand": "#osbyte_close_spool_exec",
+      "expr": {
+        "text": "osbyte_close_spool_exec",
+        "tree": {
+          "sym": "osbyte_close_spool_exec"
+        }
+      }
     },
     {
       "addr": 41116,
@@ -67862,7 +70643,13 @@
       "comment_inline": "A=&13: OSWORD &13",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osword_nfs_info"
+      "operand": "#osword_nfs_info",
+      "expr": {
+        "text": "osword_nfs_info",
+        "tree": {
+          "sym": "osword_nfs_info"
+        }
+      }
     },
     {
       "addr": 41925,
@@ -67873,7 +70660,16 @@
       "comment_inline": "X = lo of PB pointer (fs_work_4 = &B4)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#<(fs_work_4)"
+      "operand": "#<(fs_work_4)",
+      "expr": {
+        "text": "<(fs_work_4)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "fs_work_4"
+          }
+        }
+      }
     },
     {
       "addr": 41927,
@@ -67884,7 +70680,16 @@
       "comment_inline": "Y = hi of PB pointer (=0, since fs_work_4 is in zero page)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(fs_work_4)"
+      "operand": "#>(fs_work_4)",
+      "expr": {
+        "text": ">(fs_work_4)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "fs_work_4"
+          }
+        }
+      }
     },
     {
       "addr": 41929,
@@ -73725,7 +76530,16 @@
       "comment_inline": "-NET-FindLib command pointer (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#<(findlib_oscli_cmd)"
+      "operand": "#<(findlib_oscli_cmd)",
+      "expr": {
+        "text": "<(findlib_oscli_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "findlib_oscli_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 42795,
@@ -73736,7 +76550,16 @@
       "comment_inline": "-NET-FindLib command pointer (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#>(findlib_oscli_cmd)"
+      "operand": "#>(findlib_oscli_cmd)",
+      "expr": {
+        "text": ">(findlib_oscli_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "findlib_oscli_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 42797,
@@ -73806,7 +76629,13 @@
       "comment_inline": "Boot type >= 2 (NFS-resident !Boot): A=&6D to commit NFS as default FS",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_make_fs_permanent"
+      "operand": "#osbyte_make_fs_permanent",
+      "expr": {
+        "text": "osbyte_make_fs_permanent",
+        "tree": {
+          "sym": "osbyte_make_fs_permanent"
+        }
+      }
     },
     {
       "addr": 42807,
@@ -73942,7 +76771,13 @@
       "comment_inline": "OSBYTE &79: scan keyboard",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_scan_keyboard"
+      "operand": "#osbyte_scan_keyboard",
+      "expr": {
+        "text": "osbyte_scan_keyboard",
+        "tree": {
+          "sym": "osbyte_scan_keyboard"
+        }
+      }
     },
     {
       "addr": 42828,
@@ -74302,7 +77137,19 @@
         35678
       ],
       "expressions": [
-        "cmd_net_check_hw-1"
+        {
+          "text": "cmd_net_check_hw - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_net_check_hw"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74341,7 +77188,19 @@
         46523
       ],
       "expressions": [
-        "cmd_pollps-1"
+        {
+          "text": "cmd_pollps - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_pollps"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74378,7 +77237,19 @@
         46842
       ],
       "expressions": [
-        "cmd_prot-1"
+        {
+          "text": "cmd_prot - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_prot"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74413,7 +77284,19 @@
         46046
       ],
       "expressions": [
-        "cmd_ps-1"
+        {
+          "text": "cmd_ps - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_ps"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74450,7 +77333,19 @@
         35599
       ],
       "expressions": [
-        "cmd_roff-1"
+        {
+          "text": "cmd_roff - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_roff"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74489,7 +77384,19 @@
         46846
       ],
       "expressions": [
-        "cmd_unprot-1"
+        {
+          "text": "cmd_unprot - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_unprot"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74527,7 +77434,19 @@
         48496
       ],
       "expressions": [
-        "cmd_dump-1"
+        {
+          "text": "cmd_dump - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_dump"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74591,7 +77510,19 @@
         37929
       ],
       "expressions": [
-        "cmd_fs_operation-1"
+        {
+          "text": "cmd_fs_operation - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs_operation"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74627,7 +77558,19 @@
         38771
       ],
       "expressions": [
-        "cmd_bye-1"
+        {
+          "text": "cmd_bye - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_bye"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74664,7 +77607,19 @@
         45267
       ],
       "expressions": [
-        "cmd_cdir-1"
+        {
+          "text": "cmd_cdir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_cdir"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74700,7 +77655,19 @@
         38166
       ],
       "expressions": [
-        "cmd_dir-1"
+        {
+          "text": "cmd_dir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_dir"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74737,7 +77704,19 @@
         42669
       ],
       "expressions": [
-        "cmd_flip-1"
+        {
+          "text": "cmd_flip - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_flip"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74772,7 +77751,19 @@
         41899
       ],
       "expressions": [
-        "cmd_fs-1"
+        {
+          "text": "cmd_fs - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74821,7 +77812,19 @@
         36254
       ],
       "expressions": [
-        "cmd_iam_save_ctx-1"
+        {
+          "text": "cmd_iam_save_ctx - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_iam_save_ctx"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74858,7 +77861,19 @@
         45348
       ],
       "expressions": [
-        "cmd_lcat-1"
+        {
+          "text": "cmd_lcat - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_lcat"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74894,7 +77909,19 @@
         45354
       ],
       "expressions": [
-        "cmd_lex-1"
+        {
+          "text": "cmd_lex - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_lex"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74930,7 +77957,19 @@
         37929
       ],
       "expressions": [
-        "cmd_fs_operation-1"
+        {
+          "text": "cmd_fs_operation - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs_operation"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -74967,7 +78006,19 @@
         36332
       ],
       "expressions": [
-        "cmd_pass-1"
+        {
+          "text": "cmd_pass - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_pass"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75006,7 +78057,19 @@
         38089
       ],
       "expressions": [
-        "cmd_rename-1"
+        {
+          "text": "cmd_rename - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_rename"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75043,7 +78106,19 @@
         46875
       ],
       "expressions": [
-        "cmd_wipe-1"
+        {
+          "text": "cmd_wipe - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_wipe"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75104,7 +78179,19 @@
         35817
       ],
       "expressions": [
-        "help_net-1"
+        {
+          "text": "help_net - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "help_net"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75142,7 +78229,19 @@
         35813
       ],
       "expressions": [
-        "help_utils-1"
+        {
+          "text": "help_utils - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "help_utils"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75191,7 +78290,19 @@
         38380
       ],
       "expressions": [
-        "set_fs_or_ps_cmos_station-1"
+        {
+          "text": "set_fs_or_ps_cmos_station - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "set_fs_or_ps_cmos_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75226,7 +78337,19 @@
         38380
       ],
       "expressions": [
-        "set_fs_or_ps_cmos_station-1"
+        {
+          "text": "set_fs_or_ps_cmos_station - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "set_fs_or_ps_cmos_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75346,7 +78469,19 @@
         38501
       ],
       "expressions": [
-        "print_fs_address-1"
+        {
+          "text": "print_fs_address - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "print_fs_address"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -75381,7 +78516,19 @@
         38497
       ],
       "expressions": [
-        "print_ps_address-1"
+        {
+          "text": "print_ps_address - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "print_ps_address"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
       ]
     },
     {
@@ -77897,7 +81044,23 @@
         }
       ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_13_read_station - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "osword_13_read_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 43464,
@@ -77922,7 +81085,22 @@
         235
       ],
       "expressions": [
-        "<(osword_13_read_station-1)"
+        {
+          "text": "<(osword_13_read_station - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77936,7 +81114,22 @@
         249
       ],
       "expressions": [
-        "<(osword_13_set_station-1)"
+        {
+          "text": "<(osword_13_set_station - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77950,7 +81143,22 @@
         176
       ],
       "expressions": [
-        "<(osword_13_read_ws_pair-1)"
+        {
+          "text": "<(osword_13_read_ws_pair - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77964,7 +81172,22 @@
         188
       ],
       "expressions": [
-        "<(osword_13_write_ws_pair-1)"
+        {
+          "text": "<(osword_13_write_ws_pair - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77978,7 +81201,22 @@
         209
       ],
       "expressions": [
-        "<(osword_13_read_prot-1)"
+        {
+          "text": "<(osword_13_read_prot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77992,7 +81230,22 @@
         215
       ],
       "expressions": [
-        "<(osword_13_write_prot-1)"
+        {
+          "text": "<(osword_13_write_prot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78006,7 +81259,22 @@
         225
       ],
       "expressions": [
-        "<(osword_13_read_handles-1)"
+        {
+          "text": "<(osword_13_read_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78020,7 +81288,22 @@
         239
       ],
       "expressions": [
-        "<(osword_13_set_handles-1)"
+        {
+          "text": "<(osword_13_set_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78034,7 +81317,22 @@
         135
       ],
       "expressions": [
-        "<(osword_13_read_rx_flag-1)"
+        {
+          "text": "<(osword_13_read_rx_flag - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_flag"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78048,7 +81346,22 @@
         144
       ],
       "expressions": [
-        "<(osword_13_read_rx_port-1)"
+        {
+          "text": "<(osword_13_read_rx_port - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_port"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78062,7 +81375,22 @@
         158
       ],
       "expressions": [
-        "<(osword_13_read_error-1)"
+        {
+          "text": "<(osword_13_read_error - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_error"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78076,7 +81404,22 @@
         165
       ],
       "expressions": [
-        "<(osword_13_read_context-1)"
+        {
+          "text": "<(osword_13_read_context - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_context"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78090,7 +81433,22 @@
         145
       ],
       "expressions": [
-        "<(osword_13_read_csd-1)"
+        {
+          "text": "<(osword_13_read_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78104,7 +81462,22 @@
         148
       ],
       "expressions": [
-        "<(osword_13_write_csd-1)"
+        {
+          "text": "<(osword_13_write_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78118,7 +81491,22 @@
         170
       ],
       "expressions": [
-        "<(osword_13_read_free_bufs-1)"
+        {
+          "text": "<(osword_13_read_free_bufs - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_free_bufs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78132,7 +81520,22 @@
         178
       ],
       "expressions": [
-        "<(osword_13_read_ctx_3-1)"
+        {
+          "text": "<(osword_13_read_ctx_3 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78146,7 +81549,22 @@
         189
       ],
       "expressions": [
-        "<(osword_13_write_ctx_3-1)"
+        {
+          "text": "<(osword_13_write_ctx_3 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78160,7 +81578,22 @@
         200
       ],
       "expressions": [
-        "<(osword_13_bridge_query-1)"
+        {
+          "text": "<(osword_13_bridge_query - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_bridge_query"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78186,7 +81619,22 @@
         169
       ],
       "expressions": [
-        ">(osword_13_read_station-1)"
+        {
+          "text": ">(osword_13_read_station - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78200,7 +81648,22 @@
         169
       ],
       "expressions": [
-        ">(osword_13_set_station-1)"
+        {
+          "text": ">(osword_13_set_station - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78214,7 +81677,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_read_ws_pair-1)"
+        {
+          "text": ">(osword_13_read_ws_pair - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78228,7 +81706,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_write_ws_pair-1)"
+        {
+          "text": ">(osword_13_write_ws_pair - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78242,7 +81735,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_read_prot-1)"
+        {
+          "text": ">(osword_13_read_prot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78256,7 +81764,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_write_prot-1)"
+        {
+          "text": ">(osword_13_write_prot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78270,7 +81793,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_read_handles-1)"
+        {
+          "text": ">(osword_13_read_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78284,7 +81822,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_set_handles-1)"
+        {
+          "text": ">(osword_13_set_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78298,7 +81851,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_rx_flag-1)"
+        {
+          "text": ">(osword_13_read_rx_flag - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_flag"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78312,7 +81880,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_rx_port-1)"
+        {
+          "text": ">(osword_13_read_rx_port - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_port"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78326,7 +81909,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_error-1)"
+        {
+          "text": ">(osword_13_read_error - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_error"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78340,7 +81938,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_context-1)"
+        {
+          "text": ">(osword_13_read_context - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_context"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78354,7 +81967,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_read_csd-1)"
+        {
+          "text": ">(osword_13_read_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78368,7 +81996,22 @@
         170
       ],
       "expressions": [
-        ">(osword_13_write_csd-1)"
+        {
+          "text": ">(osword_13_write_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78382,7 +82025,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_free_bufs-1)"
+        {
+          "text": ">(osword_13_read_free_bufs - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_free_bufs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78396,7 +82054,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_read_ctx_3-1)"
+        {
+          "text": ">(osword_13_read_ctx_3 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78410,7 +82083,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_write_ctx_3-1)"
+        {
+          "text": ">(osword_13_write_ctx_3 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -78424,7 +82112,22 @@
         171
       ],
       "expressions": [
-        ">(osword_13_bridge_query-1)"
+        {
+          "text": ">(osword_13_bridge_query - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_bridge_query"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -82676,7 +86379,13 @@
       "comment_inline": "A=&13: OSBYTE 'wait for VSYNC'",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_vsync"
+      "operand": "#osbyte_vsync",
+      "expr": {
+        "text": "osbyte_vsync",
+        "tree": {
+          "sym": "osbyte_vsync"
+        }
+      }
     },
     {
       "addr": 44104,
@@ -84435,7 +88144,23 @@
       ],
       "comment_inline": "RTS jumps to handler with A=OSWORD number",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(dispatch_rts - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "dispatch_rts"
+            },
+            "right": {
+              "int": 1,
+              "radix": "dec"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 44352,
@@ -84460,7 +88185,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84474,7 +88214,22 @@
         142
       ],
       "expressions": [
-        "<(netv_print_data-1)"
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84488,7 +88243,22 @@
         142
       ],
       "expressions": [
-        "<(netv_print_data-1)"
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84502,7 +88272,22 @@
         142
       ],
       "expressions": [
-        "<(netv_print_data-1)"
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84516,7 +88301,22 @@
         81
       ],
       "expressions": [
-        "<(osword_4_handler-1)"
+        {
+          "text": "<(osword_4_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_4_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84530,7 +88330,22 @@
         121
       ],
       "expressions": [
-        "<(netv_spool_check-1)"
+        {
+          "text": "<(netv_spool_check - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_spool_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84544,7 +88359,22 @@
         135
       ],
       "expressions": [
-        "<(dispatch_rts-1)"
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84558,7 +88388,22 @@
         131
       ],
       "expressions": [
-        "<(netv_claim_release-1)"
+        {
+          "text": "<(netv_claim_release - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_claim_release"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84572,7 +88417,22 @@
         242
       ],
       "expressions": [
-        "<(osword_8_handler-1)"
+        {
+          "text": "<(osword_8_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_8_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84598,7 +88458,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84612,7 +88487,22 @@
         174
       ],
       "expressions": [
-        ">(netv_print_data-1)"
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84626,7 +88516,22 @@
         174
       ],
       "expressions": [
-        ">(netv_print_data-1)"
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84640,7 +88545,22 @@
         174
       ],
       "expressions": [
-        ">(netv_print_data-1)"
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84654,7 +88574,22 @@
         173
       ],
       "expressions": [
-        ">(osword_4_handler-1)"
+        {
+          "text": ">(osword_4_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_4_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84668,7 +88603,22 @@
         174
       ],
       "expressions": [
-        ">(netv_spool_check-1)"
+        {
+          "text": ">(netv_spool_check - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_spool_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84682,7 +88632,22 @@
         142
       ],
       "expressions": [
-        ">(dispatch_rts-1)"
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84696,7 +88661,22 @@
         173
       ],
       "expressions": [
-        ">(netv_claim_release-1)"
+        {
+          "text": ">(netv_claim_release - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_claim_release"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -84710,7 +88690,22 @@
         173
       ],
       "expressions": [
-        ">(osword_8_handler-1)"
+        {
+          "text": ">(osword_8_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_8_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "dec"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -87440,7 +91435,13 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_read_buffer"
+      "operand": "#osbyte_read_buffer",
+      "expr": {
+        "text": "osbyte_read_buffer",
+        "tree": {
+          "sym": "osbyte_read_buffer"
+        }
+      }
     },
     {
       "addr": 44704,
@@ -87451,7 +91452,13 @@
       "comment_inline": "X=3: printer buffer",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#buffer_printer"
+      "operand": "#buffer_printer",
+      "expr": {
+        "text": "buffer_printer",
+        "tree": {
+          "sym": "buffer_printer"
+        }
+      }
     },
     {
       "addr": 44706,
@@ -90496,7 +94503,13 @@
       "comment_inline": "A=&0B: OSWORD &0B = read palette entry",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osword_read_palette"
+      "operand": "#osword_read_palette",
+      "expr": {
+        "text": "osword_read_palette",
+        "tree": {
+          "sym": "osword_read_palette"
+        }
+      }
     },
     {
       "addr": 45166,
@@ -102258,7 +106271,13 @@
       "comment_inline": "OSBYTE &A2: write CMOS byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_write_cmos_ram"
+      "operand": "#osbyte_write_cmos_ram",
+      "expr": {
+        "text": "osbyte_write_cmos_ram",
+        "tree": {
+          "sym": "osbyte_write_cmos_ram"
+        }
+      }
     },
     {
       "addr": 46871,
@@ -102567,7 +106586,13 @@
       "comment_inline": "OSBYTE &0F: flush input buffer class",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_flush_buffer_class"
+      "operand": "#osbyte_flush_buffer_class",
+      "expr": {
+        "text": "osbyte_flush_buffer_class",
+        "tree": {
+          "sym": "osbyte_flush_buffer_class"
+        }
+      }
     },
     {
       "addr": 46926,
@@ -102603,7 +106628,13 @@
       "comment_inline": "OSBYTE &7A: scan keyboard from key 16 (clear keypress queue)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_scan_keyboard_from_16"
+      "operand": "#osbyte_scan_keyboard_from_16",
+      "expr": {
+        "text": "osbyte_scan_keyboard_from_16",
+        "tree": {
+          "sym": "osbyte_scan_keyboard_from_16"
+        }
+      }
     },
     {
       "addr": 46933,
@@ -102639,7 +106670,13 @@
       "comment_inline": "OSBYTE &78: write keys-pressed state",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_write_keys_pressed"
+      "operand": "#osbyte_write_keys_pressed",
+      "expr": {
+        "text": "osbyte_write_keys_pressed",
+        "tree": {
+          "sym": "osbyte_write_keys_pressed"
+        }
+      }
     },
     {
       "addr": 46940,
@@ -103707,7 +107744,13 @@
       "comment_inline": "OSBYTE &0F: flush buffer class",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_flush_buffer_class"
+      "operand": "#osbyte_flush_buffer_class",
+      "expr": {
+        "text": "osbyte_flush_buffer_class",
+        "tree": {
+          "sym": "osbyte_flush_buffer_class"
+        }
+      }
     },
     {
       "addr": 47102,
@@ -112457,7 +116500,13 @@
       "comment_inline": "Acknowledge escape condition",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osbyte_acknowledge_escape"
+      "operand": "#osbyte_acknowledge_escape",
+      "expr": {
+        "text": "osbyte_acknowledge_escape",
+        "tree": {
+          "sym": "osbyte_acknowledge_escape"
+        }
+      }
     },
     {
       "addr": 48482,
@@ -115683,7 +119732,13 @@
       "comment_inline": "A=5: OSFILE sub-fn 5 = read catalogue info",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osfile_read_catalogue_info"
+      "operand": "#osfile_read_catalogue_info",
+      "expr": {
+        "text": "osfile_read_catalogue_info",
+        "tree": {
+          "sym": "osfile_read_catalogue_info"
+        }
+      }
     },
     {
       "addr": 48962,
@@ -116392,7 +120447,13 @@
       "comment_inline": "A=0: OSFIND close",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osfind_close"
+      "operand": "#osfind_close",
+      "expr": {
+        "text": "osfind_close",
+        "tree": {
+          "sym": "osfind_close"
+        }
+      }
     },
     {
       "addr": 49061,
@@ -116529,7 +120590,13 @@
       "comment_inline": "A=&40: OSFIND open-for-input mode",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#osfind_open_input"
+      "operand": "#osfind_open_input",
+      "expr": {
+        "text": "osfind_open_input",
+        "tree": {
+          "sym": "osfind_open_input"
+        }
+      }
     },
     {
       "addr": 49079,
