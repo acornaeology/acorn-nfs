@@ -8480,6 +8480,34 @@ d.char_literal(0x8FBB)
 d.char_literal(0x90D4)
 d.char_literal(0x9FF2)
 
+# Semantic names for shared workspace/ZP auto-labels (NFS context).
+d.label(0x0006, "zp_0006")
+d.label(0x0063, "zp_0063")
+d.index_base(0x0100, "error_block", group="stack")
+d.index_base(0x0101, "error_text", group="stack")
+d.index_base(0x0102, "stack_page_2", group="stack")
+d.index_base(0x0103, "stack_page_3", group="stack")
+d.index_base(0x0104, "stack_page_4", group="stack")
+d.index_base(0x0106, "stack_page_6", group="stack")
+d.index_base(0x0128, "tube_osword_pb", group="stack")
+d.label(0x0350, "vdu_screen_mode")
+d.label(0x0351, "vdu_display_start_hi")
+d.label(0x0355, "vdu_mode")
+d.index_base(0x0700, "string_buf", group="ram_workspace")
+d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
+d.index_base(0x0D1E, "tx_addr_base", group="ram_workspace")
+d.index_base(0x0D58, "exec_addr_lo", group="ram_workspace")
+d.label(0x0D59, "exec_addr_hi")
+d.label(0x0D60, "pflags")
+d.label(0x0E11, "context_ptr_2_hi")
+
+
+# Semantic names for ROM-source tables and code points (NFS context).
+d.index_base(0x9556, "tube_code_page6_rom")
+d.label(0xF086, "parse_station_num")
+d.label(0x8096, "parse_server_station")
+
+
 ir = d.disassemble()
 output = str(
     ir.render(

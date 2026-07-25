@@ -2000,7 +2000,7 @@
     "zp_ptr_hi": 1,
     "zp_work_2": 2,
     "zp_work_3": 3,
-    "l0006": 6,
+    "zp_0006": 6,
     "zp_temp_10": 16,
     "zp_temp_11": 17,
     "tube_data_ptr": 18,
@@ -2008,7 +2008,7 @@
     "tube_claim_flag": 20,
     "tube_claimed_id": 21,
     "zp_63": 95,
-    "l0063": 99,
+    "zp_0063": 99,
     "escapable": 151,
     "need_release_tube": 152,
     "prot_flags": 153,
@@ -2068,13 +2068,13 @@
     "osrdsc_ptr_hi": 247,
     "brk_ptr": 253,
     "escape_flag": 255,
-    "l0100": 256,
-    "l0101": 257,
-    "l0102": 258,
-    "l0103": 259,
-    "l0104": 260,
-    "l0106": 262,
-    "l0128": 296,
+    "error_block": 256,
+    "error_text": 257,
+    "stack_page_2": 258,
+    "stack_page_3": 259,
+    "stack_page_4": 260,
+    "stack_page_6": 262,
+    "tube_osword_pb": 296,
     "userv": 512,
     "brkv": 514,
     "irq1v": 516,
@@ -2102,11 +2102,11 @@
     "ind1v": 560,
     "ind2v": 562,
     "ind3v": 564,
-    "l0350": 848,
-    "l0351": 849,
-    "l0355": 853,
-    "l0700": 1792,
-    "l0cff": 3327,
+    "vdu_screen_mode": 848,
+    "vdu_display_start_hi": 849,
+    "vdu_mode": 853,
+    "string_buf": 1792,
+    "nmi_code_base": 3327,
     "nmi_shim_07": 3335,
     "nmi_jmp_lo": 3340,
     "nmi_jmp_hi": 3341,
@@ -2114,7 +2114,7 @@
     "install_nmi_handler": 3345,
     "nmi_rti": 3348,
     "nmi_shim_1a": 3354,
-    "l0d1e": 3358,
+    "tx_addr_base": 3358,
     "tx_dst_stn": 3360,
     "tx_dst_net": 3361,
     "tx_src_stn": 3362,
@@ -2139,11 +2139,11 @@
     "tx_work_51": 3409,
     "tx_in_progress": 3410,
     "tx_work_57": 3415,
-    "l0d58": 3416,
-    "l0d59": 3417,
+    "exec_addr_lo": 3416,
+    "exec_addr_hi": 3417,
     "scout_status": 3420,
     "rx_extra_byte": 3421,
-    "l0d60": 3424,
+    "pflags": 3424,
     "printer_buf_ptr": 3425,
     "tx_clear_flag": 3426,
     "prot_status": 3427,
@@ -2170,7 +2170,7 @@
     "fs_reply_status": 3597,
     "fs_target_stn": 3598,
     "fs_cmd_ptr": 3600,
-    "l0e11": 3601,
+    "context_ptr_2_hi": 3601,
     "fs_work_16": 3606,
     "fs_filename_buf": 3632,
     "fs_reply_data": 3831,
@@ -2199,7 +2199,7 @@
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fs_error_buf": 4064,
-    "lf086": 61574,
+    "parse_station_num": 61574,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -2336,8 +2336,88 @@
       ]
     },
     {
+      "addr": 256,
+      "name": "error_block",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 257,
+      "name": "error_text",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 258,
+      "name": "stack_page_2",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 259,
+      "name": "stack_page_3",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 260,
+      "name": "stack_page_4",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 262,
+      "name": "stack_page_6",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 296,
+      "name": "tube_osword_pb",
+      "group": "stack",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 1792,
+      "name": "string_buf",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3327,
+      "name": "nmi_code_base",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
       "addr": 3354,
       "name": "nmi_shim_1a",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3358,
+      "name": "tx_addr_base",
       "group": "ram_workspace",
       "access": [
         "b"
@@ -2354,6 +2434,14 @@
     {
       "addr": 3393,
       "name": "rx_remote_addr",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3416,
+      "name": "exec_addr_lo",
       "group": "ram_workspace",
       "access": [
         "b"
@@ -5461,7 +5549,7 @@
         240
       ],
       "labels": [
-        "sub_c8096"
+        "parse_server_station"
       ],
       "sub_labels": {
         "32920": [
@@ -5474,9 +5562,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "lf086",
+      "operand": "parse_station_num",
       "target": 61574,
-      "target_label": "lf086"
+      "target_label": "parse_station_num"
     },
     {
       "addr": 32921,
@@ -6897,9 +6985,9 @@
       "comment_inline": "Load ROM byte from page &95",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l9556,y",
+      "operand": "tube_code_page6_rom,y",
       "target": 38230,
-      "target_label": "l9556"
+      "target_label": "tube_code_page6_rom"
     },
     {
       "addr": 33130,
@@ -12488,9 +12576,9 @@
       "comment_inline": "Build BRK error block at &0100",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0100,y",
+      "operand": "error_block,y",
       "target": 256,
-      "target_label": "l0100"
+      "target_label": "error_block"
     },
     {
       "addr": 33928,
@@ -12526,9 +12614,9 @@
       "comment_inline": "Replace CR with zero = BRK error block end",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0100,y",
+      "operand": "error_block,y",
       "target": 256,
-      "target_label": "l0100"
+      "target_label": "error_block"
     },
     {
       "addr": 33935,
@@ -12995,9 +13083,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0100,x",
+      "operand": "error_block,x",
       "target": 256,
-      "target_label": "l0100"
+      "target_label": "error_block"
     },
     {
       "addr": 34002,
@@ -13047,9 +13135,9 @@
       ],
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "l0100",
+      "operand": "error_block",
       "target": 256,
-      "target_label": "l0100"
+      "target_label": "error_block"
     },
     {
       "addr": 34008,
@@ -13388,9 +13476,9 @@
       "comment_inline": "Store BRK opcode at &0100",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "l0100",
+      "operand": "error_block",
       "target": 256,
-      "target_label": "l0100"
+      "target_label": "error_block"
     },
     {
       "addr": 34056,
@@ -13428,9 +13516,9 @@
       "comment_inline": "Build error message at &0101+",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0101,x",
+      "operand": "error_text,x",
       "target": 257,
-      "target_label": "l0101"
+      "target_label": "error_text"
     },
     {
       "addr": 34062,
@@ -13724,9 +13812,9 @@
       "comment_inline": "Three-stage nested timeout: inner loop",
       "type": "code",
       "mnemonic": "dec",
-      "operand": "l0101,x",
+      "operand": "error_text,x",
       "target": 257,
-      "target_label": "l0101"
+      "target_label": "error_text"
     },
     {
       "addr": 34103,
@@ -13751,9 +13839,9 @@
       "comment_inline": "Middle timeout loop",
       "type": "code",
       "mnemonic": "dec",
-      "operand": "l0102,x",
+      "operand": "stack_page_2,x",
       "target": 258,
-      "target_label": "l0102"
+      "target_label": "stack_page_2"
     },
     {
       "addr": 34108,
@@ -13778,9 +13866,9 @@
       "comment_inline": "Outer timeout loop (slowest)",
       "type": "code",
       "mnemonic": "dec",
-      "operand": "l0104,x",
+      "operand": "stack_page_4,x",
       "target": 260,
-      "target_label": "l0104"
+      "target_label": "stack_page_4"
     },
     {
       "addr": 34113,
@@ -14514,9 +14602,9 @@
       "comment_inline": "Y to FS command ptr hi",
       "type": "code",
       "mnemonic": "sty",
-      "operand": "l0e11",
+      "operand": "context_ptr_2_hi",
       "target": 3601,
-      "target_label": "l0e11"
+      "target_label": "context_ptr_2_hi"
     },
     {
       "addr": 34258,
@@ -27520,9 +27608,9 @@
       "comment_inline": "Data bytes: boot_cmd_strings 'ec'",
       "type": "code",
       "mnemonic": "adc",
-      "operand": "l0063",
+      "operand": "zp_0063",
       "target": 99,
-      "target_label": "l0063"
+      "target_label": "zp_0063"
     },
     {
       "addr": 36132,
@@ -29672,9 +29760,9 @@
       "comment_inline": "A = handle*8 + handle*4 = handle*12",
       "type": "code",
       "mnemonic": "adc",
-      "operand": "l0101,x",
+      "operand": "error_text,x",
       "target": 257,
-      "target_label": "l0101"
+      "target_label": "error_text"
     },
     {
       "addr": 36431,
@@ -33994,9 +34082,9 @@
       "comment_inline": "Retrieve original A (reason code) from stack",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0103,x",
+      "operand": "stack_page_3,x",
       "target": 259,
-      "target_label": "l0103"
+      "target_label": "stack_page_3"
     },
     {
       "addr": 36992,
@@ -34788,9 +34876,9 @@
       "comment_inline": "ROR/ASL on stacked P: zeros carry to signal success",
       "type": "code",
       "mnemonic": "ror",
-      "operand": "l0106,x",
+      "operand": "stack_page_6,x",
       "target": 262,
-      "target_label": "l0106"
+      "target_label": "stack_page_6"
     },
     {
       "addr": 37040,
@@ -34802,9 +34890,9 @@
       "comment_inline": "ASL: restore P after ROR zeroed carry",
       "type": "code",
       "mnemonic": "asl",
-      "operand": "l0106,x",
+      "operand": "stack_page_6,x",
       "target": 262,
-      "target_label": "l0106"
+      "target_label": "stack_page_6"
     },
     {
       "addr": 37043,
@@ -35666,9 +35754,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0106,x",
+      "operand": "stack_page_6,x",
       "target": 262,
-      "target_label": "l0106"
+      "target_label": "stack_page_6"
     },
     {
       "addr": 37163,
@@ -37027,9 +37115,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37342,
@@ -37133,9 +37221,9 @@
       "comment_inline": "Force I flag in stacked P to block IRQs",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "l0106,x",
+      "operand": "stack_page_6,x",
       "target": 262,
-      "target_label": "l0106"
+      "target_label": "stack_page_6"
     },
     {
       "addr": 37355,
@@ -37147,9 +37235,9 @@
       "comment_inline": "Write back modified P register",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0106,x",
+      "operand": "stack_page_6,x",
       "target": 262,
-      "target_label": "l0106"
+      "target_label": "stack_page_6"
     },
     {
       "addr": 37358,
@@ -37433,9 +37521,9 @@
       "comment_inline": "XOR with current PFLAGS",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37399,
@@ -37478,9 +37566,9 @@
       "comment_inline": "Store toggled PFLAGS",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37406,
@@ -37518,9 +37606,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37412,
@@ -37597,9 +37685,9 @@
       "comment_inline": "Store recombined PFLAGS value",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37423,
@@ -37778,9 +37866,9 @@
       "comment_inline": "Load current PFLAGS",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37451,
@@ -37830,9 +37918,9 @@
       "comment_inline": "Store toggled sequence number",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d60",
+      "operand": "pflags",
       "target": 3424,
-      "target_label": "l0d60"
+      "target_label": "pflags"
     },
     {
       "addr": 37459,
@@ -38512,9 +38600,9 @@
       "comment_inline": "Save current screen MODE to workspace",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0350",
+      "operand": "vdu_screen_mode",
       "target": 848,
-      "target_label": "l0350"
+      "target_label": "vdu_screen_mode"
     },
     {
       "addr": 37556,
@@ -38552,9 +38640,9 @@
       "comment_inline": "Read colour count (from &0351)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0351",
+      "operand": "vdu_display_start_hi",
       "target": 849,
-      "target_label": "l0351"
+      "target_label": "vdu_display_start_hi"
     },
     {
       "addr": 37563,
@@ -38972,9 +39060,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0355",
+      "operand": "vdu_mode",
       "target": 853,
-      "target_label": "l0355"
+      "target_label": "vdu_mode"
     },
     {
       "addr": 37621,
@@ -42920,9 +43008,9 @@
       "comment_inline": "Store byte in string buffer at &0700+Y",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0700,y",
+      "operand": "string_buf,y",
       "target": 1792,
-      "target_label": "l0700"
+      "target_label": "string_buf"
     },
     {
       "addr": 1420,
@@ -44072,9 +44160,9 @@
       "comment_inline": "Read OSWORD number from R2",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "l0006",
+      "operand": "zp_0006",
       "target": 6,
-      "target_label": "l0006"
+      "target_label": "zp_0006"
     },
     {
       "addr": 1578,
@@ -44243,9 +44331,9 @@
       "comment_inline": "Store param bytes into block at &0128",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0128,x",
+      "operand": "tube_osword_pb,x",
       "target": 296,
-      "target_label": "l0128"
+      "target_label": "tube_osword_pb"
     },
     {
       "addr": 1601,
@@ -44304,7 +44392,16 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&28"
+      "operand": "#<(tube_osword_pb)",
+      "expr": {
+        "text": "<(tube_osword_pb)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "tube_osword_pb"
+          }
+        }
+      }
     },
     {
       "addr": 1607,
@@ -44316,7 +44413,16 @@
       "comment_inline": "Y=&01: param block at &0128",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#1"
+      "operand": "#>(tube_osword_pb)",
+      "expr": {
+        "text": ">(tube_osword_pb)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "tube_osword_pb"
+          }
+        }
+      }
     },
     {
       "addr": 1609,
@@ -44438,9 +44544,9 @@
       ],
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "l0128,x",
+      "operand": "tube_osword_pb,x",
       "target": 296,
-      "target_label": "l0128"
+      "target_label": "tube_osword_pb"
     },
     {
       "addr": 1626,
@@ -44796,9 +44902,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0700,x",
+      "operand": "string_buf,x",
       "target": 1792,
-      "target_label": "l0700"
+      "target_label": "string_buf"
     },
     {
       "addr": 1674,
@@ -45997,9 +46103,9 @@
       "comment_inline": "Write to NMI shim RAM at &0D00",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0cff,y",
+      "operand": "nmi_code_base,y",
       "target": 3327,
-      "target_label": "l0cff"
+      "target_label": "nmi_code_base"
     },
     {
       "addr": 38549,
@@ -53222,9 +53328,9 @@
       "comment_inline": "Store to exec address workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d58,y",
+      "operand": "exec_addr_lo,y",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39597,
@@ -54775,9 +54881,9 @@
       "comment_inline": "Call remote JSR; RTS to tx_done_exit",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "(l0d58)",
+      "operand": "(exec_addr_lo)",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39815,
@@ -54809,9 +54915,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39820,
@@ -54823,9 +54929,9 @@
       "comment_inline": "A = remote address hi",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39823,
@@ -54868,9 +54974,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39832,
@@ -54882,9 +54988,9 @@
       "comment_inline": "Y = remote address hi",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39835,
@@ -56207,9 +56313,9 @@
       "comment_inline": "Increment timeout counter byte 1",
       "type": "code",
       "mnemonic": "inc",
-      "operand": "l0101,x",
+      "operand": "error_text,x",
       "target": 257,
-      "target_label": "l0101"
+      "target_label": "error_text"
     },
     {
       "addr": 40028,
@@ -56234,9 +56340,9 @@
       "comment_inline": "Increment timeout counter byte 2",
       "type": "code",
       "mnemonic": "inc",
-      "operand": "l0102,x",
+      "operand": "stack_page_2,x",
       "target": 258,
-      "target_label": "l0102"
+      "target_label": "stack_page_2"
     },
     {
       "addr": 40033,
@@ -56261,9 +56367,9 @@
       "comment_inline": "Increment timeout counter byte 3",
       "type": "code",
       "mnemonic": "inc",
-      "operand": "l0103,x",
+      "operand": "stack_page_3,x",
       "target": 259,
-      "target_label": "l0103"
+      "target_label": "stack_page_3"
     },
     {
       "addr": 40038,
@@ -57432,9 +57538,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40159,
@@ -57468,9 +57574,9 @@
       "comment_inline": "Store updated address byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40165,
