@@ -24,15 +24,20 @@ comments-check clean), so almost every annotation transferred unchanged.
 
 Almost everything transferred from 4.25. The genuine changes:
 
-1. **Rewritten OSWORD &0E clock reply routine** at `&A8B2`
-   (`save_txcb_and_convert`) and its `bin_to_bcd` helper at `&A924`. In 4.25
-   this region was rendered as data with per-byte comments (reached only via
-   PHA/PHA/RTS dispatch, so untraceable). Because 4.26 rewrote the bytes, the
-   4.25 comments were correctly dropped by the byte-verified interpolation. It
-   is re-annotated here as explicit **code** (`d.entry` + `d.subroutine`), which
-   decodes cleanly with resolved label references (`save_net_tx_cb`,
-   `hazel_txcb_flag`, the reply-buffer store) — higher quality than the 4.25
-   data rendering.
+1. **Reworked OSWORD &0E (14) real-time-clock routine.** The dispatcher
+   `osword_0e_dispatch` (`&A89A`), the reader/formatter `save_txcb_and_convert`
+   (entry `&A8B1`), the write-back `save_txcb_done` (`&A903`) and the `bin_to_bcd`
+   helper (`&A924`). In 4.25 this region was rendered as data with per-byte
+   comments (reached only via PHA/PHA/RTS dispatch, so untraceable); 4.26's
+   rewrite is re-annotated here as explicit **code** (`d.entry` + `d.subroutine`),
+   which decodes cleanly. The *meaning* of the changes — the NetFS filing-system
+   guard (`fs_num_via_osargs`), the 20xx-century year math (with the 2100-2107
+   limitation), and the corrected `Bad string` error at `&94C0` — was
+   cross-checked against **J.G. Harston's "ANFS 4.26 updated OSWORD 14 RTC
+   routine"** (linked and credited in `rom.json` and `CHANGES-FROM-4.25.md`);
+   each point was confirmed against the actual (byte-identical) 4.26 disassembly.
+   Note: the same code-rendering fix was propagated upstream so the routine is
+   code in 4.24/4.25 too.
 2. **New routine** `fs_num_via_osargs` at `&BFF7`, in the former `&FF` ROM-tail
    padding. Its last bytes anchor the restored `hazel_minus_1`/`hazel_minus_2`
    indexing bases (moved off the padding onto the new code, `fs_num_check`

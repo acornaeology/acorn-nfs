@@ -158,6 +158,10 @@
       "value": 254
     },
     {
+      "name": "osword_read_cmos_clock",
+      "value": 14
+    },
+    {
       "name": "osbyte_vsync",
       "value": 19
     },
@@ -4455,10 +4459,22 @@
       "description": "Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`."
     },
     {
-      "addr": 43186,
+      "addr": 43162,
+      "name": "osword_0e_dispatch",
+      "title": "OSWORD &0E (14): real-time-clock request dispatch",
+      "description": "Entry for the OSWORD &0E clock request. First calls\n[`fs_num_via_osargs`](label:fs_num_via_osargs) and only proceeds if NetFS is the\ncurrent filing system, so the request is left for other filing systems to\nservice otherwise. Then dispatches on the OSWORD sub-code (in X) to the\nsave-and-convert or write-back path."
+    },
+    {
+      "addr": 43185,
       "name": "save_txcb_and_convert",
       "title": "OSWORD &0E: save TXCB and format the real-time clock reply",
-      "description": "Saves the current TX control block, then reads the clock bytes\nfrom the HAZEL TXCB workspace, converts each field to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd), derives the year modulo 100, and writes the\nformatted result to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Rewritten in\n4.26 from the 4.25 form."
+      "description": "Saves the current TX control block, reads the clock/date fields\nreturned in the HAZEL TXCB workspace, converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd), forms the year (7-bit field plus base &51),\nadjusting into the 20xx century when it reaches 100, and writes the formatted\nresult to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Reworked in 4.26."
+    },
+    {
+      "addr": 43267,
+      "name": "save_txcb_done",
+      "title": "OSWORD &0E: read the CMOS clock and finish the reply",
+      "description": "Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),\nthen reads the Master 128 CMOS real-time clock with OSWORD\n`osword_read_cmos_clock`. On failure it writes a default century of \"20\" into\nthe reply. Note: the year conversion adjusts 20xx correctly but does not\nconvert 2100-2107 to 21xx."
     },
     {
       "addr": 43300,
@@ -4470,7 +4486,7 @@
       "addr": 49143,
       "name": "fs_num_via_osargs",
       "title": "Read current filing-system number via OSARGS",
-      "description": "New in 4.26. Reads the current filing-system number with OSARGS\n(A=Y=0) and compares it with 5 (NFS), returning the result in the flags.\nOccupies ROM-tail space that was &FF padding in 4.25; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors."
+      "description": "New in 4.26. Reads the current filing-system number with OSARGS\n(A=Y=0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is\ncurrent. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the\nclock OSWORD only under NetFS, leaving it for other filing systems otherwise.\nOccupies ROM-tail space that was &FF padding in 4.25; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors."
     }
   ],
   "banners": [
@@ -44411,7 +44427,7 @@
         169,
         253
       ],
-      "comment_inline": "A=&FD: error number (bad inline argument)",
+      "comment_inline": "A=&FD: 'Bad string' error number (LDA #&FD)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&fd"
@@ -79070,70 +79086,219 @@
     {
       "addr": 43161,
       "bytes": [
-        172,
-        32,
-        247,
-        191,
-        208,
-        13,
-        138,
-        240,
-        97,
-        202,
-        240,
-        12,
-        202,
-        202,
-        240,
-        90,
-        202,
-        240,
-        5,
-        169,
-        8,
-        133,
-        169,
-        96,
-        90
+        172
       ],
       "comment_inline": "Load template source pointer",
       "type": "byte",
       "values": [
-        172,
+        172
+      ]
+    },
+    {
+      "addr": 43162,
+      "bytes": [
         32,
         247,
-        191,
+        191
+      ],
+      "labels": [
+        "osword_0e_dispatch"
+      ],
+      "comment_inline": "Only act if NetFS is the current FS",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "fs_num_via_osargs",
+      "target": 49143,
+      "target_label": "fs_num_via_osargs"
+    },
+    {
+      "addr": 43165,
+      "bytes": [
         208,
-        13,
-        138,
+        13
+      ],
+      "comment_inline": "Not NetFS: leave for other filing systems",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "osword_0e_unclaimed",
+      "target": 43180,
+      "target_label": "osword_0e_unclaimed"
+    },
+    {
+      "addr": 43167,
+      "bytes": [
+        138
+      ],
+      "comment_inline": "A = OSWORD sub-code",
+      "type": "code",
+      "mnemonic": "txa"
+    },
+    {
+      "addr": 43168,
+      "bytes": [
         240,
-        97,
-        202,
+        97
+      ],
+      "comment_inline": "Sub-code 0: write-back path",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "save_txcb_done",
+      "target": 43267,
+      "target_label": "save_txcb_done"
+    },
+    {
+      "addr": 43170,
+      "bytes": [
+        202
+      ],
+      "comment_inline": "Sub-code 1?",
+      "type": "code",
+      "mnemonic": "dex"
+    },
+    {
+      "addr": 43171,
+      "bytes": [
         240,
-        12,
-        202,
-        202,
+        12
+      ],
+      "comment_inline": "Yes: save-and-convert path",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "save_txcb_and_convert",
+      "target": 43185,
+      "target_label": "save_txcb_and_convert"
+    },
+    {
+      "addr": 43173,
+      "bytes": [
+        202
+      ],
+      "comment_inline": "Sub-code 3?",
+      "type": "code",
+      "mnemonic": "dex"
+    },
+    {
+      "addr": 43174,
+      "bytes": [
+        202
+      ],
+      "type": "code",
+      "mnemonic": "dex"
+    },
+    {
+      "addr": 43175,
+      "bytes": [
         240,
-        90,
-        202,
-        240,
-        5,
-        169,
-        8,
-        133,
-        169,
-        96,
         90
-      ]
+      ],
+      "comment_inline": "Yes: write-back path",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "save_txcb_done",
+      "target": 43267,
+      "target_label": "save_txcb_done"
+    },
+    {
+      "addr": 43177,
+      "bytes": [
+        202
+      ],
+      "comment_inline": "Sub-code 4?",
+      "type": "code",
+      "mnemonic": "dex"
+    },
+    {
+      "addr": 43178,
+      "bytes": [
+        240,
+        5
+      ],
+      "comment_inline": "Yes: save-and-convert path",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "save_txcb_and_convert",
+      "target": 43185,
+      "target_label": "save_txcb_and_convert"
+    },
+    {
+      "addr": 43180,
+      "bytes": [
+        169,
+        8
+      ],
+      "labels": [
+        "osword_0e_unclaimed"
+      ],
+      "comment_inline": "A=8: service state = unclaimed",
+      "xref_summaries": [
+        "&a8ac referenced 1 time by &a89d"
+      ],
+      "references": [
+        {
+          "addr": 43165,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#8"
+    },
+    {
+      "addr": 43182,
+      "bytes": [
+        133,
+        169
+      ],
+      "comment_inline": "Store service state",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "svc_state",
+      "target": 169,
+      "target_label": "svc_state"
+    },
+    {
+      "addr": 43184,
+      "bytes": [
+        96
+      ],
+      "comment_inline": "Return",
+      "type": "code",
+      "mnemonic": "rts"
+    },
+    {
+      "addr": 43185,
+      "bytes": [
+        90
+      ],
+      "labels": [
+        "save_txcb_and_convert"
+      ],
+      "comment_inline": "Save Y (reply buffer offset)",
+      "xref_summaries": [
+        "&a8b1 referenced 3 times by &a8a3, &a8aa, &a904"
+      ],
+      "references": [
+        {
+          "addr": 43171,
+          "kind": "direct"
+        },
+        {
+          "addr": 43178,
+          "kind": "direct"
+        },
+        {
+          "addr": 43268,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "phy"
     },
     {
       "addr": 43186,
       "bytes": [
         160,
         16
-      ],
-      "labels": [
-        "save_txcb_and_convert"
       ],
       "comment_inline": "Y=&10: length of TXCB to save",
       "type": "code",
@@ -79456,7 +79621,7 @@
         41,
         224
       ],
-      "comment_inline": "Isolate high 3 bits (year high part)",
+      "comment_inline": "Isolate the high year bits",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&e0"
@@ -79477,7 +79642,7 @@
         6,
         193
       ],
-      "comment_inline": "Combine with the saved month/flags bits",
+      "comment_inline": "Combine with the low year bits",
       "type": "code",
       "mnemonic": "ora",
       "operand": "hazel_txcb_flag",
@@ -79490,7 +79655,7 @@
         105,
         81
       ],
-      "comment_inline": "Add year base offset (&51 = 81)",
+      "comment_inline": "Add year base (&51); range 81..208",
       "type": "code",
       "mnemonic": "adc",
       "operand": "#&51"
@@ -79501,7 +79666,7 @@
         201,
         100
       ],
-      "comment_inline": "Year >= 100?",
+      "comment_inline": "Year >= 100 (i.e. 2000+)?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&64"
@@ -79512,12 +79677,12 @@
         144,
         2
       ],
-      "comment_inline": "No: year already in 0..99",
+      "comment_inline": "No: 19xx, use the year as-is",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "year_mod_100",
+      "operand": "year_century_done",
       "target": 43251,
-      "target_label": "year_mod_100"
+      "target_label": "year_century_done"
     },
     {
       "addr": 43249,
@@ -79525,7 +79690,7 @@
         233,
         100
       ],
-      "comment_inline": "Yes: subtract 100 (year modulo 100)",
+      "comment_inline": "Yes: subtract 100 for the 20xx century",
       "type": "code",
       "mnemonic": "sbc",
       "operand": "#&64"
@@ -79536,9 +79701,9 @@
         8
       ],
       "labels": [
-        "year_mod_100"
+        "year_century_done"
       ],
-      "comment_inline": "Save carry (century roll-over)",
+      "comment_inline": "Save carry (century flag) across the BCD convert",
       "xref_summaries": [
         "&a8f3 referenced 1 time by &a8ef"
       ],
@@ -79671,76 +79836,241 @@
     {
       "addr": 43267,
       "bytes": [
-        200,
+        200
+      ],
+      "labels": [
+        "save_txcb_done"
+      ],
+      "comment_inline": "Advance reply offset",
+      "xref_summaries": [
+        "&a903 referenced 2 times by &a8a0, &a8a7"
+      ],
+      "references": [
+        {
+          "addr": 43168,
+          "kind": "direct"
+        },
+        {
+          "addr": 43175,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "iny"
+    },
+    {
+      "addr": 43268,
+      "bytes": [
         32,
         177,
-        168,
+        168
+      ],
+      "comment_inline": "Build the BCD clock/date reply",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "save_txcb_and_convert",
+      "target": 43185,
+      "target_label": "save_txcb_and_convert"
+    },
+    {
+      "addr": 43271,
+      "bytes": [
         169,
-        2,
+        2
+      ],
+      "comment_inline": "A=2 (reply length/marker)",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#2"
+    },
+    {
+      "addr": 43273,
+      "bytes": [
         146,
-        172,
+        172
+      ],
+      "comment_inline": "Store into the reply buffer",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi)",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
+    },
+    {
+      "addr": 43275,
+      "bytes": [
         169,
-        14,
+        14
+      ],
+      "comment_inline": "OSWORD: read CMOS real-time clock",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#osword_read_cmos_clock",
+      "expr": {
+        "text": "osword_read_cmos_clock",
+        "tree": {
+          "sym": "osword_read_cmos_clock"
+        }
+      }
+    },
+    {
+      "addr": 43277,
+      "bytes": [
         166,
-        172,
+        172
+      ],
+      "comment_inline": "X = reply buffer low",
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "ws_ptr_hi",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
+    },
+    {
+      "addr": 43279,
+      "bytes": [
         164,
-        173,
-        8,
+        173
+      ],
+      "comment_inline": "Y = reply buffer high",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "table_idx",
+      "target": 173,
+      "target_label": "table_idx"
+    },
+    {
+      "addr": 43281,
+      "bytes": [
+        8
+      ],
+      "comment_inline": "Save flags",
+      "type": "code",
+      "mnemonic": "php"
+    },
+    {
+      "addr": 43282,
+      "bytes": [
         32,
         241,
-        255,
-        40,
+        255
+      ],
+      "comment_inline": "Read the CMOS clock Read CMOS clock",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osword",
+      "target": 65521,
+      "target_label": "osword"
+    },
+    {
+      "addr": 43285,
+      "bytes": [
+        40
+      ],
+      "comment_inline": "Restore flags",
+      "type": "code",
+      "mnemonic": "plp"
+    },
+    {
+      "addr": 43286,
+      "bytes": [
         144,
-        11,
+        11
+      ],
+      "comment_inline": "Success: return",
+      "type": "code",
+      "mnemonic": "bcc",
+      "operand": "return_4",
+      "target": 43299,
+      "target_label": "return_4"
+    },
+    {
+      "addr": 43288,
+      "bytes": [
         160,
-        12,
+        12
+      ],
+      "comment_inline": "Failure: write default century",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#&0c"
+    },
+    {
+      "addr": 43290,
+      "bytes": [
         169,
-        48,
+        48
+      ],
+      "comment_inline": "'0'",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&30"
+    },
+    {
+      "addr": 43292,
+      "bytes": [
         145,
-        172,
-        136,
+        172
+      ],
+      "comment_inline": "Store century units",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi),y",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
+    },
+    {
+      "addr": 43294,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "Back up one",
+      "type": "code",
+      "mnemonic": "dey"
+    },
+    {
+      "addr": 43295,
+      "bytes": [
         169,
-        50,
+        50
+      ],
+      "comment_inline": "'2'",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&32"
+    },
+    {
+      "addr": 43297,
+      "bytes": [
         145,
-        172,
+        172
+      ],
+      "comment_inline": "Store century tens -- default \"20\"",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi),y",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
+    },
+    {
+      "addr": 43299,
+      "bytes": [
         96
       ],
-      "type": "byte",
-      "values": [
-        200,
-        32,
-        177,
-        168,
-        169,
-        2,
-        146,
-        172,
-        169,
-        14,
-        166,
-        172,
-        164,
-        173,
-        8,
-        32,
-        241,
-        255,
-        40,
-        144,
-        11,
-        160,
-        12,
-        169,
-        48,
-        145,
-        172,
-        136,
-        169,
-        50,
-        145,
-        172,
-        96
-      ]
+      "labels": [
+        "return_4"
+      ],
+      "xref_summaries": [
+        "&a923 referenced 1 time by &a916"
+      ],
+      "references": [
+        {
+          "addr": 43286,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "rts"
     },
     {
       "addr": 43300,
@@ -83069,9 +83399,9 @@
       "comment_inline": "Non-zero: skip the FS-active set",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "return_4",
+      "operand": "return_5",
       "target": 43667,
-      "target_label": "return_4"
+      "target_label": "return_5"
     },
     {
       "addr": 43662,
@@ -83104,7 +83434,7 @@
         96
       ],
       "labels": [
-        "return_4"
+        "return_5"
       ],
       "comment_inline": "Return -- FCB-status update complete",
       "xref_summaries": [
@@ -87506,9 +87836,9 @@
       "comment_inline": "Zero: end of data, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_5",
+      "operand": "return_6",
       "target": 44302,
-      "target_label": "return_5"
+      "target_label": "return_6"
     },
     {
       "addr": 44280,
@@ -87666,7 +87996,7 @@
         96
       ],
       "labels": [
-        "return_5"
+        "return_6"
       ],
       "comment_inline": "CR sent: return",
       "xref_summaries": [
@@ -104776,9 +105106,9 @@
       "comment_inline": "Zero: all slots done, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_6",
+      "operand": "return_7",
       "target": 46753,
-      "target_label": "return_6"
+      "target_label": "return_7"
     },
     {
       "addr": 46652,
@@ -105428,7 +105758,7 @@
         96
       ],
       "labels": [
-        "return_6"
+        "return_7"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -107760,9 +108090,9 @@
       "comment_inline": "C clear: character read OK",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "return_7",
+      "operand": "return_8",
       "target": 47117,
-      "target_label": "return_7"
+      "target_label": "return_8"
     },
     {
       "addr": 47114,
@@ -107784,7 +108114,7 @@
         96
       ],
       "labels": [
-        "return_7"
+        "return_8"
       ],
       "comment_inline": "Return with character in A",
       "xref_summaries": [
@@ -108940,9 +109270,9 @@
       "comment_inline": "Not a directory: return OK",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "return_8",
+      "operand": "return_9",
       "target": 47314,
-      "target_label": "return_8"
+      "target_label": "return_9"
     },
     {
       "addr": 47294,
@@ -108997,7 +109327,7 @@
         96
       ],
       "labels": [
-        "return_8"
+        "return_9"
       ],
       "comment_inline": "Return",
       "xref_summaries": [
@@ -121039,6 +121369,15 @@
         "fs_num_via_osargs"
       ],
       "comment_inline": "Save A",
+      "xref_summaries": [
+        "&bff7 referenced 1 time by &a89a"
+      ],
+      "references": [
+        {
+          "addr": 43162,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "pha"
     },
@@ -121047,7 +121386,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "A = Y = 0 (OSARGS: read FS number)",
+      "comment_inline": "A = Y = 0 (OSARGS: read current FS number)",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -121088,7 +121427,7 @@
           "hazel_minus_2"
         ]
       },
-      "comment_inline": "Current FS = 5 (NFS)?",
+      "comment_inline": "Current FS = 5 (NetFS)? (sets Z)",
       "xref_summaries": [
         "&bffe used as index base 3 times by &8b8f, &906f, &aca7"
       ],

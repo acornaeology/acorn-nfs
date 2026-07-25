@@ -37,6 +37,7 @@ osword_nfs_info                = &13
 osbyte_make_fs_permanent       = &6d
 osbyte_scan_keyboard           = &79
 inkey_key_ctrl                 = &fe
+osword_read_cmos_clock         = &0e
 osbyte_vsync                   = &13
 osbyte_read_buffer             = &91
 buffer_printer                 = &03
@@ -106,15 +107,15 @@ rx_buf_offset               = &a7  ; Receive buffer offset
 ws_page                     = &a8  ; Multi-purpose workspace page
 ; &a8 referenced 16 times by &8afb, &8afe, &8b07, &8c6b, &8c7b, &8c8b, &8d11, &8d48, &8f54, &8fc7, &8fd2, &bd92, &beeb, &bf29, &bfa3, &bfbd
 svc_state                   = &a9  ; Multi-purpose service state
-; &a9 referenced 13 times by &85ac, &8ad2, &8ad6, &8b09, &8b0c, &8b3b, &8b73, &8d0f, &8efb, &a2c3, &a303, &a466, &a889; also used as index base 2 times by &a865, &a86c
+; &a9 referenced 14 times by &85ac, &8ad2, &8ad6, &8b09, &8b0c, &8b3b, &8b73, &8d0f, &8efb, &a2c3, &a303, &a466, &a889, &a8ae; also used as index base 2 times by &a865, &a86c
 osword_flag                 = &aa  ; OSWORD param byte
 ; &aa referenced 29 times by &a943, &a953, &a967, &a97e, &a988, &a998, &a9b0, &aa9a, &aaa8, &aaaa, &aab9, &ace3, &acf0, &acf2, &b051, &b05a, &b080, &b083, &b08a, &b094, &b0b8, &b0ba, &b4f2, &b545, &bd90, &bd99, &bd9b, &bda5, &bde6; also used as index base 5 times by &bef6, &bf1f, &bf8c, &bf8f, &bf9b
 ws_ptr_lo                   = &ab  ; Workspace indirect pointer (lo)
 ; &ab referenced 7 times by &a93d, &a951, &a9a9, &aa9e, &aab5, &b4f5, &b542
 ws_ptr_hi                   = &ac  ; Workspace indirect pointer (hi)
-; &ac referenced 43 times by &a887, &a8fc, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
+; &ac referenced 47 times by &a887, &a8fc, &a909, &a90d, &a91c, &a921, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
 table_idx                   = &ad  ; OSBYTE/palette table index counter
-; &ad referenced 5 times by &acd2, &b441, &b5f0, &b6e8, &b6f9
+; &ad referenced 6 times by &a90f, &acd2, &b441, &b5f0, &b6e8, &b6f9
 work_ae                     = &ae  ; Indexed workspace (multi-purpose scratch)
 ; &ae referenced 33 times by &a959, &a986, &b3de, &b472, &b650, &b6a9, &b6c2, &b6e0, &bd82, &bd9d, &bdb4, &bdbf, &bdd1, &bdd4, &bde8, &be0c, &be33, &be79, &beab, &beae, &bec3, &bec5, &bede, &bef9, &bf1d, &bf3d, &bf44, &bf4d, &bf51, &bf5c, &bf69, &bf8a, &bf9d; also used as index base 5 times by &9d63, &b474, &b65f, &b6ab, &b6c4
 addr_work                   = &af  ; Address work byte for comparison (indexed)
@@ -652,7 +653,7 @@ osnewl                      = &ffe7
 oswrch                      = &ffee
 ; &ffee referenced 1 time by &9232
 osword                      = &fff1
-; &fff1 referenced 2 times by &a3cb, &b070
+; &fff1 referenced 3 times by &a3cb, &a912, &b070
 osbyte                      = &fff4
 ; &fff4 referenced 29 times by &8a96, &8b20, &8b30, &8cf0, &8d01, &8d2a, &8db0, &8eb6, &8ee7, &9218, &9223, &9239, &9615, &977d, &987b, &9897, &98bb, &a09e, &a739, &a750, &ac4a, &aea4, &b0c3, &b71b, &b752, &b757, &b75e, &b802, &bd64
 oscli                       = &fff7
@@ -6171,7 +6172,7 @@ ps_template_base = load_transfer_params+1
     bne loop_copy_arg_char                                            ; 94b9: d0 e9       ..       ; No: continue parsing
     lda hazel_quote_mode                                              ; 94bb: ad d8 c2    ...      ; Check quote balance flag
     beq rts_copy_cmd_name                                             ; 94be: f0 c9       ..       ; Balanced: return OK
-    lda #&fd                                                          ; 94c0: a9 fd       ..       ; A=&FD: error number (bad inline argument)
+    lda #&fd                                                          ; 94c0: a9 fd       ..       ; A=&FD: 'Bad string' error number (LDA #&FD)
     jsr error_bad_inline                                              ; 94c2: 20 a7 99     ..      ; Raise 'Bad string' error
     equs "string", &00                                                ; 94c5: 73 74 72... str...   ; Store to TXCB
 ; ***************************************************************************************
@@ -10837,17 +10838,41 @@ svc_8_osword_disp = svc_8_osword+1
 ; &a893 used as index base 1 time by &a87f
 .osword_subcode_dispatch
     equb &a8, &a8, &a9, &a9, &a9, &a9                                 ; a893: a8 a8 a9... ......
-    equb &ac, &20, &f7, &bf, &d0, &0d, &8a, &f0, &61, &ca, &f0, &0c   ; a899: ac 20 f7... . ....
-    equb &ca, &ca, &f0, &5a, &ca, &f0, &05, &a9, &08, &85, &a9, &60   ; a8a5: ca ca f0... ......
-    equb &5a                                                          ; a8b1: 5a          Z        ; Load template source pointer
+    equb &ac                                                          ; a899: ac          .        ; Load template source pointer
+; ***************************************************************************************
+; OSWORD &0E (14): real-time-clock request dispatch
+;
+; Entry for the OSWORD &0E clock request. First calls fs_num_via_osargs and only proceeds
+; if NetFS is the current filing system, so the request is left for other filing systems
+; to service otherwise. Then dispatches on the OSWORD sub-code (in X) to the
+; save-and-convert or write-back path.
+.osword_0e_dispatch
+    jsr fs_num_via_osargs                                             ; a89a: 20 f7 bf     ..      ; Only act if NetFS is the current FS
+    bne osword_0e_unclaimed                                           ; a89d: d0 0d       ..       ; Not NetFS: leave for other filing systems
+    txa                                                               ; a89f: 8a          .        ; A = OSWORD sub-code
+    beq save_txcb_done                                                ; a8a0: f0 61       .a       ; Sub-code 0: write-back path
+    dex                                                               ; a8a2: ca          .        ; Sub-code 1?
+    beq save_txcb_and_convert                                         ; a8a3: f0 0c       ..       ; Yes: save-and-convert path
+    dex                                                               ; a8a5: ca          .        ; Sub-code 3?
+    dex                                                               ; a8a6: ca          .     
+    beq save_txcb_done                                                ; a8a7: f0 5a       .Z       ; Yes: write-back path
+    dex                                                               ; a8a9: ca          .        ; Sub-code 4?
+    beq save_txcb_and_convert                                         ; a8aa: f0 05       ..       ; Yes: save-and-convert path
+; &a8ac referenced 1 time by &a89d
+.osword_0e_unclaimed
+    lda #8                                                            ; a8ac: a9 08       ..       ; A=8: service state = unclaimed
+    sta svc_state                                                     ; a8ae: 85 a9       ..       ; Store service state
+    rts                                                               ; a8b0: 60          `        ; Return
 ; ***************************************************************************************
 ; OSWORD &0E: save TXCB and format the real-time clock reply
 ;
-; Saves the current TX control block, then reads the clock bytes from the HAZEL TXCB
-; workspace, converts each field to packed BCD via bin_to_bcd, derives the year modulo
-; 100, and writes the formatted result to the OSWORD reply buffer at (ws_ptr_hi),Y.
-; Rewritten in 4.26 from the 4.25 form.
+; Saves the current TX control block, reads the clock/date fields returned in the HAZEL
+; TXCB workspace, converts each to packed BCD via bin_to_bcd, forms the year (7-bit field
+; plus base &51), adjusting into the 20xx century when it reaches 100, and writes the
+; formatted result to the OSWORD reply buffer at (ws_ptr_hi),Y. Reworked in 4.26.
+; &a8b1 referenced 3 times by &a8a3, &a8aa, &a904
 .save_txcb_and_convert
+    phy                                                               ; a8b1: 5a          Z        ; Save Y (reply buffer offset)
     ldy #&10                                                          ; a8b2: a0 10       ..       ; Y=&10: length of TXCB to save
     jsr save_net_tx_cb                                                ; a8b4: 20 8a 97     ..      ; Save current TX control block
     ply                                                               ; a8b7: 7a          z        ; Restore Y (reply buffer offset)
@@ -10878,16 +10903,16 @@ svc_8_osword_disp = svc_8_osword+1
     jsr bin_to_bcd                                                    ; a8de: 20 24 a9     $.      ; Convert to BCD
     pha                                                               ; a8e1: 48          H        ; Stack the result
     lda hazel_txcb_data                                               ; a8e2: ad 05 c1    ...      ; Reload day+month byte
-    and #&e0                                                          ; a8e5: 29 e0       ).       ; Isolate high 3 bits (year high part)
+    and #&e0                                                          ; a8e5: 29 e0       ).       ; Isolate the high year bits
     lsr a                                                             ; a8e7: 4a          J        ; Shift into position
-    ora hazel_txcb_flag                                               ; a8e8: 0d 06 c1    ...      ; Combine with the saved month/flags bits
-    adc #&51                                                          ; a8eb: 69 51       iQ       ; Add year base offset (&51 = 81)
-    cmp #&64                                                          ; a8ed: c9 64       .d       ; Year >= 100?
-    bcc year_mod_100                                                  ; a8ef: 90 02       ..       ; No: year already in 0..99
-    sbc #&64                                                          ; a8f1: e9 64       .d       ; Yes: subtract 100 (year modulo 100)
+    ora hazel_txcb_flag                                               ; a8e8: 0d 06 c1    ...      ; Combine with the low year bits
+    adc #&51                                                          ; a8eb: 69 51       iQ       ; Add year base (&51); range 81..208
+    cmp #&64                                                          ; a8ed: c9 64       .d       ; Year >= 100 (i.e. 2000+)?
+    bcc year_century_done                                             ; a8ef: 90 02       ..       ; No: 19xx, use the year as-is
+    sbc #&64                                                          ; a8f1: e9 64       .d       ; Yes: subtract 100 for the 20xx century
 ; &a8f3 referenced 1 time by &a8ef
-.year_mod_100
-    php                                                               ; a8f3: 08          .        ; Save carry (century roll-over)
+.year_century_done
+    php                                                               ; a8f3: 08          .        ; Save carry (century flag) across the BCD convert
     jsr bin_to_bcd                                                    ; a8f4: 20 24 a9     $.      ; Convert year to BCD
     plp                                                               ; a8f7: 28          (        ; Restore carry
     pha                                                               ; a8f8: 48          H        ; Stack the BCD year
@@ -10900,9 +10925,35 @@ svc_8_osword_disp = svc_8_osword+1
     inx                                                               ; a8ff: e8          .        ; Count stacked bytes
     bne loop_store_reply                                              ; a900: d0 f9       ..       ; Loop until all stacked bytes stored
     rts                                                               ; a902: 60          `        ; Return
-    equb &c8, &20, &b1, &a8, &a9, &02, &92, &ac, &a9, &0e, &a6, &ac   ; a903: c8 20 b1... . ....
-    equb &a4, &ad, &08, &20, &f1, &ff, &28, &90, &0b, &a0, &0c, &a9   ; a90f: a4 ad 08... ......
-    equb &30, &91, &ac, &88, &a9, &32, &91, &ac, &60                  ; a91b: 30 91 ac... 0.....
+; ***************************************************************************************
+; OSWORD &0E: read the CMOS clock and finish the reply
+;
+; Builds the BCD reply via save_txcb_and_convert, then reads the Master 128 CMOS
+; real-time clock with OSWORD osword_read_cmos_clock. On failure it writes a default
+; century of "20" into the reply. Note: the year conversion adjusts 20xx correctly but
+; does not convert 2100-2107 to 21xx.
+; &a903 referenced 2 times by &a8a0, &a8a7
+.save_txcb_done
+    iny                                                               ; a903: c8          .        ; Advance reply offset
+    jsr save_txcb_and_convert                                         ; a904: 20 b1 a8     ..      ; Build the BCD clock/date reply
+    lda #2                                                            ; a907: a9 02       ..       ; A=2 (reply length/marker)
+    sta (ws_ptr_hi)                                                   ; a909: 92 ac       ..       ; Store into the reply buffer
+    lda #osword_read_cmos_clock                                       ; a90b: a9 0e       ..       ; OSWORD: read CMOS real-time clock
+    ldx ws_ptr_hi                                                     ; a90d: a6 ac       ..       ; X = reply buffer low
+    ldy table_idx                                                     ; a90f: a4 ad       ..       ; Y = reply buffer high
+    php                                                               ; a911: 08          .        ; Save flags
+    jsr osword                                                        ; a912: 20 f1 ff     ..      ; Read the CMOS clock  Read CMOS clock
+    plp                                                               ; a915: 28          (        ; Restore flags
+    bcc return_4                                                      ; a916: 90 0b       ..       ; Success: return
+    ldy #&0c                                                          ; a918: a0 0c       ..       ; Failure: write default century
+    lda #&30                                                          ; a91a: a9 30       .0       ; '0'
+    sta (ws_ptr_hi),y                                                 ; a91c: 91 ac       ..       ; Store century units
+    dey                                                               ; a91e: 88          .        ; Back up one
+    lda #&32                                                          ; a91f: a9 32       .2       ; '2'
+    sta (ws_ptr_hi),y                                                 ; a921: 91 ac       ..       ; Store century tens -- default "20"
+; &a923 referenced 1 time by &a916
+.return_4
+    rts                                                               ; a923: 60          `     
 ; ***************************************************************************************
 ; Binary to packed BCD
 ;
@@ -11213,11 +11264,11 @@ svc_8_osword_disp = svc_8_osword+1
     bpl scan_fcb_entry                                                ; aa85: 10 96       ..       ; Loop while X >= 0 (scan all FCBs)
     lda #&0e                                                          ; aa87: a9 0e       ..       ; A=&0E: status flag value
     bit fs_flags                                                      ; aa89: 2c 6c 0d    ,l.      ; Test fs_flags bits 1..3
-    bne return_4                                                      ; aa8c: d0 05       ..       ; Non-zero: skip the FS-active set
+    bne return_5                                                      ; aa8c: d0 05       ..       ; Non-zero: skip the FS-active set
     lda #&40                                                          ; aa8e: a9 40       .@       ; A=&40: FS-active flag bit
     tsb fs_flags                                                      ; aa90: 0c 6c 0d    .l.      ; Set FS-active flag (bit 6 of fs_flags)
 ; &aa93 referenced 1 time by &aa8c
-.return_4
+.return_5
     rts                                                               ; aa93: 60          `        ; Return -- FCB-status update complete
 ; ***************************************************************************************
 ; OSWORD &13 sub 12: read CSD path
@@ -11826,7 +11877,7 @@ bridge_err_table = compare_bridge_status+1
     ldy osword_flag                                                   ; acf0: a4 aa       ..       ; Load current offset
     inc osword_flag                                                   ; acf2: e6 aa       ..       ; Advance offset for next byte
     lda (ws_ptr_hi),y                                                 ; acf4: b1 ac       ..       ; Load next char from PB
-    beq return_5                                                      ; acf6: f0 16       ..       ; Zero: end of data, return
+    beq return_6                                                      ; acf6: f0 16       ..       ; Zero: end of data, return
     ldy #&7d                                                          ; acf8: a0 7d       .}       ; Y=&7D: workspace pointer offset
     sta (net_rx_ptr),y                                                ; acfa: 91 9c       ..       ; Store char to RX buffer
     pha                                                               ; acfc: 48          H        ; Save char for later test
@@ -11842,7 +11893,7 @@ bridge_err_table = compare_bridge_status+1
     eor #&0d                                                          ; ad0a: 49 0d       I.       ; Test if char was CR (&0D)
     bne loop_send_pb_chars                                            ; ad0c: d0 e2       ..       ; Loop while not CR
 ; &ad0e referenced 1 time by &acf6
-.return_5
+.return_6
     rts                                                               ; ad0e: 60          `        ; CR sent: return
 ; ***************************************************************************************
 ; OSWORD &14 burst-transfer path: extend buffer end and TX
@@ -14141,7 +14192,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b639 referenced 1 time by &b69f
 .loop_next_poll_slot
     pla                                                               ; b639: 68          h        ; Pop saved slot index
-    beq return_6                                                      ; b63a: f0 65       .e       ; Zero: all slots done, return
+    beq return_7                                                      ; b63a: f0 65       .e       ; Zero: all slots done, return
     pha                                                               ; b63c: 48          H        ; Save slot offset
     tay                                                               ; b63d: a8          .        ; Transfer to Y
     lda (nfs_workspace),y                                             ; b63e: b1 9e       ..       ; Read slot status byte
@@ -14203,7 +14254,7 @@ ps_print_template = write_ps_slot_hi_link+1
     sta (nfs_workspace),y                                             ; b69d: 91 9e       ..       ; Store the &3F marker in the workspace slot
     bne loop_next_poll_slot                                           ; b69f: d0 98       ..       ; Not 1 or 2: default to jammed
 ; &b6a1 referenced 1 time by &b63a
-.return_6
+.return_7
     rts                                                               ; b6a1: 60          `        ; Return
 ; &b6a2 referenced 1 time by &b68a
 .poll_print_busy
@@ -14506,10 +14557,10 @@ ps_print_template = write_ps_slot_hi_link+1
     ldx #1                                                            ; b800: a2 01       ..       ; X=1: flush input buffers
     jsr osbyte                                                        ; b802: 20 f4 ff     ..      ; Flush keyboard buffer before read  Flush selected class of buffer
     jsr osrdch                                                        ; b805: 20 e0 ff     ..      ; Read character from input stream
-    bcc return_7                                                      ; b808: 90 03       ..       ; C clear: character read OK
+    bcc return_8                                                      ; b808: 90 03       ..       ; C clear: character read OK
     jmp raise_escape_error                                            ; b80a: 4c 95 98    L..      ; Escape pressed: raise error
 ; &b80d referenced 1 time by &b808
-.return_7
+.return_8
     rts                                                               ; b80d: 60          `        ; Return with character in A
 ; ***************************************************************************************
 ; Initialise channel allocation table
@@ -14690,12 +14741,12 @@ net_chan_err_strings = err_net_chan_not_found+2
 .check_not_dir
     jsr check_chan_char                                               ; b8b7: 20 3f b8     ?.      ; Validate and look up channel
     and #2                                                            ; b8ba: 29 02       ).       ; Test directory flag (bit 1)
-    beq return_8                                                      ; b8bc: f0 14       ..       ; Not a directory: return OK
+    beq return_9                                                      ; b8bc: f0 14       ..       ; Not a directory: return OK
     lda #&a8                                                          ; b8be: a9 a8       ..       ; Error code &A8
     jsr error_inline_log                                              ; b8c0: 20 c0 99     ..      ; Generate 'Is a dir.' error
     equs "Is a directory", &00                                        ; b8c3: 49 73 20... Is ...
 ; &b8d2 referenced 1 time by &b8bc
-.return_8
+.return_9
     rts                                                               ; b8d2: 60          `        ; Return
 ; ***************************************************************************************
 ; Allocate a free file control block slot
@@ -16212,18 +16263,20 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; Read current filing-system number via OSARGS
 ;
 ; New in 4.26. Reads the current filing-system number with OSARGS (A=Y=0) and compares it
-; with 5 (NFS), returning the result in the flags. Occupies ROM-tail space that was &FF
-; padding in 4.25; its final bytes double as the hazel_minus_2 / hazel_minus_1
-; indexing-base anchors.
+; with 5 (NetFS), returning Z=1 (EQ) when NetFS is current. osword_0e_dispatch uses this
+; to service the clock OSWORD only under NetFS, leaving it for other filing systems
+; otherwise. Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double
+; as the hazel_minus_2 / hazel_minus_1 indexing-base anchors.
+; &bff7 referenced 1 time by &a89a
 .fs_num_via_osargs
     pha                                                               ; bff7: 48          H        ; Save A
-    tya                                                               ; bff8: 98          .        ; A = Y = 0 (OSARGS: read FS number)
+    tya                                                               ; bff8: 98          .        ; A = Y = 0 (OSARGS: read current FS number)
     jsr osargs                                                        ; bff9: 20 da ff     ..      ; Call OSARGS  Get length of file into zero page address X (A=2)
     plx                                                               ; bffc: fa          .        ; Restore X
 .fs_num_check
 ; &bffe used as index base 3 times by &8b8f, &906f, &aca7
 hazel_minus_2 = fs_num_check+1
-    cmp #5                                                            ; bffd: c9 05       ..       ; Current FS = 5 (NFS)?
+    cmp #5                                                            ; bffd: c9 05       ..       ; Current FS = 5 (NetFS)? (sets Z)
 ; &bfff used as index base 2 times by &a9f3, &aa08
 .hazel_minus_1
     rts                                                               ; bfff: 60          `        ; Return with flags set
@@ -16236,8 +16289,8 @@ save pydis_start, pydis_end
 ;     hazel_txcb_data:                         68
 ;     fs_options:                              55
 ;     net_rx_ptr:                              52
+;     ws_ptr_hi:                               49
 ;     econet_control23_or_status2:             46
-;     ws_ptr_hi:                               45
 ;     fs_load_addr_2:                          38
 ;     work_ae:                                 38
 ;     econet_data_continue_frame:              37
@@ -16271,11 +16324,11 @@ save pydis_start, pydis_end
 ;     hazel_fcb_slot_attr:                     17
 ;     hazel_parse_buf:                         17
 ;     hazel_fcb_addr_mid:                      16
+;     svc_state:                               16
 ;     ws_page:                                 16
 ;     mask_owner_access:                       15
 ;     nmi_tx_block:                            15
 ;     open_port_buf_hi:                        15
-;     svc_state:                               15
 ;     fs_last_byte_flag:                       14
 ;     hazel_cur_fcb_index:                     14
 ;     hazel_fcb_state_byte:                    14
@@ -16357,6 +16410,7 @@ save pydis_start, pydis_end
 ;     send_net_packet:                          6
 ;     set_xfer_params:                          6
 ;     spool_buf_idx:                            6
+;     table_idx:                                6
 ;     wait_net_tx_ack:                          6
 ;     close_ws_file:                            5
 ;     copy_arg_to_buf_x0:                       5
@@ -16383,7 +16437,6 @@ save pydis_start, pydis_end
 ;     strip_token_prefix:                       5
 ;     svc_dispatch:                             5
 ;     svc_return_unclaimed:                     5
-;     table_idx:                                5
 ;     tube_present:                             5
 ;     tx_done_exit:                             5
 ;     tx_dst_net:                               5
@@ -16481,6 +16534,7 @@ save pydis_start, pydis_end
 ;     osbyte_x0:                                3
 ;     oscli:                                    3
 ;     osfind:                                   3
+;     osword:                                   3
 ;     osword_pb_ptr_hi:                         3
 ;     parse_cmd_arg_y0:                         3
 ;     parse_filename_arg:                       3
@@ -16500,6 +16554,7 @@ save pydis_start, pydis_end
 ;     rx_complete_update_rxcb:                  3
 ;     rx_remote_addr:                           3
 ;     save_text_ptr:                            3
+;     save_txcb_and_convert:                    3
 ;     send_cmd_and_dispatch:                    3
 ;     send_disconnect_reply:                    3
 ;     store_rx_result:                          3
@@ -16649,7 +16704,6 @@ save pydis_start, pydis_end
 ;     next_dec_char:                            2
 ;     next_fcb_entry:                           2
 ;     osrdch:                                   2
-;     osword:                                   2
 ;     osword_11_done:                           2
 ;     pad_with_spaces:                          2
 ;     parse_dump_range:                         2
@@ -16696,6 +16750,7 @@ save pydis_start, pydis_end
 ;     save_fcb_context:                         2
 ;     save_net_tx_cb_vset:                      2
 ;     save_ptr_to_spool_buf:                    2
+;     save_txcb_done:                           2
 ;     scout_complete:                           2
 ;     scout_done_restore_x:                     2
 ;     select_fs_via_cmd_net_fs:                 2
@@ -16968,6 +17023,7 @@ save pydis_start, pydis_end
 ;     flush_fcb_if_stn_known:                   1
 ;     flush_fcb_with_init:                      1
 ;     fs_info_template:                         1
+;     fs_num_via_osargs:                        1
 ;     fs_template_done:                         1
 ;     fs_vector_table:                          1
 ;     fscv:                                     1
@@ -17286,6 +17342,7 @@ save pydis_start, pydis_end
 ;     osfind_close_or_open:                     1
 ;     osfind_with_channel:                      1
 ;     osopt_check_cmos_protect:                 1
+;     osword_0e_unclaimed:                      1
 ;     osword_13_dispatch_hi:                    1
 ;     osword_13_dispatch_lo:                    1
 ;     osword_13_read_ctx_3:                     1
@@ -17380,6 +17437,7 @@ save pydis_start, pydis_end
 ;     return_6:                                 1
 ;     return_7:                                 1
 ;     return_8:                                 1
+;     return_9:                                 1
 ;     return_alloc_success:                     1
 ;     return_chan_index:                        1
 ;     return_parsed:                            1
@@ -17605,7 +17663,7 @@ save pydis_start, pydis_end
 ;     write_two_bytes_inc_y:                    1
 ;     ws_copy_vclr_entry:                       1
 ;     ws_txcb_template_data:                    1
-;     year_mod_100:                             1
+;     year_century_done:                        1
 ;     zp_0063:                                  1
 ;     zp_0078:                                  1
 
@@ -17618,14 +17676,15 @@ save pydis_start, pydis_end
 ;     return_6
 ;     return_7
 ;     return_8
+;     return_9
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14211 bytes (87%)
-;     Data                     = 2173 bytes (13%)
+;     Code                     = 14268 bytes (87%)
+;     Data                     = 2116 bytes (13%)
 ;
-;     Number of instructions   = 7012
-;     Number of data bytes     = 796 bytes
+;     Number of instructions   = 7045
+;     Number of data bytes     = 739 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1291 bytes
 ;     Number of strings        = 151

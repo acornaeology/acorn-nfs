@@ -33,12 +33,19 @@
     ],
     "references": [
         {
+            "label": "J.G. Harston: ANFS 4.26 updated OSWORD 14 RTC routine",
+            "url": "https://mdfs.net/System/ROMs/Filing/Network/Acorn/ANFS426RTC",
+            "icon": "doc",
+            "category": "source",
+            "note": "J.G. Harston's description of the real-time-clock changes in ANFS 4.26 versus 4.25 (the filing-system guard, the reworked BCD/century date formatting, and the corrected 'Bad string' error). The meaning of the 4.26 delta annotations is cross-checked against this document."
+        },
+        {
             "id": "mos",
             "label": "Tom Seddon's Acorn MOS disassembly (Master)",
             "url": "https://github.com/tom-seddon/acorn_mos_disassembly",
             "icon": "ref",
             "category": "source",
-            "note": "Tom Seddon's disassembly of the BBC Master 128 MOS — the reference for the OS entry points and workspace semantics ANFS 4.26 (Master-only) relies on, in place of the Model-B MOS."
+            "note": "Tom Seddon's disassembly of the BBC Master 128 MOS \u2014 the reference for the OS entry points and workspace semantics ANFS 4.26 (Master-only) relies on, in place of the Model-B MOS."
         },
         {
             "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",

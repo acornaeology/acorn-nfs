@@ -19918,20 +19918,49 @@ d.label(0x85C2, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
 
 
-# --- 4.26 delta: rewritten OSWORD &0E clock/BCD reply routine (&A8B2) and
-# --- the new OSARGS filing-system helper (&BFF7). Reached via PHA/PHA/RTS
-# --- dispatch, so declared as explicit code entries.
-d.entry(0xA8B2)
+# --- 4.26 delta: reworked OSWORD &0E (=OSWORD 14) real-time-clock routine
+# --- and the new OSARGS filing-system-check helper (&BFF7). Reached via
+# --- PHA/PHA/RTS dispatch, so declared as explicit code entries. Meaning
+# --- of the changes cross-checked against J.G. Harston's "ANFS 4.26 updated
+# --- OSWORD 14 RTC routine".
+d.entry(0xA89A)
 d.subroutine(
-    0xA8B2,
+    0xA89A,
+    "osword_0e_dispatch",
+    title="OSWORD &0E (14): real-time-clock request dispatch",
+    description="""Entry for the OSWORD &0E clock request. First calls
+[`fs_num_via_osargs`](label:fs_num_via_osargs) and only proceeds if NetFS is the
+current filing system, so the request is left for other filing systems to
+service otherwise. Then dispatches on the OSWORD sub-code (in X) to the
+save-and-convert or write-back path.""",
+)
+d.comment(0xA89A, "Only act if NetFS is the current FS", align=Align.INLINE)
+d.comment(0xA89D, "Not NetFS: leave for other filing systems", align=Align.INLINE)
+d.comment(0xA89F, "A = OSWORD sub-code", align=Align.INLINE)
+d.comment(0xA8A0, "Sub-code 0: write-back path", align=Align.INLINE)
+d.comment(0xA8A2, "Sub-code 1?", align=Align.INLINE)
+d.comment(0xA8A3, "Yes: save-and-convert path", align=Align.INLINE)
+d.comment(0xA8A5, "Sub-code 3?", align=Align.INLINE)
+d.comment(0xA8A7, "Yes: write-back path", align=Align.INLINE)
+d.comment(0xA8A9, "Sub-code 4?", align=Align.INLINE)
+d.comment(0xA8AA, "Yes: save-and-convert path", align=Align.INLINE)
+d.label(0xA8AC, "osword_0e_unclaimed")
+d.comment(0xA8AC, "A=8: service state = unclaimed", align=Align.INLINE)
+d.comment(0xA8AE, "Store service state", align=Align.INLINE)
+d.comment(0xA8B0, "Return", align=Align.INLINE)
+
+d.entry(0xA8B1)
+d.subroutine(
+    0xA8B1,
     "save_txcb_and_convert",
     title="OSWORD &0E: save TXCB and format the real-time clock reply",
-    description="""Saves the current TX control block, then reads the clock bytes
-from the HAZEL TXCB workspace, converts each field to packed BCD via
-[`bin_to_bcd`](label:bin_to_bcd), derives the year modulo 100, and writes the
-formatted result to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Rewritten in
-4.26 from the 4.25 form.""",
+    description="""Saves the current TX control block, reads the clock/date fields
+returned in the HAZEL TXCB workspace, converts each to packed BCD via
+[`bin_to_bcd`](label:bin_to_bcd), forms the year (7-bit field plus base &51),
+adjusting into the 20xx century when it reaches 100, and writes the formatted
+result to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Reworked in 4.26.""",
 )
+d.comment(0xA8B1, "Save Y (reply buffer offset)", align=Align.INLINE)
 d.comment(0xA8B2, "Y=&10: length of TXCB to save", align=Align.INLINE)
 d.comment(0xA8B4, "Save current TX control block", align=Align.INLINE)
 d.comment(0xA8B7, "Restore Y (reply buffer offset)", align=Align.INLINE)
@@ -19958,15 +19987,15 @@ d.comment(0xA8DC, "Mask low nibble", align=Align.INLINE)
 d.comment(0xA8DE, "Convert to BCD", align=Align.INLINE)
 d.comment(0xA8E1, "Stack the result", align=Align.INLINE)
 d.comment(0xA8E2, "Reload day+month byte", align=Align.INLINE)
-d.comment(0xA8E5, "Isolate high 3 bits (year high part)", align=Align.INLINE)
+d.comment(0xA8E5, "Isolate the high year bits", align=Align.INLINE)
 d.comment(0xA8E7, "Shift into position", align=Align.INLINE)
-d.comment(0xA8E8, "Combine with the saved month/flags bits", align=Align.INLINE)
-d.comment(0xA8EB, "Add year base offset (&51 = 81)", align=Align.INLINE)
-d.comment(0xA8ED, "Year >= 100?", align=Align.INLINE)
-d.comment(0xA8EF, "No: year already in 0..99", align=Align.INLINE)
-d.comment(0xA8F1, "Yes: subtract 100 (year modulo 100)", align=Align.INLINE)
-d.label(0xA8F3, "year_mod_100")
-d.comment(0xA8F3, "Save carry (century roll-over)", align=Align.INLINE)
+d.comment(0xA8E8, "Combine with the low year bits", align=Align.INLINE)
+d.comment(0xA8EB, "Add year base (&51); range 81..208", align=Align.INLINE)
+d.comment(0xA8ED, "Year >= 100 (i.e. 2000+)?", align=Align.INLINE)
+d.comment(0xA8EF, "No: 19xx, use the year as-is", align=Align.INLINE)
+d.comment(0xA8F1, "Yes: subtract 100 for the 20xx century", align=Align.INLINE)
+d.label(0xA8F3, "year_century_done")
+d.comment(0xA8F3, "Save carry (century flag) across the BCD convert", align=Align.INLINE)
 d.comment(0xA8F4, "Convert year to BCD", align=Align.INLINE)
 d.comment(0xA8F7, "Restore carry", align=Align.INLINE)
 d.comment(0xA8F8, "Stack the BCD year", align=Align.INLINE)
@@ -19978,6 +20007,35 @@ d.comment(0xA8FE, "Advance reply offset", align=Align.INLINE)
 d.comment(0xA8FF, "Count stacked bytes", align=Align.INLINE)
 d.comment(0xA900, "Loop until all stacked bytes stored", align=Align.INLINE)
 d.comment(0xA902, "Return", align=Align.INLINE)
+
+d.entry(0xA903)
+d.subroutine(
+    0xA903,
+    "save_txcb_done",
+    title="OSWORD &0E: read the CMOS clock and finish the reply",
+    description="""Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),
+then reads the Master 128 CMOS real-time clock with OSWORD
+`osword_read_cmos_clock`. On failure it writes a default century of "20" into
+the reply. Note: the year conversion adjusts 20xx correctly but does not
+convert 2100-2107 to 21xx.""",
+)
+d.comment(0xA903, "Advance reply offset", align=Align.INLINE)
+d.comment(0xA904, "Build the BCD clock/date reply", align=Align.INLINE)
+d.comment(0xA907, "A=2 (reply length/marker)", align=Align.INLINE)
+d.comment(0xA909, "Store into the reply buffer", align=Align.INLINE)
+d.comment(0xA90B, "OSWORD: read CMOS real-time clock", align=Align.INLINE)
+d.comment(0xA90D, "X = reply buffer low", align=Align.INLINE)
+d.comment(0xA90F, "Y = reply buffer high", align=Align.INLINE)
+d.comment(0xA911, "Save flags", align=Align.INLINE)
+d.comment(0xA912, "Read the CMOS clock", align=Align.INLINE)
+d.comment(0xA915, "Restore flags", align=Align.INLINE)
+d.comment(0xA916, "Success: return", align=Align.INLINE)
+d.comment(0xA918, "Failure: write default century", align=Align.INLINE)
+d.comment(0xA91A, "'0'", align=Align.INLINE)
+d.comment(0xA91C, "Store century units", align=Align.INLINE)
+d.comment(0xA91E, "Back up one", align=Align.INLINE)
+d.comment(0xA91F, "'2'", align=Align.INLINE)
+d.comment(0xA921, "Store century tens -- default \"20\"", align=Align.INLINE)
 
 d.entry(0xA924)
 d.subroutine(
@@ -20001,19 +20059,23 @@ d.subroutine(
     "fs_num_via_osargs",
     title="Read current filing-system number via OSARGS",
     description="""New in 4.26. Reads the current filing-system number with OSARGS
-(A=Y=0) and compares it with 5 (NFS), returning the result in the flags.
+(A=Y=0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is
+current. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the
+clock OSWORD only under NetFS, leaving it for other filing systems otherwise.
 Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double
 as the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)
 indexing-base anchors.""",
 )
 d.comment(0xBFF7, "Save A", align=Align.INLINE)
-d.comment(0xBFF8, "A = Y = 0 (OSARGS: read FS number)", align=Align.INLINE)
+d.comment(0xBFF8, "A = Y = 0 (OSARGS: read current FS number)", align=Align.INLINE)
 d.comment(0xBFF9, "Call OSARGS", align=Align.INLINE)
 d.comment(0xBFFC, "Restore X", align=Align.INLINE)
-d.comment(0xBFFD, "Current FS = 5 (NFS)?", align=Align.INLINE)
+d.comment(0xBFFD, "Current FS = 5 (NetFS)? (sets Z)", align=Align.INLINE)
 d.comment(0xBFFF, "Return with flags set", align=Align.INLINE)
 
-d.comment(0x94C0, "A=&FD: error number (bad inline argument)", align=Align.INLINE)
+# &94C0: 4.26 fixes the 'Bad string' error path -- 4.25 read brk_ptr (LDA &FD)
+# instead of loading the error number, so the error was not set correctly.
+d.comment(0x94C0, "A=&FD: 'Bad string' error number (LDA #&FD)", align=Align.INLINE)
 d.comment(0xA8D5, "Shift high nibble down (2 of 4)", align=Align.INLINE)
 d.comment(0xA8D6, "Shift high nibble down (3 of 4)", align=Align.INLINE)
 d.comment(0xA8D7, "Shift high nibble down (4 of 4)", align=Align.INLINE)
