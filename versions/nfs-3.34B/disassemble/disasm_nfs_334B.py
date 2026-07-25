@@ -8292,12 +8292,6 @@ d.comment(0x9F43, "&80: completion flag for &0D3A", align=Align.INLINE)
 d.comment(0x9F45, "Signal TX complete", align=Align.INLINE)
 d.comment(0x9F48, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 
-d.comment(0x9F4B, "Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A.")
-d.label(0x9F4B, "tx_length_table")
-d.byte(0x9F4B, 8)
-d.comment(0x9F53, "Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
-d.label(0x9F53, "tx_flags_table")
-d.byte(0x9F53, 8)
 
 
 
@@ -8562,6 +8556,15 @@ d.comment(0x9CE3, "Ctrl &88: machine-type", align=Align.INLINE)
 
 d.comment(0x964D, "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.")
 d.label(0x964D, "unused_data_964d")
+
+d.banner(0x9F4B, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x9F4B, "tx_length_table")
+d.byte(0x9F4B, 8)
+d.banner(0x9F53, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x9F53, "tx_flags_table")
+d.byte(0x9F53, 8)
 
 ir = d.disassemble()
 output = str(

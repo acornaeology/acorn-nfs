@@ -4534,8 +4534,16 @@
     },
     {
       "addr": 34364,
-      "name": "rom_gap_88f0",
-      "title": "Purpose unknown. Unreferenced, unreachable.",
+      "name": "tx_length_values",
+      "title": "Immediate-op TX control-frame length table",
+      "description": "Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.",
+      "align": "before_label"
+    },
+    {
+      "addr": 34372,
+      "name": "tx_flags_values",
+      "title": "Immediate-op TX flags table",
+      "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
       "align": "before_label"
     },
     {
@@ -18262,18 +18270,10 @@
         10,
         6,
         6,
-        10,
-        129,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
-        129
+        10
       ],
       "labels": [
-        "rom_gap_88f0"
+        "tx_length_values"
       ],
       "type": "byte",
       "values": [
@@ -18284,7 +18284,26 @@
         10,
         6,
         6,
-        10,
+        10
+      ]
+    },
+    {
+      "addr": 34372,
+      "bytes": [
+        129,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        129
+      ],
+      "labels": [
+        "tx_flags_values"
+      ],
+      "type": "byte",
+      "values": [
         129,
         0,
         0,

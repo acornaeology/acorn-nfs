@@ -4066,11 +4066,7 @@ d.comment(0x89B7, "A=&80: TX-complete signal for tx_complete_flag", align=Align.
 d.comment(0x89B9, "Signal TX complete", align=Align.INLINE)
 d.comment(0x89BC, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 
-d.label(0x863A, "rom_gap_88f0", group="ram_workspace")
 
-d.label(0x863A, "rom_gap_88f0", group="ram_workspace")
-d.banner(0x863A, title="Purpose unknown. Unreferenced, unreachable.")
-d.byte(0x863A, 16, cols=16)
 # UNMAPPED: d.subroutine(
 # UNMAPPED:     0x8900,
 # UNMAPPED:     "tx_calc_transfer",
@@ -19972,6 +19968,15 @@ d.label(0xA891, "osword_subcode_dispatch")
 # Anchor names for the two indexing bases inside instruction operand bytes.
 d.label(0x85C0, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
+
+d.banner(0x863A, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x863A, "tx_length_values")
+d.byte(0x863A, 8)
+d.banner(0x8642, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x8642, "tx_flags_values")
+d.byte(0x8642, 8)
 
 ir = d.disassemble()
 output = str(

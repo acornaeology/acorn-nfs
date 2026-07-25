@@ -7955,10 +7955,19 @@ tube_tx_byte4_operand = tube_tx_inc_byte4+1
     lda #&80                                                          ; 9f43: a9 80       ..       ; &80: completion flag for &0D3A
     sta tx_ctrl_status                                                ; 9f45: 8d 3a 0d    .:.      ; Signal TX complete
     jmp discard_reset_listen                                          ; 9f48: 4c 34 9a    L4.      ; Full ADLC reset and return to idle listen
-; Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A.
+; ***************************************************************************************
+; Immediate-op TX control-frame length table
+;
+; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
+; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
+; &0A. Indexed by the immediate-op control byte.
 .tx_length_table
     equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 9f4b: 0e 0e 0a... ......
-; Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+; ***************************************************************************************
+; Immediate-op TX flags table
+;
+; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
+; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
 .tx_flags_table
     equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 9f53: 81 00 00... ......
 ; ***************************************************************************************

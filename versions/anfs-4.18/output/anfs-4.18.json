@@ -894,12 +894,6 @@
       }
     },
     {
-      "addr": 35042,
-      "name": "unreachable_dead_88e2",
-      "title": "Unreachable dead data (16 bytes)",
-      "description": "16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)\nand [`tx_calc_transfer`](label:tx_calc_transfer?hex). Unreachable as\ncode (it follows an unconditional `JMP`) and unreferenced as\ndata \u2013 no label, index, or indirect pointer targets any\naddress in the &88E2-&88F1 range. Likely an unused remnant\nfrom development."
-    },
-    {
       "addr": 35058,
       "name": "tx_calc_transfer",
       "title": "Calculate transfer size",
@@ -3080,6 +3074,20 @@
       "title": "ROM type byte",
       "description": "| Bit | Value | Meaning                     |\n|-----|------|-----------------------------|\n| 7   | 1    | Service entry present       |\n| 6   | 0    | No language entry           |\n| 5   | 0    | No Tube relocation          |\n| 4   | 0    | No Electron firmkey         |\n| 3-0 | 0010 | Processor: 6502 (non-BASIC) |",
       "align": "after_label"
+    },
+    {
+      "addr": 35042,
+      "name": "tx_length_table",
+      "title": "Immediate-op TX control-frame length table",
+      "description": "Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.",
+      "align": "before_label"
+    },
+    {
+      "addr": 35050,
+      "name": "tx_flags_table",
+      "title": "Immediate-op TX flags table",
+      "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -19424,179 +19432,54 @@
     {
       "addr": 35042,
       "bytes": [
-        14
+        14,
+        14,
+        10,
+        10,
+        10,
+        6,
+        6,
+        10
       ],
       "labels": [
-        "unreachable_dead_88e2"
+        "tx_length_table"
       ],
-      "comment_inline": "Dead data: &0E",
       "type": "byte",
       "values": [
-        14
-      ]
-    },
-    {
-      "addr": 35043,
-      "bytes": [
-        14
-      ],
-      "comment_inline": "Dead data: &0E",
-      "type": "byte",
-      "values": [
-        14
-      ]
-    },
-    {
-      "addr": 35044,
-      "bytes": [
-        10
-      ],
-      "comment_inline": "Dead data: &0A",
-      "type": "byte",
-      "values": [
-        10
-      ]
-    },
-    {
-      "addr": 35045,
-      "bytes": [
-        10
-      ],
-      "comment_inline": "Dead data: &0A",
-      "type": "byte",
-      "values": [
-        10
-      ]
-    },
-    {
-      "addr": 35046,
-      "bytes": [
-        10
-      ],
-      "comment_inline": "Dead data: &0A",
-      "type": "byte",
-      "values": [
-        10
-      ]
-    },
-    {
-      "addr": 35047,
-      "bytes": [
-        6
-      ],
-      "comment_inline": "Dead data: &06",
-      "type": "byte",
-      "values": [
-        6
-      ]
-    },
-    {
-      "addr": 35048,
-      "bytes": [
-        6
-      ],
-      "comment_inline": "Dead data: &06",
-      "type": "byte",
-      "values": [
-        6
-      ]
-    },
-    {
-      "addr": 35049,
-      "bytes": [
-        10
-      ],
-      "comment_inline": "Dead data: &0A",
-      "type": "byte",
-      "values": [
+        14,
+        14,
+        10,
+        10,
+        10,
+        6,
+        6,
         10
       ]
     },
     {
       "addr": 35050,
       "bytes": [
+        129,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
         129
       ],
-      "comment_inline": "Dead data: &81",
-      "type": "byte",
-      "values": [
-        129
-      ]
-    },
-    {
-      "addr": 35051,
-      "bytes": [
-        0
+      "labels": [
+        "tx_flags_table"
       ],
-      "comment_inline": "Dead data: &00",
       "type": "byte",
       "values": [
-        0
-      ]
-    },
-    {
-      "addr": 35052,
-      "bytes": [
-        0
-      ],
-      "comment_inline": "Dead data: &00",
-      "type": "byte",
-      "values": [
-        0
-      ]
-    },
-    {
-      "addr": 35053,
-      "bytes": [
-        0
-      ],
-      "comment_inline": "Dead data: &00",
-      "type": "byte",
-      "values": [
-        0
-      ]
-    },
-    {
-      "addr": 35054,
-      "bytes": [
-        0
-      ],
-      "comment_inline": "Dead data: &00",
-      "type": "byte",
-      "values": [
-        0
-      ]
-    },
-    {
-      "addr": 35055,
-      "bytes": [
-        1
-      ],
-      "comment_inline": "Dead data: &01",
-      "type": "byte",
-      "values": [
-        1
-      ]
-    },
-    {
-      "addr": 35056,
-      "bytes": [
-        1
-      ],
-      "comment_inline": "Dead data: &01",
-      "type": "byte",
-      "values": [
-        1
-      ]
-    },
-    {
-      "addr": 35057,
-      "bytes": [
-        129
-      ],
-      "comment_inline": "Dead data: &81",
-      "type": "byte",
-      "values": [
+        129,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
         129
       ]
     },

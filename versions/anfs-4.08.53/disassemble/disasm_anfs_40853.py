@@ -3826,35 +3826,6 @@ d.comment(0x88CE, "Store result/error code at (nmi_tx_block),0", align=Align.INL
 d.comment(0x88D0, "&80: TX completion flag value", align=Align.INLINE)
 d.comment(0x88D2, "Signal TX complete", align=Align.INLINE)
 d.comment(0x88D5, "Full ADLC reset and return to idle listen", align=Align.INLINE)
-d.comment(
-    0x88D8,
-    """Unreferenced dead data (16 bytes)
-
-16 bytes between JMP discard_reset_rx (&88D5) and
-tx_calc_transfer (&88E8). Unreachable as code (after
-an unconditional JMP) and unreferenced as data. No
-label, index, or indirect pointer targets any address
-in the &88D8-&88E7 range. Likely unused remnant from
-development.""",
-)
-d.comment(0x88D8, "Dead data: &0E", align=Align.INLINE)
-for i in range(16):
-    d.byte(0x88D8 + i)
-d.comment(0x88D9, "Dead data: &0E", align=Align.INLINE)
-d.comment(0x88DA, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88DB, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88DC, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88DD, "Dead data: &06", align=Align.INLINE)
-d.comment(0x88DE, "Dead data: &06", align=Align.INLINE)
-d.comment(0x88DF, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88E0, "Dead data: &81", align=Align.INLINE)
-d.comment(0x88E1, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88E2, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88E3, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88E4, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88E5, "Dead data: &01", align=Align.INLINE)
-d.comment(0x88E6, "Dead data: &01", align=Align.INLINE)
-d.comment(0x88E7, "Dead data: &81", align=Align.INLINE)
 d.subroutine(
     0x88E8,
     "tx_calc_transfer",
@@ -15954,6 +15925,16 @@ d.char_literal(0xBB6B)
 d.char_literal(0xBB6F)
 d.char_literal(0xBB73)
 d.char_literal(0xBBB9)
+
+
+d.banner(0x88D8, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x88D8, "tx_length_table")
+d.byte(0x88D8, 8)
+d.banner(0x88E0, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x88E0, "tx_flags_table")
+d.byte(0x88E0, 8)
 
 ir = d.disassemble()
 output = str(

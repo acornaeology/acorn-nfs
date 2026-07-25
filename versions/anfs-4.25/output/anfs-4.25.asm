@@ -2328,9 +2328,20 @@ tx_flags_table = tx_calc_tube_check+1
 .nmi_shim_rom_src
     rts                                                               ; 863b: 60          `        ; Return with C=1 (success)
 ; ***************************************************************************************
-; Purpose unknown. Unreferenced, unreachable.
-.rom_gap_88f0
-    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a, &81, &00, &00, &00, &00, &01, &01, &81  ; 863c: 0e 0e 0a... ......
+; Immediate-op TX control-frame length table
+;
+; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
+; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
+; &0A. Indexed by the immediate-op control byte.
+.tx_length_values
+    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 863c: 0e 0e 0a... ......
+; ***************************************************************************************
+; Immediate-op TX flags table
+;
+; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
+; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+.tx_flags_values
+    equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 8644: 81 00 00... ......
 ; ***************************************************************************************
 ; Seed TX scout from the TX control block and dispatch on type
 ;

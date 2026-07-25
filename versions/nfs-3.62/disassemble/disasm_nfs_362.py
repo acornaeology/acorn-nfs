@@ -8668,10 +8668,8 @@ d.comment(0x9EB0, "Store result/error code at (nmi_tx_block),0", align=Align.INL
 d.comment(0x9EB2, "&80: completion flag for &0D3A", align=Align.INLINE)
 d.comment(0x9EB4, "Signal TX complete", align=Align.INLINE)
 d.comment(0x9EB7, "Full ADLC reset and return to idle listen", align=Align.INLINE)
-d.comment(0x9EBA, "Unreferenced data block (purpose unknown)")
 
 
-d.comment(0x9EBA, "Unreferenced data", align=Align.INLINE)
 
 d.subroutine(
     0x9ECA,
@@ -8986,6 +8984,16 @@ d.label(0x0D59, "exec_addr_hi")
 d.index_base(0x7DFD, "tx_ptr_sub_base", group="idx_base")
 d.label(0x9A9C, "enter_data_rx_path")
 
+
+
+d.banner(0x9EBA, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x9EBA, "tx_length_table")
+d.byte(0x9EBA, 8)
+d.banner(0x9EC2, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x9EC2, "tx_flags_table")
+d.byte(0x9EC2, 8)
 
 ir = d.disassemble()
 output = str(

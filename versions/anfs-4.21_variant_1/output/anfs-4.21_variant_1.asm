@@ -3098,9 +3098,20 @@ tx_flags_table = check_tube_irq_loop+1
     sta tx_complete_flag                                              ; 88ea: 8d 60 0d    .`.      ; Signal TX complete
     jmp discard_reset_rx                                              ; 88ed: 4c e5 83    L..      ; Full ADLC reset and return to idle listen
 ; ***************************************************************************************
-; Purpose unknown. Unreferenced, unreachable.
-.rom_gap_88f0
-    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a, &81, &00, &00, &00, &00, &01, &01, &81  ; 88f0: 0e 0e 0a... ......
+; Immediate-op TX control-frame length table
+;
+; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
+; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
+; &0A. Indexed by the immediate-op control byte.
+.tx_length_values
+    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 88f0: 0e 0e 0a... ......
+; ***************************************************************************************
+; Immediate-op TX flags table
+;
+; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
+; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+.tx_flags_values
+    equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 88f8: 81 00 00... ......
 ; ***************************************************************************************
 ; Calculate transfer size and reclaim Tube buffer
 ;

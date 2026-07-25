@@ -8136,9 +8136,21 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     lda #&80                                                          ; 9eb2: a9 80       ..       ; &80: completion flag for &0D3A
     sta tx_clear_flag                                                 ; 9eb4: 8d 62 0d    .b.      ; Signal TX complete
     jmp discard_reset_listen                                          ; 9eb7: 4c db 99    L..      ; Full ADLC reset and return to idle listen
-; Unreferenced data block (purpose unknown)
-    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a, &81, &00, &00, &00   ; 9eba: 0e 0e 0a... ......
-    equb &00, &01, &01, &81                                           ; 9ec6: 00 01 01... ......   ; Unreferenced data
+; ***************************************************************************************
+; Immediate-op TX control-frame length table
+;
+; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
+; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
+; &0A. Indexed by the immediate-op control byte.
+.tx_length_table
+    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 9eba: 0e 0e 0a... ......
+; ***************************************************************************************
+; Immediate-op TX flags table
+;
+; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
+; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+.tx_flags_table
+    equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 9ec2: 81 00 00... ......
 ; ***************************************************************************************
 ; Calculate transfer size
 ;

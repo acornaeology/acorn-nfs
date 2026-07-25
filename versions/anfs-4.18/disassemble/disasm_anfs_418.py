@@ -3833,35 +3833,6 @@ d.comment(0x88DA, "&80: TX completion flag value", align=Align.INLINE)
 d.comment(0x88DC, "Signal TX complete", align=Align.INLINE)
 d.comment(0x88DF, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 d.subroutine(
-    0x88E2,
-    "unreachable_dead_88e2",
-    title="Unreachable dead data (16 bytes)",
-    description="""16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)
-and [`tx_calc_transfer`](label:tx_calc_transfer?hex). Unreachable as
-code (it follows an unconditional `JMP`) and unreferenced as
-data – no label, index, or indirect pointer targets any
-address in the &88E2-&88F1 range. Likely an unused remnant
-from development.""",
-)
-d.comment(0x88E2, "Dead data: &0E", align=Align.INLINE)
-for i in range(16):
-    d.byte(0x88E2 + i)
-d.comment(0x88E3, "Dead data: &0E", align=Align.INLINE)
-d.comment(0x88E4, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88E5, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88E6, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88E7, "Dead data: &06", align=Align.INLINE)
-d.comment(0x88E8, "Dead data: &06", align=Align.INLINE)
-d.comment(0x88E9, "Dead data: &0A", align=Align.INLINE)
-d.comment(0x88EA, "Dead data: &81", align=Align.INLINE)
-d.comment(0x88EB, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88EC, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88ED, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88EE, "Dead data: &00", align=Align.INLINE)
-d.comment(0x88EF, "Dead data: &01", align=Align.INLINE)
-d.comment(0x88F0, "Dead data: &01", align=Align.INLINE)
-d.comment(0x88F1, "Dead data: &81", align=Align.INLINE)
-d.subroutine(
     0x88F2,
     "tx_calc_transfer",
     title="Calculate transfer size",
@@ -16002,6 +15973,16 @@ d.label(0xB79F, "loop_save_fcb_workspace")
 d.label(0xB7C3, "loop_restore_fcb_ws")
 d.label(0xBAF2, "loop_print_hex_row")
 
+
+
+d.banner(0x88E2, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x88E2, "tx_length_table")
+d.byte(0x88E2, 8)
+d.banner(0x88EA, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x88EA, "tx_flags_table")
+d.byte(0x88EA, 8)
 
 ir = d.disassemble()
 output = str(

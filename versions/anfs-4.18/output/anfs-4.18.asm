@@ -3444,29 +3444,20 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     sta tx_complete_flag                                              ; 88dc: 8d 60 0d    .`.      ; Signal TX complete
     jmp discard_reset_rx                                              ; 88df: 4c f5 83    L..      ; Full ADLC reset and return to idle listen
 ; ***************************************************************************************
-; Unreachable dead data (16 bytes)
+; Immediate-op TX control-frame length table
 ;
-; 16 bytes between JMP discard_reset_rx (&88DF) and tx_calc_transfer (&88F2). Unreachable
-; as code (it follows an unconditional JMP) and unreferenced as data – no label, index,
-; or indirect pointer targets any address in the &88E2-&88F1 range. Likely an unused
-; remnant from development.
-.unreachable_dead_88e2
-    equb &0e                                                          ; 88e2: 0e          .        ; Dead data: &0E
-    equb &0e                                                          ; 88e3: 0e          .        ; Dead data: &0E
-    equb &0a                                                          ; 88e4: 0a          .        ; Dead data: &0A
-    equb &0a                                                          ; 88e5: 0a          .        ; Dead data: &0A
-    equb &0a                                                          ; 88e6: 0a          .        ; Dead data: &0A
-    equb &06                                                          ; 88e7: 06          .        ; Dead data: &06
-    equb &06                                                          ; 88e8: 06          .        ; Dead data: &06
-    equb &0a                                                          ; 88e9: 0a          .        ; Dead data: &0A
-    equb &81                                                          ; 88ea: 81          .        ; Dead data: &81
-    equb &00                                                          ; 88eb: 00          .        ; Dead data: &00
-    equb &00                                                          ; 88ec: 00          .        ; Dead data: &00
-    equb &00                                                          ; 88ed: 00          .        ; Dead data: &00
-    equb &00                                                          ; 88ee: 00          .        ; Dead data: &00
-    equb &01                                                          ; 88ef: 01          .        ; Dead data: &01
-    equb &01                                                          ; 88f0: 01          .        ; Dead data: &01
-    equb &81                                                          ; 88f1: 81          .        ; Dead data: &81
+; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
+; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
+; &0A. Indexed by the immediate-op control byte.
+.tx_length_table
+    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 88e2: 0e 0e 0a... ......
+; ***************************************************************************************
+; Immediate-op TX flags table
+;
+; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
+; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+.tx_flags_table
+    equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 88ea: 81 00 00... ......
 ; ***************************************************************************************
 ; Calculate transfer size
 ;

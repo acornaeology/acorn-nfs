@@ -2213,6 +2213,20 @@
       "title": "Boot option \u2192 OSCLI string offset table",
       "description": "Five bytes: the first byte (&0D) is the bare-CR target for boot\noption 0; bytes 1-4 are the offset table indexed by boot option\n(0-3). Each offset is the low byte of a pointer into page &8D.\nThe code reads from boot_string_offsets via\nLDX boot_string_offsets,Y with Y=boot_option, then LDY #&8D, JMP oscli.\nSee boot_cmd_strings for the target strings.",
       "align": "before_label"
+    },
+    {
+      "addr": 40685,
+      "name": "tx_length_table",
+      "title": "Immediate-op TX control-frame length table",
+      "description": "Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.",
+      "align": "before_label"
+    },
+    {
+      "addr": 40693,
+      "name": "tx_flags_table",
+      "title": "Immediate-op TX flags table",
+      "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -60748,20 +60762,11 @@
         10,
         6,
         6,
-        10,
-        129,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
-        129
+        10
       ],
-      "comments_before_label": [
-        "Unreferenced data block (purpose unknown)"
+      "labels": [
+        "tx_length_table"
       ],
-      "comment_inline": "Unreferenced data block (purpose unknown)",
       "type": "byte",
       "values": [
         14,
@@ -60771,7 +60776,26 @@
         10,
         6,
         6,
-        10,
+        10
+      ]
+    },
+    {
+      "addr": 40693,
+      "bytes": [
+        129,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        129
+      ],
+      "labels": [
+        "tx_flags_table"
+      ],
+      "type": "byte",
+      "values": [
         129,
         0,
         0,

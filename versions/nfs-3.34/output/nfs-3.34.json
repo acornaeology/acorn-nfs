@@ -1969,6 +1969,20 @@
       "title": "Econet error message table (ERRTAB, 8 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&A4` | Bad Txcb       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
       "align": "before_label"
+    },
+    {
+      "addr": 40779,
+      "name": "tx_length_table",
+      "title": "Immediate-op TX control-frame length table",
+      "description": "Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.",
+      "align": "before_label"
+    },
+    {
+      "addr": 40787,
+      "name": "tx_flags_table",
+      "title": "Immediate-op TX flags table",
+      "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -61928,9 +61942,6 @@
       "labels": [
         "tx_length_table"
       ],
-      "comments_before_label": [
-        "Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A."
-      ],
       "type": "byte",
       "values": [
         14,
@@ -61957,9 +61968,6 @@
       ],
       "labels": [
         "tx_flags_table"
-      ],
-      "comments_before_label": [
-        "Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00."
       ],
       "type": "byte",
       "values": [

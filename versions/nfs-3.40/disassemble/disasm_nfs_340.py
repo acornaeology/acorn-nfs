@@ -8281,12 +8281,6 @@ d.comment(0x9F20, "&80: completion flag for &0D3A", align=Align.INLINE)
 d.comment(0x9F22, "Signal TX complete", align=Align.INLINE)
 d.comment(0x9F25, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 
-d.comment(0x9F28, "Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A.")
-d.label(0x9F28, "tx_length_table")
-d.byte(0x9F28, 8)
-d.comment(0x9F30, "Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
-d.label(0x9F30, "tx_flags_table")
-d.byte(0x9F30, 8)
 
 
 
@@ -8570,6 +8564,15 @@ d.label(0x06D1, "rom_padding_06d1")
 
 d.comment(0x9FF8, "ROM padding (&FF fill).")
 d.label(0x9FF8, "rom_padding_9ff8")
+
+d.banner(0x9F28, title="Immediate-op TX control-frame length table",
+         description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
+d.label(0x9F28, "tx_length_table")
+d.byte(0x9F28, 8)
+d.banner(0x9F30, title="Immediate-op TX flags table",
+         description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
+d.label(0x9F30, "tx_flags_table")
+d.byte(0x9F30, 8)
 
 ir = d.disassemble()
 output = str(
