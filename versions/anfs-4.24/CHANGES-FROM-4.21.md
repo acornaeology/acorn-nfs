@@ -75,13 +75,23 @@ straight in. The shared tail [`print_cmos_pair`](label:print_cmos_pair) prints
 `CMOS[X]`, a `.`, then `CMOS[X-1]`, deriving the station index with
 `PHX` / `PLX` / `DEX` instead of a second literal `LDX`.
 
-## Immediate-operation handlers compacted
+## Immediate-operation handlers reshaped
 
 The port-0 immediate-operation setup block (`&848B`–`&84F9` in 4.21) is
-reshaped: the dispatch low-byte table moves, and the machine-type handler
-at [`&84C7`](address:84C7) now uses the same workspace-offset setup as the
-PEEK path (`port_ws_offset = &2E`, `rx_buf_offset = &0D`, then
-`jsr tx_calc_transfer`) rather than writing its own buffer dimensions.
+reshaped. The PHA/PHA/RTS dispatch low-byte table
+([`imm_op_dispatch_lo`](label:imm_op_dispatch_lo)) moves — its live entries,
+indexed by the immediate-op control byte `&81`–`&88`, now sit at
+[`&8515`](address:8515)–`&851C` — and the individual handlers are reordered:
+the PEEK handler ([`rx_imm_peek`](label:rx_imm_peek)) is at
+[`&84C7`](address:84C7) and the MachinePeek handler
+([`rx_imm_machine_type`](label:rx_imm_machine_type)) moves to
+[`&84F2`](address:84F2).
+
+The machine-type handler is also reworked. In 4.21 it simply pointed the reply
+buffer at a fixed address (`&88EE`) and set its length; in 4.24 it actively
+copies the 3-byte machine identity from ROM
+([`machine_id_bytes`](label:machine_id_bytes), `&8027`) into the reply
+workspace (plus a status byte), and stages the reply buffer at `&0C3A`.
 
 The transfer-size routine `tx_calc_transfer` is relocated from
 [`&8900`](address:8900@4.21_variant_1) to [`&85AD`](address:85AD) (its
@@ -89,6 +99,17 @@ three call sites move with it) and gains a `CLD` guard and a new
 shadow-RAM branch: when the buffer is a Tube address and `ACCCON.E` marks
 shadow RAM enabled, it now sets the shadow bit in `escapable` before the
 4-byte size subtraction.
+
+## Interactive-HELP `ON` matcher rewritten
+
+The service-call `&18` interactive-HELP handler
+([`match_on_suffix`](label:match_on_suffix)) is reimplemented. 4.21 matched the
+`ON` keyword with a data-table loop (`EOR on_suffix_pattern,X` over a 3-byte
+`"ON "` table); 4.24 inlines the two comparisons (`EOR #'O'` / `EOR #'N'` with
+`AND #&5F`), dropping the `on_suffix_pattern` table, and adds a
+`BIT fs_flags` / `BVC` guard at the entry so the call returns unless the
+interactive-HELP bit is set. The topic-copy-and-print body is otherwise
+unchanged.
 
 ## New command sub-table record
 
