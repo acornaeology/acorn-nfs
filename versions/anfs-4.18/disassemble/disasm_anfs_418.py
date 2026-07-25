@@ -1724,7 +1724,7 @@ d.subroutine(
     "init_nmi_workspace",
     title="Initialise NMI workspace (skip service request)",
     description="""Copies 32 bytes of NMI shim code from ROM
-(listen_jmp_hi) to &0D00, then patches the current
+(listen_jmp_hi) to nmi_code_base, then patches the current
 ROM bank number into the self-modifying code at
 &0D07. The shim includes the INTOFF/INTON pair
 (BIT &FE18 at entry, BIT &FE20 before RTI) that
@@ -1737,11 +1737,11 @@ Finally re-enables NMIs via INTON (&FE20 read).""",
 )
 
 
-d.comment(0x8094, "Copy 32 bytes of NMI shim from ROM to &0D00", align=Align.INLINE)
+d.comment(0x8094, "Copy 32 bytes of NMI shim from ROM to nmi_code_base", align=Align.INLINE)
 d.label(0x8096, "copy_nmi_shim")
 
 d.comment(0x8096, "Read byte from NMI shim ROM source", align=Align.INLINE)
-d.comment(0x8099, "Write to NMI shim RAM at &0D00", align=Align.INLINE)
+d.comment(0x8099, "Write to NMI shim RAM (nmi_code_base,Y)", align=Align.INLINE)
 d.comment(0x809C, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x809D, "Loop until all 32 bytes copied", align=Align.INLINE)
 d.comment(0x809F, "Patch current ROM bank into NMI shim", align=Align.INLINE)
@@ -2196,7 +2196,7 @@ d.comment(0x82DB, "Check buffer low byte", align=Align.INLINE)
 d.comment(0x82DD, "Check buffer high byte", align=Align.INLINE)
 d.comment(0x82DF, "All zero (null buffer): error", align=Align.INLINE)
 d.comment(0x82E1, "Read extra trailing byte from FIFO", align=Align.INLINE)
-d.comment(0x82E4, "Save extra byte at &0D5D for later use", align=Align.INLINE)
+d.comment(0x82E4, "Save extra byte to rx_extra_byte for later use", align=Align.INLINE)
 d.comment(0x82E7, "Bit5 = extra data byte available flag", align=Align.INLINE)
 d.comment(0x82E9, "Set extra byte flag in tx_flags", align=Align.INLINE)
 d.comment(0x82EC, "Store updated flags", align=Align.INLINE)
@@ -2271,7 +2271,7 @@ d.subroutine(
     "post_ack_scout",
     title="Post-ACK scout processing",
     description="""Called after the scout ACK has been transmitted. Processes the
-received scout data stored in the buffer at &0D3D-&0D48.
+received scout data stored in the 12-byte buffer at rx_src_stn.
 Checks the port byte (&0D40) against open receive blocks to
 find a matching listener. If a match is found, sets up the
 data RX handler chain for the four-way handshake data phase.
@@ -2702,7 +2702,7 @@ d.subroutine(
     0x84B9,
     "rx_imm_machine_type",
     title="RX immediate: machine type query",
-    description="""Sets up a buffer at &88C1 (length #&01FC) for the
+    description="""Sets up a buffer at &88C1 (length 508 bytes) for the
 machine type query response. Falls through to
 set_rx_buf_len_hi to configure buffer dimensions,
 then branches to set_tx_reply_flag. The machine-type
@@ -3829,7 +3829,7 @@ to idle RX listen mode.""",
 
 d.comment(0x88D6, "Y=0: index into TX control block", align=Align.INLINE)
 d.comment(0x88D8, "Store result/error code at (nmi_tx_block),0", align=Align.INLINE)
-d.comment(0x88DA, "&80: completion flag for &0D3A", align=Align.INLINE)
+d.comment(0x88DA, "&80: TX completion flag value", align=Align.INLINE)
 d.comment(0x88DC, "Signal TX complete", align=Align.INLINE)
 d.comment(0x88DF, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 d.subroutine(
@@ -4053,7 +4053,7 @@ d.subroutine(
     "nmi_bootstrap_entry",
     title="Bootstrap NMI entry point (in ROM)",
     description="""An alternate NMI handler that lives in the ROM itself rather than
-in the RAM workspace at &0D00. Unlike the RAM shim (which uses a
+in the RAM workspace at nmi_code_base. Unlike the RAM shim (which uses a
 self-modifying JMP to dispatch to different handlers), this one
 hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler
 before the workspace has been properly set up during initialisation.
@@ -4115,7 +4115,7 @@ d.comment(
 3 bytes between the RTI at &89C6 (end of the NMI
 shim ROM source) and svc_dispatch_lo at &89CA.
 The init copy loop (Y=1..&20) copies &89A7-&89C6
-to &0D00-&0D1F; these bytes are outside that range
+to nmi_code_base (the 32-byte shim); these bytes are outside that range
 and unreferenced. Likely unused development remnant.""",
 )
 d.comment(0x89C7, "Dead data: &01", align=Align.INLINE)
@@ -5207,7 +5207,7 @@ d.subroutine(
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""Bytes 0-13: extended vector dispatch addresses, copied to
 FILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is
-a dispatch address (&FF1B-&FF2D) that the MOS uses to look up
+a dispatch address that the MOS uses to look up
 the handler in the extended vector table.
 
 Bytes 14-33: handler address pairs read by write_vector_entry.
@@ -8934,7 +8934,7 @@ d.subroutine(
     title="Add or subtract 4 workspace bytes from FS options",
     description="""Processes 4 consecutive bytes at (fs_options)+Y,
 adding or subtracting the corresponding workspace
-bytes from &0E0A-&0E0D. The direction is controlled
+bytes from fs_cmd_context (4 bytes). The direction is controlled
 by bit 7 of fs_load_addr_2: set for subtraction,
 clear for addition. Carry propagates across all 4
 bytes for correct multi-byte arithmetic.""",

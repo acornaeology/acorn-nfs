@@ -1655,19 +1655,19 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; Initialise NMI workspace (skip service request)
 ;
-; Copies 32 bytes of NMI shim code from ROM (listen_jmp_hi) to &0D00, then patches the
-; current ROM bank number into the self-modifying code at &0D07. The shim includes the
-; INTOFF/INTON pair (BIT &FE18 at entry, BIT &FE20 before RTI) that toggles the IC97 NMI
-; enable flip-flop to guarantee edge re-triggering on /NMI. Clears tx_src_net,
-; need_release_tube, and tx_op_type to zero. Reads station ID into tx_src_stn (&0D22).
-; Sets tx_complete_flag and econet_init_flag to &80. Finally re-enables NMIs via INTON
-; (&FE20 read).
+; Copies 32 bytes of NMI shim code from ROM (listen_jmp_hi) to nmi_code_base, then
+; patches the current ROM bank number into the self-modifying code at &0D07. The shim
+; includes the INTOFF/INTON pair (BIT &FE18 at entry, BIT &FE20 before RTI) that toggles
+; the IC97 NMI enable flip-flop to guarantee edge re-triggering on /NMI. Clears
+; tx_src_net, need_release_tube, and tx_op_type to zero. Reads station ID into tx_src_stn
+; (&0D22). Sets tx_complete_flag and econet_init_flag to &80. Finally re-enables NMIs via
+; INTON (&FE20 read).
 .init_nmi_workspace
-    ldy #&20                                                          ; 8094: a0 20       .        ; Copy 32 bytes of NMI shim from ROM to &0D00
+    ldy #&20                                                          ; 8094: a0 20       .        ; Copy 32 bytes of NMI shim from ROM to nmi_code_base
 ; &8096 referenced 1 time by &809d
 .copy_nmi_shim
     lda listen_jmp_hi,y                                               ; 8096: b9 a6 89    ...      ; Read byte from NMI shim ROM source
-    sta nmi_code_base,y                                               ; 8099: 99 ff 0c    ...      ; Write to NMI shim RAM at &0D00
+    sta nmi_code_base,y                                               ; 8099: 99 ff 0c    ...      ; Write to NMI shim RAM (nmi_code_base,Y)
     dey                                                               ; 809c: 88          .        ; Next byte (descending)
     bne copy_nmi_shim                                                 ; 809d: d0 f7       ..       ; Loop until all 32 bytes copied
     lda romsel_copy                                                   ; 809f: a5 f4       ..       ; Patch current ROM bank into NMI shim
@@ -2067,7 +2067,7 @@ service_handler_lo = service_entry+1
     ora open_port_buf_hi                                              ; 82dd: 05 a5       ..       ; Check buffer high byte
     beq read_last_rx_byte                                             ; 82df: f0 ae       ..       ; All zero (null buffer): error
     lda econet_data_continue_frame                                    ; 82e1: ad a2 fe    ...      ; Read extra trailing byte from FIFO
-    sta rx_extra_byte                                                 ; 82e4: 8d 42 0d    .B.      ; Save extra byte at &0D5D for later use
+    sta rx_extra_byte                                                 ; 82e4: 8d 42 0d    .B.      ; Save extra byte to rx_extra_byte for later use
     lda #&20                                                          ; 82e7: a9 20       .        ; Bit5 = extra data byte available flag
     ora net_frame_flags                                               ; 82e9: 0d 3e 0d    .>.      ; Set extra byte flag in tx_flags
     sta net_frame_flags                                               ; 82ec: 8d 3e 0d    .>.      ; Store updated flags
@@ -2131,9 +2131,9 @@ service_handler_lo = service_entry+1
 ; Post-ACK scout processing
 ;
 ; Called after the scout ACK has been transmitted. Processes the received scout data
-; stored in the buffer at &0D3D-&0D48. Checks the port byte (&0D40) against open receive
-; blocks to find a matching listener. If a match is found, sets up the data RX handler
-; chain for the four-way handshake data phase. If no match, discards the frame.
+; stored in the 12-byte buffer at rx_src_stn. Checks the port byte (&0D40) against open
+; receive blocks to find a matching listener. If a match is found, sets up the data RX
+; handler chain for the four-way handshake data phase. If no match, discards the frame.
 .post_ack_scout
     sta econet_control23_or_status2                                   ; 833d: 8d a1 fe    ...      ; Write CR2 to clear status after ACK TX
     lda saved_nmi_lo                                                  ; 8340: ad 43 0d    .C.      ; Install saved handler from &0D4B/&0D4C
@@ -2484,7 +2484,7 @@ service_handler_lo = service_entry+1
 ; ***************************************************************************************
 ; RX immediate: machine type query
 ;
-; Sets up a buffer at &88C1 (length #&01FC) for the machine type query response. Falls
+; Sets up a buffer at &88C1 (length 508 bytes) for the machine type query response. Falls
 ; through to set_rx_buf_len_hi to configure buffer dimensions, then branches to
 ; set_tx_reply_flag. The machine-type query (&88) just returns fixed identity data, so it
 ; is serviced inline here — not deferred like the execute- class operations &83-&87.
@@ -3440,7 +3440,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
 .tx_store_result
     ldy #0                                                            ; 88d6: a0 00       ..       ; Y=0: index into TX control block
     sta (nmi_tx_block),y                                              ; 88d8: 91 a0       ..       ; Store result/error code at (nmi_tx_block),0
-    lda #&80                                                          ; 88da: a9 80       ..       ; &80: completion flag for &0D3A
+    lda #&80                                                          ; 88da: a9 80       ..       ; &80: TX completion flag value
     sta tx_complete_flag                                              ; 88dc: 8d 60 0d    .`.      ; Signal TX complete
     jmp discard_reset_rx                                              ; 88df: 4c f5 83    L..      ; Full ADLC reset and return to idle listen
 ; ***************************************************************************************
@@ -3627,10 +3627,11 @@ listen_jmp_hi = reset_enter_listen+2
 ; Bootstrap NMI entry point (in ROM)
 ;
 ; An alternate NMI handler that lives in the ROM itself rather than in the RAM workspace
-; at &0D00. Unlike the RAM shim (which uses a self-modifying JMP to dispatch to different
-; handlers), this one hardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler
-; before the workspace has been properly set up during initialisation. Same sequence as
-; the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA, LDA romsel, STA &FE30, JMP &80BE.
+; at nmi_code_base. Unlike the RAM shim (which uses a self-modifying JMP to dispatch to
+; different handlers), this one hardcodes JMP nmi_rx_scout (&80BE). Used as the initial
+; NMI handler before the workspace has been properly set up during initialisation. Same
+; sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA, LDA romsel, STA &FE30, JMP
+; &80BE.
 ;
 ; The BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI in nmi_rti are
 ; essential for edge-triggered NMI re-delivery. The 6502 /NMI is falling-edge triggered;
@@ -3669,7 +3670,7 @@ listen_jmp_hi = reset_enter_listen+2
     rti                                                               ; 89c6: 40          @        ; Return from interrupt
 ; Unreferenced dead data (3 bytes)
 ;
-; 3 bytes between the RTI at &89C6 (end of the NMI shim ROM source) and svc_dispatch_lo at &89CA. The init copy loop (Y=1..&20) copies &89A7-&89C6 to &0D00-&0D1F; these bytes are outside that range and unreferenced. Likely unused development remnant.
+; 3 bytes between the RTI at &89C6 (end of the NMI shim ROM source) and svc_dispatch_lo at &89CA. The init copy loop (Y=1..&20) copies &89A7-&89C6 to nmi_code_base (the 32-byte shim); these bytes are outside that range and unreferenced. Likely unused development remnant.
     equb &01                                                          ; 89c7: 01          .        ; Dead data: &01
     equb &00                                                          ; 89c8: 00          .        ; Dead data: &00
     equb &18                                                          ; 89c9: 18          .     
@@ -4699,8 +4700,8 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
 ; Bytes 0-13: extended vector dispatch addresses, copied to FILEV-FSCV (&0212) by
-; loop_set_vectors. Each 2-byte pair is a dispatch address (&FF1B-&FF2D) that the MOS
-; uses to look up the handler in the extended vector table.
+; loop_set_vectors. Each 2-byte pair is a dispatch address that the MOS uses to look up
+; the handler in the extended vector table.
 ;
 ; Bytes 14-33: handler address pairs read by write_vector_entry. Each entry has addr_lo,
 ; addr_hi, then a padding byte that is not read at runtime (write_vector_entry writes the
@@ -7985,9 +7986,9 @@ bad_prefix = bad_str_anchor+1
 ; Add or subtract 4 workspace bytes from FS options
 ;
 ; Processes 4 consecutive bytes at (fs_options)+Y, adding or subtracting the
-; corresponding workspace bytes from &0E0A-&0E0D. The direction is controlled by bit 7 of
-; fs_load_addr_2: set for subtraction, clear for addition. Carry propagates across all 4
-; bytes for correct multi-byte arithmetic.
+; corresponding workspace bytes from fs_cmd_context (4 bytes). The direction is
+; controlled by bit 7 of fs_load_addr_2: set for subtraction, clear for addition. Carry
+; propagates across all 4 bytes for correct multi-byte arithmetic.
 ;
 ; On Entry:
 ;     Y: FS options offset for first byte

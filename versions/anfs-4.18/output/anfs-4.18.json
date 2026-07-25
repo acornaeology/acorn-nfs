@@ -533,7 +533,7 @@
       "addr": 32916,
       "name": "init_nmi_workspace",
       "title": "Initialise NMI workspace (skip service request)",
-      "description": "Copies 32 bytes of NMI shim code from ROM\n(listen_jmp_hi) to &0D00, then patches the current\nROM bank number into the self-modifying code at\n&0D07. The shim includes the INTOFF/INTON pair\n(BIT &FE18 at entry, BIT &FE20 before RTI) that\ntoggles the IC97 NMI enable flip-flop to guarantee\nedge re-triggering on /NMI. Clears tx_src_net,\nneed_release_tube, and tx_op_type to zero. Reads\nstation ID into tx_src_stn (&0D22). Sets\ntx_complete_flag and econet_init_flag to &80.\nFinally re-enables NMIs via INTON (&FE20 read)."
+      "description": "Copies 32 bytes of NMI shim code from ROM\n(listen_jmp_hi) to nmi_code_base, then patches the current\nROM bank number into the self-modifying code at\n&0D07. The shim includes the INTOFF/INTON pair\n(BIT &FE18 at entry, BIT &FE20 before RTI) that\ntoggles the IC97 NMI enable flip-flop to guarantee\nedge re-triggering on /NMI. Clears tx_src_net,\nneed_release_tube, and tx_op_type to zero. Reads\nstation ID into tx_src_stn (&0D22). Sets\ntx_complete_flag and econet_init_flag to &80.\nFinally re-enables NMIs via INTON (&FE20 read)."
     },
     {
       "addr": 32958,
@@ -608,7 +608,7 @@
       "addr": 33597,
       "name": "post_ack_scout",
       "title": "Post-ACK scout processing",
-      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the buffer at &0D3D-&0D48.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
+      "description": "Called after the scout ACK has been transmitted. Processes the\nreceived scout data stored in the 12-byte buffer at rx_src_stn.\nChecks the port byte (&0D40) against open receive blocks to\nfind a matching listener. If a match is found, sets up the\ndata RX handler chain for the four-way handshake data phase.\nIf no match, discards the frame."
     },
     {
       "addr": 33615,
@@ -669,7 +669,7 @@
       "addr": 33977,
       "name": "rx_imm_machine_type",
       "title": "RX immediate: machine type query",
-      "description": "Sets up a buffer at &88C1 (length #&01FC) for the\nmachine type query response. Falls through to\nset_rx_buf_len_hi to configure buffer dimensions,\nthen branches to set_tx_reply_flag. The machine-type\nquery (&88) just returns fixed identity data, so it is\nserviced inline here \u2014 not deferred like the execute-\nclass operations &83-&87.",
+      "description": "Sets up a buffer at &88C1 (length 508 bytes) for the\nmachine type query response. Falls through to\nset_rx_buf_len_hi to configure buffer dimensions,\nthen branches to set_tx_reply_flag. The machine-type\nquery (&88) just returns fixed identity data, so it is\nserviced inline here \u2014 not deferred like the execute-\nclass operations &83-&87.",
       "fall_through": true
     },
     {
@@ -935,7 +935,7 @@
       "addr": 35239,
       "name": "nmi_bootstrap_entry",
       "title": "Bootstrap NMI entry point (in ROM)",
-      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at &0D00. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &80BE.\n\nThe BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI\nin nmi_rti are essential for edge-triggered NMI re-delivery.\nThe 6502 /NMI is falling-edge triggered; the Econet NMI enable\nflip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears\nthe flip-flop, forcing /NMI high; INTON sets it, allowing the\nADLC IRQ through. This creates a guaranteed high-to-low edge on\n/NMI even when the ADLC IRQ is continuously asserted (e.g. when\nit transitions atomically from TDRA to frame-complete without\nde-asserting). Without this mechanism, nmi_tx_complete would\nnever fire after tx_last_data."
+      "description": "An alternate NMI handler that lives in the ROM itself rather than\nin the RAM workspace at nmi_code_base. Unlike the RAM shim (which uses a\nself-modifying JMP to dispatch to different handlers), this one\nhardcodes JMP nmi_rx_scout (&80BE). Used as the initial NMI handler\nbefore the workspace has been properly set up during initialisation.\nSame sequence as the RAM shim: BIT &FE18 (INTOFF), PHA, TYA, PHA,\nLDA romsel, STA &FE30, JMP &80BE.\n\nThe BIT &FE18 (INTOFF) at entry and BIT &FE20 (INTON) before RTI\nin nmi_rti are essential for edge-triggered NMI re-delivery.\nThe 6502 /NMI is falling-edge triggered; the Econet NMI enable\nflip-flop (IC97) gates the ADLC IRQ onto /NMI. INTOFF clears\nthe flip-flop, forcing /NMI high; INTON sets it, allowing the\nADLC IRQ through. This creates a guaranteed high-to-low edge on\n/NMI even when the ADLC IRQ is continuously asserted (e.g. when\nit transitions atomically from TDRA to frame-complete without\nde-asserting). Without this mechanism, nmi_tx_complete would\nnever fire after tx_last_data."
     },
     {
       "addr": 35253,
@@ -1167,7 +1167,7 @@
       "addr": 36449,
       "name": "fs_vector_table",
       "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte."
+      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte."
     },
     {
       "addr": 36483,
@@ -1865,7 +1865,7 @@
       "addr": 40471,
       "name": "adjust_fsopts_4bytes",
       "title": "Add or subtract 4 workspace bytes from FS options",
-      "description": "Processes 4 consecutive bytes at (fs_options)+Y,\nadding or subtracting the corresponding workspace\nbytes from &0E0A-&0E0D. The direction is controlled\nby bit 7 of fs_load_addr_2: set for subtraction,\nclear for addition. Carry propagates across all 4\nbytes for correct multi-byte arithmetic.",
+      "description": "Processes 4 consecutive bytes at (fs_options)+Y,\nadding or subtracting the corresponding workspace\nbytes from fs_cmd_context (4 bytes). The direction is controlled\nby bit 7 of fs_load_addr_2: set for subtraction,\nclear for addition. Carry propagates across all 4\nbytes for correct multi-byte arithmetic.",
       "on_entry": {
         "y": "FS options offset for first byte",
         "c": "carry input for first byte"
@@ -4713,7 +4713,7 @@
       "labels": [
         "init_nmi_workspace"
       ],
-      "comment_inline": "Copy 32 bytes of NMI shim from ROM to &0D00",
+      "comment_inline": "Copy 32 bytes of NMI shim from ROM to nmi_code_base",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&20"
@@ -4751,7 +4751,7 @@
         255,
         12
       ],
-      "comment_inline": "Write to NMI shim RAM at &0D00",
+      "comment_inline": "Write to NMI shim RAM (nmi_code_base,Y)",
       "type": "code",
       "mnemonic": "sta",
       "operand": "nmi_code_base,y",
@@ -8601,7 +8601,7 @@
         66,
         13
       ],
-      "comment_inline": "Save extra byte at &0D5D for later use",
+      "comment_inline": "Save extra byte to rx_extra_byte for later use",
       "type": "code",
       "mnemonic": "sta",
       "operand": "rx_extra_byte",
@@ -19382,7 +19382,7 @@
         169,
         128
       ],
-      "comment_inline": "&80: completion flag for &0D3A",
+      "comment_inline": "&80: TX completion flag value",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&80"
@@ -21023,7 +21023,7 @@
         1
       ],
       "comments_before_label": [
-        "Unreferenced dead data (3 bytes)\n\n3 bytes between the RTI at &89C6 (end of the NMI\nshim ROM source) and svc_dispatch_lo at &89CA.\nThe init copy loop (Y=1..&20) copies &89A7-&89C6\nto &0D00-&0D1F; these bytes are outside that range\nand unreferenced. Likely unused development remnant."
+        "Unreferenced dead data (3 bytes)\n\n3 bytes between the RTI at &89C6 (end of the NMI\nshim ROM source) and svc_dispatch_lo at &89CA.\nThe init copy loop (Y=1..&20) copies &89A7-&89C6\nto nmi_code_base (the 32-byte shim); these bytes are outside that range\nand unreferenced. Likely unused development remnant."
       ],
       "comment_inline": "Dead data: &01",
       "type": "byte",
