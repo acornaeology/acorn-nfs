@@ -3846,7 +3846,6 @@ from development.""",
 d.comment(0x88E2, "Dead data: &0E", align=Align.INLINE)
 for i in range(16):
     d.byte(0x88E2 + i)
-d.entry(0x88E2)
 d.comment(0x88E3, "Dead data: &0E", align=Align.INLINE)
 d.comment(0x88E4, "Dead data: &0A", align=Align.INLINE)
 d.comment(0x88E5, "Dead data: &0A", align=Align.INLINE)
@@ -10390,14 +10389,6 @@ d.comment(0xA58F, "Store to parameter block", align=Align.INLINE)
 d.comment(0xA591, "Next byte down", align=Align.INLINE)
 d.comment(0xA592, "Loop for all 7 bytes", align=Align.INLINE)
 d.comment(0xA594, "Return", align=Align.INLINE)
-d.subroutine(
-    0xA595,
-    "bin_to_bcd",
-    title="Binary to packed BCD",
-    description="""Converts the binary value in A to packed BCD. Used by the OSWORD &0E
-clock/date conversion.""",
-)
-
 d.subroutine(
     0xA595,
     "bin_to_bcd",

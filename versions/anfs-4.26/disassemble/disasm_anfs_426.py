@@ -4072,7 +4072,6 @@ d.label(0x863C, "rom_gap_88f0", group="ram_workspace")
 d.label(0x863C, "rom_gap_88f0", group="ram_workspace")
 d.banner(0x863C, title="Purpose unknown. Unreferenced, unreachable.")
 d.byte(0x863C, 16, cols=16)
-d.entry(0x863C)
 # UNMAPPED: d.subroutine(
 # UNMAPPED:     0x8900,
 # UNMAPPED:     "tx_calc_transfer",

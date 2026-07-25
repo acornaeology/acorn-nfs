@@ -2981,12 +2981,6 @@
     {
       "addr": 43299,
       "name": "bin_to_bcd",
-      "title": "Binary to packed BCD",
-      "description": "Converts the binary value in A to packed BCD. Used by the OSWORD &0E\nclock/date conversion."
-    },
-    {
-      "addr": 43299,
-      "name": "bin_to_bcd",
       "title": "Convert binary byte to BCD",
       "description": "Uses decimal mode (SED) with a count-up loop:\nstarts at BCD 0 and adds 1 in decimal mode for\neach decrement of the binary input. Saves and\nrestores the processor flags to avoid leaving\ndecimal mode active. Called 6 times by\nsave_txcb_and_convert for clock date/time\nconversion.",
       "on_entry": {

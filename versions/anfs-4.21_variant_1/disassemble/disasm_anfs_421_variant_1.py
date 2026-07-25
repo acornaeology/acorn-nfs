@@ -4087,7 +4087,6 @@ d.label(0x88F0, "rom_gap_88f0", group="ram_workspace")
 d.label(0x88F0, "rom_gap_88f0", group="ram_workspace")
 d.banner(0x88F0, title="Purpose unknown. Unreferenced, unreachable.")
 d.byte(0x88F0, 16, cols=16)
-d.entry(0x88F0)
 d.subroutine(
     0x8900,
     "tx_calc_transfer",
@@ -12910,14 +12909,6 @@ d.comment(0xA8F6, "Store parameter at PB[0]", align=Align.INLINE)
 d.comment(0xA8F8, "A=&0E: OSWORD &0E (read CMOS RTC)", align=Align.INLINE)
 d.comment(0xA8FA, "X = PB pointer low", align=Align.INLINE)
 d.comment(0xA8FC, "Y = PB pointer high (via table_idx scratch)", align=Align.INLINE)
-d.subroutine(
-    0xA901,
-    "bin_to_bcd",
-    title="Binary to packed BCD",
-    description="""Converts the binary value in A to packed BCD. Used by the OSWORD &0E
-clock/date conversion.""",
-)
-
 d.subroutine(
     0xA901,
     "bin_to_bcd",

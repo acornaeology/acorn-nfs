@@ -11142,11 +11142,6 @@ osword_subcode_dispatch = extract_osword_subcode+1
     ldy table_idx                                                     ; a8fc: a4 ad       ..       ; Y = PB pointer high (via table_idx scratch)
     jmp osword                                                        ; a8fe: 4c f1 ff    L..      ; Read CMOS clock
 ; ***************************************************************************************
-; Binary to packed BCD
-;
-; Converts the binary value in A to packed BCD. Used by the OSWORD &0E clock/date
-; conversion.
-; ***************************************************************************************
 ; Convert binary byte to BCD
 ;
 ; Uses decimal mode (SED) with a count-up loop: starts at BCD 0 and adds 1 in decimal

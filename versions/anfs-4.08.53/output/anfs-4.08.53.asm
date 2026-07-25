@@ -9211,11 +9211,6 @@ bad_prefix = bad_str_anchor+1
     bpl loop_copy_bcd_to_pb                                           ; a579: 10 f8       ..       ; Loop for all 7 bytes
     rts                                                               ; a57b: 60          `        ; Return
 ; ***************************************************************************************
-; Binary to packed BCD
-;
-; Converts the binary value in A to packed BCD. Used by the OSWORD &0E clock/date
-; conversion.
-; ***************************************************************************************
 ; Convert binary byte to BCD
 ;
 ; Uses decimal mode (SED) with a count-up loop: starts at BCD 0 and adds 1 in decimal
