@@ -3451,7 +3451,7 @@ d.subroutine(
 
 Reads `SR2` bit 0 (`AP` – address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).
 
-(Not to be confused with the "reply" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server – see [`nmi_rx_scout`](address:80B3?hex).)""",
+(Not to be confused with the "reply" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server – see [`nmi_rx_scout`](label:nmi_rx_scout?hex).)""",
 )
 
 
@@ -3503,7 +3503,7 @@ On success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mo
 
 | Step | `CR1` | Phase                  | Routine fires                                |
 |------|-------|------------------------|----------------------------------------------|
-| 1    | &44   | scout TX               | [`tx_prepare`](address:8643?hex)             |
+| 1    | &44   | scout TX               | [`tx_prepare`](label:tx_prepare?hex)             |
 | 2    | &82   | await scout ACK        | [`nmi_tx_complete`](label:nmi_tx_complete)            |
 | 3    | &44   | data TX                | [`nmi_reply_validate`](label:nmi_reply_validate) (here) |
 | 4    | &82   | await data ACK         | [`handshake_await_ack`](label:handshake_await_ack)        |""",

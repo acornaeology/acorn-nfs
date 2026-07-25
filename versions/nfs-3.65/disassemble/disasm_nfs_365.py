@@ -1379,7 +1379,7 @@ d.label(0x8009, "cmd_net_str")
 
 d.comment(
     0x800D,
-    """The 'ROFF' suffix of "(C)ROFF" at [`cmd_roff_str`](label:cmd_roff_str) is reused by the `*ROFF` command matcher [`svc_4_star_command`](address:81A3?hex) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
+    """The 'ROFF' suffix of "(C)ROFF" at [`cmd_roff_str`](label:cmd_roff_str) is reused by the `*ROFF` command matcher [`svc_4_star_command`](label:svc_4_star_command?hex) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
 
 The `*NET` matcher uses the same trick: [`cmd_net_str`](label:cmd_net_str) is just the [`title`](label:title) bytes (`"NET"`). Both call sites compute their offsets symbolically as `cmd_X_str - binary_version`, since `match_rom_string` does `cmp binary_version,X`.""",
     align=Align.AFTER_LABEL,

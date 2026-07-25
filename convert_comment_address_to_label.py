@@ -80,13 +80,6 @@ def main():
             addr = int(m.group("hex"), 16)
             at = m.group("at") or ""
             flag = m.group("flag") or ""
-            # Leave `?hex`-flagged links on address:. dasmos renders
-            # `address:HEX?hex` as `text (&HEX)` in the .asm but has no
-            # label: support, so converting one would silently drop the
-            # (&HEX) the flag exists to show. (The website resolves both.)
-            if flag:
-                skip += 1
-                return m.group(0)
             version = at[1:] if at else own_version
             if labels_for_version(version).get(name) == addr:
                 conv += 1

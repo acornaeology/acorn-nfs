@@ -2840,7 +2840,7 @@ d.subroutine(
 operation types &83-&87. Read by the dispatch at
 [`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,
 which resolves to `set_rx_buf_len_hi + Y` – an aliased read
-into this table since [`set_rx_buf_len_hi`](address:84BB?hex)
+into this table since [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi?hex)
 sits 0x83 bytes before the first entry.
 
 High byte is always &85, so targets are &85xx+1. Entries for
@@ -3183,7 +3183,7 @@ d.subroutine(
     description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl
 control-byte types &81-&88. Read by the dispatch at
 [`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,
-which resolves to [`intoff_disable_nmi_op`](address:8600?hex)
+which resolves to [`intoff_disable_nmi_op`](label:intoff_disable_nmi_op?hex)
 (= `intoff_test_inactive + 1`) plus Y – an aliased read into
 this table.
 
@@ -3457,7 +3457,7 @@ d.subroutine(
 
 Reads `SR2` bit 0 (`AP` – address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).
 
-(Not to be confused with the "reply" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server – see [`nmi_rx_scout`](address:80BE?hex).)""",
+(Not to be confused with the "reply" of an FS *transaction*, which is itself a separate four-way handshake initiated by the file server – see [`nmi_rx_scout`](label:nmi_rx_scout?hex).)""",
 )
 
 
@@ -3509,7 +3509,7 @@ On success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mo
 
 | Step | `CR1` | Phase                  | Routine fires                                |
 |------|-------|------------------------|----------------------------------------------|
-| 1    | &44   | scout TX               | [`tx_prepare`](address:864D?hex)             |
+| 1    | &44   | scout TX               | [`tx_prepare`](label:tx_prepare?hex)             |
 | 2    | &82   | await scout ACK        | [`nmi_tx_complete`](label:nmi_tx_complete)            |
 | 3    | &44   | data TX                | [`nmi_reply_validate`](label:nmi_reply_validate) (here) |
 | 4    | &82   | await data ACK         | [`handshake_await_ack`](label:handshake_await_ack)        |""",
@@ -3837,7 +3837,7 @@ d.subroutine(
     "unreachable_dead_88e2",
     title="Unreachable dead data (16 bytes)",
     description="""16 bytes between [`JMP discard_reset_rx`](address:88DF?hex)
-and [`tx_calc_transfer`](address:88F2?hex). Unreachable as
+and [`tx_calc_transfer`](label:tx_calc_transfer?hex). Unreachable as
 code (it follows an unconditional `JMP`) and unreferenced as
 data – no label, index, or indirect pointer targets any
 address in the &88E2-&88F1 range. Likely an unused remnant
@@ -6146,8 +6146,8 @@ d.subroutine(
     "prot_bit_encode_table",
     title="Protection/access bit encode table (11 entries)",
     description="""11-entry lookup table used by
-[`get_prot_bits`](address:9273?hex) and
-[`get_access_bits`](address:9269?hex) to remap attribute bits
+[`get_prot_bits`](label:get_prot_bits?hex) and
+[`get_access_bits`](label:get_access_bits?hex) to remap attribute bits
 between the file-server protocol format and the local
 representation. The encoding loop shifts out each source bit;
 for each set bit, the corresponding table entry is `ORA`-ed
@@ -6710,12 +6710,12 @@ d.subroutine(
     0x948B,
     "txcb_init_template",
     title="TXCB initialisation template (12 bytes)",
-    description="""Copied by [`loop_init_txcb`](address:9476?hex) into the TXCB
+    description="""Copied by [`loop_init_txcb`](label:loop_init_txcb?hex) into the TXCB
 workspace at &00C0. For offsets 0-1, the destination station
 bytes are also copied from `l0e00` into `txcb_dest`.
 
 The &FF byte at offset 6
-([`bit_test_ff`](address:9491?hex)) serves double duty: it is
+([`bit_test_ff`](label:bit_test_ff?hex)) serves double duty: it is
 part of this template **and** a `BIT` target used by 22
 callers to set the `V` and `N` flags without clobbering `A`.""",
 )
@@ -7514,9 +7514,9 @@ d.subroutine(
     "net_error_lookup_data",
     title="Network error lookup table (12 entries)",
     description="""Each byte is an offset into
-[`error_msg_table`](address:97B9?hex). Indices 0-7 are keyed
+[`error_msg_table`](label:error_msg_table?hex). Indices 0-7 are keyed
 by error class (reply `AND #7`). Index 8 is used by
-[`build_no_reply_error`](address:961A?hex). Indices 9-11 point
+[`build_no_reply_error`](label:build_no_reply_error?hex). Indices 9-11 point
 to suffix strings appended after the station address in
 compound errors.""",
 )
@@ -10422,7 +10422,7 @@ d.subroutine(
     title="OSWORD &10 (Econet transmit) handler",
     description="""Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.
 
-Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](label:tx_begin) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:86EA?hex) → `tx_last_data` → [`nmi_tx_complete`](label:nmi_tx_complete) → [`nmi_reply_scout`](label:nmi_reply_scout)). This bypasses [`send_net_packet`](label:send_net_packet) and [`poll_adlc_tx_status`](label:poll_adlc_tx_status), which poll synchronously for completion – there is no retry loop here.
+Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](label:tx_begin) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](label:nmi_tx_data?hex) → `tx_last_data` → [`nmi_tx_complete`](label:nmi_tx_complete) → [`nmi_reply_scout`](label:nmi_reply_scout)). This bypasses [`send_net_packet`](label:send_net_packet) and [`poll_adlc_tx_status`](label:poll_adlc_tx_status), which poll synchronously for completion – there is no retry loop here.
 
 Sequence:
 
