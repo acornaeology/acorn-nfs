@@ -142,7 +142,7 @@ it writes IER bit 2 to mask the SR interrupt, reads-modifies-
 writes ACR to set shift-register mode 2, then reads SR to clear
 the pending interrupt – and 4.18 carries an analogous sequence
 at [`&8036`–`&8049`](address:8036@4.18) and a second one in
-[`setup_sr_tx`](address:8514@4.18). Eleven direct System-VIA
+[`setup_sr_tx`](label:setup_sr_tx@4.18). Eleven direct System-VIA
 accesses in 4.18 in total.
 
 In ANFS 4.21 these are *all* gone. A bytewise scan finds zero
