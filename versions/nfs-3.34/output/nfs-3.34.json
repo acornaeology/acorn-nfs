@@ -5104,7 +5104,8 @@
       "comment_inline": "Subtract ASCII '1' to get 0-based command index",
       "type": "code",
       "mnemonic": "sbc",
-      "operand": "#&31"
+      "operand": "#'1'",
+      "format_hint": "char"
     },
     {
       "addr": 32877,
@@ -7429,7 +7430,8 @@
       "comment_inline": "Is it a space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 33207,
@@ -9103,7 +9105,8 @@
       "comment_inline": "Mark RXCB as available",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 33469,
@@ -13882,7 +13885,8 @@
       "comment_inline": "Compare against space (ASCII &20)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 34138,
@@ -13915,7 +13919,8 @@
       "comment_inline": "Compare against 'A' for case flag",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&41"
+      "operand": "#'A'",
+      "format_hint": "char"
     },
     {
       "addr": 34143,
@@ -14009,7 +14014,8 @@
       "comment_inline": "Letter or above?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&40"
+      "operand": "#'@'",
+      "format_hint": "char"
     },
     {
       "addr": 34153,
@@ -14033,7 +14039,8 @@
       "comment_inline": "Dot separator?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 34157,
@@ -15307,7 +15314,8 @@
       ],
       "type": "code",
       "mnemonic": "ora",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 34296,
@@ -15318,7 +15326,8 @@
       "comment_inline": "Compare against ':' (past '9'?)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3a"
+      "operand": "#':'",
+      "format_hint": "char"
     },
     {
       "addr": 34298,
@@ -15485,7 +15494,8 @@
       "comment_inline": "Also end name on space character",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 34319,
@@ -15852,7 +15862,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 34370,
@@ -25473,7 +25484,8 @@
       "comment_inline": "Is input '.' (abbreviation)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 35762,
@@ -25751,7 +25763,8 @@
       ],
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 35800,
@@ -28817,7 +28830,8 @@
       "comment_inline": "&3F = unused/closed slot marker",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 36308,
@@ -29003,7 +29017,8 @@
       "comment_inline": "&3F = '?' marks slot as unused",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 36331,
@@ -31362,7 +31377,8 @@
       "comment_inline": "&3F = deleted slot, free for reuse",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 36623,
@@ -31668,7 +31684,8 @@
       "comment_inline": "Mark CB as consumed (consume-once)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 36664,
@@ -34245,7 +34262,8 @@
       "comment_inline": "Mark TXCB as deleted (&3F) after transmit",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 36960,

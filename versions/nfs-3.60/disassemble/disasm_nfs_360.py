@@ -8933,10 +8933,33 @@ d.constant(0xFEA2, "adlc_tx")
 d.constant(0xFEA3, "adlc_tx2")
 import sys
 
+# --- character-literal immediate operands ---
+d.char_literal(0x8072)
+d.char_literal(0x8085)
+d.char_literal(0x8089)
+d.char_literal(0x80A7)
+d.char_literal(0x830F)
+d.char_literal(0x8367)
+d.char_literal(0x8381)
+d.char_literal(0x8531)
+d.char_literal(0x867E)
+d.char_literal(0x87F2)
+d.char_literal(0x8C3E)
+d.char_literal(0x8C4C)
+d.char_literal(0x8D7C)
+d.char_literal(0x8E75)
+d.char_literal(0x8E83)
+d.char_literal(0x8F9A)
+d.char_literal(0x8FC3)
+d.char_literal(0x90DE)
+d.char_literal(0x9FAF)
+
 ir = d.disassemble()
 output = str(
     ir.render(
         "beebasm",
+        char_literal_style="quote",
+        show_char_comment_hint=False,
         boundary_label_prefix="pydis_",
         byte_column=True,
         byte_column_format="py8dis",

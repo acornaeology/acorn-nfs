@@ -23998,7 +23998,8 @@
       "comment_inline": "First char 'N'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&4e"
+      "operand": "#'N'",
+      "format_hint": "char"
     },
     {
       "addr": 35454,
@@ -24036,7 +24037,8 @@
       "comment_inline": "Second char 'E'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&45"
+      "operand": "#'E'",
+      "format_hint": "char"
     },
     {
       "addr": 35461,
@@ -24074,7 +24076,8 @@
       "comment_inline": "Third char 'T'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&54"
+      "operand": "#'T'",
+      "format_hint": "char"
     },
     {
       "addr": 35468,
@@ -26318,7 +26321,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 35788,
@@ -27173,7 +27177,8 @@
       "comment_inline": "Space character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 35909,
@@ -27530,7 +27535,8 @@
       "comment_inline": "Is first char '.' (abbreviation)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 35960,
@@ -29531,7 +29537,8 @@
       "comment_inline": "Is it ':' (password prompt)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3a"
+      "operand": "#':'",
+      "format_hint": "char"
     },
     {
       "addr": 36299,
@@ -30097,7 +30104,8 @@
       "comment_inline": "Is it '&' (URD prefix)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 36379,
@@ -33476,7 +33484,8 @@
       "comment_inline": "Space character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 36876,
@@ -34755,7 +34764,8 @@
       ],
       "type": "code",
       "mnemonic": "adc",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 37186,
@@ -35291,7 +35301,8 @@
       "comment_inline": "Is it '&' (hex prefix)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 37238,
@@ -35384,7 +35395,8 @@
       "comment_inline": "Is it '.' (net.station separator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 37250,
@@ -35408,7 +35420,8 @@
       "comment_inline": "Below '!' (space/control)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&21"
+      "operand": "#'!'",
+      "format_hint": "char"
     },
     {
       "addr": 37254,
@@ -35444,7 +35457,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 37258,
@@ -35468,7 +35482,8 @@
       "comment_inline": "Above '9'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3a"
+      "operand": "#':'",
+      "format_hint": "char"
     },
     {
       "addr": 37262,
@@ -35740,7 +35755,8 @@
       "comment_inline": "Is it '.' (net.station separator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 37298,
@@ -35764,7 +35780,8 @@
       "comment_inline": "Below '!' (space/control)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&21"
+      "operand": "#'!'",
+      "format_hint": "char"
     },
     {
       "addr": 37302,
@@ -36218,7 +36235,8 @@
       "comment_inline": "Was previous char '.'?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 37367,
@@ -36750,7 +36768,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 37466,
@@ -36774,7 +36793,8 @@
       "comment_inline": "Is it '.' (separator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 37470,
@@ -36810,7 +36830,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3a"
+      "operand": "#':'",
+      "format_hint": "char"
     },
     {
       "addr": 37474,
@@ -36834,7 +36855,8 @@
       "comment_inline": "Below '0'? C clear if so",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 37478,
@@ -38202,7 +38224,8 @@
       "comment_inline": "Is it '&'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 37646,
@@ -38583,7 +38606,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37696,
@@ -38748,7 +38772,8 @@
       "comment_inline": "Space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37715,
@@ -38806,7 +38831,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&22"
+      "operand": "#'\"'",
+      "format_hint": "char"
     },
     {
       "addr": 37722,
@@ -38896,7 +38922,8 @@
       "comment_inline": "Double-quote?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&22"
+      "operand": "#'\"'",
+      "format_hint": "char"
     },
     {
       "addr": 37735,
@@ -38948,7 +38975,8 @@
       "comment_inline": "Replace closing quote with space",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37745,
@@ -39326,7 +39354,8 @@
       "comment_inline": "Space (name separator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37812,
@@ -39422,7 +39451,8 @@
       "comment_inline": "Still a space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37828,
@@ -39599,7 +39629,8 @@
       "comment_inline": "Is it '&' (FS selector prefix)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 37857,
@@ -39669,7 +39700,8 @@
       "comment_inline": "Space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 37868,
@@ -39764,7 +39796,8 @@
       "comment_inline": "Is it '&' (end of FS path)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 37880,
@@ -39866,7 +39899,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 37895,
@@ -43979,7 +44013,8 @@
       "comment_inline": "Is it 'A' (status &41)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&41"
+      "operand": "#'A'",
+      "format_hint": "char"
     },
     {
       "addr": 38469,
@@ -44003,7 +44038,8 @@
       "comment_inline": "Yes: change to 'B' (&42)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&42"
+      "operand": "#'B'",
+      "format_hint": "char"
     },
     {
       "addr": 38473,
@@ -44988,7 +45024,8 @@
       "comment_inline": "Is it space (end of 'Bad ')?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 38605,
@@ -46014,7 +46051,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 38735,
@@ -46125,7 +46163,8 @@
       "comment_inline": "A='.': dot separator",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 38754,
@@ -46260,7 +46299,8 @@
       "comment_inline": "A=' ': space prefix",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 38772,
@@ -46583,7 +46623,8 @@
       "comment_inline": "Is digit '0'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 38816,
@@ -51647,7 +51688,8 @@
       "comment_inline": "A=' ': space separator",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 39535,
@@ -53910,7 +53952,8 @@
       "comment_inline": "Below '!' (control/space)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&21"
+      "operand": "#'!'",
+      "format_hint": "char"
     },
     {
       "addr": 39840,
@@ -53986,7 +54029,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 39850,
@@ -54267,7 +54311,8 @@
       "comment_inline": "Compare with &20 (space)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 39891,
@@ -54329,7 +54374,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 39898,
@@ -63138,7 +63184,8 @@
       "comment_inline": "Is it '?' (uninitialised)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 41203,
@@ -63338,7 +63385,8 @@
       "comment_inline": "A='?': mark as uninitialised",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 41230,
@@ -63949,7 +63997,8 @@
       "comment_inline": "Is it '.' (abbreviation)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 41315,
@@ -64340,7 +64389,8 @@
       "comment_inline": "Is it space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 41355,
@@ -64670,7 +64720,8 @@
       "comment_inline": "Is it '.' (abbreviation dot)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 41393,
@@ -64694,7 +64745,8 @@
       "comment_inline": "Is it space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 41397,
@@ -64756,7 +64808,8 @@
       "comment_inline": "Is it space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 41404,
@@ -65270,7 +65323,8 @@
       "comment_inline": "Is it '$' (root dir)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&24"
+      "operand": "#'$'",
+      "format_hint": "char"
     },
     {
       "addr": 41486,
@@ -66269,7 +66323,8 @@
       "comment_inline": "Is it space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 41645,
@@ -72222,7 +72277,8 @@
       "comment_inline": "Compare with &3F ('?' marker)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 42463,
@@ -72528,7 +72584,8 @@
       "comment_inline": "A=&3F: mark slot as pending ('?')",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 42504,
@@ -89402,7 +89459,8 @@
       "comment_inline": "Is it '&'?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 44700,
@@ -89493,7 +89551,8 @@
       "comment_inline": "Is it '.'?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 44718,
@@ -89733,7 +89792,8 @@
       "comment_inline": "Is it a space?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 44750,
@@ -89879,7 +89939,8 @@
       ],
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&23"
+      "operand": "#'#'",
+      "format_hint": "char"
     },
     {
       "addr": 44765,
@@ -89983,7 +90044,8 @@
       "comment_inline": "Is it '.'?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 44779,
@@ -90330,7 +90392,8 @@
       "comment_inline": "Is it '!' or above?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&21"
+      "operand": "#'!'",
+      "format_hint": "char"
     },
     {
       "addr": 44816,
@@ -90341,7 +90404,8 @@
       "comment_inline": "Is it '&'?",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 44818,
@@ -90368,7 +90432,8 @@
       "comment_inline": "Restore A (undo '&' EOR)",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&26"
+      "operand": "#'&'",
+      "format_hint": "char"
     },
     {
       "addr": 44822,
@@ -90459,7 +90524,8 @@
       "comment_inline": "Test for space (&20)",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 44833,
@@ -91486,7 +91552,8 @@
       "comment_inline": "V set: is digit '0'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 44971,
@@ -91751,7 +91818,8 @@
       "comment_inline": "Space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 44997,
@@ -91849,7 +91917,8 @@
       "comment_inline": "Still a space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 45010,
@@ -92558,7 +92627,8 @@
       "comment_inline": "Space character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 45106,
@@ -93246,7 +93316,8 @@
       "comment_inline": "Mark slot as processed (&3F)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 45205,
@@ -94060,7 +94131,8 @@
       "comment_inline": "Is it processed marker (&3F)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 45334,
@@ -95179,7 +95251,8 @@
       "comment_inline": "'.' separator",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 45474,
@@ -95917,7 +95990,8 @@
       "comment_inline": "Space character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 45584,
@@ -96369,7 +96443,8 @@
       "comment_inline": "Is it a space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 45655,
@@ -97173,7 +97248,8 @@
       "comment_inline": "Mark slot as processed (&3F)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 45787,
@@ -97459,7 +97535,8 @@
       "comment_inline": "Is it lowercase 'a' or above?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&61"
+      "operand": "#'a'",
+      "format_hint": "char"
     },
     {
       "addr": 45821,
@@ -97483,7 +97560,8 @@
       "comment_inline": "Above 'z'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&7b"
+      "operand": "#'{'",
+      "format_hint": "char"
     },
     {
       "addr": 45825,
@@ -98557,7 +98635,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&4c"
+      "operand": "#'L'",
+      "format_hint": "char"
     },
     {
       "addr": 45985,
@@ -98632,7 +98711,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&44"
+      "operand": "#'D'",
+      "format_hint": "char"
     },
     {
       "addr": 45994,
@@ -98862,7 +98942,8 @@
       "comment_inline": "User pressed '?'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3f"
+      "operand": "#'?'",
+      "format_hint": "char"
     },
     {
       "addr": 46032,
@@ -99064,7 +99145,8 @@
       "comment_inline": "User said 'Y' (yes)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&59"
+      "operand": "#'Y'",
+      "format_hint": "char"
     },
     {
       "addr": 46065,
@@ -99201,7 +99283,8 @@
       "comment_inline": "Replace CR with '.' directory sep",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 46088,
@@ -99224,7 +99307,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 46090,
@@ -99478,7 +99562,8 @@
       "comment_inline": "Is it a space (field terminator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 46125,
@@ -99777,7 +99862,8 @@
       "comment_inline": "Subtract 'Z' to get negative count",
       "type": "code",
       "mnemonic": "sbc",
-      "operand": "#&5a"
+      "operand": "#'Z'",
+      "format_hint": "char"
     },
     {
       "addr": 46169,
@@ -100082,7 +100168,8 @@
       ],
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 46204,
@@ -100106,7 +100193,8 @@
       "comment_inline": "Below '0'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 46208,
@@ -110399,7 +110487,8 @@
       "comment_inline": "Printable? (>= space)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 47804,
@@ -110435,7 +110524,8 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&2e"
+      "operand": "#'.'",
+      "format_hint": "char"
     },
     {
       "addr": 47808,
@@ -110885,7 +110975,8 @@
       "comment_inline": "A=&20: space character",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 47881,
@@ -111127,7 +111218,8 @@
       "comment_inline": "Space: end of this parameter",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 47909,
@@ -111151,7 +111243,8 @@
       "comment_inline": "Below '0'?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&30"
+      "operand": "#'0'",
+      "format_hint": "char"
     },
     {
       "addr": 47913,
@@ -111175,7 +111268,8 @@
       "comment_inline": "Below ':'? (i.e. '0'-'9')",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&3a"
+      "operand": "#':'",
+      "format_hint": "char"
     },
     {
       "addr": 47917,
@@ -111744,7 +111838,8 @@
       "comment_inline": "Space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 47987,
@@ -113519,7 +113614,8 @@
       "comment_inline": "Space (word separator)?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 48251,
@@ -113577,7 +113673,8 @@
       "comment_inline": "Another space?",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&20"
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 48258,
