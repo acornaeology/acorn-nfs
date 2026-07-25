@@ -69,8 +69,9 @@ hand-corrected.
 
 ## Tooling notes
 
-- dasmos pinned at 2.0.1; dasmos 4.0.0 exists but fantasm (0.18.0) still
-  targets schema v2 — the dasmos-4 migration is deferred repo-wide.
+- dasmos 4.0.0 / fantasm 0.18.0 repo-wide. Operand overrides use the
+  `dasmos.expr` DSL (`sym`/`lo`/`hi`); every memory-map entry carries a
+  `group=` and each rom.json a `memory_map_groups` legend (dasmos#43).
 - `generate_424.py` and the interpolation are a one-shot bootstrap; the
   driver is now the source of truth (do not regenerate — it would drop
   the hand corrections above).
