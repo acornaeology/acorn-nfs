@@ -4810,7 +4810,7 @@
     "install_nmi_handler": 3345,
     "nmi_rti": 3348,
     "imm_param_base": 3354,
-    "l0d1c": 3356,
+    "net_poll_status": 3356,
     "tx_addr_base": 3358,
     "tx_dst_stn": 3360,
     "tx_dst_net": 3361,
@@ -14238,11 +14238,6 @@
       "labels": [
         "save_acccon_for_shadow_ram"
       ],
-      "sub_labels": {
-        "33820": [
-          "imm_op_handler_lo_table"
-        ]
-      },
       "comment_inline": "Tube active: use R3 write path",
       "type": "code",
       "mnemonic": "bne",
@@ -15062,9 +15057,9 @@
       "comment_inline": "Load handler low byte from jump table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8494,y",
+      "operand": "imm_op_handler_lo_table,y",
       "target": 33940,
-      "target_label": "l8494"
+      "target_label": "imm_op_handler_lo_table"
     },
     {
       "addr": 33933,
@@ -15141,11 +15136,11 @@
         254
       ],
       "labels": [
-        "sub_c8492"
+        "tube_overflow_restore_acccon"
       ],
       "sub_labels": {
         "33940": [
-          "l8494"
+          "imm_op_handler_lo_table"
         ]
       },
       "comment_inline": "Restore caller's ACCCON on Tube-overflow exit",
@@ -16917,7 +16912,7 @@
         255
       ],
       "labels": [
-        "c85b9"
+        "tx_length_table"
       ],
       "comment_inline": "Compare to &FF",
       "xref_summaries": [
@@ -16975,11 +16970,11 @@
         254
       ],
       "labels": [
-        "sub_c85c0"
+        "tx_calc_tube_check"
       ],
       "sub_labels": {
         "34241": [
-          "l85c1"
+          "tx_flags_table"
         ]
       },
       "comment_inline": "Check if addr byte 2 >= &FE (Tube range)",
@@ -18718,9 +18713,9 @@
       "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "net_poll_status",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "net_poll_status"
     },
     {
       "addr": 34496,
@@ -18901,9 +18896,9 @@
       "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "net_poll_status",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "net_poll_status"
     },
     {
       "addr": 34528,
@@ -19436,7 +19431,7 @@
       ],
       "sub_labels": {
         "34605": [
-          "l872d"
+          "tx_ctrl_dispatch_lo"
         ]
       },
       "comment_inline": "Store net poll-status byte",
@@ -19445,9 +19440,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "net_poll_status",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "net_poll_status"
     },
     {
       "addr": 34606,
@@ -19514,9 +19509,9 @@
       "comment_inline": "Look up tx_flags from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l85c1,y",
+      "operand": "tx_flags_table,y",
       "target": 34241,
-      "target_label": "l85c1"
+      "target_label": "tx_flags_table"
     },
     {
       "addr": 34620,
@@ -19542,9 +19537,9 @@
       "comment_inline": "Look up tx_length from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "c85b9,y",
+      "operand": "tx_length_table,y",
       "target": 34233,
-      "target_label": "c85b9"
+      "target_label": "tx_length_table"
     },
     {
       "addr": 34626,
@@ -19590,9 +19585,9 @@
       "comment_inline": "Look up handler address low from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l872d,y",
+      "operand": "tx_ctrl_dispatch_lo,y",
       "target": 34605,
-      "target_label": "l872d"
+      "target_label": "tx_ctrl_dispatch_lo"
     },
     {
       "addr": 34635,
@@ -22902,11 +22897,6 @@
       "labels": [
         "tube_tx_inc_byte3"
       ],
-      "sub_labels": {
-        "35134": [
-          "tx_length_table"
-        ]
-      },
       "comment_inline": "Carry into third byte",
       "type": "code",
       "mnemonic": "inc",
@@ -22966,11 +22956,6 @@
       "labels": [
         "check_tube_irq_loop"
       ],
-      "sub_labels": {
-        "35142": [
-          "tx_flags_table"
-        ]
-      },
       "comment_inline": "Test SR1 IRQ for tight loop",
       "xref_summaries": [
         "&8945 referenced 3 times by &8937, &893b, &893f"
@@ -24098,9 +24083,9 @@
       "comment_inline": "Store net poll-status byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "net_poll_status",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "net_poll_status"
     },
     {
       "addr": 35313,
@@ -24378,7 +24363,7 @@
       ],
       "sub_labels": {
         "35358": [
-          "l8a1e"
+          "os_spool_flag_table"
         ]
       },
       "comment_inline": "INTON: guaranteed /NMI edge if ADLC IRQ asserted",
@@ -27419,9 +27404,9 @@
       "comment_inline": "X is the host OS version (0=1.00, 1=1.20, 3=Master, 4=Master Terminal, 5=Master Compact)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8a1e,x",
+      "operand": "os_spool_flag_table,x",
       "target": 35358,
-      "target_label": "l8a1e"
+      "target_label": "os_spool_flag_table"
     },
     {
       "addr": 35482,
@@ -32639,7 +32624,7 @@
       ],
       "sub_labels": {
         "36287": [
-          "l8dbf"
+          "ps_template_base"
         ]
       },
       "comment_inline": "Set up transfer parameters",
@@ -66074,9 +66059,9 @@
       "comment_inline": "Load shift count from cmos_attr_table[X]",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la125,x",
+      "operand": "cmos_attr_table,x",
       "target": 41253,
-      "target_label": "la125"
+      "target_label": "cmos_attr_table"
     },
     {
       "addr": 41238,
@@ -66206,7 +66191,7 @@
       ],
       "sub_labels": {
         "41253": [
-          "la125"
+          "cmos_attr_table"
         ]
       },
       "comment_inline": "Write CMOS RAM byte (Y) to byte index (X)",
@@ -76933,18 +76918,7 @@
         45,
         78,
         101,
-        116
-      ],
-      "labels": [
-        "boot_cmd_load_str"
-      ],
-      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
-      "type": "string",
-      "string": "L.-Net"
-    },
-    {
-      "addr": 42843,
-      "bytes": [
+        116,
         45,
         33,
         66,
@@ -76953,10 +76927,11 @@
         116
       ],
       "labels": [
-        "boot_cmd_lo_table"
+        "boot_cmd_load_str"
       ],
+      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
       "type": "string",
-      "string": "-!Boot"
+      "string": "L.-Net-!Boot"
     },
     {
       "addr": 42849,
@@ -77011,7 +76986,7 @@
         98
       ],
       "labels": [
-        "la76f"
+        "boot_cmd_lo_table"
       ],
       "xref_summaries": [
         "&a76f used as index base 1 time by &a778"
@@ -77090,9 +77065,9 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "la76f,y",
+      "operand": "boot_cmd_lo_table,y",
       "target": 42863,
-      "target_label": "la76f"
+      "target_label": "boot_cmd_lo_table"
     },
     {
       "addr": 42875,
@@ -78964,9 +78939,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la891,x",
+      "operand": "osword_subcode_dispatch,x",
       "target": 43153,
-      "target_label": "la891"
+      "target_label": "osword_subcode_dispatch"
     },
     {
       "addr": 43136,
@@ -78987,9 +78962,9 @@
       "comment_inline": "Load handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "la88a,x",
+      "operand": "osword_pb_ready,x",
       "target": 43146,
-      "target_label": "la88a"
+      "target_label": "osword_pb_ready"
     },
     {
       "addr": 43140,
@@ -79047,25 +79022,13 @@
         76,
         164,
         185,
-        102,
-        168,
-        168,
-        169,
-        169,
-        169,
-        169
+        102
       ],
       "labels": [
-        "la88a"
+        "osword_pb_ready"
       ],
-      "sub_labels": {
-        "43153": [
-          "la891"
-        ]
-      },
       "xref_summaries": [
-        "&a88a used as index base 1 time by &a881",
-        "&a891 used as index base 1 time by &a87d"
+        "&a88a used as index base 1 time by &a881"
       ],
       "references": [
         {
@@ -79081,7 +79044,33 @@
         76,
         164,
         185,
-        102,
+        102
+      ]
+    },
+    {
+      "addr": 43153,
+      "bytes": [
+        168,
+        168,
+        169,
+        169,
+        169,
+        169
+      ],
+      "labels": [
+        "osword_subcode_dispatch"
+      ],
+      "xref_summaries": [
+        "&a891 used as index base 1 time by &a87d"
+      ],
+      "references": [
+        {
+          "addr": 43133,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
         168,
         168,
         169,
@@ -85731,7 +85720,7 @@
       ],
       "sub_labels": {
         "44005": [
-          "labe5"
+          "bridge_err_table"
         ]
       },
       "comment_inline": "Compare with bridge status",
@@ -86170,9 +86159,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "labe5,y",
+      "operand": "bridge_err_table,y",
       "target": 44005,
-      "target_label": "labe5"
+      "target_label": "bridge_err_table"
     },
     {
       "addr": 44060,
@@ -101086,9 +101075,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l8dbf,x",
+      "operand": "ps_template_base,x",
       "target": 36287,
-      "target_label": "l8dbf"
+      "target_label": "ps_template_base"
     },
     {
       "addr": 46101,
@@ -103042,7 +103031,7 @@
       ],
       "sub_labels": {
         "46392": [
-          "lb538"
+          "ps_print_template"
         ]
       },
       "comment_inline": "Write another buffer page + two &FF sentinels",
@@ -105851,9 +105840,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lb538,y",
+      "operand": "ps_print_template,y",
       "target": 46392,
-      "target_label": "lb538"
+      "target_label": "ps_print_template"
     },
     {
       "addr": 46804,
