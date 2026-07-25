@@ -11072,6 +11072,12 @@ osword_subcode_dispatch = extract_osword_subcode+1
     sta svc_state                                                     ; a88e: 85 a9       ..       ; Store service state
 .rts_osword_0e
     rts                                                               ; a890: 60          `        ; Return
+; ***************************************************************************************
+; OSWORD &0E: convert the clock/date fields to BCD
+;
+; Saves the TX control block, then reads the clock and date fields from the HAZEL TXCB
+; workspace and converts each to packed BCD via bin_to_bcd for the OSWORD &0E
+; real-time-clock reply.
 ; &a891 referenced 2 times by &a886, &a8e7
 .save_txcb_and_convert
     ldx #0                                                            ; a891: a2 00       ..       ; X=0: start of TX control block
@@ -11114,6 +11120,11 @@ osword_subcode_dispatch = extract_osword_subcode+1
     dey                                                               ; a8e3: 88          .        ; Next byte down
     bpl loop_copy_bcd_to_pb                                           ; a8e4: 10 f8       ..       ; Loop for all 7 bytes
     rts                                                               ; a8e6: 60          `        ; Return
+; ***************************************************************************************
+; OSWORD &0E: build the reply and read the CMOS clock
+;
+; Builds the BCD reply via save_txcb_and_convert, copies it into the OSWORD parameter
+; block, and reads the CMOS real-time clock via OSWORD &0E.
 ; &a8e7 referenced 1 time by &a88a
 .save_txcb_done
     jsr save_txcb_and_convert                                         ; a8e7: 20 91 a8     ..      ; Convert TXCB date/time bytes to BCD
@@ -11130,6 +11141,11 @@ osword_subcode_dispatch = extract_osword_subcode+1
     ldx ws_ptr_hi                                                     ; a8fa: a6 ac       ..       ; X = PB pointer low
     ldy table_idx                                                     ; a8fc: a4 ad       ..       ; Y = PB pointer high (via table_idx scratch)
     jmp osword                                                        ; a8fe: 4c f1 ff    L..      ; Read CMOS clock
+; ***************************************************************************************
+; Binary to packed BCD
+;
+; Converts the binary value in A to packed BCD. Used by the OSWORD &0E clock/date
+; conversion.
 ; ***************************************************************************************
 ; Convert binary byte to BCD
 ;

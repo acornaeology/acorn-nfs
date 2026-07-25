@@ -12782,14 +12782,14 @@ d.comment(0xA889, "RTS dispatches to pushed handler", align=Align.INLINE)
 # UNMAPPED: )
 # UNMAPPED: d.index_base(0xA871, "osword_pb_ready")
 
-# UNMAPPED: d.label(0xA874, "osword_0e_handler")
+d.label(0xA874, "osword_0e_handler")
 
 # UNMAPPED: d.comment(
 # UNMAPPED:     0xA874,
 # UNMAPPED:     "BIT $abs -- 3-byte skip-trick that jumps over the extract_osword_subcode prologue when called via &A874",
 # UNMAPPED:     align=Align.INLINE,
 # UNMAPPED: )
-# UNMAPPED: d.entry(0xA874)
+d.entry(0xA874)
 # UNMAPPED: d.comment(0xA877, "Shift ws_page right -- splits parameter byte into upper / lower nibbles", align=Align.INLINE)
 # UNMAPPED: d.subroutine(
 # UNMAPPED:     0xA877,
@@ -12826,7 +12826,14 @@ d.comment(0xA8AD, "Store service state", align=Align.INLINE)
 d.label(0xA8AF, "rts_osword_0e")
 
 d.comment(0xA8AF, "Return", align=Align.INLINE)
-d.label(0xA8B0, "save_txcb_and_convert")
+d.subroutine(
+    0xA8B0,
+    "save_txcb_and_convert",
+    title="OSWORD &0E: convert the clock/date fields to BCD",
+    description="""Saves the TX control block, then reads the clock and date fields from the
+HAZEL TXCB workspace and converts each to packed BCD via
+[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply.""",
+)
 
 d.comment(0xA8B0, "X=0: start of TX control block", align=Align.INLINE)
 d.comment(0xA8B2, "Y=&10: length of TXCB to save", align=Align.INLINE)
@@ -12869,7 +12876,14 @@ d.comment(0xA903, "Next byte down", align=Align.INLINE)
 d.comment(0xA904, "Loop for all 7 bytes", align=Align.INLINE)
 d.comment(0xA906, "Return", align=Align.INLINE)
 d.comment(0xA907, "Convert TXCB date/time bytes to BCD", align=Align.INLINE)
-d.label(0xA907, "save_txcb_done")
+d.subroutine(
+    0xA907,
+    "save_txcb_done",
+    title="OSWORD &0E: build the reply and read the CMOS clock",
+    description="""Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),
+copies it into the OSWORD parameter block, and reads the CMOS real-time clock
+via OSWORD &0E.""",
+)
 
 d.comment(0xA90A, "Y=7: copy 8 bytes (Y=7 down to 0)", align=Align.INLINE)
 d.comment(0xA90C, "Load BCD byte from TXCB area (hazel_txcb_lib + Y)", align=Align.INLINE)
@@ -12883,7 +12897,13 @@ d.comment(0xA916, "Store parameter at PB[0]", align=Align.INLINE)
 d.comment(0xA918, "A=&0E: OSWORD &0E (read CMOS RTC)", align=Align.INLINE)
 d.comment(0xA91A, "X = PB pointer low", align=Align.INLINE)
 d.comment(0xA91C, "Y = PB pointer high (via table_idx scratch)", align=Align.INLINE)
-d.label(0xA921, "bin_to_bcd")
+d.subroutine(
+    0xA921,
+    "bin_to_bcd",
+    title="Binary to packed BCD",
+    description="""Converts the binary value in A to packed BCD. Used by the OSWORD &0E
+clock/date conversion.""",
+)
 
 d.subroutine(
     0xA921,
@@ -19910,8 +19930,6 @@ d.label(0xA891, "osword_subcode_dispatch")
 d.label(0x85C0, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
 
-d.entry(0xA8B0)
-d.entry(0xA921)
 ir = d.disassemble()
 output = str(
     ir.render(

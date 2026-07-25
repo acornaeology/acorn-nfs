@@ -12839,7 +12839,14 @@ d.comment(0xA88E, "Store service state", align=Align.INLINE)
 d.label(0xA890, "rts_osword_0e")
 
 d.comment(0xA890, "Return", align=Align.INLINE)
-d.label(0xA891, "save_txcb_and_convert")
+d.subroutine(
+    0xA891,
+    "save_txcb_and_convert",
+    title="OSWORD &0E: convert the clock/date fields to BCD",
+    description="""Saves the TX control block, then reads the clock and date fields from the
+HAZEL TXCB workspace and converts each to packed BCD via
+[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply.""",
+)
 
 d.comment(0xA891, "X=0: start of TX control block", align=Align.INLINE)
 d.comment(0xA893, "Y=&10: length of TXCB to save", align=Align.INLINE)
@@ -12882,7 +12889,14 @@ d.comment(0xA8E3, "Next byte down", align=Align.INLINE)
 d.comment(0xA8E4, "Loop for all 7 bytes", align=Align.INLINE)
 d.comment(0xA8E6, "Return", align=Align.INLINE)
 d.comment(0xA8E7, "Convert TXCB date/time bytes to BCD", align=Align.INLINE)
-d.label(0xA8E7, "save_txcb_done")
+d.subroutine(
+    0xA8E7,
+    "save_txcb_done",
+    title="OSWORD &0E: build the reply and read the CMOS clock",
+    description="""Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),
+copies it into the OSWORD parameter block, and reads the CMOS real-time clock
+via OSWORD &0E.""",
+)
 
 d.comment(0xA8EA, "Y=7: copy 8 bytes (Y=7 down to 0)", align=Align.INLINE)
 d.comment(0xA8EC, "Load BCD byte from TXCB area (hazel_txcb_lib + Y)", align=Align.INLINE)
@@ -12896,7 +12910,13 @@ d.comment(0xA8F6, "Store parameter at PB[0]", align=Align.INLINE)
 d.comment(0xA8F8, "A=&0E: OSWORD &0E (read CMOS RTC)", align=Align.INLINE)
 d.comment(0xA8FA, "X = PB pointer low", align=Align.INLINE)
 d.comment(0xA8FC, "Y = PB pointer high (via table_idx scratch)", align=Align.INLINE)
-d.label(0xA901, "bin_to_bcd")
+d.subroutine(
+    0xA901,
+    "bin_to_bcd",
+    title="Binary to packed BCD",
+    description="""Converts the binary value in A to packed BCD. Used by the OSWORD &0E
+clock/date conversion.""",
+)
 
 d.subroutine(
     0xA901,

@@ -1938,6 +1938,18 @@
       }
     },
     {
+      "addr": 42278,
+      "name": "save_txcb_and_convert",
+      "title": "OSWORD &0E: convert the clock/date fields to BCD",
+      "description": "Saves the TX control block, then reads the clock and date fields from the\nHAZEL TXCB workspace and converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply."
+    },
+    {
+      "addr": 42364,
+      "name": "bin_to_bcd",
+      "title": "Binary to packed BCD",
+      "description": "Converts the binary value in A to packed BCD. Used by the OSWORD &0E\nclock/date conversion."
+    },
+    {
       "addr": 42364,
       "name": "bin_to_bcd",
       "title": "Convert binary byte to BCD",

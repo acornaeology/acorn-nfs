@@ -158,6 +158,10 @@
       "value": 254
     },
     {
+      "name": "osword_read_cmos_clock",
+      "value": 14
+    },
+    {
       "name": "osbyte_vsync",
       "value": 19
     },
@@ -2948,6 +2952,24 @@
       "on_entry": {
         "x": "OSWORD handler index (0-6)"
       }
+    },
+    {
+      "addr": 43184,
+      "name": "save_txcb_and_convert",
+      "title": "OSWORD &0E: convert the clock/date fields to BCD",
+      "description": "Saves the TX control block, then reads the clock and date fields from the\nHAZEL TXCB workspace and converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply."
+    },
+    {
+      "addr": 43271,
+      "name": "save_txcb_done",
+      "title": "OSWORD &0E: build the reply and read the CMOS clock",
+      "description": "Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),\ncopies it into the OSWORD parameter block, and reads the CMOS real-time clock\nvia OSWORD &0E."
+    },
+    {
+      "addr": 43297,
+      "name": "bin_to_bcd",
+      "title": "Binary to packed BCD",
+      "description": "Converts the binary value in A to packed BCD. Used by the OSWORD &0E\nclock/date conversion."
     },
     {
       "addr": 43297,
@@ -78847,13 +78869,24 @@
     {
       "addr": 43123,
       "bytes": [
-        160,
-        250
+        160
       ],
       "comment_inline": "Y=&FA: restore 6 workspace bytes",
+      "type": "byte",
+      "values": [
+        160
+      ]
+    },
+    {
+      "addr": 43124,
+      "bytes": [
+        250
+      ],
+      "labels": [
+        "osword_0e_handler"
+      ],
       "type": "code",
-      "mnemonic": "ldy",
-      "operand": "#&fa"
+      "mnemonic": "plx"
     },
     {
       "addr": 43125,
@@ -79221,6 +79254,15 @@
         "save_txcb_and_convert"
       ],
       "comment_inline": "X=0: start of TX control block",
+      "xref_summaries": [
+        "&a8b0 referenced 1 time by &a907"
+      ],
+      "references": [
+        {
+          "addr": 43271,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#0"
@@ -79707,12 +79749,11 @@
         "save_txcb_done"
       ],
       "comment_inline": "Convert TXCB date/time bytes to BCD",
-      "type": "byte",
-      "values": [
-        32,
-        176,
-        168
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "save_txcb_and_convert",
+      "target": 43184,
+      "target_label": "save_txcb_and_convert"
     },
     {
       "addr": 43274,
@@ -79721,11 +79762,9 @@
         7
       ],
       "comment_inline": "Y=7: copy 8 bytes (Y=7 down to 0)",
-      "type": "byte",
-      "values": [
-        160,
-        7
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#7"
     },
     {
       "addr": 43276,
@@ -79738,12 +79777,20 @@
         "loop_copy_pbytes_to_ws"
       ],
       "comment_inline": "Load BCD byte from TXCB area (hazel_txcb_lib + Y)",
-      "type": "byte",
-      "values": [
-        185,
-        4,
-        193
-      ]
+      "xref_summaries": [
+        "&a90c referenced 1 time by &a912"
+      ],
+      "references": [
+        {
+          "addr": 43282,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_txcb_lib,y",
+      "target": 49412,
+      "target_label": "hazel_txcb_lib"
     },
     {
       "addr": 43279,
@@ -79752,11 +79799,11 @@
         172
       ],
       "comment_inline": "Store to PB[Y]",
-      "type": "byte",
-      "values": [
-        145,
-        172
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi),y",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
     },
     {
       "addr": 43281,
@@ -79764,10 +79811,8 @@
         136
       ],
       "comment_inline": "Decrement Y (advance backwards)",
-      "type": "byte",
-      "values": [
-        136
-      ]
+      "type": "code",
+      "mnemonic": "dey"
     },
     {
       "addr": 43282,
@@ -79776,11 +79821,11 @@
         248
       ],
       "comment_inline": "Loop until Y wraps",
-      "type": "byte",
-      "values": [
-        208,
-        248
-      ]
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_copy_pbytes_to_ws",
+      "target": 43276,
+      "target_label": "loop_copy_pbytes_to_ws"
     },
     {
       "addr": 43284,
@@ -79789,11 +79834,9 @@
         2
       ],
       "comment_inline": "A=2: PB[0] parameter for OSWORD &0E (seconds-since-midnight format)",
-      "type": "byte",
-      "values": [
-        169,
-        2
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#2"
     },
     {
       "addr": 43286,
@@ -79802,11 +79845,11 @@
         172
       ],
       "comment_inline": "Store parameter at PB[0]",
-      "type": "byte",
-      "values": [
-        145,
-        172
-      ]
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "(ws_ptr_hi),y",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
     },
     {
       "addr": 43288,
@@ -79815,11 +79858,15 @@
         14
       ],
       "comment_inline": "A=&0E: OSWORD &0E (read CMOS RTC)",
-      "type": "byte",
-      "values": [
-        169,
-        14
-      ]
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#osword_read_cmos_clock",
+      "expr": {
+        "text": "osword_read_cmos_clock",
+        "tree": {
+          "sym": "osword_read_cmos_clock"
+        }
+      }
     },
     {
       "addr": 43290,
@@ -79828,30 +79875,38 @@
         172
       ],
       "comment_inline": "X = PB pointer low",
-      "type": "byte",
-      "values": [
-        166,
-        172
-      ]
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "ws_ptr_hi",
+      "target": 172,
+      "target_label": "ws_ptr_hi"
     },
     {
       "addr": 43292,
       "bytes": [
         164,
-        173,
+        173
+      ],
+      "comment_inline": "Y = PB pointer high (via table_idx scratch)",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "table_idx",
+      "target": 173,
+      "target_label": "table_idx"
+    },
+    {
+      "addr": 43294,
+      "bytes": [
         76,
         241,
         255
       ],
-      "comment_inline": "Y = PB pointer high (via table_idx scratch)",
-      "type": "byte",
-      "values": [
-        164,
-        173,
-        76,
-        241,
-        255
-      ]
+      "comment_inline": "Read CMOS clock",
+      "type": "code",
+      "mnemonic": "jmp",
+      "operand": "osword",
+      "target": 65521,
+      "target_label": "osword"
     },
     {
       "addr": 43297,

@@ -37,6 +37,7 @@ osword_nfs_info                = &13
 osbyte_make_fs_permanent       = &6d
 osbyte_scan_keyboard           = &79
 inkey_key_ctrl                 = &fe
+osword_read_cmos_clock         = &0e
 osbyte_vsync                   = &13
 osbyte_read_buffer             = &91
 buffer_printer                 = &03
@@ -112,9 +113,9 @@ osword_flag                 = &aa  ; OSWORD param byte
 ws_ptr_lo                   = &ab  ; Workspace indirect pointer (lo)
 ; &ab referenced 7 times by &a93d, &a951, &a9a9, &aa9e, &aab5, &b4f5, &b542
 ws_ptr_hi                   = &ac  ; Workspace indirect pointer (hi)
-; &ac referenced 43 times by &a887, &a903, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
+; &ac referenced 46 times by &a887, &a903, &a911, &a918, &a91c, &a938, &a9a1, &aaa6, &aaac, &aac0, &aac5, &aadb, &aaec, &aaf7, &ab99, &ab9e, &aba5, &abb9, &abc1, &abd8, &abde, &abe2, &abf0, &ac8b, &ac94, &ac98, &aca3, &acaa, &acdc, &ace0, &acf4, &b421, &b434, &b43d, &b443, &b448, &b4fc, &b527, &b530, &b535, &b5be, &b5c9, &b5e3, &b5ec, &b5f2, &b5f7; also used as index base 2 times by &a976, &ab0a
 table_idx                   = &ad  ; OSBYTE/palette table index counter
-; &ad referenced 5 times by &acd2, &b441, &b5f0, &b6e8, &b6f9
+; &ad referenced 6 times by &a91e, &acd2, &b441, &b5f0, &b6e8, &b6f9
 work_ae                     = &ae  ; Indexed workspace (multi-purpose scratch)
 ; &ae referenced 33 times by &a959, &a986, &b3de, &b472, &b650, &b6a9, &b6c2, &b6e0, &bd82, &bd9d, &bdb4, &bdbf, &bdd1, &bdd4, &bde8, &be0c, &be33, &be79, &beab, &beae, &bec3, &bec5, &bede, &bef9, &bf1d, &bf3d, &bf44, &bf4d, &bf51, &bf5c, &bf69, &bf8a, &bf9d; also used as index base 5 times by &9d63, &b474, &b65f, &b6ab, &b6c4
 addr_work                   = &af  ; Address work byte for comparison (indexed)
@@ -476,7 +477,7 @@ hazel_txcb_station          = &c102  ; TXCB byte 2: destination station.
 hazel_txcb_network          = &c103  ; TXCB byte 3: multi-purpose. TXCB destination network (TX setup) / reply function code (RX context) / fs_cmd_csd buffer base (other paths).
 ; &c103 referenced 5 times by &8e59, &97ab, &97b3, &9e84, &a2db; also used as index base 5 times by &979b, &9cc4, &9cda, &a271, &b2ee
 hazel_txcb_lib              = &c104  ; TXCB byte 4: library handle terminator / transfer-length param 1.
-; &c104 referenced 1 time by &a2e1; also used as index base 2 times by &b242, &b2f8
+; &c104 referenced 1 time by &a2e1; also used as index base 3 times by &a90e, &b242, &b2f8
 hazel_txcb_data             = &c105  ; TXCB byte 5: first reply-data byte / data start.
 ; &c105 referenced 44 times by &8e5e, &954d, &9562, &957b, &9587, &9598, &9d06, &9d14, &9ddc, &9e59, &9e7b, &9efe, &9f12, &a007, &a028, &a02e, &a047, &a0b2, &a0e8, &a1b8, &a1c7, &a201, &a244, &a296, &a2f7, &a359, &a367, &a38c, &a51c, &a524, &a53d, &a5d9, &a6fc, &a8dd, &a8fb, &b0f5, &b16c, &b228, &b236, &b391, &b730, &b749, &ba77, &bcbb; also used as index base 25 times by &8de5, &8df5, &8e22, &9458, &9479, &9482, &94ed, &952f, &9538, &9c7c, &9e19, &9e65, &9ea2, &9f48, &a036, &a30b, &a32a, &a900, &b23d, &b251, &b2db, &b312, &b79e, &b7d3, &b7ed
 hazel_txcb_flag             = &c106  ; TXCB byte 6: direction flag.
@@ -653,7 +654,7 @@ osnewl                      = &ffe7
 oswrch                      = &ffee
 ; &ffee referenced 1 time by &9232
 osword                      = &fff1
-; &fff1 referenced 2 times by &a3cb, &b070
+; &fff1 referenced 3 times by &a3cb, &a920, &b070
 osbyte                      = &fff4
 ; &fff4 referenced 29 times by &8a96, &8b20, &8b30, &8cf0, &8d01, &8d2a, &8db0, &8eb6, &8ee7, &9218, &9223, &9239, &9615, &977d, &987b, &9897, &98bb, &a09e, &a739, &a750, &ac4a, &aea4, &b0c3, &b71b, &b752, &b757, &b75e, &b802, &bd64
 oscli                       = &fff7
@@ -10803,7 +10804,9 @@ svc_8_osword_disp = svc_8_osword+1
 ; &a870 referenced 1 time by &a856
 .osword_store_svc_state
     bne loop_save_osword_ws                                           ; a870: d0 f3       ..       ; Loop until Y wraps
-    jsr osword_setup_handler                                          ; a872: 20 7f a8     ..      ; Set up dispatch and save state
+    equb &20, &7f                                                     ; a872: 20 7f        .       ; Set up dispatch and save state
+.osword_0e_handler
+    tay                                                               ; a874: a8          .     
     ldy #&fa                                                          ; a875: a0 fa       ..       ; Y=&FA: restore 6 workspace bytes
 ; &a877 referenced 1 time by &a87c
 .loop_restore_osword_ws
@@ -10822,7 +10825,6 @@ svc_8_osword_disp = svc_8_osword+1
 ;
 ; On Entry:
 ;     X: OSWORD handler index (0-6)
-; &a87f referenced 1 time by &a872
 .osword_setup_handler
     lda osword_subcode_dispatch,x                                     ; a87f: bd 93 a8    ...      ; X = OSWORD index (0-6)
     pha                                                               ; a882: 48          H        ; Push for stack frame manipulation
@@ -10848,6 +10850,13 @@ svc_8_osword_disp = svc_8_osword+1
     equb &85, &a9                                                     ; a8af: 85 a9       ..       ; Store service state
 .rts_osword_0e
     equb &60                                                          ; a8b1: 60          `        ; Return
+; ***************************************************************************************
+; OSWORD &0E: convert the clock/date fields to BCD
+;
+; Saves the TX control block, then reads the clock and date fields from the HAZEL TXCB
+; workspace and converts each to packed BCD via bin_to_bcd for the OSWORD &0E
+; real-time-clock reply.
+; &a8b2 referenced 1 time by &a909
 .save_txcb_and_convert
     ldx #0                                                            ; a8b2: a2 00       ..       ; X=0: start of TX control block
     ldy #&10                                                          ; a8b4: a0 10       ..       ; Y=&10: length of TXCB to save
@@ -10890,19 +10899,31 @@ svc_8_osword_disp = svc_8_osword+1
     dey                                                               ; a905: 88          .        ; Next byte down
     bpl loop_copy_bcd_to_pb                                           ; a906: 10 f8       ..       ; Loop for all 7 bytes
     rts                                                               ; a908: 60          `        ; Return
+; ***************************************************************************************
+; OSWORD &0E: build the reply and read the CMOS clock
+;
+; Builds the BCD reply via save_txcb_and_convert, copies it into the OSWORD parameter
+; block, and reads the CMOS real-time clock via OSWORD &0E.
 .save_txcb_done
-    equb &20, &b2, &a8                                                ; a909: 20 b2 a8     ..      ; Convert TXCB date/time bytes to BCD
-    equb &a0, &07                                                     ; a90c: a0 07       ..       ; Y=7: copy 8 bytes (Y=7 down to 0)
+    jsr save_txcb_and_convert                                         ; a909: 20 b2 a8     ..      ; Convert TXCB date/time bytes to BCD
+    ldy #7                                                            ; a90c: a0 07       ..       ; Y=7: copy 8 bytes (Y=7 down to 0)
+; &a90e referenced 1 time by &a914
 .loop_copy_pbytes_to_ws
-    equb &b9, &04, &c1                                                ; a90e: b9 04 c1    ...      ; Load BCD byte from TXCB area (hazel_txcb_lib + Y)
-    equb &91, &ac                                                     ; a911: 91 ac       ..       ; Store to PB[Y]
-    equb &88                                                          ; a913: 88          .        ; Decrement Y (advance backwards)
-    equb &d0, &f8                                                     ; a914: d0 f8       ..       ; Loop until Y wraps
-    equb &a9, &02                                                     ; a916: a9 02       ..       ; A=2: PB[0] parameter for OSWORD &0E (seconds-since-midnight format)
-    equb &91, &ac                                                     ; a918: 91 ac       ..       ; Store parameter at PB[0]
-    equb &a9, &0e                                                     ; a91a: a9 0e       ..       ; A=&0E: OSWORD &0E (read CMOS RTC)
-    equb &a6, &ac                                                     ; a91c: a6 ac       ..       ; X = PB pointer low
-    equb &a4, &ad, &4c, &f1, &ff                                      ; a91e: a4 ad 4c... ..L...   ; Y = PB pointer high (via table_idx scratch)
+    lda hazel_txcb_lib,y                                              ; a90e: b9 04 c1    ...      ; Load BCD byte from TXCB area (hazel_txcb_lib + Y)
+    sta (ws_ptr_hi),y                                                 ; a911: 91 ac       ..       ; Store to PB[Y]
+    dey                                                               ; a913: 88          .        ; Decrement Y (advance backwards)
+    bne loop_copy_pbytes_to_ws                                        ; a914: d0 f8       ..       ; Loop until Y wraps
+    lda #2                                                            ; a916: a9 02       ..       ; A=2: PB[0] parameter for OSWORD &0E (seconds-since-midnight format)
+    sta (ws_ptr_hi),y                                                 ; a918: 91 ac       ..       ; Store parameter at PB[0]
+    lda #osword_read_cmos_clock                                       ; a91a: a9 0e       ..       ; A=&0E: OSWORD &0E (read CMOS RTC)
+    ldx ws_ptr_hi                                                     ; a91c: a6 ac       ..       ; X = PB pointer low
+    ldy table_idx                                                     ; a91e: a4 ad       ..       ; Y = PB pointer high (via table_idx scratch)
+    jmp osword                                                        ; a920: 4c f1 ff    L..      ; Read CMOS clock
+; ***************************************************************************************
+; Binary to packed BCD
+;
+; Converts the binary value in A to packed BCD. Used by the OSWORD &0E clock/date
+; conversion.
 ; ***************************************************************************************
 ; Convert binary byte to BCD
 ;
@@ -16247,8 +16268,8 @@ save pydis_start, pydis_end
 ;     hazel_txcb_data:                         69
 ;     fs_options:                              55
 ;     net_rx_ptr:                              52
+;     ws_ptr_hi:                               48
 ;     econet_control23_or_status2:             46
-;     ws_ptr_hi:                               45
 ;     fs_load_addr_2:                          38
 ;     work_ae:                                 38
 ;     econet_data_continue_frame:              37
@@ -16370,6 +16391,7 @@ save pydis_start, pydis_end
 ;     send_net_packet:                          6
 ;     set_xfer_params:                          6
 ;     spool_buf_idx:                            6
+;     table_idx:                                6
 ;     wait_net_tx_ack:                          6
 ;     close_ws_file:                            5
 ;     copy_arg_to_buf_x0:                       5
@@ -16396,7 +16418,6 @@ save pydis_start, pydis_end
 ;     strip_token_prefix:                       5
 ;     svc_dispatch:                             5
 ;     svc_return_unclaimed:                     5
-;     table_idx:                                5
 ;     tube_present:                             5
 ;     tx_done_exit:                             5
 ;     tx_dst_net:                               5
@@ -16417,6 +16438,7 @@ save pydis_start, pydis_end
 ;     gsinit:                                   4
 ;     gsread:                                   4
 ;     hazel_fcb_attr_ref:                       4
+;     hazel_txcb_lib:                           4
 ;     hazel_txcb_size_hi:                       4
 ;     loop_find_fcb:                            4
 ;     loop_poll_tx:                             4
@@ -16474,7 +16496,6 @@ save pydis_start, pydis_end
 ;     hazel_minus_2:                            3
 ;     hazel_parse_buf_1:                        3
 ;     hazel_pass_counter:                       3
-;     hazel_txcb_lib:                           3
 ;     hazel_txcb_port:                          3
 ;     hazel_txcb_tx_status:                     3
 ;     inx16:                                    3
@@ -16492,6 +16513,7 @@ save pydis_start, pydis_end
 ;     osbyte_x0:                                3
 ;     oscli:                                    3
 ;     osfind:                                   3
+;     osword:                                   3
 ;     osword_pb_ptr_hi:                         3
 ;     parse_cmd_arg_y0:                         3
 ;     parse_filename_arg:                       3
@@ -16660,7 +16682,6 @@ save pydis_start, pydis_end
 ;     next_fcb_entry:                           2
 ;     osargs:                                   2
 ;     osrdch:                                   2
-;     osword:                                   2
 ;     osword_11_done:                           2
 ;     pad_with_spaces:                          2
 ;     parse_dump_range:                         2
@@ -17121,6 +17142,7 @@ save pydis_start, pydis_end
 ;     loop_copy_osfile_ptr:                     1
 ;     loop_copy_osword_data:                    1
 ;     loop_copy_pb_to_ws:                       1
+;     loop_copy_pbytes_to_ws:                   1
 ;     loop_copy_ps_tmpl:                        1
 ;     loop_copy_ptr_to_buf:                     1
 ;     loop_copy_rename:                         1
@@ -17304,7 +17326,6 @@ save pydis_start, pydis_end
 ;     osword_13_write_ctx_3:                    1
 ;     osword_claim_codes:                       1
 ;     osword_pb_ready:                          1
-;     osword_setup_handler:                     1
 ;     osword_store_svc_state:                   1
 ;     osword_subcode_dispatch:                  1
 ;     oswrch:                                   1
@@ -17430,6 +17451,7 @@ save pydis_start, pydis_end
 ;     save_ps_cmd_ptr:                          1
 ;     save_regs_print_no_spool:                 1
 ;     save_tube_state:                          1
+;     save_txcb_and_convert:                    1
 ;     scan_channel_store_reply:                 1
 ;     scan_fcb_entry:                           1
 ;     scan_fcb_flags:                           1
@@ -17632,11 +17654,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14210 bytes (87%)
-;     Data                     = 2174 bytes (13%)
+;     Code                     = 14234 bytes (87%)
+;     Data                     = 2150 bytes (13%)
 ;
-;     Number of instructions   = 7000
-;     Number of data bytes     = 794 bytes
+;     Number of instructions   = 7012
+;     Number of data bytes     = 770 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1294 bytes
 ;     Number of strings        = 152

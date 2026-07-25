@@ -10351,7 +10351,14 @@ d.comment(0xA523, "Store service state", align=Align.INLINE)
 d.label(0xA525, "rts_osword_0e")
 
 d.comment(0xA525, "Return", align=Align.INLINE)
-d.label(0xA526, "save_txcb_and_convert")
+d.subroutine(
+    0xA526,
+    "save_txcb_and_convert",
+    title="OSWORD &0E: convert the clock/date fields to BCD",
+    description="""Saves the TX control block, then reads the clock and date fields from the
+HAZEL TXCB workspace and converts each to packed BCD via
+[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply.""",
+)
 
 d.comment(0xA526, "X=0: start of TX control block", align=Align.INLINE)
 d.comment(0xA528, "Y=&10: length of TXCB to save", align=Align.INLINE)
@@ -10393,7 +10400,13 @@ d.comment(0xA576, "Store to parameter block", align=Align.INLINE)
 d.comment(0xA578, "Next byte down", align=Align.INLINE)
 d.comment(0xA579, "Loop for all 7 bytes", align=Align.INLINE)
 d.comment(0xA57B, "Return", align=Align.INLINE)
-d.label(0xA57C, "bin_to_bcd")
+d.subroutine(
+    0xA57C,
+    "bin_to_bcd",
+    title="Binary to packed BCD",
+    description="""Converts the binary value in A to packed BCD. Used by the OSWORD &0E
+clock/date conversion.""",
+)
 
 d.subroutine(
     0xA57C,

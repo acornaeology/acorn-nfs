@@ -3056,6 +3056,24 @@
       "description": "Right-shifts `ws_page` (PB[0]) into `A`, transfers it to `Y` for\nthe dispatcher, then runs an EOR/CMP chain against\n`ws_precomputed_value` to classify the requested sub-code:\n\n| Test          | Path                              |\n| ------------- | --------------------------------- |\n| `CMP #4` =    | `save_txcb_and_convert` (clock)   |\n| `CMP #3` =    | `save_txcb_done` (write back)     |\n| anything else | set `svc_state = 8` and `RTS`     |\n\nThe two `LDA #&A9` filler bytes preceding the EOR are a 4-byte\nBIT-trick skip used when the alternate entry [`osword_0e_handler`\n](address:A874) is taken via the `BIT $abs` at `&A874`. Reached\nonly via the OSWORD `&0E` (CMOS clock read) handler chain."
     },
     {
+      "addr": 43153,
+      "name": "save_txcb_and_convert",
+      "title": "OSWORD &0E: convert the clock/date fields to BCD",
+      "description": "Saves the TX control block, then reads the clock and date fields from the\nHAZEL TXCB workspace and converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd) for the OSWORD &0E real-time-clock reply."
+    },
+    {
+      "addr": 43239,
+      "name": "save_txcb_done",
+      "title": "OSWORD &0E: build the reply and read the CMOS clock",
+      "description": "Builds the BCD reply via [`save_txcb_and_convert`](label:save_txcb_and_convert),\ncopies it into the OSWORD parameter block, and reads the CMOS real-time clock\nvia OSWORD &0E."
+    },
+    {
+      "addr": 43265,
+      "name": "bin_to_bcd",
+      "title": "Binary to packed BCD",
+      "description": "Converts the binary value in A to packed BCD. Used by the OSWORD &0E\nclock/date conversion."
+    },
+    {
       "addr": 43265,
       "name": "bin_to_bcd",
       "title": "Convert binary byte to BCD",

@@ -9289,6 +9289,12 @@ bad_prefix = bad_str_anchor+1
 ; &a53e referenced 1 time by &a534
 .rts_osword_0e
     rts                                                               ; a53e: 60          `        ; Return
+; ***************************************************************************************
+; OSWORD &0E: convert the clock/date fields to BCD
+;
+; Saves the TX control block, then reads the clock and date fields from the HAZEL TXCB
+; workspace and converts each to packed BCD via bin_to_bcd for the OSWORD &0E
+; real-time-clock reply.
 ; &a53f referenced 1 time by &a538
 .save_txcb_and_convert
     ldx #0                                                            ; a53f: a2 00       ..       ; X=0: start of TX control block
@@ -9331,6 +9337,11 @@ bad_prefix = bad_str_anchor+1
     dey                                                               ; a591: 88          .        ; Next byte down
     bpl loop_copy_bcd_to_pb                                           ; a592: 10 f8       ..       ; Loop for all 7 bytes
     rts                                                               ; a594: 60          `        ; Return
+; ***************************************************************************************
+; Binary to packed BCD
+;
+; Converts the binary value in A to packed BCD. Used by the OSWORD &0E clock/date
+; conversion.
 ; ***************************************************************************************
 ; Convert binary byte to BCD
 ;
