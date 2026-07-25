@@ -1453,7 +1453,7 @@ service_handler_lo = service_entry+1
     equb &00                                                          ; 800c: 00          .        ; NUL preceding copyright string
 .copyright_string
 cmd_roff_str = copyright_string+3
-; The 'ROFF' suffix of "(C)ROFF" at cmd_roff_str is reused by the *ROFF command matcher svc_4_star_command (&81A2) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
+; The 'ROFF' suffix of "(C)ROFF" at cmd_roff_str is reused by the *ROFF command matcher svc_4_star_command (&81A3) — a space-saving trick that shares ROM bytes between the copyright string and the star-command-name table.
 ;
 ; The *NET matcher uses the same trick: cmd_net_str is just the title bytes ("NET"). Both call sites compute their offsets symbolically as cmd_X_str - binary_version, since match_rom_string does cmp binary_version,X.
     equs "(C)ROFF"                                                    ; 800d: 28 43 29... (C)...

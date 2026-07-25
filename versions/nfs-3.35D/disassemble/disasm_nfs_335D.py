@@ -761,16 +761,16 @@ Layout:
 | Addr    | Role |
 |---------|------|
 | `&0602` | [`tube_osgbpb`](label:tube_osgbpb) — multi-byte file I/O |
-| `&0626` | [`tube_osbyte_short`](address:0626) — 2-param `OSBYTE` (returns X) |
-| `&063B` | [`tube_osbyte_long`](address:063B) — 3-param `OSBYTE` (returns carry+Y+X) |
-| `&065D` | [`tube_osword`](address:065D) — variable-length `OSWORD` (buffer at `&0128`) |
-| `&06A3` | [`tube_osword_rdln`](address:06A3) — `OSWORD 0` (read line, 5-byte params) |
-| `&06BB` | [`tube_rdln_send_line`](address:06BB) — send input line from `&0700` |
-| `&06D0` | [`tube_send_r2`](address:06D0) — poll R2 status, write `A` to R2 data |
-| `&06D9` | [`tube_send_r4`](address:06D9) — poll R4 status, write `A` to R4 data |
-| `&06E2` | [`tube_escape_check`](address:06E2) — check `&FF`, forward escape to R1 |
-| `&06E8` | [`tube_event_handler`](address:06E8) — EVNTV: forward event (A, X, Y) via R1 |
-| `&06F7` | [`tube_send_r1`](address:06F7) — poll R1 status, write `A` to R1 data |""",
+| `&0626` | [`tube_osbyte_short`](label:tube_osbyte_short) — 2-param `OSBYTE` (returns X) |
+| `&063B` | [`tube_osbyte_long`](label:tube_osbyte_long) — 3-param `OSBYTE` (returns carry+Y+X) |
+| `&065D` | [`tube_osword`](label:tube_osword) — variable-length `OSWORD` (buffer at `&0128`) |
+| `&06A3` | [`tube_osword_rdln`](label:tube_osword_rdln) — `OSWORD 0` (read line, 5-byte params) |
+| `&06BB` | [`tube_rdln_send_line`](label:tube_rdln_send_line) — send input line from `&0700` |
+| `&06D0` | [`tube_send_r2`](label:tube_send_r2) — poll R2 status, write `A` to R2 data |
+| `&06D9` | [`tube_send_r4`](label:tube_send_r4) — poll R4 status, write `A` to R4 data |
+| `&06E2` | [`tube_escape_check`](label:tube_escape_check) — check `&FF`, forward escape to R1 |
+| `&06E8` | [`tube_event_handler`](label:tube_event_handler) — EVNTV: forward event (A, X, Y) via R1 |
+| `&06F7` | [`tube_send_r1`](label:tube_send_r1) — poll R1 status, write `A` to R1 data |""",
 )
 
 d.comment(0x0600, "OSGBPB done: return to main loop", align=Align.INLINE)
