@@ -2574,36 +2574,38 @@ d.comment(0x849A, "Transfer to X", align=Align.INLINE)
 d.label(0x849B, "imm_op_out_of_range")
 
 d.comment(0x849B, "Jump to discard handler", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x848B,
-# UNMAPPED:     "imm_op_dispatch_lo",
-# UNMAPPED:     title="Immediate-op dispatch lo-byte table (8 entries)",
-# UNMAPPED:     description="""Eight low-byte entries at `&848B`-`&8492` indexed by the
-# UNMAPPED: immediate-op control byte (`&81`-`&88`) via
-# UNMAPPED: `LDA imm_op_dispatch_lo-&81,Y` at the dispatch site. Each entry is
-# UNMAPPED: the low byte of `(handler-1)` so PHA/PHA/RTS dispatch lands on the
-# UNMAPPED: handler. The high byte pushed by the dispatcher is constant
-# UNMAPPED: (`&84`), so all targets sit in `&84xx`. Per-entry inline comments
-# UNMAPPED: identify each control byte's handler.""",
-# UNMAPPED: )
-# UNMAPPED: for addr in range(0x848B, 0x8493):
-# UNMAPPED (orphan body):     d.byte(addr)
-# UNMAPPED: d.expr(0x848B, "<(rx_imm_peek-1)")
-# UNMAPPED: d.comment(0x848B, "ctrl &81: PEEK", align=Align.INLINE)
-# UNMAPPED: d.expr(0x848C, "<(rx_imm_poke-1)")
-# UNMAPPED: d.comment(0x848C, "ctrl &82: POKE", align=Align.INLINE)
-# UNMAPPED: d.expr(0x848D, "<(rx_imm_exec-1)")
-# UNMAPPED: d.comment(0x848D, "ctrl &83: JSR", align=Align.INLINE)
-# UNMAPPED: d.expr(0x848E, "<(rx_imm_exec-1)")
-# UNMAPPED: d.comment(0x848E, "ctrl &84: UserProc", align=Align.INLINE)
-# UNMAPPED: d.expr(0x848F, "<(rx_imm_exec-1)")
-# UNMAPPED: d.comment(0x848F, "ctrl &85: OSProc", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8490, "<(rx_imm_halt_cont-1)")
-# UNMAPPED: d.comment(0x8490, "ctrl &86: HALT", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8491, "<(rx_imm_halt_cont-1)")
-# UNMAPPED: d.comment(0x8491, "ctrl &87: CONTINUE", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8492, "<(rx_imm_machine_type-1)")
-# UNMAPPED: d.comment(0x8492, "ctrl &88: machine-type", align=Align.INLINE)
+d.subroutine(
+    0x8515,
+    "imm_op_dispatch_lo",
+    title="Immediate-op dispatch lo-byte table (8 entries)",
+    description="""Eight low-byte entries at `&8515`-`&851C` indexed by the
+immediate-op control byte (`&81`-`&88`) via
+`LDA imm_op_handler_lo_table,Y` at the dispatch site (the table's
+nominal base [`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)
+so the entry for control byte N sits at that base plus N). Each byte
+is the low byte of `(handler-1)` so the PHA/PHA/RTS dispatch (constant
+high byte `&84`) lands on the handler in page `&84xx`. Per-entry
+inline comments identify each control byte's handler.""",
+    is_entry_point=False,
+)
+for _addr in range(0x8515, 0x851D):
+    d.byte(_addr)
+d.expr(0x8515, lo(sym("rx_imm_peek") - 1))
+d.comment(0x8515, "ctrl &81: PEEK", align=Align.INLINE)
+d.expr(0x8516, lo(sym("rx_imm_poke") - 1))
+d.comment(0x8516, "ctrl &82: POKE", align=Align.INLINE)
+d.expr(0x8517, lo(sym("rx_imm_exec") - 1))
+d.comment(0x8517, "ctrl &83: JSR", align=Align.INLINE)
+d.expr(0x8518, lo(sym("rx_imm_exec") - 1))
+d.comment(0x8518, "ctrl &84: UserProc", align=Align.INLINE)
+d.expr(0x8519, lo(sym("rx_imm_exec") - 1))
+d.comment(0x8519, "ctrl &85: OSProc", align=Align.INLINE)
+d.expr(0x851A, lo(sym("rx_imm_halt_cont") - 1))
+d.comment(0x851A, "ctrl &86: HALT", align=Align.INLINE)
+d.expr(0x851B, lo(sym("rx_imm_halt_cont") - 1))
+d.comment(0x851B, "ctrl &87: CONTINUE", align=Align.INLINE)
+d.expr(0x851C, lo(sym("rx_imm_machine_type") - 1))
+d.comment(0x851C, "ctrl &88: machine-type", align=Align.INLINE)
 
 
 d.subroutine(
@@ -2664,47 +2666,27 @@ d.expr_label(0x84C3, "tx_done_dispatch_lo-&83")
 d.comment(0x84C4, "Enter POKE data-receive path", align=Align.INLINE)
 d.subroutine(
     0x84C7,
-    "rx_imm_machine_type",
-    title="RX immediate: machine-type query",
-    description="""Sets up the response buffer for a machine-type query immediate
-operation (4-byte response: machine code + version digits). Falls
-through to [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi) to configure
-the buffer dimensions, then branches to `set_tx_reply_flag`. The
-machine-type query (`&88`) just returns fixed identity data, so it is
-serviced inline here -- not deferred like the execute-class operations
-`&83`-`&87`.""",
+    "rx_imm_peek",
+    title="RX immediate: PEEK setup",
+    description="""Sets up workspace offsets for a PEEK response:
+`port_ws_offset = &2E`, `rx_buf_offset = &0D`, `rx_port = 2`
+(PEEK response status), then calls
+[`tx_calc_transfer`](label:tx_calc_transfer) to send the requested
+memory back to the requesting station. PEEK (`&81`) only reads
+memory and replies, so it is serviced inline in the receive path --
+not deferred like the execute-class operations `&83`-`&87`.
+
+Reached via the immediate-op dispatch table
+([`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)) for
+control byte `&81`.""",
 )
 
 
-d.comment(0x84C7, "Buffer length hi = 1", align=Align.INLINE)
-d.label(0x84C9, "set_rx_buf_len_hi")
-d.comment(0x84C9, "Set buffer length hi", align=Align.INLINE)
-d.entry(0x84C9)
-d.comment(0x84CB, "Buffer length lo = &FC", align=Align.INLINE)
-d.comment(0x84CD, "Set buffer length lo", align=Align.INLINE)
-d.comment(0x84CF, "Buffer start lo = &EE", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84C6, "Set port buffer lo", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84C8, "Buffer hi = &88 (response goes to &88EE area)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84CA, "Set port buffer hi", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x84CE,
-# UNMAPPED:     "rx_imm_peek",
-# UNMAPPED:     title="RX immediate: PEEK setup",
-# UNMAPPED:     description="""Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets
-# UNMAPPED: `scout_status = 2`, then calls
-# UNMAPPED: [`tx_calc_transfer`](label:tx_calc_transfer) to send the PEEK response
-# UNMAPPED: data back to the requesting station. PEEK (`&81`) only reads memory
-# UNMAPPED: and replies, so it is serviced inline in the receive path -- not
-# UNMAPPED: deferred like the execute-class operations `&83`-`&87`.""",
-# UNMAPPED: )
-
-
-# UNMAPPED: d.comment(0x84CE, "Port workspace offset = &3D", align=Align.INLINE)
-# UNMAPPED: d.entry(0x84CE)
-# UNMAPPED: d.comment(0x84D0, "Store workspace offset lo", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84D2, "RX buffer page = &0D", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84D4, "Store workspace offset hi", align=Align.INLINE)
-# UNMAPPED: d.comment(0x84D6, "Scout status = 2 (PEEK response)", align=Align.INLINE)
+d.comment(0x84C7, "Port workspace offset = &2E", align=Align.INLINE)
+d.comment(0x84C9, "Store as port_ws_offset", align=Align.INLINE)
+d.comment(0x84CB, "RX buffer page = &0D", align=Align.INLINE)
+d.comment(0x84CD, "Store as rx_buf_offset", align=Align.INLINE)
+d.comment(0x84CF, "Scout status = 2 (PEEK response)", align=Align.INLINE)
 d.comment(0x84D1, "Store scout status", align=Align.INLINE)
 d.comment(0x84D4, "Calculate transfer size for response", align=Align.INLINE)
 d.comment(0x84D7, "C=0: transfer not set up, discard", align=Align.INLINE)
@@ -19402,7 +19384,7 @@ Clears decimal mode, then seeds [`escapable`](label:escapable) from
 | Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |
 
 Three callers: [`scout_complete`](label:scout_complete) (`&819D`),
-[`rx_imm_machine_type`](label:rx_imm_machine_type) (`&84D4`),
+[`rx_imm_peek`](label:rx_imm_peek) (`&84D4`),
 [`tx_ctrl_proc`](label:tx_ctrl_proc) (`&87A4`).""",
     on_entry={"y": "0 -- caller convention"},
     on_exit={"a": "transfer status", "c": "set if Tube/shadow address handled, clear otherwise"},
@@ -19583,7 +19565,58 @@ d.comment(0xADF3, "OSWORD &86", align=Align.INLINE)
 d.comment(0x9AA6, "BRK error code &A0 (first table entry)", align=Align.INLINE)
 d.comment(0x9AC7, "BRK error code &A3", align=Align.INLINE)
 d.comment(0x9AE5, "BRK error code &A5", align=Align.INLINE)
-d.comment(0x84F2, "Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow", align=Align.INLINE)
+d.label(
+    0x0D36,
+    "mc_reply_status",
+    description="MachinePeek (&88) reply staging byte ([`scout_buf`](label:scout_buf)+8); receives spool_control_flag.",
+    length=1,
+    group="ram_workspace",
+    access="rw",
+)
+d.index_base(
+    0x0D37,
+    "mc_reply_machine_id",
+    description="3-byte machine identity for the MachinePeek (&88) reply ([`scout_buf`](label:scout_buf)+9); copied from machine_id_bytes.",
+    length=3,
+    group="ram_workspace",
+)
+d.entry(0x84F2)
+d.subroutine(
+    0x84F2,
+    "rx_imm_machine_type",
+    title="RX immediate: machine-type (MachinePeek) reply",
+    description="""Builds the fixed machine-identity reply for a MachinePeek
+immediate operation (control byte `&88`). Copies the 3 identity
+bytes at [`machine_id_bytes`](label:machine_id_bytes) into
+[`mc_reply_machine_id`](label:mc_reply_machine_id), copies
+[`spool_control_flag`](label:spool_control_flag) to
+[`mc_reply_status`](label:mc_reply_status), points the reply buffer via
+[`open_port_buf`](label:open_port_buf) and sets its length, then branches to
+[`set_tx_reply_flag`](label:set_tx_reply_flag) to send it. Serviced
+inline (like PEEK/POKE), not deferred.
+
+Reached only via the immediate-op dispatch table
+([`imm_op_dispatch_lo`](label:imm_op_dispatch_lo)) for control
+byte `&88`.""",
+)
+d.comment(0x84F2, "Reply length hi = &01", align=Align.INLINE)
+d.comment(0x84F4, "Set port_buf_len_hi", align=Align.INLINE)
+d.comment(0x84F6, "Reply length lo = &FC", align=Align.INLINE)
+d.comment(0x84F8, "Set port_buf_len", align=Align.INLINE)
+d.comment(0x84FA, "Y=2: copy 3 identity bytes (2 down to 0)", align=Align.INLINE)
+d.label(0x84FC, "copy_machine_id_loop")
+d.comment(0x84FC, "Read machine-identity byte from ROM", align=Align.INLINE)
+d.comment(0x84FF, "Store into mc_reply_machine_id", align=Align.INLINE)
+d.comment(0x8502, "Next byte (descending)", align=Align.INLINE)
+d.comment(0x8503, "Loop until all 3 copied", align=Align.INLINE)
+d.comment(0x8505, "Load station/config byte from &0D71", align=Align.INLINE)
+d.comment(0x8508, "Store into mc_reply_status", align=Align.INLINE)
+d.comment(0x850B, "Reply buffer lo = &3A", align=Align.INLINE)
+d.comment(0x850D, "Set open_port_buf", align=Align.INLINE)
+d.comment(0x850F, "Reply buffer hi = &0C", align=Align.INLINE)
+d.comment(0x8511, "Set open_port_buf_hi", align=Align.INLINE)
+d.comment(0x8513, "Always taken: join common reply-send path", align=Align.INLINE)
+d.index_base(0x8027, "machine_id_bytes", description="3-byte machine identity returned by the MachinePeek (&88) immediate op; copied to &0D37 by rx_imm_machine_type.")
 # UNMAPPED: d.comment(0xA80E, "&80 sub-table separator; the &8E44 word is the FS-command sub-table default handler (&8E45-1); the following &4F &6E &80 &00 &00 (ASCII 'On' + markers) is a 5-byte record new in this build", align=Align.INLINE)
 d.comment(0x8397, "Unreached &D8 (CLD) byte after the RTS", align=Align.INLINE)
 d.comment(0x8A23, "Padding before the service-dispatch low-byte table", align=Align.INLINE)

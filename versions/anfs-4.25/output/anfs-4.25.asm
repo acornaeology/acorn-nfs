@@ -93,13 +93,13 @@ nmi_tx_block                = &a0  ; NMI TX block pointer (low byte). Address of
 nmi_tx_block_hi             = &a1  ; Block to be transmitted (high)
 ; &a1 referenced 4 times by &87a2, &9bc1, &a93f, &ac3e
 port_buf_len                = &a2  ; Open port buffer length (low)
-; &a2 referenced 22 times by &80d3, &80ea, &810a, &8226, &8251, &8275, &8290, &8298, &82d7, &83ac, &8426, &8437, &848f, &84a4, &851d, &8550, &8621, &88b8, &88bc, &88e2, &8921, &8937
+; &a2 referenced 23 times by &80d3, &80ea, &810a, &8226, &8251, &8275, &8290, &8298, &82d7, &83ac, &8426, &8437, &848f, &84a4, &84f8, &851d, &8550, &8621, &88b8, &88bc, &88e2, &8921, &8937
 port_buf_len_hi             = &a3  ; Open port buffer length (high)
-; &a3 referenced 13 times by &8240, &8257, &8280, &82d9, &8432, &84a8, &8554, &8638, &88b4, &88d6, &88e6, &8925, &893b
+; &a3 referenced 14 times by &8240, &8257, &8280, &82d9, &8432, &84a8, &84f4, &8554, &8638, &88b4, &88d6, &88e6, &8925, &893b
 open_port_buf               = &a4  ; Open port buffer address (low)
-; &a4 referenced 13 times by &8239, &824e, &8292, &82db, &83af, &842b, &84a0, &8558, &862f, &88ce, &88dc, &8929, &893f
+; &a4 referenced 14 times by &8239, &824e, &8292, &82db, &83af, &842b, &84a0, &850d, &8558, &862f, &88ce, &88dc, &8929, &893f
 open_port_buf_hi            = &a5  ; Open port buffer address (high)
-; &a5 referenced 15 times by &823e, &8255, &829c, &82dd, &83b3, &83ba, &8430, &84ac, &855c, &8629, &8636, &88da, &88ea, &892d, &8943
+; &a5 referenced 16 times by &823e, &8255, &829c, &82dd, &83b3, &83ba, &8430, &84ac, &8511, &855c, &8629, &8636, &88da, &88ea, &892d, &8943
 port_ws_offset              = &a6  ; Port workspace offset
 ; &a6 referenced 32 times by &8151, &8157, &8160, &816a, &8174, &8181, &8186, &835b, &8361, &8376, &838b, &838d, &83b7, &83bc, &83c8, &83ce, &83d4, &83dc, &83e4, &84be, &84c9, &85b9, &85c0, &85e5, &85ec, &85ff, &861a, &861f, &8625, &862d, &8633, &87a0; also used as index base 2 times by &9cbc, &9cca
 rx_buf_offset               = &a7  ; Receive buffer offset
@@ -284,6 +284,10 @@ scout_port                  = &0d31  ; Scout port byte (scout_buf+3).
 ; &0d31 referenced 5 times by &8135, &8164, &8398, &83be, &83d1
 scout_data                  = &0d32  ; Scout data payload base (scout_buf+4). Holds the 4-byte remote address for JSR / UserProc / OSProc immediate ops.
 ; &0d32 used as index base 1 time by &84b0
+mc_reply_status             = &0d36  ; MachinePeek (&88) reply staging byte (scout_buf+8); receives spool_control_flag.
+; &0d36 referenced 1 time by &8508
+mc_reply_machine_id         = &0d37  ; 3-byte machine identity for the MachinePeek (&88) reply (scout_buf+9); copied from machine_id_bytes.
+; &0d37 used as index base 1 time by &84ff
 rx_src_stn                  = &0d3d  ; Source station of the received scout frame. First address byte read by nmi_rx_scout and validated against our station ID.
 net_frame_flags             = &0d3e  ; TX / transfer flags for the current Econet frame, initialised during scout receive and carried through the reply and data-TX phases: | Bit | Meaning | |-----|-----------------------------------------------------| | 0 | handshake-data pending | | 1 | data transfer routes into the Tube buffer | | 6 | broadcast frame (scout addressed to station &FF) | | 7 | reply pending / data-TX phase / error-path selector |
 ; &0d3e referenced 27 times by &80b2, &80d0, &813d, &81a2, &81fc, &8218, &82e9, &82ec, &82ef, &8336, &8351, &836c, &8409, &8418, &84d9, &84de, &85d9, &85de, &873e, &8783, &8796, &8803, &880d, &88a1, &8901, &894f, &89a0
@@ -336,7 +340,7 @@ rx_wait_timeout             = &0d6e  ; Receive wait timeout (default &28 = 40). 
 peek_retry_count            = &0d6f  ; Machine peek retry count (default &0A = 10). Settable via OSWORD &13 PB[3].
 ; &0d6f referenced 1 time by &9b9b
 spool_control_flag          = &0d71  ; Multi-purpose: spool-buffer control flag (printer spooling); also doubles as the bridge-routing-table status byte read by init_bridge_poll (&FF = uninitialised, anything else = bridge already polled).
-; &0d71 referenced 1 time by &8a9c
+; &0d71 referenced 2 times by &8505, &8a9c
 bridge_status               = &0d72  ; Bridge station number (&FF = no bridge). Set by the bridge-discovery scout reply; checked before any cross-network operation.
 ; &0d72 referenced 6 times by &8fb5, &abd0, &abe6, &ac0b, &ac29, &ac5f
 txcb_default_base           = &0de6
@@ -726,6 +730,8 @@ rom_header_byte2 = rom_header_byte1+1
     equb &00                                                          ; 8019: 00          .        ; NUL preceding copyright string
 .copyright_string
     equs "(C)1986 Acorn"                                              ; 801a: 28 43 29... (C)...
+; &8027 used as index base 1 time by &84fc
+.machine_id_bytes
     equb &00                                                          ; 8027: 00          .        ; NUL terminator
     equb &25, &04                                                     ; 8028: 25 04       %.    
 ; ***************************************************************************************
@@ -1923,23 +1929,26 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     sta rx_buf_offset                                                 ; 84c2: 85 a7       ..       ; Store as rx_buf_offset
     jmp port_match_found                                              ; 84c4: 4c 98 81    L..      ; Enter POKE data-receive path
 ; ***************************************************************************************
-; RX immediate: machine-type query
+; RX immediate: PEEK setup
 ;
-; Sets up the response buffer for a machine-type query immediate operation (4-byte
-; response: machine code + version digits). Falls through to set_rx_buf_len_hi to
-; configure the buffer dimensions, then branches to set_tx_reply_flag. The machine-type
-; query (&88) just returns fixed identity data, so it is serviced inline here -- not
-; deferred like the execute-class operations &83-&87.
-.rx_imm_machine_type
-    lda #&2e                                                          ; 84c7: a9 2e       ..       ; Buffer length hi = 1
-.set_rx_buf_len_hi
-    sta port_ws_offset                                                ; 84c9: 85 a6       ..       ; Set buffer length hi
-    lda #&0d                                                          ; 84cb: a9 0d       ..       ; Buffer length lo = &FC
-    sta rx_buf_offset                                                 ; 84cd: 85 a7       ..       ; Set buffer length lo
-    lda #2                                                            ; 84cf: a9 02       ..       ; Buffer start lo = &EE
+; Sets up workspace offsets for a PEEK response: port_ws_offset = &2E, rx_buf_offset =
+; &0D, rx_port = 2 (PEEK response status), then calls tx_calc_transfer to send the
+; requested memory back to the requesting station. PEEK (&81) only reads memory and
+; replies, so it is serviced inline in the receive path -- not deferred like the
+; execute-class operations &83-&87.
+;
+; Reached via the immediate-op dispatch table (imm_op_handler_lo_table) for control byte
+; &81.
+.rx_imm_peek
+    lda #&2e                                                          ; 84c7: a9 2e       ..       ; Port workspace offset = &2E
+    sta port_ws_offset                                                ; 84c9: 85 a6       ..       ; Store as port_ws_offset
+    lda #&0d                                                          ; 84cb: a9 0d       ..       ; RX buffer page = &0D
+    sta rx_buf_offset                                                 ; 84cd: 85 a7       ..       ; Store as rx_buf_offset
+    lda #2                                                            ; 84cf: a9 02       ..       ; Scout status = 2 (PEEK response)
     sta rx_port                                                       ; 84d1: 8d 40 0d    .@.      ; Store scout status
     jsr tx_calc_transfer                                              ; 84d4: 20 af 85     ..      ; Calculate transfer size for response
     bcc imm_op_discard                                                ; 84d7: 90 74       .t       ; C=0: transfer not set up, discard
+; &84d9 referenced 1 time by &8513
 .set_tx_reply_flag
     lda net_frame_flags                                               ; 84d9: ad 3e 0d    .>.      ; Mark TX flags bit 7 (reply pending)
 ; &84dc used as index base 1 time by &804d
@@ -1956,10 +1965,54 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     lda #&33                                                          ; 84eb: a9 33       .3       ; NMI handler lo byte (self-modifying)
     ldy #&85                                                          ; 84ed: a0 85       ..       ; Y=&85: NMI handler high byte
     jmp ack_tx_write_dest                                             ; 84ef: 4c 08 83    L..      ; Acknowledge and write TX dest
-    equb &a9, &01, &85, &a3, &a9, &fc, &85, &a2, &a0, &02, &b9, &27   ; 84f2: a9 01 85... ......
-    equb &80, &99, &37, &0d, &88, &10, &f7, &ad, &71, &0d, &8d, &36   ; 84fe: 80 99 37... ..7...
-    equb &0d, &a9, &3a, &85, &a4, &a9, &0c, &85, &a5, &d0, &c4, &c6   ; 850a: 0d a9 3a... ..:...
-    equb &bb, &9d, &9d, &9d, &e0, &e0, &f1                            ; 8516: bb 9d 9d... ......   ; Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow
+; ***************************************************************************************
+; RX immediate: machine-type (MachinePeek) reply
+;
+; Builds the fixed machine-identity reply for a MachinePeek immediate operation (control
+; byte &88). Copies the 3 identity bytes at machine_id_bytes into mc_reply_machine_id,
+; copies spool_control_flag to mc_reply_status, points the reply buffer via open_port_buf
+; and sets its length, then branches to set_tx_reply_flag to send it. Serviced inline
+; (like PEEK/POKE), not deferred.
+;
+; Reached only via the immediate-op dispatch table (imm_op_dispatch_lo) for control byte
+; &88.
+.rx_imm_machine_type
+    lda #1                                                            ; 84f2: a9 01       ..       ; Reply length hi = &01
+    sta port_buf_len_hi                                               ; 84f4: 85 a3       ..       ; Set port_buf_len_hi
+    lda #&fc                                                          ; 84f6: a9 fc       ..       ; Reply length lo = &FC
+    sta port_buf_len                                                  ; 84f8: 85 a2       ..       ; Set port_buf_len
+    ldy #2                                                            ; 84fa: a0 02       ..       ; Y=2: copy 3 identity bytes (2 down to 0)
+; &84fc referenced 1 time by &8503
+.copy_machine_id_loop
+    lda machine_id_bytes,y                                            ; 84fc: b9 27 80    .'.      ; Read machine-identity byte from ROM
+    sta mc_reply_machine_id,y                                         ; 84ff: 99 37 0d    .7.      ; Store into mc_reply_machine_id
+    dey                                                               ; 8502: 88          .        ; Next byte (descending)
+    bpl copy_machine_id_loop                                          ; 8503: 10 f7       ..       ; Loop until all 3 copied
+    lda spool_control_flag                                            ; 8505: ad 71 0d    .q.      ; Load station/config byte from &0D71
+    sta mc_reply_status                                               ; 8508: 8d 36 0d    .6.      ; Store into mc_reply_status
+    lda #&3a                                                          ; 850b: a9 3a       .:       ; Reply buffer lo = &3A
+    sta open_port_buf                                                 ; 850d: 85 a4       ..       ; Set open_port_buf
+    lda #&0c                                                          ; 850f: a9 0c       ..       ; Reply buffer hi = &0C
+    sta open_port_buf_hi                                              ; 8511: 85 a5       ..       ; Set open_port_buf_hi
+    bne set_tx_reply_flag                                             ; 8513: d0 c4       ..       ; Always taken: join common reply-send path
+; ***************************************************************************************
+; Immediate-op dispatch lo-byte table (8 entries)
+;
+; Eight low-byte entries at &8515-&851C indexed by the immediate-op control byte
+; (&81-&88) via LDA imm_op_handler_lo_table,Y at the dispatch site (the table's nominal
+; base imm_op_handler_lo_table so the entry for control byte N sits at that base plus N).
+; Each byte is the low byte of (handler-1) so the PHA/PHA/RTS dispatch (constant high
+; byte &84) lands on the handler in page &84xx. Per-entry inline comments identify each
+; control byte's handler.
+.imm_op_dispatch_lo
+    equb <(rx_imm_peek - 1)                                           ; 8515: c6          .        ; ctrl &81: PEEK
+    equb <(rx_imm_poke - 1)                                           ; 8516: bb          .        ; ctrl &82: POKE
+    equb <(rx_imm_exec - 1)                                           ; 8517: 9d          .        ; ctrl &83: JSR
+    equb <(rx_imm_exec - 1)                                           ; 8518: 9d          .        ; ctrl &84: UserProc
+    equb <(rx_imm_exec - 1)                                           ; 8519: 9d          .        ; ctrl &85: OSProc
+    equb <(rx_imm_halt_cont - 1)                                      ; 851a: e0          .        ; ctrl &86: HALT
+    equb <(rx_imm_halt_cont - 1)                                      ; 851b: e0          .        ; ctrl &87: CONTINUE
+    equb <(rx_imm_machine_type - 1)                                   ; 851c: f1          .        ; ctrl &88: machine-type
 ; &851d referenced 1 time by &83a4
 .imm_op_build_reply
     lda port_buf_len                                                  ; 851d: a5 a2       ..       ; Get buffer position for reply header
@@ -2169,8 +2222,7 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
 ; | Tube (RXCB[7]=&FF, RXCB[6] in [&FE, &FF]) | if shadow RAM is enabled (ACCCON.E), also set the shadow bit in escapable; then compute the 4-byte transfer size by subtracting RXCB[8..&B] (start) from RXCB[4..7] (end) |
 ; | Non-Tube                                  | branch to fallback_calc_transfer for the 1-byte size subtraction                                                                                                          |
 ;
-; Three callers: scout_complete (&819D), rx_imm_machine_type (&84D4), tx_ctrl_proc
-; (&87A4).
+; Three callers: scout_complete (&819D), rx_imm_peek (&84D4), tx_ctrl_proc (&87A4).
 ;
 ; On Entry:
 ;     Y: 0 -- caller convention
@@ -16366,8 +16418,8 @@ save pydis_start, pydis_end
 ;     fs_load_addr:                            24
 ;     fs_work_4:                               24
 ;     save_net_tx_cb:                          24
+;     port_buf_len:                            23
 ;     hazel_fcb_flags:                         22
-;     port_buf_len:                            22
 ;     always_set_v_byte:                       21
 ;     acccon:                                  20
 ;     econet_flags:                            20
@@ -16380,20 +16432,20 @@ save pydis_start, pydis_end
 ;     hazel_fcb_slot_attr:                     17
 ;     hazel_parse_buf:                         17
 ;     hazel_fcb_addr_mid:                      16
+;     open_port_buf_hi:                        16
 ;     ws_page:                                 16
 ;     fs_last_byte_flag:                       15
 ;     mask_owner_access:                       15
 ;     nmi_tx_block:                            15
-;     open_port_buf_hi:                        15
 ;     svc_state:                               15
 ;     hazel_cur_fcb_index:                     14
 ;     hazel_fcb_state_byte:                    14
 ;     need_release_tube:                       14
+;     open_port_buf:                           14
+;     port_buf_len_hi:                         14
 ;     hazel_txcb_count:                        13
 ;     net_tx_ptr_hi:                           13
-;     open_port_buf:                           13
 ;     osnewl:                                  13
-;     port_buf_len_hi:                         13
 ;     print_inline_no_spool:                   13
 ;     set_nmi_vector:                          13
 ;     error_inline_log:                        12
@@ -16835,6 +16887,7 @@ save pydis_start, pydis_end
 ;     skip_entry_chars:                         2
 ;     skip_rename_spaces:                       2
 ;     skip_sep_spaces:                          2
+;     spool_control_flag:                       2
 ;     stack_page_3:                             2
 ;     stack_page_4:                             2
 ;     start_help_file_load:                     2
@@ -16975,6 +17028,7 @@ save pydis_start, pydis_end
 ;     copy_bcast_addr:                          1
 ;     copy_from_buf_entry:                      1
 ;     copy_imm_params:                          1
+;     copy_machine_id_loop:                     1
 ;     copy_nmi_shim:                            1
 ;     copy_pb_and_mark:                         1
 ;     copy_pb_to_ws:                            1
@@ -17368,9 +17422,12 @@ save pydis_start, pydis_end
 ;     loop_write_to_tube:                       1
 ;     loop_zero_load_addr:                      1
 ;     loop_zero_workspace:                      1
+;     machine_id_bytes:                         1
 ;     mark_ws_uninit:                           1
 ;     mask_error_class:                         1
 ;     match_help_topic:                         1
+;     mc_reply_machine_id:                      1
+;     mc_reply_status:                          1
 ;     net_error_close_spool:                    1
 ;     netv:                                     1
 ;     netv_dispatch_hi:                         1
@@ -17586,6 +17643,7 @@ save pydis_start, pydis_end
 ;     set_rom_ws_page:                          1
 ;     set_timeout:                              1
 ;     set_tube_addr:                            1
+;     set_tx_reply_flag:                        1
 ;     set_wipe_cr_end:                          1
 ;     set_write_active:                         1
 ;     setup_csd_copy:                           1
@@ -17632,7 +17690,6 @@ save pydis_start, pydis_end
 ;     skip_txcb_dest:                           1
 ;     skip_wipe_locked:                         1
 ;     skip_wipe_to_next:                        1
-;     spool_control_flag:                       1
 ;     spool_pop_cmd:                            1
 ;     start_data_tx:                            1
 ;     start_pass_tx:                            1
@@ -17750,11 +17807,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14405 bytes (88%)
-;     Data                     = 1979 bytes (12%)
+;     Code                     = 14440 bytes (88%)
+;     Data                     = 1944 bytes (12%)
 ;
-;     Number of instructions   = 7098
-;     Number of data bytes     = 610 bytes
+;     Number of instructions   = 7114
+;     Number of data bytes     = 575 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1283 bytes
 ;     Number of strings        = 149

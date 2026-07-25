@@ -542,6 +542,13 @@
       "description": "Checks the control byte at [`scout_ctrl`](label:scout_ctrl) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](label:prot_status) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](label:prot_status) to determine whether this\nstation accepts the operation. If accepted, dispatches via\nthe immediate-op dispatch table (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](label:setup_sr_tx) records the\noperation in [`tx_op_type`](label:tx_op_type) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](label:svc5_irq_check)) and dispatches via the\n[`svc5_dispatch_lo`](label:svc5_dispatch_lo) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
+      "addr": 34069,
+      "name": "imm_op_dispatch_lo",
+      "title": "Immediate-op dispatch lo-byte table (8 entries)",
+      "description": "Eight low-byte entries at `&8515`-`&851C` indexed by the\nimmediate-op control byte (`&81`-`&88`) via\n`LDA imm_op_handler_lo_table,Y` at the dispatch site (the table's\nnominal base [`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)\nso the entry for control byte N sits at that base plus N). Each byte\nis the low byte of `(handler-1)` so the PHA/PHA/RTS dispatch (constant\nhigh byte `&84`) lands on the handler in page `&84xx`. Per-entry\ninline comments identify each control byte's handler.",
+      "fall_through": true
+    },
+    {
       "addr": 33950,
       "name": "rx_imm_exec",
       "title": "RX immediate: JSR / UserProc / OSProc setup",
@@ -555,10 +562,9 @@
     },
     {
       "addr": 33991,
-      "name": "rx_imm_machine_type",
-      "title": "RX immediate: machine-type query",
-      "description": "Sets up the response buffer for a machine-type query immediate\noperation (4-byte response: machine code + version digits). Falls\nthrough to [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi) to configure\nthe buffer dimensions, then branches to `set_tx_reply_flag`. The\nmachine-type query (`&88`) just returns fixed identity data, so it is\nserviced inline here -- not deferred like the execute-class operations\n`&83`-`&87`.",
-      "fall_through": true
+      "name": "rx_imm_peek",
+      "title": "RX immediate: PEEK setup",
+      "description": "Sets up workspace offsets for a PEEK response:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`, `rx_port = 2`\n(PEEK response status), then calls\n[`tx_calc_transfer`](label:tx_calc_transfer) to send the requested\nmemory back to the requesting station. PEEK (`&81`) only reads\nmemory and replies, so it is serviced inline in the receive path --\nnot deferred like the execute-class operations `&83`-`&87`.\n\nReached via the immediate-op dispatch table\n([`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)) for\ncontrol byte `&81`."
     },
     {
       "addr": 34102,
@@ -4480,7 +4486,7 @@
       "addr": 34223,
       "name": "tx_calc_transfer",
       "title": "Calculate transfer size; handle Tube and shadow buffers",
-      "description": "Prepares the buffer-transfer for a completed receive.\nClears decimal mode, then seeds [`escapable`](label:escapable) from\n[`ACCCON`](address:FE34) with the transfer-mode bit set. Inspects\n`RXCB[6..7]` (buffer end address byte 2 and high) to classify the buffer:\n\n| Buffer type | Action |\n|---|---|\n| Tube (`RXCB[7]=&FF`, `RXCB[6]` in `[&FE, &FF]`) | if shadow RAM is enabled (`ACCCON.E`), also set the shadow bit in `escapable`; then compute the 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end) |\n| Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |\n\nThree callers: [`scout_complete`](label:scout_complete) (`&819D`),\n[`rx_imm_machine_type`](label:rx_imm_machine_type) (`&84D4`),\n[`tx_ctrl_proc`](label:tx_ctrl_proc) (`&87A4`).",
+      "description": "Prepares the buffer-transfer for a completed receive.\nClears decimal mode, then seeds [`escapable`](label:escapable) from\n[`ACCCON`](address:FE34) with the transfer-mode bit set. Inspects\n`RXCB[6..7]` (buffer end address byte 2 and high) to classify the buffer:\n\n| Buffer type | Action |\n|---|---|\n| Tube (`RXCB[7]=&FF`, `RXCB[6]` in `[&FE, &FF]`) | if shadow RAM is enabled (`ACCCON.E`), also set the shadow bit in `escapable`; then compute the 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end) |\n| Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |\n\nThree callers: [`scout_complete`](label:scout_complete) (`&819D`),\n[`rx_imm_peek`](label:rx_imm_peek) (`&84D4`),\n[`tx_ctrl_proc`](label:tx_ctrl_proc) (`&87A4`).",
       "on_entry": {
         "y": "0 -- caller convention"
       },
@@ -4494,6 +4500,13 @@
       "name": "nmi_return_inton",
       "title": "NMI exit: re-enable NMIs and return",
       "description": "Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`."
+    },
+    {
+      "addr": 34034,
+      "name": "rx_imm_machine_type",
+      "title": "RX immediate: machine-type (MachinePeek) reply",
+      "description": "Builds the fixed machine-identity reply for a MachinePeek\nimmediate operation (control byte `&88`). Copies the 3 identity\nbytes at [`machine_id_bytes`](label:machine_id_bytes) into\n[`mc_reply_machine_id`](label:mc_reply_machine_id), copies\n[`spool_control_flag`](label:spool_control_flag) to\n[`mc_reply_status`](label:mc_reply_status), points the reply buffer via\n[`open_port_buf`](label:open_port_buf) and sets its length, then branches to\n[`set_tx_reply_flag`](label:set_tx_reply_flag) to send it. Serviced\ninline (like PEEK/POKE), not deferred.\n\nReached only via the immediate-op dispatch table\n([`imm_op_dispatch_lo`](label:imm_op_dispatch_lo)) for control\nbyte `&88`.",
+      "fall_through": true
     }
   ],
   "banners": [
@@ -4834,6 +4847,8 @@
     "scout_ctrl": 3376,
     "scout_port": 3377,
     "scout_data": 3378,
+    "mc_reply_status": 3382,
+    "mc_reply_machine_id": 3383,
     "rx_src_stn": 3389,
     "net_frame_flags": 3390,
     "rx_ctrl": 3391,
@@ -6298,6 +6313,27 @@
       "description": "Scout data payload base ([`scout_buf`](label:scout_buf)+4).\nHolds the 4-byte remote address for JSR / UserProc / OSProc immediate ops."
     },
     {
+      "addr": 3382,
+      "name": "mc_reply_status",
+      "length": 1,
+      "group": "ram_workspace",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "MachinePeek (&88) reply staging byte ([`scout_buf`](label:scout_buf)+8); receives spool_control_flag."
+    },
+    {
+      "addr": 3383,
+      "name": "mc_reply_machine_id",
+      "length": 3,
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ],
+      "description": "3-byte machine identity for the MachinePeek (&88) reply ([`scout_buf`](label:scout_buf)+9); copied from machine_id_bytes."
+    },
+    {
       "addr": 3389,
       "name": "rx_src_stn",
       "length": 1,
@@ -7526,7 +7562,19 @@
       "bytes": [
         0
       ],
+      "labels": [
+        "machine_id_bytes"
+      ],
       "comment_inline": "NUL terminator",
+      "xref_summaries": [
+        "&8027 used as index base 1 time by &84fc"
+      ],
+      "references": [
+        {
+          "addr": 34044,
+          "kind": "indexed"
+        }
+      ],
       "type": "byte",
       "values": [
         0
@@ -15501,9 +15549,9 @@
         46
       ],
       "labels": [
-        "rx_imm_machine_type"
+        "rx_imm_peek"
       ],
-      "comment_inline": "Buffer length hi = 1",
+      "comment_inline": "Port workspace offset = &2E",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&2e"
@@ -15514,10 +15562,7 @@
         133,
         166
       ],
-      "labels": [
-        "set_rx_buf_len_hi"
-      ],
-      "comment_inline": "Set buffer length hi",
+      "comment_inline": "Store as port_ws_offset",
       "type": "code",
       "mnemonic": "sta",
       "operand": "port_ws_offset",
@@ -15530,7 +15575,7 @@
         169,
         13
       ],
-      "comment_inline": "Buffer length lo = &FC",
+      "comment_inline": "RX buffer page = &0D",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&0d"
@@ -15541,7 +15586,7 @@
         133,
         167
       ],
-      "comment_inline": "Set buffer length lo",
+      "comment_inline": "Store as rx_buf_offset",
       "type": "code",
       "mnemonic": "sta",
       "operand": "rx_buf_offset",
@@ -15554,7 +15599,7 @@
         169,
         2
       ],
-      "comment_inline": "Buffer start lo = &EE",
+      "comment_inline": "Scout status = 2 (PEEK response)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#2"
@@ -15611,6 +15656,15 @@
         "set_tx_reply_flag"
       ],
       "comment_inline": "Mark TX flags bit 7 (reply pending)",
+      "xref_summaries": [
+        "&84d9 referenced 1 time by &8513"
+      ],
+      "references": [
+        {
+          "addr": 34067,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "lda",
       "operand": "net_frame_flags",
@@ -15753,95 +15807,448 @@
       "addr": 34034,
       "bytes": [
         169,
-        1,
+        1
+      ],
+      "labels": [
+        "rx_imm_machine_type"
+      ],
+      "comment_inline": "Reply length hi = &01",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#1"
+    },
+    {
+      "addr": 34036,
+      "bytes": [
         133,
-        163,
+        163
+      ],
+      "comment_inline": "Set port_buf_len_hi",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "port_buf_len_hi",
+      "target": 163,
+      "target_label": "port_buf_len_hi"
+    },
+    {
+      "addr": 34038,
+      "bytes": [
         169,
-        252,
+        252
+      ],
+      "comment_inline": "Reply length lo = &FC",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&fc"
+    },
+    {
+      "addr": 34040,
+      "bytes": [
         133,
-        162,
+        162
+      ],
+      "comment_inline": "Set port_buf_len",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "port_buf_len",
+      "target": 162,
+      "target_label": "port_buf_len"
+    },
+    {
+      "addr": 34042,
+      "bytes": [
         160,
-        2,
+        2
+      ],
+      "comment_inline": "Y=2: copy 3 identity bytes (2 down to 0)",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#2"
+    },
+    {
+      "addr": 34044,
+      "bytes": [
         185,
         39,
-        128,
+        128
+      ],
+      "labels": [
+        "copy_machine_id_loop"
+      ],
+      "comment_inline": "Read machine-identity byte from ROM",
+      "xref_summaries": [
+        "&84fc referenced 1 time by &8503"
+      ],
+      "references": [
+        {
+          "addr": 34051,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "machine_id_bytes,y",
+      "target": 32807,
+      "target_label": "machine_id_bytes"
+    },
+    {
+      "addr": 34047,
+      "bytes": [
         153,
         55,
-        13,
-        136,
+        13
+      ],
+      "comment_inline": "Store into mc_reply_machine_id",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "mc_reply_machine_id,y",
+      "target": 3383,
+      "target_label": "mc_reply_machine_id"
+    },
+    {
+      "addr": 34050,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "Next byte (descending)",
+      "type": "code",
+      "mnemonic": "dey"
+    },
+    {
+      "addr": 34051,
+      "bytes": [
         16,
-        247,
+        247
+      ],
+      "comment_inline": "Loop until all 3 copied",
+      "type": "code",
+      "mnemonic": "bpl",
+      "operand": "copy_machine_id_loop",
+      "target": 34044,
+      "target_label": "copy_machine_id_loop"
+    },
+    {
+      "addr": 34053,
+      "bytes": [
         173,
         113,
-        13,
+        13
+      ],
+      "comment_inline": "Load station/config byte from &0D71",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "spool_control_flag",
+      "target": 3441,
+      "target_label": "spool_control_flag"
+    },
+    {
+      "addr": 34056,
+      "bytes": [
         141,
         54,
-        13,
-        169,
-        58,
-        133,
-        164,
-        169,
-        12,
-        133,
-        165,
-        208,
-        196,
-        198,
-        187,
-        157,
-        157,
-        157,
-        224,
-        224,
-        241
+        13
       ],
-      "comment_inline": "Unreferenced code-form fragment: builds the machine-type response buffer (len &1FC; copies 3-byte machine identity from &8027 to &0D37; buffer -> &0C3A) then branches into rx_imm_machine_type; not reached by traced flow",
+      "comment_inline": "Store into mc_reply_status",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "mc_reply_status",
+      "target": 3382,
+      "target_label": "mc_reply_status"
+    },
+    {
+      "addr": 34059,
+      "bytes": [
+        169,
+        58
+      ],
+      "comment_inline": "Reply buffer lo = &3A",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&3a"
+    },
+    {
+      "addr": 34061,
+      "bytes": [
+        133,
+        164
+      ],
+      "comment_inline": "Set open_port_buf",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "open_port_buf",
+      "target": 164,
+      "target_label": "open_port_buf"
+    },
+    {
+      "addr": 34063,
+      "bytes": [
+        169,
+        12
+      ],
+      "comment_inline": "Reply buffer hi = &0C",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&0c"
+    },
+    {
+      "addr": 34065,
+      "bytes": [
+        133,
+        165
+      ],
+      "comment_inline": "Set open_port_buf_hi",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "open_port_buf_hi",
+      "target": 165,
+      "target_label": "open_port_buf_hi"
+    },
+    {
+      "addr": 34067,
+      "bytes": [
+        208,
+        196
+      ],
+      "comment_inline": "Always taken: join common reply-send path",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "set_tx_reply_flag",
+      "target": 34009,
+      "target_label": "set_tx_reply_flag"
+    },
+    {
+      "addr": 34069,
+      "bytes": [
+        198
+      ],
+      "labels": [
+        "imm_op_dispatch_lo"
+      ],
+      "comment_inline": "ctrl &81: PEEK",
       "type": "byte",
       "values": [
-        169,
-        1,
-        133,
-        163,
-        169,
-        252,
-        133,
-        162,
-        160,
-        2,
-        185,
-        39,
-        128,
-        153,
-        55,
-        13,
-        136,
-        16,
-        247,
-        173,
-        113,
-        13,
-        141,
-        54,
-        13,
-        169,
-        58,
-        133,
-        164,
-        169,
-        12,
-        133,
-        165,
-        208,
-        196,
-        198,
-        187,
-        157,
-        157,
-        157,
-        224,
-        224,
+        198
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_peek - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_peek"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34070,
+      "bytes": [
+        187
+      ],
+      "comment_inline": "ctrl &82: POKE",
+      "type": "byte",
+      "values": [
+        187
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_poke - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_poke"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34071,
+      "bytes": [
+        157
+      ],
+      "comment_inline": "ctrl &83: JSR",
+      "type": "byte",
+      "values": [
+        157
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34072,
+      "bytes": [
+        157
+      ],
+      "comment_inline": "ctrl &84: UserProc",
+      "type": "byte",
+      "values": [
+        157
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34073,
+      "bytes": [
+        157
+      ],
+      "comment_inline": "ctrl &85: OSProc",
+      "type": "byte",
+      "values": [
+        157
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_exec - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_exec"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34074,
+      "bytes": [
+        224
+      ],
+      "comment_inline": "ctrl &86: HALT",
+      "type": "byte",
+      "values": [
+        224
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_halt_cont - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_halt_cont"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34075,
+      "bytes": [
+        224
+      ],
+      "comment_inline": "ctrl &87: CONTINUE",
+      "type": "byte",
+      "values": [
+        224
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_halt_cont - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_halt_cont"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34076,
+      "bytes": [
         241
+      ],
+      "comment_inline": "ctrl &88: machine-type",
+      "type": "byte",
+      "values": [
+        241
+      ],
+      "expressions": [
+        {
+          "text": "<(rx_imm_machine_type - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "rx_imm_machine_type"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
