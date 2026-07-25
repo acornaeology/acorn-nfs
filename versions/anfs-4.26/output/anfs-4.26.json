@@ -4506,7 +4506,16 @@
       "addr": 49143,
       "name": "fs_num_via_osargs",
       "title": "Read current filing-system number via OSARGS",
-      "description": "New in 4.26. Reads the current filing-system number with OSARGS\n(A=Y=0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is\ncurrent. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the\nclock OSWORD only under NetFS, leaving it for other filing systems otherwise.\nOccupies ROM-tail space that was &FF padding in 4.25; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors."
+      "description": "New in 4.26. Reads the current filing-system number with OSARGS\n(reason 0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is\ncurrent. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the\nclock OSWORD only under NetFS, leaving it for other filing systems otherwise.\n\nThe `PHA` / `PLX` pair is a deliberate register **relay**, not a save/restore.\nOn entry `A` holds the OSWORD sub-code; `PHA` stashes it on the stack so it\nsurvives the `OSARGS` call (which returns the FS number in `A` and need not\npreserve `X`). `PLX` then recovers the sub-code into `X` -- so the caller's\n`TXA` picks it up to dispatch on. One push/pull thus both protects the sub-code\nacross `OSARGS` and moves it from `A` to `X`. Zeroing `A` for the call via `TYA`\n(rather than `LDA #0`) likewise leans on `Y` already being 0 at entry.\n\nOccupies ROM-tail space that was &FF padding in 4.25; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors.",
+      "on_entry": {
+        "a": "OSWORD sub-code (relayed out in X)",
+        "y": "0 -- used as the OSARGS reason code"
+      },
+      "on_exit": {
+        "a": "current filing-system number",
+        "x": "OSWORD sub-code (relayed from entry A)",
+        "z": "set (EQ) if NetFS (5) is the current filing system"
+      }
     }
   ],
   "banners": [
@@ -80102,7 +80111,7 @@
       "bytes": [
         138
       ],
-      "comment_inline": "A = OSWORD sub-code",
+      "comment_inline": "A = OSWORD sub-code (relayed into X by fs_num_via_osargs)",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -122350,7 +122359,7 @@
       "labels": [
         "fs_num_via_osargs"
       ],
-      "comment_inline": "Save A",
+      "comment_inline": "Stash the OSWORD sub-code (in A) on the stack -- survives OSARGS",
       "xref_summaries": [
         "&bff7 referenced 1 time by &a89a"
       ],
@@ -122368,7 +122377,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "A = Y = 0 (OSARGS: read current FS number)",
+      "comment_inline": "A = 0 via Y (assumed 0): OSARGS reason 0 = read current FS number",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -122379,7 +122388,7 @@
         218,
         255
       ],
-      "comment_inline": "Call OSARGS Get length of file into zero page address X (A=2)",
+      "comment_inline": "OSARGS reason 0: current FS number -> A Get length of file into zero page address X (A=2)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osargs",
@@ -122391,7 +122400,7 @@
       "bytes": [
         250
       ],
-      "comment_inline": "Restore X",
+      "comment_inline": "Relay the stashed sub-code into X (not a restore) for the caller's TXA",
       "type": "code",
       "mnemonic": "plx"
     },
@@ -122425,7 +122434,7 @@
       "labels": [
         "hazel_minus_1"
       ],
-      "comment_inline": "Return with flags set",
+      "comment_inline": "Return: Z = NetFS selected, A = FS number, X = OSWORD sub-code",
       "xref_summaries": [
         "&bfff used as index base 2 times by &a9f3, &aa08"
       ],

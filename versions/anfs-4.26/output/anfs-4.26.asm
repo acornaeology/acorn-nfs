@@ -10988,7 +10988,7 @@ svc_8_osword_disp = svc_8_osword+1
 .osword_0e_dispatch
     jsr fs_num_via_osargs                                             ; a89a: 20 f7 bf     ..      ; Only act if NetFS is the current FS
     bne osword_0e_unclaimed                                           ; a89d: d0 0d       ..       ; Not NetFS: leave for other filing systems
-    txa                                                               ; a89f: 8a          .        ; A = OSWORD sub-code
+    txa                                                               ; a89f: 8a          .        ; A = OSWORD sub-code (relayed into X by fs_num_via_osargs)
     beq save_txcb_done                                                ; a8a0: f0 61       .a       ; Sub-code 0: write-back path
     dex                                                               ; a8a2: ca          .        ; Sub-code 1?
     beq save_txcb_and_convert                                         ; a8a3: f0 0c       ..       ; Yes: save-and-convert path
@@ -16402,24 +16402,42 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Read current filing-system number via OSARGS
 ;
-; New in 4.26. Reads the current filing-system number with OSARGS (A=Y=0) and compares it
-; with 5 (NetFS), returning Z=1 (EQ) when NetFS is current. osword_0e_dispatch uses this
-; to service the clock OSWORD only under NetFS, leaving it for other filing systems
-; otherwise. Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double
-; as the hazel_minus_2 / hazel_minus_1 indexing-base anchors.
+; New in 4.26. Reads the current filing-system number with OSARGS (reason 0) and compares
+; it with 5 (NetFS), returning Z=1 (EQ) when NetFS is current. osword_0e_dispatch uses
+; this to service the clock OSWORD only under NetFS, leaving it for other filing systems
+; otherwise.
+;
+; The PHA / PLX pair is a deliberate register relay, not a save/restore. On entry A holds
+; the OSWORD sub-code; PHA stashes it on the stack so it survives the OSARGS call (which
+; returns the FS number in A and need not preserve X). PLX then recovers the sub-code
+; into X -- so the caller's TXA picks it up to dispatch on. One push/pull thus both
+; protects the sub-code across OSARGS and moves it from A to X. Zeroing A for the call
+; via TYA (rather than LDA #0) likewise leans on Y already being 0 at entry.
+;
+; Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double as the
+; hazel_minus_2 / hazel_minus_1 indexing-base anchors.
+;
+; On Entry:
+;     A: OSWORD sub-code (relayed out in X)
+;     Y: 0 -- used as the OSARGS reason code
+;
+; On Exit:
+;     A: current filing-system number
+;     X: OSWORD sub-code (relayed from entry A)
+;     Z: set (EQ) if NetFS (5) is the current filing system
 ; &bff7 referenced 1 time by &a89a
 .fs_num_via_osargs
-    pha                                                               ; bff7: 48          H        ; Save A
-    tya                                                               ; bff8: 98          .        ; A = Y = 0 (OSARGS: read current FS number)
-    jsr osargs                                                        ; bff9: 20 da ff     ..      ; Call OSARGS  Get length of file into zero page address X (A=2)
-    plx                                                               ; bffc: fa          .        ; Restore X
+    pha                                                               ; bff7: 48          H        ; Stash the OSWORD sub-code (in A) on the stack -- survives OSARGS
+    tya                                                               ; bff8: 98          .        ; A = 0 via Y (assumed 0): OSARGS reason 0 = read current FS number
+    jsr osargs                                                        ; bff9: 20 da ff     ..      ; OSARGS reason 0: current FS number -> A  Get length of file into zero page address X (A=2)
+    plx                                                               ; bffc: fa          .        ; Relay the stashed sub-code into X (not a restore) for the caller's TXA
 .fs_num_check
 ; &bffe used as index base 3 times by &8b8f, &906f, &aca7
 hazel_minus_2 = fs_num_check+1
     cmp #5                                                            ; bffd: c9 05       ..       ; Current FS = 5 (NetFS)? (sets Z)
 ; &bfff used as index base 2 times by &a9f3, &aa08
 .hazel_minus_1
-    rts                                                               ; bfff: 60          `        ; Return with flags set
+    rts                                                               ; bfff: 60          `        ; Return: Z = NetFS selected, A = FS number, X = OSWORD sub-code
 .pydis_end
 
 save pydis_start, pydis_end

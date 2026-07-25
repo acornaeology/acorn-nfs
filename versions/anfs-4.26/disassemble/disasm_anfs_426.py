@@ -19983,7 +19983,7 @@ save-and-convert or write-back path.""",
 )
 d.comment(0xA89A, "Only act if NetFS is the current FS", align=Align.INLINE)
 d.comment(0xA89D, "Not NetFS: leave for other filing systems", align=Align.INLINE)
-d.comment(0xA89F, "A = OSWORD sub-code", align=Align.INLINE)
+d.comment(0xA89F, "A = OSWORD sub-code (relayed into X by fs_num_via_osargs)", align=Align.INLINE)
 d.comment(0xA8A0, "Sub-code 0: write-back path", align=Align.INLINE)
 d.comment(0xA8A2, "Sub-code 1?", align=Align.INLINE)
 d.comment(0xA8A3, "Yes: save-and-convert path", align=Align.INLINE)
@@ -20106,19 +20106,34 @@ d.subroutine(
     "fs_num_via_osargs",
     title="Read current filing-system number via OSARGS",
     description="""New in 4.26. Reads the current filing-system number with OSARGS
-(A=Y=0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is
+(reason 0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is
 current. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the
 clock OSWORD only under NetFS, leaving it for other filing systems otherwise.
+
+The `PHA` / `PLX` pair is a deliberate register **relay**, not a save/restore.
+On entry `A` holds the OSWORD sub-code; `PHA` stashes it on the stack so it
+survives the `OSARGS` call (which returns the FS number in `A` and need not
+preserve `X`). `PLX` then recovers the sub-code into `X` -- so the caller's
+`TXA` picks it up to dispatch on. One push/pull thus both protects the sub-code
+across `OSARGS` and moves it from `A` to `X`. Zeroing `A` for the call via `TYA`
+(rather than `LDA #0`) likewise leans on `Y` already being 0 at entry.
+
 Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double
 as the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)
 indexing-base anchors.""",
+    on_entry={"a": "OSWORD sub-code (relayed out in X)", "y": "0 -- used as the OSARGS reason code"},
+    on_exit={
+        "a": "current filing-system number",
+        "x": "OSWORD sub-code (relayed from entry A)",
+        "z": "set (EQ) if NetFS (5) is the current filing system",
+    },
 )
-d.comment(0xBFF7, "Save A", align=Align.INLINE)
-d.comment(0xBFF8, "A = Y = 0 (OSARGS: read current FS number)", align=Align.INLINE)
-d.comment(0xBFF9, "Call OSARGS", align=Align.INLINE)
-d.comment(0xBFFC, "Restore X", align=Align.INLINE)
+d.comment(0xBFF7, "Stash the OSWORD sub-code (in A) on the stack -- survives OSARGS", align=Align.INLINE)
+d.comment(0xBFF8, "A = 0 via Y (assumed 0): OSARGS reason 0 = read current FS number", align=Align.INLINE)
+d.comment(0xBFF9, "OSARGS reason 0: current FS number -> A", align=Align.INLINE)
+d.comment(0xBFFC, "Relay the stashed sub-code into X (not a restore) for the caller's TXA", align=Align.INLINE)
 d.comment(0xBFFD, "Current FS = 5 (NetFS)? (sets Z)", align=Align.INLINE)
-d.comment(0xBFFF, "Return with flags set", align=Align.INLINE)
+d.comment(0xBFFF, "Return: Z = NetFS selected, A = FS number, X = OSWORD sub-code", align=Align.INLINE)
 
 # &94C0: 4.26 fixes the 'Bad string' error path -- 4.25 read brk_ptr (LDA &FD)
 # instead of loading the error number, so the error was not set correctly.
