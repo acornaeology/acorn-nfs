@@ -2407,7 +2407,7 @@ land in the caller's address space rather than the FS-private
 HAZEL window.""",
 )
 
-d.label(0x841C, "imm_op_handler_lo_table")
+d.label(0x8494, "imm_op_handler_lo_table")
 
 d.comment(
     0x841D,
@@ -3905,7 +3905,7 @@ d.comment(0x893D, "No further carry", align=Align.INLINE)
 d.label(0x893F, "tube_tx_inc_byte3")
 
 d.comment(0x893F, "Carry into third byte", align=Align.INLINE)
-d.label(0x8940, "tx_length_table")
+d.label(0x85BB, "tx_length_table")
 
 d.comment(0x8941, "No further carry", align=Align.INLINE)
 d.label(0x8943, "tube_tx_inc_byte4")
@@ -3915,7 +3915,7 @@ d.comment(0x8945, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x8947, "check_tube_irq_loop")
 
 d.comment(0x8947, "Test SR1 IRQ for tight loop", align=Align.INLINE)
-d.label(0x8948, "tx_flags_table")
+d.label(0x85C3, "tx_flags_table")
 
 d.comment(0x894A, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x894C, "No IRQ: return, wait for next NMI", align=Align.INLINE)
@@ -19455,8 +19455,8 @@ d.comment(0xB688, "Status = 1?", align=Align.INLINE)
 d.comment(0xB69F, "Not 1 or 2: default to jammed", align=Align.INLINE)
 
 # --- manual coverage-gap annotations ---
-d.index_base(0xA75D, "boot_cmd_lo_table")
-d.index_base(0xBFE8, "hazel_minus_1a")
+d.index_base(0xA771, "boot_cmd_lo_table")
+d.index_base(0xBFE6, "hazel_minus_1a")
 d.index_base(0xBFE8, "hazel_idx_bases")
 # UNMAPPED: d.index_base(0xBFFE, "hazel_minus_2")
 # UNMAPPED: d.comment(0xBFFE, "Base for `hazel_minus_2,Y` reads/writes -- `&BFFE + Y` reaches into HAZEL for Y >= 2", align=Align.INLINE)
@@ -19901,6 +19901,21 @@ d.char_literal(0xBE92)
 d.char_literal(0xBED8)
 d.char_literal(0xBFE0)
 d.char_literal(0xBFE7)
+
+
+# Semantic names for auto-labelled data-table indexing bases (see 4.24).
+d.label(0x872F, "tx_ctrl_dispatch_lo")
+d.label(0x8DC1, "ps_template_base")
+d.label(0xA127, "cmos_attr_table")
+d.label(0xABE7, "bridge_err_table")
+d.label(0xB53A, "ps_print_template")
+d.index_base(0x8A20, "os_spool_flag_table")
+d.label(0x0D1C, "net_poll_status")
+d.index_base(0xA88C, "osword_pb_ready")
+d.label(0xA893, "osword_subcode_dispatch")
+# Anchors for the two bases inside instruction operand bytes.
+d.label(0x85C2, "tx_calc_tube_check")
+d.label(0x8492, "tube_overflow_restore_acccon")
 
 ir = d.disassemble()
 output = str(
