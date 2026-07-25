@@ -30,9 +30,9 @@ osbyte_close_spool_exec        = &77
 osbyte_read_cmos_ram           = &a1
 osbyte_spool_file_handle       = &c7
 osbyte_write_cmos_ram          = &a2
+osfind_close                   = &00
 osbyte_acknowledge_escape      = &7e
 osbyte_insert_input_buffer     = &99
-osfind_close                   = &00
 osword_nfs_info                = &13
 osbyte_make_fs_permanent       = &6d
 osbyte_scan_keyboard           = &79
@@ -117,9 +117,9 @@ ws_ptr_hi                   = &ac  ; Workspace indirect pointer (hi)
 table_idx                   = &ad  ; OSBYTE/palette table index counter
 ; &ad referenced 6 times by &a91e, &acd2, &b441, &b5f0, &b6e8, &b6f9
 work_ae                     = &ae  ; Indexed workspace (multi-purpose scratch)
-; &ae referenced 33 times by &a959, &a986, &b3de, &b472, &b650, &b6a9, &b6c2, &b6e0, &bd82, &bd9d, &bdb4, &bdbf, &bdd1, &bdd4, &bde8, &be0c, &be33, &be79, &beab, &beae, &bec3, &bec5, &bede, &bef9, &bf1d, &bf3d, &bf44, &bf4d, &bf51, &bf5c, &bf69, &bf8a, &bf9d; also used as index base 5 times by &9d63, &b474, &b65f, &b6ab, &b6c4
+; &ae referenced 39 times by &969a, &96a0, &96a9, &96b9, &96e2, &971b, &a959, &a986, &b3de, &b472, &b650, &b6a9, &b6c2, &b6e0, &bd82, &bd9d, &bdb4, &bdbf, &bdd1, &bdd4, &bde8, &be0c, &be33, &be79, &beab, &beae, &bec3, &bec5, &bede, &bef9, &bf1d, &bf3d, &bf44, &bf4d, &bf51, &bf5c, &bf69, &bf8a, &bf9d; also used as index base 5 times by &9d63, &b474, &b65f, &b6ab, &b6c4
 addr_work                   = &af  ; Address work byte for comparison (indexed)
-; &af referenced 4 times by &b3d8, &b55a, &bee2, &bf46; also used as index base 3 times by &93ef, &a25c, &a267
+; &af referenced 5 times by &969e, &b3d8, &b55a, &bee2, &bf46; also used as index base 3 times by &93ef, &a25c, &a267
 fs_load_addr                = &b0  ; WORK: load/start address (4 bytes)
 ; &b0 referenced 18 times by &8b52, &8b57, &8b5e, &9549, &958e, &99ac, &99c5, &99d8, &99f5, &9a00, &9a04, &a11e, &a121, &a2ab, &a301, &a307, &a328, &a357; also used as index base 6 times by &9c5e, &9d98, &9da1, &9daa, &ba43, &baea
 fs_load_addr_hi             = &b1
@@ -147,7 +147,7 @@ fs_options                  = &bb
 fs_block_offset             = &bc
 ; &bc referenced 17 times by &8da6, &93e6, &9d84, &9ed3, &9ee3, &9f0a, &9f57, &9f87, &9fbc, &9fe7, &a0a8, &a0bc, &a0f0, &a137, &a31f, &a61e, &b3cf
 fs_last_byte_flag           = &bd
-; &bd referenced 13 times by &8da2, &93de, &9c2e, &9cf0, &9eae, &9ed1, &9f30, &9f40, &9fb8, &9fdc, &a043, &a0a6, &a1e9; also used as index base 1 time by &a2c7
+; &bd referenced 14 times by &8da2, &93de, &9702, &9c2e, &9cf0, &9eae, &9ed1, &9f30, &9f40, &9fb8, &9fdc, &a043, &a0a6, &a1e9; also used as index base 1 time by &a2c7
 fs_crc_lo                   = &be
 ; &be referenced 31 times by &8b43, &8e49, &92bf, &92c6, &92cb, &92fb, &933f, &93e0, &9490, &94a4, &9519, &9520, &952d, &9c1b, &9e89, &a30e, &a3b8, &a480, &a490, &a49d, &a4b8, &a4c8, &a4d6, &a4da, &a4e9, &a611, &b2d9, &b3a9, &b3b4, &b3c1, &b3c9
 fs_crc_hi                   = &bf
@@ -181,16 +181,16 @@ osword_pb_ptr               = &f0
 osword_pb_ptr_hi            = &f1
 ; &f1 referenced 3 times by &8b82, &8be0, &ad86
 os_text_ptr                 = &f2
-; &f2 referenced 17 times by &8b41, &8c7d, &8d4c, &8e92, &93da, &95a1, &9631, &a605, &a60f, &b3ab, &be83, &bed5, &bf32, &bfad, &bfd4, &bfd9, &bfe4; also used as index base 2 times by &9bf9, &bf3a
+; &f2 referenced 18 times by &8b41, &8c7d, &8d4c, &8e92, &93da, &95a1, &9631, &9698, &a605, &a60f, &b3ab, &be83, &bed5, &bf32, &bfad, &bfd4, &bfd9, &bfe4; also used as index base 2 times by &9bf9, &bf3a
 os_text_ptr_hi              = &f3
-; &f3 referenced 6 times by &8b45, &93dc, &a613, &b3af, &bfb3, &bfd1
+; &f3 referenced 7 times by &8b45, &93dc, &969c, &a613, &b3af, &bfb3, &bfd1
 romsel_copy                 = &f4
 ; &f4 referenced 9 times by &807d, &8a17, &8ab1, &8ab9, &8ac4, &8b0f, &8cd4, &8f19, &9064
 osrdsc_ptr_hi               = &f7
 brk_ptr                     = &fd
 ; &fd referenced 1 time by &94c0
 escape_flag                 = &ff
-; &ff referenced 3 times by &988f, &98ed, &bd57
+; &ff referenced 4 times by &9725, &988f, &98ed, &bd57
 error_block                 = &0100
 ; &0100 referenced 7 times by &9910, &9954, &998f, &99d3, &99e9, &b88d, &b8ae; also used as index base 4 times by &9840, &9847, &bd24, &bd30
 error_text                  = &0101
@@ -225,6 +225,8 @@ evntv                       = &0220
 ; &0220 referenced 1 time by &8047
 netv                        = &0224
 ; &0224 referenced 1 time by &9053
+vdu_queue_count             = &026a
+; &026a referenced 1 time by &9733
 last_break_type             = &028d
 ; &028d referenced 1 time by &8f5d
 rom_type_table              = &02a0
@@ -326,7 +328,7 @@ ws_0d6a                     = &0d6a  ; ANFS workspace byte (role TBD).
 spool_buf_idx               = &0d6b  ; Spool / printer buffer write index.
 ; &0d6b referenced 6 times by &abb0, &ae88, &aeb6, &aebb, &aedc, &af09
 fs_flags                    = &0d6c  ; Filing-system status flags. Bit 7: NFS is currently the selected FS; cleared when another FS takes over.
-; &0d6c referenced 27 times by &83de, &8b75, &8b97, &8b9b, &8bd6, &8ea4, &8f64, &8f6c, &901d, &9020, &907a, &909e, &90a3, &9782, &97fb, &9900, &a430, &a436, &a4f2, &a6f0, &aa13, &aa18, &aa49, &aa63, &aa7d, &aa89, &aa90; also used as index base 3 times by &8fa5, &abb6, &abc3
+; &0d6c referenced 28 times by &83de, &8b75, &8b97, &8b9b, &8bd6, &8ea4, &8f64, &8f6c, &901d, &9020, &907a, &909e, &90a3, &9693, &9782, &97fb, &9900, &a430, &a436, &a4f2, &a6f0, &aa13, &aa18, &aa49, &aa63, &aa7d, &aa89, &aa90; also used as index base 3 times by &8fa5, &abb6, &abc3
 tx_retry_count              = &0d6d  ; Transmit retry count (default &FF = 255). Settable via OSWORD &13 PB[1].
 ; &0d6d referenced 2 times by &9b2c, &9b60
 rx_wait_timeout             = &0d6e  ; Receive wait timeout (default &28 = 40). Settable via OSWORD &13 PB[2].
@@ -479,9 +481,9 @@ hazel_txcb_network          = &c103  ; TXCB byte 3: multi-purpose. TXCB destinat
 hazel_txcb_lib              = &c104  ; TXCB byte 4: library handle terminator / transfer-length param 1.
 ; &c104 referenced 1 time by &a2e1; also used as index base 3 times by &a90e, &b242, &b2f8
 hazel_txcb_data             = &c105  ; TXCB byte 5: first reply-data byte / data start.
-; &c105 referenced 44 times by &8e5e, &954d, &9562, &957b, &9587, &9598, &9d06, &9d14, &9ddc, &9e59, &9e7b, &9efe, &9f12, &a007, &a028, &a02e, &a047, &a0b2, &a0e8, &a1b8, &a1c7, &a201, &a244, &a296, &a2f7, &a359, &a367, &a38c, &a51c, &a524, &a53d, &a5d9, &a6fc, &a8dd, &a8fb, &b0f5, &b16c, &b228, &b236, &b391, &b730, &b749, &ba77, &bcbb; also used as index base 25 times by &8de5, &8df5, &8e22, &9458, &9479, &9482, &94ed, &952f, &9538, &9c7c, &9e19, &9e65, &9ea2, &9f48, &a036, &a30b, &a32a, &a900, &b23d, &b251, &b2db, &b312, &b79e, &b7d3, &b7ed
+; &c105 referenced 45 times by &8e5e, &954d, &9562, &957b, &9587, &9598, &96c5, &9d06, &9d14, &9ddc, &9e59, &9e7b, &9efe, &9f12, &a007, &a028, &a02e, &a047, &a0b2, &a0e8, &a1b8, &a1c7, &a201, &a244, &a296, &a2f7, &a359, &a367, &a38c, &a51c, &a524, &a53d, &a5d9, &a6fc, &a8dd, &a8fb, &b0f5, &b16c, &b228, &b236, &b391, &b730, &b749, &ba77, &bcbb; also used as index base 27 times by &8de5, &8df5, &8e22, &9458, &9479, &9482, &94ed, &952f, &9538, &96d1, &96e5, &9c7c, &9e19, &9e65, &9ea2, &9f48, &a036, &a30b, &a32a, &a900, &b23d, &b251, &b2db, &b312, &b79e, &b7d3, &b7ed
 hazel_txcb_flag             = &c106  ; TXCB byte 6: direction flag.
-; &c106 referenced 22 times by &958a, &9e3c, &9f16, &9f77, &a00b, &a074, &a1b2, &a1d0, &a22f, &a2f1, &a346, &a362, &a374, &a38f, &a540, &a702, &a8d9, &a8ed, &b21c, &b396, &b738, &bcc3; also used as index base 7 times by &9d9c, &9e02, &a033, &a20b, &a274, &a5c6, &b77a
+; &c106 referenced 23 times by &958a, &96c8, &9e3c, &9f16, &9f77, &a00b, &a074, &a1b2, &a1d0, &a22f, &a2f1, &a346, &a362, &a374, &a38f, &a540, &a702, &a8d9, &a8ed, &b21c, &b396, &b738, &bcc3; also used as index base 7 times by &9d9c, &9e02, &a033, &a20b, &a274, &a5c6, &b77a
 hazel_txcb_count            = &c107  ; TXCB byte 7: data count / lock flag.
 ; &c107 referenced 10 times by &9fa8, &a07d, &a1d9, &a34d, &a708, &a8cb, &a8e3, &b223, &b733, &bcc9; also used as index base 3 times by &9f22, &9f80, &a380
 hazel_txcb_result           = &c108  ; TXCB byte 8: result / transfer-size lo.
@@ -547,7 +549,7 @@ hazel_fcb_status            = &c260  ; FCB parallel array (16 entries): per-chan
 hazel_cur_dir_handle        = &c270
 ; &c270 referenced 3 times by &a067, &a06f, &a5e5
 hazel_fs_lib_flags          = &c271  ; FS library / option flags. Bit 2 = auto-boot, bit 7 = library-directory pending. Cleared / tested by *Cat / *Lcat / *Ex / *Lex paths.
-; &c271 referenced 32 times by &8bbb, &8d17, &9504, &9511, &9550, &9555, &97a1, &a502, &a50f, &a55b, &a584, &a589, &a5a0, &a5aa, &a73c, &a746, &b127, &b12d, &b138, &b13c, &b152, &b156, &b177, &b180, &b1ba, &b219, &b26b, &b270, &b2c0, &b2c5, &b304, &b309; also used as index base 2 times by &aae9, &ab16
+; &c271 referenced 34 times by &8bbb, &8d17, &9504, &9511, &9550, &9555, &96f6, &96fd, &97a1, &a502, &a50f, &a55b, &a584, &a589, &a5a0, &a5aa, &a73c, &a746, &b127, &b12d, &b138, &b13c, &b152, &b156, &b177, &b180, &b1ba, &b219, &b26b, &b270, &b2c0, &b2c5, &b304, &b309; also used as index base 2 times by &aae9, &ab16
 hazel_fcb_slot_1            = &c272
 ; &c272 referenced 2 times by &a67c, &aa44
 hazel_fcb_slot_2            = &c273
@@ -638,9 +640,9 @@ gsinit                      = &ffc2
 gsread                      = &ffc5
 ; &ffc5 referenced 4 times by &9c08, &a5fe, &b445, &b5f4
 osfind                      = &ffce
-; &ffce referenced 3 times by &9a16, &bfa7, &bfb9
+; &ffce referenced 4 times by &9711, &9a16, &bfa7, &bfb9
 osbget                      = &ffd7
-; &ffd7 referenced 1 time by &bd94
+; &ffd7 referenced 2 times by &970a, &bd94
 osargs                      = &ffda
 ; &ffda referenced 2 times by &bef1, &bf2d
 osfile                      = &ffdd
@@ -650,9 +652,9 @@ osrdch                      = &ffe0
 osasci                      = &ffe3
 ; &ffe3 referenced 12 times by &8c11, &8c1d, &8c3d, &8c61, &922d, &9254, &9286, &b386, &b59d, &b61f, &be1a, &be6f
 osnewl                      = &ffe7
-; &ffe7 referenced 11 times by &8bfa, &8c43, &8c5a, &8d0a, &90fd, &967f, &a3d7, &b636, &b696, &bd5f, &be25
+; &ffe7 referenced 13 times by &8bfa, &8c43, &8c5a, &8d0a, &90fd, &967f, &9714, &9738, &a3d7, &b636, &b696, &bd5f, &be25
 oswrch                      = &ffee
-; &ffee referenced 1 time by &9232
+; &ffee referenced 2 times by &9232, &972c
 osword                      = &fff1
 ; &fff1 referenced 3 times by &a3cb, &a920, &b070
 osbyte                      = &fff4
@@ -3307,7 +3309,8 @@ os_spool_flag_table = nmi_return_inton+1
     equb <(dispatch_rts - 1)                                          ; 8a30: 89          .        ; &0B: no-op (RTS only)
     equb <(econet_restore - 1)                                        ; 8a31: 6d          m        ; &0C: svc &0B: NMI release
     equb <(wait_idle_and_reset - 1)                                   ; 8a32: da          .        ; &0D: svc &0D: wait idle and reset
-    equb <(svc_18_fs_select - 1), &91                                 ; 8a33: 6c 91       l.       ; &0E: svc &12: FS select
+    equb <(svc_18_fs_select - 1)                                      ; 8a33: 6c          l        ; &0E: svc &12: FS select
+    equb <(match_on_suffix - 1)                                       ; 8a34: 91          .        ; &0F: svc &18: interactive HELP 'ON ' matcher
     equb <(raise_y_to_c8 - 1)                                         ; 8a35: 02          .        ; &10: svc &21: static workspace claim
     equb <(set_rom_ws_page - 1)                                       ; 8a36: 17          .        ; &11: svc &22: dynamic workspace offer
     equb <(store_ws_page_count - 1)                                   ; 8a37: 09          .        ; &12: svc &23: top-of-static-workspace
@@ -3359,7 +3362,8 @@ os_spool_flag_table = nmi_return_inton+1
     equb >(dispatch_rts - 1)                                          ; 8a63: 8e          .        ; &0B: no-op (RTS only)
     equb >(econet_restore - 1)                                        ; 8a64: 80          .        ; &0C: svc &0B: NMI release
     equb >(wait_idle_and_reset - 1)                                   ; 8a65: 89          .        ; &0D: svc &0D: wait idle and reset
-    equb >(svc_18_fs_select - 1), &96                                 ; 8a66: 8b 96       ..       ; &0E: svc &12: FS select
+    equb >(svc_18_fs_select - 1)                                      ; 8a66: 8b          .        ; &0E: svc &12: FS select
+    equb >(match_on_suffix - 1)                                       ; 8a67: 96          .        ; &0F: svc &18: interactive HELP 'ON ' matcher
     equb >(raise_y_to_c8 - 1)                                         ; 8a68: 8f          .        ; &10: svc &21: static workspace claim
     equb >(set_rom_ws_page - 1)                                       ; 8a69: 8f          .        ; &11: svc &22: dynamic workspace offer
     equb >(store_ws_page_count - 1)                                   ; 8a6a: 8f          .        ; &12: svc &23: top-of-static-workspace
@@ -3680,7 +3684,7 @@ os_spool_flag_table = nmi_return_inton+1
 ;
 ; On Entry:
 ;     X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call when selection happens)
-; &8b75 referenced 6 times by &8ea9, &a9ee, &a9fc, &aae4, &aaf2, &ac6e
+; &8b75 referenced 7 times by &8ea9, &96b4, &a9ee, &a9fc, &aae4, &aaf2, &ac6e
 .ensure_fs_selected
     bit fs_flags                                                      ; 8b75: 2c 6c 0d    ,l.      ; Test fs_flags bit 7 (ANFS active)
     bmi rts_save_text_ptr                                             ; 8b78: 30 d0       0.       ; Already active: tail-RTS via shared exit
@@ -6570,66 +6574,137 @@ ps_template_base = load_transfer_params+1
 ; dispatch. Note the '!Help.' bytes immediately following are an unrelated inline string
 ; used by the filename walker, not part of this routine's body.
 .dispatch_help_command
+; &9688 used as index base 1 time by &96ce
+help_topic_template = dispatch_help_command+1
     jmp svc4_dispatch_lookup                                          ; 9687: 4c 6d 8c    Lm.      ; JMP svc4_dispatch_lookup -- shared parser dispatch
-    equs "!Help.*"                                                    ; 968a: 21 48 65... !He...   ; '!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)
+    equs "!Help.*"                                                    ; 968a: 21 48 65... !He...   ; '!Help.' filename template copied into the TXCB command buffer to open the help file
     equb &0d                                                          ; 9691: 0d          .     
-    equs "Z,l"                                                        ; 9692: 5a 2c 6c    Z,l   
-    equb &0d, &50, &19                                                ; 9695: 0d 50 19    .P.   
-    equb &a5, &f2                                                     ; 9698: a5 f2       ..       ; Copy os_text_ptr lo to work_ae
-    equb &85, &ae                                                     ; 969a: 85 ae       ..       ; Store -> work_ae
-    equb &a5, &f3                                                     ; 969c: a5 f3       ..       ; Copy os_text_ptr hi
-    equb &85, &af, &b1, &ae                                           ; 969e: 85 af b1... ......   ; Store -> addr_work
-    equs "IO)_"                                                       ; 96a2: 49 4f 29... IO)...
-    equb &d0, &09, &c8, &b1, &ae                                      ; 96a6: d0 09 c8... ......
-    equs "IN)_"                                                       ; 96ab: 49 4e 29... IN)...
-    equb &f0, &02, &7a, &60                                           ; 96af: f0 02 7a... ..z...   ; Equal: continue checking pattern
-    equb &5a                                                          ; 96b3: 5a          Z        ; Match: save Y
-    equb &20, &75, &8b                                                ; 96b4: 20 75 8b     u.      ; Ensure NFS is selected (auto-select if needed)
-.match_char_process
-    equb &7a                                                          ; 96b7: 7a          z     
-.loop_skip_non_spaces
-    equb &c8                                                          ; 96b8: c8          .        ; Advance Y to next char
-    equb &b1, &ae, &2c, &69, &97                                      ; 96b9: b1 ae 2c... ..,...   ; Read text byte at (work_ae)+Y
-    equb &c9, &20, &90, &03, &f0, &f4, &b8                            ; 96be: c9 20 90... . ....   ; Is it space?
-    equb &8c, &05, &c1                                                ; 96c5: 8c 05 c1    ...      ; Save Y as hazel_txcb_data (cmd buffer ptr)
-    equb &8c, &06, &c1                                                ; 96c8: 8c 06 c1    ...      ; Save Y as hazel_txcb_flag (cmd flag)
-    equb &a2, &01                                                     ; 96cb: a2 01       ..       ; X=1: index for template walk
+; ***************************************************************************************
+; svc &18: interactive-HELP 'ON ' matcher and help-topic printer
+;
+; Interactive-HELP service handler (svc &18). Reads the command line at os_text_ptr and
+; tests for the two-letter ON keyword (case-insensitive, EOR #'O' / EOR #'N' with AND
+; #&5F); if it is absent the call returns unclaimed. On a match it copies the '!Help.'
+; template plus the requested topic name into the TXCB command buffer, opens the
+; resulting help file and prints it byte-by-byte via osbget / oswrch, honouring paged
+; mode and Escape.
+.match_on_suffix
+    phy                                                               ; 9692: 5a          Z        ; Save caller's command-line index Y
+    bit fs_flags                                                      ; 9693: 2c 6c 0d    ,l.      ; Test fs_flags: bit 6 = interactive HELP armed
+    bvc help_return                                                   ; 9696: 50 19       P.       ; Bit 6 clear: not our HELP call -> return
+    lda os_text_ptr                                                   ; 9698: a5 f2       ..       ; Point work_ae at the command line (lo)
+    sta work_ae                                                       ; 969a: 85 ae       ..       ; Store command-line pointer lo
+    lda os_text_ptr_hi                                                ; 969c: a5 f3       ..       ; Command-line pointer hi
+    sta addr_work                                                     ; 969e: 85 af       ..       ; Store pointer hi (addr_work)
+    lda (work_ae),y                                                   ; 96a0: b1 ae       ..       ; Read first keyword character
+    eor #'O'                                                          ; 96a2: 49 4f       IO       ; Compare with 'O' ...
+    and #&5f                                                          ; 96a4: 29 5f       )_       ; ... case-insensitively (mask bit 5)
+    bne help_return                                                   ; 96a6: d0 09       ..       ; Not 'O': return (line is not '...ON ')
+    iny                                                               ; 96a8: c8          .        ; Advance to second character
+    lda (work_ae),y                                                   ; 96a9: b1 ae       ..       ; Read second keyword character
+    eor #'N'                                                          ; 96ab: 49 4e       IN       ; Compare with 'N' ...
+    and #&5f                                                          ; 96ad: 29 5f       )_       ; ... case-insensitively
+    beq help_on_matched                                               ; 96af: f0 02       ..       ; 'ON' matched: handle the topic
+; &96b1 referenced 3 times by &9696, &96a6, &971f
+.help_return
+    ply                                                               ; 96b1: 7a          z        ; Restore caller's Y
+    rts                                                               ; 96b2: 60          `        ; Return to service dispatcher
+; &96b3 referenced 1 time by &96af
+.help_on_matched
+    phy                                                               ; 96b3: 5a          Z        ; Save Y across FS-select
+    jsr ensure_fs_selected                                            ; 96b4: 20 75 8b     u.      ; Ensure NFS is the current filing system
+    ply                                                               ; 96b7: 7a          z        ; Restore Y
+; &96b8 referenced 1 time by &96c2
+.loop_skip_help_spaces
+    iny                                                               ; 96b8: c8          .        ; Advance to next command-line character
+    lda (work_ae),y                                                   ; 96b9: b1 ae       ..       ; Read it
+    bit always_set_v_byte                                             ; 96bb: 2c 69 97    ,i.      ; Set V (topic-char marker) from &9767 bit 6
+    cmp #' '                                                          ; 96be: c9 20       .        ; Space?
+    bcc help_build_cmd                                                ; 96c0: 90 03       ..       ; Control char (<space): stop scanning
+    beq loop_skip_help_spaces                                         ; 96c2: f0 f4       ..       ; Space: keep skipping leading spaces
+; &96c4 referenced 1 time by &9723
+.help_have_topic_char
+    clv                                                               ; 96c4: b8          .        ; Real char: clear V (topic present)
+; &96c5 referenced 1 time by &96c0
+.help_build_cmd
+    sty hazel_txcb_data                                               ; 96c5: 8c 05 c1    ...      ; Save command-buffer index
+    sty hazel_txcb_flag                                               ; 96c8: 8c 06 c1    ...      ; Save it as the command flag too
+    ldx #1                                                            ; 96cb: a2 01       ..       ; X=1: template-walk index
+; &96cd referenced 2 times by &96d8, &96df
 .loop_copy_command_suffix
-    equb &e8                                                          ; 96cd: e8          .        ; Advance template index
-    equb &bd, &88, &96                                                ; 96ce: bd 88 96    ...      ; Read template byte from help_topic_template+X
-    equb &9d, &05, &c1, &50, &07, &c9, &0d, &d0, &f3, &c8, &80, &17   ; 96d1: 9d 05 c1... ......   ; Store at hazel_txcb_data+X
-    equb &c9, &2e, &d0, &ec                                           ; 96dd: c9 2e d0... ......   ; Compare with '.' (template terminator)
+    inx                                                               ; 96cd: e8          .        ; Advance template index
+    lda help_topic_template,x                                         ; 96ce: bd 88 96    ...      ; Read '!Help.' template byte
+    sta hazel_txcb_data,x                                             ; 96d1: 9d 05 c1    ...      ; Store into the command buffer
+    bvc check_template_dot                                            ; 96d4: 50 07       P.       ; V clear (real topic char): check '.' terminator
+    cmp #&0d                                                          ; 96d6: c9 0d       ..       ; V set (line ended): CR?
+    bne loop_copy_command_suffix                                      ; 96d8: d0 f3       ..       ; Not CR: keep copying template
+    iny                                                               ; 96da: c8          .        ; Skip the CR
+    bra start_help_file_load                                          ; 96db: 80 17       ..       ; Open the help file
+; &96dd referenced 1 time by &96d4
+.check_template_dot
+    cmp #'.'                                                          ; 96dd: c9 2e       ..       ; Template terminator '.'?
+    bne loop_copy_command_suffix                                      ; 96df: d0 ec       ..       ; No: keep copying template
+; &96e1 referenced 1 time by &96ee
 .loop_copy_topic_name
-    equb &e8                                                          ; 96e1: e8          .        ; Advance dest index
-    equb &b1, &ae                                                     ; 96e2: b1 ae       ..       ; Read topic char at (work_ae),Y
-    equb &c8                                                          ; 96e4: c8          .        ; Advance source
-.loop_store_topic_char
-    equb &9d, &05, &c1                                                ; 96e5: 9d 05 c1    ...      ; Store at hazel_txcb_data+X
-    equb &c9, &0d                                                     ; 96e8: c9 0d       ..       ; CR? (end of name)
-    equb &f0, &08                                                     ; 96ea: f0 08       ..       ; Yes: take start_help_file_load path (open file)
-    equb &c9, &20                                                     ; 96ec: c9 20       .        ; Space? (terminator)
-    equb &d0, &f1                                                     ; 96ee: d0 f1       ..       ; No: continue copying
-    equb &a9, &0d                                                     ; 96f0: a9 0d       ..       ; A=&0D: replace space with CR
-    equb &80, &f1, &5a                                                ; 96f2: 80 f1 5a    ..Z      ; BRA back to store the CR
+    inx                                                               ; 96e1: e8          .        ; Advance destination index
+    lda (work_ae),y                                                   ; 96e2: b1 ae       ..       ; Read topic-name character
+    iny                                                               ; 96e4: c8          .        ; Advance source index
+; &96e5 referenced 1 time by &96f2
+.store_topic_char
+    sta hazel_txcb_data,x                                             ; 96e5: 9d 05 c1    ...      ; Store topic character
+    cmp #&0d                                                          ; 96e8: c9 0d       ..       ; CR (end of name)?
+    beq start_help_file_load                                          ; 96ea: f0 08       ..       ; Yes: open the help file
+    cmp #' '                                                          ; 96ec: c9 20       .        ; Space (terminator)?
+    bne loop_copy_topic_name                                          ; 96ee: d0 f1       ..       ; No: keep copying the name
+    lda #&0d                                                          ; 96f0: a9 0d       ..       ; Replace trailing space with CR
+    bra store_topic_char                                              ; 96f2: 80 f1       ..       ; Store the CR terminator
+; &96f4 referenced 2 times by &96db, &96ea
 .start_help_file_load
-    equb &e8                                                          ; 96f5: e8          .        ; Account for last char
-    equb &ad, &71, &c2                                                ; 96f6: ad 71 c2    .q.      ; Read fs_lib_flags (hazel_fs_lib_flags)
-    equb &29, &3f                                                     ; 96f9: 29 3f       )?       ; Preserve low bits, clear high bits
-    equb &09, &80                                                     ; 96fb: 09 80       ..       ; Set bit 7 (load-pending flag)
-    equb &8d, &71, &c2                                                ; 96fd: 8d 71 c2    .q.      ; Store back to fs_lib_flags
-    equb &a9, &40                                                     ; 9700: a9 40       .@       ; A=&40: load mode flag
-    equb &85, &bd                                                     ; 9702: 85 bd       ..       ; Store as fs_last_byte_flag
-    equb &20, &16, &a0, &a8                                           ; 9704: 20 16 a0...  .....   ; Open the help-topic file
-    equb &f0, &0d                                                     ; 9708: f0 0d       ..       ; Y=0: open failed -> return
+    phy                                                               ; 96f4: 5a          Z        ; Save command-buffer index
+    inx                                                               ; 96f5: e8          .        ; Account for the last character
+    lda hazel_fs_lib_flags                                            ; 96f6: ad 71 c2    .q.      ; Read fs_lib_flags
+    and #&3f                                                          ; 96f9: 29 3f       )?       ; Clear the top two bits
+    ora #&80                                                          ; 96fb: 09 80       ..       ; Set bit 7 (load pending)
+    sta hazel_fs_lib_flags                                            ; 96fd: 8d 71 c2    .q.      ; Store fs_lib_flags back
+    lda #&40                                                          ; 9700: a9 40       .@       ; A=&40: load-mode flag
+    sta fs_last_byte_flag                                             ; 9702: 85 bd       ..       ; Set last-byte flag
+    jsr send_open_file_request                                        ; 9704: 20 16 a0     ..      ; Open the help-topic file
+    tay                                                               ; 9707: a8          .        ; File handle -> Y (0 = open failed)
+    beq help_next_topic                                               ; 9708: f0 0d       ..       ; Open failed: skip to next topic
+; &970a referenced 3 times by &9731, &9736, &973b
 .loop_print_help_byte
-    equb &20, &d7, &ff                                                ; 970a: 20 d7 ff     ..   
-    equb &90, &16                                                     ; 970d: 90 16       ..       ; C clear: byte read OK -> print it
-    equb &a9, &00, &20, &ce, &ff, &20, &e7, &ff, &7a, &88, &88, &c8   ; 970f: a9 00 20... .. ...
-    equb &b1, &ae, &c9, &20, &90, &90, &f0, &f7, &80, &9f, &24, &ff   ; 971b: b1 ae c9... ......   ; A=0: OSFIND close mode
-    equb &10, &03, &4c, &5f, &bd, &20, &ee, &ff                       ; 9727: 10 03 4c... ..L...   ; Bit 7 clear: not escaping, continue
-    equb &c9, &0d, &d0, &d7, &ae, &6a, &02                            ; 972f: c9 0d d0... ......   ; Compare with CR
-    equb &d0, &d2, &20, &e7, &ff                                      ; 9736: d0 d2 20... .. ...   ; Non-zero: paged mode pending -> handle Escape
-    equb &80, &cd                                                     ; 973b: 80 cd       ..       ; BRA back to read next byte
+    jsr osbget                                                        ; 970a: 20 d7 ff     ..      ; Read next byte from the help file
+    bcc help_print_start                                              ; 970d: 90 16       ..       ; C clear: byte read OK -> print it
+    lda #osfind_close                                                 ; 970f: a9 00       ..       ; A=0: OSFIND close mode
+    jsr osfind                                                        ; 9711: 20 ce ff     ..      ; osfind: close one or all files
+    jsr osnewl                                                        ; 9714: 20 e7 ff     ..      ; Print a newline after the file
+; &9717 referenced 1 time by &9708
+.help_next_topic
+    ply                                                               ; 9717: 7a          z        ; Restore command-line index
+    dey                                                               ; 9718: 88          .        ; Back up over the first consumed char
+    dey                                                               ; 9719: 88          .        ; Back up over the second consumed char
+; &971a referenced 1 time by &9721
+.loop_help_next_topic
+    iny                                                               ; 971a: c8          .        ; Advance to next character
+    lda (work_ae),y                                                   ; 971b: b1 ae       ..       ; Read it
+    cmp #' '                                                          ; 971d: c9 20       .        ; Space?
+    bcc help_return                                                   ; 971f: 90 90       ..       ; Control char: no more topics -> return
+    beq loop_help_next_topic                                          ; 9721: f0 f7       ..       ; Space: keep scanning
+    bra help_have_topic_char                                          ; 9723: 80 9f       ..       ; Real char: process the next topic
+; &9725 referenced 1 time by &970d
+.help_print_start
+    bit escape_flag                                                   ; 9725: 24 ff       $.       ; Check the Escape flag
+    bpl help_emit_char                                                ; 9727: 10 03       ..       ; Bit 7 clear: not escaping -> print
+    jmp escape_error_close                                            ; 9729: 4c 5f bd    L_.      ; Escape pressed: abort with error
+; &972c referenced 1 time by &9727
+.help_emit_char
+    jsr oswrch                                                        ; 972c: 20 ee ff     ..      ; Print the byte
+    cmp #&0d                                                          ; 972f: c9 0d       ..       ; Was it a CR?
+    bne loop_print_help_byte                                          ; 9731: d0 d7       ..       ; No: read the next byte
+    ldx vdu_queue_count                                               ; 9733: ae 6a 02    .j.      ; CR: read paged-mode line count
+    bne loop_print_help_byte                                          ; 9736: d0 d2       ..       ; Non-zero: no pause, continue
+    jsr osnewl                                                        ; 9738: 20 e7 ff     ..      ; Emit newline
+    bra loop_print_help_byte                                          ; 973b: 80 cd       ..       ; Loop for the next byte
 ; ***************************************************************************************
 ; Set up open receive for FS reply on port &90
 ;
@@ -6712,7 +6787,7 @@ ps_template_base = load_transfer_params+1
     equb &00                                                          ; 9766: 00          .        ; Offset 3: txcb_dest hi placeholder (overwritten with hazel_fs_station[1])
     equb &00                                                          ; 9767: 00          .        ; Offset 4: txcb_start lo = 0
     equb &c1                                                          ; 9768: c1          .        ; Offset 5: txcb_start hi = &C1 (data buffer starts at &C100 in HAZEL)
-; &9769 referenced 20 times by &8c8e, &9207, &993d, &9a6a, &9e2e, &a018, &a3d1, &a4ce, &a670, &a69b, &a6d2, &ae24, &b35c, &b41e, &b5a0, &b630, &b6c8, &b92b, &b969, &bc54
+; &9769 referenced 21 times by &8c8e, &9207, &96bb, &993d, &9a6a, &9e2e, &a018, &a3d1, &a4ce, &a670, &a69b, &a6d2, &ae24, &b35c, &b41e, &b5a0, &b630, &b6c8, &b92b, &b969, &bc54
 .always_set_v_byte
     equb &ff                                                          ; 9769: ff          .        ; Offset 6: padding &FF; doubles as the always_set_v_byte BIT $abs target
 .bit_test_ff
@@ -8916,6 +8991,7 @@ bad_prefix_table = bad_str_anchor+1
     jsr copy_arg_to_buf                                               ; a013: 20 d6 b2     ..      ; Copy argument to TX buffer
 ; ***************************************************************************************
 ; Send file open request with V flag set for directory check.
+; &a016 referenced 1 time by &9704
 .send_open_file_request
     ldy #6                                                            ; a016: a0 06       ..       ; Y=6: open file command
     bit always_set_v_byte                                             ; a018: 2c 69 97    ,i.      ; Set V flag (skip directory check)
@@ -15653,6 +15729,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; &bd5c referenced 1 time by &bd59
 .error_escape_pressed
     jsr close_ws_file                                                 ; bd5c: 20 a3 bf     ..      ; Close the open file
+; &bd5f referenced 1 time by &9729
 .escape_error_close
     jsr osnewl                                                        ; bd5f: 20 e7 ff     ..      ; Print newline
     lda #osbyte_acknowledge_escape                                    ; bd62: a9 7e       .~       ; Acknowledge escape condition
@@ -16265,24 +16342,24 @@ save pydis_start, pydis_end
 
 ; Label references by decreasing frequency:
 ;     nfs_workspace:                           95
-;     hazel_txcb_data:                         69
+;     hazel_txcb_data:                         72
 ;     fs_options:                              55
 ;     net_rx_ptr:                              52
 ;     ws_ptr_hi:                               48
 ;     econet_control23_or_status2:             46
+;     work_ae:                                 44
 ;     fs_load_addr_2:                          38
-;     work_ae:                                 38
 ;     econet_data_continue_frame:              37
+;     hazel_fs_lib_flags:                      36
 ;     net_tx_ptr:                              36
-;     hazel_fs_lib_flags:                      34
 ;     osword_flag:                             34
 ;     port_ws_offset:                          34
 ;     print_inline:                            34
 ;     fs_error_ptr:                            33
 ;     econet_control1_or_status1:              31
 ;     fs_crc_lo:                               31
-;     fs_flags:                                30
-;     hazel_txcb_flag:                         29
+;     fs_flags:                                31
+;     hazel_txcb_flag:                         30
 ;     osbyte:                                  29
 ;     net_frame_flags:                         27
 ;     hazel_fcb_status:                        25
@@ -16291,12 +16368,12 @@ save pydis_start, pydis_end
 ;     save_net_tx_cb:                          24
 ;     hazel_fcb_flags:                         22
 ;     port_buf_len:                            22
+;     always_set_v_byte:                       21
 ;     acccon:                                  20
-;     always_set_v_byte:                       20
 ;     econet_flags:                            20
 ;     error_text:                              20
+;     os_text_ptr:                             20
 ;     hazel_fcb_addr_lo:                       19
-;     os_text_ptr:                             19
 ;     osbyte_a1:                               19
 ;     fs_block_offset:                         17
 ;     fs_work_5:                               17
@@ -16304,17 +16381,18 @@ save pydis_start, pydis_end
 ;     hazel_parse_buf:                         17
 ;     hazel_fcb_addr_mid:                      16
 ;     ws_page:                                 16
+;     fs_last_byte_flag:                       15
 ;     mask_owner_access:                       15
 ;     nmi_tx_block:                            15
 ;     open_port_buf_hi:                        15
 ;     svc_state:                               15
-;     fs_last_byte_flag:                       14
 ;     hazel_cur_fcb_index:                     14
 ;     hazel_fcb_state_byte:                    14
 ;     need_release_tube:                       14
 ;     hazel_txcb_count:                        13
 ;     net_tx_ptr_hi:                           13
 ;     open_port_buf:                           13
+;     osnewl:                                  13
 ;     port_buf_len_hi:                         13
 ;     print_inline_no_spool:                   13
 ;     set_nmi_vector:                          13
@@ -16331,7 +16409,6 @@ save pydis_start, pydis_end
 ;     hazel_fs_network:                        11
 ;     net_rx_ptr_hi:                           11
 ;     nmi_error_dispatch:                      11
-;     osnewl:                                  11
 ;     print_char_no_spool:                     11
 ;     tx_result_fail:                          11
 ;     hazel_fcb_addr_hi:                       10
@@ -16348,17 +16425,19 @@ save pydis_start, pydis_end
 ;     tx_src_stn:                               9
 ;     txcb_end:                                 9
 ;     ws_0d6a:                                  9
+;     addr_work:                                8
 ;     error_msg_table:                          8
 ;     hazel_txcb_result:                        8
 ;     tube_addr_data_dispatch:                  8
 ;     tx_complete_flag:                         8
-;     addr_work:                                7
 ;     alloc_fcb_slot:                           7
+;     ensure_fs_selected:                       7
 ;     finalise_and_return:                      7
 ;     fs_load_addr_hi:                          7
 ;     hazel_fcb_offset_save:                    7
 ;     hazel_txcb_station:                       7
 ;     match_station_net:                        7
+;     os_text_ptr_hi:                           7
 ;     reject_reply:                             7
 ;     rx_buf_offset:                            7
 ;     tube_data_register_3:                     7
@@ -16372,7 +16451,6 @@ save pydis_start, pydis_end
 ;     bridge_status:                            6
 ;     cond_save_error_code:                     6
 ;     discard_reset_rx:                         6
-;     ensure_fs_selected:                       6
 ;     error_overflow:                           6
 ;     escapable:                                6
 ;     fs_crc_hi:                                6
@@ -16384,7 +16462,6 @@ save pydis_start, pydis_end
 ;     hazel_fs_station:                         6
 ;     hazel_quote_mode:                         6
 ;     nmi_rti:                                  6
-;     os_text_ptr_hi:                           6
 ;     print_newline_no_spool:                   6
 ;     prot_status:                              6
 ;     pydis_end:                                6
@@ -16433,6 +16510,7 @@ save pydis_start, pydis_end
 ;     enable_net_nmis:                          4
 ;     error_bad_command:                        4
 ;     error_inline:                             4
+;     escape_flag:                              4
 ;     exec_addr_lo:                             4
 ;     get_ws_page:                              4
 ;     gsinit:                                   4
@@ -16445,6 +16523,7 @@ save pydis_start, pydis_end
 ;     loop_scan_fcb_down:                       4
 ;     net_poll_status:                          4
 ;     nmi_tx_block_hi:                          4
+;     osfind:                                   4
 ;     parse_access_prefix:                      4
 ;     poll_entry_done:                          4
 ;     port_match_found:                         4
@@ -16480,7 +16559,6 @@ save pydis_start, pydis_end
 ;     err_bad_station_num:                      3
 ;     error_bad_filename:                       3
 ;     error_bad_hex_value:                      3
-;     escape_flag:                              3
 ;     find_matching_fcb:                        3
 ;     find_station_bit3:                        3
 ;     handle_invalid:                           3
@@ -16498,9 +16576,11 @@ save pydis_start, pydis_end
 ;     hazel_pass_counter:                       3
 ;     hazel_txcb_port:                          3
 ;     hazel_txcb_tx_status:                     3
+;     help_return:                              3
 ;     inx16:                                    3
 ;     jmp_restore_fs_ctx:                       3
 ;     load_ps_server_addr:                      3
+;     loop_print_help_byte:                     3
 ;     loop_ps_delay:                            3
 ;     match_fs_cmd:                             3
 ;     match_rx_code:                            3
@@ -16512,7 +16592,6 @@ save pydis_start, pydis_end
 ;     osbyte_a_copy:                            3
 ;     osbyte_x0:                                3
 ;     oscli:                                    3
-;     osfind:                                   3
 ;     osword:                                   3
 ;     osword_pb_ptr_hi:                         3
 ;     parse_cmd_arg_y0:                         3
@@ -16657,6 +16736,7 @@ save pydis_start, pydis_end
 ;     lookup_cat_entry_0:                       2
 ;     lookup_chan_by_char:                      2
 ;     loop_copy_arg_char:                       2
+;     loop_copy_command_suffix:                 2
 ;     loop_copy_ws_template:                    2
 ;     loop_drain_printer_buf:                   2
 ;     loop_dump_line:                           2
@@ -16681,8 +16761,10 @@ save pydis_start, pydis_end
 ;     next_dec_char:                            2
 ;     next_fcb_entry:                           2
 ;     osargs:                                   2
+;     osbget:                                   2
 ;     osrdch:                                   2
 ;     osword_11_done:                           2
+;     oswrch:                                   2
 ;     pad_with_spaces:                          2
 ;     parse_dump_range:                         2
 ;     parse_quoted_arg:                         2
@@ -16755,6 +16837,7 @@ save pydis_start, pydis_end
 ;     skip_sep_spaces:                          2
 ;     stack_page_3:                             2
 ;     stack_page_4:                             2
+;     start_help_file_load:                     2
 ;     start_wipe_pass:                          2
 ;     store_bridge_station:                     2
 ;     store_char_uppercase:                     2
@@ -16858,6 +16941,7 @@ save pydis_start, pydis_end
 ;     check_spool_state:                        1
 ;     check_station_filter:                     1
 ;     check_tdra_status:                        1
+;     check_template_dot:                       1
 ;     check_urd_prefix:                         1
 ;     check_wipe_attr:                          1
 ;     check_wipe_dir:                           1
@@ -16987,6 +17071,7 @@ save pydis_start, pydis_end
 ;     error_escape_pressed:                     1
 ;     error_hex_overflow:                       1
 ;     error_invalid_chan:                       1
+;     escape_error_close:                       1
 ;     evntv:                                    1
 ;     ex_print_col_sep:                         1
 ;     ex_set_lib_flag:                          1
@@ -17038,8 +17123,15 @@ save pydis_start, pydis_end
 ;     hazel_txcb_end:                           1
 ;     hazel_txcb_objtype:                       1
 ;     hazel_xfer_init_zeros:                    1
+;     help_build_cmd:                           1
 ;     help_dispatch_setup:                      1
+;     help_emit_char:                           1
+;     help_have_topic_char:                     1
+;     help_next_topic:                          1
+;     help_on_matched:                          1
 ;     help_print_nfs_cmds:                      1
+;     help_print_start:                         1
+;     help_topic_template:                      1
 ;     help_wrap_if_serial:                      1
 ;     imm_op_build_reply:                       1
 ;     imm_op_discard:                           1
@@ -17161,6 +17253,7 @@ save pydis_start, pydis_end
 ;     loop_copy_text_ptr:                       1
 ;     loop_copy_to_host:                        1
 ;     loop_copy_to_ws:                          1
+;     loop_copy_topic_name:                     1
 ;     loop_copy_tx_hdr:                         1
 ;     loop_copy_txcb_init:                      1
 ;     loop_copy_vset_stn:                       1
@@ -17183,6 +17276,7 @@ save pydis_start, pydis_end
 ;     loop_find_name_end:                       1
 ;     loop_find_rx_slot:                        1
 ;     loop_gsread_char:                         1
+;     loop_help_next_topic:                     1
 ;     loop_inc_dump_addr:                       1
 ;     loop_indent_spaces:                       1
 ;     loop_init_txcb:                           1
@@ -17254,6 +17348,7 @@ save pydis_start, pydis_end
 ;     loop_shift_str_left:                      1
 ;     loop_skip_filename:                       1
 ;     loop_skip_fn_spaces:                      1
+;     loop_skip_help_spaces:                    1
 ;     loop_skip_hex_spaces:                     1
 ;     loop_skip_spaces:                         1
 ;     loop_skip_to_next:                        1
@@ -17311,7 +17406,6 @@ save pydis_start, pydis_end
 ;     osargs_read_op:                           1
 ;     osargs_store_ptr_lo:                      1
 ;     osargs_write_ptr:                         1
-;     osbget:                                   1
 ;     osbyte_a2_value_tya:                      1
 ;     osbyte_x0_y0:                             1
 ;     osbyte_yff:                               1
@@ -17328,7 +17422,6 @@ save pydis_start, pydis_end
 ;     osword_pb_ready:                          1
 ;     osword_store_svc_state:                   1
 ;     osword_subcode_dispatch:                  1
-;     oswrch:                                   1
 ;     page_boundary_restore:                    1
 ;     parse_cdir_size:                          1
 ;     parse_fs_dot_dir:                         1
@@ -17472,6 +17565,7 @@ save pydis_start, pydis_end
 ;     send_close_request:                       1
 ;     send_delete_request:                      1
 ;     send_info_request:                        1
+;     send_open_file_request:                   1
 ;     send_osargs_request:                      1
 ;     send_osbput_data:                         1
 ;     send_pass_to_fs:                          1
@@ -17564,6 +17658,7 @@ save pydis_start, pydis_end
 ;     store_stack_byte:                         1
 ;     store_station_and_flush:                  1
 ;     store_station_lo:                         1
+;     store_topic_char:                         1
 ;     store_tx_ctrl_byte:                       1
 ;     store_tx_ptr_hi:                          1
 ;     store_txcb_init_byte:                     1
@@ -17627,6 +17722,7 @@ save pydis_start, pydis_end
 ;     validate_handle:                          1
 ;     validate_station:                         1
 ;     vdu_display_start_hi:                     1
+;     vdu_queue_count:                          1
 ;     vdu_screen_mode:                          1
 ;     vec_filev:                                1
 ;     vec_fscv:                                 1
@@ -17654,11 +17750,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14234 bytes (87%)
-;     Data                     = 2150 bytes (13%)
+;     Code                     = 14405 bytes (88%)
+;     Data                     = 1979 bytes (12%)
 ;
-;     Number of instructions   = 7012
-;     Number of data bytes     = 770 bytes
+;     Number of instructions   = 7098
+;     Number of data bytes     = 610 bytes
 ;     Number of data words     = 86 bytes
-;     Number of string bytes   = 1294 bytes
-;     Number of strings        = 152
+;     Number of string bytes   = 1283 bytes
+;     Number of strings        = 149
