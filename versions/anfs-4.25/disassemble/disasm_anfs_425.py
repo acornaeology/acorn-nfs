@@ -152,23 +152,23 @@ d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
 # 4.25 dispatch-table bases (read from each dispatcher's operand; the
 # tables hold shifted handler addresses so they don't opcode-map).
-# UNMAPPED: for idx, name, role in _netv_dispatch_entries:
-# UNMAPPED:     d.expr(0xAD40 + idx, lo(sym(name) - 1))
-# UNMAPPED (orphan body):     d.expr(0xAD4B + idx, hi(sym(name) - 1))
-# UNMAPPED:     d.comment(0xAD40 + idx, "reason &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
-# UNMAPPED (orphan body):     d.comment(0xAD4B + idx, "reason &%02X: %s" % (idx, name), align=Align.INLINE)
-# UNMAPPED: for idx, name, role in _osword_13_entries:
-# UNMAPPED:     d.expr(0xA9C8 + idx, lo(sym(name) - 1))
-# UNMAPPED (orphan body):     d.expr(0xA9DC + idx, hi(sym(name) - 1))
-# UNMAPPED:     d.comment(0xA9C8 + idx, "sub &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
-# UNMAPPED (orphan body):     d.comment(0xA9DC + idx, "sub &%02X: %s" % (idx, name), align=Align.INLINE)
+for idx, name, role in _netv_dispatch_entries:
+    d.expr(0xAD42 + idx, lo(sym(name) - 1))
+    d.expr(0xAD4B + idx, hi(sym(name) - 1))
+    d.comment(0xAD42 + idx, "reason &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
+    d.comment(0xAD4B + idx, "reason &%02X: %s" % (idx, name), align=Align.INLINE)
+for idx, name, role in _osword_13_entries:
+    d.expr(0xA9CA + idx, lo(sym(name) - 1))
+    d.expr(0xA9DC + idx, hi(sym(name) - 1))
+    d.comment(0xA9CA + idx, "sub &%02X: %s (%s)" % (idx, name, role), align=Align.INLINE)
+    d.comment(0xA9DC + idx, "sub &%02X: %s" % (idx, name), align=Align.INLINE)
 
-# UNMAPPED: for idx, target, name, desc in _svc_dispatch_entries:
-# UNMAPPED (orphan body):     if name is not None:
-# UNMAPPED (orphan body):         d.expr(0x8A25 + idx, lo(sym(name) - 1))
-# UNMAPPED:         d.expr(0x8A56 + idx, hi(sym(name) - 1))
-# UNMAPPED (orphan body):     d.comment(0x8A25 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
-# UNMAPPED:     d.comment(0x8A56 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
+for idx, target, name, desc in _svc_dispatch_entries:
+    if name is not None:
+        d.expr(0x8A25 + idx, lo(sym(name) - 1))
+        d.expr(0x8A58 + idx, hi(sym(name) - 1))
+    d.comment(0x8A25 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
+    d.comment(0x8A58 + idx, "&%02X: %s" % (idx, desc), align=Align.INLINE)
 d.index_base(0x0001, "zp_ptr_hi", length=1, group="zero_page")
 
 d.index_base(0x0002, "zp_work_2", length=1, group="zero_page")

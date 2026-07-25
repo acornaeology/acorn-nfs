@@ -24318,36 +24318,12 @@
     {
       "addr": 35365,
       "bytes": [
-        12,
-        137,
-        44,
-        41,
-        237,
-        104,
-        41,
-        137,
-        241,
-        86,
-        119,
-        137,
-        109,
-        218,
-        108,
-        145,
-        2,
-        23,
-        9,
-        138,
-        140,
-        163,
-        81,
-        160,
-        48,
-        174
+        12
       ],
       "labels": [
         "svc_dispatch_lo"
       ],
+      "comment_inline": "&00: placeholder (never reached)",
       "xref_summaries": [
         "&8a25 used as index base 1 time by &8e84"
       ],
@@ -24359,155 +24335,1442 @@
       ],
       "type": "byte",
       "values": [
-        12,
-        137,
-        44,
-        41,
-        237,
-        104,
-        41,
-        137,
-        241,
-        86,
-        119,
-        137,
-        109,
-        218,
+        12
+      ]
+    },
+    {
+      "addr": 35366,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "&01: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35367,
+      "bytes": [
+        44
+      ],
+      "comment_inline": "&02: workspace claim helper (CMOS bit 0)",
+      "type": "byte",
+      "values": [
+        44
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_dispatch_idx_2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_dispatch_idx_2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35368,
+      "bytes": [
+        41
+      ],
+      "comment_inline": "&03: svc &02: private workspace pages",
+      "type": "byte",
+      "values": [
+        41
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_2_priv_ws - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_2_priv_ws"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35369,
+      "bytes": [
+        237
+      ],
+      "comment_inline": "&04: svc &03: auto-boot",
+      "type": "byte",
+      "values": [
+        237
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35370,
+      "bytes": [
+        104
+      ],
+      "comment_inline": "&05: svc &04: unrecognised *command",
+      "type": "byte",
+      "values": [
+        104
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_4_star_command - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35371,
+      "bytes": [
+        41
+      ],
+      "comment_inline": "&06: svc &05: IRQ check",
+      "type": "byte",
+      "values": [
+        41
+      ],
+      "expressions": [
+        {
+          "text": "<(svc5_irq_check - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35372,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "&07: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35373,
+      "bytes": [
+        241
+      ],
+      "comment_inline": "&08: svc &07: unrecognised OSBYTE",
+      "type": "byte",
+      "values": [
+        241
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_7_osbyte - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_7_osbyte"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35374,
+      "bytes": [
+        86
+      ],
+      "comment_inline": "&09: svc &08: OSWORD dispatch",
+      "type": "byte",
+      "values": [
+        86
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_8_osword_disp - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_8_osword_disp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35375,
+      "bytes": [
+        119
+      ],
+      "comment_inline": "&0A: svc &09: *HELP",
+      "type": "byte",
+      "values": [
+        119
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_9_help - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35376,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "&0B: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35377,
+      "bytes": [
+        109
+      ],
+      "comment_inline": "&0C: svc &0B: NMI release",
+      "type": "byte",
+      "values": [
+        109
+      ],
+      "expressions": [
+        {
+          "text": "<(econet_restore - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35378,
+      "bytes": [
+        218
+      ],
+      "comment_inline": "&0D: svc &0D: wait idle and reset",
+      "type": "byte",
+      "values": [
+        218
+      ],
+      "expressions": [
+        {
+          "text": "<(wait_idle_and_reset - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "wait_idle_and_reset"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35379,
+      "bytes": [
         108,
-        145,
-        2,
-        23,
-        9,
-        138,
-        140,
-        163,
-        81,
-        160,
-        48,
+        145
+      ],
+      "comment_inline": "&0E: svc &12: FS select",
+      "type": "byte",
+      "values": [
+        108,
+        145
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_18_fs_select - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_18_fs_select"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        null
+      ]
+    },
+    {
+      "addr": 35381,
+      "bytes": [
+        2
+      ],
+      "comment_inline": "&10: svc &21: static workspace claim",
+      "type": "byte",
+      "values": [
+        2
+      ],
+      "expressions": [
+        {
+          "text": "<(raise_y_to_c8 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "raise_y_to_c8"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35382,
+      "bytes": [
+        23
+      ],
+      "comment_inline": "&11: svc &22: dynamic workspace offer",
+      "type": "byte",
+      "values": [
+        23
+      ],
+      "expressions": [
+        {
+          "text": "<(set_rom_ws_page - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "set_rom_ws_page"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35383,
+      "bytes": [
+        9
+      ],
+      "comment_inline": "&12: svc &23: top-of-static-workspace",
+      "type": "byte",
+      "values": [
+        9
+      ],
+      "expressions": [
+        {
+          "text": "<(store_ws_page_count - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "store_ws_page_count"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35384,
+      "bytes": [
+        138
+      ],
+      "comment_inline": "&13: svc &24: dynamic workspace claim",
+      "type": "byte",
+      "values": [
+        138
+      ],
+      "expressions": [
+        {
+          "text": "<(noop_dey_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "noop_dey_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35385,
+      "bytes": [
+        140
+      ],
+      "comment_inline": "&14: svc &25: FS name + info reply",
+      "type": "byte",
+      "values": [
+        140
+      ],
+      "expressions": [
+        {
+          "text": "<(copy_template_to_zp - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "copy_template_to_zp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35386,
+      "bytes": [
+        163
+      ],
+      "comment_inline": "&15: svc &26: close all files",
+      "type": "byte",
+      "values": [
+        163
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_26_close_all_files - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_26_close_all_files"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35387,
+      "bytes": [
+        81
+      ],
+      "comment_inline": "&16: svc &27: post-hard-reset re-init",
+      "type": "byte",
+      "values": [
+        81
+      ],
+      "expressions": [
+        {
+          "text": "<(nfs_init_body - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "nfs_init_body"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35388,
+      "bytes": [
+        160
+      ],
+      "comment_inline": "&17: svc &28: print *FS/*PS no-arg syntax help",
+      "type": "byte",
+      "values": [
+        160
+      ],
+      "expressions": [
+        {
+          "text": "<(print_fs_ps_help - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "print_fs_ps_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35389,
+      "bytes": [
+        48
+      ],
+      "comment_inline": "&18: svc &29: *STATUS handler",
+      "type": "byte",
+      "values": [
+        48
+      ],
+      "expressions": [
+        {
+          "text": "<(svc_29_status - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_29_status"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35390,
+      "bytes": [
         174
+      ],
+      "comment_inline": "&19: language reply 0: insert remote key",
+      "type": "byte",
+      "values": [
+        174
+      ],
+      "expressions": [
+        {
+          "text": "<(lang_0_insert_key - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_0_insert_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "addr": 35391,
       "bytes": [
-        79,
-        80,
+        79
+      ],
+      "comment_inline": "&1A: language reply 1: remote boot",
+      "type": "byte",
+      "values": [
+        79
+      ],
+      "expressions": [
+        {
+          "text": "<(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35392,
+      "bytes": [
+        80
+      ],
+      "comment_inline": "&1B: language reply 2: save palette/VDU",
+      "type": "byte",
+      "values": [
+        80
+      ],
+      "expressions": [
+        {
+          "text": "<(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35393,
+      "bytes": [
         125
       ],
-      "type": "string",
-      "string": "OP}"
+      "comment_inline": "&1C: language reply 3: execute at &0100",
+      "type": "byte",
+      "values": [
+        125
+      ],
+      "expressions": [
+        {
+          "text": "<(lang_3_exec_0100 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_3_exec_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "addr": 35394,
       "bytes": [
-        158,
-        208,
-        50,
-        6,
-        68,
-        6,
-        76,
-        121,
-        248,
-        137,
-        50,
-        139,
-        241,
-        15,
-        234,
-        250,
-        77,
-        6,
-        83,
-        20,
-        26,
-        42
+        158
       ],
+      "comment_inline": "&1D: language reply 4: remote validated",
       "type": "byte",
       "values": [
-        158,
-        208,
-        50,
-        6,
-        68,
-        6,
-        76,
-        121,
-        248,
-        137,
-        50,
-        139,
-        241,
-        15,
-        234,
-        250,
-        77,
-        6,
-        83,
-        20,
-        26,
+        158
+      ],
+      "expressions": [
+        {
+          "text": "<(lang_4_validated - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_4_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35395,
+      "bytes": [
+        208
+      ],
+      "comment_inline": "&1E: FSCV 0: *OPT",
+      "type": "byte",
+      "values": [
+        208
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35396,
+      "bytes": [
+        50
+      ],
+      "comment_inline": "&1F: FSCV 1: EOF",
+      "type": "byte",
+      "values": [
+        50
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_1_eof - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35397,
+      "bytes": [
+        6
+      ],
+      "comment_inline": "&20: FSCV 2: *RUN",
+      "type": "byte",
+      "values": [
+        6
+      ],
+      "expressions": [
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35398,
+      "bytes": [
+        68
+      ],
+      "comment_inline": "&21: FSCV 3: *command",
+      "type": "byte",
+      "values": [
+        68
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35399,
+      "bytes": [
+        6
+      ],
+      "comment_inline": "&22: FSCV 4: *RUN (alias)",
+      "type": "byte",
+      "values": [
+        6
+      ],
+      "expressions": [
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35400,
+      "bytes": [
+        76
+      ],
+      "comment_inline": "&23: FSCV 5: *CAT",
+      "type": "byte",
+      "values": [
+        76
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_5_cat - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35401,
+      "bytes": [
+        121
+      ],
+      "comment_inline": "&24: FSCV 6: shutdown",
+      "type": "byte",
+      "values": [
+        121
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35402,
+      "bytes": [
+        248
+      ],
+      "comment_inline": "&25: FSCV 7: read handles",
+      "type": "byte",
+      "values": [
+        248
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35403,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "&26: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35404,
+      "bytes": [
+        50
+      ],
+      "comment_inline": "&27: PS scan tail (after pop_requeue)",
+      "type": "byte",
+      "values": [
+        50
+      ],
+      "expressions": [
+        {
+          "text": "<(ps_scan_resume - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ps_scan_resume"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35405,
+      "bytes": [
+        139
+      ],
+      "comment_inline": "&28: *Info dispatch",
+      "type": "byte",
+      "values": [
+        139
+      ],
+      "expressions": [
+        {
+          "text": "<(cmd_info_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_info_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35406,
+      "bytes": [
+        241
+      ],
+      "comment_inline": "&29: URD-present check",
+      "type": "byte",
+      "values": [
+        241
+      ],
+      "expressions": [
+        {
+          "text": "<(check_urd_present - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "check_urd_present"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35407,
+      "bytes": [
+        15
+      ],
+      "comment_inline": "&2A: *Ex scan init",
+      "type": "byte",
+      "values": [
+        15
+      ],
+      "expressions": [
+        {
+          "text": "<(ex_init_scan_x0 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_init_scan_x0"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35408,
+      "bytes": [
+        234
+      ],
+      "comment_inline": "&2B: FS reply 1: copy handles + boot",
+      "type": "byte",
+      "values": [
+        234
+      ],
+      "expressions": [
+        {
+          "text": "<(fsreply_1_boot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_1_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35409,
+      "bytes": [
+        250
+      ],
+      "comment_inline": "&2C: FS reply 2: copy handles",
+      "type": "byte",
+      "values": [
+        250
+      ],
+      "expressions": [
+        {
+          "text": "<(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35410,
+      "bytes": [
+        77
+      ],
+      "comment_inline": "&2D: FS reply 3: set CSD",
+      "type": "byte",
+      "values": [
+        77
+      ],
+      "expressions": [
+        {
+          "text": "<(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35411,
+      "bytes": [
+        6
+      ],
+      "comment_inline": "&2E: FS reply 4: *RUN (alias)",
+      "type": "byte",
+      "values": [
+        6
+      ],
+      "expressions": [
+        {
+          "text": "<(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35412,
+      "bytes": [
+        83
+      ],
+      "comment_inline": "&2F: FS reply 5: set library",
+      "type": "byte",
+      "values": [
+        83
+      ],
+      "expressions": [
+        {
+          "text": "<(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35413,
+      "bytes": [
+        20
+      ],
+      "comment_inline": "&30: net handle 1: read handle",
+      "type": "byte",
+      "values": [
+        20
+      ],
+      "expressions": [
+        {
+          "text": "<(net_1_read_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35414,
+      "bytes": [
+        26
+      ],
+      "comment_inline": "&31: net handle 2: read handle entry",
+      "type": "byte",
+      "values": [
+        26
+      ],
+      "expressions": [
+        {
+          "text": "<(net_2_read_entry - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_2_read_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35415,
+      "bytes": [
         42
+      ],
+      "comment_inline": "&32: net handle 3: close handle",
+      "type": "byte",
+      "values": [
+        42
+      ],
+      "expressions": [
+        {
+          "text": "<(net_3_close_handle - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "addr": 35416,
       "bytes": [
-        17,
-        142,
-        141,
-        143,
-        140,
-        140,
-        128,
-        142,
-        142,
-        168,
-        140,
-        142,
-        128,
-        137,
-        139,
-        150,
-        143,
-        143,
-        143,
-        142,
-        142,
-        142,
-        143,
-        149,
-        150,
-        152,
-        152,
-        176,
-        152,
-        152,
-        160,
-        161,
-        165,
-        164,
-        165,
-        177,
-        144,
-        147,
-        142,
-        177,
-        179,
-        164,
-        179,
-        166,
-        166,
-        166,
-        165,
-        166,
-        164,
-        164,
-        164,
-        139
+        17
       ],
       "labels": [
         "svc_dispatch_hi"
       ],
+      "comment_inline": "&00: placeholder (never reached)",
       "xref_summaries": [
         "&8a58 used as index base 1 time by &8e80"
       ],
@@ -24519,58 +25782,1434 @@
       ],
       "type": "byte",
       "values": [
-        17,
-        142,
-        141,
-        143,
-        140,
-        140,
-        128,
-        142,
-        142,
-        168,
-        140,
-        142,
-        128,
-        137,
+        17
+      ]
+    },
+    {
+      "addr": 35417,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&01: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35418,
+      "bytes": [
+        141
+      ],
+      "comment_inline": "&02: workspace claim helper (CMOS bit 0)",
+      "type": "byte",
+      "values": [
+        141
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_dispatch_idx_2 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_dispatch_idx_2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35419,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&03: svc &02: private workspace pages",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_2_priv_ws - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_2_priv_ws"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35420,
+      "bytes": [
+        140
+      ],
+      "comment_inline": "&04: svc &03: auto-boot",
+      "type": "byte",
+      "values": [
+        140
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_3_autoboot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_3_autoboot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35421,
+      "bytes": [
+        140
+      ],
+      "comment_inline": "&05: svc &04: unrecognised *command",
+      "type": "byte",
+      "values": [
+        140
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_4_star_command - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_4_star_command"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35422,
+      "bytes": [
+        128
+      ],
+      "comment_inline": "&06: svc &05: IRQ check",
+      "type": "byte",
+      "values": [
+        128
+      ],
+      "expressions": [
+        {
+          "text": ">(svc5_irq_check - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc5_irq_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35423,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&07: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35424,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&08: svc &07: unrecognised OSBYTE",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_7_osbyte - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_7_osbyte"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35425,
+      "bytes": [
+        168
+      ],
+      "comment_inline": "&09: svc &08: OSWORD dispatch",
+      "type": "byte",
+      "values": [
+        168
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_8_osword_disp - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_8_osword_disp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35426,
+      "bytes": [
+        140
+      ],
+      "comment_inline": "&0A: svc &09: *HELP",
+      "type": "byte",
+      "values": [
+        140
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_9_help - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_9_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35427,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&0B: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35428,
+      "bytes": [
+        128
+      ],
+      "comment_inline": "&0C: svc &0B: NMI release",
+      "type": "byte",
+      "values": [
+        128
+      ],
+      "expressions": [
+        {
+          "text": ">(econet_restore - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "econet_restore"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35429,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "&0D: svc &0D: wait idle and reset",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": ">(wait_idle_and_reset - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "wait_idle_and_reset"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35430,
+      "bytes": [
         139,
-        150,
-        143,
-        143,
-        143,
-        142,
-        142,
-        142,
-        143,
-        149,
-        150,
-        152,
-        152,
-        176,
-        152,
-        152,
-        160,
-        161,
-        165,
-        164,
-        165,
-        177,
-        144,
-        147,
-        142,
-        177,
-        179,
-        164,
-        179,
-        166,
-        166,
-        166,
-        165,
-        166,
-        164,
-        164,
+        150
+      ],
+      "comment_inline": "&0E: svc &12: FS select",
+      "type": "byte",
+      "values": [
+        139,
+        150
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_18_fs_select - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_18_fs_select"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        null
+      ]
+    },
+    {
+      "addr": 35432,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&10: svc &21: static workspace claim",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": ">(raise_y_to_c8 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "raise_y_to_c8"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35433,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&11: svc &22: dynamic workspace offer",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": ">(set_rom_ws_page - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "set_rom_ws_page"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35434,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&12: svc &23: top-of-static-workspace",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": ">(store_ws_page_count - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "store_ws_page_count"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35435,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&13: svc &24: dynamic workspace claim",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(noop_dey_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "noop_dey_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35436,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&14: svc &25: FS name + info reply",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(copy_template_to_zp - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "copy_template_to_zp"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35437,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&15: svc &26: close all files",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_26_close_all_files - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_26_close_all_files"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35438,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&16: svc &27: post-hard-reset re-init",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": ">(nfs_init_body - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "nfs_init_body"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35439,
+      "bytes": [
+        149
+      ],
+      "comment_inline": "&17: svc &28: print *FS/*PS no-arg syntax help",
+      "type": "byte",
+      "values": [
+        149
+      ],
+      "expressions": [
+        {
+          "text": ">(print_fs_ps_help - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "print_fs_ps_help"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35440,
+      "bytes": [
+        150
+      ],
+      "comment_inline": "&18: svc &29: *STATUS handler",
+      "type": "byte",
+      "values": [
+        150
+      ],
+      "expressions": [
+        {
+          "text": ">(svc_29_status - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "svc_29_status"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35441,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "&19: language reply 0: insert remote key",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": ">(lang_0_insert_key - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_0_insert_key"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35442,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "&1A: language reply 1: remote boot",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": ">(lang_1_remote_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_1_remote_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35443,
+      "bytes": [
+        176
+      ],
+      "comment_inline": "&1B: language reply 2: save palette/VDU",
+      "type": "byte",
+      "values": [
+        176
+      ],
+      "expressions": [
+        {
+          "text": ">(lang_2_save_palette_vdu - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_2_save_palette_vdu"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35444,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "&1C: language reply 3: execute at &0100",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": ">(lang_3_exec_0100 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_3_exec_0100"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35445,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "&1D: language reply 4: remote validated",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": ">(lang_4_validated - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "lang_4_validated"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35446,
+      "bytes": [
+        160
+      ],
+      "comment_inline": "&1E: FSCV 0: *OPT",
+      "type": "byte",
+      "values": [
+        160
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_0_opt_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_0_opt_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35447,
+      "bytes": [
+        161
+      ],
+      "comment_inline": "&1F: FSCV 1: EOF",
+      "type": "byte",
+      "values": [
+        161
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_1_eof - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_1_eof"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35448,
+      "bytes": [
+        165
+      ],
+      "comment_inline": "&20: FSCV 2: *RUN",
+      "type": "byte",
+      "values": [
+        165
+      ],
+      "expressions": [
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35449,
+      "bytes": [
+        164
+      ],
+      "comment_inline": "&21: FSCV 3: *command",
+      "type": "byte",
+      "values": [
+        164
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_3_star_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_3_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35450,
+      "bytes": [
+        165
+      ],
+      "comment_inline": "&22: FSCV 4: *RUN (alias)",
+      "type": "byte",
+      "values": [
+        165
+      ],
+      "expressions": [
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35451,
+      "bytes": [
+        177
+      ],
+      "comment_inline": "&23: FSCV 5: *CAT",
+      "type": "byte",
+      "values": [
+        177
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_5_cat - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_5_cat"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35452,
+      "bytes": [
+        144
+      ],
+      "comment_inline": "&24: FSCV 6: shutdown",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_6_shutdown - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_6_shutdown"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35453,
+      "bytes": [
+        147
+      ],
+      "comment_inline": "&25: FSCV 7: read handles",
+      "type": "byte",
+      "values": [
+        147
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_7_read_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fscv_7_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35454,
+      "bytes": [
+        142
+      ],
+      "comment_inline": "&26: no-op (RTS only)",
+      "type": "byte",
+      "values": [
+        142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35455,
+      "bytes": [
+        177
+      ],
+      "comment_inline": "&27: PS scan tail (after pop_requeue)",
+      "type": "byte",
+      "values": [
+        177
+      ],
+      "expressions": [
+        {
+          "text": ">(ps_scan_resume - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ps_scan_resume"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35456,
+      "bytes": [
+        179
+      ],
+      "comment_inline": "&28: *Info dispatch",
+      "type": "byte",
+      "values": [
+        179
+      ],
+      "expressions": [
+        {
+          "text": ">(cmd_info_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_info_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35457,
+      "bytes": [
+        164
+      ],
+      "comment_inline": "&29: URD-present check",
+      "type": "byte",
+      "values": [
+        164
+      ],
+      "expressions": [
+        {
+          "text": ">(check_urd_present - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "check_urd_present"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35458,
+      "bytes": [
+        179
+      ],
+      "comment_inline": "&2A: *Ex scan init",
+      "type": "byte",
+      "values": [
+        179
+      ],
+      "expressions": [
+        {
+          "text": ">(ex_init_scan_x0 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_init_scan_x0"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35459,
+      "bytes": [
+        166
+      ],
+      "comment_inline": "&2B: FS reply 1: copy handles + boot",
+      "type": "byte",
+      "values": [
+        166
+      ],
+      "expressions": [
+        {
+          "text": ">(fsreply_1_boot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_1_boot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35460,
+      "bytes": [
+        166
+      ],
+      "comment_inline": "&2C: FS reply 2: copy handles",
+      "type": "byte",
+      "values": [
+        166
+      ],
+      "expressions": [
+        {
+          "text": ">(fsreply_2_copy_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_2_copy_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35461,
+      "bytes": [
+        166
+      ],
+      "comment_inline": "&2D: FS reply 3: set CSD",
+      "type": "byte",
+      "values": [
+        166
+      ],
+      "expressions": [
+        {
+          "text": ">(fsreply_3_set_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_3_set_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35462,
+      "bytes": [
+        165
+      ],
+      "comment_inline": "&2E: FS reply 4: *RUN (alias)",
+      "type": "byte",
+      "values": [
+        165
+      ],
+      "expressions": [
+        {
+          "text": ">(cmd_run_via_urd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "cmd_run_via_urd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35463,
+      "bytes": [
+        166
+      ],
+      "comment_inline": "&2F: FS reply 5: set library",
+      "type": "byte",
+      "values": [
+        166
+      ],
+      "expressions": [
+        {
+          "text": ">(fsreply_5_set_lib - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "fsreply_5_set_lib"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35464,
+      "bytes": [
+        164
+      ],
+      "comment_inline": "&30: net handle 1: read handle",
+      "type": "byte",
+      "values": [
+        164
+      ],
+      "expressions": [
+        {
+          "text": ">(net_1_read_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_1_read_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35465,
+      "bytes": [
+        164
+      ],
+      "comment_inline": "&31: net handle 2: read handle entry",
+      "type": "byte",
+      "values": [
+        164
+      ],
+      "expressions": [
+        {
+          "text": ">(net_2_read_entry - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_2_read_entry"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35466,
+      "bytes": [
         164,
         139
+      ],
+      "comment_inline": "&32: net handle 3: close handle",
+      "type": "byte",
+      "values": [
+        164,
+        139
+      ],
+      "expressions": [
+        {
+          "text": ">(net_3_close_handle - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "net_3_close_handle"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        null
       ]
     },
     {
@@ -77527,33 +80166,33 @@
         }
       ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_13_read_station - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "osword_13_read_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 43466,
       "bytes": [
-        237,
-        251,
-        178,
-        190,
-        211,
-        217,
-        227,
-        241,
-        137,
-        146,
-        160,
-        167,
-        147,
-        150,
-        172,
-        180,
-        191,
-        202
+        237
       ],
       "labels": [
         "osword_13_dispatch_lo"
       ],
+      "comment_inline": "sub &00: osword_13_read_station (read FS station)",
       "xref_summaries": [
         "&a9ca used as index base 1 time by &a9c5"
       ],
@@ -77565,24 +80204,518 @@
       ],
       "type": "byte",
       "values": [
-        237,
-        251,
-        178,
-        190,
-        211,
-        217,
-        227,
-        241,
-        137,
-        146,
-        160,
-        167,
-        147,
-        150,
-        172,
-        180,
-        191,
+        237
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_station - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43467,
+      "bytes": [
+        251
+      ],
+      "comment_inline": "sub &01: osword_13_set_station (set FS station)",
+      "type": "byte",
+      "values": [
+        251
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_set_station - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43468,
+      "bytes": [
+        178
+      ],
+      "comment_inline": "sub &02: osword_13_read_ws_pair (read workspace pair)",
+      "type": "byte",
+      "values": [
+        178
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_ws_pair - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43469,
+      "bytes": [
+        190
+      ],
+      "comment_inline": "sub &03: osword_13_write_ws_pair (write workspace pair)",
+      "type": "byte",
+      "values": [
+        190
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_write_ws_pair - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43470,
+      "bytes": [
+        211
+      ],
+      "comment_inline": "sub &04: osword_13_read_prot (read protection mask)",
+      "type": "byte",
+      "values": [
+        211
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_prot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43471,
+      "bytes": [
+        217
+      ],
+      "comment_inline": "sub &05: osword_13_write_prot (write protection mask)",
+      "type": "byte",
+      "values": [
+        217
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_write_prot - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43472,
+      "bytes": [
+        227
+      ],
+      "comment_inline": "sub &06: osword_13_read_handles (read transfer handles)",
+      "type": "byte",
+      "values": [
+        227
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43473,
+      "bytes": [
+        241
+      ],
+      "comment_inline": "sub &07: osword_13_set_handles (set transfer handles)",
+      "type": "byte",
+      "values": [
+        241
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_set_handles - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43474,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "sub &08: osword_13_read_rx_flag (read RX flag)",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_rx_flag - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_flag"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43475,
+      "bytes": [
+        146
+      ],
+      "comment_inline": "sub &09: osword_13_read_rx_port (read RX port)",
+      "type": "byte",
+      "values": [
+        146
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_rx_port - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_port"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43476,
+      "bytes": [
+        160
+      ],
+      "comment_inline": "sub &0A: osword_13_read_error (read last error)",
+      "type": "byte",
+      "values": [
+        160
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_error - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_error"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43477,
+      "bytes": [
+        167
+      ],
+      "comment_inline": "sub &0B: osword_13_read_context (read context)",
+      "type": "byte",
+      "values": [
+        167
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_context - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_context"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43478,
+      "bytes": [
+        147
+      ],
+      "comment_inline": "sub &0C: osword_13_read_csd (read CSD)",
+      "type": "byte",
+      "values": [
+        147
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43479,
+      "bytes": [
+        150
+      ],
+      "comment_inline": "sub &0D: osword_13_write_csd (write CSD)",
+      "type": "byte",
+      "values": [
+        150
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_write_csd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43480,
+      "bytes": [
+        172
+      ],
+      "comment_inline": "sub &0E: osword_13_read_free_bufs (read free buffers)",
+      "type": "byte",
+      "values": [
+        172
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_free_bufs - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_free_bufs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43481,
+      "bytes": [
+        180
+      ],
+      "comment_inline": "sub &0F: osword_13_read_ctx_3 (read context byte 3)",
+      "type": "byte",
+      "values": [
+        180
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_read_ctx_3 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43482,
+      "bytes": [
+        191
+      ],
+      "comment_inline": "sub &10: osword_13_write_ctx_3 (write context byte 3)",
+      "type": "byte",
+      "values": [
+        191
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_write_ctx_3 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43483,
+      "bytes": [
         202
+      ],
+      "comment_inline": "sub &11: osword_13_bridge_query (bridge query)",
+      "type": "byte",
+      "values": [
+        202
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_bridge_query - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_bridge_query"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77593,6 +80726,7 @@
       "labels": [
         "osword_13_dispatch_hi"
       ],
+      "comment_inline": "sub &00: osword_13_read_station",
       "xref_summaries": [
         "&a9dc used as index base 1 time by &a9c1"
       ],
@@ -77605,6 +80739,24 @@
       "type": "byte",
       "values": [
         169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_station - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77612,9 +80764,28 @@
       "bytes": [
         169
       ],
+      "comment_inline": "sub &01: osword_13_set_station",
       "type": "byte",
       "values": [
         169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_set_station - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_station"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77622,9 +80793,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &02: osword_13_read_ws_pair",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_ws_pair - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77632,9 +80822,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &03: osword_13_write_ws_pair",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_write_ws_pair - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ws_pair"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77642,9 +80851,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &04: osword_13_read_prot",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_prot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77652,9 +80880,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &05: osword_13_write_prot",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_write_prot - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_prot"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77662,9 +80909,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &06: osword_13_read_handles",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77672,9 +80938,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &07: osword_13_set_handles",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_set_handles - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_set_handles"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77682,9 +80967,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &08: osword_13_read_rx_flag",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_rx_flag - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_flag"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77692,9 +80996,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &09: osword_13_read_rx_port",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_rx_port - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_rx_port"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77702,9 +81025,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &0A: osword_13_read_error",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_error - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_error"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77712,9 +81054,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &0B: osword_13_read_context",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_context - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_context"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77722,9 +81083,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &0C: osword_13_read_csd",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77732,9 +81112,28 @@
       "bytes": [
         170
       ],
+      "comment_inline": "sub &0D: osword_13_write_csd",
       "type": "byte",
       "values": [
         170
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_write_csd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_csd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77742,9 +81141,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &0E: osword_13_read_free_bufs",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_free_bufs - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_free_bufs"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77752,9 +81170,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &0F: osword_13_read_ctx_3",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_read_ctx_3 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_read_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77762,9 +81199,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &10: osword_13_write_ctx_3",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_write_ctx_3 - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_write_ctx_3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -77772,9 +81228,28 @@
       "bytes": [
         171
       ],
+      "comment_inline": "sub &11: osword_13_bridge_query",
       "type": "byte",
       "values": [
         171
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_bridge_query - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_13_bridge_query"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83791,24 +87266,33 @@
       ],
       "comment_inline": "RTS jumps to handler with A=OSWORD number",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(dispatch_rts - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "dispatch_rts"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 44354,
       "bytes": [
-        137,
-        144,
-        144,
-        144,
-        83,
-        123,
-        137,
-        133,
-        244
+        137
       ],
       "labels": [
         "netv_dispatch_lo"
       ],
+      "comment_inline": "reason &00: dispatch_rts (no-op (RTS only))",
       "xref_summaries": [
         "&ad42 used as index base 1 time by &ad3b"
       ],
@@ -83820,15 +87304,257 @@
       ],
       "type": "byte",
       "values": [
-        137,
-        144,
-        144,
-        144,
-        83,
-        123,
-        137,
-        133,
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44355,
+      "bytes": [
+        144
+      ],
+      "comment_inline": "reason &01: netv_print_data (NETV reason 1: print data)",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44356,
+      "bytes": [
+        144
+      ],
+      "comment_inline": "reason &02: netv_print_data (NETV reason 2: print data (alias))",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44357,
+      "bytes": [
+        144
+      ],
+      "comment_inline": "reason &03: netv_print_data (NETV reason 3: print data (alias))",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_print_data - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44358,
+      "bytes": [
+        83
+      ],
+      "comment_inline": "reason &04: osword_4_handler (NETV reason 4: OSWORD &04)",
+      "type": "byte",
+      "values": [
+        83
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_4_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_4_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44359,
+      "bytes": [
+        123
+      ],
+      "comment_inline": "reason &05: netv_spool_check (NETV reason 5: spool check)",
+      "type": "byte",
+      "values": [
+        123
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_spool_check - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_spool_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44360,
+      "bytes": [
+        137
+      ],
+      "comment_inline": "reason &06: dispatch_rts (no-op (RTS only))",
+      "type": "byte",
+      "values": [
+        137
+      ],
+      "expressions": [
+        {
+          "text": "<(dispatch_rts - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44361,
+      "bytes": [
+        133
+      ],
+      "comment_inline": "reason &07: netv_claim_release (NETV reason 7: claim/release)",
+      "type": "byte",
+      "values": [
+        133
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_claim_release - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_claim_release"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44362,
+      "bytes": [
         244
+      ],
+      "comment_inline": "reason &08: osword_8_handler (NETV reason 8: OSWORD &08)",
+      "type": "byte",
+      "values": [
+        244
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_8_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_8_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83839,6 +87565,7 @@
       "labels": [
         "netv_dispatch_hi"
       ],
+      "comment_inline": "reason &00: dispatch_rts",
       "xref_summaries": [
         "&ad4b used as index base 1 time by &ad37"
       ],
@@ -83851,6 +87578,24 @@
       "type": "byte",
       "values": [
         142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83858,9 +87603,28 @@
       "bytes": [
         174
       ],
+      "comment_inline": "reason &01: netv_print_data",
       "type": "byte",
       "values": [
         174
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83868,9 +87632,28 @@
       "bytes": [
         174
       ],
+      "comment_inline": "reason &02: netv_print_data",
       "type": "byte",
       "values": [
         174
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83878,9 +87661,28 @@
       "bytes": [
         174
       ],
+      "comment_inline": "reason &03: netv_print_data",
       "type": "byte",
       "values": [
         174
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_print_data - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_print_data"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83888,9 +87690,28 @@
       "bytes": [
         173
       ],
+      "comment_inline": "reason &04: osword_4_handler",
       "type": "byte",
       "values": [
         173
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_4_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_4_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83898,9 +87719,28 @@
       "bytes": [
         174
       ],
+      "comment_inline": "reason &05: netv_spool_check",
       "type": "byte",
       "values": [
         174
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_spool_check - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_spool_check"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83908,9 +87748,28 @@
       "bytes": [
         142
       ],
+      "comment_inline": "reason &06: dispatch_rts",
       "type": "byte",
       "values": [
         142
+      ],
+      "expressions": [
+        {
+          "text": ">(dispatch_rts - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "dispatch_rts"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83918,9 +87777,28 @@
       "bytes": [
         173
       ],
+      "comment_inline": "reason &07: netv_claim_release",
       "type": "byte",
       "values": [
         173
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_claim_release - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "netv_claim_release"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -83928,9 +87806,28 @@
       "bytes": [
         173
       ],
+      "comment_inline": "reason &08: osword_8_handler",
       "type": "byte",
       "values": [
         173
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_8_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "osword_8_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
