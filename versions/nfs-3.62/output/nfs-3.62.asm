@@ -226,7 +226,7 @@ nmi_rti                                = &0d14
 ; &0d14 referenced 6 times by &9735, &9874, &98c0, &9cef, &9df2, &9e45
 nmi_shim_1a                            = &0d1a
 ; &0d1a used as index base 1 time by &9bbd
-l0d1e                                  = &0d1e
+tx_addr_base                           = &0d1e
 ; &0d1e used as index base 2 times by &9c7c, &9c82
 tx_dst_stn                             = &0d20
 ; &0d20 referenced 5 times by &9b74, &9c8e, &9d63, &9d8b, &9e8c; also used as index base 2 times by &9cd4, &9cdb
@@ -271,9 +271,9 @@ tx_work_51                             = &0d51
 tx_in_progress                         = &0d52
 tx_work_57                             = &0d57
 ; &0d57 referenced 1 time by &9b00
-l0d58                                  = &0d58
+exec_addr_lo                           = &0d58
 ; &0d58 referenced 3 times by &9b2b, &9b30, &9b3c; also used as index base 1 time by &9a96
-l0d59                                  = &0d59
+exec_addr_hi                           = &0d59
 ; &0d59 referenced 2 times by &9b33, &9b3f
 scout_status                           = &0d5c
 ; &0d5c referenced 5 times by &97bb, &9ac6, &9c75, &9cb7, &9f0c
@@ -384,7 +384,7 @@ fs_error_flags                         = &0fdf
 ; &0fdf referenced 2 times by &8418, &856a
 fs_error_buf                           = &0fe0
 ; &0fe0 used as index base 1 time by &8455
-l7dfd                                  = &7dfd
+tx_ptr_sub_base                        = &7dfd
 ; &7dfd used as index base 1 time by &91b6
 start_adlc_tx                          = &9630
 ; &9630 referenced 2 times by &861a, &8ed9
@@ -6111,7 +6111,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; &91b4 used as index base 1 time by &918d
 .ctrl_block_template
     sta zp_ptr_lo                                                     ; 91b4: 85 00       ..       ; Alt-path only → Y=&6F
-    sbc l7dfd,x                                                       ; 91b6: fd fd 7d    ..}   
+    sbc tx_ptr_sub_base,x                                             ; 91b6: fd fd 7d    ..}   
     equb &fc                                                          ; 91b9: fc          .        ; → Y=&0D (main only)
     equb &ff                                                          ; 91ba: ff          .        ; → Y=&03 / Y=&75
     equb &ff                                                          ; 91bb: ff          .        ; SKIP (main only)
@@ -7297,12 +7297,12 @@ cmd_match_data = fs_cmd_match_table+1
 ; &9a93 referenced 1 time by &9a9a
 .copy_addr_loop
     lda rx_remote_addr,y                                              ; 9a93: b9 41 0d    .A.      ; Load remote address byte
-    sta l0d58,y                                                       ; 9a96: 99 58 0d    .X.      ; Store to exec address workspace
+    sta exec_addr_lo,y                                                ; 9a96: 99 58 0d    .X.      ; Store to exec address workspace
     dey                                                               ; 9a99: 88          .        ; Next byte (descending)
     bpl copy_addr_loop                                                ; 9a9a: 10 f7       ..       ; Loop until all 4 bytes copied
-.sub_c9a9c
+.enter_data_rx_path
 ; &9a9d used as index base 1 time by &9675
-svc5_dispatch_lo = sub_c9a9c+1
+svc5_dispatch_lo = enter_data_rx_path+1
     jmp send_data_rx_ack                                              ; 9a9c: 4c cb 97    L..      ; Enter common data-receive path  Immediate op dispatch lo bytes
 ; ***************************************************************************************
 ; RX immediate: POKE setup
@@ -7424,7 +7424,7 @@ svc5_dispatch_lo = sub_c9a9c+1
     pha                                                               ; 9b27: 48          H        ; Push hi byte on stack
     lda #&66                                                          ; 9b28: a9 66       .f       ; Push lo of (tx_done_exit-1)
     pha                                                               ; 9b2a: 48          H        ; Push lo byte on stack
-    jmp (l0d58)                                                       ; 9b2b: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit
+    jmp (exec_addr_lo)                                                ; 9b2b: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit
 ; ***************************************************************************************
 ; TX done: UserProc event
 ;
@@ -7432,8 +7432,8 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; address). This notifies the user program that a UserProc operation has completed.
 .tx_done_user_proc
     ldy #event_network_error                                          ; 9b2e: a0 08       ..       ; Y=8: network event type
-    ldx l0d58                                                         ; 9b30: ae 58 0d    .X.      ; X = remote address lo
-    lda l0d59                                                         ; 9b33: ad 59 0d    .Y.      ; A = remote address hi
+    ldx exec_addr_lo                                                  ; 9b30: ae 58 0d    .X.      ; X = remote address lo
+    lda exec_addr_hi                                                  ; 9b33: ad 59 0d    .Y.      ; A = remote address hi
     jsr oseven                                                        ; 9b36: 20 bf ff     ..      ; oseven: network error
     jmp tx_done_exit                                                  ; 9b39: 4c 67 9b    Lg.      ; Exit TX done handler
 ; ***************************************************************************************
@@ -7442,8 +7442,8 @@ svc5_dispatch_lo = sub_c9a9c+1
 ; Calls the ROM entry point at &8000 (rom_header) with X=l0d58, Y=l0d59. This invokes an
 ; OS-level procedure on behalf of the remote station.
 .tx_done_os_proc
-    ldx l0d58                                                         ; 9b3c: ae 58 0d    .X.      ; X = remote address lo
-    ldy l0d59                                                         ; 9b3f: ac 59 0d    .Y.      ; Y = remote address hi
+    ldx exec_addr_lo                                                  ; 9b3c: ae 58 0d    .X.      ; X = remote address lo
+    ldy exec_addr_hi                                                  ; 9b3f: ac 59 0d    .Y.      ; Y = remote address hi
     jsr language_entry                                                ; 9b42: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9b45: 4c 67 9b    Lg.      ; Exit TX done handler
 ; ***************************************************************************************
@@ -7700,10 +7700,10 @@ intoff_operand = intoff_test_inactive+1
     ldy #&0c                                                          ; 9c7a: a0 0c       ..       ; Y=&0C: start at offset 12
 ; &9c7c referenced 1 time by &9c89
 .add_bytes_loop
-    lda l0d1e,y                                                       ; 9c7c: b9 1e 0d    ...      ; Load workspace address byte
+    lda tx_addr_base,y                                                ; 9c7c: b9 1e 0d    ...      ; Load workspace address byte
     plp                                                               ; 9c7f: 28          (        ; Restore carry from previous byte
     adc (nmi_tx_block),y                                              ; 9c80: 71 a0       q.       ; Add TXCB address byte
-    sta l0d1e,y                                                       ; 9c82: 99 1e 0d    ...      ; Store updated address byte
+    sta tx_addr_base,y                                                ; 9c82: 99 1e 0d    ...      ; Store updated address byte
     iny                                                               ; 9c85: c8          .        ; Next byte
     php                                                               ; 9c86: 08          .        ; Save carry for next addition
 ; ***************************************************************************************
@@ -8500,13 +8500,13 @@ save pydis_start, pydis_end
 ;     econet_init_flag:                         4
 ;     error_text:                               4
 ;     escape_flag:                              4
+;     exec_addr_lo:                             4
 ;     fs_cmd_context:                           4
 ;     fs_crflag:                                4
 ;     fs_eof_flags:                             4
 ;     fs_sequence_nos:                          4
 ;     fs_server_net:                            4
 ;     init_tx_ctrl_block:                       4
-;     l0d58:                                    4
 ;     nmi_next_hi:                              4
 ;     nmi_next_lo:                              4
 ;     osbyte_a_copy:                            4
@@ -8605,6 +8605,7 @@ save pydis_start, pydis_end
 ;     discard_no_match:                         2
 ;     dispatch_nmi_error:                       2
 ;     econet_tx_retry:                          2
+;     exec_addr_hi:                             2
 ;     exec_local:                               2
 ;     execute_downloaded:                       2
 ;     fallback_calc_transfer:                   2
@@ -8634,8 +8635,6 @@ save pydis_start, pydis_end
 ;     init_tx_ctrl_data:                        2
 ;     install_rx_scout_handler:                 2
 ;     jmp_restore_args:                         2
-;     l0d1e:                                    2
-;     l0d59:                                    2
 ;     language_entry:                           2
 ;     load_handle_calc_offset:                  2
 ;     mask_to_handle:                           2
@@ -8723,6 +8722,7 @@ save pydis_start, pydis_end
 ;     tube_xfer_addr_2:                         2
 ;     tube_xfer_addr_3:                         2
 ;     tx_abort:                                 2
+;     tx_addr_base:                             2
 ;     tx_ctrl_byte:                             2
 ;     tx_port:                                  2
 ;     tx_result_ok:                             2
@@ -8942,7 +8942,6 @@ save pydis_start, pydis_end
 ;     intoff_operand:                           1
 ;     issue_vectors_claimed:                    1
 ;     jump_via_addr:                            1
-;     l7dfd:                                    1
 ;     lang_entry_dispatch:                      1
 ;     language_handler:                         1
 ;     language_handler_hi:                      1
@@ -9194,6 +9193,7 @@ save pydis_start, pydis_end
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
 ;     tx_prepare:                               1
+;     tx_ptr_sub_base:                          1
 ;     tx_src_net:                               1
 ;     tx_store_error:                           1
 ;     tx_success_exit:                          1
@@ -9214,13 +9214,6 @@ save pydis_start, pydis_end
 ;     y2fsl5:                                   1
 ;     zero_cmd_bytes:                           1
 ;     zero_exec_header:                         1
-
-; Automatically generated labels:
-;     l0d1e
-;     l0d58
-;     l0d59
-;     l7dfd
-;     sub_c9a9c
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes

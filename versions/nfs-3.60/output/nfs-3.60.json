@@ -2352,7 +2352,7 @@
     "install_nmi_handler": 3345,
     "nmi_rti": 3348,
     "nmi_shim_1a": 3354,
-    "l0d1e": 3358,
+    "tx_addr_base": 3358,
     "tx_dst_stn": 3360,
     "tx_dst_net": 3361,
     "tx_src_stn": 3362,
@@ -2377,8 +2377,8 @@
     "tx_work_51": 3409,
     "tx_in_progress": 3410,
     "tx_work_57": 3415,
-    "l0d58": 3416,
-    "l0d59": 3417,
+    "exec_addr_lo": 3416,
+    "exec_addr_hi": 3417,
     "scout_status": 3420,
     "rx_extra_byte": 3421,
     "printer_buf_ptr": 3425,
@@ -2435,7 +2435,7 @@
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fs_error_buf": 4064,
-    "l7dfd": 32253,
+    "tx_ptr_sub_base": 32253,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -2644,6 +2644,14 @@
       ]
     },
     {
+      "addr": 3358,
+      "name": "tx_addr_base",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
       "addr": 3366,
       "name": "tx_data_start",
       "group": "ram_workspace",
@@ -2654,6 +2662,14 @@
     {
       "addr": 3393,
       "name": "rx_remote_addr",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3416,
+      "name": "exec_addr_lo",
       "group": "ram_workspace",
       "access": [
         "b"
@@ -2719,6 +2735,14 @@
       "addr": 4064,
       "name": "fs_error_buf",
       "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 32253,
+      "name": "tx_ptr_sub_base",
+      "group": "idx_base",
       "access": [
         "b"
       ]
@@ -37296,9 +37320,9 @@
       ],
       "type": "code",
       "mnemonic": "sbc",
-      "operand": "l7dfd,x",
+      "operand": "tx_ptr_sub_base,x",
       "target": 32253,
-      "target_label": "l7dfd"
+      "target_label": "tx_ptr_sub_base"
     },
     {
       "addr": 37305,
@@ -53816,9 +53840,9 @@
       "comment_inline": "Store to exec address workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d58,y",
+      "operand": "exec_addr_lo,y",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39577,
@@ -53850,7 +53874,7 @@
         151
       ],
       "labels": [
-        "sub_c9a9c"
+        "enter_data_rx_path"
       ],
       "sub_labels": {
         "39581": [
@@ -54682,9 +54706,9 @@
       "comment_inline": "Call remote JSR; RTS to tx_done_exit",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "(l0d58)",
+      "operand": "(exec_addr_lo)",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39726,
@@ -54716,9 +54740,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39731,
@@ -54730,9 +54754,9 @@
       "comment_inline": "A = remote address hi",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39734,
@@ -54775,9 +54799,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39743,
@@ -54789,9 +54813,9 @@
       "comment_inline": "Y = remote address hi",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39746,
@@ -56886,9 +56910,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40063,
@@ -56922,9 +56946,9 @@
       "comment_inline": "Store updated address byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40069,

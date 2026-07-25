@@ -8954,6 +8954,16 @@ d.char_literal(0x8FC3)
 d.char_literal(0x90DE)
 d.char_literal(0x9FAF)
 
+# Semantic names for auto-labelled workspace bases and code points, from
+# NFS's own usage (NFS's RAM layout differs from ANFS, so names are not
+# borrowed across chains).
+d.index_base(0x0D1E, "tx_addr_base", group="ram_workspace")
+d.index_base(0x0D58, "exec_addr_lo", group="ram_workspace")
+d.label(0x0D59, "exec_addr_hi")
+d.index_base(0x7DFD, "tx_ptr_sub_base", group="idx_base")
+d.label(0x9A9C, "enter_data_rx_path")
+
+
 ir = d.disassemble()
 output = str(
     ir.render(

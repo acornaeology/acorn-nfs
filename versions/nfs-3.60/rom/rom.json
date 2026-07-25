@@ -3,7 +3,8 @@
     "memory_map_groups": {
         "zero_page": "Zero page",
         "stack": "6502 stack page",
-        "ram_workspace": "RAM workspace"
+        "ram_workspace": "RAM workspace",
+        "idx_base": "Indexing-base addresses (wrap into ZP)"
     },
     "size": 8192,
     "md5": "e345ac2f6f2130ad7683413071069609",
