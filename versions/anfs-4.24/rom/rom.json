@@ -2,6 +2,7 @@
     "title": "Acorn ANFS 4.24",
     "memory_map_groups": {
         "zero_page": "Zero page",
+        "stack": "6502 stack page",
         "ram_workspace": "RAM workspace",
         "hazel": "Filing system workspace (HAZEL)",
         "mmio": "Memory-mapped I/O",

@@ -1,5 +1,10 @@
 {
     "title": "Acorn ANFS 4.08.53",
+    "memory_map_groups": {
+        "zero_page": "Zero page",
+        "stack": "6502 stack page",
+        "ram_workspace": "RAM workspace"
+    },
     "size": 16384,
     "md5": "eadb37a9abbdbb70543efc2bede440bd",
     "sha256": "df02bdce87495bed9cd36e16fe32c592cc5fcd9d961601c57fe07391d727a5ac",

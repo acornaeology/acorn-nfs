@@ -96,9 +96,9 @@ d.label(0x0000, "zp_ptr_lo")
 
 d.label(0x0001, "zp_ptr_hi")
 
-d.index_base(0x0002, "zp_work_2")
+d.index_base(0x0002, "zp_work_2", group="zero_page")
 
-d.index_base(0x0003, "zp_work_3")
+d.index_base(0x0003, "zp_work_3", group="zero_page")
 
 d.label(0x0010, "zp_temp_10")
 
@@ -263,9 +263,9 @@ d.label(0x00AC, "ws_ptr_hi")
 
 d.label(0x00AD, "table_idx")
 
-d.index_base(0x00AE, "work_ae")
+d.index_base(0x00AE, "work_ae", group="zero_page")
 
-d.index_base(0x00AF, "addr_work")
+d.index_base(0x00AF, "addr_work", group="zero_page")
 
 d.label(0x00B0, "fs_load_addr")
 
@@ -301,11 +301,11 @@ d.label(0x00C0, "txcb_ctrl")
 
 d.label(0x00C1, "txcb_port")
 
-d.index_base(0x00C2, "txcb_dest")
+d.index_base(0x00C2, "txcb_dest", group="zero_page")
 
 d.label(0x00C4, "txcb_start")
 
-d.index_base(0x00C7, "txcb_pos")
+d.index_base(0x00C7, "txcb_pos", group="zero_page")
 
 d.label(0x00C8, "txcb_end")
 
@@ -335,17 +335,17 @@ d.label(0x00FF, "escape_flag")
 
 d.label(0x0100, "error_block")
 
-d.index_base(0x0101, "error_text")
+d.index_base(0x0101, "error_text", group="stack")
 
-d.index_base(0x0102, "stk_timeout_mid")
+d.index_base(0x0102, "stk_timeout_mid", group="stack")
 
-d.index_base(0x0103, "stk_frame_3")
+d.index_base(0x0103, "stk_frame_3", group="stack")
 
-d.index_base(0x0104, "stk_timeout_hi")
+d.index_base(0x0104, "stk_timeout_hi", group="stack")
 
-d.index_base(0x0106, "stk_frame_p")
+d.index_base(0x0106, "stk_frame_p", group="stack")
 
-d.index_base(0x0128, "tube_osword_pb")
+d.index_base(0x0128, "tube_osword_pb", group="stack")
 
 d.label(0x0350, "vdu_screen_mode")
 
@@ -1191,9 +1191,9 @@ d.comment(0x06F7, "A=4: SR interrupt bit mask", align=Align.INLINE)
 d.comment(0x06F9, "Test SR flag in VIA IFR", align=Align.INLINE)
 d.comment(0x06FC, "SR active: handle interrupt", align=Align.INLINE)
 d.comment(0x06FE, "A=5: NMI not for us", align=Align.INLINE)
-d.index_base(0x0700, "string_buf")
+d.index_base(0x0700, "string_buf", group="ram_workspace")
 
-d.index_base(0x0CFF, "nmi_code_base")
+d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
 
 d.label(0x0D07, "nmi_shim_07")
 
@@ -1207,7 +1207,7 @@ d.label(0x0D11, "install_nmi_handler")
 
 d.label(0x0D14, "nmi_rti")
 
-d.index_base(0x0D1A, "nmi_shim_1a")
+d.index_base(0x0D1A, "nmi_shim_1a", group="ram_workspace")
 
 d.label(0x0D20, "tx_dst_stn")
 
@@ -1221,7 +1221,7 @@ d.label(0x0D24, "tx_ctrl_byte")
 
 d.label(0x0D25, "tx_port")
 
-d.index_base(0x0D26, "tx_data_start")
+d.index_base(0x0D26, "tx_data_start", group="ram_workspace")
 
 d.label(0x0D2A, "tx_data_len")
 
@@ -1239,7 +1239,7 @@ d.label(0x0D3F, "rx_ctrl")
 
 d.label(0x0D40, "rx_port")
 
-d.index_base(0x0D41, "rx_remote_addr")
+d.index_base(0x0D41, "rx_remote_addr", group="ram_workspace")
 
 d.label(0x0D4A, "tx_flags")
 
@@ -1275,12 +1275,12 @@ d.label(0x0D66, "econet_init_flag")
 
 d.label(0x0D67, "tube_flag")
 
-d.index_base(0x0DE6, "nmi_sub_table")
+d.index_base(0x0DE6, "nmi_sub_table", group="ram_workspace")
 
-d.index_base(0x0DEB, "fs_state_deb")
-d.index_base(0x0DF0, "rom_ws_table")
+d.index_base(0x0DEB, "fs_state_deb", group="ram_workspace")
+d.index_base(0x0DF0, "rom_ws_table", group="ram_workspace")
 
-d.index_base(0x0DFE, "fs_context_base")
+d.index_base(0x0DFE, "fs_context_base", group="ram_workspace")
 
 d.label(0x0E00, "fs_server_stn")
 
@@ -1314,9 +1314,9 @@ d.label(0x0E10, "fs_cmd_ptr")
 
 d.label(0x0E16, "fs_work_16")
 
-d.index_base(0x0E30, "fs_filename_buf")
+d.index_base(0x0E30, "fs_filename_buf", group="ram_workspace")
 
-d.index_base(0x0EF7, "fs_reply_data")
+d.index_base(0x0EF7, "fs_reply_data", group="ram_workspace")
 
 d.label(0x0F00, "fs_cmd_type")
 
@@ -1342,7 +1342,7 @@ d.label(0x0F0B, "fs_load_upper")
 
 d.label(0x0F0C, "fs_addr_check")
 
-d.index_base(0x0F0D, "fs_file_len")
+d.index_base(0x0F0D, "fs_file_len", group="ram_workspace")
 
 d.label(0x0F0E, "fs_file_attrs")
 
@@ -1366,7 +1366,7 @@ d.label(0x0FDE, "fs_handle_mask")
 
 d.label(0x0FDF, "fs_error_flags")
 
-d.index_base(0x0FE0, "fs_error_buf")
+d.index_base(0x0FE0, "fs_error_buf", group="ram_workspace")
 
 d.label(0x8001, "language_handler_lo")
 

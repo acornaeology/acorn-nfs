@@ -2510,6 +2510,7 @@
     {
       "addr": 2,
       "name": "zp_work_2",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2517,6 +2518,7 @@
     {
       "addr": 3,
       "name": "zp_work_3",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2524,6 +2526,7 @@
     {
       "addr": 174,
       "name": "work_ae",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2531,6 +2534,7 @@
     {
       "addr": 175,
       "name": "addr_work",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2538,6 +2542,7 @@
     {
       "addr": 194,
       "name": "txcb_dest",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2545,6 +2550,7 @@
     {
       "addr": 199,
       "name": "txcb_pos",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -2552,6 +2558,7 @@
     {
       "addr": 257,
       "name": "error_text",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2559,6 +2566,7 @@
     {
       "addr": 258,
       "name": "stk_timeout_mid",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2566,6 +2574,7 @@
     {
       "addr": 259,
       "name": "stk_frame_3",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2573,6 +2582,7 @@
     {
       "addr": 260,
       "name": "stk_timeout_hi",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2580,6 +2590,7 @@
     {
       "addr": 262,
       "name": "stk_frame_p",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2587,6 +2598,7 @@
     {
       "addr": 296,
       "name": "tube_osword_pb",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -2594,6 +2606,7 @@
     {
       "addr": 1792,
       "name": "string_buf",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2601,6 +2614,7 @@
     {
       "addr": 3327,
       "name": "nmi_code_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2608,6 +2622,7 @@
     {
       "addr": 3354,
       "name": "nmi_shim_1a",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2615,6 +2630,7 @@
     {
       "addr": 3366,
       "name": "tx_data_start",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2622,6 +2638,7 @@
     {
       "addr": 3393,
       "name": "rx_remote_addr",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2629,6 +2646,7 @@
     {
       "addr": 3558,
       "name": "nmi_sub_table",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2636,6 +2654,7 @@
     {
       "addr": 3563,
       "name": "fs_state_deb",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2643,6 +2662,7 @@
     {
       "addr": 3568,
       "name": "rom_ws_table",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2650,6 +2670,7 @@
     {
       "addr": 3582,
       "name": "fs_context_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2657,6 +2678,7 @@
     {
       "addr": 3632,
       "name": "fs_filename_buf",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2664,6 +2686,7 @@
     {
       "addr": 3831,
       "name": "fs_reply_data",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2671,6 +2694,7 @@
     {
       "addr": 3853,
       "name": "fs_file_len",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -2678,6 +2702,7 @@
     {
       "addr": 4064,
       "name": "fs_error_buf",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]

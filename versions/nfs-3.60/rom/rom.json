@@ -1,5 +1,10 @@
 {
     "title": "Acorn NFS 3.60",
+    "memory_map_groups": {
+        "zero_page": "Zero page",
+        "stack": "6502 stack page",
+        "ram_workspace": "RAM workspace"
+    },
     "size": 8192,
     "md5": "e345ac2f6f2130ad7683413071069609",
     "sha256": "7a1ed6d2b2fa35e2bae82165fc9625a9f65922c2d1de40a785d3964f6e44d8b0",

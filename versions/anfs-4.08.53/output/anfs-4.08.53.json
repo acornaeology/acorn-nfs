@@ -3264,6 +3264,7 @@
     {
       "addr": 2,
       "name": "zp_work_2",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -3271,6 +3272,7 @@
     {
       "addr": 3,
       "name": "zp_work_3",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -3278,6 +3280,7 @@
     {
       "addr": 194,
       "name": "txcb_dest",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -3285,6 +3288,7 @@
     {
       "addr": 199,
       "name": "txcb_pos",
+      "group": "zero_page",
       "access": [
         "b"
       ]
@@ -3292,6 +3296,7 @@
     {
       "addr": 258,
       "name": "stack_page_2",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -3299,6 +3304,7 @@
     {
       "addr": 259,
       "name": "stack_page_3",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -3306,6 +3312,7 @@
     {
       "addr": 260,
       "name": "stack_page_4",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -3313,6 +3320,7 @@
     {
       "addr": 262,
       "name": "stack_page_6",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -3320,6 +3328,7 @@
     {
       "addr": 296,
       "name": "tube_osword_pb",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -3327,6 +3336,7 @@
     {
       "addr": 672,
       "name": "rom_type_table",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3334,6 +3344,7 @@
     {
       "addr": 1792,
       "name": "string_buf",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3341,6 +3352,7 @@
     {
       "addr": 3327,
       "name": "nmi_code_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3348,6 +3360,7 @@
     {
       "addr": 3354,
       "name": "imm_param_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3355,6 +3368,7 @@
     {
       "addr": 3358,
       "name": "tx_addr_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3362,6 +3376,7 @@
     {
       "addr": 3366,
       "name": "tx_data_start",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3369,6 +3384,7 @@
     {
       "addr": 3378,
       "name": "scout_data",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3376,6 +3392,7 @@
     {
       "addr": 3558,
       "name": "txcb_default_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3383,6 +3400,7 @@
     {
       "addr": 3568,
       "name": "rom_ws_pages",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3390,6 +3408,7 @@
     {
       "addr": 3578,
       "name": "fs_context_save",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3397,6 +3416,7 @@
     {
       "addr": 3582,
       "name": "osword_ws_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3404,6 +3424,7 @@
     {
       "addr": 3583,
       "name": "fs_server_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3411,6 +3432,7 @@
     {
       "addr": 3631,
       "name": "fs_filename_buf_m1",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3418,6 +3440,7 @@
     {
       "addr": 3640,
       "name": "fs_filename_backup",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3425,6 +3448,7 @@
     {
       "addr": 3831,
       "name": "fs_reply_data",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3432,6 +3456,7 @@
     {
       "addr": 3853,
       "name": "fs_file_len",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3439,6 +3464,7 @@
     {
       "addr": 4064,
       "name": "fcb_xfer_count_lo",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3446,6 +3472,7 @@
     {
       "addr": 4080,
       "name": "fcb_xfer_count_mid",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3453,6 +3480,7 @@
     {
       "addr": 4096,
       "name": "fcb_count_lo",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3460,6 +3488,7 @@
     {
       "addr": 4112,
       "name": "fcb_attr_or_count_mid",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3467,6 +3496,7 @@
     {
       "addr": 4128,
       "name": "fcb_station_or_count_hi",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3474,6 +3504,7 @@
     {
       "addr": 4144,
       "name": "fcb_net_or_port",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3481,6 +3512,7 @@
     {
       "addr": 4160,
       "name": "fcb_flags",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3488,6 +3520,7 @@
     {
       "addr": 4176,
       "name": "fcb_net_num",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3495,6 +3528,7 @@
     {
       "addr": 4192,
       "name": "chan_status",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3502,6 +3536,7 @@
     {
       "addr": 4216,
       "name": "fcb_stn_lo",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3509,6 +3544,7 @@
     {
       "addr": 4232,
       "name": "fcb_stn_hi",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3516,6 +3552,7 @@
     {
       "addr": 4248,
       "name": "fcb_buf_offset",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3523,6 +3560,7 @@
     {
       "addr": 4264,
       "name": "fcb_attr_ref",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3530,6 +3568,7 @@
     {
       "addr": 4280,
       "name": "fcb_status",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3537,6 +3576,7 @@
     {
       "addr": 4305,
       "name": "xfer_counter",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3544,6 +3584,7 @@
     {
       "addr": 4313,
       "name": "fcb_ctx_save",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -3551,6 +3592,7 @@
     {
       "addr": 4339,
       "name": "filename_buf",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]

@@ -135,9 +135,9 @@ d.label(0x0000, "zp_ptr_lo")
 
 d.label(0x0001, "zp_ptr_hi")
 
-d.index_base(0x0002, "zp_work_2")
+d.index_base(0x0002, "zp_work_2", group="zero_page")
 
-d.index_base(0x0003, "zp_work_3")
+d.index_base(0x0003, "zp_work_3", group="zero_page")
 
 d.label(0x0010, "zp_temp_10")
 
@@ -327,11 +327,11 @@ d.label(0x00C0, "txcb_ctrl")
 
 d.label(0x00C1, "txcb_port")
 
-d.index_base(0x00C2, "txcb_dest")
+d.index_base(0x00C2, "txcb_dest", group="zero_page")
 
 d.label(0x00C4, "txcb_start")
 
-d.index_base(0x00C7, "txcb_pos")
+d.index_base(0x00C7, "txcb_pos", group="zero_page")
 
 d.label(0x00C8, "txcb_end")
 
@@ -367,21 +367,21 @@ d.label(0x0100, "error_block")
 
 d.label(0x0101, "error_text")
 
-d.index_base(0x0102, "stack_page_2")
+d.index_base(0x0102, "stack_page_2", group="stack")
 
-d.index_base(0x0103, "stack_page_3")
+d.index_base(0x0103, "stack_page_3", group="stack")
 
-d.index_base(0x0104, "stack_page_4")
+d.index_base(0x0104, "stack_page_4", group="stack")
 
-d.index_base(0x0106, "stack_page_6")
+d.index_base(0x0106, "stack_page_6", group="stack")
 
-d.index_base(0x0128, "tube_osword_pb")
+d.index_base(0x0128, "tube_osword_pb", group="stack")
 
 d.label(0x026A, "vdu_queue_count")
 
 d.label(0x028D, "last_break_type")
 
-d.index_base(0x02A0, "rom_type_table")
+d.index_base(0x02A0, "rom_type_table", group="ram_workspace")
 
 d.label(0x0350, "vdu_screen_mode")
 
@@ -1278,13 +1278,13 @@ d.comment(0x06F6, "Store in EVNTV vector high", align=Align.INLINE)
 d.comment(0x06F9, "BRKV low byte (&16)", align=Align.INLINE)
 d.comment(0x06FB, "Store in BRKV vector", align=Align.INLINE)
 d.comment(0x06FE, "A=0", align=Align.INLINE)
-d.index_base(0x0700, "string_buf")
+d.index_base(0x0700, "string_buf", group="ram_workspace")
 
 d.label(0x072C, "tube_vdu_stream_end")
 
 d.label(0x072E, "tube_vdu_normal_byte")
 
-d.index_base(0x0CFF, "nmi_code_base")
+d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
 
 d.label(0x0D07, "nmi_romsel")
 
@@ -1298,9 +1298,9 @@ d.label(0x0D11, "install_nmi_handler")
 
 d.label(0x0D14, "nmi_rti")
 
-d.index_base(0x0D1A, "imm_param_base")
+d.index_base(0x0D1A, "imm_param_base", group="ram_workspace")
 
-d.index_base(0x0D1E, "tx_addr_base")
+d.index_base(0x0D1E, "tx_addr_base", group="ram_workspace")
 
 d.label(0x0D20, "tx_dst_stn")
 
@@ -1314,7 +1314,7 @@ d.label(0x0D24, "tx_ctrl_byte")
 
 d.label(0x0D25, "tx_port")
 
-d.index_base(0x0D26, "tx_data_start")
+d.index_base(0x0D26, "tx_data_start", group="ram_workspace")
 
 d.label(0x0D2A, "tx_data_len")
 
@@ -1326,7 +1326,7 @@ d.label(0x0D30, "scout_ctrl")
 
 d.label(0x0D31, "scout_port")
 
-d.index_base(0x0D32, "scout_data")
+d.index_base(0x0D32, "scout_data", group="ram_workspace")
 
 d.label(0x0D3D, "rx_src_stn")
 
@@ -1390,15 +1390,15 @@ d.label(0x0D70, "peek_retry_count")
 
 d.label(0x0D72, "bridge_status")
 
-d.index_base(0x0DE6, "txcb_default_base")
+d.index_base(0x0DE6, "txcb_default_base", group="ram_workspace")
 
-d.index_base(0x0DF0, "rom_ws_pages")
+d.index_base(0x0DF0, "rom_ws_pages", group="ram_workspace")
 
-d.index_base(0x0DFA, "fs_context_save")
+d.index_base(0x0DFA, "fs_context_save", group="ram_workspace")
 
-d.index_base(0x0DFE, "osword_ws_base")
+d.index_base(0x0DFE, "osword_ws_base", group="ram_workspace")
 
-d.index_base(0x0DFF, "fs_server_base")
+d.index_base(0x0DFF, "fs_server_base", group="ram_workspace")
 
 d.label(0x0E00, "fs_server_stn")
 
@@ -1424,7 +1424,7 @@ d.label(0x0E0B, "fs_context_hi")
 
 d.label(0x0E16, "fs_work_16")
 
-d.index_base(0x0E2F, "fs_filename_buf_m1")
+d.index_base(0x0E2F, "fs_filename_buf_m1", group="ram_workspace")
 
 d.label(0x0E30, "fs_filename_buf")
 
@@ -1432,9 +1432,9 @@ d.label(0x0E31, "fs_filename_buf_1")
 
 d.label(0x0E32, "fs_filename_buf_2")
 
-d.index_base(0x0E38, "fs_filename_backup")
+d.index_base(0x0E38, "fs_filename_backup", group="ram_workspace")
 
-d.index_base(0x0EF7, "fs_reply_data")
+d.index_base(0x0EF7, "fs_reply_data", group="ram_workspace")
 
 d.label(0x0F00, "txcb_reply_port")
 
@@ -1462,7 +1462,7 @@ d.label(0x0F0B, "fs_load_upper")
 
 d.label(0x0F0C, "fs_addr_check")
 
-d.index_base(0x0F0D, "fs_file_len")
+d.index_base(0x0F0D, "fs_file_len", group="ram_workspace")
 
 d.label(0x0F0E, "fs_file_attrs")
 
@@ -1490,23 +1490,23 @@ d.label(0x0FDE, "fs_handle_mask")
 
 d.label(0x0FDF, "fs_error_flags")
 
-d.index_base(0x0FE0, "fcb_xfer_count_lo")
+d.index_base(0x0FE0, "fcb_xfer_count_lo", group="ram_workspace")
 
-d.index_base(0x0FF0, "fcb_xfer_count_mid")
+d.index_base(0x0FF0, "fcb_xfer_count_mid", group="ram_workspace")
 
-d.index_base(0x1000, "fcb_count_lo")
+d.index_base(0x1000, "fcb_count_lo", group="ram_workspace")
 
-d.index_base(0x1010, "fcb_attr_or_count_mid")
+d.index_base(0x1010, "fcb_attr_or_count_mid", group="ram_workspace")
 
-d.index_base(0x1020, "fcb_station_or_count_hi")
+d.index_base(0x1020, "fcb_station_or_count_hi", group="ram_workspace")
 
-d.index_base(0x1030, "fcb_net_or_port")
+d.index_base(0x1030, "fcb_net_or_port", group="ram_workspace")
 
-d.index_base(0x1040, "fcb_flags")
+d.index_base(0x1040, "fcb_flags", group="ram_workspace")
 
-d.index_base(0x1050, "fcb_net_num")
+d.index_base(0x1050, "fcb_net_num", group="ram_workspace")
 
-d.index_base(0x1060, "chan_status")
+d.index_base(0x1060, "chan_status", group="ram_workspace")
 
 d.label(0x1070, "cur_dir_handle")
 
@@ -1518,15 +1518,15 @@ d.label(0x1073, "handle_2_fcb")
 
 d.label(0x1074, "handle_3_fcb")
 
-d.index_base(0x1078, "fcb_stn_lo")
+d.index_base(0x1078, "fcb_stn_lo", group="ram_workspace")
 
-d.index_base(0x1088, "fcb_stn_hi")
+d.index_base(0x1088, "fcb_stn_hi", group="ram_workspace")
 
-d.index_base(0x1098, "fcb_buf_offset")
+d.index_base(0x1098, "fcb_buf_offset", group="ram_workspace")
 
-d.index_base(0x10A8, "fcb_attr_ref")
+d.index_base(0x10A8, "fcb_attr_ref", group="ram_workspace")
 
-d.index_base(0x10B8, "fcb_status")
+d.index_base(0x10B8, "fcb_status", group="ram_workspace")
 
 d.label(0x10C8, "cur_fcb_index")
 
@@ -1546,7 +1546,7 @@ d.label(0x10CF, "xfer_offset")
 
 d.label(0x10D0, "xfer_pass_count")
 
-d.index_base(0x10D1, "xfer_counter")
+d.index_base(0x10D1, "xfer_counter", group="ram_workspace")
 
 d.label(0x10D4, "work_stn_lo")
 
@@ -1558,9 +1558,9 @@ d.label(0x10D7, "osbput_saved_byte")
 
 d.label(0x10D8, "quote_mode")
 
-d.index_base(0x10D9, "fcb_ctx_save")
+d.index_base(0x10D9, "fcb_ctx_save", group="ram_workspace")
 
-d.index_base(0x10F3, "filename_buf")
+d.index_base(0x10F3, "filename_buf", group="ram_workspace")
 
 d.label(0x6F6E, "false_ref_6f6e")
 d.index_base(0x8001, "rom_header_byte1")

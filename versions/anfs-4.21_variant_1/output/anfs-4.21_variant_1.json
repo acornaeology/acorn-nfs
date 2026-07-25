@@ -5993,6 +5993,7 @@
     {
       "addr": 258,
       "name": "stack_page_2",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -6000,6 +6001,7 @@
     {
       "addr": 259,
       "name": "stack_page_3",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -6007,6 +6009,7 @@
     {
       "addr": 260,
       "name": "stack_page_4",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -6014,6 +6017,7 @@
     {
       "addr": 262,
       "name": "stack_page_6",
+      "group": "stack",
       "access": [
         "b"
       ]
@@ -6097,6 +6101,7 @@
     {
       "addr": 672,
       "name": "rom_type_table",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -6134,6 +6139,7 @@
     {
       "addr": 3327,
       "name": "nmi_code_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -6204,6 +6210,7 @@
     {
       "addr": 3354,
       "name": "imm_param_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -6211,6 +6218,7 @@
     {
       "addr": 3358,
       "name": "tx_addr_base",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -6748,6 +6756,7 @@
     {
       "addr": 18584,
       "name": "cdir_unused_dispatch_table",
+      "group": "ram_workspace",
       "access": [
         "b"
       ]
@@ -6824,6 +6833,7 @@
     {
       "addr": 49162,
       "name": "hazel_fs_opts_addend",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -6842,6 +6852,7 @@
     {
       "addr": 49199,
       "name": "hazel_parse_buf_m1",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -6987,6 +6998,7 @@
     {
       "addr": 49421,
       "name": "hazel_txcb_addr_lo",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -6994,6 +7006,7 @@
     {
       "addr": 49608,
       "name": "hazel_chan_status",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7001,6 +7014,7 @@
     {
       "addr": 49632,
       "name": "hazel_fcb_addr_lo_minus20",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7008,6 +7022,7 @@
     {
       "addr": 49648,
       "name": "hazel_fcb_addr_mid_minus20",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7015,6 +7030,7 @@
     {
       "addr": 49663,
       "name": "hazel_display_buf_minusF4",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7104,6 +7120,7 @@
     {
       "addr": 49784,
       "name": "hazel_fcb_station_lo",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7111,6 +7128,7 @@
     {
       "addr": 49800,
       "name": "hazel_fcb_station_hi",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7118,6 +7136,7 @@
     {
       "addr": 49816,
       "name": "hazel_fcb_offset_save",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7125,6 +7144,7 @@
     {
       "addr": 49832,
       "name": "hazel_fcb_attr_ref",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7132,6 +7152,7 @@
     {
       "addr": 49848,
       "name": "hazel_fcb_flags",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7172,6 +7193,7 @@
     {
       "addr": 49873,
       "name": "hazel_xfer_init_zeros",
+      "group": "hazel",
       "access": [
         "b"
       ]
@@ -7189,6 +7211,7 @@
     {
       "addr": 49907,
       "name": "hazel_display_buf",
+      "group": "hazel",
       "access": [
         "b"
       ]

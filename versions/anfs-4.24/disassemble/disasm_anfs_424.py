@@ -428,13 +428,13 @@ d.label(0x0100, "error_block")
 
 d.label(0x0101, "error_text")
 
-d.index_base(0x0102, "stack_page_2")
+d.index_base(0x0102, "stack_page_2", group="stack")
 
-d.index_base(0x0103, "stack_page_3")
+d.index_base(0x0103, "stack_page_3", group="stack")
 
-d.index_base(0x0104, "stack_page_4")
+d.index_base(0x0104, "stack_page_4", group="stack")
 
-d.index_base(0x0106, "stack_page_6")
+d.index_base(0x0106, "stack_page_6", group="stack")
 
 d.index_base(
     0x0212,
@@ -499,7 +499,7 @@ d.label(
 )
 d.label(0x028D, "last_break_type")
 
-d.index_base(0x02A0, "rom_type_table")
+d.index_base(0x02A0, "rom_type_table", group="ram_workspace")
 
 d.label(
     0x0350, "vdu_screen_mode", description="VDU screen mode set by the OS.", length=1, group="ram_workspace", access="r"
@@ -526,7 +526,7 @@ Determines whether `OSWRCH` writes to the screen, printer, serial port, etc. ANF
 
 d.label(0x0406, "tube_addr_data_dispatch")
 
-d.index_base(0x0CFF, "nmi_code_base")
+d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
 
 d.label(
     0x0D07,
@@ -588,9 +588,9 @@ Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_n
     access="r",
 )
 
-d.index_base(0x0D1A, "imm_param_base")
+d.index_base(0x0D1A, "imm_param_base", group="ram_workspace")
 
-d.index_base(0x0D1E, "tx_addr_base")
+d.index_base(0x0D1E, "tx_addr_base", group="ram_workspace")
 
 d.label(
     0x0D20,
@@ -1190,7 +1190,7 @@ d.label(0x2048, "ws_template_source")
 
 d.label(0x2322, "separator_parse_dispatch")
 
-d.index_base(0x4898, "cdir_unused_dispatch_table")
+d.index_base(0x4898, "cdir_unused_dispatch_table", group="ram_workspace")
 
 d.label(0x688B, "ws_precomputed_value")
 
@@ -4083,9 +4083,9 @@ d.comment(0x89B7, "A=&80: TX-complete signal for tx_complete_flag", align=Align.
 d.comment(0x89B9, "Signal TX complete", align=Align.INLINE)
 d.comment(0x89BC, "Full ADLC reset and return to idle listen", align=Align.INLINE)
 
-d.label(0x863A, "rom_gap_88f0")
+d.label(0x863A, "rom_gap_88f0", group="ram_workspace")
 
-d.label(0x863A, "rom_gap_88f0")
+d.label(0x863A, "rom_gap_88f0", group="ram_workspace")
 d.banner(0x863A, title="Purpose unknown. Unreferenced, unreachable.")
 d.byte(0x863A, 16, cols=16)
 d.entry(0x863A)
@@ -18831,7 +18831,7 @@ d.label(
     access="rw",
 )
 
-d.index_base(0xC00A, "hazel_fs_opts_addend")
+d.index_base(0xC00A, "hazel_fs_opts_addend", group="hazel")
 
 d.label(
     0xC014,
@@ -18842,7 +18842,7 @@ d.label(
     access="rw",
 )
 
-d.index_base(0xC02F, "hazel_parse_buf_m1")
+d.index_base(0xC02F, "hazel_parse_buf_m1", group="hazel")
 
 d.label(
     0xC030,
@@ -18947,7 +18947,7 @@ d.label(0xC10B, "hazel_txcb_tx_status")
 
 d.label(0xC10C, "hazel_txcb_osword_flag")
 
-d.index_base(0xC10D, "hazel_txcb_addr_lo")
+d.index_base(0xC10D, "hazel_txcb_addr_lo", group="hazel")
 
 d.label(0xC10E, "hazel_txcb_access")
 
@@ -18967,7 +18967,7 @@ d.label(0xC12F, "hazel_txcb_end")
 
 d.label(0xC130, "hazel_examine_attr")
 
-d.index_base(0xC1C8, "hazel_chan_status")
+d.index_base(0xC1C8, "hazel_chan_status", group="hazel")
 
 d.label(0xC1DC, "hazel_net_reply_buf_0")
 
@@ -18977,11 +18977,11 @@ d.label(0xC1DE, "hazel_net_reply_buf_2")
 
 d.label(0xC1DF, "hazel_net_reply_buf_3")
 
-d.index_base(0xC1E0, "hazel_fcb_addr_lo_minus20")
+d.index_base(0xC1E0, "hazel_fcb_addr_lo_minus20", group="hazel")
 
-d.index_base(0xC1F0, "hazel_fcb_addr_mid_minus20")
+d.index_base(0xC1F0, "hazel_fcb_addr_mid_minus20", group="hazel")
 
-d.index_base(0xC1FF, "hazel_display_buf_minusF4")
+d.index_base(0xC1FF, "hazel_display_buf_minusF4", group="hazel")
 
 d.index_base(
     0xC200,
@@ -19060,15 +19060,15 @@ d.label(0xC273, "hazel_fcb_slot_2")
 
 d.label(0xC274, "hazel_fcb_slot_3")
 
-d.index_base(0xC278, "hazel_fcb_station_lo")
+d.index_base(0xC278, "hazel_fcb_station_lo", group="hazel")
 
-d.index_base(0xC288, "hazel_fcb_station_hi")
+d.index_base(0xC288, "hazel_fcb_station_hi", group="hazel")
 
-d.index_base(0xC298, "hazel_fcb_offset_save")
+d.index_base(0xC298, "hazel_fcb_offset_save", group="hazel")
 
-d.index_base(0xC2A8, "hazel_fcb_attr_ref")
+d.index_base(0xC2A8, "hazel_fcb_attr_ref", group="hazel")
 
-d.index_base(0xC2B8, "hazel_fcb_flags")
+d.index_base(0xC2B8, "hazel_fcb_flags", group="hazel")
 
 d.label(
     0xC2C8,
@@ -19109,7 +19109,7 @@ d.label(0xC2CF, "hazel_offset_counter")
 
 d.label(0xC2D0, "hazel_pass_counter")
 
-d.index_base(0xC2D1, "hazel_xfer_init_zeros")
+d.index_base(0xC2D1, "hazel_xfer_init_zeros", group="hazel")
 
 d.label(0xC2D4, "hazel_station_lo")
 
@@ -19129,7 +19129,7 @@ d.index_base(
     group="hazel",
 )
 
-d.index_base(0xC2F3, "hazel_display_buf")
+d.index_base(0xC2F3, "hazel_display_buf", group="hazel")
 
 d.label(
     0xFE28,
