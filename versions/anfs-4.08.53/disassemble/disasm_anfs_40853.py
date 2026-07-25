@@ -3415,15 +3415,15 @@ Writes `CR1 = &82` (`TX_RESET | RIE`, i.e. `1000_0010`): clears `RX_RESET` (bit 
 | 3    | &44   | data TX              |
 | 4    | &82   | await data ACK       |
 
-(this routine fires at step 2; [`handshake_await_ack`](address:886E) at step 4.)
+(this routine fires at step 2; [`handshake_await_ack`](label:handshake_await_ack) at step 4.)
 
 Dispatches on the `net_frame_flags` flags written earlier in the TX path:
 
 | Flag                          | Next handler                                   |
 |-------------------------------|------------------------------------------------|
-| bit 6 set (broadcast)         | [`tx_result_ok`](address:88C6) – skip the ACK  |
-| bit 0 set (handshake pending) | [`handshake_await_ack`](address:886E)          |
-| both clear                    | install [`nmi_reply_scout`](address:8744) for scout-ACK reception |""",
+| bit 6 set (broadcast)         | [`tx_result_ok`](label:tx_result_ok) – skip the ACK  |
+| bit 0 set (handshake pending) | [`handshake_await_ack`](label:handshake_await_ack)          |
+| both clear                    | install [`nmi_reply_scout`](label:nmi_reply_scout) for scout-ACK reception |""",
 )
 
 
@@ -3447,7 +3447,7 @@ d.subroutine(
     0x8744,
     "nmi_reply_scout",
     title="Scout-ACK reception (step 2 of four-way handshake)",
-    description="""Receives the **scout ACK** – the 4-byte acknowledgement frame the remote station sends back after our scout. This is step 2 of the four-way handshake (`CR1` previously written to &82 by [`nmi_tx_complete`](address:8728)). The frame layout is identical to a scout: `[dst_stn][dst_net][src_stn][src_net]`.
+    description="""Receives the **scout ACK** – the 4-byte acknowledgement frame the remote station sends back after our scout. This is step 2 of the four-way handshake (`CR1` previously written to &82 by [`nmi_tx_complete`](label:nmi_tx_complete)). The frame layout is identical to a scout: `[dst_stn][dst_net][src_stn][src_net]`.
 
 Reads `SR2` bit 0 (`AP` – address present), then reads the first byte (destination station from the remote's point of view = our station) and compares it against our station ID via `BIT econet_station_id` (the `&FE18` read also disables NMIs as a side effect).
 
@@ -3468,9 +3468,9 @@ d.subroutine(
     0x8758,
     "nmi_reply_cont",
     title="Scout-ACK continuation: destination-network check",
-    description="""Second byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](address:876F) for the remaining two bytes (source station and network).
+    description="""Second byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](label:nmi_reply_validate) for the remaining two bytes (source station and network).
 
-Optimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](address:876F) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession.""",
+Optimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](label:nmi_reply_validate) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession.""",
 )
 
 
@@ -3499,14 +3499,14 @@ Validation sequence:
 3. Read source network at &877C, compare to `tx_dst_net` (&0D21)
 4. `SR2` bit 1 (`FV`) at &8786 – must see frame valid
 
-On success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mode and begin transmitting the data frame. The `CR1 = &44` write re-asserts `RX_RESET` (bit 6), which means the *data ACK* (step 4) cannot be received until the next [`nmi_tx_complete`](address:8728) writes `CR1 = &82` again. The full `CR1` walk through the handshake:
+On success, writes `CR2 = &A7` then `CR1 = &44` to switch the ADLC back to TX mode and begin transmitting the data frame. The `CR1 = &44` write re-asserts `RX_RESET` (bit 6), which means the *data ACK* (step 4) cannot be received until the next [`nmi_tx_complete`](label:nmi_tx_complete) writes `CR1 = &82` again. The full `CR1` walk through the handshake:
 
 | Step | `CR1` | Phase                  | Routine fires                                |
 |------|-------|------------------------|----------------------------------------------|
 | 1    | &44   | scout TX               | [`tx_prepare`](address:8643?hex)             |
-| 2    | &82   | await scout ACK        | [`nmi_tx_complete`](address:8728)            |
-| 3    | &44   | data TX                | [`nmi_reply_validate`](address:876F) (here) |
-| 4    | &82   | await data ACK         | [`handshake_await_ack`](address:886E)        |""",
+| 2    | &82   | await scout ACK        | [`nmi_tx_complete`](label:nmi_tx_complete)            |
+| 3    | &44   | data TX                | [`nmi_reply_validate`](label:nmi_reply_validate) (here) |
+| 4    | &82   | await data ACK         | [`handshake_await_ack`](label:handshake_await_ack)        |""",
 )
 
 
@@ -10432,13 +10432,13 @@ d.subroutine(
     title="OSWORD &10 (Econet transmit) handler",
     description="""Entry point for all Econet transmissions initiated via `OSWORD &10`, including transmissions forwarded from a Tube co-processor by the L3FS.
 
-Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](address:8582) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](address:86E0) → `tx_last_data` → [`nmi_tx_complete`](address:8728) → [`nmi_reply_scout`](address:8744)). This bypasses [`send_net_packet`](address:982A) and [`poll_adlc_tx_status`](address:98B4), which poll synchronously for completion – there is no retry loop here.
+Fire-and-forget from the caller's perspective: the routine sets up `nmi_tx_block` and the OSWORD parameter block, then `JMP`s to [`tx_begin`](label:tx_begin) and the four-way handshake runs entirely under NMI ([`nmi_tx_data`](label:nmi_tx_data) → `tx_last_data` → [`nmi_tx_complete`](label:nmi_tx_complete) → [`nmi_reply_scout`](label:nmi_reply_scout)). This bypasses [`send_net_packet`](label:send_net_packet) and [`poll_adlc_tx_status`](label:poll_adlc_tx_status), which poll synchronously for completion – there is no retry loop here.
 
 Sequence:
 
 1. `ASL tx_complete_flag` – tests bit 7 (TX-in-progress). On busy, store 0 to PB and return immediately.
 2. Set `ws_ptr_lo`/`nmi_tx_block_hi` from `net_rx_ptr_hi`, point the buffer at `&xx6F`.
-3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](address:A6FB).
+3. Copy the 15 parameter bytes from the OSWORD PB into the TX workspace via [`copy_pb_byte_to_ws`](label:copy_pb_byte_to_ws).
 4. `JMP tx_begin`.
 
 Called from service call 8 in interrupt context, never foreground.""",

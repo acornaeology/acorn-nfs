@@ -273,7 +273,7 @@
       "binary_addr": 37653,
       "name": "tube_brk_handler",
       "title": "Tube BRK handler (BRKV target) \u2014 reference: NFS11 NEWBR",
-      "description": "Sends error information to the Tube co-processor via R2 and R4:\n\n1. Send `&FF` to R4 (`WRIFOR`) to signal error.\n2. Read R2 data (flush any pending byte).\n3. Send `&00` via R2, then error number from (`brk_ptr`),0.\n4. Loop sending error string bytes via R2 until zero terminator.\n5. Fall through to [`tube_reset_stack`](address:0032) \u2192 [`tube_main_loop`](address:003A).\n\nThe main loop continuously polls R1 for `WRCH` requests (forwarded\nto `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for\ncommand bytes (dispatched via the 14-entry\n[`tube_dispatch_table`](address:0500)). The R2 command byte is stored\nat [`tube_dispatch_ptr_lo`](address:0055) (self-modifying the\n`JMP (tube_dispatch_table)` indirect low byte) before dispatch.",
+      "description": "Sends error information to the Tube co-processor via R2 and R4:\n\n1. Send `&FF` to R4 (`WRIFOR`) to signal error.\n2. Read R2 data (flush any pending byte).\n3. Send `&00` via R2, then error number from (`brk_ptr`),0.\n4. Loop sending error string bytes via R2 until zero terminator.\n5. Fall through to [`tube_reset_stack`](label:tube_reset_stack) \u2192 [`tube_main_loop`](label:tube_main_loop).\n\nThe main loop continuously polls R1 for `WRCH` requests (forwarded\nto `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for\ncommand bytes (dispatched via the 14-entry\n[`tube_dispatch_table`](label:tube_dispatch_table)). The R2 command byte is stored\nat [`tube_dispatch_ptr_lo`](label:tube_dispatch_ptr_lo) (self-modifying the\n`JMP (tube_dispatch_table)` indirect low byte) before dispatch.",
       "fall_through": true
     },
     {
@@ -288,7 +288,7 @@
       "binary_addr": 37722,
       "name": "tube_code_page4",
       "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
-      "description": "Copied from ROM at [`reloc_p4_src`](address:935A) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](address:0473) (BEGIN \u2014 CLI parser / startup entry) |\n| `&0403` | `JMP` to [`tube_escape_check`](address:06E2) |\n| `&0406` | [`tube_addr_claim`](address:0406) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_post_init`](address:0414) \u2014 clear claimed-address state to `&80` |\n| `&0426` | [`setup_data_transfer`](address:0426) \u2014 data transfer setup (SENDW), `&0426`\u2013`&0472` |\n| `&0473` | [`tube_begin`](address:0473) \u2014 startup entry, sends ROM contents to Tube |\n| `&047A` | [`tube_init_reloc`](address:047A) \u2014 extract relocation address from ROM |\n| `&04E0` | [`tube_setup_transfer`](address:04E0) \u2014 claim Tube and start transfer |\n| `&04E7` | [`tube_rdch_handler`](address:04E7) \u2014 RDCHV target |\n| `&04EF` | [`tube_restore_regs`](address:04EF) \u2014 restore X, Y; dispatch entry 6 |\n| `&04F7` | [`tube_read_r2`](address:04F7) \u2014 poll R2 status, read data byte to `A` |",
+      "description": "Copied from ROM at [`reloc_p4_src`](address:935A) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](label:tube_begin) (BEGIN \u2014 CLI parser / startup entry) |\n| `&0403` | `JMP` to [`tube_escape_check`](label:tube_escape_check) |\n| `&0406` | [`tube_addr_claim`](label:tube_addr_claim) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_post_init`](label:tube_post_init) \u2014 clear claimed-address state to `&80` |\n| `&0426` | [`setup_data_transfer`](label:setup_data_transfer) \u2014 data transfer setup (SENDW), `&0426`\u2013`&0472` |\n| `&0473` | [`tube_begin`](label:tube_begin) \u2014 startup entry, sends ROM contents to Tube |\n| `&047A` | [`tube_init_reloc`](label:tube_init_reloc) \u2014 extract relocation address from ROM |\n| `&04E0` | [`tube_setup_transfer`](label:tube_setup_transfer) \u2014 claim Tube and start transfer |\n| `&04E7` | [`tube_rdch_handler`](label:tube_rdch_handler) \u2014 RDCHV target |\n| `&04EF` | [`tube_restore_regs`](label:tube_restore_regs) \u2014 restore X, Y; dispatch entry 6 |\n| `&04F7` | [`tube_read_r2`](label:tube_read_r2) \u2014 poll R2 status, read data byte to `A` |",
       "fall_through": true
     },
     {
@@ -303,7 +303,7 @@
       "binary_addr": 37978,
       "name": "tube_dispatch_table",
       "title": "Tube host code page 5 \u2014 reference: NFS13 (TASKS, BPUT-FILE)",
-      "description": "Copied from ROM at [`reloc_p4_src`](address:935A)+`&100` during init.\n\nLayout:\n\n| Range            | Role |\n|------------------|------|\n| `&0500`\u2013`&051B`  | 14-entry handler dispatch table (low / high address pairs) |\n| `&051C`          | [`tube_wrch_handler`](address:051C) \u2014 WRCHV target |\n| `&051F`          | [`tube_send_and_poll`](address:051F) \u2014 send byte via R2, poll for reply |\n| `&0527`          | [`tube_poll_r1_wrch`](address:0527) \u2014 service R1 WRCH while waiting for R2 |\n| `&053D`          | [`tube_release_return`](address:053D) \u2014 restore registers and `RTS` |\n| `&0543`          | [`tube_osbput`](address:0543) \u2014 write byte to file |\n| `&0550`          | [`tube_osbget`](address:0550) \u2014 read byte from file |\n| `&055B`          | [`tube_osrdch`](address:055B) \u2014 read character |\n| `&0569`          | [`tube_osfind`](address:0569) \u2014 open file |\n| `&0580`          | [`tube_osfind_close`](address:0580) \u2014 close file (`A=0`) |\n| `&058C`          | [`tube_osargs`](address:058C) \u2014 file argument read / write |\n| `&05B1`          | [`tube_read_string`](address:05B1) \u2014 read CR-terminated string into `&0700` |\n| `&05C5`          | [`tube_oscli`](address:05C5) \u2014 execute `*` command |\n| `&05CB`          | [`tube_reply_ack`](address:05CB) \u2014 send `&7F` acknowledge |\n| `&05CD`          | [`tube_reply_byte`](address:05CD) \u2014 send byte and return to main loop |\n| `&05D8`          | [`tube_osfile`](address:05D8) \u2014 whole-file operation |",
+      "description": "Copied from ROM at [`reloc_p4_src`](address:935A)+`&100` during init.\n\nLayout:\n\n| Range            | Role |\n|------------------|------|\n| `&0500`\u2013`&051B`  | 14-entry handler dispatch table (low / high address pairs) |\n| `&051C`          | [`tube_wrch_handler`](label:tube_wrch_handler) \u2014 WRCHV target |\n| `&051F`          | [`tube_send_and_poll`](label:tube_send_and_poll) \u2014 send byte via R2, poll for reply |\n| `&0527`          | [`tube_poll_r1_wrch`](label:tube_poll_r1_wrch) \u2014 service R1 WRCH while waiting for R2 |\n| `&053D`          | [`tube_release_return`](label:tube_release_return) \u2014 restore registers and `RTS` |\n| `&0543`          | [`tube_osbput`](label:tube_osbput) \u2014 write byte to file |\n| `&0550`          | [`tube_osbget`](label:tube_osbget) \u2014 read byte from file |\n| `&055B`          | [`tube_osrdch`](label:tube_osrdch) \u2014 read character |\n| `&0569`          | [`tube_osfind`](label:tube_osfind) \u2014 open file |\n| `&0580`          | [`tube_osfind_close`](label:tube_osfind_close) \u2014 close file (`A=0`) |\n| `&058C`          | [`tube_osargs`](label:tube_osargs) \u2014 file argument read / write |\n| `&05B1`          | [`tube_read_string`](label:tube_read_string) \u2014 read CR-terminated string into `&0700` |\n| `&05C5`          | [`tube_oscli`](label:tube_oscli) \u2014 execute `*` command |\n| `&05CB`          | [`tube_reply_ack`](label:tube_reply_ack) \u2014 send `&7F` acknowledge |\n| `&05CD`          | [`tube_reply_byte`](label:tube_reply_byte) \u2014 send byte and return to main loop |\n| `&05D8`          | [`tube_osfile`](label:tube_osfile) \u2014 whole-file operation |",
       "fall_through": true
     },
     {
@@ -311,19 +311,19 @@
       "binary_addr": 38234,
       "name": "tube_code_page6",
       "title": "Tube host code page 6 \u2014 reference: NFS13 (GBPB-ESCA)",
-      "description": "Copied from ROM at [`reloc_p4_src`](address:935A)+`&200` during init.\n`&0600`\u2013`&0601` is the tail of [`tube_osfile`](address:05D8) (`BEQ` to\n[`tube_reply_byte`](address:05CD) when done).\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0602` | [`tube_osgbpb`](address:0602) \u2014 multi-byte file I/O |\n| `&0626` | [`tube_osbyte_short`](address:0626) \u2014 2-param `OSBYTE` (returns X) |\n| `&063B` | [`tube_osbyte_long`](address:063B) \u2014 3-param `OSBYTE` (returns carry+Y+X) |\n| `&065D` | [`tube_osword`](address:065D) \u2014 variable-length `OSWORD` (buffer at `&0128`) |\n| `&06A3` | [`tube_osword_rdln`](address:06A3) \u2014 `OSWORD 0` (read line, 5-byte params) |\n| `&06BB` | [`tube_rdln_send_line`](address:06BB) \u2014 send input line from `&0700` |\n| `&06D0` | [`tube_send_r2`](address:06D0) \u2014 poll R2 status, write `A` to R2 data |\n| `&06D9` | [`tube_send_r4`](address:06D9) \u2014 poll R4 status, write `A` to R4 data |\n| `&06E2` | [`tube_escape_check`](address:06E2) \u2014 check `&FF`, forward escape to R1 |\n| `&06E8` | [`tube_event_handler`](address:06E8) \u2014 EVNTV: forward event (A, X, Y) via R1 |\n| `&06F7` | [`tube_send_r1`](address:06F7) \u2014 poll R1 status, write `A` to R1 data |"
+      "description": "Copied from ROM at [`reloc_p4_src`](address:935A)+`&200` during init.\n`&0600`\u2013`&0601` is the tail of [`tube_osfile`](label:tube_osfile) (`BEQ` to\n[`tube_reply_byte`](label:tube_reply_byte) when done).\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0602` | [`tube_osgbpb`](label:tube_osgbpb) \u2014 multi-byte file I/O |\n| `&0626` | [`tube_osbyte_short`](label:tube_osbyte_short) \u2014 2-param `OSBYTE` (returns X) |\n| `&063B` | [`tube_osbyte_long`](label:tube_osbyte_long) \u2014 3-param `OSBYTE` (returns carry+Y+X) |\n| `&065D` | [`tube_osword`](label:tube_osword) \u2014 variable-length `OSWORD` (buffer at `&0128`) |\n| `&06A3` | [`tube_osword_rdln`](label:tube_osword_rdln) \u2014 `OSWORD 0` (read line, 5-byte params) |\n| `&06BB` | [`tube_rdln_send_line`](label:tube_rdln_send_line) \u2014 send input line from `&0700` |\n| `&06D0` | [`tube_send_r2`](label:tube_send_r2) \u2014 poll R2 status, write `A` to R2 data |\n| `&06D9` | [`tube_send_r4`](label:tube_send_r4) \u2014 poll R4 status, write `A` to R4 data |\n| `&06E2` | [`tube_escape_check`](label:tube_escape_check) \u2014 check `&FF`, forward escape to R1 |\n| `&06E8` | [`tube_event_handler`](label:tube_event_handler) \u2014 EVNTV: forward event (A, X, Y) via R1 |\n| `&06F7` | [`tube_send_r1`](label:tube_send_r1) \u2014 poll R1 status, write `A` to R1 data |"
     },
     {
       "addr": 32801,
       "name": "dispatch_0_lo",
       "title": "Dispatch table: handler-address low bytes (37 entries)",
-      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the `PHA`/`PHA`/`RTS` dispatch trick at\n[`dispatch`](address:80DA).\nSee [`dispatch_0_hi`](address:8045) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0\u201312     | 1\u201313    |\n| `&0D`  | Language entry reasons | 14\u201318   |\n| `&12`  | FSCV codes 0\u20137         | 19\u201326   |\n| `&16`  | FS reply handlers      | 27\u201332   |\n| `&20`  | `*NET1`\u2013`4` sub-commands | 33\u201336 |\n"
+      "description": "Each entry stores the low byte of a handler address minus 1,\nfor use with the `PHA`/`PHA`/`RTS` dispatch trick at\n[`dispatch`](label:dispatch).\nSee [`dispatch_0_hi`](label:dispatch_0_hi) for the corresponding high bytes.\n\nFive callers share this table via different Y base offsets:\n\n| Y base | Caller group           | Indices |\n|--------|------------------------|---------|\n| `&00`  | Service calls 0\u201312     | 1\u201313    |\n| `&0D`  | Language entry reasons | 14\u201318   |\n| `&12`  | FSCV codes 0\u20137         | 19\u201326   |\n| `&16`  | FS reply handlers      | 27\u201332   |\n| `&20`  | `*NET1`\u2013`4` sub-commands | 33\u201336 |\n"
     },
     {
       "addr": 32873,
       "name": "dispatch_net_cmd",
       "title": "*NET command dispatcher",
-      "description": "Parses the character after `*NET` as `'1'`\u2013`'4'`, maps to dispatch\nindices 33\u201336 via base offset `Y=&20`, and dispatches via\n[`dispatch`](address:80DA). Characters outside `'1'`\u2013`'4'` fall through\nto `return_1` (`RTS`).\n\nThese are internal sub-commands used only by the ROM itself, not\nuser-accessible star commands. The MOS command parser requires a space\nor terminator after `'NET'`, so `*NET1` typed at the command line does\nnot match; these are reached only via `OSCLI` calls within the ROM.\n\n| Sub-cmd | Handler | Role |\n|---------|---------|------|\n| `*NET1` | [`net_1_read_handle`](address:8E3B) | read file handle from received packet |\n| `*NET2` | [`net_2_read_handle_entry`](address:8E56) | read handle entry from workspace |\n| `*NET3` | [`net_3_close_handle`](address:8E66) | close handle / mark as unused |\n| `*NET4` | [`net_4_resume_remote`](address:8180) | resume after remote operation |",
+      "description": "Parses the character after `*NET` as `'1'`\u2013`'4'`, maps to dispatch\nindices 33\u201336 via base offset `Y=&20`, and dispatches via\n[`dispatch`](label:dispatch). Characters outside `'1'`\u2013`'4'` fall through\nto `return_1` (`RTS`).\n\nThese are internal sub-commands used only by the ROM itself, not\nuser-accessible star commands. The MOS command parser requires a space\nor terminator after `'NET'`, so `*NET1` typed at the command line does\nnot match; these are reached only via `OSCLI` calls within the ROM.\n\n| Sub-cmd | Handler | Role |\n|---------|---------|------|\n| `*NET1` | [`net_1_read_handle`](label:net_1_read_handle) | read file handle from received packet |\n| `*NET2` | [`net_2_read_handle_entry`](label:net_2_read_handle_entry) | read handle entry from workspace |\n| `*NET3` | [`net_3_close_handle`](label:net_3_close_handle) | close handle / mark as unused |\n| `*NET4` | [`net_4_resume_remote`](label:net_4_resume_remote) | resume after remote operation |",
       "fall_through": true
     },
     {
@@ -337,14 +337,14 @@
       "addr": 32948,
       "name": "forward_star_cmd",
       "title": "Forward unrecognised * command to fileserver (COMERR)",
-      "description": "Copies command text from `(fs_crc_lo)` to\n[`fs_cmd_data`](address:0F05)`+` via `copy_filename`, prepares an FS\ncommand with function code 0, and sends it to the fileserver to\nrequest decoding. The server returns a command code indicating what\naction to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).\nThis mechanism allows the fileserver to extend the client's command\nset without ROM updates. Called from the `I.` and catch-all entries\nin the [`fs_cmd_match_table`](address:8BE4), and from FSCV 2 / 3 / 4\nindirectly. If the CSD handle is zero (not logged in), returns without\nsending.",
+      "description": "Copies command text from `(fs_crc_lo)` to\n[`fs_cmd_data`](label:fs_cmd_data)`+` via `copy_filename`, prepares an FS\ncommand with function code 0, and sends it to the fileserver to\nrequest decoding. The server returns a command code indicating what\naction to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).\nThis mechanism allows the fileserver to extend the client's command\nset without ROM updates. Called from the `I.` and catch-all entries\nin the [`fs_cmd_match_table`](label:fs_cmd_match_table), and from FSCV 2 / 3 / 4\nindirectly. If the CSD handle is zero (not logged in), returns without\nsending.",
       "fall_through": true
     },
     {
       "addr": 32967,
       "name": "fscv_handler",
       "title": "FSCV dispatch entry",
-      "description": "Entered via the extended vector table when the MOS calls FSCV.\nStores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)\nagainst 8, and dispatches codes 0\u20137 via the shared\n[`dispatch_0_lo`](address:8021) table with base offset `Y=&12` (table\nindices 19\u201326).\n\nFunction codes:\n\n| Code | Action |\n|------|--------|\n| 0    | `*OPT`                |\n| 1    | EOF                   |\n| 2    | `*/` (run)            |\n| 3    | unrecognised `*`      |\n| 4    | `*RUN`                |\n| 5    | `*CAT`                |\n| 6    | shutdown              |\n| 7    | read handles          |",
+      "description": "Entered via the extended vector table when the MOS calls FSCV.\nStores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)\nagainst 8, and dispatches codes 0\u20137 via the shared\n[`dispatch_0_lo`](label:dispatch_0_lo) table with base offset `Y=&12` (table\nindices 19\u201326).\n\nFunction codes:\n\n| Code | Action |\n|------|--------|\n| 0    | `*OPT`                |\n| 1    | EOF                   |\n| 2    | `*/` (run)            |\n| 3    | unrecognised `*`      |\n| 4    | `*RUN`                |\n| 5    | `*CAT`                |\n| 6    | shutdown              |\n| 7    | read handles          |",
       "on_entry": {
         "a": "function code (0-7)",
         "x": "depends on function",
@@ -374,7 +374,7 @@
       "addr": 33002,
       "name": "service_handler",
       "title": "Service-call handler",
-      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](address:8003).\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](address:80DA).\n3.35K removes the per-ROM disable flag check that 3.35D has.",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).\n3.35K removes the per-ROM disable flag check that 3.35D has.",
       "fall_through": true
     },
     {
@@ -517,13 +517,13 @@
       "addr": 33622,
       "name": "init_tx_ctrl_block",
       "title": "Initialise TX control block at &00C0 from template",
-      "description": "Copies 12 bytes from tx_ctrl_template (&836E) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes."
+      "description": "Copies 12 bytes from tx_ctrl_template (&836E) to &00C0.\nFor the first 2 bytes (Y=0,1), also copies the fileserver\nstation / network from [`fs_server_stn`](label:fs_server_stn) / [`fs_server_net`](label:fs_server_net) to [`txcb_dest`](label:txcb_dest) (2 bytes).\nThe template sets up: control=&80, port=&99 (FS command port),\ncommand data length=&0F, plus padding bytes."
     },
     {
       "addr": 33646,
       "name": "tx_ctrl_template",
       "title": "TX control block template (TXTAB, 12 bytes)",
-      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](address:0F00)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
+      "description": "12-byte template copied to &00C0 by init_tx_ctrl. Defines the\nTX control block for FS commands: control flag, port, station/\nnetwork, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type)\u2013`&0FFF`). The 4-byte\nEconet addresses use only the low 2 bytes; upper bytes are &FF."
     },
     {
       "addr": 33658,
@@ -650,7 +650,7 @@
       "addr": 34204,
       "name": "save_fscv_args_with_ptrs",
       "title": "Save FSCV arguments with text pointers",
-      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X / Y into the [`os_text_ptr`](address:00F2) and [`fs_cmd_ptr`](address:0E10) 16-bit pointers, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
+      "description": "Extended entry used by FSCV, FINDV, and fscv_3_star_cmd.\nCopies X / Y into the [`os_text_ptr`](label:os_text_ptr) and [`fs_cmd_ptr`](label:fs_cmd_ptr) 16-bit pointers, then\nfalls through to save_fscv_args to store A/X/Y in the FS\nworkspace.",
       "fall_through": true
     },
     {
@@ -1358,7 +1358,7 @@
       "addr": 36837,
       "name": "econet_tx_rx",
       "title": "Econet transmit/receive handler",
-      "description": "A=0: Initialise TX control block from ROM template at &834A\n     (zero entries substituted from NMI workspace [`nmi_sub_table`](address:0DE6)), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &8F49).",
+      "description": "A=0: Initialise TX control block from ROM template at &834A\n     (zero entries substituted from NMI workspace [`nmi_sub_table`](label:nmi_sub_table)), transmit\n     it, set up RX control block, and receive reply.\nA>=1: Handle transmit result (branch to cleanup at &8F49).",
       "on_entry": {
         "a": "0=set up and transmit, >=1=handle TX result"
       },
@@ -1966,14 +1966,14 @@
       "addr": 32788,
       "name": "error_offsets",
       "title": "Error-message offset table (9 entries)",
-      "description": "Each byte is a Y offset into [`error_msg_table`](address:854D).\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8.",
+      "description": "Each byte is a Y offset into [`error_msg_table`](label:error_msg_table).\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8.",
       "align": "before_label"
     },
     {
       "addr": 34125,
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 7 entries)",
-      "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](address:84CB) / [`nlisne`](address:84CD): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](address:8014); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](address:84D8) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
       "align": "before_label"
     }
   ],
@@ -4011,7 +4011,7 @@
         "dispatch_0_hi"
       ],
       "comments_before_label": [
-        "Dispatch table: high bytes of `(handler_address \u2212 1)`.\nPaired with [`dispatch_0_lo`](address:8021). Together they form a table\nof 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at\n[`dispatch`](address:80DA)."
+        "Dispatch table: high bytes of `(handler_address \u2212 1)`.\nPaired with [`dispatch_0_lo`](label:dispatch_0_lo). Together they form a table\nof 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at\n[`dispatch`](label:dispatch)."
       ],
       "comment_inline": "hi - Svc 0: already claimed (no-op)",
       "type": "byte",
@@ -39970,7 +39970,7 @@
       "labels": [
         "tube_escape_entry"
       ],
-      "comment_inline": "`JMP` to [`tube_escape_check`](address:06E2)",
+      "comment_inline": "`JMP` to [`tube_escape_check`](label:tube_escape_check)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_escape_check",

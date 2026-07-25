@@ -236,7 +236,7 @@ d.label(
 d.label(
     0x009C,
     "net_rx_ptr",
-    description="NetRx control blocks pointer (low byte). Pairs with [`net_rx_ptr_hi`](address:009D).",
+    description="NetRx control blocks pointer (low byte). Pairs with [`net_rx_ptr_hi`](label:net_rx_ptr_hi).",
     length=1,
     group="zero_page",
     access="rw",
@@ -245,7 +245,7 @@ d.label(
 d.label(
     0x009D,
     "net_rx_ptr_hi",
-    description="NetRx control blocks pointer (high byte). Pairs with [`net_rx_ptr`](address:009C) (low).",
+    description="NetRx control blocks pointer (high byte). Pairs with [`net_rx_ptr`](label:net_rx_ptr) (low).",
     length=1,
     group="zero_page",
     access="rw",
@@ -542,7 +542,7 @@ d.label(
     0x0D0C,
     "nmi_jmp_lo",
     description="""NMI dispatch JMP-target low byte.
-Patched by [`set_nmi_vector`](address:0D0E) and [`install_nmi_handler`](address:0D11). The NMI shim does `JMP (nmi_jmp_lo)` to reach the current handler.""",
+Patched by [`set_nmi_vector`](label:set_nmi_vector) and [`install_nmi_handler`](label:install_nmi_handler). The NMI shim does `JMP (nmi_jmp_lo)` to reach the current handler.""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -552,7 +552,7 @@ d.label(
     0x0D0D,
     "nmi_jmp_hi",
     description="""NMI dispatch JMP-target high byte.
-Paired with [`nmi_jmp_lo`](address:0D0C). Only [`set_nmi_vector`](address:0D0E) writes this; [`install_nmi_handler`](address:0D11) leaves it alone (same-page optimisation).""",
+Paired with [`nmi_jmp_lo`](label:nmi_jmp_lo). Only [`set_nmi_vector`](label:set_nmi_vector) writes this; [`install_nmi_handler`](label:install_nmi_handler) leaves it alone (same-page optimisation).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -562,7 +562,7 @@ d.label(
     0x0D0E,
     "set_nmi_vector",
     description="""NMI vector update (both bytes).
-`STY` [nmi_jmp_hi](address:0D0D) then `STA` [nmi_jmp_lo](address:0D0C), writing the full 16-bit NMI handler address into the JMP-target slot. Falls through to [`nmi_rti`](address:0D14).""",
+`STY` [nmi_jmp_hi](label:nmi_jmp_hi) then `STA` [nmi_jmp_lo](label:nmi_jmp_lo), writing the full 16-bit NMI handler address into the JMP-target slot. Falls through to [`nmi_rti`](label:nmi_rti).""",
     length=3,
     group="ram_workspace",
     access="r",
@@ -572,7 +572,7 @@ d.label(
     0x0D11,
     "install_nmi_handler",
     description="""NMI vector update (low byte only).
-`STA` [nmi_jmp_lo](address:0D0C) only, leaving the existing high byte at [`nmi_jmp_hi`](address:0D0D) in place. Same-page optimisation used when the next handler is in the same page as the current one. Falls through to [`nmi_rti`](address:0D14).""",
+`STA` [nmi_jmp_lo](label:nmi_jmp_lo) only, leaving the existing high byte at [`nmi_jmp_hi`](label:nmi_jmp_hi) in place. Same-page optimisation used when the next handler is in the same page as the current one. Falls through to [`nmi_rti`](label:nmi_rti).""",
     length=3,
     group="ram_workspace",
     access="r",
@@ -582,7 +582,7 @@ d.label(
     0x0D14,
     "nmi_rti",
     description="""NMI exit shim.
-Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_net_nmis` (INTON, re-enables /NMI), and `RTI`s. Reached either as a fall-through from [`set_nmi_vector`](address:0D0E) / [`install_nmi_handler`](address:0D11), or as a direct branch from any NMI handler that has finished early.""",
+Restores the previous ROM bank, pulls Y and A off the stack, reads `BIT enable_net_nmis` (INTON, re-enables /NMI), and `RTI`s. Reached either as a fall-through from [`set_nmi_vector`](label:set_nmi_vector) / [`install_nmi_handler`](label:install_nmi_handler), or as a direct branch from any NMI handler that has finished early.""",
     length=11,
     group="ram_workspace",
     access="r",
@@ -678,7 +678,7 @@ Holds the most recently received scout frame during reception and ACK transmissi
 d.label(
     0x0D2F,
     "scout_src_net",
-    description="Scout source network byte ([`scout_buf`](address:0D2E)+1).",
+    description="Scout source network byte ([`scout_buf`](label:scout_buf)+1).",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -687,8 +687,8 @@ d.label(
 d.label(
     0x0D30,
     "scout_ctrl",
-    description="""Scout control byte ([`scout_buf`](address:0D2E)+2).
-Carries the immediate-op code (`&81`..`&88`) for port-0 scouts; checked by [`immediate_op`](address:8466).""",
+    description="""Scout control byte ([`scout_buf`](label:scout_buf)+2).
+Carries the immediate-op code (`&81`..`&88`) for port-0 scouts; checked by [`immediate_op`](label:immediate_op).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -697,7 +697,7 @@ Carries the immediate-op code (`&81`..`&88`) for port-0 scouts; checked by [`imm
 d.label(
     0x0D31,
     "scout_port",
-    description="Scout port byte ([`scout_buf`](address:0D2E)+3).",
+    description="Scout port byte ([`scout_buf`](label:scout_buf)+3).",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -706,7 +706,7 @@ d.label(
 d.index_base(
     0x0D32,
     "scout_data",
-    description="""Scout data payload base ([`scout_buf`](address:0D2E)+4).
+    description="""Scout data payload base ([`scout_buf`](label:scout_buf)+4).
 Holds the 4-byte remote address for JSR / UserProc / OSProc immediate ops.""",
     length=8,
     group="ram_workspace",
@@ -716,7 +716,7 @@ d.label(
     0x0D3D,
     "rx_src_stn",
     description="""Source station of the received scout frame.
-First address byte read by [`nmi_rx_scout`](address:809D) and validated against our station ID.""",
+First address byte read by [`nmi_rx_scout`](label:nmi_rx_scout) and validated against our station ID.""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -775,7 +775,7 @@ d.label(
     0x0D43,
     "saved_nmi_lo",
     description="""Saved next NMI handler address (low byte).
-Written by [`ack_tx_write_dest`](address:8308) from the (A=lo, Y=hi) pair on entry, then consumed when the next NMI fires.""",
+Written by [`ack_tx_write_dest`](label:ack_tx_write_dest) from the (A=lo, Y=hi) pair on entry, then consumed when the next NMI fires.""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -785,7 +785,7 @@ d.label(
     0x0D44,
     "saved_nmi_hi",
     description="""Saved next NMI handler address (high byte).
-Paired with [`saved_nmi_lo`](address:0D43).""",
+Paired with [`saved_nmi_lo`](label:saved_nmi_lo).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -795,9 +795,9 @@ d.label(
     0x0D4A,
     "tx_flags",
     description="""TX path control flags.
-Bit 7: TX path is active (used by [`nmi_error_dispatch`](address:8218) to choose between RX-error reset and TX-fail dispatch).
+Bit 7: TX path is active (used by [`nmi_error_dispatch`](label:nmi_error_dispatch) to choose between RX-error reset and TX-fail dispatch).
 Bit 0: handshake-data pending.
-Bit 1: data-RX into Tube buffer (selected by [`install_data_rx_handler`](address:81FA)).""",
+Bit 1: data-RX into Tube buffer (selected by [`install_data_rx_handler`](label:install_data_rx_handler)).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -807,7 +807,7 @@ d.label(
     0x0D4B,
     "nmi_next_lo",
     description="""Next NMI handler address (low byte).
-Saved by the scout / data-RX handler; consumed by [`ack_tx`](address:82EF) when installing the post-ACK NMI handler.""",
+Saved by the scout / data-RX handler; consumed by [`ack_tx`](label:ack_tx) when installing the post-ACK NMI handler.""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -817,7 +817,7 @@ d.label(
     0x0D4C,
     "nmi_next_hi",
     description="""Next NMI handler address (high byte).
-Paired with [`nmi_next_lo`](address:0D4B).""",
+Paired with [`nmi_next_lo`](label:nmi_next_lo).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -887,7 +887,7 @@ d.label(
     0x0D65,
     "tx_op_type",
     description="""Deferred-work / TX-operation type flag.
-Set by NMI handlers to mark pending work; polled by [`svc5_irq_check`](address:802A) as the dispatch trigger.""",
+Set by NMI handlers to mark pending work; polled by [`svc5_irq_check`](label:svc5_irq_check) as the dispatch trigger.""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -907,7 +907,7 @@ d.label(
     0x0D67,
     "exec_addr_hi",
     description="""Remote execution address (high byte).
-Paired with [`exec_addr_lo`](address:0D66).""",
+Paired with [`exec_addr_lo`](label:exec_addr_lo).""",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -971,7 +971,7 @@ Settable via OSWORD `&13` PB[3].""",
 d.label(
     0x0D71,
     "spool_control_flag",
-    description="Multi-purpose: spool-buffer control flag (printer spooling); also doubles as the bridge-routing-table status byte read by [`init_bridge_poll`](address:AC09) (`&FF` = uninitialised, anything else = bridge already polled).",
+    description="Multi-purpose: spool-buffer control flag (printer spooling); also doubles as the bridge-routing-table status byte read by [`init_bridge_poll`](label:init_bridge_poll) (`&FF` = uninitialised, anything else = bridge already polled).",
     length=1,
     group="ram_workspace",
     access="rw",
@@ -1213,8 +1213,8 @@ d.subroutine(
 An execute-class immediate operation -- a remote JSR, a user/OS
 procedure call, halt or continue -- cannot safely JSR into user
 code or call an OS routine from NMI context, so the NMI handler
-records it instead: [`setup_sr_tx`](address:8536) stores the
-operation type in [`tx_op_type`](address:0D65) and sets the
+records it instead: [`setup_sr_tx`](label:setup_sr_tx) stores the
+operation type in [`tx_op_type`](label:tx_op_type) and sets the
 Master 128 ACCCON IRR latch (bit 7 at `&FE34`) via `TSB`. The
 latch raises an ordinary IRQ once the NMI handler has returned,
 which reaches the ROM here as service call `&05` (unrecognised
@@ -1228,8 +1228,8 @@ two ways depending on bit 7 of the saved `Y`:
 
 | Caller `Y` bit 7 | Action |
 |---|---|
-| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](address:804A) |
-| Clear | Fire Econet RX event `&FE` via [`generate_event`](address:8047), then `JMP` to [`tx_done_exit`](address:85A6) |""",
+| Set | Dispatch via the `PHA`/`PHA`/`RTS` table at [`dispatch_svc5`](label:dispatch_svc5) |
+| Clear | Fire Econet RX event `&FE` via [`generate_event`](label:generate_event), then `JMP` to [`tx_done_exit`](label:tx_done_exit) |""",
     on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter (high bit selects dispatch path)"},
 )
 
@@ -1270,10 +1270,10 @@ d.subroutine(
     "dispatch_svc5",
     title="Service-5 PHA/PHA/RTS dispatch tail",
     description="""Builds an `RTS`-target on the stack from the
-[`svc5_dispatch_lo`](address:84BC) low-byte table and a hard-
+[`svc5_dispatch_lo`](label:svc5_dispatch_lo) low-byte table and a hard-
 coded high byte of `&85`, then falls through into the shared
-[`svc_5_unknown_irq`](address:8051) `RTS` to land on the matching
-[`svc5_dispatch_lo`](address:84BC)+`Y` page-`&85` handler.""",
+[`svc_5_unknown_irq`](label:svc_5_unknown_irq) `RTS` to land on the matching
+[`svc5_dispatch_lo`](label:svc5_dispatch_lo)+`Y` page-`&85` handler.""",
     on_entry={"y": "svc5_dispatch_lo offset (post-&83 base bias)"},
 )
 
@@ -1287,7 +1287,7 @@ d.subroutine(
     "svc_5_unknown_irq",
     title="Service-5 unknown-IRQ tail (PHA/PHA/RTS landing)",
     description="""Bare `RTS` reused as the final step of every
-[`dispatch_svc5`](address:804A) entry. With the target's
+[`dispatch_svc5`](label:dispatch_svc5) entry. With the target's
 high/low bytes already pushed by the caller, `RTS` jumps to the
 selected handler. Also reached as the unclaimed-IRQ tail of the
 service-5 prologue when no ANFS handler matches.""",
@@ -1303,11 +1303,11 @@ d.subroutine(
     description="""Initialise ADLC hardware and Econet workspace. Disables NMIs via
 `BIT disable_net_nmis` (the Master 128 INTOFF register at &FE38).
 Performs a full ADLC reset via
-[`adlc_full_reset`](address:89BF), then probes for a Tube
+[`adlc_full_reset`](label:adlc_full_reset), then probes for a Tube
 co-processor via OSBYTE `&EA` and stores the result in
-[`tube_present`](address:0D63). Issues an NMI-claim service
+[`tube_present`](label:tube_present). Issues an NMI-claim service
 request (OSBYTE `&8F`, `X=&0C`). Falls through to
-[`init_nmi_workspace`](address:8072) to copy the NMI shim to
+[`init_nmi_workspace`](label:init_nmi_workspace) to copy the NMI shim to
 RAM.""",
 )
 
@@ -1422,7 +1422,7 @@ d.subroutine(
 | `&FF` | broadcast | accept and flag |
 | other | foreign network | reject |
 
-Installs [`copy_scout_to_buffer`](address:8412) as the
+Installs [`copy_scout_to_buffer`](label:copy_scout_to_buffer) as the
 scout-data reading loop handler.""",
 )
 
@@ -1458,8 +1458,8 @@ d.subroutine(
   reset.
 
 Also serves as the common discard path for address/network
-mismatches from [`nmi_rx_scout`](address:809D) and
-[`scout_complete`](address:8114) – reached by 5 branch sites
+mismatches from [`nmi_rx_scout`](label:nmi_rx_scout) and
+[`scout_complete`](label:scout_complete) – reached by 5 branch sites
 across the scout reception chain.""",
 )
 
@@ -1508,10 +1508,10 @@ Matches the port byte (`&0D40`) against open receive control
 blocks to find a listener:
 
 - **On match** – calculates the transfer size via
-  [`tx_calc_transfer`](address:85AD), sets up the data RX
+  [`tx_calc_transfer`](label:tx_calc_transfer), sets up the data RX
   handler chain, and sends a scout ACK.
 - **On no match or error** – discards the frame via
-  [`scout_error`](address:80DA).""",
+  [`scout_error`](label:scout_error).""",
 )
 
 
@@ -1604,17 +1604,17 @@ d.subroutine(
     "port_match_found",
     title="Scout matched: arm data RX, ACK or discard",
     description="""Sets `scout_status=3` (match found) at `rx_port`, calls
-[`tx_calc_transfer`](address:85AD) to compute the transfer
+[`tx_calc_transfer`](label:tx_calc_transfer) to compute the transfer
 parameters from the RXCB, then triages:
 
 | Carry | `net_frame_flags` (V) | Action |
 |---|---|---|
-| `C=0` | – | no Tube claimed → [`nmi_error_dispatch`](address:8218) (discard) |
+| `C=0` | – | no Tube claimed → [`nmi_error_dispatch`](label:nmi_error_dispatch) (discard) |
 | `C=1` | broadcast | discard (broadcasts get no ACK) |
-| `C=1` | unicast   | [`send_data_rx_ack`](address:81AA) |
+| `C=1` | unicast   | [`send_data_rx_ack`](label:send_data_rx_ack) |
 
 Four inbound refs (one `JSR` from `&84B9` and three branches from
-the [`scout_complete`](address:8114) dispatch).""",
+the [`scout_complete`](label:scout_complete) dispatch).""",
     on_exit={"a": "3 (scout_status)"},
 )
 
@@ -1635,13 +1635,13 @@ d.subroutine(
     description="""Switches the ADLC to TX mode for the scout ACK frame: writes
 `CR1=&44` (`RX_RESET | TIE`), `CR2=&A7` (`RTS | CLR_TX_ST |
 FC_TDRA | PSE`), then loads `(A,Y) = (&B8, &81)` – the address
-of [`data_rx_setup`](address:81BB) – and `JMP`s to
-[`ack_tx_write_dest`](address:8308) which saves the pair into
+of [`data_rx_setup`](label:data_rx_setup) – and `JMP`s to
+[`ack_tx_write_dest`](label:ack_tx_write_dest) which saves the pair into
 `saved_nmi_lo`/`saved_nmi_hi` (so the NMI handler will install it
 later) and writes the ACK destination address bytes to the TX
 FIFO.
 
-Two callers: the dispatch in [`scout_complete`](address:8114)
+Two callers: the dispatch in [`scout_complete`](label:scout_complete)
 at `&81A2` and the immediate-op POKE path at `&84AE`
 (`jmp_send_data_rx_ack`).""",
     on_exit={"a": "&B8 (low byte of data_rx_setup)", "y": "&81 (high byte of data_rx_setup)"},
@@ -1663,13 +1663,13 @@ d.subroutine(
     "data_rx_setup",
     title="NMI handler: switch ADLC to RX for the data frame",
     description="""NMI continuation entry installed by
-[`send_data_rx_ack`](address:81AA) (which pushes
+[`send_data_rx_ack`](label:send_data_rx_ack) (which pushes
 `(&81B8 - 1)` on the stack and routes it through
-[`ack_tx_write_dest`](address:8308)). When the next NMI fires,
+[`ack_tx_write_dest`](label:ack_tx_write_dest)). When the next NMI fires,
 this body writes `CR1 = &82` (`TX_RESET | RIE`) to switch the
 ADLC from scout-ACK TX mode to data-frame RX mode, then `JMP`s to
 `install_nmi_handler` to install
-[`nmi_data_rx`](address:81C5) as the next NMI handler.""",
+[`nmi_data_rx`](label:nmi_data_rx) as the next NMI handler.""",
 )
 
 
@@ -1689,10 +1689,10 @@ against our station address, then installs continuation handlers
 to read the remaining data payload into the open port buffer.
 
 Handler chain: this routine (AP + dest-stn check) →
-[`nmi_data_rx_net`](address:81D9) (dest-net check) →
-[`nmi_data_rx_skip`](address:81EF) (skip ctrl + port) →
-[`nmi_data_rx_bulk`](address:8226) (bulk data read) →
-[`data_rx_complete`](address:826B) (completion).""",
+[`nmi_data_rx_net`](label:nmi_data_rx_net) (dest-net check) →
+[`nmi_data_rx_skip`](label:nmi_data_rx_skip) (skip ctrl + port) →
+[`nmi_data_rx_bulk`](label:nmi_data_rx_bulk) (bulk data read) →
+[`data_rx_complete`](label:data_rx_complete) (completion).""",
 )
 
 
@@ -1711,10 +1711,10 @@ d.subroutine(
     0x81D9,
     "nmi_data_rx_net",
     title="NMI handler: validate dest-net byte of data frame",
-    description="""NMI continuation entry installed by [`nmi_data_rx`](address:81C5)
+    description="""NMI continuation entry installed by [`nmi_data_rx`](label:nmi_data_rx)
 once the AP and dest-station bytes have validated. Polls SR2
 (`BIT econet_control23_or_status2`); on no RDA, branches to
-[`nmi_error_dispatch`](address:8218). Otherwise reads the dest-
+[`nmi_error_dispatch`](label:nmi_error_dispatch). Otherwise reads the dest-
 network byte from the ADLC FIFO and falls through to the
 control/port skip step.""",
     on_exit={"a": "dest-network byte (validated against local)"},
@@ -1740,7 +1740,7 @@ d.subroutine(
     description="""NMI continuation entry that consumes the control and port bytes of
 the data frame (already known from the scout) and proceeds to the
 bulk-data-read continuation. Polls SR2 for RDA on entry; on no
-RDA, branches to [`nmi_error_dispatch`](address:8218).""",
+RDA, branches to [`nmi_error_dispatch`](label:nmi_error_dispatch).""",
 )
 
 
@@ -1755,20 +1755,20 @@ d.subroutine(
     "install_data_rx_handler",
     title="Install data RX bulk or Tube handler",
     description="""Selects between the normal bulk-RX handler at
-[`nmi_data_rx_bulk`](address:8226) and the Tube RX handler at
-[`nmi_data_rx_tube`](address:82A1) based on bit 1 of
+[`nmi_data_rx_bulk`](label:nmi_data_rx_bulk) and the Tube RX handler at
+[`nmi_data_rx_tube`](label:nmi_data_rx_tube) based on bit 1 of
 `net_frame_flags` (`tx_flags`).
 
 | `net_frame_flags` bit 1 | Handler |
 |---|---|
-| clear | [`nmi_data_rx_bulk`](address:8226) (`A=&23`, `Y=&82`) |
-| set   | [`nmi_data_rx_tube`](address:82A1) (`A=&91`, `Y=&82`) |
+| clear | [`nmi_data_rx_bulk`](label:nmi_data_rx_bulk) (`A=&23`, `Y=&82`) |
+| set   | [`nmi_data_rx_tube`](label:nmi_data_rx_tube) (`A=&91`, `Y=&82`) |
 
 In the bulk path, after loading the handler address, checks `SR1`
 bit 7. If `IRQ` is already asserted (more data waiting), jumps
-directly to [`nmi_data_rx_bulk`](address:8226) to avoid NMI
+directly to [`nmi_data_rx_bulk`](label:nmi_data_rx_bulk) to avoid NMI
 re-entry overhead. Otherwise installs the handler via
-[`set_nmi_vector`](address:0D0E) (the `(A,Y)` pair becomes the
+[`set_nmi_vector`](label:set_nmi_vector) (the `(A,Y)` pair becomes the
 NMI dispatch target) and returns via `RTI`.""",
 )
 
@@ -1802,14 +1802,14 @@ d.subroutine(
     "nmi_error_dispatch",
     title="NMI error handler dispatch",
     description="""Common error/abort entry used by 11 call sites. The dispatch byte
-at [`net_frame_flags`](address:0D3E) doubles as a TX-state flag here:
+at [`net_frame_flags`](label:net_frame_flags) doubles as a TX-state flag here:
 bit 7 distinguishes whether the NMI handler reached this point on
 an RX-error path or a TX not-listening path.
 
 | `net_frame_flags` bit 7 | Path |
 |---|---|
 | clear | RX error – full ADLC reset; return to idle listen |
-| set   | TX not-listening – `JMP` [`tx_result_fail`](address:89B1) |""",
+| set   | TX not-listening – `JMP` [`tx_result_fail`](label:tx_result_fail) |""",
 )
 
 
@@ -1830,7 +1830,7 @@ the open port buffer at `(open_port_buf),Y`. Reads bytes in pairs
 (like the scout data loop), checking SR2 between each pair.
 
 - SR2 non-zero (FV or other) → completion via
-  [`data_rx_complete`](address:826B).
+  [`data_rx_complete`](label:data_rx_complete).
 - SR2 = 0 → RTI, wait for next NMI to continue.""",
 )
 
@@ -1893,7 +1893,7 @@ d.subroutine(
 pattern as scout completion: disables `PSE` (`CR2=&84`, `CR1=&00`),
 then tests `FV` and `RDA`. If `FV+RDA`, reads the last byte; if
 extra data is available and buffer space remains, stores it.
-Proceeds to send the final ACK via [`ack_tx`](address:82EF).""",
+Proceeds to send the final ACK via [`ack_tx`](label:ack_tx).""",
 )
 
 
@@ -1977,19 +1977,19 @@ d.subroutine(
     "ack_tx",
     title="ACK transmission",
     description="""Sends a scout ACK or final ACK frame as part of the four-way
-handshake. Tests bit 7 of [`net_frame_flags`](address:0D3E) (used as
+handshake. Tests bit 7 of [`net_frame_flags`](label:net_frame_flags) (used as
 TX-flags here): if set this is a final ACK and completion runs
-through [`tx_result_ok`](address:89AD). Otherwise configures
+through [`tx_result_ok`](label:tx_result_ok). Otherwise configures
 for TX (`CR1=&44`, `CR2=&A7`) and writes the ACK address frame:
-destination station from [`scout_buf`](address:0D2E), destination
-network from [`scout_src_net`](address:0D2F), source station
-from the workspace copy [`tx_src_stn`](address:0D22), and
+destination station from [`scout_buf`](label:scout_buf), destination
+network from [`scout_src_net`](label:scout_src_net), source station
+from the workspace copy [`tx_src_stn`](label:tx_src_stn), and
 `src_net=0`. The ACK frame has no data payload -- just address
 bytes.
 
 After writing the address bytes to the TX FIFO, installs the next
 NMI handler from `saved_nmi_lo`/`saved_nmi_hi` (saved by the
-scout/data RX handler via [`ack_tx_write_dest`](address:8308))
+scout/data RX handler via [`ack_tx_write_dest`](label:ack_tx_write_dest))
 and sends `TX_LAST_DATA` (`CR2=&3F`) to close the frame.""",
 )
 
@@ -2015,19 +2015,19 @@ d.subroutine(
     description="""First step of the four-byte ACK frame transmission. Saves the
 caller-supplied `(A=lo, Y=hi)` next-NMI handler address into
 `saved_nmi_lo` / `saved_nmi_hi`, loads the destination station
-from [`scout_buf`](address:0D2E) and tests `SR1` bit 6 (`TDRA`,
+from [`scout_buf`](label:scout_buf) and tests `SR1` bit 6 (`TDRA`,
 TX Data Register Available) via `BIT econet_control1_or_status1`. If `TDRA` is
 clear the TX FIFO isn't ready and control branches to
-[`dispatch_nmi_error`](address:834C) to abort.
+[`dispatch_nmi_error`](label:dispatch_nmi_error) to abort.
 
 When `TDRA` is set, writes the destination station and network
-bytes (from [`scout_src_net`](address:0D2F)) into `econet_data_continue_frame`, then
-installs [`nmi_ack_tx_src`](address:8326) as the next NMI handler
-via [`set_nmi_vector`](address:0D0E) -- that handler will write
+bytes (from [`scout_src_net`](label:scout_src_net)) into `econet_data_continue_frame`, then
+installs [`nmi_ack_tx_src`](label:nmi_ack_tx_src) as the next NMI handler
+via [`set_nmi_vector`](label:set_nmi_vector) -- that handler will write
 the source-address pair on the next NMI.
 
-Two callers: [`send_data_rx_ack`](address:81AA)'s tail `JMP` and
-[`imm_op_build_reply`](address:851D).""",
+Two callers: [`send_data_rx_ack`](label:send_data_rx_ack)'s tail `JMP` and
+[`imm_op_build_reply`](label:imm_op_build_reply).""",
     on_entry={"a": "low byte of next NMI handler", "y": "high byte of next NMI handler"},
 )
 
@@ -2049,19 +2049,19 @@ d.subroutine(
     "nmi_ack_tx_src",
     title="ACK TX continuation",
     description="""Continuation of ACK frame transmission, reached via NMI after
-[`ack_tx_write_dest`](address:8308) installed it as the next
+[`ack_tx_write_dest`](label:ack_tx_write_dest) installed it as the next
 handler. Reads our station ID from the workspace copy
-[`tx_src_stn`](address:0D22), tests `TDRA` via `SR1`, and writes
+[`tx_src_stn`](label:tx_src_stn), tests `TDRA` via `SR1`, and writes
 `(station, network=0)` to the TX FIFO -- completing the 4-byte
 ACK address header.
 
-Then dispatches on [`net_frame_flags`](address:0D3E) bit 7 (which the
+Then dispatches on [`net_frame_flags`](label:net_frame_flags) bit 7 (which the
 caller uses as a TX-flags byte):
 
 | Bit 7 | Action |
 |---|---|
 | set   | branch to `start_data_tx` to begin the data phase |
-| clear | write `CR2=&3F` (TX_LAST_DATA) and fall through to [`post_ack_scout`](address:833D) |""",
+| clear | write `CR2=&3F` (TX_LAST_DATA) and fall through to [`post_ack_scout`](label:post_ack_scout) |""",
 )
 
 
@@ -2080,9 +2080,9 @@ d.subroutine(
     title="Post-ACK scout processing",
     description="""Called after the scout ACK has been transmitted. Processes the
 received scout data stored in the buffer starting at
-[`rx_src_stn`](address:0D3D) (scout-ACK destination
+[`rx_src_stn`](label:rx_src_stn) (scout-ACK destination
 addresses). Checks the port byte at
-[`rx_port`](address:0D40) against open receive blocks to find
+[`rx_port`](label:rx_port) against open receive blocks to find
 a matching listener.
 
 - **Match** – sets up the data-RX handler chain for the four-way-
@@ -2114,8 +2114,8 @@ Tube pointer by 1.
 
 Reads:
 
-- [`tx_flags`](address:0D4A) bit 1 – data transfer in progress
-- [`tx_flags`](address:0D4A) bit 5 – Tube transfer
+- [`tx_flags`](label:tx_flags) bit 1 – data transfer in progress
+- [`tx_flags`](label:tx_flags) bit 5 – Tube transfer
 - 4-byte transfer count from `net_tx_ptr,Y` (`Y=8..&0B`)
 - RXCB pointer at `(port_ws_offset),Y`
 
@@ -2180,14 +2180,14 @@ d.subroutine(
     "nmi_post_ack_dispatch",
     title="Post-ACK frame-complete NMI handler",
     description="""Installed by `ack_tx_configure` via
-[`saved_nmi_lo`](address:0D43) / [`saved_nmi_hi`](address:0D44).
+[`saved_nmi_lo`](label:saved_nmi_lo) / [`saved_nmi_hi`](label:saved_nmi_hi).
 Fires as an NMI after the ACK frame (CRC + closing flag) has been
 fully transmitted by the ADLC. Dispatches on `scout_port`:
 
 | `scout_port` | Control | Target |
 |---|---|---|
-| `≠ 0` | – | [`rx_complete_update_rxcb`](address:83A7) (finalise data transfer, mark RXCB complete) |
-| `0`   | `&82` (POKE) | [`rx_complete_update_rxcb`](address:83A7) (same path) |
+| `≠ 0` | – | [`rx_complete_update_rxcb`](label:rx_complete_update_rxcb) (finalise data transfer, mark RXCB complete) |
+| `0`   | `&82` (POKE) | [`rx_complete_update_rxcb`](label:rx_complete_update_rxcb) (same path) |
 | `0`   | other | `imm_op_build_reply` |""",
 )
 
@@ -2204,11 +2204,11 @@ d.subroutine(
     0x83A7,
     "rx_complete_update_rxcb",
     title="Complete RX and update RXCB",
-    description="""Called from [`nmi_post_ack_dispatch`](address:8398) after the
+    description="""Called from [`nmi_post_ack_dispatch`](label:nmi_post_ack_dispatch) after the
 final ACK has been transmitted. Finalises the received data
 transfer:
 
-1. Calls [`advance_rx_buffer_ptr`](address:834F) to update the
+1. Calls [`advance_rx_buffer_ptr`](label:advance_rx_buffer_ptr) to update the
    4-byte buffer pointer with the transfer count (and handle Tube
    re-claim if needed).
 2. Stores the source station, network, and port into the RXCB.
@@ -2218,7 +2218,7 @@ This is the **NMI-to-foreground synchronisation point**:
 `wait_net_tx_ack` polls bit 7 of the RXCB control byte to detect
 that the reply has arrived.
 
-Falls through to [`discard_reset_rx`](address:83F7) to reset
+Falls through to [`discard_reset_rx`](label:discard_reset_rx) to reset
 the ADLC to idle RX-listen mode.""",
 )
 
@@ -2284,13 +2284,13 @@ d.subroutine(
     title="Discard scout, reset ADLC, install RX-scout NMI",
     description="""Three-stage idle-restore chain:
 
-1. [`discard_reset_listen`](address:8404) – abandon any
+1. [`discard_reset_listen`](label:discard_reset_listen) – abandon any
    in-flight scout and release a held Tube claim.
-2. [`reset_adlc_rx_listen`](address:83FA) – call
+2. [`reset_adlc_rx_listen`](label:reset_adlc_rx_listen) – call
    `adlc_rx_listen` (reset `CR1`/`CR2` and re-arm RX).
-3. [`set_nmi_rx_scout`](address:83FD) – install
-   [`nmi_rx_scout`](address:809D) as the active NMI handler
-   and `JMP` out via [`set_nmi_vector`](address:0D0E).
+3. [`set_nmi_rx_scout`](label:set_nmi_rx_scout) – install
+   [`nmi_rx_scout`](label:nmi_rx_scout) as the active NMI handler
+   and `JMP` out via [`set_nmi_vector`](label:set_nmi_vector).
 
 Used as the standard "something went wrong, get back to listening"
 exit.""",
@@ -2304,13 +2304,13 @@ d.subroutine(
     0x83FA,
     "reset_adlc_rx_listen",
     title="Reset ADLC and install RX-scout NMI",
-    description="""Tail of the [`discard_reset_rx`](address:83F7) chain entered
+    description="""Tail of the [`discard_reset_rx`](label:discard_reset_rx) chain entered
 directly when no scout needs discarding. Calls `adlc_rx_listen`
 to reset `CR1`/`CR2` to RX-only mode, then falls through to
-[`set_nmi_rx_scout`](address:83FD).
+[`set_nmi_rx_scout`](label:set_nmi_rx_scout).
 
 Two inbound `JSR`s plus one fall-through (from
-[`discard_reset_rx`](address:83F7)).""",
+[`discard_reset_rx`](label:discard_reset_rx)).""",
 )
 
 
@@ -2322,11 +2322,11 @@ d.subroutine(
     "set_nmi_rx_scout",
     title="Install nmi_rx_scout as NMI handler",
     description="""Loads `(A=&9B, Y=&80)` -- the address of
-[`nmi_rx_scout`](address:809D) -- and `JMP`s to
-[`set_nmi_vector`](address:0D0E), which writes both bytes into
+[`nmi_rx_scout`](label:nmi_rx_scout) -- and `JMP`s to
+[`set_nmi_vector`](label:set_nmi_vector), which writes both bytes into
 the NMI JMP-target slot at `nmi_jmp_lo`/`nmi_jmp_hi`. Tail of
-the [`discard_reset_rx`](address:83F7) /
-[`reset_adlc_rx_listen`](address:83FA) chain, used to put the
+the [`discard_reset_rx`](label:discard_reset_rx) /
+[`reset_adlc_rx_listen`](label:reset_adlc_rx_listen) chain, used to put the
 NMI vector back to scout-handling after a discard or reset.
 
 Two callers: `&80CD` (after init) and `&80E4` (after error).""",
@@ -2343,9 +2343,9 @@ d.subroutine(
     "discard_reset_listen",
     title="Discard with Tube release",
     description="""Checks whether a Tube transfer is active by ANDing bit 1 of
-[`tube_present`](address:0D63) with
-[`net_frame_flags`](address:0D3E) (`tx_flags`). If a Tube claim is
-held, calls [`release_tube`](address:845A) to free it before
+[`tube_present`](label:tube_present) with
+[`net_frame_flags`](label:net_frame_flags) (`tx_flags`). If a Tube claim is
+held, calls [`release_tube`](label:release_tube) to free it before
 returning.
 
 Used as the clean-up path after RXCB completion and after ADLC
@@ -2368,21 +2368,21 @@ d.subroutine(
     "copy_scout_to_buffer",
     title="Copy scout data to port buffer (entry point)",
     description="""Five-instruction prologue that prepares to copy scout-payload
-bytes (offsets `4..&0B`) from [`scout_buf`](address:0D2E) into the
+bytes (offsets `4..&0B`) from [`scout_buf`](label:scout_buf) into the
 open port buffer. Saves `X` on the stack, loads `X=4` (the first
 scout-data offset) and `A=&02` (Tube-flag mask), then `BIT`s
-[`net_frame_flags`](address:0D3E) (`tx_flags`) so the immediately
+[`net_frame_flags`](label:net_frame_flags) (`tx_flags`) so the immediately
 following `BNE` in
-[`save_acccon_for_shadow_ram`](address:841B) can dispatch:
+[`save_acccon_for_shadow_ram`](label:save_acccon_for_shadow_ram) can dispatch:
 
 | Bit 1 | Path |
 |---|---|
 | clear | fall through into `save_acccon_for_shadow_ram` (direct memory store via `(open_port_buf),Y`, with ACCCON saved/restored on Master 128) |
-| set   | branch to [`copy_scout_via_tube`](address:8448) (Tube R3 write) |
+| set   | branch to [`copy_scout_via_tube`](label:copy_scout_via_tube) (Tube R3 write) |
 
 Both paths walk the four-byte buffer pointer and end via
-[`scout_copy_done`](address:843D) which restores `X` and returns.
-Single caller: [`port_match_found`](address:8198) at `&81A7`.""",
+[`scout_copy_done`](label:scout_copy_done) which restores `X` and returns.
+Single caller: [`port_match_found`](label:port_match_found) at `&81A7`.""",
 )
 
 
@@ -2398,7 +2398,7 @@ d.subroutine(
     0x841B,
     "save_acccon_for_shadow_ram",
     title="Save ACCCON across scout-buffer access",
-    description="""Saves the current [`acccon`](address:FE34) value, sets ACCCON
+    description="""Saves the current [`acccon`](label:acccon) value, sets ACCCON
 for the upcoming `(open_port_buf),Y` stores (so writes go to the
 right shadow / main RAM bank on the Master 128), performs the
 copy, then restores the saved ACCCON before returning. Wraps the
@@ -2462,7 +2462,7 @@ d.subroutine(
     0x845A,
     "release_tube",
     title="Release Tube co-processor claim",
-    description="""Tests bit 7 of [`prot_flags`](address:0099) -- the bit ANFS uses
+    description="""Tests bit 7 of [`prot_flags`](label:prot_flags) -- the bit ANFS uses
 to track whether the Tube is currently still claimed:
 
 | Bit 7 | State | Action |
@@ -2494,18 +2494,18 @@ d.subroutine(
     0x8466,
     "immediate_op",
     title="Immediate operation handler (port = 0)",
-    description="""Checks the control byte at [`scout_ctrl`](address:0D30) for
+    description="""Checks the control byte at [`scout_ctrl`](label:scout_ctrl) for
 immediate-operation codes:
 
 | Range | Op | Treatment |
 |---|---|---|
 | `< &81` or `> &88` | – | out of range; discarded |
-| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](address:0D68) protection mask |
+| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](label:prot_status) protection mask |
 | `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |
 
 For `&81`..`&86`, converts the code to a 0-based index and tests
 against the per-station protection mask
-[`prot_status`](address:0D68) to determine whether this
+[`prot_status`](label:prot_status) to determine whether this
 station accepts the operation. If accepted, dispatches via
 the immediate-op dispatch table (PHA/PHA/RTS).
 
@@ -2513,12 +2513,12 @@ The execute-class operations (`&83` JSR, `&84` UserProc, `&85`
 OSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI
 receive handler -- a JSR into user code or an OS call is unsafe
 there -- so they are not run inline. They are completed later
-from normal IRQ context: [`setup_sr_tx`](address:8536) records the
-operation in [`tx_op_type`](address:0D65) and sets the Master 128
+from normal IRQ context: [`setup_sr_tx`](label:setup_sr_tx) records the
+operation in [`tx_op_type`](label:tx_op_type) and sets the Master 128
 ACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the
 ROM picks up as service call `&05`
-([`svc5_irq_check`](address:802A)) and dispatches via the
-[`svc5_dispatch_lo`](address:84BC) table. PEEK, POKE and
+([`svc5_irq_check`](label:svc5_irq_check)) and dispatches via the
+[`svc5_dispatch_lo`](label:svc5_dispatch_lo) table. PEEK, POKE and
 machine-type (`&81` / `&82` / `&88`) only touch memory and reply
 immediately, so they run here.
 
@@ -2611,11 +2611,11 @@ d.subroutine(
     "rx_imm_exec",
     title="RX immediate: JSR / UserProc / OSProc setup",
     description="""Sets up the port buffer to receive remote-procedure data. Copies
-the 2-byte remote address from [`scout_data`](address:0D32)
+the 2-byte remote address from [`scout_data`](label:scout_data)
 into the execution-address workspace at
-[`exec_addr_lo`](address:0D66) / [`exec_addr_hi`](address:0D67),
+[`exec_addr_lo`](label:exec_addr_lo) / [`exec_addr_hi`](label:exec_addr_hi),
 then jumps to the common data-receive path via
-[`send_data_rx_ack`](address:81AA).
+[`send_data_rx_ack`](label:send_data_rx_ack).
 
 Used for operation types `&83` (JSR), `&84` (UserProc), and
 `&85` (OSProc).""",
@@ -2667,7 +2667,7 @@ d.subroutine(
     title="RX immediate: machine-type query",
     description="""Sets up the response buffer for a machine-type query immediate
 operation (4-byte response: machine code + version digits). Falls
-through to [`set_rx_buf_len_hi`](address:84C9) to configure
+through to [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi) to configure
 the buffer dimensions, then branches to `set_tx_reply_flag`. The
 machine-type query (`&88`) just returns fixed identity data, so it is
 serviced inline here -- not deferred like the execute-class operations
@@ -2691,7 +2691,7 @@ d.comment(0x84CF, "Buffer start lo = &EE", align=Align.INLINE)
 # UNMAPPED:     title="RX immediate: PEEK setup",
 # UNMAPPED:     description="""Writes `&0D2E` to `port_ws_offset` / `rx_buf_offset`, sets
 # UNMAPPED: `scout_status = 2`, then calls
-# UNMAPPED: [`tx_calc_transfer`](address:85AD) to send the PEEK response
+# UNMAPPED: [`tx_calc_transfer`](label:tx_calc_transfer) to send the PEEK response
 # UNMAPPED: data back to the requesting station. PEEK (`&81`) only reads memory
 # UNMAPPED: and replies, so it is serviced inline in the receive path -- not
 # UNMAPPED: deferred like the execute-class operations `&83`-`&87`.""",
@@ -2738,13 +2738,13 @@ d.comment(0x84EF, "Acknowledge and write TX dest", align=Align.INLINE)
 # UNMAPPED: | RX offset | Source | Meaning |
 # UNMAPPED: |---|---|---|
 # UNMAPPED: | `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |
-# UNMAPPED: | `&80` | [`scout_buf`](address:0D2E) | requesting station |
-# UNMAPPED: | `&81` | [`scout_src_net`](address:0D2F) | requesting network |
+# UNMAPPED: | `&80` | [`scout_buf`](label:scout_buf) | requesting station |
+# UNMAPPED: | `&81` | [`scout_src_net`](label:scout_src_net) | requesting network |
 # UNMAPPED: 
 # UNMAPPED: Then loads the control byte from
-# UNMAPPED: [`scout_ctrl`](address:0D30) into `A` and falls through into
-# UNMAPPED: [`setup_sr_tx`](address:8536), which records `A` as
-# UNMAPPED: [`tx_op_type`](address:0D65) and (for execute-class ops) arms the
+# UNMAPPED: [`scout_ctrl`](label:scout_ctrl) into `A` and falls through into
+# UNMAPPED: [`setup_sr_tx`](label:setup_sr_tx), which records `A` as
+# UNMAPPED: [`tx_op_type`](label:tx_op_type) and (for execute-class ops) arms the
 # UNMAPPED: deferred dispatch by setting the Master 128 ACCCON IRR latch so the
 # UNMAPPED: operation completes from normal IRQ context. Reached via the
 # UNMAPPED: immediate-op dispatch path.""",
@@ -2766,14 +2766,14 @@ d.subroutine(
     0x8536,
     "setup_sr_tx",
     title="Save TX op type and raise JSR re-entrancy protection",
-    description="""Stores the TX operation type in [`tx_op_type`](address:0D65),
-then (at [`enable_irq_pending`](address:8548)) sets the ACCCON IRR
-latch to arm the deferred dispatch -- see [`svc5_irq_check`](address:802A).
+    description="""Stores the TX operation type in [`tx_op_type`](label:tx_op_type),
+then (at [`enable_irq_pending`](label:enable_irq_pending)) sets the ACCCON IRR
+latch to arm the deferred dispatch -- see [`svc5_irq_check`](label:svc5_irq_check).
 
 | Op code | Path |
 |---|---|
 | `≥ &86` (HALT / CONTINUE / machine-type) | branch forward to the ACCCON IRR set; the protection mask is left untouched |
-| `< &86` (JSR / UserProc / OSProc) | load the [`prot_status`](address:0D68) protection mask, copy it to [`prot_status_save`](address:0D69), `ORA` in bits 2-4 to *disable* further JSR / UserProc / OSProc, then write the raised mask back to `prot_status` |
+| `< &86` (JSR / UserProc / OSProc) | load the [`prot_status`](label:prot_status) protection mask, copy it to [`prot_status_save`](label:prot_status_save), `ORA` in bits 2-4 to *disable* further JSR / UserProc / OSProc, then write the raised mask back to `prot_status` |
 
 Raising bits 2-4 of the LSTAT protection mask is re-entrancy
 protection: while the deferred remote routine runs (it is a JSR into
@@ -2784,7 +2784,7 @@ bit pattern `&1C` happens to equal the System VIA ACR
 shift-register mode-field mask, but here it is applied to the LSTAT
 mask, not the VIA -- the Model B ROMs raise the same bits in a
 separate step on the dispatch side.) Single caller (`&83E2` in
-[`scout_complete`](address:8114)).""",
+[`scout_complete`](label:scout_complete)).""",
     on_entry={"a": "TX operation type"},
 )
 
@@ -2834,9 +2834,9 @@ d.comment(0x855E, "Return", align=Align.INLINE)
 # UNMAPPED:     title="TX done dispatch lo-byte table (5 entries)",
 # UNMAPPED:     description="""Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
 # UNMAPPED: `&83`-`&87`. Read by the dispatch at
-# UNMAPPED: [`dispatch_svc5`](address:804A) via
+# UNMAPPED: [`dispatch_svc5`](label:dispatch_svc5) via
 # UNMAPPED: `LDA tx_done_dispatch_lo-&83,Y` (the operand lands mid-instruction
-# UNMAPPED: inside [`set_rx_buf_len_hi`](address:84C9)). The dispatch
+# UNMAPPED: inside [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi)). The dispatch
 # UNMAPPED: trampoline pushes `&85` as the high byte, so targets are
 # UNMAPPED: `&85xx+1`. Entries for `Y < &83` read from preceding code bytes
 # UNMAPPED: and are not valid operation types. Per-entry inline comments
@@ -2863,15 +2863,15 @@ d.subroutine(
     title="TX done: remote JSR execution",
     description="""Executes the Econet Remote Subroutine Jump (immediate operation
 `&83`), now running in deferred IRQ context after
-[`svc5_irq_check`](address:802A) picked up the ACCCON IRR latch --
+[`svc5_irq_check`](label:svc5_irq_check) picked up the ACCCON IRR latch --
 so the JSR happens safely outside the NMI handler.
 
-Pushes ([`tx_done_exit`](address:85A6) ` - 1`) on the stack so
-`RTS` returns to [`tx_done_exit`](address:85A6) when the remote
+Pushes ([`tx_done_exit`](label:tx_done_exit) ` - 1`) on the stack so
+`RTS` returns to [`tx_done_exit`](label:tx_done_exit) when the remote
 routine completes, then does `JMP` indirect through
-[`exec_addr_lo`](address:0D66) to call the remote-supplied JSR
+[`exec_addr_lo`](label:exec_addr_lo) to call the remote-supplied JSR
 target. When that routine returns via `RTS`, control resumes at
-[`tx_done_exit`](address:85A6) which tidies up TX state.""",
+[`tx_done_exit`](label:tx_done_exit) which tidies up TX state.""",
 )
 
 
@@ -2889,8 +2889,8 @@ d.subroutine(
     "tx_done_econet_event",
     title="TX done: fire Econet event",
     description="""Handler for TX operation type `&84`. Loads the remote address
-from [`exec_addr_lo`](address:0D66) /
-[`exec_addr_hi`](address:0D67) into `X` / `A` and sets `Y=8`
+from [`exec_addr_lo`](label:exec_addr_lo) /
+[`exec_addr_hi`](label:exec_addr_hi) into `X` / `A` and sets `Y=8`
 (Econet event number), then falls through to `tx_done_fire_event`
 to call OSEVEN.
 
@@ -2898,7 +2898,7 @@ Reached only via `PHA`/`PHA`/`RTS` dispatch from
 [`tx_done_dispatch_lo`](address:853B) / hi. The dispatcher
 pushed the caller's `X` and `Y` onto the stack before
 transferring control, and the shared
-[`tx_done_exit`](address:85A6) restores them via
+[`tx_done_exit`](label:tx_done_exit) restores them via
 `PLA`/`TAY`/`PLA`/`TAX` before returning `A=0`.""",
     on_exit={"a": "0 (success status)", "x, y": "restored from stack via tx_done_exit"},
 )
@@ -2916,9 +2916,9 @@ d.subroutine(
     "tx_done_os_proc",
     title="TX done: OSProc call",
     description="""Calls the ROM service entry point with
-`X = `[`exec_addr_lo`](address:0D66)`, Y = `[`exec_addr_hi`](address:0D67).
+`X = `[`exec_addr_lo`](label:exec_addr_lo)`, Y = `[`exec_addr_hi`](label:exec_addr_hi).
 This invokes an OS-level procedure on behalf of the remote
-station, then exits via [`tx_done_exit`](address:85A6).
+station, then exits via [`tx_done_exit`](label:tx_done_exit).
 
 Reached only via `PHA`/`PHA`/`RTS` dispatch from
 [`tx_done_dispatch_lo`](address:853B) / hi.""",
@@ -2934,15 +2934,15 @@ d.subroutine(
     0x8587,
     "tx_done_halt",
     title="TX done: HALT",
-    description="""Sets bit 2 of [`econet_flags`](address:0D61), enables
+    description="""Sets bit 2 of [`econet_flags`](label:econet_flags), enables
 interrupts, and spin-waits until bit 2 is cleared (by a CONTINUE
 from the remote station). If bit 2 is already set, skips to exit.
 
 Reached only via `PHA`/`PHA`/`RTS` dispatch from
 [`tx_done_dispatch_lo`](address:853B) / hi. Falls through to
-[`tx_done_continue`](address:859E) after the spin completes;
+[`tx_done_continue`](label:tx_done_continue) after the spin completes;
 on the already-halted path it branches directly to
-[`tx_done_exit`](address:85A6).""",
+[`tx_done_exit`](label:tx_done_exit).""",
     on_exit={
         "a": "0 (success status, set by tx_done_exit)",
         "i flag": "interrupts enabled (CLI inside the spin)",
@@ -2966,15 +2966,15 @@ d.subroutine(
     0x859E,
     "tx_done_continue",
     title="TX done: CONTINUE",
-    description="""Clears bit 2 of [`econet_flags`](address:0D61), releasing any
+    description="""Clears bit 2 of [`econet_flags`](label:econet_flags), releasing any
 station that is halted and spinning in
-[`tx_done_halt`](address:8587).
+[`tx_done_halt`](label:tx_done_halt).
 
 Reached either as a fall-through from
-[`tx_done_halt`](address:8587) or directly via
+[`tx_done_halt`](label:tx_done_halt) or directly via
 `PHA`/`PHA`/`RTS` dispatch from
 [`tx_done_dispatch_lo`](address:853B) / hi. Falls through to
-[`tx_done_exit`](address:85A6) which restores `X` and `Y`
+[`tx_done_exit`](label:tx_done_exit) which restores `X` and `Y`
 from the stack and returns `A=0`.""",
     on_exit={"a": "0 (success status)", "x, y": "restored from stack via tx_done_exit"},
 )
@@ -2996,7 +2996,7 @@ d.subroutine(
 to the caller.
 
 Five inbound refs: a tail-jump from `&8044` (the SVC 5 IRQ-check
-path in [`svc5_irq_check`](address:802A)), plus the JMPs at
+path in [`svc5_irq_check`](label:svc5_irq_check)), plus the JMPs at
 `&8554`, `&8584`, `&858C`, and the fall-through at `&8578`.""",
     on_exit={"a": "0 (success status)", "x, y": "restored from stack"},
 )
@@ -3021,10 +3021,10 @@ d.comment(0x85AC, "Return with A=0 (success)", align=Align.INLINE)
 # UNMAPPED: 2. Dispatches: control byte `≥ &81` → immediate-op setup; else
 # UNMAPPED:    normal data transfer.
 # UNMAPPED: 3. Calculates transfer sizes via
-# UNMAPPED:    [`tx_calc_transfer`](address:85AD); copies extra
+# UNMAPPED:    [`tx_calc_transfer`](label:tx_calc_transfer); copies extra
 # UNMAPPED:    parameters into the workspace.
 # UNMAPPED: 4. Enters the INACTIVE polling loop at
-# UNMAPPED:    [`inactive_poll`](address:86B2).""",
+# UNMAPPED:    [`inactive_poll`](label:inactive_poll).""",
 # UNMAPPED: )
 
 
@@ -3104,7 +3104,7 @@ d.subroutine(
     title="INACTIVE polling loop",
     description="""Entry point for the Econet line-idle detection loop.
 
-1. Saves the TX index in [`rx_remote_addr`](address:0D41).
+1. Saves the TX index in [`rx_remote_addr`](label:rx_remote_addr).
 2. Pushes two timeout-counter bytes onto the stack.
 3. Loads `Y = &E7` (CR2 value for TX preparation).
 4. Loads the INACTIVE bit mask (`&04`) into `A`.
@@ -3132,16 +3132,16 @@ d.comment(0x86C3, "A=&04: INACTIVE bit mask for SR2 test", align=Align.INLINE)
 # UNMAPPED:     "intoff_test_inactive",
 # UNMAPPED:     title="Disable NMIs and test INACTIVE",
 # UNMAPPED:     description="""Disables NMIs via two `BIT` reads of
-# UNMAPPED: [`disable_net_nmis`](address:FE38) (the Master 128 INTOFF register),
+# UNMAPPED: [`disable_net_nmis`](label:disable_net_nmis) (the Master 128 INTOFF register),
 # UNMAPPED: then polls `SR2` for the INACTIVE bit (bit 2):
 # UNMAPPED: 
 # UNMAPPED: | `SR2` INACTIVE | Action |
 # UNMAPPED: |---|---|
-# UNMAPPED: | set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](address:8714) |
-# UNMAPPED: | clear | re-enable NMIs via [`enable_net_nmis`](address:FE3C) (INTON) and decrement the 3-byte timeout counter on the stack |
+# UNMAPPED: | set   | read `SR1`, write `CR2=&67` to clear status, then test `CTS` (`SR1` bit 4); if `CTS` present, branch to [`tx_prepare`](label:tx_prepare) |
+# UNMAPPED: | clear | re-enable NMIs via [`enable_net_nmis`](label:enable_net_nmis) (INTON) and decrement the 3-byte timeout counter on the stack |
 # UNMAPPED: 
 # UNMAPPED: On timeout, falls through to
-# UNMAPPED: [`tx_line_jammed`](address:86FA).""",
+# UNMAPPED: [`tx_line_jammed`](label:tx_line_jammed).""",
 # UNMAPPED:     on_entry={"a": "&04 (INACTIVE bit mask)", "y": "&E7 (CR2 value for tx_prepare)"},
 # UNMAPPED: )
 
@@ -3193,7 +3193,7 @@ d.subroutine(
     0x86FA,
     "tx_line_jammed",
     title="TX timeout error handler (Line Jammed)",
-    description="""Reached when the [`inactive_poll`](address:86B2) /
+    description="""Reached when the [`inactive_poll`](label:inactive_poll) /
 [`intoff_test_inactive`](address:85FC) loop times out without
 detecting a quiet line.
 
@@ -3233,19 +3233,19 @@ control-byte handler.
 
 1. Writes `CR2 = Y` (`&E7`) and `CR1 = &44` to enable TX with
    interrupts (`RX_RESET` + transmit-IRQ enable).
-2. Installs [`nmi_tx_data`](address:87B6) as the next NMI handler
+2. Installs [`nmi_tx_data`](label:nmi_tx_data) as the next NMI handler
    by writing `&E7,&86` directly into `nmi_jmp_lo` / `nmi_jmp_hi`.
-3. Sets bit 7 of [`prot_flags`](address:0099) (Tube-claimed
-   marker, paired with [`release_tube`](address:845A)) via
+3. Sets bit 7 of [`prot_flags`](label:prot_flags) (Tube-claimed
+   marker, paired with [`release_tube`](label:release_tube)) via
    `SEC` / `ROR prot_flags`.
 4. `BIT enable_net_nmis` re-enables NMIs so `TDRA` can fire.
 
-Then dispatches on [`tx_port`](address:0D25):
+Then dispatches on [`tx_port`](label:tx_port):
 
 | `tx_port` | Path |
 |---|---|
 | non-zero | branch to `setup_data_xfer` (standard data transfer) |
-| zero (immediate op) | look up `tx_flags` / `tx_length` from `tx_flags_table` / `tx_length_table` indexed by [`tx_ctrl_byte`](address:0D24), push `&86` (high byte) and `tx_ctrl_dispatch_lo[Y-&81]` (low byte) and `RTS` to the control-byte handler |
+| zero (immediate op) | look up `tx_flags` / `tx_length` from `tx_flags_table` / `tx_length_table` indexed by [`tx_ctrl_byte`](label:tx_ctrl_byte), push `&86` (high byte) and `tx_ctrl_dispatch_lo[Y-&81]` (low byte) and `RTS` to the control-byte handler |
 
 The 4-byte destination-address write to the TX FIFO happens in
 the dispatched-to handler (e.g. `setup_data_xfer`,
@@ -3334,7 +3334,7 @@ d.subroutine(
     "tx_ctrl_peek",
     title="TX ctrl: PEEK transfer setup",
     description="""Sets `A=3` (scout_status for PEEK) and branches to
-[`tx_ctrl_store_and_add`](address:8757) to store the status
+[`tx_ctrl_store_and_add`](label:tx_ctrl_store_and_add) to store the status
 and perform the 4-byte transfer-address addition.""",
     on_exit={"a": "3 (scout_status for PEEK)"},
 )
@@ -3346,7 +3346,7 @@ d.subroutine(
     "tx_ctrl_poke",
     title="TX ctrl: POKE transfer setup",
     description="""Sets `A=2` (scout_status for POKE) and falls through to
-[`tx_ctrl_store_and_add`](address:8757) to store the status
+[`tx_ctrl_store_and_add`](label:tx_ctrl_store_and_add) to store the status
 and perform the 4-byte transfer-address addition.""",
     on_exit={"a": "2 (scout_status for POKE)"},
 )
@@ -3360,16 +3360,16 @@ d.subroutine(
     description="""Shared path for PEEK (`A=3`) and POKE (`A=2`):
 
 1. Stores `A` as the scout status byte at
-   [`rx_port`](address:0D40).
+   [`rx_port`](label:rx_port).
 2. Performs a 4-byte addition with carry propagation. For
    `Y=&0C..&0F` it adds `(nmi_tx_block),Y` (i.e. TXCB bytes
    12..15 from the block pointed to by
-   [`nmi_tx_block`](address:00A0)) into `tx_addr_base,Y` --
+   [`nmi_tx_block`](label:nmi_tx_block)) into `tx_addr_base,Y` --
    `tx_addr_base+&0C..&0F` is the 4-byte transfer-length
-   workspace at [`tx_data_len`](address:0D2A)..&0D2D.
-3. Falls through to [`tx_ctrl_proc`](address:8769) which
+   workspace at [`tx_data_len`](label:tx_data_len)..&0D2D.
+3. Falls through to [`tx_ctrl_proc`](label:tx_ctrl_proc) which
    checks the loop boundary, then continues to
-   [`tx_calc_transfer`](address:85AD) and `tx_ctrl_exit`.""",
+   [`tx_calc_transfer`](label:tx_calc_transfer) and `tx_ctrl_exit`.""",
     on_entry={"a": "scout status (3=PEEK, 2=POKE)"},
 )
 
@@ -3391,12 +3391,12 @@ d.subroutine(
     "tx_ctrl_proc",
     title="TX ctrl: tail of address-add loop + setup_data_xfer entry",
     description="""Tail of the 4-byte transfer-address addition loop that started in
-[`tx_ctrl_store_and_add`](address:8757): `CPY #&10` ends the
+[`tx_ctrl_store_and_add`](label:tx_ctrl_store_and_add): `CPY #&10` ends the
 loop when Y reaches `&10`, `PLP` restores the saved carry, and
 `BNE` skips the buffer-setup code if the transfer size is zero.
 
 Falls through (or is reached via the dispatch from
-[`tx_prepare`](address:8714) when port != 0) to
+[`tx_prepare`](label:tx_prepare) when port != 0) to
 `setup_data_xfer` at `&8770`, which dispatches between broadcast
 and unicast based on whether `tx_dst_stn` and `tx_dst_net` are
 both `&FF`.""",
@@ -3454,8 +3454,8 @@ d.subroutine(
     "nmi_tx_data",
     title="NMI TX data handler",
     description="""Writes 2 bytes per NMI invocation to the TX FIFO at
-[`econet_data_continue_frame`](address:FEA2). Uses `BIT`
-[`econet_control1_or_status1`](address:FEA0)
+[`econet_data_continue_frame`](label:econet_data_continue_frame). Uses `BIT`
+[`econet_control1_or_status1`](label:econet_control1_or_status1)
 on `SR1` to test `TDRA` (`V` flag = bit 6) and `IRQ` (`N` flag =
 bit 7).
 
@@ -3510,7 +3510,7 @@ d.subroutine(
     "tx_last_data",
     title="TX_LAST_DATA and frame completion",
     description="""Signals end of TX frame by writing `CR2=&3F` (TX_LAST_DATA), then
-installs [`nmi_tx_complete`](address:87FC) as the next NMI
+installs [`nmi_tx_complete`](label:nmi_tx_complete) as the next NMI
 handler.
 
 `CR2=&3F` = `%0011_1111`, with each bit selecting an ADLC
@@ -3528,11 +3528,11 @@ control function:
 | 0   | PSE      | prioritised status enable |
 
 The routine exits via `JMP` to
-[`set_nmi_vector`](address:0D0E), which installs
-[`nmi_tx_complete`](address:87FC) and falls through to
-[`nmi_rti`](address:0D14). The `BIT` of
-[`enable_net_nmis`](address:FE3C) (INTON) inside
-[`nmi_rti`](address:0D14) creates the /NMI edge for the
+[`set_nmi_vector`](label:set_nmi_vector), which installs
+[`nmi_tx_complete`](label:nmi_tx_complete) and falls through to
+[`nmi_rti`](label:nmi_rti). The `BIT` of
+[`enable_net_nmis`](label:enable_net_nmis) (INTON) inside
+[`nmi_rti`](label:nmi_rti) creates the /NMI edge for the
 frame-complete interrupt – essential because the ADLC IRQ may
 transition atomically from TDRA to frame-complete without
 de-asserting in between.""",
@@ -3564,13 +3564,13 @@ Full `CR1` sequence through a handshake:
 | 3 | `&44` | data TX |
 | 4 | `&82` | await data ACK |
 
-Dispatches on [`net_frame_flags`](address:0D3E) flags:
+Dispatches on [`net_frame_flags`](label:net_frame_flags) flags:
 
 | Flag | Action |
 |---|---|
-| bit 6 set (broadcast) | jump to [`tx_result_ok`](address:89AD) |
-| bit 0 set (handshake data pending) | jump to [`handshake_await_ack`](address:8955) |
-| both clear | install [`nmi_reply_scout`](address:881A) for scout ACK reception |""",
+| bit 6 set (broadcast) | jump to [`tx_result_ok`](label:tx_result_ok) |
+| bit 0 set (handshake data pending) | jump to [`handshake_await_ack`](label:handshake_await_ack) |
+| both clear | install [`nmi_reply_scout`](label:nmi_reply_scout) for scout ACK reception |""",
 )
 
 
@@ -3598,10 +3598,10 @@ d.subroutine(
 Tests `SR2` bit 0 (`AP`) for an incoming address; on `AP` clear
 falls through to `tx_error`. Otherwise reads the first RX byte
 (destination station) and compares it against the workspace copy
-[`tx_src_stn`](address:0D22). On mismatch branches to
-[`reject_reply`](address:8842); on match installs
-[`nmi_reply_cont`](address:882E) as the next NMI handler via
-[`install_nmi_handler`](address:0D11) (low-byte only -- the high
+[`tx_src_stn`](label:tx_src_stn). On mismatch branches to
+[`reject_reply`](label:reject_reply); on match installs
+[`nmi_reply_cont`](label:nmi_reply_cont) as the next NMI handler via
+[`install_nmi_handler`](label:install_nmi_handler) (low-byte only -- the high
 byte stays at `&87`).""",
 )
 
@@ -3621,13 +3621,13 @@ d.subroutine(
     title="RX reply continuation handler",
     description="""Reads the second byte of the reply scout (destination network)
 and validates it is zero (local network). Loads `A=&76`, the low
-byte of [`nmi_reply_validate`](address:8845), to install it as
+byte of [`nmi_reply_validate`](label:nmi_reply_validate), to install it as
 the next NMI handler.
 
 **Optimisation:** before installing, checks `SR1` bit 7 (`IRQ`
 still asserted) via `BIT econet_control1_or_status1` / `BMI`. When `IRQ` is still
 set the next byte is already in the FIFO, so the routine falls
-through directly to [`nmi_reply_validate`](address:8845) without
+through directly to [`nmi_reply_validate`](label:nmi_reply_validate) without
 an intermediate `RTI`, avoiding NMI re-entry overhead for short
 frames where all bytes arrive in quick succession.""",
 )
@@ -3647,13 +3647,13 @@ d.subroutine(
     0x8842,
     "reject_reply",
     title="Abandon reply scout (1-instruction trampoline)",
-    description="""Single `JMP` to [`tx_result_fail`](address:89B1). Acts as a
+    description="""Single `JMP` to [`tx_result_fail`](label:tx_result_fail). Acts as a
 near-target for the `BPL`/`BNE` exits scattered through
-[`nmi_reply_scout`](address:881A),
-[`nmi_reply_validate`](address:8845), and
-[`nmi_scout_ack_src`](address:888D) that need to abort the
+[`nmi_reply_scout`](label:nmi_reply_scout),
+[`nmi_reply_validate`](label:nmi_reply_validate), and
+[`nmi_scout_ack_src`](label:nmi_scout_ack_src) that need to abort the
 reply path – the unconditional `JMP` at `&8773` takes them to
-[`tx_result_fail`](address:89B1) (which stores the error and
+[`tx_result_fail`](label:tx_result_fail) (which stores the error and
 returns to idle).
 
 Seven inbound refs in total (one `JSR` plus six branches).""",
@@ -3668,8 +3668,8 @@ d.subroutine(
     title="RX reply validation (Path 2 for FV/PSE interaction)",
     description="""Reads the source station and source network from the reply scout
 and validates them against the original TX destination
-([`tx_dst_stn`](address:0D20) /
-[`tx_dst_net`](address:0D21)).
+([`tx_dst_stn`](label:tx_dst_stn) /
+[`tx_dst_net`](label:tx_dst_net)).
 
 1. Check SR2 bit 7 (RDA) -- must see data available.
 2. Read source station, compare to `tx_dst_stn`.
@@ -3715,21 +3715,21 @@ d.subroutine(
     "nmi_scout_ack_src",
     title="TX scout ACK: write source address",
     description="""Continuation of the TX-side scout ACK. Reads our station ID from
-the workspace copy [`tx_src_stn`](address:0D22), tests `TDRA`
+the workspace copy [`tx_src_stn`](label:tx_src_stn), tests `TDRA`
 via `SR1`, and writes `(station, network=0)` to the TX FIFO.
 
-Then dispatches on bit 1 of [`net_frame_flags`](address:0D3E) to
+Then dispatches on bit 1 of [`net_frame_flags`](label:net_frame_flags) to
 select the next NMI handler:
 
 | Bit 1 | Handler |
 |---|---|
 | set   | immediate-op data NMI handler |
-| clear | normal [`nmi_tx_data`](address:87B6) |
+| clear | normal [`nmi_tx_data`](label:nmi_tx_data) |
 
 Installs the chosen handler via
-[`set_nmi_vector`](address:0D0E). Shares the
-[`tx_check_tdra_ready`](address:8893) entry with
-[`ack_tx`](address:82EF).""",
+[`set_nmi_vector`](label:set_nmi_vector). Shares the
+[`tx_check_tdra_ready`](label:tx_check_tdra_ready) entry with
+[`ack_tx`](label:ack_tx).""",
 )
 
 
@@ -3747,15 +3747,15 @@ d.subroutine(
     0x889D,
     "data_tx_begin",
     title="Begin data-frame TX: install nmi_data_tx or alt",
-    description="""Tests bit 1 of [`net_frame_flags`](address:0D3E)
-([`tx_flags`](address:0D4A)):
+    description="""Tests bit 1 of [`net_frame_flags`](label:net_frame_flags)
+([`tx_flags`](label:tx_flags)):
 
 | Bit 1 | Path |
 |---|---|
 | set (immediate-op) | branch to `install_imm_data_nmi` to use the alternative handler |
-| clear | install the [`nmi_data_tx`](address:88B2) alt-entry at `&87EB` (lo=`&EB`, hi=`&87`) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |
+| clear | install the [`nmi_data_tx`](label:nmi_data_tx) alt-entry at `&87EB` (lo=`&EB`, hi=`&87`) into the NMI vector. The alt-entry skips the page-counter check and goes straight to the byte-count load |
 
-Single caller (`&8339` inside [`ack_tx`](address:82EF)).""",
+Single caller (`&8339` inside [`ack_tx`](label:ack_tx)).""",
 )
 
 
@@ -3783,12 +3783,12 @@ After each pair, decrements the byte counters
 
 | Condition | Action |
 |---|---|
-| `port_buf_len_hi = 0` (final partial page) | branch to `data_tx_last` (internal label) to send the remaining bytes and tail-call [`tx_last_data`](address:87F2) |
+| `port_buf_len_hi = 0` (final partial page) | branch to `data_tx_last` (internal label) to send the remaining bytes and tail-call [`tx_last_data`](label:tx_last_data) |
 | count > 0, `SR1` IRQ still set | tight loop: write another pair without returning from NMI |
 | count > 0, `SR1` IRQ clear | return via `RTI` and wait for next NMI |
 
 The alt-entry at `&87EB` (used by
-[`data_tx_begin`](address:889D)) skips the page-counter check
+[`data_tx_begin`](label:data_tx_begin)) skips the page-counter check
 and starts at the byte-count load.""",
 )
 
@@ -3872,7 +3872,7 @@ econet_control1_or_status1`, writes the next pair of bytes from
 the Tube buffer to the ADLC TX FIFO (the `tube_tx_fifo_write`
 shared body at `&8848`), and either continues the tight inner loop
 on a continuing IRQ or returns via `RTI`. Reached only via the NMI
-vector after [`tx_prepare`](address:8714) installs it.""",
+vector after [`tx_prepare`](label:tx_prepare) installs it.""",
 )
 
 
@@ -3927,12 +3927,12 @@ d.subroutine(
     0x8955,
     "handshake_await_ack",
     title="Four-way handshake: switch to RX for final ACK",
-    description="""Called via JMP from [`nmi_tx_complete`](address:87FC) when bit 0
-of [`tx_flags`](address:0D4A) is set (four-way handshake in
+    description="""Called via JMP from [`nmi_tx_complete`](label:nmi_tx_complete) when bit 0
+of [`tx_flags`](label:tx_flags) is set (four-way handshake in
 progress). Writes `CR1=&82` (`TX_RESET|RIE`) to switch the ADLC
 from TX mode to RX mode, listening for the final ACK from the
-remote station. Installs [`nmi_final_ack`](address:8961) as the
-next NMI handler via [`set_nmi_vector`](address:0D0E).""",
+remote station. Installs [`nmi_final_ack`](label:nmi_final_ack) as the
+next NMI handler via [`set_nmi_vector`](label:set_nmi_vector).""",
 )
 
 
@@ -3947,7 +3947,7 @@ d.subroutine(
     "nmi_final_ack",
     title="RX final ACK handler",
     description="""Receives the final ACK in a four-way handshake. Same validation
-pattern as [`nmi_reply_validate`](address:8845):
+pattern as [`nmi_reply_validate`](label:nmi_reply_validate):
 
 1. Check AP, read dest_stn, compare to our station.
 2. Check RDA, read dest_net, validate = 0.
@@ -3955,7 +3955,7 @@ pattern as [`nmi_reply_validate`](address:8845):
 4. Check FV for frame completion.
 
 On success, stores result=0 via
-[`tx_result_ok`](address:89AD). On failure, error &41.""",
+[`tx_result_ok`](label:tx_result_ok). On failure, error &41.""",
 )
 
 
@@ -3978,8 +3978,8 @@ d.subroutine(
 RDA, reads the source-network byte from the ADLC RX FIFO, and
 compares with the original TX destination network (`tx_dst_net`,
 `&0D21`). On mismatch, branches to
-[`tx_result_fail`](address:89B1). On match, falls through into
-[`nmi_final_ack_validate`](address:8989) for the source-station
+[`tx_result_fail`](label:tx_result_fail). On match, falls through into
+[`nmi_final_ack_validate`](label:nmi_final_ack_validate) for the source-station
 check. Reached only via the NMI vector (no static caller).""",
     on_exit={"a": "source-network byte read from FIFO"},
 )
@@ -3998,16 +3998,16 @@ d.subroutine(
     0x8989,
     "nmi_final_ack_validate",
     title="Final ACK validation",
-    description="""Continuation of [`nmi_final_ack`](address:8961). Tests `SR2`
+    description="""Continuation of [`nmi_final_ack`](label:nmi_final_ack). Tests `SR2`
 for `RDA`, then reads the source station and source network
 bytes from the RX FIFO, comparing each against the original TX
-destination at [`tx_dst_stn`](address:0D20) and
-[`tx_dst_net`](address:0D21). Finally tests `SR2` bit 1
+destination at [`tx_dst_stn`](label:tx_dst_stn) and
+[`tx_dst_net`](label:tx_dst_net). Finally tests `SR2` bit 1
 (`FV`) for frame completion.
 
 Any mismatch or missing `FV` branches to
-[`tx_result_fail`](address:89B1). On success, falls through
-to [`tx_result_ok`](address:89AD).""",
+[`tx_result_fail`](label:tx_result_fail). On success, falls through
+to [`tx_result_ok`](label:tx_result_ok).""",
 )
 
 
@@ -4033,12 +4033,12 @@ d.subroutine(
     "tx_result_ok",
     title="TX completion handler",
     description="""Loads `A=0` (success) and branches unconditionally to
-[`tx_store_result`](address:89B3) (`BEQ` is always taken since
+[`tx_store_result`](label:tx_store_result) (`BEQ` is always taken since
 A=0, skipping the `tx_result_fail` body at &88E2). This two-
 instruction entry point exists so that `JMP` sites can target
 the success path without needing to set `A`. Called from
-[`ack_tx`](address:82EF) for final-ACK completion and from
-[`nmi_tx_complete`](address:87FC) for immediate-op completion
+[`ack_tx`](label:ack_tx) for final-ACK completion and from
+[`nmi_tx_complete`](label:nmi_tx_complete) for immediate-op completion
 where no ACK is expected.""",
     on_exit={"a": "0 (TX success)"},
 )
@@ -4053,7 +4053,7 @@ d.subroutine(
     "tx_result_fail",
     title="TX failure: not listening",
     description="""Loads error code `&41` ("not listening") and falls through to
-[`tx_store_result`](address:89B3). The most common TX-error
+[`tx_store_result`](label:tx_store_result). The most common TX-error
 path – reached from 11 sites across the final-ACK validation
 chain when the remote station doesn't respond or the frame is
 malformed.""",
@@ -4069,9 +4069,9 @@ d.subroutine(
     title="TX result store and completion",
     description="""Stores the TX result code (in `A`) at offset 0 of the TX control
 block via `(nmi_tx_block),Y=0`. Sets
-[`tx_complete_flag`](address:0D60) to `&80` to signal TX
+[`tx_complete_flag`](label:tx_complete_flag) to `&80` to signal TX
 completion to the foreground polling loop. Then jumps to
-[`discard_reset_rx`](address:83F7) for a full ADLC reset and
+[`discard_reset_rx`](label:discard_reset_rx) for a full ADLC reset and
 return to idle RX-listen mode.""",
     on_entry={"a": "result code (0=success, &40=jammed, &41=not listening)"},
 )
@@ -4101,9 +4101,9 @@ d.entry(0x863A)
 # UNMAPPED: | Tube | compute 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end); store via `(port_ws_offset),Y`; re-claim Tube via `JSR &0406` with claim type `&C2` |
 # UNMAPPED: | Non-Tube | fall through to `fallback_calc_transfer` for a 1-byte size subtraction without the Tube reclaim |
 # UNMAPPED: 
-# UNMAPPED: Three callers: [`scout_complete`](address:8114) (`&819A`),
+# UNMAPPED: Three callers: [`scout_complete`](label:scout_complete) (`&819A`),
 # UNMAPPED: [`rx_imm_peek`](address:84CE) (`&84DB`),
-# UNMAPPED: [`tx_ctrl_proc`](address:8769) (`&86DD`).""",
+# UNMAPPED: [`tx_ctrl_proc`](label:tx_ctrl_proc) (`&86DD`).""",
 # UNMAPPED:     on_entry={"y": "0 -- caller convention"},
 # UNMAPPED:     on_exit={"a": "transfer status", "c": "set if Tube address claimed, clear otherwise"},
 # UNMAPPED: )
@@ -4210,7 +4210,7 @@ d.subroutine(
 2. Configures `CR4=&1E` (8-bit RX word, abort extend, NRZ
    encoding).
 3. Configures `CR3=&00` (no loopback, no AEX, NRZ, no DTR).
-4. Falls through to [`adlc_rx_listen`](address:89CE) to
+4. Falls through to [`adlc_rx_listen`](label:adlc_rx_listen) to
    re-enter RX-listen mode.""",
     on_entry={},
     on_exit={"a, x, y": "clobbered"},
@@ -4254,20 +4254,20 @@ d.subroutine(
     title="Wait for idle NMI state and reset Econet",
     description="""Service-13 (`&0D`) handler -- the post-hard-reset Econet
 shutdown path. Reached via
-[`svc_dispatch`](address:8E79) slot &0D. Checks
-[`econet_init_flag`](address:0D62) to see if Econet has been
+[`svc_dispatch`](label:svc_dispatch) slot &0D. Checks
+[`econet_init_flag`](label:econet_init_flag) to see if Econet has been
 initialised; if not, skips straight to
-[`adlc_rx_listen`](address:89CE). Otherwise spins in a tight
+[`adlc_rx_listen`](label:adlc_rx_listen). Otherwise spins in a tight
 loop comparing the NMI handler vector at
-[`nmi_jmp_lo`](address:0D0C) /
-[`nmi_jmp_hi`](address:0D0D) against the address of
-[`nmi_rx_scout`](address:809D) to wait until the in-flight
+[`nmi_jmp_lo`](label:nmi_jmp_lo) /
+[`nmi_jmp_hi`](label:nmi_jmp_hi) against the address of
+[`nmi_rx_scout`](label:nmi_rx_scout) to wait until the in-flight
 NMI handler chain has unwound back to scout-listening.
 
 When the NMI vector matches `nmi_rx_scout` again, falls through
 to [`save_econet_state`](address:89B9) to clear the initialised
 flags and re-enter RX-listen mode. (Service &0B 'NMI release'
-is handled by the separate [`econet_restore`](address:806E).)""",
+is handled by the separate [`econet_restore`](label:econet_restore).)""",
     on_entry={"a": "13 (service call number, &0D)"},
     on_exit={"a, x, y": "clobbered"},
 )
@@ -4289,10 +4289,10 @@ d.comment(0x89EA, "Not idle: spin and wait", align=Align.INLINE)
 # UNMAPPED:     title="Reset Econet flags and enter RX-listen",
 # UNMAPPED:     description="""Disables NMIs via `BIT disable_net_nmis` (the Master 128 dedicated
 # UNMAPPED: INTOFF at &FE38), then clears
-# UNMAPPED: [`tx_complete_flag`](address:0D60) and
-# UNMAPPED: [`econet_init_flag`](address:0D62) by storing the current `A`
+# UNMAPPED: [`tx_complete_flag`](label:tx_complete_flag) and
+# UNMAPPED: [`econet_init_flag`](label:econet_init_flag) by storing the current `A`
 # UNMAPPED: value. Sets `Y=5` (service-call workspace page) and jumps to
-# UNMAPPED: [`adlc_rx_listen`](address:89CE) to configure the ADLC for
+# UNMAPPED: [`adlc_rx_listen`](label:adlc_rx_listen) to configure the ADLC for
 # UNMAPPED: passive listening.
 # UNMAPPED: 
 # UNMAPPED: Used during the wait-idle-and-reset path (svc &0D) to safely
@@ -4321,7 +4321,7 @@ d.subroutine(
 in the RAM shim at the start of the NFS workspace block. Unlike
 the RAM shim (which uses a self-modifying `JMP` to dispatch to
 different handlers), this one hardcodes
-`JMP `[`nmi_rx_scout`](address:809D). Used as the initial
+`JMP `[`nmi_rx_scout`](label:nmi_rx_scout). Used as the initial
 NMI handler before the workspace has been properly set up during
 initialisation.
 
@@ -4337,9 +4337,9 @@ STA romsel
 JMP nmi_rx_scout
 ```
 
-The `BIT` of [`disable_net_nmis`](address:FE38) (INTOFF) at
-entry and `BIT` of [`enable_net_nmis`](address:FE3C) (INTON)
-before `RTI` in [`nmi_rti`](address:0D14) are essential for
+The `BIT` of [`disable_net_nmis`](label:disable_net_nmis) (INTOFF) at
+entry and `BIT` of [`enable_net_nmis`](label:enable_net_nmis) (INTON)
+before `RTI` in [`nmi_rti`](label:nmi_rti) are essential for
 edge-triggered NMI re-delivery.
 
 The 6502 /NMI is falling-edge triggered; the Econet NMI-enable
@@ -4349,8 +4349,8 @@ IRQ through. This creates a guaranteed high-to-low edge on /NMI
 even when the ADLC IRQ is continuously asserted (e.g. when it
 transitions atomically from TDRA to frame-complete without
 de-asserting). Without this mechanism,
-[`nmi_tx_complete`](address:87FC) would never fire after
-[`tx_last_data`](address:87F2).""",
+[`nmi_tx_complete`](label:nmi_tx_complete) would never fire after
+[`tx_last_data`](label:tx_last_data).""",
 )
 
 
@@ -4370,12 +4370,12 @@ d.subroutine(
     title="ROM copy of set_nmi_vector + nmi_rti",
     description="""ROM-resident version of the NMI-exit sequence; also the source
 for the initial copy to RAM at
-[`set_nmi_vector`](address:0D0E).
+[`set_nmi_vector`](label:set_nmi_vector).
 
 | RAM target | Function |
 |---|---|
-| [`set_nmi_vector`](address:0D0E) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](address:0D0C) / [`nmi_jmp_hi`](address:0D0D) |
-| [`nmi_rti`](address:0D14) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`enable_net_nmis`](address:FE3C) (INTON) to re-enable the NMI flip-flop before `RTI` |
+| [`set_nmi_vector`](label:set_nmi_vector) | writes both hi and lo bytes of the `JMP` target at [`nmi_jmp_lo`](label:nmi_jmp_lo) / [`nmi_jmp_hi`](label:nmi_jmp_hi) |
+| [`nmi_rti`](label:nmi_rti) | restores the original ROM bank, pulls `Y` and `A` from the stack, then `BIT` of [`enable_net_nmis`](label:enable_net_nmis) (INTON) to re-enable the NMI flip-flop before `RTI` |
 
 The INTON creates a guaranteed falling edge on /NMI if the ADLC
 IRQ is already asserted, ensuring the next handler fires
@@ -4397,8 +4397,8 @@ d.comment(0x8A20, "Return from interrupt", align=Align.INLINE)
 # UNMAPPED:     0x89ED,
 # UNMAPPED:     title="svc_dispatch low-byte table (51 entries)",
 # UNMAPPED:     description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
-# UNMAPPED: [`svc_dispatch`](address:8E79) as `LDA &8A23,X`. Paired with
-# UNMAPPED: the high-byte half at [`svc_dispatch_hi`](address:8A56).
+# UNMAPPED: [`svc_dispatch`](label:svc_dispatch) as `LDA &8A23,X`. Paired with
+# UNMAPPED: the high-byte half at [`svc_dispatch_hi`](label:svc_dispatch_hi).
 # UNMAPPED: 
 # UNMAPPED: Index 0 is a placeholder (target value unused – never reached);
 # UNMAPPED: indices 1..50 cover:
@@ -4420,7 +4420,7 @@ d.comment(0x8A20, "Return from interrupt", align=Align.INLINE)
 # UNMAPPED:     0x8A20,
 # UNMAPPED:     title="svc_dispatch high-byte table (51 entries + 1 padding)",
 # UNMAPPED:     description="""High-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
-# UNMAPPED: [`svc_dispatch`](address:8E79) as `LDA &8A20,X`. The
+# UNMAPPED: [`svc_dispatch`](label:svc_dispatch) as `LDA &8A20,X`. The
 # UNMAPPED: dispatcher pushes the hi byte first then the lo, so `RTS` lands
 # UNMAPPED: on `target` (the table stores `target-1`). The trailing byte at
 # UNMAPPED: `&8A53` is 1-byte padding – there are only 51 valid entries
@@ -4578,7 +4578,7 @@ d.subroutine(
 receive block. If remote operation was active, re-enables the
 keyboard via OSBYTE `&C9` (with `X=0`, `Y=0`) and calls
 `tx_econet_abort` with `A=&0A` to reinitialise the workspace
-area. Falls through to [`scan_remote_keys`](address:8B26)
+area. Falls through to [`scan_remote_keys`](label:scan_remote_keys)
 which clears `svc_state` and `nfs_workspace`.""",
     on_entry={"y": "command line offset (unused -- *ROFF takes no args)"},
     on_exit={"a, x, y": "clobbered"},
@@ -4600,12 +4600,12 @@ d.subroutine(
 keys (`&CE`..`&CF`) are currently pressed. If neither key is
 detected, clears `svc_state` and `nfs_workspace` to zero via the
 `clear_svc_and_ws` entry point (also used directly by
-[`cmd_roff`](address:8B10)). Called by `check_escape`.
+[`cmd_roff`](label:cmd_roff)). Called by `check_escape`.
 
 `X` is saved into `nfs_workspace` across the OSBYTE call and
 restored each iteration – the loop reuses `A` as the key-code
 counter without needing `X`. `clear_svc_and_ws` is also entered
-directly (label) by [`cmd_roff`](address:8B10) with no
+directly (label) by [`cmd_roff`](label:cmd_roff) with no
 register pre-conditions.""",
     on_entry={"x": "preserved by being saved to nfs_workspace and reloaded each iteration (no other preconditions)"},
     on_exit={
@@ -4639,8 +4639,8 @@ d.subroutine(
     "save_text_ptr",
     title="Save OS text pointer for later retrieval",
     description="""Copies `&F2`/`&F3` (`os_text_ptr`) into `fs_crc_lo` /
-`fs_crc_hi`. Called by [`svc_4_star_command`](address:8C67)
-and [`svc_9_help`](address:8C76) before attempting command
+`fs_crc_hi`. Called by [`svc_4_star_command`](label:svc_4_star_command)
+and [`svc_9_help`](label:svc_9_help) before attempting command
 matches, and by `match_fs_cmd` during iterative help-topic
 matching. Preserves `A` via `PHA`/`PLA`.""",
     on_exit={"a": "preserved"},
@@ -4668,19 +4668,19 @@ page and verifies against the stored value; raises an error on
 mismatch. On success:
 
 1. Notifies the OS via FSCV reason 6
-   ([`notify_new_fs`](address:8D1F)).
+   ([`notify_new_fs`](label:notify_new_fs)).
 2. Copies the FS context block from the receive block to the
-   HAZEL FS state at [`hazel_fs_station`](address:C000)
+   HAZEL FS state at [`hazel_fs_station`](label:hazel_fs_station)
    (offsets 0..9), via the `hazel_minus_2,Y` indexing-base
    trick.
 3. Installs 7 filing-system vectors (FILEV etc.) from
-   [`fs_vector_table`](address:8EBF).
+   [`fs_vector_table`](label:fs_vector_table).
 4. Initialises the ADLC and extended vectors.
 5. Sets up the channel table.
-6. Sets bit 7 of [`fs_flags`](address:0D6C) to mark the FS as
+6. Sets bit 7 of [`fs_flags`](label:fs_flags) to mark the FS as
    selected.
 7. Issues service call 15 (vectors claimed) via
-   [`issue_svc_15`](address:8D24).""",
+   [`issue_svc_15`](label:issue_svc_15).""",
     on_entry={"y": "command line offset in text pointer (unused for *NET FS but supplied by star-cmd dispatch)"},
     on_exit={"a, x, y": "clobbered"},
 )
@@ -4720,8 +4720,8 @@ d.subroutine(
 | Condition | Action |
 |---|---|
 | `Y ≠ 5`   | return unclaimed (not the Econet FS) |
-| Bit 7 of [`fs_flags`](address:0D6C) set | return (FS already selected) |
-| else | fall through to [`cmd_net_fs`](address:8B49) for the full network-FS selection sequence |""",
+| Bit 7 of [`fs_flags`](label:fs_flags) set | return (FS already selected) |
+| else | fall through to [`cmd_net_fs`](label:cmd_net_fs) for the full network-FS selection sequence |""",
     on_entry={"y": "filing system number requested"},
 )
 d.comment(0x8B6D, "Not us: pass the call on (RTS via shared return)", align=Align.INLINE)
@@ -4734,7 +4734,7 @@ d.subroutine(
     description="""If bit 7 of `fs_flags` is set (ANFS already active), `RTS` via
 `rts_save_text_ptr`. Otherwise calls `cmd_net_fs` to select
 ANFS now; on failure, `JMP`s to
-[`error_net_checksum`](address:90BC) to raise the `net checksum`
+[`error_net_checksum`](label:error_net_checksum) to raise the `net checksum`
 error. After successful selection, falls through to the body at
 `&8B5A` which sets up the OSWORD parameter block pointer and
 continues the caller's work.""",
@@ -4749,11 +4749,11 @@ d.subroutine(
     0x8B78,
     "select_fs_via_cmd_net_fs",
     title="Force ANFS selection (raise net checksum on failure)",
-    description="""Tail-fragment of [`ensure_fs_selected`](address:8B73) used directly
+    description="""Tail-fragment of [`ensure_fs_selected`](label:ensure_fs_selected) used directly
 by `svc_3_autoboot` when an autoboot needs to force-select ANFS as
 the active filing system. Calls `cmd_net_fs` to perform the actual
 selection; on failure (`BEQ` not taken), `JMP`s to
-[`error_net_checksum`](address:90BC) to raise the `net checksum`
+[`error_net_checksum`](label:error_net_checksum) to raise the `net checksum`
 error. Used when there is no clean `BIT fs_flags` / `BMI` shortcut
 for early-return.""",
     on_entry={"x, y": "preserved across cmd_net_fs (as per the ensure_fs_selected calling contract)"},
@@ -4825,7 +4825,7 @@ d.subroutine(
     title="*HELP NFS topic: print NFS-specific commands",
     description="""Loads `X=&35` (the offset of the first NFS-specific command in
 `cmd_table_fs`) and tail-falls into
-[`print_cmd_table`](address:8BEC) to emit the listing. Single
+[`print_cmd_table`](label:print_cmd_table) to emit the listing. Single
 caller (the `*HELP` topic dispatch at `&8C6E`).""",
     on_exit={"x": "&35 + advance through the table"},
 )
@@ -4844,7 +4844,7 @@ d.subroutine(
     "help_utils",
     title="*HELP UTILS topic handler",
     description="""Sets `X = 0` to select the utility command sub-table and branches
-to [`print_cmd_table`](address:8BEC) to display the command
+to [`print_cmd_table`](label:print_cmd_table) to display the command
 list. Prints the version header followed by all utility
 commands.""",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
@@ -4859,7 +4859,7 @@ d.subroutine(
     "help_net",
     title="*HELP NET topic handler",
     description="""Sets `X = &35` (the NFS command sub-table offset) and falls
-through to [`print_cmd_table`](address:8BEC) to display the
+through to [`print_cmd_table`](label:print_cmd_table) to display the
 NFS command list with version header.""",
     on_entry={"y": "command-line offset (PHA/PHA/RTS dispatch contract)"},
     on_exit={"a, x, y": "clobbered (print_cmd_table)"},
@@ -4874,11 +4874,11 @@ d.subroutine(
     title="Print *HELP command listing with optional header",
     description="""| `V` flag | Action |
 |---|---|
-| set   | save `X`/`Y`, call [`print_version_header`](address:8CB8) to show the ROM version string and station number, restore `X`/`Y` |
+| set   | save `X`/`Y`, call [`print_version_header`](label:print_version_header) to show the ROM version string and station number, restore `X`/`Y` |
 | clear | output a newline only |
 
 Either path then falls through to
-[`print_cmd_table`](address:8BEC) to enumerate
+[`print_cmd_table`](label:print_cmd_table) to enumerate
 commands.""",
     on_entry={"x": "offset into cmd_table_fs", "v": "set=print version header, clear=newline only"},
 )
@@ -4909,7 +4909,7 @@ d.label(0x8BF8, "print_table_newline")
 # UNMAPPED: The syntax descriptor byte's low 5 bits index into
 # UNMAPPED: `cmd_syntax_table`; index `&0E` triggers special handling that
 # UNMAPPED: lists shared command names in parentheses. Calls
-# UNMAPPED: [`help_wrap_if_serial`](address:8C4E) to handle line
+# UNMAPPED: [`help_wrap_if_serial`](label:help_wrap_if_serial) to handle line
 # UNMAPPED: continuation on serial output streams. Preserves `Y`.""",
 # UNMAPPED:     on_entry={"x": "offset into cmd_table_fs"},
 # UNMAPPED: )
@@ -4932,7 +4932,7 @@ d.subroutine(
 | set   | `JMP done_print_table` (end of table reached) |
 
 Single caller (the `BNE` retry at `&8C47` in
-[`print_cmd_table`](address:8BEC)'s outer loop).""",
+[`print_cmd_table`](label:print_cmd_table)'s outer loop).""",
     on_entry={"x": "current cmd_table_fs offset"},
 )
 
@@ -5007,10 +5007,10 @@ d.subroutine(
     "done_print_table",
     title="Cleanup epilogue for print_cmd_table",
     description="""Pops the saved `P` and `Y` registers off the stack and `RTS`.
-Used as the shared exit for [`print_cmd_table`](address:8BEC)
+Used as the shared exit for [`print_cmd_table`](label:print_cmd_table)
 after it has emitted a help listing or detected end-of-table.
 Single caller (the `BEQ` at `&8BDD` in
-[`print_cmd_table`](address:8BEC) when `V` was set on entry,
+[`print_cmd_table`](label:print_cmd_table) when `V` was set on entry,
 indicating the saved state needs restoring).""",
     on_exit={"y": "restored from stack", "p (flags)": "restored from stack"},
 )
@@ -5026,7 +5026,7 @@ d.subroutine(
     0x8C4E,
     "help_wrap_if_serial",
     title="Wrap *HELP syntax lines for serial output",
-    description="""Checks the output destination via [`vdu_mode`](address:0355):
+    description="""Checks the output destination via [`vdu_mode`](label:vdu_mode):
 
 | Stream | Action |
 |---|---|
@@ -5162,9 +5162,9 @@ d.subroutine(
     "print_version_header",
     title="Print ANFS version string and station number",
     description="""Uses an inline string after `JSR` to
-[`print_inline`](address:926A): `CR + "Advanced NFS 4.24" +
+[`print_inline`](label:print_inline): `CR + "Advanced NFS 4.24" +
 CR`. After the inline string, `JMP`s to
-[`print_station_id`](address:90CE) to append the local Econet
+[`print_station_id`](label:print_station_id) to append the local Econet
 station number.""",
     on_entry={},
     on_exit={"a, x, y": "clobbered (print_inline + print_station_id)"},
@@ -5185,7 +5185,7 @@ d.subroutine(
     "get_ws_page",
     title="Read workspace page number for current ROM slot",
     description="""Indexes into the MOS per-ROM workspace table
-[`rom_ws_pages`](address:0DF0) using `romsel_copy` (`&F4`) as
+[`rom_ws_pages`](label:rom_ws_pages) using `romsel_copy` (`&F4`) as
 the ROM slot. Holds a copy of the slot byte in `Y`, then runs a
 `ROL` / `PHP` / `ROR` / `PLP` sequence at `&8CD8`–`&8CB6` that
 restores `A` to the original byte while leaving the saved-flags
@@ -5222,10 +5222,10 @@ d.subroutine(
     0x8CE2,
     "setup_ws_ptr",
     title="Set up zero-page pointer to workspace page",
-    description="""Calls [`get_ws_page`](address:8CD2) to read the page number,
+    description="""Calls [`get_ws_page`](label:get_ws_page) to read the page number,
 stores it as the high byte in `nfs_temp` (`&CD`), and clears the
 low byte at `&CC` to zero. This gives a page-aligned pointer used
-by FS initialisation and [`cmd_net_fs`](address:8B49) to
+by FS initialisation and [`cmd_net_fs`](label:cmd_net_fs) to
 access the private workspace.""",
     on_exit={"a": "0", "y": "workspace page number"},
 )
@@ -5287,7 +5287,7 @@ d.subroutine(
     "notify_new_fs",
     title="Notify OS of filing-system selection",
     description="""Loads `A=6` (FSCV reason: filing system change) and falls
-through to [`call_fscv`](address:8D21), which `JMP`-indirects
+through to [`call_fscv`](label:call_fscv), which `JMP`-indirects
 through `vec_fscv` to invoke the FSCV vector. The FSCV handler
 returns to whatever invoked `notify_new_fs` -- this is a
 fire-and-forget notification, not a return-to-caller call.
@@ -5305,11 +5305,11 @@ d.subroutine(
     0x8D21,
     "call_fscv",
     title="Dispatch to filing-system control vector (FSCV)",
-    description="""Indirect `JMP` through `FSCV` at [`vec_fscv`](address:021E),
+    description="""Indirect `JMP` through `FSCV` at [`vec_fscv`](label:vec_fscv),
 providing OS-level filing-system services such as FS-selection
 notification (`A=6`) and `*RUN` handling.
 
-Also contains [`issue_svc_15`](address:8D24) and
+Also contains [`issue_svc_15`](label:issue_svc_15) and
 `issue_svc_osbyte` entry points that issue paged-ROM service
 requests via OSBYTE `&8F`.""",
     on_entry={"a": "FSCV reason code"},
@@ -5337,9 +5337,9 @@ d.subroutine(
     "svc_dispatch_idx_2",
     title="svc_dispatch table[2] handler",
     description="""Reached only via PHA/PHA/RTS dispatch from the
-[`svc_dispatch_lo`](address:8A23) table at index 2. Pushes `Y`
+[`svc_dispatch_lo`](label:svc_dispatch_lo) table at index 2. Pushes `Y`
 onto the stack via `PHY`, sets `X=&11` (CMOS RAM offset for the
-Econet station-flags byte), calls [`osbyte_a1`](address:8EB2) to
+Econet station-flags byte), calls [`osbyte_a1`](label:osbyte_a1) to
 read it, then ANDs the result with `&01` (bit 0 = "use page &0B
 fallback") and pulls `Y` back. Used by the workspace-allocation
 path to discover whether the user has overridden the default
@@ -5449,8 +5449,8 @@ d.subroutine(
     "load_transfer_params",
     title="Set FS transfer parameters via set_xfer_params",
     description="""3-byte trampoline that calls
-[`set_xfer_params`](address:93DC) and falls through into
-[`cmd_pass`](address:8DED)'s argument-parse prologue. Reached
+[`set_xfer_params`](label:set_xfer_params) and falls through into
+[`cmd_pass`](label:cmd_pass)'s argument-parse prologue. Reached
 from `init_txcb_and_load_xfer` at `&B3D9` to install the FS
 transfer context (byte count + source pointer in `fs_last_byte_flag`
 / `fs_crc_lo`/`hi`) before continuing into the *I am / *Pass
@@ -5551,16 +5551,16 @@ d.subroutine(
     0x8E39,
     "clear_if_station_match",
     title="Clear hazel_fs_network if it matches the bridge status byte",
-    description="""Calls [`init_bridge_poll`](address:AC09) (returning the
-[`spool_control_flag`](address:0D71) bridge status byte in `A`,
+    description="""Calls [`init_bridge_poll`](label:init_bridge_poll) (returning the
+[`spool_control_flag`](label:spool_control_flag) bridge status byte in `A`,
 either freshly populated or already cached from a previous
 invocation) and EORs it with
-[`hazel_fs_network`](address:C001). When the two match (`EOR`
+[`hazel_fs_network`](label:hazel_fs_network). When the two match (`EOR`
 result is zero), zeroes `hazel_fs_network` so subsequent FS
 operations fall back to the local network.
 
-Called by [`cmd_iam`](address:8DA9) and
-[`osword_13_set_station`](address:A9FA) when reconciling a
+Called by [`cmd_iam`](label:cmd_iam) and
+[`osword_13_set_station`](label:osword_13_set_station) when reconciling a
 parsed file-server station address against the bridge state.""",
     on_exit={"a": "0 if cleared (match), bridge-XOR-network otherwise"},
 )
@@ -5607,15 +5607,15 @@ d.subroutine(
     title="Send FS command and dispatch the reply",
     description="""1. `JSR save_net_tx_cb` to set up and transmit the command.
 2. Read the reply function code from
-   [`hazel_txcb_network`](address:C103).
+   [`hazel_txcb_network`](label:hazel_txcb_network).
 
 | Reply code | Action |
 |---|---|
 | `0`     | branch to the no-reply path (`dispatch_rts`) |
-| non-zero | load [`hazel_txcb_data`](address:C105) (first reply byte), `Y=&25` (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
+| non-zero | load [`hazel_txcb_data`](label:hazel_txcb_data) (first reply byte), `Y=&25` (dispatch offset for the standard reply table), continue into the reply-dispatch chain |
 
 Two callers: the fall-through from
-[`check_urd_prefix`](address:8E45) (`&8E37` via
+[`check_urd_prefix`](label:check_urd_prefix) (`&8E37` via
 `pass_send_cmd`) and the `JMP` from `send_fs_request` (`&9465`).""",
     on_entry={"y": "extra dispatch offset (0 from send_fs_request, non-zero for some specialised paths)"},
 )
@@ -5646,12 +5646,12 @@ d.subroutine(
     "dir_op_dispatch",
     title="Dispatch directory operation via PHA/PHA/RTS",
     description="""Validates `X < 5` and sets `Y = &18` as the dispatch offset,
-then falls through into [`svc_dispatch`](address:8E79). The
+then falls through into [`svc_dispatch`](label:svc_dispatch). The
 `INX`/`DEY`/`BPL` loop in
-[`svc_dispatch`](address:8E79) then settles `X_final =
+[`svc_dispatch`](label:svc_dispatch) then settles `X_final =
 X_caller + Y + 1`, landing on indices `&19..&1D` of the
-[`svc_dispatch_lo`](address:8A23) /
-[`svc_dispatch_hi`](address:8A56) tables. Those slots map to
+[`svc_dispatch_lo`](label:svc_dispatch_lo) /
+[`svc_dispatch_hi`](label:svc_dispatch_hi) tables. Those slots map to
 the language-reply handlers `lang_0_insert_key`
 (idx `&19`) through `lang_4_validated` (idx `&1D`).""",
     on_entry={"x": "directory operation code (0-4)"},
@@ -5669,17 +5669,17 @@ d.subroutine(
     description="""Computes a target index by incrementing `X` and decrementing `Y`
 until `Y` goes negative, effectively calculating `X+Y+1`. Pushes
 the target address (high then low byte) from
-[`svc_dispatch_lo`](address:8A23) /
-[`svc_dispatch_hi`](address:8A56) onto the stack, loads
+[`svc_dispatch_lo`](label:svc_dispatch_lo) /
+[`svc_dispatch_hi`](label:svc_dispatch_hi) onto the stack, loads
 `fs_options` into `X`, then `RTS` jumps to the target
 subroutine. Used for all service dispatch, FS command execution,
 and OSBYTE handler routing.
 
 Routine extent is &8E61-&8E88 (the `RTS` is the dispatch). The
 short Master service handlers at
-[`noop_dey_rts`](address:8E89) (svc &24),
-[`copy_template_to_zp`](address:8E8B) (svc &25) and
-[`svc_26_close_all_files`](address:8EA2) sit immediately after.""",
+[`noop_dey_rts`](label:noop_dey_rts) (svc &24),
+[`copy_template_to_zp`](label:copy_template_to_zp) (svc &25) and
+[`svc_26_close_all_files`](label:svc_26_close_all_files) sit immediately after.""",
     on_entry={"x": "base dispatch index", "y": "additional offset"},
     on_exit={"x": "fs_options value"},
 )
@@ -5704,7 +5704,7 @@ d.subroutine(
     0x8E89,
     "noop_dey_rts",
     title="Service &24: dynamic workspace claim (1 page)",
-    description="""Two-byte handler reached via [`svc_dispatch`](address:8E79) slot
+    description="""Two-byte handler reached via [`svc_dispatch`](label:svc_dispatch) slot
 &13. `DEY` decrements the caller's first-available-page count by 1
 to claim a single workspace page; `RTS` returns to the dispatcher.""",
 )
@@ -5717,14 +5717,14 @@ d.subroutine(
     0x8E8B,
     "copy_template_to_zp",
     title="Service &25: FS name + info reply",
-    description="""Reached via [`svc_dispatch`](address:8E79) slot &14. Copies the
-11-byte template at [`fs_info_template`](address:8E97) into the
+    description="""Reached via [`svc_dispatch`](label:svc_dispatch) slot &14. Copies the
+11-byte template at [`fs_info_template`](label:fs_info_template) into the
 caller's workspace at `(os_text_ptr),Y`. The loop counts `X`
 down from 10 to 0 reading from `template[X]`, while `Y`
 increments from the caller's value, so the destination ends up
 holding the template byte-reversed (`'NET      /' + length-byte`).
 Returns via the shared `RTS` at
-[`fs_template_done`](address:8E96).""",
+[`fs_template_done`](label:fs_template_done).""",
 )
 
 
@@ -5743,7 +5743,7 @@ d.banner(
     0x8E97,
     title="FS-name reply template (11 bytes, byte-reversed)",
     description="""Source data for the byte-reverse copy in
-[`copy_template_to_zp`](address:8E8B). When stored at
+[`copy_template_to_zp`](label:copy_template_to_zp). When stored at
 `(os_text_ptr),Y` in reverse order the destination reads
 `"NET" + 6 spaces + "/" + length-byte 5`, which is the FS name
 the ROM reports for service &25 (FS name + info reply).""",
@@ -5760,13 +5760,13 @@ d.subroutine(
     0x8EA2,
     "svc_26_close_all_files",
     title="Service &26: close all files (FILEV via Y=0)",
-    description="""Reached via [`svc_dispatch`](address:8E79) slot &15. Tests bit 6
-of [`fs_flags`](address:0D6C) (NFS-active flag). If clear, branches
-back to the shared `RTS` at [`fs_template_done`](address:8E96)
+    description="""Reached via [`svc_dispatch`](label:svc_dispatch) slot &15. Tests bit 6
+of [`fs_flags`](label:fs_flags) (NFS-active flag). If clear, branches
+back to the shared `RTS` at [`fs_template_done`](label:fs_template_done)
 without acting. Otherwise calls
-[`ensure_fs_selected`](address:8B73) to make NFS the current
+[`ensure_fs_selected`](label:ensure_fs_selected) to make NFS the current
 filing system, sets `A=Y=0` and tail-calls
-[`findv_handler`](address:A055) — the FILEV `Y=0` path closes all
+[`findv_handler`](label:findv_handler) — the FILEV `Y=0` path closes all
 open NFS channels.""",
 )
 
@@ -5780,13 +5780,13 @@ d.subroutine(
     0x8EB0,
     "read_cmos_byte_0",
     title="Read CMOS RAM byte 0",
-    description="""Sets `X=0` and falls through to [`osbyte_a1`](address:8EB2),
+    description="""Sets `X=0` and falls through to [`osbyte_a1`](label:osbyte_a1),
 which issues OSBYTE `&A1` to read CMOS RAM byte 0 – the
 file-system / language byte holding the default boot mode and FS
 selection.
 
 Single caller (`&8FBB`, inside
-[`nfs_init_body`](address:8F50)'s CMOS-read sequence).""",
+[`nfs_init_body`](label:nfs_init_body)'s CMOS-read sequence).""",
     on_exit={"y": "CMOS byte 0 (returned by OSBYTE &A1)"},
 )
 
@@ -5799,12 +5799,12 @@ d.subroutine(
     title="OSBYTE &A1 (read Master CMOS RAM byte)",
     description="""Loads `A=&A1` and tail-jumps to `OSBYTE` – reads the Master 128
 CMOS RAM byte indexed by `X`. Two callers:
-[`format_filename_field`](address:9E80) and
-[`flip_set_station_boot`](address:A6BA).
+[`format_filename_field`](label:format_filename_field) and
+[`flip_set_station_boot`](label:flip_set_station_boot).
 
 **Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as
 the leading slot of the vector-dispatch table that
-[`write_vector_entry`](address:9056) reads via
+[`write_vector_entry`](label:write_vector_entry) reads via
 `LDA osbyte_a1,Y` – a deliberate overlap so the routine's body
 doubles as table data.""",
     on_entry={"x": "CMOS RAM byte index"},
@@ -5830,7 +5830,7 @@ d.banner(
     0x8EB7,
     title="Printer-server name template (8 bytes)",
     description="""Eight bytes (`"PRINT "` then `&01 &00`) read by
-[`copy_ps_data`](address:B410) via the indexed-base trick
+[`copy_ps_data`](label:copy_ps_data) via the indexed-base trick
 `LDA ps_template_base+X` with `X=&F8..&FF`. The base label
 `ps_template_base` resolves to `ps_template_data - &F8` so the
 indexed access lands on the bytes here. Default contents installed
@@ -5965,7 +5965,7 @@ d.subroutine(
     description="""Stores the workspace allocation from service 1 into offset `&0B` of
 the receive control block, capping the value at `&D3` to prevent
 overflow into adjacent workspace areas. Called by
-[`svc_2_priv_ws`](address:8F28) after issuing the
+[`svc_2_priv_ws`](label:svc_2_priv_ws) after issuing the
 absolute workspace claim service call.""",
     on_entry={"y": "workspace page count from service 1"},
 )
@@ -6002,15 +6002,15 @@ d.subroutine(
 either advances the caller's first-available-page (`Y`) by 2 and
 uses it, or forces page `&0B` as a fallback. Sets `net_rx_ptr_hi` /
 `nfs_workspace_hi` to the chosen page pair, clears the corresponding
-lo bytes, and calls [`get_ws_page`](address:8CD2). If the resulting
+lo bytes, and calls [`get_ws_page`](label:get_ws_page). If the resulting
 page is `>= &DC`, branches to the helper at
 [`&8EFE`](address:8EFE) which publishes the page into
 `rom_ws_pages[romsel_copy]` with bit 7 masked off.
 
 This routine handles only the workspace-page allocation half of
 service 2. The bring-up remainder (station ID, FS workspace zero,
-`cmd_net_fs`, [`init_adlc_and_vectors`](address:9043)) lives at
-[`nfs_init_body`](address:8F50) and is dispatched separately – see
+`cmd_net_fs`, [`init_adlc_and_vectors`](label:init_adlc_and_vectors)) lives at
+[`nfs_init_body`](label:nfs_init_body) and is dispatched separately – see
 the comment block above.""",
     on_entry={"y": "first available private workspace page"},
 )
@@ -6058,9 +6058,9 @@ sequence after page allocation:
 - Clears `ws_page` / `tx_complete_flag` and the receive-block
   remote-op flag.
 - On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4
-  set, calls [`setup_ws_ptr`](address:8CE2) and zeroes the FS
+  set, calls [`setup_ws_ptr`](label:setup_ws_ptr) and zeroes the FS
   workspace page in a 256-byte loop.
-- Calls [`copy_ps_data_y1c`](address:B40E) to install the printer-
+- Calls [`copy_ps_data_y1c`](label:copy_ps_data_y1c) to install the printer-
   server template.
 - Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into
   the workspace identity block at `nfs_workspace+{0..3}`.
@@ -6069,7 +6069,7 @@ sequence after page allocation:
   defaults to station 1.
 - Stores station ID into the receive block.
 - Calls `cmd_net_fs` to select ANFS as the active filing system,
-  then [`init_adlc_and_vectors`](address:9043) to install NETV /
+  then [`init_adlc_and_vectors`](label:init_adlc_and_vectors) to install NETV /
   FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`
   for protection setup.
 
@@ -6086,7 +6086,7 @@ documented in the *Advanced Reference Manual for the BBC Master*:
 
 The full set of Master 128 service calls ANFS handles, dispatched
 via the CMP/SBC normalisation chain in
-[`service_handler`](address:8A8A):
+[`service_handler`](label:service_handler):
 
 | svc        | idx   | handler                   | purpose                |
 | ---------- | ----- | ------------------------- | ---------------------- |
@@ -6105,7 +6105,7 @@ via the CMP/SBC normalisation chain in
 
 Everything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)
 falls through to
-[`dispatch_svc_state_check`](address:8AF4) with `A := 0` and
+[`dispatch_svc_state_check`](label:dispatch_svc_state_check) with `A := 0` and
 dispatches to idx 1 = `dispatch_rts` (no-op) – deliberately
 ignoring svc `&15` (100 Hz poll), svc `&2A` (language ROM
 startup), etc.""",
@@ -6238,8 +6238,8 @@ d.subroutine(
     description="""Reads the ROM pointer table via OSBYTE `&A8`, writes vector
 addresses and ROM ID into the extended vector table for `NETV`
 and one additional vector, then restores any previous FS context
-via [`restore_fs_context`](address:906B). Falls through into
-[`write_vector_entry`](address:9056).""",
+via [`restore_fs_context`](label:restore_fs_context). Falls through into
+[`write_vector_entry`](label:write_vector_entry).""",
     on_exit={"a, x, y": "clobbered (falls through into write_vector_entry)"},
 )
 
@@ -6265,8 +6265,8 @@ high, then the current ROM ID from `romsel_copy` (`&F4`). Loops
 `X` times.
 
 After the loop, stores `&FF` at
-[`bridge_status`](address:0D72) as an installed flag, calls
-`deselect_fs_if_active` and [`get_ws_page`](address:8CD2) to
+[`bridge_status`](label:bridge_status) as an installed flag, calls
+`deselect_fs_if_active` and [`get_ws_page`](label:get_ws_page) to
 restore FS state.""",
     on_entry={"x": "number of vectors to install", "y": "starting offset in extended vector table"},
     on_exit={"y": "workspace page number + 1"},
@@ -6293,14 +6293,14 @@ d.subroutine(
     title="Restore FS context from HAZEL into RX block",
     description="""Copies 8 bytes (offsets 2..9) from the HAZEL FS state block into
 the receive control block at `(net_rx_ptr)+Y`. The source uses
-the [`hazel_minus_2`](address:BFFE) indexing-base trick:
+the [`hazel_minus_2`](label:hazel_minus_2) indexing-base trick:
 `LDA hazel_minus_2,Y` with `Y` running 9 down to 2 lands at
-`&C007..&C000` (the [`hazel_fs_station`](address:C000) block --
+`&C007..&C000` (the [`hazel_fs_station`](label:hazel_fs_station) block --
 station, network, saved station, CSD/lib slots, FS flags, etc.).
 Restores those bytes into the RX control block when the caller
 needs to re-publish the FS context (e.g. after a flip-set boot).
 
-Called by [`svc_2_priv_ws`](address:8F28) during init,
+Called by [`svc_2_priv_ws`](label:svc_2_priv_ws) during init,
 `deselect_fs_if_active` during FS teardown, and
 `flip_set_station_boot`.""",
     on_exit={"a, y": "clobbered (loop counter / data byte)"},
@@ -6323,7 +6323,7 @@ d.subroutine(
     "fscv_6_shutdown",
     title="Deselect filing system and save workspace",
     description="""If the filing system is currently selected (bit 7 of
-[`fs_flags`](address:0D6C) set):
+[`fs_flags`](label:fs_flags) set):
 
 1. Closes all open FCBs.
 2. Closes `*SPOOL`/`*EXEC` files via OSBYTE `&77`.
@@ -6370,7 +6370,7 @@ d.subroutine(
     description="""Sums bytes 0..`&76` of the workspace page via the zero-page
 pointer at `&CC`/`&CD` and compares with the stored value at
 offset `&77`. On mismatch, raises a 'net sum' error (`&AA`) via
-[`error_net_checksum`](address:90BC).
+[`error_net_checksum`](label:error_net_checksum).
 
 The checksummed page holds open-file information (preserved when
 ANFS is not the current filing system) and the current printer
@@ -6407,9 +6407,9 @@ d.subroutine(
     title="Raise 'net checksum' BRK error",
     description="""Loads error code `&AA` and tail-calls `error_bad_inline` with the
 inline string 'net checksum'. Reached when
-[`ensure_fs_selected`](address:8B73) (auto-select path)
+[`ensure_fs_selected`](label:ensure_fs_selected) (auto-select path)
 cannot bring ANFS up, or when
-[`verify_ws_checksum`](address:90A5) detects that the saved
+[`verify_ws_checksum`](label:verify_ws_checksum) detects that the saved
 workspace checksum at offset `&77` doesn't match the live sum –
 only resettable by a control-BREAK. Never returns.""",
 )
@@ -6421,16 +6421,16 @@ d.subroutine(
     0x90CE,
     "print_station_id",
     title="Print Econet station number and clock status",
-    description="""Uses [`print_inline`](address:926A) to output `'Econet
+    description="""Uses [`print_inline`](label:print_inline) to output `'Econet
 Station '`, then reads the station ID from offset 1 of the
 receive control block and prints it as a decimal number via
 `print_num_no_leading`. Tests ADLC status register 2
-([`econet_control23_or_status2`](address:FEA1)) to detect the Econet clock; if
+([`econet_control23_or_status2`](label:econet_control23_or_status2)) to detect the Econet clock; if
 absent, appends `' No Clock'` via a second inline string.
 Finishes with `OSNEWL`.
 
-Called by [`print_version_header`](address:8CB8) and
-[`svc_3_autoboot`](address:8CEC).""",
+Called by [`print_version_header`](label:print_version_header) and
+[`svc_3_autoboot`](label:svc_3_autoboot).""",
     on_exit={"a, x, y": "clobbered (print_inline + print_num_no_leading + OSNEWL)"},
 )
 
@@ -6455,8 +6455,8 @@ d.banner(
     description="""Eight zero-terminated argument-syntax strings used by the *HELP
 text builder. Each string describes the argument shape of a
 particular command group; their offsets within this table are
-stored in [`cmd_syntax_table`](address:91F5), keyed by command
-index. Read by [`do_print_no_spool`](address:9226) when no command
+stored in [`cmd_syntax_table`](label:cmd_syntax_table), keyed by command
+index. Read by [`do_print_no_spool`](label:do_print_no_spool) when no command
 argument was supplied.""",
 )
 
@@ -6510,7 +6510,7 @@ d.banner(
     0x91F5,
     title="Argument-syntax offset table (12 entries)",
     description="""Twelve byte offsets indexing into
-[`syn_opt_dir`](address:90FF). Each entry is computed as
+[`syn_opt_dir`](label:syn_opt_dir). Each entry is computed as
 `<syn_X> - syn_opt_dir - 1` so the print loop can `INY`
 before `LDA` and still land on the first byte of the chosen
 string. The byte at &91F9 immediately after the table is the
@@ -6552,12 +6552,12 @@ d.subroutine(
     "print_newline_no_spool",
     title="Print CR via OSASCI, bypassing any open *SPOOL file",
     description="""Loads `A=&0D` and falls into
-[`print_char_no_spool`](address:9204). The underlying
+[`print_char_no_spool`](label:print_char_no_spool). The underlying
 mechanism temporarily writes `0` to the `*SPOOL` file handle
 (OSBYTE `&C7` with `X=0`, `Y=0`) so the printed `CR` is not
 captured by spool, then restores the previous handle on exit.
 
-Called from [`service_handler`](address:8A8A) (`&8A7C`) after
+Called from [`service_handler`](label:service_handler) (`&8A7C`) after
 the `'Bad ROM <slot>'` message, and from two other diagnostic
 sites (`&8E28`, `&9D3C`).""",
     on_entry={},
@@ -6602,7 +6602,7 @@ d.subroutine(
     0x920A,
     "print_byte_no_spool",
     title="Print A via OSWRCH (raw, no CR translation), bypass *SPOOL",
-    description="""As [`print_char_no_spool`](address:9204) but the inner
+    description="""As [`print_char_no_spool`](label:print_char_no_spool) but the inner
 `PHP`/`CLV` at `&9201` forces `V=0` in the saved flags, so the
 `BVC` at `&9229` takes the `OSWRCH` branch instead of `OSASCI`.
 
@@ -6659,12 +6659,12 @@ d.subroutine(
     "print_hex_byte",
     title="Print A as two hexadecimal digits",
     description="""Saves `A` on the stack, shifts right four times to isolate the
-high nybble, calls [`print_hex_nybble`](address:9248) to
+high nybble, calls [`print_hex_nybble`](label:print_hex_nybble) to
 print it, then restores the full byte and falls through to
-[`print_hex_nybble`](address:9248) for the low nybble.
+[`print_hex_nybble`](label:print_hex_nybble) for the low nybble.
 
-Callers: `print_5_hex_bytes`, [`cmd_ex`](address:B136),
-[`cmd_dump`](address:BD71), and `print_dump_header`.""",
+Callers: `print_5_hex_bytes`, [`cmd_ex`](label:cmd_ex),
+[`cmd_dump`](label:cmd_dump), and `print_dump_header`.""",
     on_entry={"a": "byte to print"},
     on_exit={"a": "original byte value"},
 )
@@ -6704,13 +6704,13 @@ d.subroutine(
     0x9255,
     "print_hex_byte_no_spool",
     title="Print A as two hex digits, *SPOOL-bypassing",
-    description="""As [`print_hex_byte`](address:923F) but emits each digit via
-[`print_char_no_spool`](address:9204) (the *SPOOL-bypassing OSASCI
+    description="""As [`print_hex_byte`](label:print_hex_byte) but emits each digit via
+[`print_char_no_spool`](label:print_char_no_spool) (the *SPOOL-bypassing OSASCI
 wrapper), so the digits don't appear in any active spool capture.
 Saves `A`, extracts the high nibble (`LSR` x4), prints it via
-[`print_hex_nybble_no_spool`](address:925E), then restores `A` and
+[`print_hex_nybble_no_spool`](label:print_hex_nybble_no_spool), then restores `A` and
 falls through for the low nibble. Sole caller:
-[`print_5_hex_bytes`](address:9D4D) at `&9D51`.""",
+[`print_5_hex_bytes`](label:print_5_hex_bytes) at `&9D51`.""",
     on_entry={"a": "byte to print"},
     on_exit={"a": "preserved"},
 )
@@ -6773,7 +6773,7 @@ d.subroutine(
     title="print_inline pointer-advance step",
     description="""`INC fs_error_ptr` (lo); on overflow `INC fs_crflag` (hi). Single
 caller (the loop tail at `&9284` inside
-[`print_inline`](address:926A)). Falls through to `load_char`
+[`print_inline`](label:print_inline)). Falls through to `load_char`
 which reads the next inline-string byte.""",
 )
 
@@ -6806,8 +6806,8 @@ d.subroutine(
     0x9293,
     "print_inline_no_spool",
     title="Print inline string, high-bit terminated, *SPOOL-bypassing",
-    description="""As [`print_inline`](address:926A), but each character is
-emitted via [`print_char_no_spool`](address:9204) instead of
+    description="""As [`print_inline`](label:print_inline), but each character is
+emitted via [`print_char_no_spool`](label:print_char_no_spool) instead of
 `OSASCI` directly, so the printed text does not appear in any
 active `*SPOOL` capture.
 
@@ -6815,12 +6815,12 @@ Used by status output that should not be saved to a spool file
 (e.g. `*Wipe` `'(Y/N) '` prompts, `*Ex` column separators, the
 `'Bad ROM'` service-handler message via the
 `recv_and_process_reply` `'Data Lost'` warning, and inline-string
-arguments inside [`cmd_ex`](address:B136)'s directory
+arguments inside [`cmd_ex`](label:cmd_ex)'s directory
 listing).
 
 Six callers: `&9818` (`recv_and_process_reply`), `&B18B`/`&B195`
-([`cmd_ex`](address:B136)), `&B323` (`ex_print_col_sep`),
-`&B787` ([`cmd_wipe`](address:B71C)), `&B7CB`
+([`cmd_ex`](label:cmd_ex)), `&B323` (`ex_print_col_sep`),
+`&B787` ([`cmd_wipe`](label:cmd_wipe)), `&B7CB`
 (`prompt_yn`).""",
     on_exit={"a": "terminator byte (bit 7 set, also next opcode)", "x": "corrupted (by print_char_no_spool)", "y": "0"},
 )
@@ -6982,7 +6982,7 @@ d.subroutine(
     description="""Loads error code `&F1` and tail-calls `error_bad_inline` with
 the inline string `'hex'` – `error_bad_inline` prepends `'Bad '`
 to produce the final `'Bad hex'` message. Called from
-[`parse_addr_arg`](address:92BB) and the `*DUMP` / `*LIST`
+[`parse_addr_arg`](label:parse_addr_arg) and the `*DUMP` / `*LIST`
 hex parsers when a digit is out of range. Never returns.""",
 )
 
@@ -7018,12 +7018,12 @@ d.subroutine(
     description="""Compares `A` against `'&'` and `'.'` first; if either matches,
 returns with carry set via the shared `rts_digit_test` exit.
 Otherwise falls through to
-[`is_dec_digit_only`](address:93A7) for the `'0'`..`'9'`
+[`is_dec_digit_only`](label:is_dec_digit_only) for the `'0'`..`'9'`
 range test.
 
-Called by [`cmd_iam`](address:8DA9),
-[`cmd_ps`](address:B3DF), and
-[`cmd_pollps`](address:B5BC) when parsing station
+Called by [`cmd_iam`](label:cmd_iam),
+[`cmd_ps`](label:cmd_ps), and
+[`cmd_pollps`](label:cmd_pollps) when parsing station
 addresses.""",
     on_entry={"a": "character to test"},
     on_exit={"c": "set if digit/&/., clear otherwise"},
@@ -7047,7 +7047,7 @@ d.subroutine(
 2. `CMP #&30` sets carry if `A >= '0'`.
 
 The net effect: carry set only for `'0'..'9'`. Called by
-[`parse_addr_arg`](address:92BB).""",
+[`parse_addr_arg`](label:parse_addr_arg).""",
     on_entry={"a": "character to test"},
     on_exit={"c": "set if '0'-'9', clear otherwise"},
 )
@@ -7071,9 +7071,9 @@ d.subroutine(
     title="Read and encode directory entry access byte",
     description="""Loads the access byte from offset &0E of the directory entry via
 `(fs_options),Y`, masks to 6 bits (`AND #&3F`), then sets `X=4`
-and branches to [`begin_prot_encode`](address:93BE) to map through
-[`prot_bit_encode_table`](address:93CD). Called by
-[`check_and_setup_txcb`](address:9D85) for owner and public
+and branches to [`begin_prot_encode`](label:begin_prot_encode) to map through
+[`prot_bit_encode_table`](label:prot_bit_encode_table). Called by
+[`check_and_setup_txcb`](label:check_and_setup_txcb) for owner and public
 access.""",
     on_exit={"a": "encoded access flags", "x": "&FF + bits-set (left in this state by get_prot_bits fall-through)"},
 )
@@ -7092,11 +7092,11 @@ d.subroutine(
     title="Encode protection bits via lookup table",
     description="""Masks `A` to 5 bits (`AND #&1F`), sets `X=&FF` to start at table
 index 0, then enters the shared encoding loop at
-[`begin_prot_encode`](address:93BE). Shifts out each source bit
+[`begin_prot_encode`](label:begin_prot_encode). Shifts out each source bit
 and ORs in the corresponding value from
-[`prot_bit_encode_table`](address:93CD). Called by
-[`send_txcb_swap_addrs`](address:9C83) and
-[`check_and_setup_txcb`](address:9D85).""",
+[`prot_bit_encode_table`](label:prot_bit_encode_table). Called by
+[`send_txcb_swap_addrs`](label:send_txcb_swap_addrs) and
+[`check_and_setup_txcb`](label:check_and_setup_txcb).""",
     on_entry={"a": "raw protection bits (low 5 used)"},
     on_exit={"a": "encoded protection flags"},
 )
@@ -7127,19 +7127,19 @@ d.subroutine(
     0x93CD,
     "prot_bit_encode_table",
     title="Bit-permutation table for protection / access encoding",
-    description="""11-byte lookup table used by [`get_prot_bits`](address:93BA) and
-[`get_access_bits`](address:93B0) to map source bits (the raw 5-bit
+    description="""11-byte lookup table used by [`get_prot_bits`](label:get_prot_bits) and
+[`get_access_bits`](label:get_access_bits) to map source bits (the raw 5-bit
 or 6-bit access mask read from the directory entry) into the FS
 protocol's 8-bit protection-flag layout. The encoder loop at
-[`begin_prot_encode`](address:93BE) shifts each source bit out via
+[`begin_prot_encode`](label:begin_prot_encode) shifts each source bit out via
 `LSR`; whenever the bit is 1 it ORs the corresponding entry into
 the result, then advances `X`.
 
 Two callers partition the table:
 
-- [`get_prot_bits`](address:93BA) enters at index 0 with 5 source
+- [`get_prot_bits`](label:get_prot_bits) enters at index 0 with 5 source
   bits (raw protection mask, `AND #&1F`).
-- [`get_access_bits`](address:93B0) enters at index 5 with 6 source
+- [`get_access_bits`](label:get_access_bits) enters at index 5 with 6 source
   bits (directory access byte, `AND #&3F`).
 
 | idx | caller            | src bit | mask  | output bits |
@@ -7178,11 +7178,11 @@ d.subroutine(
     title="Set OS text pointer then transfer parameters",
     description="""Stores `X`/`Y` into the MOS text pointer at `os_text_ptr` /
 `os_text_ptr_hi` (`&F2`/`&F3`), then falls through to
-[`set_xfer_params`](address:93DC) and
-[`set_options_ptr`](address:93E2) to configure the full FS
+[`set_xfer_params`](label:set_xfer_params) and
+[`set_options_ptr`](label:set_options_ptr) to configure the full FS
 transfer context. Two callers:
-[`fscv_3_star_cmd`](address:A443) (FSCV reason 3) and
-[`ps_scan_resume`](address:B131) (PS scan tail).""",
+[`fscv_3_star_cmd`](label:fscv_3_star_cmd) (FSCV reason 3) and
+[`ps_scan_resume`](label:ps_scan_resume) (PS scan tail).""",
     on_entry={"x": "text pointer low byte", "y": "text pointer high byte"},
 )
 
@@ -7198,10 +7198,10 @@ d.subroutine(
     description="""Stores `A` into `fs_last_byte_flag` (`&BD`) as the transfer byte
 count, and `X`/`Y` into `fs_crc_lo`/`hi` (`&BE`/`&BF`) as the
 source-data pointer. Falls through to
-[`set_options_ptr`](address:93E2) to complete the
+[`set_options_ptr`](label:set_options_ptr) to complete the
 transfer-context setup.
 
-Called by 5 sites across [`cmd_ex`](address:B136),
+Called by 5 sites across [`cmd_ex`](label:cmd_ex),
 `format_filename_field`, and `gsread_to_buf`.""",
     on_entry={"a": "transfer byte count", "x": "source pointer low", "y": "source pointer high"},
 )
@@ -7218,7 +7218,7 @@ d.subroutine(
     title="Set FS options pointer and clear escape flag",
     description="""Stores `X`/`Y` into `fs_options`/`fs_block_offset` (`&BB`/`&BC`)
 as the options-block pointer. Then enters
-[`clear_escapable`](address:93E6) which uses
+[`clear_escapable`](label:clear_escapable) which uses
 `PHP`/`LSR`/`PLP` to clear bit 0 of the escape flag at `&97`
 without disturbing processor flags.
 
@@ -7304,7 +7304,7 @@ d.subroutine(
     description="""Saves registers on the stack, recovers the original `A` from the
 stack via `TSX`/`LDA &0102,X`, then calls `attr_to_chan_index` to
 find the channel slot. `ORA`s bit 6 (`&40`) into the channel
-status byte at [`hazel_fcb_status`](address:C260)`+X`.
+status byte at [`hazel_fcb_status`](label:hazel_fcb_status)`+X`.
 Preserves `A`, `X`, and processor flags via
 `PHP`/`PHA`/`PLA`/`PLP`.
 
@@ -7331,12 +7331,12 @@ d.subroutine(
     0x9412,
     "clear_conn_active",
     title="Clear connection-active flag in channel table",
-    description="""Mirror of [`set_conn_active`](address:93FC) but `AND`s the
+    description="""Mirror of [`set_conn_active`](label:set_conn_active) but `AND`s the
 channel status byte with `&BF` (bit-6 clear mask) instead of
 `ORA`ing. Uses the same register-preservation pattern:
 `PHP`/`PHA`/`TSX` to recover `A`, then `attr_to_chan_index` to
 find the slot. Shares the `done_conn_flag` exit with
-[`set_conn_active`](address:93FC).""",
+[`set_conn_active`](label:set_conn_active).""",
     on_entry={"a": "channel attribute byte"},
 )
 
@@ -7364,10 +7364,10 @@ d.subroutine(
     "cmd_fs_operation",
     title="Shared *Access / *Delete / *Info / *Lib command handler",
     description="""Copies the command name to the TX buffer, parses a quoted
-filename argument via [`parse_quoted_arg`](address:9488), and
+filename argument via [`parse_quoted_arg`](label:parse_quoted_arg), and
 checks the access prefix. Validates the filename does not start
 with `'&'`, then falls through to
-[`read_filename_char`](address:9453) to copy remaining
+[`read_filename_char`](label:read_filename_char) to copy remaining
 characters and send the request. Raises
 [`Bad file name`](address:943C) if a bare `CR` is found where
 a filename was expected.""",
@@ -7393,7 +7393,7 @@ d.subroutine(
     description="""Loads error code `&CC` and tail-calls `error_bad_inline` with
 the inline string `'file name'` – `error_bad_inline` prepends
 `'Bad '` to produce the final `'Bad file name'` message. Used
-by [`check_not_ampersand`](address:944B) and other filename
+by [`check_not_ampersand`](label:check_not_ampersand) and other filename
 validators. Never returns.""",
 )
 
@@ -7408,15 +7408,15 @@ d.subroutine(
     title="Reject '&' as filename character",
     description="""Loads the first character from the parse buffer at `&0E30` and
 compares with `'&'` (`&26`). Branches to
-[`error_bad_filename`](address:943C) if matched, otherwise
+[`error_bad_filename`](label:error_bad_filename) if matched, otherwise
 returns.
 
-Also contains [`read_filename_char`](address:9453) which
+Also contains [`read_filename_char`](label:read_filename_char) which
 loops reading characters from the command line into the TX
 buffer at `hazel_txcb_data` (`&C105`), calling
 `strip_token_prefix` on each byte and terminating on `CR`. Used
-by [`cmd_fs_operation`](address:942A) and
-[`cmd_rename`](address:94CA).""",
+by [`cmd_fs_operation`](label:cmd_fs_operation) and
+[`cmd_rename`](label:cmd_rename).""",
     on_exit={"a": "first byte of parse buffer (preserved unchanged on the non-error path)"},
 )
 
@@ -7432,19 +7432,19 @@ d.subroutine(
     "read_filename_char",
     title="Loop reading filename chars into TX buffer",
     description="""Per-character loop body of the filename-copy logic in
-[`check_not_ampersand`](address:944B):
+[`check_not_ampersand`](label:check_not_ampersand):
 
-1. `JSR` to [`check_not_ampersand`](address:944B) to reject `'&'`.
-2. Store the byte at [`hazel_txcb_data`](address:C105)`+X`
+1. `JSR` to [`check_not_ampersand`](label:check_not_ampersand) to reject `'&'`.
+2. Store the byte at [`hazel_txcb_data`](label:hazel_txcb_data)`+X`
    (TX buffer area).
 3. Increment `X`.
-4. Branch to [`send_fs_request`](address:9463) on `CR`, or
+4. Branch to [`send_fs_request`](label:send_fs_request) on `CR`, or
    strip a BASIC token prefix via `strip_token_prefix` and
    re-enter the loop.
 
 Three callers: the loop's own `BRA` at `&945C`, plus `&9435`
-([`cmd_rename`](address:94CA)'s first-arg copy) and `&950F`
-([`cmd_fs_operation`](address:942A)'s filename pickup).""",
+([`cmd_rename`](label:cmd_rename)'s first-arg copy) and `&950F`
+([`cmd_fs_operation`](label:cmd_fs_operation)'s filename pickup).""",
     on_entry={"a": "current character to copy", "x": "TX-buffer write index"},
     on_exit={"x": "advanced past the CR terminator"},
 )
@@ -7464,8 +7464,8 @@ d.subroutine(
     "send_fs_request",
     title="Send FS command with no extra dispatch offset",
     description="""Loads `Y=0` (so dispatch lookups don't add an offset) and
-tail-jumps to [`send_cmd_and_dispatch`](address:8E54). Two
-callers: [`read_filename_char`](address:9453)'s `BEQ` on
+tail-jumps to [`send_cmd_and_dispatch`](label:send_cmd_and_dispatch). Two
+callers: [`read_filename_char`](label:read_filename_char)'s `BEQ` on
 `CR` (`&945C`) and the `*RUN` argument-handling tail at
 `&953C`.""",
 )
@@ -7577,7 +7577,7 @@ with its own access prefix. Sets the owner-only access mask
 before parsing each name. Validates that both names resolve to
 the same file server by comparing the FS-options word – raises
 `'Bad rename'` if they differ. Falls through to
-[`read_filename_char`](address:9453) to copy the second
+[`read_filename_char`](label:read_filename_char) to copy the second
 filename into the TX buffer and send the request.""",
     on_entry={"y": "command line offset in text pointer"},
 )
@@ -7735,9 +7735,9 @@ d.subroutine(
     0x95C0,
     "print_station_low",
     title="Print 'PS       ' 9-column header",
-    description="""Calls [`print_inline`](address:926A) with `'P'` then falls
+    description="""Calls [`print_inline`](label:print_inline) with `'P'` then falls
 through (via the 1-byte CLV terminator and BVC) into
-[`print_field_tail_s`](address:95CC), so the combined output is
+[`print_field_tail_s`](label:print_field_tail_s), so the combined output is
 `'PS       '` -- the 9-column 'PS' field used in the `*FS`/`*PS`
 no-arg help and `*STATUS` displays.""",
 )
@@ -7758,9 +7758,9 @@ d.subroutine(
     0x95C7,
     "print_fs_station",
     title="Print 'FS       ' 9-column header",
-    description="""Calls [`print_inline`](address:926A) with `'F'` then falls
+    description="""Calls [`print_inline`](label:print_inline) with `'F'` then falls
 through (via the 1-byte NOP terminator) into
-[`print_field_tail_s`](address:95CC), so the combined output is
+[`print_field_tail_s`](label:print_field_tail_s), so the combined output is
 `'FS       '` -- the 9-column 'FS' field used in the `*FS`/`*PS`
 no-arg help and `*STATUS` displays.""",
 )
@@ -7787,7 +7787,7 @@ d.subroutine(
     title="Print '[<D>.]<D>\\\\r' directory-name syntax fragment",
     description="""3-byte JSR + inline `'[<D>.]<D>'` + CR + NOP terminator. Used as
 a shared fragment by both `*Dir`'s syntax help and the `*FS`/`*PS`
-no-argument help via [`print_fs_ps_help`](address:959F).""",
+no-argument help via [`print_fs_ps_help`](label:print_fs_ps_help).""",
 )
 
 
@@ -7817,14 +7817,14 @@ index for the relevant station:
 Pre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /
 `fs_work_6` so that the no-argument path leaves the saved values
 unchanged. Calls
-[`parse_fs_ps_args`](address:A3D8) which conditionally overwrites
+[`parse_fs_ps_args`](label:parse_fs_ps_args) which conditionally overwrites
 `fs_work_5` (station), `fs_work_6` (canonical network: 0=local,
 non-zero=remote) and `fs_work_7` (raw parsed network).
 
-Writes the station via [`osbyte_a2`](address:9611), then falls
+Writes the station via [`osbyte_a2`](label:osbyte_a2), then falls
 through into `osbyte_a2` itself to write the raw network at
 CMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via
-[`svc_return_unclaimed`](address:8C89).""",
+[`svc_return_unclaimed`](label:svc_return_unclaimed).""",
     on_entry={"x": "offset in cmd_table_fs of the matched entry's flag byte"},
 )
 
@@ -7863,19 +7863,19 @@ d.subroutine(
     description="""Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes
 the Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.
 The trailing `BRA` lands on
-[`bra_target_svc_return`](address:95BD) (a 3-byte `JMP` trampoline
-to [`svc_return_unclaimed`](address:8C89), reached this way
+[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline
+to [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way
 because `BRA`'s 8-bit displacement can't span &9616 → &8C89).
 
 `osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
-labelled routine is [`cmd_space`](address:9618). Counterpart of
-[`osbyte_a1`](address:8EB2) (read).
+labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
+[`osbyte_a1`](label:osbyte_a1) (read).
 
-Callers: [`set_fs_or_ps_cmos_station`](address:95ED) (once via
+Callers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via
 `JSR`, once via fall-through), the `BRA` shortcut at
-`&962C` inside [`cmd_nospace`](address:9622), and
+`&962C` inside [`cmd_nospace`](label:cmd_nospace), and
 an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
-[`osopt_cmos_writeback_jsr`](address:A124).""",
+[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"},
 )
 
@@ -7886,10 +7886,10 @@ d.subroutine(
     0x9618,
     "cmd_space",
     title="*Space command: enable space-remaining display",
-    description="""Reached via the [`cmd_table_fs`](address:A780) dispatch entry for
-`*Space`. Reads CMOS byte &11 with [`osbyte_a1`](address:8EB2),
+    description="""Reached via the [`cmd_table_fs`](label:cmd_table_fs) dispatch entry for
+`*Space`. Reads CMOS byte &11 with [`osbyte_a1`](label:osbyte_a1),
 sets bit 0 of the value, then `BRA`s to the shared write-back tail
-at [`osbyte_a2_value_tya`](address:962A).""",
+at [`osbyte_a2_value_tya`](label:osbyte_a2_value_tya).""",
 )
 
 
@@ -7903,11 +7903,11 @@ d.subroutine(
     0x9622,
     "cmd_nospace",
     title="*NoSpace command: disable space-remaining display",
-    description="""Reached via the [`cmd_table_fs`](address:A780) dispatch entry for
-`*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](address:8EB2),
+    description="""Reached via the [`cmd_table_fs`](label:cmd_table_fs) dispatch entry for
+`*NoSpace`. Reads CMOS byte &11 with [`osbyte_a1`](label:osbyte_a1),
 clears bit 0 of the value, falls through to
-[`osbyte_a2_value_tya`](address:962A), and `BRA`s back into
-[`osbyte_a2`](address:9611) to write CMOS &11 = `Y`.""",
+[`osbyte_a2_value_tya`](label:osbyte_a2_value_tya), and `BRA`s back into
+[`osbyte_a2`](label:osbyte_a2) to write CMOS &11 = `Y`.""",
 )
 
 
@@ -7920,9 +7920,9 @@ d.subroutine(
     0x962A,
     "osbyte_a2_value_tya",
     title="Shared CMOS write-back tail",
-    description="""Common tail used by [`cmd_space`](address:9618) (via `BRA` from
+    description="""Common tail used by [`cmd_space`](label:cmd_space) (via `BRA` from
 &9620 with the new value already in `A`) and
-[`cmd_nospace`](address:9622) (fall-through with the new value in
+[`cmd_nospace`](label:cmd_nospace) (fall-through with the new value in
 `A`). `TAY` moves the byte to `Y`, then `LDX #&11` reloads the
 CMOS index and `BRA osbyte_a2` performs the write.""",
 )
@@ -7939,9 +7939,9 @@ d.subroutine(
 command line (first byte = `CR`) prints the FS and PS station
 addresses from CMOS &01-&04, then a single FS-active flag drawn
 from bit 0 of CMOS &11 (the same bit that
-[`cmd_space`](address:9618) / [`cmd_nospace`](address:9622) set
+[`cmd_space`](label:cmd_space) / [`cmd_nospace`](label:cmd_nospace) set
 and clear). With an argument, branches to
-[`help_dispatch_setup`](address:9683) to parse it.""",
+[`help_dispatch_setup`](label:help_dispatch_setup) to parse it.""",
 )
 
 
@@ -7969,7 +7969,7 @@ d.subroutine(
     title="Print printer-server address from CMOS",
     description="""Prints the printer server's saved `network.station` from
 CMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared
-tail at [`print_cmos_pair`](address:9668), which prints CMOS[X] then
+tail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then
 CMOS[X-1] separated by a `.`.
 
 In 4.24 the two entry points share one body: `print_fs_address` (`X=2`)
@@ -7985,7 +7985,7 @@ d.subroutine(
     title="Print file-server address from CMOS",
     description="""Prints the file server's saved `network.station` from
 CMOS RAM. Sets `X=2` (the FS network byte) and falls into the shared tail
-[`print_cmos_pair`](address:9668). See [`print_ps_address`](address:9662)
+[`print_cmos_pair`](label:print_cmos_pair). See [`print_ps_address`](label:print_ps_address)
 for the shared-body structure.""",
 )
 
@@ -8015,7 +8015,7 @@ d.subroutine(
     "dispatch_help_command",
     title="Dispatch *HELP-style argument via svc4_dispatch_lookup",
     description="""3-byte trampoline: `JMP svc4_dispatch_lookup` with `X = &BD` from
-the caller. Used by [`svc_29_status`](address:962F)'s
+the caller. Used by [`svc_29_status`](label:svc_29_status)'s
 non-CR path so an argument after `*STATUS` (or similar *HELP-like
 cmd) gets parsed and dispatched through the same shared parser as
 the regular cmd-table dispatch. Note the `'!Help.'` bytes
@@ -8148,11 +8148,11 @@ d.subroutine(
     "init_txcb_bye",
     title="Set up open receive for FS reply on port &90",
     description="""Loads `A=&90` (the FS command/reply port) and falls through to
-[`init_txcb_port`](address:973D), which creates an open
+[`init_txcb_port`](label:init_txcb_port), which creates an open
 receive control block: the template sets `txcb_ctrl` to `&80`,
 then `DEC` makes it `&7F` (bit 7 clear = awaiting reply). The
 NMI RX handler sets bit 7 when a reply arrives on this port,
-which [`wait_net_tx_ack`](address:98BC) polls for.""",
+which [`wait_net_tx_ack`](label:wait_net_tx_ack) polls for.""",
     on_entry={},
 )
 
@@ -8164,13 +8164,13 @@ d.subroutine(
     0x973D,
     "init_txcb_port",
     title="Create open receive control block on specified port",
-    description="""Calls [`init_txcb`](address:9749) to copy the 12-byte
+    description="""Calls [`init_txcb`](label:init_txcb) to copy the 12-byte
 template into the TXCB workspace at `&00C0`, then stores `A` as
 the port (`txcb_port` at `&C1`) and sets `txcb_start` to 3. The
 `DEC txcb_ctrl` changes the control byte from `&80` to `&7F`
 (bit 7 clear), creating an open receive: the NMI RX handler
 will set bit 7 when a reply frame arrives on this port, which
-[`wait_net_tx_ack`](address:98BC) polls for.""",
+[`wait_net_tx_ack`](label:wait_net_tx_ack) polls for.""",
     on_entry={"a": "port number"},
 )
 
@@ -8187,14 +8187,14 @@ d.subroutine(
     0x9749,
     "init_txcb",
     title="Initialise TX control block from ROM template",
-    description="""Copies 12 bytes from [`txcb_init_template`](address:9761) into the
+    description="""Copies 12 bytes from [`txcb_init_template`](label:txcb_init_template) into the
 TXCB workspace at `&00C0`. For the first two bytes (`Y=0,1`),
 also copies the destination station/network from `&0E00` into
 `txcb_dest` (`&C2`). Preserves `A` via `PHA`/`PLA`.
 
-Called by 4 sites including [`cmd_pass`](address:8DED),
-[`init_txcb_port`](address:973D),
-[`prep_send_tx_cb`](address:97B5), and `send_wipe_request`.""",
+Called by 4 sites including [`cmd_pass`](label:cmd_pass),
+[`init_txcb_port`](label:init_txcb_port),
+[`prep_send_tx_cb`](label:prep_send_tx_cb), and `send_wipe_request`.""",
     on_exit={"a": "preserved", "x, y": "clobbered (Y left at &FF on loop exit)"},
 )
 
@@ -8219,7 +8219,7 @@ d.index_base(0x9761, "txcb_init_template")
 d.banner(
     0x9761,
     title="TXCB initialisation template (12 bytes)",
-    description="""Copied byte-for-byte by [`init_txcb`](address:9749) into the
+    description="""Copied byte-for-byte by [`init_txcb`](label:init_txcb) into the
 TXCB workspace at `&00C0`. The Nth template byte (at `&9763 + N`)
 ends up at TXCB offset N (`&00C0 + N`).
 
@@ -8230,7 +8230,7 @@ copies `hazel_fs_station[0..1]` (HAZEL `&C000..&C001`) into
 and network come from the live FS state rather than this
 template.
 
-The `&FF` byte at offset 6 ([`always_set_v_byte`](address:9767))
+The `&FF` byte at offset 6 ([`always_set_v_byte`](label:always_set_v_byte))
 serves double duty: it is part of this template AND a `BIT $abs`
 target used by 22 callers to set V and N flags without clobbering
 `A`.""",
@@ -8321,9 +8321,9 @@ d.subroutine(
     "save_net_tx_cb",
     title="Save FS state and send command to file server",
     description="""Copies station address and function code (`Y`) to the TX buffer,
-builds the TXCB via [`init_txcb`](address:9749), sends the
-packet through [`prep_send_tx_cb`](address:97B5), and waits
-for the reply via [`recv_and_process_reply`](address:97CB).
+builds the TXCB via [`init_txcb`](label:init_txcb), sends the
+packet through [`prep_send_tx_cb`](label:prep_send_tx_cb), and waits
+for the reply via [`recv_and_process_reply`](label:recv_and_process_reply).
 `V` is clear for standard mode.""",
     on_entry={
         "y": "FS function code (becomes TX[1] = txcb_func)",
@@ -8344,7 +8344,7 @@ d.subroutine(
     0x9789,
     "save_net_tx_cb_vset",
     title="Save and send TXCB with V flag set",
-    description="""Variant of [`save_net_tx_cb`](address:9788) for callers that
+    description="""Variant of [`save_net_tx_cb`](label:save_net_tx_cb) for callers that
 have already set `V`. Copies the FS station address from `&0E02`
 to `&0F02`, then falls through to `txcb_copy_carry_clr` which
 clears carry and enters the common TXCB copy, send, and reply
@@ -8404,7 +8404,7 @@ d.subroutine(
 transactions:
 
 1. Save flags, set reply port `&90`.
-2. Call [`init_txcb`](address:9749), compute `txcb_end =
+2. Call [`init_txcb`](label:init_txcb), compute `txcb_end =
    X + 5`.
 3. Dispatch on carry:
 
@@ -8414,7 +8414,7 @@ transactions:
    | clear | `init_tx_ptr_and_send` for a client-initiated four-way handshake (scout, ACK, data, ACK) to deliver the command |
 
 4. After TX completes, the ADLC returns to idle RX-listen.
-5. Falls through to [`recv_and_process_reply`](address:97CB)
+5. Falls through to [`recv_and_process_reply`](label:recv_and_process_reply)
    which waits for the server to independently initiate a new
    four-way handshake with the reply on port `&90`. There is no
    reply data in the original ACK payload.""",
@@ -8447,12 +8447,12 @@ d.subroutine(
     title="Receive FS reply and dispatch on status codes",
     description="""Waits for a server-initiated reply transaction. After the
 command TX completes (a separate client-initiated four-way
-handshake), calls [`init_txcb_bye`](address:973B) to set up
+handshake), calls [`init_txcb_bye`](label:init_txcb_bye) to set up
 an open receive on port `&90` (`txcb_ctrl = &7F`). The server
 independently initiates a new four-way handshake to deliver the
 reply; the NMI RX handler matches the incoming scout against
 this RXCB and sets bit 7 on completion.
-[`wait_net_tx_ack`](address:98BC) polls for this.
+[`wait_net_tx_ack`](label:wait_net_tx_ack) polls for this.
 
 Iterates over reply bytes:
 
@@ -8463,7 +8463,7 @@ Iterates over reply bytes:
 | non-zero, `V` clear | dispatch to `store_reply_status` |
 
 Handles disconnect requests (`C` set from
-[`prep_send_tx_cb`](address:97B5)) and `'Data Lost'`
+[`prep_send_tx_cb`](label:prep_send_tx_cb)) and `'Data Lost'`
 warnings when channel status bits indicate pending writes were
 interrupted.""",
     on_entry={"c flag": "set = disconnect mode (caller sent a disconnect scout; handle the server's matching reply)"},
@@ -8562,7 +8562,7 @@ d.subroutine(
     "lang_1_remote_boot",
     title="Language reply 1: remote-boot init / continue",
     description="""Reads the reply byte at `(net_rx_ptr),0`. If zero, branches to
-[`init_remote_session`](address:9857) to (re)initialise the
+[`init_remote_session`](label:init_remote_session) to (re)initialise the
 remote session. Otherwise falls through to `done_commit_state`
 which finalises the boot state byte for the active session.""",
 )
@@ -8600,8 +8600,8 @@ d.subroutine(
     0x987C,
     "lang_3_exec_0100",
     title="Language reply 3: raise 'Remoted' error at &0100",
-    description="""Calls [`commit_state_byte`](address:B094) to record the new state,
-loads `A=0` and tail-calls [`error_inline_log`](address:99BE) with
+    description="""Calls [`commit_state_byte`](label:commit_state_byte) to record the new state,
+loads `A=0` and tail-calls [`error_inline_log`](label:error_inline_log) with
 the inline string `Remoted` followed by `&07` (BEL). Used by
 remote-language replies that need to abort the current operation
 with a terminal beep + error. Never returns.""",
@@ -8651,7 +8651,7 @@ d.subroutine(
     "lang_4_validated",
     title="Language reply 4: validate remote session and apply",
     description="""Reads the first reply byte at `(net_rx_ptr),0`. If zero, branches
-to [`init_remote_session`](address:9857) to set up a fresh remote
+to [`init_remote_session`](label:init_remote_session) to set up a fresh remote
 session. Otherwise reads the validation byte at offset `&80` and
 the local stored value at workspace offset `&0E`; on mismatch,
 the remote session is rejected.""",
@@ -8674,7 +8674,7 @@ d.subroutine(
     "lang_0_insert_key",
     title="Language reply 0: insert remote keypress",
     description="""Reads the keycode from the reply at `(net_rx_ptr),&82` into `Y`,
-sets `X=0`, calls [`commit_state_byte`](address:B094) to record
+sets `X=0`, calls [`commit_state_byte`](label:commit_state_byte) to record
 the state change, and issues `OSBYTE &99` (insert into keyboard
 buffer) to deliver the keypress to the local machine.""",
     on_entry={"a": "ignored (entry from reply dispatch)"},
@@ -8696,7 +8696,7 @@ d.subroutine(
     title="Wait for reply on open receive with timeout",
     description="""Despite the name, this does **not** wait for a TX acknowledgment.
 It polls an open receive control block (bit 7 of `txcb_ctrl`,
-set to `&7F` by [`init_txcb_port`](address:973D)) until the
+set to `&7F` by [`init_txcb_port`](label:init_txcb_port)) until the
 NMI RX handler delivers a reply frame and sets bit 7.
 
 Uses a three-level nested polling loop:
@@ -8705,7 +8705,7 @@ Uses a three-level nested polling loop:
 |---|---|---|---|
 | inner  | wraps from 0 | – | 256 |
 | middle | wraps from 0 | – | 256 |
-| outer  | [`rx_wait_timeout`](address:0D6E) | `&28` (40) | 40 |
+| outer  | [`rx_wait_timeout`](label:rx_wait_timeout) | `&28` (40) | 40 |
 
 Total: `256 × 256 × 40 = 2,621,440` poll iterations. At ~17
 cycles per poll on a 2 MHz 6502, the default gives ~22 seconds.
@@ -8761,7 +8761,7 @@ d.subroutine(
     0x98FE,
     "cond_save_error_code",
     title="Conditionally store error code to workspace",
-    description="""Tests bit 7 of [`fs_flags`](address:0D6C) (FS-selected
+    description="""Tests bit 7 of [`fs_flags`](label:fs_flags) (FS-selected
 flag):
 
 | Bit 7 | Action |
@@ -8834,7 +8834,7 @@ d.subroutine(
     "load_reply_and_classify",
     title="Load reply byte and classify error",
     description="""Single-byte prologue to
-[`classify_reply_error`](address:993B): `LDA (net_tx_ptr,X)`
+[`classify_reply_error`](label:classify_reply_error): `LDA (net_tx_ptr,X)`
 reads the FS reply status byte, then falls through. Single
 caller (`&9B6A`, after a recv-and-classify path that already
 has `X` set).""",
@@ -8858,7 +8858,7 @@ error class 0..7), saves the class on the stack, and dispatches:
 | 2 (station-related) | multi-line `build_no_reply_error` |
 | other | `build_simple_error` |
 
-Two callers: [`raise_escape_error`](address:9893) (with
+Two callers: [`raise_escape_error`](label:raise_escape_error) (with
 `A=6`) and the FS reply dispatch at `&A0E3`.""",
     on_entry={"a": "error code byte"},
 )
@@ -9211,7 +9211,7 @@ d.banner(
     0x9A98,
     title="Net-error class -> error_msg_table offset (12 bytes)",
     description="""Maps Econet network-error classes to byte offsets into
-[`error_msg_table`](address:9AA4).
+[`error_msg_table`](label:error_msg_table).
 
 - Indices 0-7 are keyed by error class (the reply byte AND `7`).
 - Index 8 is used by `build_no_reply_error` to locate the
@@ -9242,7 +9242,7 @@ d.banner(
     0x9AA4,
     title="Net-error message strings",
     description="""Body of error-text fragments referenced by
-[`net_error_lookup_data`](address:9A98). Two layouts coexist:
+[`net_error_lookup_data`](label:net_error_lookup_data). Two layouts coexist:
 
 1. **Error entries** (offsets 0..&3F) — one byte holding the BRK
    error code, immediately followed by the null-terminated
@@ -9326,7 +9326,7 @@ d.subroutine(
     "send_net_packet",
     title="Transmit Econet packet with retry",
     description="""Two-phase transmit with retry. Loads retry count from
-[`tx_retry_count`](address:0D6D) (default `&FF` = 255; 0
+[`tx_retry_count`](label:tx_retry_count) (default `&FF` = 255; 0
 means retry forever). Each failed attempt waits in a nested
 delay loop: `X` = TXCB control byte (typically `&80`), `Y` =
 `&60`; total ~61 ms at 2 MHz (ROM-only fetches, unaffected by
@@ -9338,9 +9338,9 @@ video mode).
 | 2 | only when `tx_retry_count = 0` | sets `need_release_tube` to enable escape checking, retries indefinitely |
 
 With default `&FF`, phase 2 is never entered. Failures go to
-[`load_reply_and_classify`](address:9939) (`'Line jammed'`,
+[`load_reply_and_classify`](label:load_reply_and_classify) (`'Line jammed'`,
 `'Net error'`, etc.), distinct from the `'No reply'` timeout in
-[`wait_net_tx_ack`](address:98BC).""",
+[`wait_net_tx_ack`](label:wait_net_tx_ack).""",
     on_exit={"a": "TX result (0 = success; non-zero = error class consumed by the BRK path)"},
 )
 
@@ -9408,9 +9408,9 @@ d.banner(
     0x9B73,
     title="Pass-through TX buffer template (12 bytes)",
     description="""Overlaid onto the TX control block by
-[`setup_pass_txbuf`](address:9B87) for pass-through operations.
+[`setup_pass_txbuf`](label:setup_pass_txbuf) for pass-through operations.
 The 12 bytes follow the Econet TXCB layout used elsewhere in this
-ROM (compare [`bridge_rxcb_init_data`](address:ABFD)):
+ROM (compare [`bridge_rxcb_init_data`](label:bridge_rxcb_init_data)):
 
 | Offset | Field |
 |---|---|
@@ -9423,8 +9423,8 @@ ROM (compare [`bridge_rxcb_init_data`](address:ABFD)):
 | 10-11 | extended-address fill (`&FF&FF`)               |
 
 The buffer spans [`&0D3A`..`&0D3E`](address:0D3D) -- the bytes
-immediately preceding [`rx_src_stn`](address:0D3D) through
-[`net_frame_flags`](address:0D3E) -- so the same RX-area bytes are
+immediately preceding [`rx_src_stn`](label:rx_src_stn) through
+[`net_frame_flags`](label:net_frame_flags) -- so the same RX-area bytes are
 echoed back as the TX payload (hence "pass-through"). The
 `&FF&FF` filler bytes at offsets 6-7 and 10-11 are a software
 convention left over from a 4-byte-address format the BBC
@@ -9517,7 +9517,7 @@ d.subroutine(
     0x9BB4,
     "poll_econet_data_continue_frame_status",
     title="Wait for TX ready, then start new transmission",
-    description="""1. Polls [`tx_complete_flag`](address:0D60) via `ASL`
+    description="""1. Polls [`tx_complete_flag`](label:tx_complete_flag) via `ASL`
    (testing bit 7) until set, indicating any previous TX
    operation has completed and the ADLC is back in idle
    RX-listen mode.
@@ -9625,7 +9625,7 @@ d.subroutine(
     "gsread_to_buf",
     title="Parse command line via GSINIT/GSREAD into hazel_parse_buf",
     description="""Calls GSINIT to initialise string reading, then loops calling
-GSREAD to copy characters into [`hazel_parse_buf`](address:C030)
+GSREAD to copy characters into [`hazel_parse_buf`](label:hazel_parse_buf)
 until end-of-string. Appends a CR terminator and sets
 `fs_crc_lo`/`hi` to point at the buffer for subsequent parsing
 routines.""",
@@ -9660,11 +9660,11 @@ d.subroutine(
     "filev_handler",
     title="FILEV vector handler: OSFILE",
     description="""Reached via the FILEV vector at `&0212`. Sets up transfer
-parameters via [`set_xfer_params`](address:93DC), loads the OS text
+parameters via [`set_xfer_params`](label:set_xfer_params), loads the OS text
 pointer and parses the filename via
-[`load_text_ptr_and_parse`](address:9BF3),
-[`mask_owner_access`](address:B302) clears the FS-selection bits,
-and [`parse_access_prefix`](address:B262) records any access-byte
+[`load_text_ptr_and_parse`](label:load_text_ptr_and_parse),
+[`mask_owner_access`](label:mask_owner_access) clears the FS-selection bits,
+and [`parse_access_prefix`](label:parse_access_prefix) records any access-byte
 prefix. Routes by `fs_last_byte_flag` bit: positive (read /
 display) goes to `check_display_type`; negative (write / save)
 falls into the create-new-file path.""",
@@ -9933,7 +9933,7 @@ d.subroutine(
     description="""Outputs `X+1` bytes from `(fs_options)` starting at offset `Y`,
 decrementing `Y` for each byte (big-endian display order). Each
 byte is printed as two hex digits via
-[`print_hex_byte`](address:923F). Finishes with a trailing
+[`print_hex_byte`](label:print_hex_byte). Finishes with a trailing
 space via OSASCI.
 
 The default entry with `X=4` prints 5 bytes (a full 32-bit
@@ -10085,7 +10085,7 @@ d.subroutine(
     "check_and_setup_txcb",
     title="Set up data-transfer TXCB and dispatch reply",
     description="""Compares the 5-byte handle via
-[`cmp_5byte_handle`](address:93EB); if unchanged, returns.
+[`cmp_5byte_handle`](label:cmp_5byte_handle); if unchanged, returns.
 Otherwise:
 
 1. Computes start / end addresses with overflow clamping.
@@ -10159,13 +10159,13 @@ d.subroutine(
     "dispatch_osword_op",
     title="OSWORD &13 sub-operation triage (1-7)",
     description="""Stores the sub-operation code in
-[`hazel_txcb_data`](address:C105) and triages by value:
+[`hazel_txcb_data`](label:hazel_txcb_data) and triages by value:
 
 | Value | Target |
 |---|---|
 | `0..6` | `dispatch_ops_1_to_6` |
-| `7`    | [`setup_dir_display`](address:9CB3) (`*INFO` expansion) |
-| `> 7`  | `skip_if_error` (routes through [`finalise_and_return`](address:9FDC)) |
+| `7`    | [`setup_dir_display`](label:setup_dir_display) (`*INFO` expansion) |
+| `> 7`  | `skip_if_error` (routes through [`finalise_and_return`](label:finalise_and_return)) |
 
 Single caller (`&9CB0` in the OSWORD `&13` handler entry).""",
     on_entry={"a": "OSWORD sub-op code"},
@@ -10286,10 +10286,10 @@ d.subroutine(
     "format_filename_field",
     title="Format filename into fixed-width display field",
     description="""Builds a 12-character space-padded filename at
-[`filename_buf`](address:10F3) for directory listing
+[`filename_buf`](label:filename_buf) for directory listing
 output. Sources the name from either the command line
-or the [`fs_cmd_data`](address:0F05) reply buffer
-depending on the value in [`fs_cmd_csd`](address:0F03).
+or the [`fs_cmd_data`](label:fs_cmd_data) reply buffer
+depending on the value in [`fs_cmd_csd`](label:fs_cmd_csd).
 Truncates or pads to exactly 12 characters.""",
     on_exit={"a, x, y": "clobbered"},
 )
@@ -10804,7 +10804,7 @@ d.comment(0xA124, "Write CMOS RAM byte (Y) to byte index (X)", align=Align.INLIN
 # UNMAPPED: d.label(
 # UNMAPPED:     0xA0FF,
 # UNMAPPED:     "cmos_attr_table",
-# UNMAPPED:     description="""Indexing-base alias of [`cmos_opt_mask_table`](address:A129) - 4.
+# UNMAPPED:     description="""Indexing-base alias of [`cmos_opt_mask_table`](label:cmos_opt_mask_table) - 4.
 # UNMAPPED: `LDA cmos_attr_table,X` at &A0ED with X=4..7 reads the read-masks 1, 2, 4, 6 from the underlying table; those values double as bit-shift counts that left-align the new field into CMOS &11. The byte at &A0FF is inside the operand of the JSR at &A0FE and is never read directly.""",
 # UNMAPPED:     length=1,
 # UNMAPPED:     group="idx_base",
@@ -10817,7 +10817,7 @@ d.banner(
     0xA129,
     title="CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
     description="""Used by the OSARGS-via-FSCV / *OPT 4 path
-([`osopt_check_cmos_protect`](address:A105)) to read or update bit
+([`osopt_check_cmos_protect`](label:osopt_check_cmos_protect)) to read or update bit
 fields inside CMOS RAM byte `&11` (the Econet status byte holding
 the auto-boot type and printer/messages flags).
 
@@ -10891,9 +10891,9 @@ d.subroutine(
     0xA152,
     "update_addr_from_offset9",
     title="Update both address fields in FS options",
-    description="""Calls [`add_workspace_to_fsopts`](address:A159) for offset
+    description="""Calls [`add_workspace_to_fsopts`](label:add_workspace_to_fsopts) for offset
 9 (the high address / exec address field), then falls through to
-[`update_addr_from_offset1`](address:A157) to process offset
+[`update_addr_from_offset1`](label:update_addr_from_offset1) to process offset
 1 (the low address / load address field).""",
     on_exit={"a, x, y, c flag": "clobbered (4-byte arithmetic loop)"},
 )
@@ -10989,8 +10989,8 @@ d.subroutine(
     "gbpbv_handler",
     title="GBPBV vector handler: OSGBPB",
     description="""Reached via the GBPBV vector at
-[`vec_gbpbv`](address:021A) after the
-[`fs_vector_table`](address:8EBF) has copied the entry.
+[`vec_gbpbv`](label:vec_gbpbv) after the
+[`fs_vector_table`](label:fs_vector_table) has copied the entry.
 Verifies the FS workspace checksum, sets up transfer parameters,
 masks the access prefix, and dispatches the OSGBPB sub-operation
 in `A`:
@@ -11117,10 +11117,10 @@ d.subroutine(
     0xA1F4,
     "lookup_cat_slot_data",
     title="Look up channel and return FCB flag byte",
-    description="""Calls [`lookup_chan_by_char`](address:B870) to find the channel
+    description="""Calls [`lookup_chan_by_char`](label:lookup_chan_by_char) to find the channel
 slot for handle `A` in the channel table, then loads the FCB
 slot-attribute byte from
-[`hazel_fcb_slot_attr`](address:C230)+`X`.""",
+[`hazel_fcb_slot_attr`](label:hazel_fcb_slot_attr)+`X`.""",
     on_entry={"a": "channel handle"},
     on_exit={"a": "FCB slot-attribute byte", "x": "channel slot index"},
 )
@@ -11262,7 +11262,7 @@ d.subroutine(
     "send_osbput_data",
     title="Send OSBPUT data block to file server",
     description="""Sets `Y=&15` (TX buffer size for OSBPUT data) and calls
-[`save_net_tx_cb`](address:9788) to dispatch the TX. Then copies
+[`save_net_tx_cb`](label:save_net_tx_cb) to dispatch the TX. Then copies
 the display flag from `hazel_fs_flags` to `hazel_txcb_byte_16` (TX header continuation).
 Single caller in the OSBPUT-buffered-write path.""",
 )
@@ -11545,7 +11545,7 @@ d.subroutine(
     title="Parse station address from *FS/*PS arguments",
     description="""Reads a station address in `net.station` format from the command
 line, with the network number optional (defaults to local network).
-Calls [`init_bridge_poll`](address:AC09) to ensure the bridge
+Calls [`init_bridge_poll`](label:init_bridge_poll) to ensure the bridge
 routing table is populated, then validates the parsed address
 against known stations. The parsed-station value is stored in
 `fs_work_7` (`&B7`).""",
@@ -11662,7 +11662,7 @@ d.subroutine(
     0xA419,
     "net_2_read_entry",
     title="FS reply: read handle byte from workspace table",
-    description="""Calls [`get_pb_ptr_as_index`](address:A3FB) to convert the OSWORD
+    description="""Calls [`get_pb_ptr_as_index`](label:get_pb_ptr_as_index) to convert the OSWORD
 parameter-block pointer to a workspace-table index. On out-of-range
 (`C=1`), returns zero. Otherwise reads the handle byte from
 `nfs_workspace,Y`; if the slot is `?` (uninitialised marker), falls
@@ -11690,7 +11690,7 @@ d.subroutine(
     0xA429,
     "net_3_close_handle",
     title="FS reply: close handle entry",
-    description="""Calls [`get_pb_ptr_as_index`](address:A3FB) to look up the
+    description="""Calls [`get_pb_ptr_as_index`](label:get_pb_ptr_as_index) to look up the
 workspace slot. On out-of-range, marks the workspace as
 uninitialised. Otherwise rotates `fs_flags` bit 0 into carry (state
 save), reads PB[0] (the handle to close), and proceeds with the
@@ -11918,10 +11918,10 @@ d.subroutine(
     "fscv_2_star_run",
     title="FSCV reason 2: handle *RUN",
     description="""Saves the OS text pointer via
-[`save_ptr_to_os_text`](address:B3A6), calls
-[`mask_owner_access`](address:B302) to clear the FS-selection bit,
+[`save_ptr_to_os_text`](label:save_ptr_to_os_text), calls
+[`mask_owner_access`](label:mask_owner_access) to clear the FS-selection bit,
 ORs in bit 1 (the *RUN-in-progress flag), and stores back to
-[`hazel_fs_lib_flags`](address:C271). Falls through to the run-handling chain
+[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags). Falls through to the run-handling chain
 that opens the file and starts execution. Reached via the FSCV
 vector dispatch with reason code 2.""",
 )
@@ -12185,9 +12185,9 @@ d.subroutine(
     "fsreply_5_set_lib",
     title="FS reply handler: set library station",
     description="""Two-instruction wrapper: `JSR
-`[`flip_set_station_boot`](address:A6BA) to record the new library
+`[`flip_set_station_boot`](label:flip_set_station_boot) to record the new library
 station, then `JMP`
-[`return_with_last_flag`](address:9FDA). Reached only via the FS
+[`return_with_last_flag`](label:return_with_last_flag). Reached only via the FS
 reply dispatch table.""",
 )
 
@@ -12290,11 +12290,11 @@ d.subroutine(
     "cmd_flip",
     title="*Flip command handler",
     description="""Exchanges the CSD and CSL (library) handles. Saves the current
-CSD handle from [`hazel_fs_context_copy`](address:C003), loads
-the library handle from [`hazel_fs_prefix_stn`](address:C004)
-into Y, and calls [`find_station_bit3`](address:A683) to install
+CSD handle from [`hazel_fs_context_copy`](label:hazel_fs_context_copy), loads
+the library handle from [`hazel_fs_prefix_stn`](label:hazel_fs_prefix_stn)
+into Y, and calls [`find_station_bit3`](label:find_station_bit3) to install
 it as the new CSD. Restores the original CSD handle and falls
-through to [`flip_set_station_boot`](address:A6BA) to install
+through to [`flip_set_station_boot`](label:flip_set_station_boot) to install
 it as the new library. Useful when files to be LOADed are in
 the library and *DIR/*LIB would be inconvenient.""",
     on_entry={"y": "command line offset in text pointer"},
@@ -12362,18 +12362,18 @@ d.subroutine(
     "fsreply_1_boot",
     title="FS reply 1: flag boot pending, then fall into handle-copy",
     description="""Closes all network channels via
-[`close_all_net_chans`](address:B928), sets bit 6 of `fs_flags`
+[`close_all_net_chans`](label:close_all_net_chans), sets bit 6 of `fs_flags`
 (`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal
 boot-pending downstream, loads the boot-type byte from the FS
-reply ([`hazel_txcb_result`](address:C108)) into
-[`hazel_fs_flags`](address:C005), pushes it on the stack, and
-falls through into [`fsreply_2_copy_handles`](address:A6F9).
+reply ([`hazel_txcb_result`](label:hazel_txcb_result)) into
+[`hazel_fs_flags`](label:hazel_fs_flags), pushes it on the stack, and
+falls through into [`fsreply_2_copy_handles`](label:fsreply_2_copy_handles).
 
 The pushed byte is **not** consumed by `fsreply_2_copy_handles`
 itself — that routine only copies the per-handle table and uses
 `PHP`/`PLP` for its own Carry handling. The matching `PLA` lives
 much further down the boot chain, in
-[`boot_persist_fs_maybe`](address:A730) at `&A730`, which
+[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) at `&A730`, which
 tests the recovered boot-type byte against `2` to decide whether
 to call OSBYTE `&6D`. Anyone following the stack across this
 fall-through should look past `fsreply_2_copy_handles` and
@@ -12397,22 +12397,22 @@ d.subroutine(
     title="FS reply 2: install handles and (optionally) boot",
     description="""Records the file-server / printer-server / library handles from
 the I-AM reply into the station table by calling
-[`find_station_bit2`](address:A658),
-[`find_station_bit3`](address:A683), and
-[`flip_set_station_boot`](address:A6BA) in turn with the three
+[`find_station_bit2`](label:find_station_bit2),
+[`find_station_bit3`](label:find_station_bit3), and
+[`flip_set_station_boot`](label:flip_set_station_boot) in turn with the three
 handle bytes loaded from the TXCB reply
-([`hazel_txcb_data`](address:C105),
-[`hazel_txcb_flag`](address:C106),
-[`hazel_txcb_count`](address:C107)). PHP/PLP carry a flag across
+([`hazel_txcb_data`](label:hazel_txcb_data),
+[`hazel_txcb_flag`](label:hazel_txcb_flag),
+[`hazel_txcb_count`](label:hazel_txcb_count)). PHP/PLP carry a flag across
 the calls: when Carry is clear on entry the routine returns via
-[`return_with_last_flag`](address:9FDA); when Carry is set it
+[`return_with_last_flag`](label:return_with_last_flag); when Carry is set it
 continues into the boot path at
-[`boot_try_findlib`](address:A71F), which OSCLIs
+[`boot_try_findlib`](label:boot_try_findlib), which OSCLIs
 `-NET-FindLib`, then falls into
-[`boot_persist_fs_maybe`](address:A730) (OSBYTE `&6D`
+[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) (OSBYTE `&6D`
 when boot type ≥ 2), clears the auto-boot flag in
-[`hazel_fs_lib_flags`](address:C271), and (unless CTRL is held)
-falls through to [`boot_select_cmd`](address:A773) to execute the
+[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags), and (unless CTRL is held)
+falls through to [`boot_select_cmd`](label:boot_select_cmd) to execute the
 `!Boot` command.
 
 Two entry contracts:
@@ -12422,7 +12422,7 @@ Two entry contracts:
   is not taken and the routine exits via
   `JMP return_with_last_flag` without ever reaching the `PLA`
   at `&A730`. The stack contract is satisfied trivially.
-- **Fall-through from [`fsreply_1_boot`](address:A6E9)** —
+- **Fall-through from [`fsreply_1_boot`](label:fsreply_1_boot)** —
   fsreply_1_boot pushes A (the boot-type byte) and `SEC`s
   before falling in, so `BCS` is taken and the boot path runs;
   the `PLA` at `&A730` then pops the boot-type byte cleanly.
@@ -12451,7 +12451,7 @@ d.label(0xA712, "findlib_oscli_cmd")
 d.banner(
     0xA712,
     title="OSCLI command string '-NET-FindLib'<CR>",
-    description="""Passed to OSCLI by [`boot_try_findlib`](address:A71F). The
+    description="""Passed to OSCLI by [`boot_try_findlib`](label:boot_try_findlib). The
 `-NET-` prefix is the MOS hyphen-bracketed FS-selector form —
 see that subroutine's description for the convention and why
 it's used here rather than a plain `*FindLib`.""",
@@ -12464,9 +12464,9 @@ d.subroutine(
     title="If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
     description="""Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1
 (the auto-CLI / auto-run-FindLib flag). If clear, returns
-immediately; if set, OSCLIs [`findlib_oscli_cmd`](address:A712)
+immediately; if set, OSCLIs [`findlib_oscli_cmd`](label:findlib_oscli_cmd)
 (`-NET-FindLib<CR>`). Falls through to
-[`boot_persist_fs_maybe`](address:A730) in either case.
+[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) in either case.
 
 #### Why the `-NET-` prefix
 
@@ -12481,8 +12481,8 @@ the short name registered by the NFS / ANFS ROM (others
 register `DISC`, `ADFS`, `TAPE`).
 
 NFS is already the current FS by the time this code runs.
-[`svc_3_autoboot`](address:8CEC) selects it via
-[`select_fs_via_cmd_net_fs`](address:8B78) before the
+[`svc_3_autoboot`](label:svc_3_autoboot) selects it via
+[`select_fs_via_cmd_net_fs`](label:select_fs_via_cmd_net_fs) before the
 synchronous `*I AM` exchange on the cold-boot path, and the
 user-typed `*I AM` route requires `*NET` first because `*I AM`
 is itself an NFS `*` command.
@@ -12497,8 +12497,8 @@ directly to NFS, so the lookup deterministically hits NFS's
 `*RUN`-from-library path.
 
 The same routing is used by
-[`boot_cmd_load_str`](address:A755) (`L.-NET-!Boot`) and
-[`boot_cmd_exec_str`](address:A762) (`E.-NET-!Boot`).""",
+[`boot_cmd_load_str`](label:boot_cmd_load_str) (`L.-NET-!Boot`) and
+[`boot_cmd_exec_str`](label:boot_cmd_exec_str) (`E.-NET-!Boot`).""",
 )
 
 
@@ -12523,15 +12523,15 @@ d.subroutine(
     "check_auto_boot_flag",
     title="Test+clear bit 2 of fs_lib_flags; on CTRL, bail out",
     description="""Atomically tests and clears bit 2 of
-[`hazel_fs_lib_flags`](address:C271) — the auto-boot flag — then
+[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags) — the auto-boot flag — then
 dispatches based on the test result:
 
 - **Bit 2 was set**: skip the CTRL-key check and `BNE` straight
-  into [`boot_select_cmd`](address:A773) to issue the boot OSCLI.
+  into [`boot_select_cmd`](label:boot_select_cmd) to issue the boot OSCLI.
 - **Bit 2 was clear**: fall through and test for the CTRL key via
   OSBYTE `&79`. CTRL held → fall into
-  [`boot_cancel_rts`](address:A754) (boot cancelled). CTRL not
-  held → `BPL` into [`boot_select_cmd`](address:A773) anyway.
+  [`boot_cancel_rts`](label:boot_cancel_rts) (boot cancelled). CTRL not
+  held → `BPL` into [`boot_select_cmd`](label:boot_select_cmd) anyway.
 
 The body uses the classic 6502 "test bit, modify, restore test
 result" idiom: load the flags, copy to X, `AND` with the bit to
@@ -12572,17 +12572,17 @@ d.comment(0xA762, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing se
 # UNMAPPED:     0xA75B,
 # UNMAPPED:     title="Boot-command low-byte index table",
 # UNMAPPED:     description="""Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in
-# UNMAPPED: [`boot_cmd_oscli`](address:A778). Combined with `Y=&A7` (high
+# UNMAPPED: [`boot_cmd_oscli`](label:boot_cmd_oscli). Combined with `Y=&A7` (high
 # UNMAPPED: byte, supplied by `boot_cmd_oscli` after the lookup), each entry
 # UNMAPPED: yields a pointer to a CR-terminated boot command in the `&A7xx`
 # UNMAPPED: page.
 # UNMAPPED: 
 # UNMAPPED: Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
-# UNMAPPED: because [`boot_select_cmd`](address:A773) `BEQ`s out when
+# UNMAPPED: because [`boot_select_cmd`](label:boot_select_cmd) `BEQ`s out when
 # UNMAPPED: `hazel_fs_flags` is zero.
 # UNMAPPED: 
 # UNMAPPED: Index 2 (`&48`) lands inside
-# UNMAPPED: [`boot_cmd_load_str`](address:A755) — at offset 7, on its `!`
+# UNMAPPED: [`boot_cmd_load_str`](label:boot_cmd_load_str) — at offset 7, on its `!`
 # UNMAPPED: byte — so OSCLI reads `"!Boot<CR>"` from the middle of the same
 # UNMAPPED: string used at index 1. This packs the "run `*!Boot` on the
 # UNMAPPED: current FS" variant into the same data as the load-via-NFS
@@ -12607,14 +12607,14 @@ d.subroutine(
     "boot_select_cmd",
     title="Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
     description="""Two-instruction gate at the head of the boot-OSCLI dispatch.
-Loads `Y` from [`hazel_fs_flags`](address:C005) (the boot-type
+Loads `Y` from [`hazel_fs_flags`](label:hazel_fs_flags) (the boot-type
 byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
-`BEQ`s into [`boot_cancel_rts`](address:A754) — the empty / no-op
+`BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) — the empty / no-op
 boot case. Otherwise falls through into
-[`boot_cmd_oscli`](address:A778) with `Y` already loaded as the
-index into [`boot_cmd_lo_table`](address:A75B).
+[`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the
+index into [`boot_cmd_lo_table`](label:boot_cmd_lo_table).
 
-Two callers, both from [`check_auto_boot_flag`](address:A73A):
+Two callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):
 the `BNE` at `&A748` (auto-boot flag was set, skip CTRL check)
 and the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).""",
 )
@@ -12636,9 +12636,9 @@ command string.
 Two entry paths:
 
 - `JMP` tail-call from `&A5E8` with `Y=3` hardcoded — forces the
-  exec-via-NFS boot ([`boot_cmd_exec_str`](address:A762)).
-- Fall-through from [`boot_select_cmd`](address:A773) with `Y` already
-  loaded from [`hazel_fs_flags`](address:C005) — the normal logon-boot
+  exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).
+- Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already
+  loaded from [`hazel_fs_flags`](label:hazel_fs_flags) — the normal logon-boot
   path, dispatching on the FS-supplied boot type.""",
     on_entry={"y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"},
 )
@@ -12652,7 +12652,7 @@ d.banner(
     0xA780,
     title="ANFS *command dispatch tables (5 concatenated sub-tables)",
     description="""See the comment block immediately above the
-[`cmd_table_fs`](address:A780) declaration in the driver for the
+[`cmd_table_fs`](label:cmd_table_fs) declaration in the driver for the
 sub-table layout, walker contract, and flag-byte encoding. Each
 entry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS
 arrives at `target`. Per-entry inline comments below name the
@@ -12921,15 +12921,15 @@ d.subroutine(
     0xA930,
     "osword_10_handler",
     title="OSWORD &10 handler: send network packet",
-    description="""ASL on [`tx_complete_flag`](address:0D60) shifts the old bit 7
+    description="""ASL on [`tx_complete_flag`](label:tx_complete_flag) shifts the old bit 7
 into Carry. When that bit was clear (`C=0`, TX in progress) the
 handler stores Y back through the parameter-block pointer at
 `(ws_ptr_hi),Y` and RTS, leaving the caller a status byte. When
 it was set (`C=1`, TX idle) execution falls through to the start
-path at [`setup_ws_rx_ptrs`](address:A939), which seeds the
-workspace pointers from [`net_rx_ptr_hi`](address:009D)/`#&6F`,
+path at [`setup_ws_rx_ptrs`](label:setup_ws_rx_ptrs), which seeds the
+workspace pointers from [`net_rx_ptr_hi`](label:net_rx_ptr_hi)/`#&6F`,
 copies 16 bytes of the parameter block into the workspace via
-[`copy_pb_byte_to_ws`](address:AAA2) and JMPs to
+[`copy_pb_byte_to_ws`](label:copy_pb_byte_to_ws) and JMPs to
 [`tx_begin`](address:8589) to launch the transmission.""",
     on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
 )
@@ -12957,11 +12957,11 @@ d.subroutine(
     "osword_11_handler",
     title="OSWORD &11 handler: receive network packet",
     description="""Reached via the OSWORD dispatch as well as via fall-through from
-[`osword_10_handler`](address:A930). Configures the workspace
+[`osword_10_handler`](label:osword_10_handler). Configures the workspace
 pointer from `nfs_workspace_hi`, saves the Econet interrupt state
 via `ROR econet_flags`, and either uses the slot specified by the
 caller (Y non-zero) or scans from slot 3 onwards via
-[`byte_to_2bit_index`](address:A3FD) to find a free slot. Stores
+[`byte_to_2bit_index`](label:byte_to_2bit_index) to find a free slot. Stores
 the resulting status byte and the copied PB bytes back into the
 caller's parameter block.""",
     on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
@@ -13041,7 +13041,7 @@ d.subroutine(
 status byte from the RX block, then `Y=&80` to flag the packet as
 processed. The body proceeds to copy the packet payload from the
 RX buffer into the OSWORD parameter block via
-[`copy_pb_byte_to_ws`](address:AAA2).""",
+[`copy_pb_byte_to_ws`](label:copy_pb_byte_to_ws).""",
     on_entry={"x, y": "OSWORD parameter block pointer (low, high)"},
 )
 d.entry(0xA9A5)
@@ -13072,8 +13072,8 @@ d.comment(0xA9C7, "RTS -> dispatched OSWORD &13 sub-handler", align=Align.INLINE
 # UNMAPPED: d.banner(
 # UNMAPPED:     0xA9A8,
 # UNMAPPED:     title="OSWORD &13 dispatch low-byte table (18 entries)",
-# UNMAPPED:     description="""Read by [`osword_13_dispatch`](address:A9BA) as `LDA &A9A8,X`. Paired
-# UNMAPPED: with the high-byte half at [`osword_13_dispatch_hi`](address:A9DA).
+# UNMAPPED:     description="""Read by [`osword_13_dispatch`](label:osword_13_dispatch) as `LDA &A9A8,X`. Paired
+# UNMAPPED: with the high-byte half at [`osword_13_dispatch_hi`](label:osword_13_dispatch_hi).
 # UNMAPPED: Sub-codes 0..&11 cover read/set station, read/write workspace pair,
 # UNMAPPED: read/write protection, read/set handles, read RX flag/port/error,
 # UNMAPPED: read context, read/write CSD, read free buffers, read/write context
@@ -13086,7 +13086,7 @@ d.index_base(0xA9DA, "osword_13_dispatch_hi")
 d.banner(
     0xA9DA,
     title="OSWORD &13 dispatch high-byte table (18 entries)",
-    description="""Read by [`osword_13_dispatch`](address:A9BA) as `LDA &A9BA,X`. The
+    description="""Read by [`osword_13_dispatch`](label:osword_13_dispatch) as `LDA &A9BA,X`. The
 dispatcher pushes the hi byte first then the lo, so RTS lands on
 `target` (the table stores `target-1`).""",
 )
@@ -13101,7 +13101,7 @@ d.subroutine(
     title="OSWORD &13 sub 0: read file server station",
     description="""Returns the current file server station and network numbers in
 `PB[1..2]`. If ANFS is not active,
-[`ensure_fs_selected`](address:8B73) auto-selects it (raising `net
+[`ensure_fs_selected`](label:ensure_fs_selected) auto-selects it (raising `net
 checksum` on failure) before the body runs.""",
 )
 d.comment(0xA9EC, "Ensure NFS is currently the selected FS", align=Align.INLINE)
@@ -13124,9 +13124,9 @@ d.subroutine(
     title="OSWORD &13 sub 1: set file server station",
     description="""Sets the file server station and network numbers from `PB[1..2]`.
 The prologue at `&A9DA` calls
-[`ensure_fs_selected`](address:8B73) to verify ANFS is active
+[`ensure_fs_selected`](label:ensure_fs_selected) to verify ANFS is active
 (auto-selecting it if not), then the body at
-[`osword_13_set_station_body`](address:A9FD) processes all FCBs
+[`osword_13_set_station_body`](label:osword_13_set_station_body) processes all FCBs
 and scans the 16-entry FCB table to reassign handles matching the
 new station.""",
 )
@@ -13348,7 +13348,7 @@ d.subroutine(
     "osword_13_write_prot",
     title="OSWORD &13 sub 5: write protection mask",
     description="""Loads the new protection mask from `PB[1]` and falls through into
-[`set_ws_pair_0d68_0d69`](address:AADB) which mirrors it into the
+[`set_ws_pair_0d68_0d69`](label:set_ws_pair_0d68_0d69) which mirrors it into the
 ACR/SR-format byte pair at `&0D68` / `&0D69` that ANFS uses for its
 own state tracking.""",
 )
@@ -13360,13 +13360,13 @@ d.subroutine(
     0xAADB,
     "set_ws_pair_0d68_0d69",
     title="Store A in both prot_status and prot_status_save",
-    description="""Copies `A` to both [`prot_status`](address:0D68) and
-[`prot_status_save`](address:0D69), then `RTS`. The bytes carry ACR/SR-style
+    description="""Copies `A` to both [`prot_status`](label:prot_status) and
+[`prot_status_save`](label:prot_status_save), then `RTS`. The bytes carry ACR/SR-style
 flag layouts that ANFS uses internally; nothing in this ROM flushes
 them to the live System VIA. Two callers:
-[`nfs_init_body`](address:8F50) at `&8FA6` (where A is `0` or
+[`nfs_init_body`](label:nfs_init_body) at `&8FA6` (where A is `0` or
 `&FF` based on FS-options bit 6) and
-[`cmd_prot`](address:B6FB) at `&B702` (the *Prot path).
+[`cmd_prot`](label:cmd_prot) at `&B702` (the *Prot path).
 A 2-store-and-return convenience to keep both call sites flat.""",
     on_entry={"a": "value to mirror into both workspace bytes"},
 )
@@ -13382,7 +13382,7 @@ d.subroutine(
     title="OSWORD &13 sub 6: read FCB handle info",
     description="""Returns the 3-byte FCB handle/port data from the workspace at
 `C271[1..3]` into `PB[1..3]`. If ANFS is not active,
-[`ensure_fs_selected`](address:8B73) auto-selects it before the
+[`ensure_fs_selected`](label:ensure_fs_selected) auto-selects it before the
 body runs.""",
 )
 d.comment(0xAAE2, "Ensure NFS is currently the selected FS", align=Align.INLINE)
@@ -13560,8 +13560,8 @@ d.subroutine(
     "osword_13_read_error",
     title="OSWORD &13 sub 10: read error flag",
     description="""Returns the latched FS last-error byte
-([`hazel_fs_last_error`](address:C009)) in `PB[1]`. Falls through
-into [`store_a_to_pb_1`](address:ABA2).""",
+([`hazel_fs_last_error`](label:hazel_fs_last_error)) in `PB[1]`. Falls through
+into [`store_a_to_pb_1`](label:store_a_to_pb_1).""",
 )
 
 
@@ -13589,9 +13589,9 @@ d.subroutine(
     "osword_13_read_context",
     title="OSWORD &13 sub 11: read context byte",
     description="""Returns the FS context/error code
-([`hazel_fs_error_code`](address:C008)) in `PB[1]` when bit 7 is
+([`hazel_fs_error_code`](label:hazel_fs_error_code)) in `PB[1]` when bit 7 is
 clear; if bit 7 is set the value is left alone (the BPL skips the
-store). Tail-merges into [`store_a_to_pb_1`](address:ABA2).""",
+store). Tail-merges into [`store_a_to_pb_1`](label:store_a_to_pb_1).""",
 )
 
 
@@ -13788,13 +13788,13 @@ d.subroutine(
     "osword_14_handler",
     title="OSWORD &14 handler: bridge poll / station status",
     description="""Triages by `A`: `A >= 1` branches via `BCS` to
-[`handle_tx_request`](address:ACD7) which reads the station and
+[`handle_tx_request`](label:handle_tx_request) which reads the station and
 network from `PB[1]`/`PB[2]` into the RX-block destination slots
 and falls through to the burst-transfer body. `A = 0` (the
 bridge-poll sub-code) falls through here: pushes `A`, calls
-[`ensure_fs_selected`](address:8B73) to bring ANFS up if needed,
+[`ensure_fs_selected`](label:ensure_fs_selected) to bring ANFS up if needed,
 pulls `A` back, sets `Y=&23` and calls
-[`mask_owner_access`](address:B302) to clear FS-selection bits,
+[`mask_owner_access`](label:mask_owner_access) to clear FS-selection bits,
 then runs the bridge-poll body.""",
     on_entry={"a": "OSWORD &14 sub-function code", "x, y": "OSWORD parameter block pointer (low, high)"},
 )
@@ -13897,7 +13897,7 @@ d.subroutine(
     0xACD7,
     "handle_tx_request",
     title="Sub-code 0: copy PB station/network into RX block, dispatch burst",
-    description="""Sub-code-0 path of [`osword_14_handler`](address:AC67), reached
+    description="""Sub-code-0 path of [`osword_14_handler`](label:osword_14_handler), reached
 via the `BCC handle_tx_request` at `&AC69` when the caller's `A`
 is 0. Reads two bytes from the OSWORD parameter block:
 
@@ -13910,7 +13910,7 @@ is 0. Reads two bytes from the OSWORD parameter block:
 
 Wraps the body in `PHP`/`PLP` so the entry flags (carry clear from
 the `BCC`) survive the workspace stores; the `BNE` after `PLP`
-then dispatches to [`handle_burst_xfer`](address:AD0D) when the
+then dispatches to [`handle_burst_xfer`](label:handle_burst_xfer) when the
 caller's `A` was non-zero (a defensive branch -- the `BCC` entry
 guarantees `A=0`, but the same body is the entry point
 the burst path piggy-backs on).""",
@@ -13962,13 +13962,13 @@ d.subroutine(
     0xAD0D,
     "handle_burst_xfer",
     title="OSWORD &14 burst-transfer path: extend buffer end and TX",
-    description="""Reached from [`handle_tx_request`](address:ACD7)'s `BNE` at
-`&ACEC`. Calls [`init_ws_copy_wide`](address:AE1E) to copy the
+    description="""Reached from [`handle_tx_request`](label:handle_tx_request)'s `BNE` at
+`&ACEC`. Calls [`init_ws_copy_wide`](label:init_ws_copy_wide) to copy the
 workspace TXCB template into the wide-mode workspace slot, then
 extends the buffer end-byte at `(net_rx_ptr)+&7B` by `3` to
 account for the 3-byte burst header before falling through into
-[`enable_irq_and_poll`](address:AD18), which re-enables IRQs and
-tail-jumps to [`send_net_packet`](address:9B2A).""",
+[`enable_irq_and_poll`](label:enable_irq_and_poll), which re-enables IRQs and
+tail-jumps to [`send_net_packet`](label:send_net_packet).""",
     on_entry={"net_rx_ptr": "set up by handle_tx_request (dest station/network already stored at +&71/&72)"},
 )
 
@@ -14002,10 +14002,10 @@ d.subroutine(
     title="NETV handler: OSWORD dispatch",
     description="""Installed as the NETV handler via `write_vector_entry`. Saves all
 registers, reads the OSWORD number from the stack, and dispatches
-OSWORDs 0-8 via [`push_osword_handler_addr`](address:AD35).
+OSWORDs 0-8 via [`push_osword_handler_addr`](label:push_osword_handler_addr).
 OSWORDs `>= 9` are ignored (registers restored, RTS returns to
 MOS). The handler's address lives in the extended vector data
-area together with the other [`fs_vector_table`](address:8EBF)
+area together with the other [`fs_vector_table`](label:fs_vector_table)
 entries.""",
     on_entry={
         "a": "OSWORD number (read from stacked A on entry)",
@@ -14064,12 +14064,12 @@ d.comment(0xAD3F, "RTS jumps to handler with A=OSWORD number", align=Align.INLIN
 # UNMAPPED: d.banner(
 # UNMAPPED:     0xAD20,
 # UNMAPPED:     title="NETV reason-code dispatch low-byte table (9 entries)",
-# UNMAPPED:     description="""Read by [`push_osword_handler_addr`](address:AD35) as
+# UNMAPPED:     description="""Read by [`push_osword_handler_addr`](label:push_osword_handler_addr) as
 # UNMAPPED: `LDA &AD20,X`. Paired with the high-byte half at
-# UNMAPPED: [`netv_dispatch_hi`](address:AD49). The wrapper at
-# UNMAPPED: [`netv_handler`](address:AD1C) reads the original A from the MOS
+# UNMAPPED: [`netv_dispatch_hi`](label:netv_dispatch_hi). The wrapper at
+# UNMAPPED: [`netv_handler`](label:netv_handler) reads the original A from the MOS
 # UNMAPPED: stack frame (`&0103,X` after TSX) and gates 9..&FF away to
-# UNMAPPED: [`return_6`](address:B69F) before dispatching reasons 0..8.""",
+# UNMAPPED: [`return_6`](label:return_6) before dispatching reasons 0..8.""",
 # UNMAPPED: )
 # UNMAPPED: for addr in range(0xAD20, 0xAD29):
 # UNMAPPED (orphan body):     d.byte(addr)
@@ -14078,7 +14078,7 @@ d.index_base(0xAD49, "netv_dispatch_hi")
 d.banner(
     0xAD49,
     title="NETV reason-code dispatch high-byte table (9 entries)",
-    description="""Read by [`push_osword_handler_addr`](address:AD35) as
+    description="""Read by [`push_osword_handler_addr`](label:push_osword_handler_addr) as
 `LDA &AD29,X`. The dispatcher pushes the hi byte first then the
 lo, so RTS lands on `target` (the table stores `target-1`).""",
 )
@@ -14096,7 +14096,7 @@ status (`ROR stack_page_6,X` then `ASL stack_page_6,X` -- a
 read-modify cycle that lands the carry-out where bit 0 of the
 saved P was), so the caller resumes with `C=0`. Stores the
 caller's `Y` into NFS workspace at offset `&DA`, then falls
-through to [`tx_econet_abort`](address:AD60) with `A=0` to
+through to [`tx_econet_abort`](label:tx_econet_abort) with `A=0` to
 transmit a clean disconnect packet.""",
     on_entry={"y": "OSWORD parameter byte (saved into nfs_workspace+&DA)"},
 )
@@ -14255,7 +14255,7 @@ d.index_base(0xADE1, "osword_claim_codes")
 d.banner(
     0xADE1,
     title="OSWORD per-claim-code lookup table (18 bytes)",
-    description="""Looked up by [`match_rx_code`](address:ADD8) when an Econet RX
+    description="""Looked up by [`match_rx_code`](label:match_rx_code) when an Econet RX
 event triggers an OSWORD-related claim. The X register selects an
 18-byte slice; bytes encode the claim type (immediate-op,
 broadcast, port-specific) used by the dispatcher to decide which
@@ -15119,10 +15119,10 @@ d.subroutine(
     "cmd_lcat",
     title="*LCat command handler",
     description="""Rotates the caller's carry into bit 7 of
-[`hazel_fs_lib_flags`](address:C271) (the dispatch path enters
+[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags) (the dispatch path enters
 with C=1 so this sets the 'library' flag), then `SEC` / `BCS`
 unconditionally jumps to `cat_set_lib_flag` inside
-[`cmd_ex`](address:B136) to catalogue the library directory
+[`cmd_ex`](label:cmd_ex) to catalogue the library directory
 with three entries per column.""",
     on_entry={"y": "command line offset in text pointer", "c": "1 (set by the cmd_table_fs dispatch path)"},
 )
@@ -15138,9 +15138,9 @@ d.subroutine(
     "cmd_lex",
     title="*LEx command handler",
     description="""Rotates the caller's carry into bit 7 of
-[`hazel_fs_lib_flags`](address:C271) (the dispatch path enters
+[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags) (the dispatch path enters
 with C=1 so this sets the 'library' flag), then jumps to
-`ex_set_lib_flag` inside [`cmd_ex`](address:B136) to examine
+`ex_set_lib_flag` inside [`cmd_ex`](label:cmd_ex) to examine
 the library directory with one entry per line.""",
     on_entry={"y": "command line offset in text pointer", "c": "1 (set by the cmd_table_fs dispatch path)"},
 )
@@ -15189,7 +15189,7 @@ d.subroutine(
     0xB14B,
     "fscv_5_cat",
     title="FSCV reason 5: catalogue (*CAT)",
-    description="""Sets up transfer parameters via [`set_xfer_params`](address:93DC),
+    description="""Sets up transfer parameters via [`set_xfer_params`](label:set_xfer_params),
 clears the library bit in `hazel_fs_lib_flags` via the
 `ROR`/`CLC`/`ROL` idiom that uses carry to preserve other flags,
 and falls through to `cat_set_lib_flag` to issue the FS examine
@@ -15360,10 +15360,10 @@ d.subroutine(
     0xB25F,
     "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
-    description="""Calls [`gsread_to_buf`](address:9BFE) to read the command-line
-string into [`hazel_parse_buf`](address:C030) (the 4.21 HAZEL
+    description="""Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line
+string into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL
 parse buffer at &C030), then falls through to
-[`parse_access_prefix`](address:B262) to process `'&'`, `':'`,
+[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,
 `'.'` and `'#'` prefix characters.""",
     on_entry={"y": "current command-line offset (consumed by gsread_to_buf)"},
     on_exit={"y": "advanced past the parsed argument"},
@@ -15680,8 +15680,8 @@ d.subroutine(
     title="Print decimal number with leading zero suppression",
     description="""Sets `V=1` via `BIT always_set_v_byte` (the `&FF` constant at
 &9769, whose bit 6 sets V) to enable leading-zero suppression
-in [`print_decimal_3dig`](address:B35D), then falls through to
-that routine. Used by [`print_station_id`](address:90CE) for
+in [`print_decimal_3dig`](label:print_decimal_3dig), then falls through to
+that routine. Used by [`print_station_id`](label:print_station_id) for
 compact station number display.""",
     on_entry={"a": "number to print (0-255)"},
 )
@@ -15756,14 +15756,14 @@ d.subroutine(
     "cmd_info_dispatch",
     title="*Info command handler",
     description="""Dispatched from the star-command table at index &28. Clears the
-owner-only access bits via [`mask_owner_access`](address:B302),
+owner-only access bits via [`mask_owner_access`](label:mask_owner_access),
 then writes the two-byte FS command prefix `'i' '.'` into
-[`hazel_txcb_data`](address:C105)/[`hazel_txcb_flag`](address:C106),
+[`hazel_txcb_data`](label:hazel_txcb_data)/[`hazel_txcb_flag`](label:hazel_txcb_flag),
 saves the command-line pointer with
-[`save_ptr_to_os_text`](address:B3A6), parses the *Info argument
-via [`parse_cmd_arg_y0`](address:B25D), copies it into the TX
-buffer at offset 2 with [`copy_arg_to_buf`](address:B2D4), and
-JMPs to [`send_cmd_and_dispatch`](address:8E54) to send the
+[`save_ptr_to_os_text`](label:save_ptr_to_os_text), parses the *Info argument
+via [`parse_cmd_arg_y0`](label:parse_cmd_arg_y0), copies it into the TX
+buffer at offset 2 with [`copy_arg_to_buf`](label:copy_arg_to_buf), and
+JMPs to [`send_cmd_and_dispatch`](label:send_cmd_and_dispatch) to send the
 request to the file server.""",
     on_entry={"y": "command-line offset in text pointer"},
 )
@@ -16320,7 +16320,7 @@ d.banner(
     0xB58D,
     title="Printer-server TX header template (4 bytes)",
     description="""Four bytes copied to the head of the printer-server transmit
-buffer by [`reverse_ps_name_to_tx`](address:B566): control byte
+buffer by [`reverse_ps_name_to_tx`](label:reverse_ps_name_to_tx): control byte
 `&80` (immediate-TX request), port `&D1` (printer block port),
 function-code stub, and reply-port byte. Filled-in destination
 fields follow from the caller's PS slot.""",
@@ -16374,7 +16374,7 @@ d.banner(
     0xB5B0,
     title="Printer-server slot TXCB template (12 bytes)",
     description="""12-byte Econet TXCB template for printer-server slot buffers.
-Copied by [`init_ps_slot_from_rx`](address:B6CF) into workspace
+Copied by [`init_ps_slot_from_rx`](label:init_ps_slot_from_rx) into workspace
 offsets `&78`-`&83` via indexed addressing from
 `write_ps_slot_link_addr` (`write_ps_slot_hi_link+1`). Substitutes
 `net_rx_ptr_hi` at offsets `&7D` and `&81` (the hi bytes of the
@@ -16569,7 +16569,7 @@ d.subroutine(
     "init_ps_slot_from_rx",
     title="Initialise PS slot buffer from template data",
     description="""Copies the 12-byte
-[`ps_slot_txcb_template`](address:B5B0) into workspace at
+[`ps_slot_txcb_template`](label:ps_slot_txcb_template) into workspace at
 offsets &78-&83 via indexed addressing from
 `write_ps_slot_link_addr` (`write_ps_slot_hi_link+1`).
 Substitutes `net_rx_ptr_hi` at offsets &7D and &81 (the hi bytes
@@ -16641,7 +16641,7 @@ always-taken `BNE`) to the shared protection-update body at
    the workspace shadow ACR (`prot_status`) and shadow IER
    (`prot_status_save`).
 3. Reads CMOS RAM byte `&11` (Econet station/protection flags)
-   via [`osbyte_a1`](address:8EB2) into `Y`, copies to `A`.
+   via [`osbyte_a1`](label:osbyte_a1) into `Y`, copies to `A`.
 4. Restores the saved flag and selects:
    - *Prot path: `ORA #&40` (set bit 6 = protection on).
    - *Unprot path: `AND #&BF` (clear bit 6).
@@ -16666,7 +16666,7 @@ d.subroutine(
     description="""Loads `A=&00` (no protection) and falls through to the shared
 protection-update body at `&B6D8`, which clears bit 6 of CMOS RAM
 byte `&11` (the Econet protection flag). See
-[`cmd_prot`](address:B6FB) for the full body description.""",
+[`cmd_prot`](label:cmd_prot) for the full body description.""",
     on_entry={"y": "command line offset (unused; *Unprot takes no args)"},
 )
 
@@ -16705,13 +16705,13 @@ d.subroutine(
     "cmd_wipe",
     title="*Wipe command handler",
     description="""Setup half of *Wipe. Masks owner access via
-[`mask_owner_access`](address:B302), zeroes the file-iteration
-counter [`fs_work_5`](address:00B5), preserves the command-line
-pointer with [`save_ptr_to_os_text`](address:B3A6), parses the
-wildcard filename via [`parse_filename_arg`](address:B25F), and
+[`mask_owner_access`](label:mask_owner_access), zeroes the file-iteration
+counter [`fs_work_5`](label:fs_work_5), preserves the command-line
+pointer with [`save_ptr_to_os_text`](label:save_ptr_to_os_text), parses the
+wildcard filename via [`parse_filename_arg`](label:parse_filename_arg), and
 records the end-of-argument offset (X+1) in
-[`fs_work_6`](address:00B6). Falls through to
-[`request_next_wipe`](address:B72C), which drives the per-file
+[`fs_work_6`](label:fs_work_6). Falls through to
+[`request_next_wipe`](label:request_next_wipe), which drives the per-file
 examine/prompt/delete loop until the wildcard is exhausted.""",
     on_entry={"y": "command line offset in text pointer"},
 )
@@ -17004,10 +17004,10 @@ d.subroutine(
     title="Look up channel by character code",
     description="""Subtracts `&20` from the character to produce a table index
 (inlining the same arithmetic as
-[`attr_to_chan_index`](address:B82E) without the bounds check),
+[`attr_to_chan_index`](label:attr_to_chan_index) without the bounds check),
 loads the channel slot's `hazel_fcb_slot_attr` byte; on zero
 raises `error_chan_not_found`. Otherwise verifies station/network
-via [`match_station_net`](address:B955) and returns the slot's
+via [`match_station_net`](label:match_station_net) and returns the slot's
 flags in `A`.""",
     on_entry={"a": "channel character"},
     on_exit={"a": "channel flags"},
@@ -17311,8 +17311,8 @@ d.subroutine(
     description="""Sets `hazel_pass_counter` to 1 and clears
 `hazel_byte_counter_lo`, `hazel_offset_counter` and
 `hazel_transfer_flag`. Then stores `&FF` sentinels in
-[`hazel_sentinel_cd`](address:C2CD) /
-[`hazel_sentinel_ce`](address:C2CE). The HAZEL FS-state region
+[`hazel_sentinel_cd`](label:hazel_sentinel_cd) /
+[`hazel_sentinel_ce`](label:hazel_sentinel_ce). The HAZEL FS-state region
 is at &C2xx.""",
     on_entry={},
     on_exit={"x": "small loop counter (last DEX value)", "y": "0 (cleared by the TYA path)"},
@@ -17540,8 +17540,8 @@ d.subroutine(
     "restore_catalog_entry",
     title="Restore saved catalog entry to TX buffer",
     description="""Copies 13 bytes (Y=&0C..0) from
-[`hazel_ctx_buffer`](address:C2D9) back to the TX buffer
-starting at [`hazel_txcb_port`](address:C100). Falls through to
+[`hazel_ctx_buffer`](label:hazel_ctx_buffer) back to the TX buffer
+starting at [`hazel_txcb_port`](label:hazel_txcb_port). Falls through to
 `find_matching_fcb`.""",
 )
 
@@ -17662,7 +17662,7 @@ d.subroutine(
 on the stack via a `PHX`/`PHY`/loop preamble using the `&FFBD,X`
 indexing-wrap trick (X = `&F7`..`&FF` wraps to `&00B4`..`&00BC`),
 then scans FCB slots `&0F` down to 0.
-Calls [`start_wipe_pass`](address:B9CA) for each active entry
+Calls [`start_wipe_pass`](label:start_wipe_pass) for each active entry
 matching the filter attribute in `Y` (`0` = match all). Restores
 all saved context on completion. Also contains the OSBGET/OSBPUT
 inline logic for reading and writing bytes through file
@@ -17710,10 +17710,10 @@ d.subroutine(
     "bgetv_handler",
     title="BGETV vector handler: read byte from open file",
     description="""Reached via the BGETV vector at `&0216`, which the
-[`fs_vector_table`](address:8EBF) entries copy into the MOS extended
+[`fs_vector_table`](label:fs_vector_table) entries copy into the MOS extended
 vector area. Saves caller's `Y` in `hazel_chan_attr` (channel attribute slot),
 pushes `X`, calls
-[`store_result_check_dir`](address:B8AF) to validate the channel,
+[`store_result_check_dir`](label:store_result_check_dir) to validate the channel,
 then either reads a byte from the FCB buffer (returning it in `A`
 with `C=0`) or signals end-of-file (`C=1`).""",
     on_entry={"y": "channel handle"},
@@ -17789,8 +17789,8 @@ d.subroutine(
 `hazel_chan_attr`, pushes the data byte and `X`, then routes to the FCB
 buffer-write path: stores the byte in the channel's transmit
 buffer, increments the byte count via
-[`inc_fcb_byte_count`](address:BB5A), and exits via
-[`done_inc_byte_count`](address:BC95).""",
+[`inc_fcb_byte_count`](label:inc_fcb_byte_count), and exits via
+[`done_inc_byte_count`](label:done_inc_byte_count).""",
     on_entry={"a": "byte to write", "y": "channel handle"},
     on_exit={"c": "0 = written, 1 = error"},
 )
@@ -18659,7 +18659,7 @@ d.subroutine(
     0xBFEA,
     "inx16",
     title="Increment X 16 times",
-    description="""`JSR` [`inx8`](address:BFED), then fall through into `inx8` for a second pass — 16 `INX` instructions in total.""",
+    description="""`JSR` [`inx8`](label:inx8), then fall through into `inx8` for a second pass — 16 `INX` instructions in total.""",
     on_entry={"x": "value to advance"},
     on_exit={"x": "input + 16", "a, y": "preserved"},
 )
@@ -18672,7 +18672,7 @@ d.subroutine(
     0xBFED,
     "inx8",
     title="Increment X 8 times",
-    description="""`JSR` [`inx4`](address:BFF0), then fall through into `inx4` for a second pass — 8 `INX` instructions in total.""",
+    description="""`JSR` [`inx4`](label:inx4), then fall through into `inx4` for a second pass — 8 `INX` instructions in total.""",
     on_entry={"x": "value to advance"},
     on_exit={"x": "input + 8", "a, y": "preserved"},
 )
@@ -18684,7 +18684,7 @@ d.subroutine(
     0xBFF0,
     "inx4",
     title="Increment X 4 times",
-    description="""Four consecutive `INX` instructions then `RTS`. Building block for [`inx8`](address:BFED) and [`inx16`](address:BFEA) via JSR/fall-through chaining.""",
+    description="""Four consecutive `INX` instructions then `RTS`. Building block for [`inx8`](label:inx8) and [`inx16`](label:inx16) via JSR/fall-through chaining.""",
     on_entry={"x": "value to advance"},
     on_exit={"x": "input + 4", "a, y": "preserved", "n, z flags": "reflect new X"},
 )
@@ -18700,13 +18700,13 @@ d.banner(
     0xBFF5,
     title="ROM-tail &FF padding (33 bytes positioning the HAZEL indexing bases)",
     description="""33 bytes of `&FF` filler between the last real instruction at
-[`inx4`](address:BFF0) and the HAZEL indexing-base labels
-starting at [`hazel_minus_1a`](address:BFE6).
+[`inx4`](label:inx4) and the HAZEL indexing-base labels
+starting at [`hazel_minus_1a`](label:hazel_minus_1a).
 
 These bytes exist purely to push the indexing-base labels to
 specific addresses immediately before `&C000` (the start of
 HAZEL). The labels themselves do the work -- see the
-[`hazel_idx_bases`](address:BFE6) banner. The padding is never
+[`hazel_idx_bases`](label:hazel_idx_bases) banner. The padding is never
 read or written; it is whatever the assembler emitted to fill
 the gap (the BeebAsm default of `&FF`).""",
 )
@@ -18987,7 +18987,7 @@ d.index_base(
     0xC200,
     "hazel_fcb_addr_lo",
     description="""FCB parallel array (16 entries): file position byte 0 (low).
-Indexed by channel `0..15`; cleared by [`alloc_fcb_slot`](address:B8D1) on FCB allocation.""",
+Indexed by channel `0..15`; cleared by [`alloc_fcb_slot`](label:alloc_fcb_slot) on FCB allocation.""",
     length=16,
     group="hazel",
 )
@@ -19012,7 +19012,7 @@ d.index_base(
     0xC230,
     "hazel_fcb_slot_attr",
     description="""FCB parallel array (16 entries): slot occupancy + channel attribute.
-Tested for zero by [`alloc_fcb_slot`](address:B8D1) as the slot-free check; set non-zero on allocation.""",
+Tested for zero by [`alloc_fcb_slot`](label:alloc_fcb_slot) as the slot-free check; set non-zero on allocation.""",
     length=16,
     group="hazel",
 )
@@ -19073,7 +19073,7 @@ d.index_base(0xC2B8, "hazel_fcb_flags", group="hazel")
 d.label(
     0xC2C8,
     "hazel_cur_fcb_index",
-    description="Current FCB index used by the FCB-scan loop in [`process_all_fcbs`](address:BB68). Followed by the channel attribute / reference, byte-counter, buffer pointer and a small block of transfer-state scratch bytes used during file I/O.",
+    description="Current FCB index used by the FCB-scan loop in [`process_all_fcbs`](label:process_all_fcbs). Followed by the channel attribute / reference, byte-counter, buffer pointer and a small block of transfer-state scratch bytes used during file I/O.",
     length=1,
     group="hazel",
     access="rw",
@@ -19090,7 +19090,7 @@ d.label(0xC2CC, "hazel_buf_addr_hi")
 d.label(
     0xC2CD,
     "hazel_sentinel_cd",
-    description="Sentinel/scratch byte at HAZEL+&CD, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68).",
+    description="Sentinel/scratch byte at HAZEL+&CD, used by the FCB-scan loop in [`process_all_fcbs`](label:process_all_fcbs).",
     length=1,
     group="hazel",
     access="rw",
@@ -19099,7 +19099,7 @@ d.label(
 d.label(
     0xC2CE,
     "hazel_sentinel_ce",
-    description="Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in [`process_all_fcbs`](address:BB68).",
+    description="Sentinel/scratch byte at HAZEL+&CE, used by the FCB-scan loop in [`process_all_fcbs`](label:process_all_fcbs).",
     length=1,
     group="hazel",
     access="rw",
@@ -19332,7 +19332,7 @@ d.subroutine(
     title="Seed TX scout from the TX control block and dispatch on type",
     description="""Copies the destination station and network from the TX
 control block (`(nmi_tx_block)`) into the TX scout buffer
-([`tx_dst_stn`](address:0D20) / [`tx_dst_net`](address:0D21)), then reads
+([`tx_dst_stn`](label:tx_dst_stn) / [`tx_dst_net`](label:tx_dst_net)), then reads
 the TXCB control byte: bit 7 set selects `tx_imm_op_setup` (an immediate
 operation), bit 7 clear falls to `tx_bad_ctrl_error`. Three callers in
 the TX-start paths.""",
@@ -19353,7 +19353,7 @@ d.subroutine(
     "print_space_line",
     title="Print the 'Space' status label",
     description="""Emits the inline string `"Space"` + `CR` via
-[`print_inline`](address:926A); the `&EA` (`NOP`) terminator resumes on
+[`print_inline`](label:print_inline); the `&EA` (`NOP`) terminator resumes on
 the trailing `RTS`. Called from the `*STATUS` / free-space report.""",
 )
 
@@ -19362,7 +19362,7 @@ d.subroutine(
     "tx_calc_transfer",
     title="Calculate transfer size; handle Tube and shadow buffers",
     description="""Prepares the buffer-transfer for a completed receive.
-Clears decimal mode, then seeds [`escapable`](address:0097) from
+Clears decimal mode, then seeds [`escapable`](label:escapable) from
 [`ACCCON`](address:FE34) with the transfer-mode bit set. Inspects
 `RXCB[6..7]` (buffer end address byte 2 and high) to classify the buffer:
 
@@ -19371,9 +19371,9 @@ Clears decimal mode, then seeds [`escapable`](address:0097) from
 | Tube (`RXCB[7]=&FF`, `RXCB[6]` in `[&FE, &FF]`) | if shadow RAM is enabled (`ACCCON.E`), also set the shadow bit in `escapable`; then compute the 4-byte transfer size by subtracting `RXCB[8..&B]` (start) from `RXCB[4..7]` (end) |
 | Non-Tube | branch to `fallback_calc_transfer` for the 1-byte size subtraction |
 
-Three callers: [`scout_complete`](address:8114) (`&819D`),
-[`rx_imm_machine_type`](address:84C7) (`&84D4`),
-[`tx_ctrl_proc`](address:8769) (`&87A4`).""",
+Three callers: [`scout_complete`](label:scout_complete) (`&819D`),
+[`rx_imm_machine_type`](label:rx_imm_machine_type) (`&84D4`),
+[`tx_ctrl_proc`](label:tx_ctrl_proc) (`&87A4`).""",
     on_entry={"y": "0 -- caller convention"},
     on_exit={"a": "transfer status", "c": "set if Tube/shadow address handled, clear otherwise"},
 )
@@ -19515,8 +19515,8 @@ d.label(0xB62B, "poll_load_server")
 d.index_base(0x8A23, "svc_dispatch_lo")
 d.banner(0x8A23, title="svc_dispatch low-byte table (51 entries)",
     description="""Low-byte half of the `PHA`/`PHA`/`RTS` dispatch table read by
-[`svc_dispatch`](address:8E79) as `LDA &8A23,X`. Paired with the high-byte
-half at [`svc_dispatch_hi`](address:8A56). Index 0 is an unused placeholder;
+[`svc_dispatch`](label:svc_dispatch) as `LDA &8A23,X`. Paired with the high-byte
+half at [`svc_dispatch_hi`](label:svc_dispatch_hi). Index 0 is an unused placeholder;
 indices 1..50 cover service handlers, language replies, FSCV reasons, FS
 replies and net-handle / OSWORD &13 trampolines. Per-entry inline comments
 give each slot's dispatch.""")
@@ -19529,12 +19529,12 @@ d.index_base(0xA9C8, "osword_13_dispatch_lo")
 d.banner(0xA9C8, title="OSWORD &13 dispatch low-byte table (18 entries)",
     description="""Low-byte half of the OSWORD &13 sub-reason `PHA`/`PHA`/`RTS`
 dispatch, read as `LDA &A9C8,X`; paired with
-[`osword_13_dispatch_hi`](address:A9DA).""")
+[`osword_13_dispatch_hi`](label:osword_13_dispatch_hi).""")
 d.index_base(0xAD40, "netv_dispatch_lo")
 d.banner(0xAD40, title="NETV reason-code dispatch low-byte table (9 entries)",
     description="""Low-byte half of the NETV reason-code `PHA`/`PHA`/`RTS`
 dispatch, read as `LDA &AD40,X`; paired with
-[`netv_dispatch_hi`](address:AD49).""")
+[`netv_dispatch_hi`](label:netv_dispatch_hi).""")
 d.comment(0xB10C, "Index 5: threshold 39", align=Align.INLINE)
 d.comment(0xB10D, "Index 6: threshold 49", align=Align.INLINE)
 d.comment(0xB110, "Index 9: threshold 79", align=Align.INLINE)

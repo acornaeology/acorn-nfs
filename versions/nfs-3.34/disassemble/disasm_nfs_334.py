@@ -108,13 +108,13 @@ d.subroutine(
 2. Read R2 data (flush any pending byte).
 3. Send `&00` via R2, then error number from (`brk_ptr`),0.
 4. Loop sending error string bytes via R2 until zero terminator.
-5. Fall through to [`tube_reset_stack`](address:0032) → [`tube_main_loop`](address:003A).
+5. Fall through to [`tube_reset_stack`](label:tube_reset_stack) → [`tube_main_loop`](label:tube_main_loop).
 
 The main loop continuously polls R1 for `WRCH` requests (forwarded
 to `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for
 command bytes (dispatched via the 14-entry
-[`tube_dispatch_table`](address:0500)). The R2 command byte is stored
-at [`tube_dispatch_ptr_lo`](address:0055) (self-modifying the
+[`tube_dispatch_table`](label:tube_dispatch_table)). The R2 command byte is stored
+at [`tube_dispatch_ptr_lo`](label:tube_dispatch_ptr_lo) (self-modifying the
 `JMP (tube_dispatch_table)` indirect low byte) before dispatch.""",
 )
 
@@ -340,17 +340,17 @@ Layout:
 
 | Addr    | Role |
 |---------|------|
-| `&0400` | `JMP` to [`tube_begin`](address:0473) (BEGIN — CLI parser / startup entry) |
-| `&0403` | `JMP` to [`tube_escape_check`](address:06E2) |
-| `&0406` | [`tube_addr_claim`](address:0406) — Tube address claim (ADRR protocol) |
-| `&0414` | [`tube_post_init`](address:0414) — clear claimed-address state to `&80` |
-| `&0426` | [`setup_data_transfer`](address:0426) — data transfer setup (SENDW), `&0426`–`&0472` |
-| `&0473` | [`tube_begin`](address:0473) — startup entry, sends ROM contents to Tube |
-| `&047A` | [`tube_init_reloc`](address:047A) — extract relocation address from ROM |
-| `&04E0` | [`tube_setup_transfer`](address:04E0) — claim Tube and start transfer |
-| `&04E7` | [`tube_rdch_handler`](address:04E7) — RDCHV target |
-| `&04EF` | [`tube_restore_regs`](address:04EF) — restore X, Y; dispatch entry 6 |
-| `&04F7` | [`tube_read_r2`](address:04F7) — poll R2 status, read data byte to `A` |""",
+| `&0400` | `JMP` to [`tube_begin`](label:tube_begin) (BEGIN — CLI parser / startup entry) |
+| `&0403` | `JMP` to [`tube_escape_check`](label:tube_escape_check) |
+| `&0406` | [`tube_addr_claim`](label:tube_addr_claim) — Tube address claim (ADRR protocol) |
+| `&0414` | [`tube_post_init`](label:tube_post_init) — clear claimed-address state to `&80` |
+| `&0426` | [`setup_data_transfer`](label:setup_data_transfer) — data transfer setup (SENDW), `&0426`–`&0472` |
+| `&0473` | [`tube_begin`](label:tube_begin) — startup entry, sends ROM contents to Tube |
+| `&047A` | [`tube_init_reloc`](label:tube_init_reloc) — extract relocation address from ROM |
+| `&04E0` | [`tube_setup_transfer`](label:tube_setup_transfer) — claim Tube and start transfer |
+| `&04E7` | [`tube_rdch_handler`](label:tube_rdch_handler) — RDCHV target |
+| `&04EF` | [`tube_restore_regs`](label:tube_restore_regs) — restore X, Y; dispatch entry 6 |
+| `&04F7` | [`tube_read_r2`](label:tube_read_r2) — poll R2 status, read data byte to `A` |""",
 )
 
 
@@ -358,7 +358,7 @@ d.comment(0x0400, "JMP to BEGIN startup entry", align=Align.INLINE)
 d.label(0x0403, "tube_escape_entry")
 
 d.entry(0x0403)
-d.comment(0x0403, "`JMP` to [`tube_escape_check`](address:06E2)", align=Align.INLINE)
+d.comment(0x0403, "`JMP` to [`tube_escape_check`](label:tube_escape_check)", align=Align.INLINE)
 d.label(0x0406, "tube_addr_claim")
 
 d.entry(0x0406)
@@ -556,21 +556,21 @@ Layout:
 | Range            | Role |
 |------------------|------|
 | `&0500`–`&051B`  | 14-entry handler dispatch table (low / high address pairs) |
-| `&051C`          | [`tube_wrch_handler`](address:051C) — WRCHV target |
-| `&051F`          | [`tube_send_and_poll`](address:051F) — send byte via R2, poll for reply |
-| `&0527`          | [`tube_poll_r1_wrch`](address:0527) — service R1 WRCH while waiting for R2 |
-| `&053D`          | [`tube_release_return`](address:053D) — restore registers and `RTS` |
-| `&0543`          | [`tube_osbput`](address:0543) — write byte to file |
-| `&0550`          | [`tube_osbget`](address:0550) — read byte from file |
-| `&055B`          | [`tube_osrdch`](address:055B) — read character |
-| `&0569`          | [`tube_osfind`](address:0569) — open file |
-| `&0580`          | [`tube_osfind_close`](address:0580) — close file (`A=0`) |
-| `&058C`          | [`tube_osargs`](address:058C) — file argument read / write |
-| `&05B1`          | [`tube_read_string`](address:05B1) — read CR-terminated string into `&0700` |
-| `&05C5`          | [`tube_oscli`](address:05C5) — execute `*` command |
-| `&05CB`          | [`tube_reply_ack`](address:05CB) — send `&7F` acknowledge |
-| `&05CD`          | [`tube_reply_byte`](address:05CD) — send byte and return to main loop |
-| `&05D8`          | [`tube_osfile`](address:05D8) — whole-file operation |""",
+| `&051C`          | [`tube_wrch_handler`](label:tube_wrch_handler) — WRCHV target |
+| `&051F`          | [`tube_send_and_poll`](label:tube_send_and_poll) — send byte via R2, poll for reply |
+| `&0527`          | [`tube_poll_r1_wrch`](label:tube_poll_r1_wrch) — service R1 WRCH while waiting for R2 |
+| `&053D`          | [`tube_release_return`](label:tube_release_return) — restore registers and `RTS` |
+| `&0543`          | [`tube_osbput`](label:tube_osbput) — write byte to file |
+| `&0550`          | [`tube_osbget`](label:tube_osbget) — read byte from file |
+| `&055B`          | [`tube_osrdch`](label:tube_osrdch) — read character |
+| `&0569`          | [`tube_osfind`](label:tube_osfind) — open file |
+| `&0580`          | [`tube_osfind_close`](label:tube_osfind_close) — close file (`A=0`) |
+| `&058C`          | [`tube_osargs`](label:tube_osargs) — file argument read / write |
+| `&05B1`          | [`tube_read_string`](label:tube_read_string) — read CR-terminated string into `&0700` |
+| `&05C5`          | [`tube_oscli`](label:tube_oscli) — execute `*` command |
+| `&05CB`          | [`tube_reply_ack`](label:tube_reply_ack) — send `&7F` acknowledge |
+| `&05CD`          | [`tube_reply_byte`](label:tube_reply_byte) — send byte and return to main loop |
+| `&05D8`          | [`tube_osfile`](label:tube_osfile) — whole-file operation |""",
 )
 
 
@@ -749,24 +749,24 @@ d.subroutine(
     "tube_code_page6",
     title="Tube host code page 6 — reference: NFS13 (GBPB-ESCA)",
     description="""Copied from ROM at [`reloc_p4_src`](address:934C)+`&200` during init.
-`&0600`–`&0601` is the tail of [`tube_osfile`](address:05D8) (`BEQ` to
-[`tube_reply_byte`](address:05CD) when done).
+`&0600`–`&0601` is the tail of [`tube_osfile`](label:tube_osfile) (`BEQ` to
+[`tube_reply_byte`](label:tube_reply_byte) when done).
 
 Layout:
 
 | Addr    | Role |
 |---------|------|
-| `&0602` | [`tube_osgbpb`](address:0602) — multi-byte file I/O |
-| `&0626` | [`tube_osbyte_short`](address:0626) — 2-param `OSBYTE` (returns X) |
-| `&063B` | [`tube_osbyte_long`](address:063B) — 3-param `OSBYTE` (returns carry+Y+X) |
-| `&065D` | [`tube_osword`](address:065D) — variable-length `OSWORD` (buffer at `&0130`) |
-| `&06A3` | [`tube_osword_rdln`](address:06A3) — `OSWORD 0` (read line, 5-byte params) |
-| `&06BB` | [`tube_rdln_send_line`](address:06BB) — send input line from `&0700` |
-| `&06D0` | [`tube_send_r2`](address:06D0) — poll R2 status, write `A` to R2 data |
-| `&06D9` | [`tube_send_r4`](address:06D9) — poll R4 status, write `A` to R4 data |
-| `&06E2` | [`tube_escape_check`](address:06E2) — check `&FF`, forward escape to R1 |
-| `&06E8` | [`tube_event_handler`](address:06E8) — EVNTV: forward event (A, X, Y) via R1 |
-| `&06F7` | [`tube_send_r1`](address:06F7) — poll R1 status, write `A` to R1 data |""",
+| `&0602` | [`tube_osgbpb`](label:tube_osgbpb) — multi-byte file I/O |
+| `&0626` | [`tube_osbyte_short`](label:tube_osbyte_short) — 2-param `OSBYTE` (returns X) |
+| `&063B` | [`tube_osbyte_long`](label:tube_osbyte_long) — 3-param `OSBYTE` (returns carry+Y+X) |
+| `&065D` | [`tube_osword`](label:tube_osword) — variable-length `OSWORD` (buffer at `&0130`) |
+| `&06A3` | [`tube_osword_rdln`](label:tube_osword_rdln) — `OSWORD 0` (read line, 5-byte params) |
+| `&06BB` | [`tube_rdln_send_line`](label:tube_rdln_send_line) — send input line from `&0700` |
+| `&06D0` | [`tube_send_r2`](label:tube_send_r2) — poll R2 status, write `A` to R2 data |
+| `&06D9` | [`tube_send_r4`](label:tube_send_r4) — poll R4 status, write `A` to R4 data |
+| `&06E2` | [`tube_escape_check`](label:tube_escape_check) — check `&FF`, forward escape to R1 |
+| `&06E8` | [`tube_event_handler`](label:tube_event_handler) — EVNTV: forward event (A, X, Y) via R1 |
+| `&06F7` | [`tube_send_r1`](label:tube_send_r1) — poll R1 status, write `A` to R1 data |""",
 )
 
 d.comment(0x0600, "OSGBPB done: return to main loop", align=Align.INLINE)
@@ -1140,7 +1140,7 @@ d.index_base(0x8014, "error_offsets")
 d.banner(
     0x8014,
     title="Error-message offset table (9 entries)",
-    description="""Each byte is a Y offset into [`error_msg_table`](address:84AF).
+    description="""Each byte is a Y offset into [`error_msg_table`](label:error_msg_table).
 Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""",
@@ -1189,8 +1189,8 @@ d.subroutine(
     title="Dispatch table: handler-address low bytes (37 entries)",
     description="""Each entry stores the low byte of a handler address minus 1,
 for use with the `PHA`/`PHA`/`RTS` dispatch trick at
-[`dispatch`](address:809F).
-See [`dispatch_0_hi`](address:8045) for the corresponding high bytes.
+[`dispatch`](label:dispatch).
+See [`dispatch_0_hi`](label:dispatch_0_hi) for the corresponding high bytes.
 
 Five callers share this table via different Y base offsets:
 
@@ -1214,9 +1214,9 @@ d.label(0x8045, "dispatch_0_hi")
 d.comment(
     0x8045,
     """Dispatch table: high bytes of `(handler_address − 1)`.
-Paired with [`dispatch_0_lo`](address:8021). Together they form a table
+Paired with [`dispatch_0_lo`](label:dispatch_0_lo). Together they form a table
 of 37 handler addresses, used via the `PHA`/`PHA`/`RTS` trick at
-[`dispatch`](address:809F).""",
+[`dispatch`](label:dispatch).""",
 )
 d.subroutine(
     0x8069,
@@ -1224,7 +1224,7 @@ d.subroutine(
     title="*NET command dispatcher",
     description="""Parses the character after `*NET` as `'1'`–`'4'`, maps to dispatch
 indices 33–36 via base offset `Y=&20`, and dispatches via
-[`dispatch`](address:809F). Characters outside `'1'`–`'4'` fall through
+[`dispatch`](label:dispatch). Characters outside `'1'`–`'4'` fall through
 to `return_1` (`RTS`).
 
 These are internal sub-commands used only by the ROM itself, not
@@ -1234,10 +1234,10 @@ not match; these are reached only via `OSCLI` calls within the ROM.
 
 | Sub-cmd | Handler | Role |
 |---------|---------|------|
-| `*NET1` | [`net_1_read_handle`](address:8DAF) | read file handle from received packet |
-| `*NET2` | [`net_2_read_handle_entry`](address:8DC9) | read handle entry from workspace |
-| `*NET3` | [`net_3_close_handle`](address:8DDF) | close handle / mark as unused |
-| `*NET4` | [`net_4_resume_remote`](address:8DF2) | resume after remote operation |""",
+| `*NET1` | [`net_1_read_handle`](label:net_1_read_handle) | read file handle from received packet |
+| `*NET2` | [`net_2_read_handle_entry`](label:net_2_read_handle_entry) | read handle entry from workspace |
+| `*NET3` | [`net_3_close_handle`](label:net_3_close_handle) | close handle / mark as unused |
+| `*NET4` | [`net_4_resume_remote`](label:net_4_resume_remote) | resume after remote operation |""",
 )
 d.comment(0x8069, "Read command character following *NET", align=Align.INLINE)
 d.comment(0x806B, "Subtract ASCII '1' to get 0-based command index", align=Align.INLINE)
@@ -1255,13 +1255,13 @@ d.subroutine(
     "forward_star_cmd",
     title="Forward unrecognised * command to fileserver (COMERR)",
     description="""Copies command text from `(fs_crc_lo)` to
-[`fs_cmd_data`](address:0F05)`+` via `copy_filename`, prepares an FS
+[`fs_cmd_data`](label:fs_cmd_data)`+` via `copy_filename`, prepares an FS
 command with function code 0, and sends it to the fileserver to
 request decoding. The server returns a command code indicating what
 action to take (e.g. 4 = INFO, 7 = DIR, 9 = LIB, 5 = load-as-command).
 This mechanism allows the fileserver to extend the client's command
 set without ROM updates. Called from the `I.` and catch-all entries
-in the [`fs_cmd_match_table`](address:8BD6), and from FSCV 2 / 3 / 4
+in the [`fs_cmd_match_table`](label:fs_cmd_match_table), and from FSCV 2 / 3 / 4
 indirectly. If the CSD handle is zero (not logged in), returns without
 sending.""",
 )
@@ -1277,7 +1277,7 @@ d.subroutine(
     description="""Entered via the extended vector table when the MOS calls FSCV.
 Stores `A`/`X`/`Y` via `save_fscv_args`, compares `A` (function code)
 against 8, and dispatches codes 0–7 via the shared
-[`dispatch_0_lo`](address:8021) table with base offset `Y=&12` (table
+[`dispatch_0_lo`](label:dispatch_0_lo) table with base offset `Y=&12` (table
 indices 19–26).
 
 Function codes:
@@ -1358,7 +1358,7 @@ d.subroutine(
     "service_handler",
     title="Service-call handler",
     description="""Entry point for MOS service-call dispatch — the `JMP` target
-from [`service_entry`](address:8003).
+from [`service_entry`](label:service_entry).
 
 Intercepts three special service calls before normal dispatch:
 
@@ -1369,7 +1369,7 @@ Intercepts three special service calls before normal dispatch:
 | `&12` (`Y=5`) | Select NFS as active filing system |
 
 All other service calls dispatch via
-[`dispatch_service`](address:8127).""",
+[`dispatch_service`](label:dispatch_service).""",
 )
 
 
@@ -2051,7 +2051,7 @@ d.subroutine(
     title="Initialise TX control block at &00C0 from template",
     description="""Copies 12 bytes from tx_ctrl_template (&8334) to &00C0.
 For the first 2 bytes (Y=0,1), also copies the fileserver
-station / network from [`fs_server_stn`](address:0E00) / [`fs_server_net`](address:0E01) to [`txcb_dest`](address:00C2) (2 bytes).
+station / network from [`fs_server_stn`](label:fs_server_stn) / [`fs_server_net`](label:fs_server_net) to [`txcb_dest`](label:txcb_dest) (2 bytes).
 The template sets up: control=&80, port=&99 (FS command port),
 command data length=&0F, plus padding bytes.""",
 )
@@ -2080,7 +2080,7 @@ d.subroutine(
     title="TX control block template (TXTAB, 12 bytes)",
     description="""12-byte template copied to &00C0 by init_tx_ctrl. Defines the
 TX control block for FS commands: control flag, port, station/
-network, and data buffer pointers ([`fs_cmd_type`](address:0F00)–`&0FFF`). The 4-byte
+network, and data buffer pointers ([`fs_cmd_type`](label:fs_cmd_type)–`&0FFF`). The 4-byte
 Econet addresses use only the low 2 bytes; upper bytes are &FF.""",
 )
 d.byte(0x8334, 1)
@@ -2330,7 +2330,7 @@ d.comment(0x83ED, "Convert SPOOL handle to bitmask", align=Align.INLINE)
 d.comment(0x83F0, "Compare SPOOL mask with file mask", align=Align.INLINE)
 d.comment(0x83F2, "Not SPOOL file: dispatch FS error", align=Align.INLINE)
 d.comment(0x83F4, "Load '*SP.' command string low", align=Align.INLINE)
-d.comment(0x83F6, "Y=`&84`: high byte of [`sp_dot_string`](address:8444)", align=Align.INLINE)
+d.comment(0x83F6, "Y=`&84`: high byte of [`sp_dot_string`](label:sp_dot_string)", align=Align.INLINE)
 d.comment(0x83F8, "Close SPOOL via `*SP.`", align=Align.INLINE)
 
 d.label(0x83FB, "dispatch_fs_error")
@@ -2562,12 +2562,12 @@ block at `&0100`.
 | `&A5` | No reply       |
 
 Consumed via a two-step lookup driven by
-[`nlistn`](address:8428) / [`nlisne`](address:842A): the TXCB
+[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB
 status byte is masked with `AND #&07` to give a 3-bit slot,
 which selects a `Y` offset from
-[`error_offsets`](address:8014); the entry at
+[`error_offsets`](label:error_offsets); the entry at
 `error_msg_table + Y` is then copied byte-by-byte to `&0101+`
-by [`copy_error_message`](address:8435) until the trailing NUL
+by [`copy_error_message`](label:copy_error_message) until the trailing NUL
 terminates the copy and the assembled `BRK` block at `&0100`
 is executed.""",
 )
@@ -5249,7 +5249,7 @@ d.subroutine(
     "econet_tx_rx",
     title="Econet transmit/receive handler",
     description="""A=0: Initialise TX control block from ROM template at &8310
-     (zero entries substituted from NMI workspace [`nmi_sub_table`](address:0DE6)), transmit
+     (zero entries substituted from NMI workspace [`nmi_sub_table`](label:nmi_sub_table)), transmit
      it, set up RX control block, and receive reply.
 A>=1: Handle transmit result (branch to cleanup at &8F48).""",
     on_entry={"a": "0=set up and transmit, >=1=handle TX result"},
