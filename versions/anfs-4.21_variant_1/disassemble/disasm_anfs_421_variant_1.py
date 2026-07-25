@@ -2682,7 +2682,7 @@ d.comment(0x84C0, "Buffer length lo = &FC", align=Align.INLINE)
 d.comment(0x84C2, "Set buffer length lo", align=Align.INLINE)
 d.comment(0x84C4, "Buffer start lo = &EE", align=Align.INLINE)
 d.comment(0x84C6, "Set port buffer lo", align=Align.INLINE)
-d.comment(0x84C8, "Buffer hi = &88 (response goes to &88EE area)", align=Align.INLINE)
+d.comment(0x84C8, "Buffer hi = &88 (with lo=&EE, response buffer at page &88)", align=Align.INLINE)
 d.comment(0x84CA, "Set port buffer hi", align=Align.INLINE)
 d.subroutine(
     0x84CE,
@@ -3365,7 +3365,7 @@ d.subroutine(
    12..15 from the block pointed to by
    [`nmi_tx_block`](label:nmi_tx_block)) into `tx_addr_base,Y` --
    `tx_addr_base+&0C..&0F` is the 4-byte transfer-length
-   workspace at [`tx_data_len`](label:tx_data_len)..&0D2D.
+   workspace at [`tx_data_len`](label:tx_data_len) (4 bytes).
 3. Falls through to [`tx_ctrl_proc`](label:tx_ctrl_proc) which
    checks the loop boundary, then continues to
    [`tx_calc_transfer`](label:tx_calc_transfer) and `tx_ctrl_exit`.""",

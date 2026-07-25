@@ -692,7 +692,7 @@
       "addr": 34647,
       "name": "tx_ctrl_store_and_add",
       "title": "TX ctrl: store status and add transfer address",
-      "description": "Shared path for PEEK (`A=3`) and POKE (`A=2`):\n\n1. Stores `A` as the scout status byte at\n   [`rx_port`](label:rx_port).\n2. Performs a 4-byte addition with carry propagation. For\n   `Y=&0C..&0F` it adds `(nmi_tx_block),Y` (i.e. TXCB bytes\n   12..15 from the block pointed to by\n   [`nmi_tx_block`](label:nmi_tx_block)) into `tx_addr_base,Y` --\n   `tx_addr_base+&0C..&0F` is the 4-byte transfer-length\n   workspace at [`tx_data_len`](label:tx_data_len)..&0D2D.\n3. Falls through to [`tx_ctrl_proc`](label:tx_ctrl_proc) which\n   checks the loop boundary, then continues to\n   [`tx_calc_transfer`](label:tx_calc_transfer) and `tx_ctrl_exit`.",
+      "description": "Shared path for PEEK (`A=3`) and POKE (`A=2`):\n\n1. Stores `A` as the scout status byte at\n   [`rx_port`](label:rx_port).\n2. Performs a 4-byte addition with carry propagation. For\n   `Y=&0C..&0F` it adds `(nmi_tx_block),Y` (i.e. TXCB bytes\n   12..15 from the block pointed to by\n   [`nmi_tx_block`](label:nmi_tx_block)) into `tx_addr_base,Y` --\n   `tx_addr_base+&0C..&0F` is the 4-byte transfer-length\n   workspace at [`tx_data_len`](label:tx_data_len) (4 bytes).\n3. Falls through to [`tx_ctrl_proc`](label:tx_ctrl_proc) which\n   checks the loop boundary, then continues to\n   [`tx_calc_transfer`](label:tx_calc_transfer) and `tx_ctrl_exit`.",
       "on_entry": {
         "a": "scout status (3=PEEK, 2=POKE)"
       },

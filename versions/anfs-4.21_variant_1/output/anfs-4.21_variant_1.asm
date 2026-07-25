@@ -1940,7 +1940,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta port_buf_len                                                  ; 84c2: 85 a2       ..       ; Set buffer length lo
     lda #&ee                                                          ; 84c4: a9 ee       ..       ; Buffer start lo = &EE
     sta open_port_buf                                                 ; 84c6: 85 a4       ..       ; Set port buffer lo
-    lda #&88                                                          ; 84c8: a9 88       ..       ; Buffer hi = &88 (response goes to &88EE area)
+    lda #&88                                                          ; 84c8: a9 88       ..       ; Buffer hi = &88 (with lo=&EE, response buffer at page &88)
     sta open_port_buf_hi                                              ; 84ca: 85 a5       ..       ; Set port buffer hi
     bne set_tx_reply_flag                                             ; 84cc: d0 12       ..    
 ; ***************************************************************************************
@@ -2500,7 +2500,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; 2. Performs a 4-byte addition with carry propagation. For Y=&0C..&0F it adds
 ;    (nmi_tx_block),Y (i.e. TXCB bytes 12..15 from the block pointed to by nmi_tx_block)
 ;    into tx_addr_base,Y -- tx_addr_base+&0C..&0F is the 4-byte transfer-length workspace
-;    at tx_data_len..&0D2D.
+;    at tx_data_len (4 bytes).
 ; 3. Falls through to tx_ctrl_proc which checks the loop boundary, then continues to
 ;    tx_calc_transfer and tx_ctrl_exit.
 ;
