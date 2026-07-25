@@ -4882,17 +4882,17 @@ d.comment(0x8D4D, "CR terminator for BOOT string", align=Align.INLINE)
 d.comment(0x8D4E, '"E.!BOOT" exec boot command', align=Align.INLINE)
 
 
-d.subroutine(
+d.banner(
     0x8D55,
-    "boot_option_offsets",
     title="Boot option → OSCLI string offset table",
     description="""Five bytes: the first byte (&0D) is the bare-CR target for boot
 option 0; bytes 1-4 are the offset table indexed by boot option
 (0-3). Each offset is the low byte of a pointer into page &8D.
-The code reads from boot_option_offsets+1 (&8D68) via
-LDX l8d56,Y with Y=boot_option, then LDY #&8D, JMP oscli.
+The code reads from boot_string_offsets via
+LDX boot_string_offsets,Y with Y=boot_option, then LDY #&8D, JMP oscli.
 See boot_cmd_strings for the target strings.""",
 )
+d.label(0x8D55, "boot_option_offsets")
 d.label(0x8D56, "boot_string_offsets")
 
 d.comment(0x8D56, "Opt 0 (Off): bare CR at &8D55", align=Align.INLINE)
@@ -8935,6 +8935,20 @@ d.char_literal(0x8E86)
 d.char_literal(0x8F9D)
 d.char_literal(0x8FC6)
 d.char_literal(0x90E1)
+
+# Semantic names for auto-labelled workspace bases and code points (NFS
+# context; NFS RAM layout differs from ANFS).
+d.index_base(0x0D1E, "tx_addr_base", group="ram_workspace")
+d.index_base(0x0D58, "exec_addr_lo", group="ram_workspace")
+d.label(0x0D59, "exec_addr_hi")
+d.label(0x0D1C, "nmi_shim_opcode")
+d.index_base(0x7DFD, "tx_ptr_sub_base", group="idx_base")
+d.label(0x0701, "sr_int_handler")
+d.label(0x9ABE, "enter_data_rx_path")
+d.label(0x9C15, "clock_detect_write_cr2")
+d.label(0x9C1F, "reenable_nmis")
+d.label(0x9C58, "clock_detected")
+
 
 ir = d.disassemble()
 output = str(

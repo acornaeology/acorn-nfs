@@ -1286,13 +1286,7 @@
       "addr": 36169,
       "name": "boot_cmd_strings",
       "title": "Boot command strings for auto-boot",
-      "description": "The four boot options use OSCLI strings at offsets within page &8D.\nThe offset table at boot_option_offsets+1 is indexed by\nthe boot option value (0-3); each byte is the low byte of the\nstring address, with the page high byte loaded separately:\n  Option 0 (Off):  offset &55 \u2192 boot_option_offsets = bare CR\n  Option 1 (Load): offset &46 \u2192 \"L.!BOOT\" (the bytes\n      &4C='L', &2E='.', &21='!' precede \"BOOT\" + CR at &8D4D)\n  Option 2 (Run):  offset &48 \u2192 boot_cmd_strings-1 = \"!BOOT\"\n  Option 3 (Exec): offset &4E \u2192 &8D4E = \"E.!BOOT\"\n\nThis is a classic BBC ROM space optimisation: the string data\noverlaps with other byte sequences to save space. The &0D byte\nat &8D55 terminates \"E.!BOOT\" AND doubles as the bare-CR\ncommand for boot option 0."
-    },
-    {
-      "addr": 36181,
-      "name": "boot_option_offsets",
-      "title": "Boot option \u2192 OSCLI string offset table",
-      "description": "Five bytes: the first byte (&0D) is the bare-CR target for boot\noption 0; bytes 1-4 are the offset table indexed by boot option\n(0-3). Each offset is the low byte of a pointer into page &8D.\nThe code reads from boot_option_offsets+1 (&8D68) via\nLDX l8d56,Y with Y=boot_option, then LDY #&8D, JMP oscli.\nSee boot_cmd_strings for the target strings.",
+      "description": "The four boot options use OSCLI strings at offsets within page &8D.\nThe offset table at boot_option_offsets+1 is indexed by\nthe boot option value (0-3); each byte is the low byte of the\nstring address, with the page high byte loaded separately:\n  Option 0 (Off):  offset &55 \u2192 boot_option_offsets = bare CR\n  Option 1 (Load): offset &46 \u2192 \"L.!BOOT\" (the bytes\n      &4C='L', &2E='.', &21='!' precede \"BOOT\" + CR at &8D4D)\n  Option 2 (Run):  offset &48 \u2192 boot_cmd_strings-1 = \"!BOOT\"\n  Option 3 (Exec): offset &4E \u2192 &8D4E = \"E.!BOOT\"\n\nThis is a classic BBC ROM space optimisation: the string data\noverlaps with other byte sequences to save space. The &0D byte\nat &8D55 terminates \"E.!BOOT\" AND doubles as the bare-CR\ncommand for boot option 0.",
       "fall_through": true
     },
     {
@@ -2212,6 +2206,13 @@
       "title": "Econet error message table (ERRTAB, 7 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
       "align": "before_label"
+    },
+    {
+      "addr": 36181,
+      "name": "boot_option_offsets",
+      "title": "Boot option \u2192 OSCLI string offset table",
+      "description": "Five bytes: the first byte (&0D) is the bare-CR target for boot\noption 0; bytes 1-4 are the offset table indexed by boot option\n(0-3). Each offset is the low byte of a pointer into page &8D.\nThe code reads from boot_string_offsets via\nLDX boot_string_offsets,Y with Y=boot_option, then LDY #&8D, JMP oscli.\nSee boot_cmd_strings for the target strings.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -2226,7 +2227,6 @@
     "tube_claim_flag": 20,
     "tube_claimed_id": 21,
     "zp_63": 95,
-    "l0063": 99,
     "escapable": 151,
     "need_release_tube": 152,
     "prot_flags": 153,
@@ -2324,7 +2324,7 @@
     "vdu_colours": 849,
     "vdu_cursor_edit": 853,
     "string_buf": 1792,
-    "l0701": 1793,
+    "sr_int_handler": 1793,
     "nmi_code_base": 3327,
     "nmi_shim_07": 3335,
     "nmi_jmp_lo": 3340,
@@ -2333,8 +2333,8 @@
     "install_nmi_handler": 3345,
     "nmi_rti": 3348,
     "nmi_shim_1a": 3354,
-    "l0d1c": 3356,
-    "l0d1e": 3358,
+    "nmi_shim_opcode": 3356,
+    "tx_addr_base": 3358,
     "tx_dst_stn": 3360,
     "tx_dst_net": 3361,
     "tx_src_stn": 3362,
@@ -2359,8 +2359,8 @@
     "tx_work_51": 3409,
     "tx_in_progress": 3410,
     "tx_work_57": 3415,
-    "l0d58": 3416,
-    "l0d59": 3417,
+    "exec_addr_lo": 3416,
+    "exec_addr_hi": 3417,
     "scout_status": 3420,
     "rx_extra_byte": 3421,
     "printer_buf_ptr": 3425,
@@ -2417,9 +2417,7 @@
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fs_error_buf": 4064,
-    "l4655": 18005,
-    "l7845": 30789,
-    "l7dfd": 32253,
+    "tx_ptr_sub_base": 32253,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -2628,6 +2626,14 @@
       ]
     },
     {
+      "addr": 3358,
+      "name": "tx_addr_base",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
       "addr": 3366,
       "name": "tx_data_start",
       "group": "ram_workspace",
@@ -2638,6 +2644,14 @@
     {
       "addr": 3393,
       "name": "rx_remote_addr",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 3416,
+      "name": "exec_addr_lo",
       "group": "ram_workspace",
       "access": [
         "b"
@@ -2703,6 +2717,14 @@
       "addr": 4064,
       "name": "fs_error_buf",
       "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 32253,
+      "name": "tx_ptr_sub_base",
+      "group": "idx_base",
       "access": [
         "b"
       ]
@@ -28208,27 +28230,49 @@
     {
       "addr": 36181,
       "bytes": [
-        13,
-        85,
-        70
+        13
       ],
       "labels": [
         "boot_option_offsets"
       ],
-      "sub_labels": {
-        "36182": [
-          "boot_string_offsets"
-        ]
-      },
-      "comment_inline": "Opt 0 (Off): bare CR at &8D55 Opt 1 (Load): L.!BOOT at &8D46",
+      "type": "byte",
+      "values": [
+        13
+      ]
+    },
+    {
+      "addr": 36182,
+      "bytes": [
+        85
+      ],
+      "labels": [
+        "boot_string_offsets"
+      ],
+      "comment_inline": "Opt 0 (Off): bare CR at &8D55",
       "xref_summaries": [
         "&8d56 used as index base 1 time by &8e4e"
       ],
-      "type": "code",
-      "mnemonic": "ora",
-      "operand": "l4655",
-      "target": 18005,
-      "target_label": "l4655"
+      "references": [
+        {
+          "addr": 36430,
+          "kind": "indexed"
+        }
+      ],
+      "type": "byte",
+      "values": [
+        85
+      ]
+    },
+    {
+      "addr": 36183,
+      "bytes": [
+        70
+      ],
+      "comment_inline": "Opt 1 (Load): L.!BOOT at &8D46",
+      "type": "byte",
+      "values": [
+        70
+      ]
     },
     {
       "addr": 36184,
@@ -28236,8 +28280,10 @@
         72
       ],
       "comment_inline": "Opt 2 (Run): !BOOT at boot_cmd_strings-1",
-      "type": "code",
-      "mnemonic": "pha"
+      "type": "byte",
+      "values": [
+        72
+      ]
     },
     {
       "addr": 36185,
@@ -28247,11 +28293,8 @@
         120
       ],
       "comment_inline": "Opt 3 (Exec): E.!BOOT at &8D4E",
-      "type": "code",
-      "mnemonic": "lsr",
-      "operand": "l7845",
-      "target": 30789,
-      "target_label": "l7845"
+      "type": "string",
+      "string": "NEx"
     },
     {
       "addr": 36188,
@@ -28260,11 +28303,11 @@
         99
       ],
       "comment_inline": "Boot string overlap: \"ec\" tail of \"Exec\"",
-      "type": "code",
-      "mnemonic": "adc",
-      "operand": "l0063",
-      "target": 99,
-      "target_label": "l0063"
+      "type": "byte",
+      "values": [
+        101,
+        99
+      ]
     },
     {
       "addr": 36190,
@@ -37295,9 +37338,9 @@
       ],
       "type": "code",
       "mnemonic": "sbc",
-      "operand": "l7dfd,x",
+      "operand": "tx_ptr_sub_base,x",
       "target": 32253,
-      "target_label": "l7dfd"
+      "target_label": "tx_ptr_sub_base"
     },
     {
       "addr": 37308,
@@ -46339,9 +46382,9 @@
       "comment_inline": "SR active: handle interrupt",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "l0701",
+      "operand": "sr_int_handler",
       "target": 1793,
-      "target_label": "l0701"
+      "target_label": "sr_int_handler"
     },
     {
       "addr": 1790,
@@ -53854,9 +53897,9 @@
       "comment_inline": "Store to exec address workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d58,y",
+      "operand": "exec_addr_lo,y",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39611,
@@ -53888,7 +53931,7 @@
         151
       ],
       "labels": [
-        "sub_c9abe"
+        "enter_data_rx_path"
       ],
       "sub_labels": {
         "39615": [
@@ -54730,9 +54773,9 @@
       "comment_inline": "Call remote JSR; RTS to tx_done_exit ORA opcode (dead code / data overlap)",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "(l0d58)",
+      "operand": "(exec_addr_lo)",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39760,
@@ -54764,9 +54807,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39765,
@@ -54778,9 +54821,9 @@
       "comment_inline": "A = remote address hi",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39768,
@@ -54823,9 +54866,9 @@
       "comment_inline": "X = remote address lo",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "l0d58",
+      "operand": "exec_addr_lo",
       "target": 3416,
-      "target_label": "l0d58"
+      "target_label": "exec_addr_lo"
     },
     {
       "addr": 39777,
@@ -54837,9 +54880,9 @@
       "comment_inline": "Y = remote address hi",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "l0d59",
+      "operand": "exec_addr_hi",
       "target": 3417,
-      "target_label": "l0d59"
+      "target_label": "exec_addr_hi"
     },
     {
       "addr": 39780,
@@ -55964,9 +56007,9 @@
       "comment_inline": "Self-modify NMI shim at &0D1C: disable",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "nmi_shim_opcode",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "nmi_shim_opcode"
     },
     {
       "addr": 39942,
@@ -56022,9 +56065,9 @@
       "comment_inline": "INACTIVE not set -- re-enable NMIs and loop",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "c9c1f",
+      "operand": "reenable_nmis",
       "target": 39967,
-      "target_label": "c9c1f"
+      "target_label": "reenable_nmis"
     },
     {
       "addr": 39952,
@@ -56059,7 +56102,7 @@
         254
       ],
       "labels": [
-        "c9c15"
+        "clock_detect_write_cr2"
       ],
       "comment_inline": "Write CR2: clear status, prepare TX",
       "xref_summaries": [
@@ -56111,9 +56154,9 @@
       "comment_inline": "CTS set -- clock hardware detected, start TX",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "c9c58",
+      "operand": "clock_detected",
       "target": 40024,
-      "target_label": "c9c58"
+      "target_label": "clock_detected"
     },
     {
       "addr": 39967,
@@ -56122,7 +56165,7 @@
         44
       ],
       "labels": [
-        "c9c1f"
+        "reenable_nmis"
       ],
       "comment_inline": "A=&2C: BIT opcode (re-enable NMI processing)",
       "xref_summaries": [
@@ -56148,9 +56191,9 @@
       "comment_inline": "Self-modify NMI shim at &0D1C: enable",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "nmi_shim_opcode",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "nmi_shim_opcode"
     },
     {
       "addr": 39972,
@@ -56536,7 +56579,7 @@
         192
       ],
       "labels": [
-        "c9c58"
+        "clock_detected"
       ],
       "comment_inline": "X=&C0: CR1 = AC | RX_RESET",
       "xref_summaries": [
@@ -56701,9 +56744,9 @@
       "comment_inline": "Self-modify NMI shim at &0D1C: enable",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "nmi_shim_opcode",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "nmi_shim_opcode"
     },
     {
       "addr": 40055,
@@ -56846,9 +56889,9 @@
       "comment_inline": "Look up handler address low from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "c9c15,y",
+      "operand": "clock_detect_write_cr2,y",
       "target": 39957,
-      "target_label": "c9c15"
+      "target_label": "clock_detect_write_cr2"
     },
     {
       "addr": 40084,
@@ -57030,9 +57073,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40114,
@@ -57066,9 +57109,9 @@
       "comment_inline": "Store updated address byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1e,y",
+      "operand": "tx_addr_base,y",
       "target": 3358,
-      "target_label": "l0d1e"
+      "target_label": "tx_addr_base"
     },
     {
       "addr": 40120,
@@ -61864,9 +61907,9 @@
       "comment_inline": "Self-modify NMI shim at &0D1C: disable",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0d1c",
+      "operand": "nmi_shim_opcode",
       "target": 3356,
-      "target_label": "l0d1c"
+      "target_label": "nmi_shim_opcode"
     },
     {
       "addr": 40866,

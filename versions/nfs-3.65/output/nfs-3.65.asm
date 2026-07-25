@@ -210,7 +210,7 @@ vdu_cursor_edit                        = &0355
 ; &0355 referenced 1 time by &92fa
 string_buf                             = &0700
 ; &0700 used as index base 2 times by &94ee, &95ec
-l0701                                  = &0701
+sr_int_handler                         = &0701
 ; &0701 referenced 1 time by &9661
 nmi_code_base                          = &0cff
 ; &0cff used as index base 1 time by &96bd
@@ -228,9 +228,9 @@ nmi_rti                                = &0d14
 ; &0d14 referenced 6 times by &9755, &9896, &98e2, &9d22, &9e25, &9e78
 nmi_shim_1a                            = &0d1a
 ; &0d1a used as index base 1 time by &9bdf
-l0d1c                                  = &0d1c
+nmi_shim_opcode                        = &0d1c
 ; &0d1c referenced 4 times by &9c03, &9c21, &9c74, &9f9f
-l0d1e                                  = &0d1e
+tx_addr_base                           = &0d1e
 ; &0d1e used as index base 2 times by &9caf, &9cb5
 tx_dst_stn                             = &0d20
 ; &0d20 referenced 5 times by &9b96, &9cc1, &9d96, &9dbe, &9ebf; also used as index base 2 times by &9d07, &9d0e
@@ -275,9 +275,9 @@ tx_work_51                             = &0d51
 tx_in_progress                         = &0d52
 tx_work_57                             = &0d57
 ; &0d57 referenced 2 times by &9680, &9b22
-l0d58                                  = &0d58
+exec_addr_lo                           = &0d58
 ; &0d58 referenced 3 times by &9b4d, &9b52, &9b5e; also used as index base 1 time by &9ab8
-l0d59                                  = &0d59
+exec_addr_hi                           = &0d59
 ; &0d59 referenced 2 times by &9b55, &9b61
 scout_status                           = &0d5c
 ; &0d5c referenced 5 times by &97db, &9ae8, &9ca8, &9cea, &9f3f
@@ -388,11 +388,7 @@ fs_error_flags                         = &0fdf
 ; &0fdf referenced 2 times by &8406, &8558
 fs_error_buf                           = &0fe0
 ; &0fe0 used as index base 1 time by &8443
-l4655                                  = &4655
-; &4655 referenced 1 time by &8d55
-l7845                                  = &7845
-; &7845 referenced 1 time by &8d59
-l7dfd                                  = &7dfd
+tx_ptr_sub_base                        = &7dfd
 ; &7dfd used as index base 1 time by &91b9
 reloc_p6_src                           = &9565
 ; &9565 used as index base 1 time by &815e
@@ -576,8 +572,6 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .zp_63
     bcc &008c                                                         ; 936d: 90 2b       .+ :005f[1]         ; A<&80: data transfer setup (SENDW)
     cmp #&c0                                                          ; 936f: c9 c0       .. :0061[1]         ; A>=&C0: new address claim from another host
-; &63 referenced 1 time by &8d5c
-.l0063
     bcs &007f                                                         ; 9371: b0 1a       .. :0063[1]         ; C=1: external claim, check ownership
     ora #&40                                                          ; 9373: 09 40       .@ :0065[1]         ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 9375: c5 15       .. :0067[1]         ; Is this for our currently-claimed address?
@@ -1365,7 +1359,7 @@ tube_page6_start = tube_poll_r2_result_branch+1
 ;     Y: parameter
     lda #4                                                            ; 965c: a9 04       .. :06f7[3]         ; A=4: SR interrupt bit mask
     bit system_via_ifr                                                ; 965e: 2c 4d fe    ,M. :06f9[3]        ; Test SR flag in VIA IFR
-    bne l0701                                                         ; 9661: d0 03       .. :06fc[3]         ; SR active: handle interrupt
+    bne sr_int_handler                                                ; 9661: d0 03       .. :06fc[3]         ; SR active: handle interrupt
     lda #5                                                            ; 9663: a9 05       .. :06fe[3]         ; A=5: NMI not for us
 
 
@@ -4835,15 +4829,18 @@ cmd_match_data = fs_cmd_match_table+1
 ;
 ; Five bytes: the first byte (&0D) is the bare-CR target for boot option 0; bytes 1-4 are
 ; the offset table indexed by boot option (0-3). Each offset is the low byte of a pointer
-; into page &8D. The code reads from boot_option_offsets+1 (&8D68) via LDX l8d56,Y with
-; Y=boot_option, then LDY #&8D, JMP oscli. See boot_cmd_strings for the target strings.
+; into page &8D. The code reads from boot_string_offsets via LDX boot_string_offsets,Y
+; with Y=boot_option, then LDY #&8D, JMP oscli. See boot_cmd_strings for the target
+; strings.
 .boot_option_offsets
+    equb &0d                                                          ; 8d55: 0d          .     
 ; &8d56 used as index base 1 time by &8e4e
-boot_string_offsets = boot_option_offsets+1
-    ora l4655                                                         ; 8d55: 0d 55 46    .UF      ; Opt 0 (Off): bare CR at &8D55  Opt 1 (Load): L.!BOOT at &8D46
-    pha                                                               ; 8d58: 48          H        ; Opt 2 (Run): !BOOT at boot_cmd_strings-1
-    lsr l7845                                                         ; 8d59: 4e 45 78    NEx      ; Opt 3 (Exec): E.!BOOT at &8D4E
-    adc l0063                                                         ; 8d5c: 65 63       ec       ; Boot string overlap: "ec" tail of "Exec"
+.boot_string_offsets
+    equb &55                                                          ; 8d56: 55          U        ; Opt 0 (Off): bare CR at &8D55
+    equb &46                                                          ; 8d57: 46          F        ; Opt 1 (Load): L.!BOOT at &8D46
+    equb &48                                                          ; 8d58: 48          H        ; Opt 2 (Run): !BOOT at boot_cmd_strings-1
+    equs "NEx"                                                        ; 8d59: 4e 45 78    NEx      ; Opt 3 (Exec): E.!BOOT at &8D4E
+    equb &65, &63                                                     ; 8d5c: 65 63       ec       ; Boot string overlap: "ec" tail of "Exec"
 ; &8d5e referenced 2 times by &87f3, &87f8
 .print_hex_bytes
     ldx #4                                                            ; 8d5e: a2 04       ..       ; X=4: print 4 hex bytes
@@ -6107,7 +6104,7 @@ boot_string_offsets = boot_option_offsets+1
 ; &91b7 used as index base 1 time by &9190
 .ctrl_block_template
     sta zp_ptr_lo                                                     ; 91b7: 85 00       ..       ; Alt-path only → Y=&6F
-    sbc l7dfd,x                                                       ; 91b9: fd fd 7d    ..}   
+    sbc tx_ptr_sub_base,x                                             ; 91b9: fd fd 7d    ..}   
     equb &fc                                                          ; 91bc: fc          .        ; → Y=&0D (main only)
     equb &ff                                                          ; 91bd: ff          .        ; → Y=&03 / Y=&75
     equb &ff                                                          ; 91be: ff          .        ; SKIP (main only)
@@ -7308,12 +7305,12 @@ boot_string_offsets = boot_option_offsets+1
 ; &9ab5 referenced 1 time by &9abc
 .copy_addr_loop
     lda rx_remote_addr,y                                              ; 9ab5: b9 41 0d    .A.      ; Load remote address byte
-    sta l0d58,y                                                       ; 9ab8: 99 58 0d    .X.      ; Store to exec address workspace
+    sta exec_addr_lo,y                                                ; 9ab8: 99 58 0d    .X.      ; Store to exec address workspace
     dey                                                               ; 9abb: 88          .        ; Next byte (descending)
     bpl copy_addr_loop                                                ; 9abc: 10 f7       ..       ; Loop until all 4 bytes copied
-.sub_c9abe
+.enter_data_rx_path
 ; &9abf used as index base 1 time by &9695
-svc5_dispatch_lo = sub_c9abe+1
+svc5_dispatch_lo = enter_data_rx_path+1
     jmp send_data_rx_ack                                              ; 9abe: 4c eb 97    L..      ; Enter common data-receive path  Svc 5 dispatch table low bytes
 ; ***************************************************************************************
 ; RX immediate: POKE setup
@@ -7436,7 +7433,7 @@ svc5_dispatch_lo = sub_c9abe+1
     pha                                                               ; 9b49: 48          H        ; Push hi byte on stack
     lda #&88                                                          ; 9b4a: a9 88       ..       ; Push lo of (tx_done_exit-1)
     pha                                                               ; 9b4c: 48          H        ; Push lo byte on stack
-    jmp (l0d58)                                                       ; 9b4d: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit  ORA opcode (dead code / data overlap)
+    jmp (exec_addr_lo)                                                ; 9b4d: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit  ORA opcode (dead code / data overlap)
 ; ***************************************************************************************
 ; TX done: UserProc event
 ;
@@ -7444,8 +7441,8 @@ svc5_dispatch_lo = sub_c9abe+1
 ; address). This notifies the user program that a UserProc operation has completed.
 .tx_done_user_proc
     ldy #event_network_error                                          ; 9b50: a0 08       ..       ; Y=8: network event type
-    ldx l0d58                                                         ; 9b52: ae 58 0d    .X.      ; X = remote address lo
-    lda l0d59                                                         ; 9b55: ad 59 0d    .Y.      ; A = remote address hi
+    ldx exec_addr_lo                                                  ; 9b52: ae 58 0d    .X.      ; X = remote address lo
+    lda exec_addr_hi                                                  ; 9b55: ad 59 0d    .Y.      ; A = remote address hi
     jsr oseven                                                        ; 9b58: 20 bf ff     ..      ; oseven: network error
     jmp tx_done_exit                                                  ; 9b5b: 4c 89 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
@@ -7454,8 +7451,8 @@ svc5_dispatch_lo = sub_c9abe+1
 ; Calls the ROM entry point at &8000 (rom_header) with X=l0d58, Y=l0d59. This invokes an
 ; OS-level procedure on behalf of the remote station.
 .tx_done_os_proc
-    ldx l0d58                                                         ; 9b5e: ae 58 0d    .X.      ; X = remote address lo
-    ldy l0d59                                                         ; 9b61: ac 59 0d    .Y.      ; Y = remote address hi
+    ldx exec_addr_lo                                                  ; 9b5e: ae 58 0d    .X.      ; X = remote address lo
+    ldy exec_addr_hi                                                  ; 9b61: ac 59 0d    .Y.      ; Y = remote address hi
     jsr language_entry                                                ; 9b64: 20 00 80     ..      ; Call ROM entry point at &8000
     jmp tx_done_exit                                                  ; 9b67: 4c 89 9b    L..      ; Exit TX done handler
 ; ***************************************************************************************
@@ -7590,7 +7587,7 @@ svc5_dispatch_lo = sub_c9abe+1
     php                                                               ; 9bff: 08          .        ; A=&04: INACTIVE mask for SR2 bit2
     sei                                                               ; 9c00: 78          x        ; Disable interrupts for ADLC access
     lda #&40                                                          ; 9c01: a9 40       .@       ; A=&40: BIT &FE18 becomes RTI (disable NMI)
-    sta l0d1c                                                         ; 9c03: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: disable
+    sta nmi_shim_opcode                                               ; 9c03: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: disable
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
@@ -7602,19 +7599,19 @@ svc5_dispatch_lo = sub_c9abe+1
     lda #4                                                            ; 9c09: a9 04       ..       ; A=4: INACTIVE mask for SR2 bit 2
 .test_line_idle
     bit econet_control23_or_status2                                   ; 9c0b: 2c a1 fe    ,..      ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
-    beq c9c1f                                                         ; 9c0e: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
+    beq reenable_nmis                                                 ; 9c0e: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
     lda econet_control1_or_status1                                    ; 9c10: ad a0 fe    ...      ; Read SR1 (acknowledge pending interrupt)
     lda #&67                                                          ; 9c13: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
 ; &9c15 used as index base 1 time by &9c91
-.c9c15
+.clock_detect_write_cr2
     sta econet_control23_or_status2                                   ; 9c15: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 9c18: a9 10       ..       ; A=&10: CTS mask for SR1 bit4
     bit econet_control1_or_status1                                    ; 9c1a: 2c a0 fe    ,..      ; BIT SR1: tests CTS present
-    bne c9c58                                                         ; 9c1d: d0 39       .9       ; CTS set -- clock hardware detected, start TX
+    bne clock_detected                                                ; 9c1d: d0 39       .9       ; CTS set -- clock hardware detected, start TX
 ; &9c1f referenced 1 time by &9c0e
-.c9c1f
+.reenable_nmis
     lda #&2c                                                          ; 9c1f: a9 2c       .,       ; A=&2C: BIT opcode (re-enable NMI processing)
-    sta l0d1c                                                         ; 9c21: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: enable
+    sta nmi_shim_opcode                                               ; 9c21: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: enable
 .inactive_retry
     bit video_ula_control                                             ; 9c24: 2c 20 fe    , .      ; INTON -- re-enable NMIs (&FE20 read)
     plp                                                               ; 9c27: 28          (        ; Restore interrupt state
@@ -7658,7 +7655,7 @@ svc5_dispatch_lo = sub_c9abe+1
     tax                                                               ; 9c56: aa          .        ; Move to X register
     rts                                                               ; 9c57: 60          `        ; Return to TX caller
 ; &9c58 referenced 1 time by &9c1d
-.c9c58
+.clock_detected
     ldx #&c0                                                          ; 9c58: a2 c0       ..       ; X=&C0: CR1 = AC | RX_RESET
     stx econet_control1_or_status1                                    ; 9c5a: 8e a0 fe    ...      ; Write CR1: reset RX before TX (new in 3.65)
 ; ***************************************************************************************
@@ -7680,7 +7677,7 @@ svc5_dispatch_lo = sub_c9abe+1
     sec                                                               ; 9c6f: 38          8        ; Set need_release_tube flag (SEC/ROR = bit7)
     ror need_release_tube                                             ; 9c70: 66 98       f.       ; Rotate carry into bit 7 of flag
     lda #&2c                                                          ; 9c72: a9 2c       .,       ; A=&2C: BIT opcode (re-enable NMI processing)
-    sta l0d1c                                                         ; 9c74: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: enable
+    sta nmi_shim_opcode                                               ; 9c74: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: enable
     bit video_ula_control                                             ; 9c77: 2c 20 fe    , .      ; INTON -- NMIs now fire for TDRA (&FE20 read)
     lda tx_port                                                       ; 9c7a: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 9c7d: d0 42       .B       ; Port != 0: standard data transfer
@@ -7691,7 +7688,7 @@ svc5_dispatch_lo = sub_c9abe+1
     sta tx_length                                                     ; 9c8b: 8d 50 0d    .P.      ; Store expected transfer length
     lda #&9c                                                          ; 9c8e: a9 9c       ..       ; Push high byte of return address (&9C)
     pha                                                               ; 9c90: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
-    lda c9c15,y                                                       ; 9c91: b9 15 9c    ...      ; Look up handler address low from table
+    lda clock_detect_write_cr2,y                                      ; 9c91: b9 15 9c    ...      ; Look up handler address low from table
     pha                                                               ; 9c94: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9c95: 60          `        ; RTS dispatches to control-byte handler
     equb &a1, &a5, &e7, &e7, &e7, &f7, &f7, &9d                       ; 9c96: a1 a5 e7... ......   ; Control byte → CR2 value lookup table
@@ -7721,10 +7718,10 @@ svc5_dispatch_lo = sub_c9abe+1
     ldy #&0c                                                          ; 9cad: a0 0c       ..       ; Y=&0C: start at offset 12
 ; &9caf referenced 1 time by &9cbc
 .add_bytes_loop
-    lda l0d1e,y                                                       ; 9caf: b9 1e 0d    ...      ; Load workspace address byte
+    lda tx_addr_base,y                                                ; 9caf: b9 1e 0d    ...      ; Load workspace address byte
     plp                                                               ; 9cb2: 28          (        ; Restore carry from previous byte
     adc (nmi_tx_block),y                                              ; 9cb3: 71 a0       q.       ; Add TXCB address byte
-    sta l0d1e,y                                                       ; 9cb5: 99 1e 0d    ...      ; Store updated address byte
+    sta tx_addr_base,y                                                ; 9cb5: 99 1e 0d    ...      ; Store updated address byte
     iny                                                               ; 9cb8: c8          .        ; Next byte
     php                                                               ; 9cb9: 08          .        ; Save carry for next addition
 ; ***************************************************************************************
@@ -8299,7 +8296,7 @@ tube_tx_sr1_operand = check_tube_irq_loop+1
     cmp #&96                                                          ; 9f99: c9 96       ..       ; Expected: &96 (nmi_rx_scout high)
     bne poll_nmi_idle                                                 ; 9f9b: d0 f2       ..       ; Not idle: spin and wait
     lda #&40                                                          ; 9f9d: a9 40       .@       ; A=&40: RTI opcode (disable NMI processing)
-    sta l0d1c                                                         ; 9f9f: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: disable
+    sta nmi_shim_opcode                                               ; 9f9f: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: disable
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX listen
 ;
@@ -8457,16 +8454,16 @@ save pydis_start, pydis_end
 ;     econet_init_flag:                         4
 ;     error_text:                               4
 ;     escape_flag:                              4
+;     exec_addr_lo:                             4
 ;     fs_cmd_context:                           4
 ;     fs_crflag:                                4
 ;     fs_eof_flags:                             4
 ;     fs_sequence_nos:                          4
 ;     fs_server_net:                            4
 ;     init_tx_ctrl_block:                       4
-;     l0d1c:                                    4
-;     l0d58:                                    4
 ;     nmi_next_hi:                              4
 ;     nmi_next_lo:                              4
+;     nmi_shim_opcode:                          4
 ;     osbyte_a_copy:                            4
 ;     osnewl:                                   4
 ;     osrdsc_ptr:                               4
@@ -8563,6 +8560,7 @@ save pydis_start, pydis_end
 ;     discard_no_match:                         2
 ;     dispatch_nmi_error:                       2
 ;     econet_tx_retry:                          2
+;     exec_addr_hi:                             2
 ;     exec_local:                               2
 ;     execute_downloaded:                       2
 ;     fallback_calc_transfer:                   2
@@ -8592,8 +8590,6 @@ save pydis_start, pydis_end
 ;     init_tx_ctrl_data:                        2
 ;     install_rx_scout_handler:                 2
 ;     jmp_restore_args:                         2
-;     l0d1e:                                    2
-;     l0d59:                                    2
 ;     language_entry:                           2
 ;     load_handle_calc_offset:                  2
 ;     mask_to_handle:                           2
@@ -8682,6 +8678,7 @@ save pydis_start, pydis_end
 ;     tube_xfer_addr_2:                         2
 ;     tube_xfer_addr_3:                         2
 ;     tx_abort:                                 2
+;     tx_addr_base:                             2
 ;     tx_ctrl_byte:                             2
 ;     tx_port:                                  2
 ;     tx_result_ok:                             2
@@ -8723,9 +8720,6 @@ save pydis_start, pydis_end
 ;     bsxl1:                                    1
 ;     build_send_fs_cmd:                        1
 ;     bytex:                                    1
-;     c9c15:                                    1
-;     c9c1f:                                    1
-;     c9c58:                                    1
 ;     calc_peek_poke_size:                      1
 ;     calc_transfer_size:                       1
 ;     cat_column_separator:                     1
@@ -8754,6 +8748,8 @@ save pydis_start, pydis_end
 ;     clear_osbyte_ce_cf:                       1
 ;     clear_osbyte_masks:                       1
 ;     clear_release_flag:                       1
+;     clock_detect_write_cr2:                   1
+;     clock_detected:                           1
 ;     cloop:                                    1
 ;     close_handle:                             1
 ;     close_opt_return:                         1
@@ -8899,11 +8895,6 @@ save pydis_start, pydis_end
 ;     install_tube_rx:                          1
 ;     issue_vectors_claimed:                    1
 ;     jump_via_addr:                            1
-;     l0063:                                    1
-;     l0701:                                    1
-;     l4655:                                    1
-;     l7845:                                    1
-;     l7dfd:                                    1
 ;     lang_entry_dispatch:                      1
 ;     language_handler:                         1
 ;     language_handler_hi:                      1
@@ -8995,6 +8986,7 @@ save pydis_start, pydis_end
 ;     read_vdu_osbyte_x0:                       1
 ;     readry:                                   1
 ;     rearm_tx_attempt:                         1
+;     reenable_nmis:                            1
 ;     reloc_p4_src:                             1
 ;     reloc_p5_src:                             1
 ;     reloc_p6_src:                             1
@@ -9087,6 +9079,7 @@ save pydis_start, pydis_end
 ;     skip_rx_flag_set:                         1
 ;     skip_set_attrib_bit:                      1
 ;     skip_tube_update:                         1
+;     sr_int_handler:                           1
 ;     start_data_tx:                            1
 ;     stk_timeout_hi:                           1
 ;     store_16bit_at_y:                         1
@@ -9153,6 +9146,7 @@ save pydis_start, pydis_end
 ;     tx_line_idle_check:                       1
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
+;     tx_ptr_sub_base:                          1
 ;     tx_src_net:                               1
 ;     tx_store_error:                           1
 ;     tx_success_exit:                          1
@@ -9173,28 +9167,13 @@ save pydis_start, pydis_end
 ;     zero_cmd_bytes:                           1
 ;     zero_exec_header:                         1
 
-; Automatically generated labels:
-;     c9c15
-;     c9c1f
-;     c9c58
-;     l0063
-;     l0701
-;     l0d1c
-;     l0d1e
-;     l0d58
-;     l0d59
-;     l4655
-;     l7845
-;     l7dfd
-;     sub_c9abe
-
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7561 bytes (92%)
-;     Data                     = 631 bytes (8%)
+;     Code                     = 7552 bytes (92%)
+;     Data                     = 640 bytes (8%)
 ;
-;     Number of instructions   = 3658
-;     Number of data bytes     = 357 bytes
+;     Number of instructions   = 3654
+;     Number of data bytes     = 363 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 222 bytes
-;     Number of strings        = 35
+;     Number of string bytes   = 225 bytes
+;     Number of strings        = 36
