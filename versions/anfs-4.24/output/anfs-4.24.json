@@ -130,16 +130,16 @@
       "value": 162
     },
     {
+      "name": "osfind_close",
+      "value": 0
+    },
+    {
       "name": "osbyte_acknowledge_escape",
       "value": 126
     },
     {
       "name": "osbyte_insert_input_buffer",
       "value": 153
-    },
-    {
-      "name": "osfind_close",
-      "value": 0
     },
     {
       "name": "osword_nfs_info",
@@ -1884,6 +1884,13 @@
       "name": "dispatch_help_command",
       "title": "Dispatch *HELP-style argument via svc4_dispatch_lookup",
       "description": "3-byte trampoline: `JMP svc4_dispatch_lookup` with `X = &BD` from\nthe caller. Used by [`svc_29_status`](label:svc_29_status)'s\nnon-CR path so an argument after `*STATUS` (or similar *HELP-like\ncmd) gets parsed and dispatched through the same shared parser as\nthe regular cmd-table dispatch. Note the `'!Help.'` bytes\nimmediately following are an unrelated inline string used by the\nfilename walker, not part of this routine's body."
+    },
+    {
+      "addr": 38544,
+      "name": "match_on_suffix",
+      "title": "svc &18: interactive-HELP 'ON ' matcher and help-topic printer",
+      "description": "Interactive-HELP service handler (svc &18). Reads the command\nline at [`os_text_ptr`](label:os_text_ptr) and tests for the\ntwo-letter `ON` keyword (case-insensitive, `EOR #'O'` / `EOR #'N'`\nwith `AND #&5F`); if it is absent the call returns unclaimed. On a\nmatch it copies the `'!Help.'` template plus the requested topic\nname into the TXCB command buffer, opens the resulting help file\nand prints it byte-by-byte via [`osbget`](label:osbget) /\n[`oswrch`](label:oswrch), honouring paged mode and Escape.",
+      "fall_through": true
     },
     {
       "addr": 38715,
@@ -4818,6 +4825,7 @@
     "ind1v": 560,
     "ind2v": 562,
     "ind3v": 564,
+    "vdu_queue_count": 618,
     "last_break_type": 653,
     "rom_type_table": 672,
     "vdu_screen_mode": 848,
@@ -24823,14 +24831,12 @@
     {
       "addr": 35377,
       "bytes": [
-        106,
-        143
+        106
       ],
       "comment_inline": "&0E: svc &12: FS select",
       "type": "byte",
       "values": [
-        106,
-        143
+        106
       ],
       "expressions": [
         {
@@ -24848,8 +24854,36 @@
               }
             }
           }
-        },
-        null
+        }
+      ]
+    },
+    {
+      "addr": 35378,
+      "bytes": [
+        143
+      ],
+      "comment_inline": "&0F: svc &18: interactive HELP 'ON ' matcher",
+      "type": "byte",
+      "values": [
+        143
+      ],
+      "expressions": [
+        {
+          "text": "<(match_on_suffix - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "match_on_suffix"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -26270,14 +26304,12 @@
     {
       "addr": 35428,
       "bytes": [
-        139,
-        150
+        139
       ],
       "comment_inline": "&0E: svc &12: FS select",
       "type": "byte",
       "values": [
-        139,
-        150
+        139
       ],
       "expressions": [
         {
@@ -26295,8 +26327,36 @@
               }
             }
           }
-        },
-        null
+        }
+      ]
+    },
+    {
+      "addr": 35429,
+      "bytes": [
+        150
+      ],
+      "comment_inline": "&0F: svc &18: interactive HELP 'ON ' matcher",
+      "type": "byte",
+      "values": [
+        150
+      ],
+      "expressions": [
+        {
+          "text": ">(match_on_suffix - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "match_on_suffix"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -28987,11 +29047,15 @@
       ],
       "comment_inline": "Test fs_flags bit 7 (ANFS active)",
       "xref_summaries": [
-        "&8b73 referenced 6 times by &8ea7, &a9ec, &a9fa, &aae2, &aaf0, &ac6c"
+        "&8b73 referenced 7 times by &8ea7, &96b2, &a9ec, &a9fa, &aae2, &aaf0, &ac6c"
       ],
       "references": [
         {
           "addr": 36519,
+          "kind": "direct"
+        },
+        {
+          "addr": 38578,
           "kind": "direct"
         },
         {
@@ -47181,7 +47245,15 @@
       "labels": [
         "dispatch_help_command"
       ],
+      "sub_labels": {
+        "38534": [
+          "help_topic_template"
+        ]
+      },
       "comment_inline": "JMP svc4_dispatch_lookup -- shared parser dispatch",
+      "xref_summaries": [
+        "&9686 used as index base 1 time by &96cc"
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "svc4_dispatch_lookup",
@@ -47199,7 +47271,7 @@
         46,
         42
       ],
-      "comment_inline": "'!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)",
+      "comment_inline": "'!Help.' filename template copied into the TXCB command buffer to open the help file",
       "type": "string",
       "string": "!Help.*"
     },
@@ -47216,26 +47288,41 @@
     {
       "addr": 38544,
       "bytes": [
-        90,
-        44,
-        108
+        90
       ],
-      "type": "string",
-      "string": "Z,l"
+      "labels": [
+        "match_on_suffix"
+      ],
+      "comment_inline": "Save caller's command-line index Y",
+      "type": "code",
+      "mnemonic": "phy"
     },
     {
-      "addr": 38547,
+      "addr": 38545,
       "bytes": [
-        13,
+        44,
+        108,
+        13
+      ],
+      "comment_inline": "Test fs_flags: bit 6 = interactive HELP armed",
+      "type": "code",
+      "mnemonic": "bit",
+      "operand": "fs_flags",
+      "target": 3436,
+      "target_label": "fs_flags"
+    },
+    {
+      "addr": 38548,
+      "bytes": [
         80,
         25
       ],
-      "type": "byte",
-      "values": [
-        13,
-        80,
-        25
-      ]
+      "comment_inline": "Bit 6 clear: not our HELP call -> return",
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "help_return",
+      "target": 38575,
+      "target_label": "help_return"
     },
     {
       "addr": 38550,
@@ -47243,12 +47330,12 @@
         165,
         242
       ],
-      "comment_inline": "Copy os_text_ptr lo to work_ae",
-      "type": "byte",
-      "values": [
-        165,
-        242
-      ]
+      "comment_inline": "Point work_ae at the command line (lo)",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "os_text_ptr",
+      "target": 242,
+      "target_label": "os_text_ptr"
     },
     {
       "addr": 38552,
@@ -47256,12 +47343,12 @@
         133,
         174
       ],
-      "comment_inline": "Store -> work_ae",
-      "type": "byte",
-      "values": [
-        133,
-        174
-      ]
+      "comment_inline": "Store command-line pointer lo",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "work_ae",
+      "target": 174,
+      "target_label": "work_ae"
     },
     {
       "addr": 38554,
@@ -47269,97 +47356,191 @@
         165,
         243
       ],
-      "comment_inline": "Copy os_text_ptr hi",
-      "type": "byte",
-      "values": [
-        165,
-        243
-      ]
+      "comment_inline": "Command-line pointer hi",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "os_text_ptr_hi",
+      "target": 243,
+      "target_label": "os_text_ptr_hi"
     },
     {
       "addr": 38556,
       "bytes": [
         133,
-        175,
+        175
+      ],
+      "comment_inline": "Store pointer hi (addr_work)",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "addr_work",
+      "target": 175,
+      "target_label": "addr_work"
+    },
+    {
+      "addr": 38558,
+      "bytes": [
         177,
         174
       ],
-      "comment_inline": "Store -> addr_work",
-      "type": "byte",
-      "values": [
-        133,
-        175,
-        177,
-        174
-      ]
+      "comment_inline": "Read first keyword character",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(work_ae),y",
+      "target": 174,
+      "target_label": "work_ae"
     },
     {
       "addr": 38560,
       "bytes": [
         73,
-        79,
+        79
+      ],
+      "comment_inline": "Compare with 'O' ...",
+      "type": "code",
+      "mnemonic": "eor",
+      "operand": "#'O'",
+      "format_hint": "char"
+    },
+    {
+      "addr": 38562,
+      "bytes": [
         41,
         95
       ],
-      "type": "string",
-      "string": "IO)_"
+      "comment_inline": "... case-insensitively (mask bit 5)",
+      "type": "code",
+      "mnemonic": "and",
+      "operand": "#&5f"
     },
     {
       "addr": 38564,
       "bytes": [
         208,
-        9,
-        200,
+        9
+      ],
+      "comment_inline": "Not 'O': return (line is not '...ON ')",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "help_return",
+      "target": 38575,
+      "target_label": "help_return"
+    },
+    {
+      "addr": 38566,
+      "bytes": [
+        200
+      ],
+      "comment_inline": "Advance to second character",
+      "type": "code",
+      "mnemonic": "iny"
+    },
+    {
+      "addr": 38567,
+      "bytes": [
         177,
         174
       ],
-      "type": "byte",
-      "values": [
-        208,
-        9,
-        200,
-        177,
-        174
-      ]
+      "comment_inline": "Read second keyword character",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(work_ae),y",
+      "target": 174,
+      "target_label": "work_ae"
     },
     {
       "addr": 38569,
       "bytes": [
         73,
-        78,
+        78
+      ],
+      "comment_inline": "Compare with 'N' ...",
+      "type": "code",
+      "mnemonic": "eor",
+      "operand": "#'N'",
+      "format_hint": "char"
+    },
+    {
+      "addr": 38571,
+      "bytes": [
         41,
         95
       ],
-      "type": "string",
-      "string": "IN)_"
+      "comment_inline": "... case-insensitively",
+      "type": "code",
+      "mnemonic": "and",
+      "operand": "#&5f"
     },
     {
       "addr": 38573,
       "bytes": [
         240,
-        2,
-        122,
+        2
+      ],
+      "comment_inline": "'ON' matched: handle the topic",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "help_on_matched",
+      "target": 38577,
+      "target_label": "help_on_matched"
+    },
+    {
+      "addr": 38575,
+      "bytes": [
+        122
+      ],
+      "labels": [
+        "help_return"
+      ],
+      "comment_inline": "Restore caller's Y",
+      "xref_summaries": [
+        "&96af referenced 3 times by &9694, &96a4, &971d"
+      ],
+      "references": [
+        {
+          "addr": 38548,
+          "kind": "direct"
+        },
+        {
+          "addr": 38564,
+          "kind": "direct"
+        },
+        {
+          "addr": 38685,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "ply"
+    },
+    {
+      "addr": 38576,
+      "bytes": [
         96
       ],
-      "comment_inline": "Equal: continue checking pattern",
-      "type": "byte",
-      "values": [
-        240,
-        2,
-        122,
-        96
-      ]
+      "comment_inline": "Return to service dispatcher",
+      "type": "code",
+      "mnemonic": "rts"
     },
     {
       "addr": 38577,
       "bytes": [
         90
       ],
-      "comment_inline": "Match: save Y",
-      "type": "byte",
-      "values": [
-        90
-      ]
+      "labels": [
+        "help_on_matched"
+      ],
+      "comment_inline": "Save Y across FS-select",
+      "xref_summaries": [
+        "&96b1 referenced 1 time by &96ad"
+      ],
+      "references": [
+        {
+          "addr": 38573,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "phy"
     },
     {
       "addr": 38578,
@@ -47368,26 +47549,21 @@
         115,
         139
       ],
-      "comment_inline": "Ensure NFS is selected (auto-select if needed)",
-      "type": "byte",
-      "values": [
-        32,
-        115,
-        139
-      ]
+      "comment_inline": "Ensure NFS is the current filing system",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "ensure_fs_selected",
+      "target": 35699,
+      "target_label": "ensure_fs_selected"
     },
     {
       "addr": 38581,
       "bytes": [
         122
       ],
-      "labels": [
-        "match_char_process"
-      ],
-      "type": "byte",
-      "values": [
-        122
-      ]
+      "comment_inline": "Restore Y",
+      "type": "code",
+      "mnemonic": "ply"
     },
     {
       "addr": 38582,
@@ -47395,55 +47571,106 @@
         200
       ],
       "labels": [
-        "loop_skip_non_spaces"
+        "loop_skip_help_spaces"
       ],
-      "comment_inline": "Advance Y to next char",
-      "type": "byte",
-      "values": [
-        200
-      ]
+      "comment_inline": "Advance to next command-line character",
+      "xref_summaries": [
+        "&96b6 referenced 1 time by &96c0"
+      ],
+      "references": [
+        {
+          "addr": 38592,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "iny"
     },
     {
       "addr": 38583,
       "bytes": [
         177,
-        174,
+        174
+      ],
+      "comment_inline": "Read it",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(work_ae),y",
+      "target": 174,
+      "target_label": "work_ae"
+    },
+    {
+      "addr": 38585,
+      "bytes": [
         44,
         103,
         151
       ],
-      "comment_inline": "Read text byte at (work_ae)+Y",
-      "type": "byte",
-      "values": [
-        177,
-        174,
-        44,
-        103,
-        151
-      ]
+      "comment_inline": "Set V (topic-char marker) from &9767 bit 6",
+      "type": "code",
+      "mnemonic": "bit",
+      "operand": "always_set_v_byte",
+      "target": 38759,
+      "target_label": "always_set_v_byte"
     },
     {
       "addr": 38588,
       "bytes": [
         201,
-        32,
+        32
+      ],
+      "comment_inline": "Space?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#' '",
+      "format_hint": "char"
+    },
+    {
+      "addr": 38590,
+      "bytes": [
         144,
-        3,
+        3
+      ],
+      "comment_inline": "Control char (<space): stop scanning",
+      "type": "code",
+      "mnemonic": "bcc",
+      "operand": "help_build_cmd",
+      "target": 38595,
+      "target_label": "help_build_cmd"
+    },
+    {
+      "addr": 38592,
+      "bytes": [
         240,
-        244,
+        244
+      ],
+      "comment_inline": "Space: keep skipping leading spaces",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "loop_skip_help_spaces",
+      "target": 38582,
+      "target_label": "loop_skip_help_spaces"
+    },
+    {
+      "addr": 38594,
+      "bytes": [
         184
       ],
-      "comment_inline": "Is it space?",
-      "type": "byte",
-      "values": [
-        201,
-        32,
-        144,
-        3,
-        240,
-        244,
-        184
-      ]
+      "labels": [
+        "help_have_topic_char"
+      ],
+      "comment_inline": "Real char: clear V (topic present)",
+      "xref_summaries": [
+        "&96c2 referenced 1 time by &9721"
+      ],
+      "references": [
+        {
+          "addr": 38689,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "clv"
     },
     {
       "addr": 38595,
@@ -47452,13 +47679,24 @@
         5,
         193
       ],
-      "comment_inline": "Save Y as hazel_txcb_data (cmd buffer ptr)",
-      "type": "byte",
-      "values": [
-        140,
-        5,
-        193
-      ]
+      "labels": [
+        "help_build_cmd"
+      ],
+      "comment_inline": "Save command-buffer index",
+      "xref_summaries": [
+        "&96c3 referenced 1 time by &96be"
+      ],
+      "references": [
+        {
+          "addr": 38590,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "sty",
+      "operand": "hazel_txcb_data",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
     },
     {
       "addr": 38598,
@@ -47467,13 +47705,12 @@
         6,
         193
       ],
-      "comment_inline": "Save Y as hazel_txcb_flag (cmd flag)",
-      "type": "byte",
-      "values": [
-        140,
-        6,
-        193
-      ]
+      "comment_inline": "Save it as the command flag too",
+      "type": "code",
+      "mnemonic": "sty",
+      "operand": "hazel_txcb_flag",
+      "target": 49414,
+      "target_label": "hazel_txcb_flag"
     },
     {
       "addr": 38601,
@@ -47481,12 +47718,10 @@
         162,
         1
       ],
-      "comment_inline": "X=1: index for template walk",
-      "type": "byte",
-      "values": [
-        162,
-        1
-      ]
+      "comment_inline": "X=1: template-walk index",
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "#1"
     },
     {
       "addr": 38603,
@@ -47497,10 +47732,21 @@
         "loop_copy_command_suffix"
       ],
       "comment_inline": "Advance template index",
-      "type": "byte",
-      "values": [
-        232
-      ]
+      "xref_summaries": [
+        "&96cb referenced 2 times by &96d6, &96dd"
+      ],
+      "references": [
+        {
+          "addr": 38614,
+          "kind": "direct"
+        },
+        {
+          "addr": 38621,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "inx"
     },
     {
       "addr": 38604,
@@ -47509,63 +47755,122 @@
         134,
         150
       ],
-      "comment_inline": "Read template byte from help_topic_template+X",
-      "type": "byte",
-      "values": [
-        189,
-        134,
-        150
-      ]
+      "comment_inline": "Read '!Help.' template byte",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "help_topic_template,x",
+      "target": 38534,
+      "target_label": "help_topic_template"
     },
     {
       "addr": 38607,
       "bytes": [
         157,
         5,
-        193,
+        193
+      ],
+      "comment_inline": "Store into the command buffer",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_data,x",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
+    },
+    {
+      "addr": 38610,
+      "bytes": [
         80,
-        7,
+        7
+      ],
+      "comment_inline": "V clear (real topic char): check '.' terminator",
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "check_template_dot",
+      "target": 38619,
+      "target_label": "check_template_dot"
+    },
+    {
+      "addr": 38612,
+      "bytes": [
         201,
-        13,
+        13
+      ],
+      "comment_inline": "V set (line ended): CR?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#&0d"
+    },
+    {
+      "addr": 38614,
+      "bytes": [
         208,
-        243,
-        200,
+        243
+      ],
+      "comment_inline": "Not CR: keep copying template",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_copy_command_suffix",
+      "target": 38603,
+      "target_label": "loop_copy_command_suffix"
+    },
+    {
+      "addr": 38616,
+      "bytes": [
+        200
+      ],
+      "comment_inline": "Skip the CR",
+      "type": "code",
+      "mnemonic": "iny"
+    },
+    {
+      "addr": 38617,
+      "bytes": [
         128,
         23
       ],
-      "comment_inline": "Store at hazel_txcb_data+X",
-      "type": "byte",
-      "values": [
-        157,
-        5,
-        193,
-        80,
-        7,
-        201,
-        13,
-        208,
-        243,
-        200,
-        128,
-        23
-      ]
+      "comment_inline": "Open the help file",
+      "type": "code",
+      "mnemonic": "bra",
+      "operand": "start_help_file_load",
+      "target": 38642,
+      "target_label": "start_help_file_load"
     },
     {
       "addr": 38619,
       "bytes": [
         201,
-        46,
+        46
+      ],
+      "labels": [
+        "check_template_dot"
+      ],
+      "comment_inline": "Template terminator '.'?",
+      "xref_summaries": [
+        "&96db referenced 1 time by &96d2"
+      ],
+      "references": [
+        {
+          "addr": 38610,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#'.'",
+      "format_hint": "char"
+    },
+    {
+      "addr": 38621,
+      "bytes": [
         208,
         236
       ],
-      "comment_inline": "Compare with '.' (template terminator)",
-      "type": "byte",
-      "values": [
-        201,
-        46,
-        208,
-        236
-      ]
+      "comment_inline": "No: keep copying template",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_copy_command_suffix",
+      "target": 38603,
+      "target_label": "loop_copy_command_suffix"
     },
     {
       "addr": 38623,
@@ -47575,11 +47880,18 @@
       "labels": [
         "loop_copy_topic_name"
       ],
-      "comment_inline": "Advance dest index",
-      "type": "byte",
-      "values": [
-        232
-      ]
+      "comment_inline": "Advance destination index",
+      "xref_summaries": [
+        "&96df referenced 1 time by &96ec"
+      ],
+      "references": [
+        {
+          "addr": 38636,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "inx"
     },
     {
       "addr": 38624,
@@ -47587,23 +47899,21 @@
         177,
         174
       ],
-      "comment_inline": "Read topic char at (work_ae),Y",
-      "type": "byte",
-      "values": [
-        177,
-        174
-      ]
+      "comment_inline": "Read topic-name character",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(work_ae),y",
+      "target": 174,
+      "target_label": "work_ae"
     },
     {
       "addr": 38626,
       "bytes": [
         200
       ],
-      "comment_inline": "Advance source",
-      "type": "byte",
-      "values": [
-        200
-      ]
+      "comment_inline": "Advance source index",
+      "type": "code",
+      "mnemonic": "iny"
     },
     {
       "addr": 38627,
@@ -47613,15 +47923,23 @@
         193
       ],
       "labels": [
-        "loop_store_topic_char"
+        "store_topic_char"
       ],
-      "comment_inline": "Store at hazel_txcb_data+X",
-      "type": "byte",
-      "values": [
-        157,
-        5,
-        193
-      ]
+      "comment_inline": "Store topic character",
+      "xref_summaries": [
+        "&96e3 referenced 1 time by &96f0"
+      ],
+      "references": [
+        {
+          "addr": 38640,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_txcb_data,x",
+      "target": 49413,
+      "target_label": "hazel_txcb_data"
     },
     {
       "addr": 38630,
@@ -47629,12 +47947,10 @@
         201,
         13
       ],
-      "comment_inline": "CR? (end of name)",
-      "type": "byte",
-      "values": [
-        201,
-        13
-      ]
+      "comment_inline": "CR (end of name)?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#&0d"
     },
     {
       "addr": 38632,
@@ -47642,12 +47958,12 @@
         240,
         8
       ],
-      "comment_inline": "Yes: take start_help_file_load path (open file)",
-      "type": "byte",
-      "values": [
-        240,
-        8
-      ]
+      "comment_inline": "Yes: open the help file",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "start_help_file_load",
+      "target": 38642,
+      "target_label": "start_help_file_load"
     },
     {
       "addr": 38634,
@@ -47655,12 +47971,11 @@
         201,
         32
       ],
-      "comment_inline": "Space? (terminator)",
-      "type": "byte",
-      "values": [
-        201,
-        32
-      ]
+      "comment_inline": "Space (terminator)?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#' '",
+      "format_hint": "char"
     },
     {
       "addr": 38636,
@@ -47668,12 +47983,12 @@
         208,
         241
       ],
-      "comment_inline": "No: continue copying",
-      "type": "byte",
-      "values": [
-        208,
-        241
-      ]
+      "comment_inline": "No: keep copying the name",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_copy_topic_name",
+      "target": 38623,
+      "target_label": "loop_copy_topic_name"
     },
     {
       "addr": 38638,
@@ -47681,41 +47996,57 @@
         169,
         13
       ],
-      "comment_inline": "A=&0D: replace space with CR",
-      "type": "byte",
-      "values": [
-        169,
-        13
-      ]
+      "comment_inline": "Replace trailing space with CR",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&0d"
     },
     {
       "addr": 38640,
       "bytes": [
         128,
-        241,
+        241
+      ],
+      "comment_inline": "Store the CR terminator",
+      "type": "code",
+      "mnemonic": "bra",
+      "operand": "store_topic_char",
+      "target": 38627,
+      "target_label": "store_topic_char"
+    },
+    {
+      "addr": 38642,
+      "bytes": [
         90
       ],
-      "comment_inline": "BRA back to store the CR",
-      "type": "byte",
-      "values": [
-        128,
-        241,
-        90
-      ]
+      "labels": [
+        "start_help_file_load"
+      ],
+      "comment_inline": "Save command-buffer index",
+      "xref_summaries": [
+        "&96f2 referenced 2 times by &96d9, &96e8"
+      ],
+      "references": [
+        {
+          "addr": 38617,
+          "kind": "direct"
+        },
+        {
+          "addr": 38632,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "phy"
     },
     {
       "addr": 38643,
       "bytes": [
         232
       ],
-      "labels": [
-        "start_help_file_load"
-      ],
-      "comment_inline": "Account for last char",
-      "type": "byte",
-      "values": [
-        232
-      ]
+      "comment_inline": "Account for the last character",
+      "type": "code",
+      "mnemonic": "inx"
     },
     {
       "addr": 38644,
@@ -47724,13 +48055,12 @@
         113,
         194
       ],
-      "comment_inline": "Read fs_lib_flags (hazel_fs_lib_flags)",
-      "type": "byte",
-      "values": [
-        173,
-        113,
-        194
-      ]
+      "comment_inline": "Read fs_lib_flags",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "hazel_fs_lib_flags",
+      "target": 49777,
+      "target_label": "hazel_fs_lib_flags"
     },
     {
       "addr": 38647,
@@ -47738,12 +48068,10 @@
         41,
         63
       ],
-      "comment_inline": "Preserve low bits, clear high bits",
-      "type": "byte",
-      "values": [
-        41,
-        63
-      ]
+      "comment_inline": "Clear the top two bits",
+      "type": "code",
+      "mnemonic": "and",
+      "operand": "#&3f"
     },
     {
       "addr": 38649,
@@ -47751,12 +48079,10 @@
         9,
         128
       ],
-      "comment_inline": "Set bit 7 (load-pending flag)",
-      "type": "byte",
-      "values": [
-        9,
-        128
-      ]
+      "comment_inline": "Set bit 7 (load pending)",
+      "type": "code",
+      "mnemonic": "ora",
+      "operand": "#&80"
     },
     {
       "addr": 38651,
@@ -47765,13 +48091,12 @@
         113,
         194
       ],
-      "comment_inline": "Store back to fs_lib_flags",
-      "type": "byte",
-      "values": [
-        141,
-        113,
-        194
-      ]
+      "comment_inline": "Store fs_lib_flags back",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "hazel_fs_lib_flags",
+      "target": 49777,
+      "target_label": "hazel_fs_lib_flags"
     },
     {
       "addr": 38654,
@@ -47779,12 +48104,10 @@
         169,
         64
       ],
-      "comment_inline": "A=&40: load mode flag",
-      "type": "byte",
-      "values": [
-        169,
-        64
-      ]
+      "comment_inline": "A=&40: load-mode flag",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#&40"
     },
     {
       "addr": 38656,
@@ -47792,29 +48115,35 @@
         133,
         189
       ],
-      "comment_inline": "Store as fs_last_byte_flag",
-      "type": "byte",
-      "values": [
-        133,
-        189
-      ]
+      "comment_inline": "Set last-byte flag",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "fs_last_byte_flag",
+      "target": 189,
+      "target_label": "fs_last_byte_flag"
     },
     {
       "addr": 38658,
       "bytes": [
         32,
         20,
-        160,
-        168
+        160
       ],
       "comment_inline": "Open the help-topic file",
-      "type": "byte",
-      "values": [
-        32,
-        20,
-        160,
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "send_open_file_request",
+      "target": 40980,
+      "target_label": "send_open_file_request"
+    },
+    {
+      "addr": 38661,
+      "bytes": [
         168
-      ]
+      ],
+      "comment_inline": "File handle -> Y (0 = open failed)",
+      "type": "code",
+      "mnemonic": "tay"
     },
     {
       "addr": 38662,
@@ -47822,12 +48151,12 @@
         240,
         13
       ],
-      "comment_inline": "Y=0: open failed -> return",
-      "type": "byte",
-      "values": [
-        240,
-        13
-      ]
+      "comment_inline": "Open failed: skip to next topic",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "help_next_topic",
+      "target": 38677,
+      "target_label": "help_next_topic"
     },
     {
       "addr": 38664,
@@ -47839,12 +48168,29 @@
       "labels": [
         "loop_print_help_byte"
       ],
-      "type": "byte",
-      "values": [
-        32,
-        215,
-        255
-      ]
+      "comment_inline": "Read next byte from the help file",
+      "xref_summaries": [
+        "&9708 referenced 3 times by &972f, &9734, &9739"
+      ],
+      "references": [
+        {
+          "addr": 38703,
+          "kind": "direct"
+        },
+        {
+          "addr": 38708,
+          "kind": "direct"
+        },
+        {
+          "addr": 38713,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osbget",
+      "target": 65495,
+      "target_label": "osbget"
     },
     {
       "addr": 38667,
@@ -47853,135 +48199,323 @@
         22
       ],
       "comment_inline": "C clear: byte read OK -> print it",
-      "type": "byte",
-      "values": [
-        144,
-        22
-      ]
+      "type": "code",
+      "mnemonic": "bcc",
+      "operand": "help_print_start",
+      "target": 38691,
+      "target_label": "help_print_start"
     },
     {
       "addr": 38669,
       "bytes": [
         169,
-        0,
+        0
+      ],
+      "comment_inline": "A=0: OSFIND close mode",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#osfind_close",
+      "expr": {
+        "text": "osfind_close",
+        "tree": {
+          "sym": "osfind_close"
+        }
+      }
+    },
+    {
+      "addr": 38671,
+      "bytes": [
         32,
         206,
-        255,
+        255
+      ],
+      "comment_inline": "osfind: close one or all files",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osfind",
+      "target": 65486,
+      "target_label": "osfind"
+    },
+    {
+      "addr": 38674,
+      "bytes": [
         32,
         231,
-        255,
-        122,
-        136,
-        136,
-        200,
+        255
+      ],
+      "comment_inline": "Print a newline after the file",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osnewl",
+      "target": 65511,
+      "target_label": "osnewl"
+    },
+    {
+      "addr": 38677,
+      "bytes": [
+        122
+      ],
+      "labels": [
+        "help_next_topic"
+      ],
+      "comment_inline": "Restore command-line index",
+      "xref_summaries": [
+        "&9715 referenced 1 time by &9706"
+      ],
+      "references": [
+        {
+          "addr": 38662,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "ply"
+    },
+    {
+      "addr": 38678,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "Back up over the first consumed char",
+      "type": "code",
+      "mnemonic": "dey"
+    },
+    {
+      "addr": 38679,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "Back up over the second consumed char",
+      "type": "code",
+      "mnemonic": "dey"
+    },
+    {
+      "addr": 38680,
+      "bytes": [
+        200
+      ],
+      "labels": [
+        "loop_help_next_topic"
+      ],
+      "comment_inline": "Advance to next character",
+      "xref_summaries": [
+        "&9718 referenced 1 time by &971f"
+      ],
+      "references": [
+        {
+          "addr": 38687,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "iny"
+    },
+    {
+      "addr": 38681,
+      "bytes": [
         177,
-        174,
+        174
+      ],
+      "comment_inline": "Read it",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(work_ae),y",
+      "target": 174,
+      "target_label": "work_ae"
+    },
+    {
+      "addr": 38683,
+      "bytes": [
         201,
-        32,
+        32
+      ],
+      "comment_inline": "Space?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#' '",
+      "format_hint": "char"
+    },
+    {
+      "addr": 38685,
+      "bytes": [
         144,
-        144,
+        144
+      ],
+      "comment_inline": "Control char: no more topics -> return",
+      "type": "code",
+      "mnemonic": "bcc",
+      "operand": "help_return",
+      "target": 38575,
+      "target_label": "help_return"
+    },
+    {
+      "addr": 38687,
+      "bytes": [
         240,
-        247,
+        247
+      ],
+      "comment_inline": "Space: keep scanning",
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "loop_help_next_topic",
+      "target": 38680,
+      "target_label": "loop_help_next_topic"
+    },
+    {
+      "addr": 38689,
+      "bytes": [
         128,
-        159,
+        159
+      ],
+      "comment_inline": "Real char: process the next topic",
+      "type": "code",
+      "mnemonic": "bra",
+      "operand": "help_have_topic_char",
+      "target": 38594,
+      "target_label": "help_have_topic_char"
+    },
+    {
+      "addr": 38691,
+      "bytes": [
         36,
         255
       ],
-      "comment_inline": "A=0: OSFIND close mode",
-      "type": "byte",
-      "values": [
-        169,
-        0,
-        32,
-        206,
-        255,
-        32,
-        231,
-        255,
-        122,
-        136,
-        136,
-        200,
-        177,
-        174,
-        201,
-        32,
-        144,
-        144,
-        240,
-        247,
-        128,
-        159,
-        36,
-        255
-      ]
+      "labels": [
+        "help_print_start"
+      ],
+      "comment_inline": "Check the Escape flag",
+      "xref_summaries": [
+        "&9723 referenced 1 time by &970b"
+      ],
+      "references": [
+        {
+          "addr": 38667,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "bit",
+      "operand": "escape_flag",
+      "target": 255,
+      "target_label": "escape_flag"
     },
     {
       "addr": 38693,
       "bytes": [
         16,
-        3,
+        3
+      ],
+      "comment_inline": "Bit 7 clear: not escaping -> print",
+      "type": "code",
+      "mnemonic": "bpl",
+      "operand": "help_emit_char",
+      "target": 38698,
+      "target_label": "help_emit_char"
+    },
+    {
+      "addr": 38695,
+      "bytes": [
         76,
         93,
-        189,
+        189
+      ],
+      "comment_inline": "Escape pressed: abort with error",
+      "type": "code",
+      "mnemonic": "jmp",
+      "operand": "escape_error_close",
+      "target": 48477,
+      "target_label": "escape_error_close"
+    },
+    {
+      "addr": 38698,
+      "bytes": [
         32,
         238,
         255
       ],
-      "comment_inline": "Bit 7 clear: not escaping, continue",
-      "type": "byte",
-      "values": [
-        16,
-        3,
-        76,
-        93,
-        189,
-        32,
-        238,
-        255
-      ]
+      "labels": [
+        "help_emit_char"
+      ],
+      "comment_inline": "Print the byte",
+      "xref_summaries": [
+        "&972a referenced 1 time by &9725"
+      ],
+      "references": [
+        {
+          "addr": 38693,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "oswrch",
+      "target": 65518,
+      "target_label": "oswrch"
     },
     {
       "addr": 38701,
       "bytes": [
         201,
-        13,
+        13
+      ],
+      "comment_inline": "Was it a CR?",
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#&0d"
+    },
+    {
+      "addr": 38703,
+      "bytes": [
         208,
-        215,
+        215
+      ],
+      "comment_inline": "No: read the next byte",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_print_help_byte",
+      "target": 38664,
+      "target_label": "loop_print_help_byte"
+    },
+    {
+      "addr": 38705,
+      "bytes": [
         174,
         106,
         2
       ],
-      "comment_inline": "Compare with CR",
-      "type": "byte",
-      "values": [
-        201,
-        13,
-        208,
-        215,
-        174,
-        106,
-        2
-      ]
+      "comment_inline": "CR: read paged-mode line count",
+      "type": "code",
+      "mnemonic": "ldx",
+      "operand": "vdu_queue_count",
+      "target": 618,
+      "target_label": "vdu_queue_count"
     },
     {
       "addr": 38708,
       "bytes": [
         208,
-        210,
+        210
+      ],
+      "comment_inline": "Non-zero: no pause, continue",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "loop_print_help_byte",
+      "target": 38664,
+      "target_label": "loop_print_help_byte"
+    },
+    {
+      "addr": 38710,
+      "bytes": [
         32,
         231,
         255
       ],
-      "comment_inline": "Non-zero: paged mode pending -> handle Escape",
-      "type": "byte",
-      "values": [
-        208,
-        210,
-        32,
-        231,
-        255
-      ]
+      "comment_inline": "Emit newline",
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "osnewl",
+      "target": 65511,
+      "target_label": "osnewl"
     },
     {
       "addr": 38713,
@@ -47989,12 +48523,12 @@
         128,
         205
       ],
-      "comment_inline": "BRA back to read next byte",
-      "type": "byte",
-      "values": [
-        128,
-        205
-      ]
+      "comment_inline": "Loop for the next byte",
+      "type": "code",
+      "mnemonic": "bra",
+      "operand": "loop_print_help_byte",
+      "target": 38664,
+      "target_label": "loop_print_help_byte"
     },
     {
       "addr": 38715,
@@ -48384,7 +48918,7 @@
       ],
       "comment_inline": "Offset 6: padding &FF; doubles as the always_set_v_byte BIT $abs target",
       "xref_summaries": [
-        "&9767 referenced 20 times by &8c8c, &9205, &993b, &9a68, &9e2c, &a016, &a3cf, &a4cc, &a66e, &a699, &a6d0, &ae22, &b35a, &b41c, &b59e, &b62e, &b6c6, &b929, &b967, &bc52"
+        "&9767 referenced 21 times by &8c8c, &9205, &96b9, &993b, &9a68, &9e2c, &a016, &a3cf, &a4cc, &a66e, &a699, &a6d0, &ae22, &b35a, &b41c, &b59e, &b62e, &b6c6, &b929, &b967, &bc52"
       ],
       "references": [
         {
@@ -48393,6 +48927,10 @@
         },
         {
           "addr": 37381,
+          "kind": "direct"
+        },
+        {
+          "addr": 38585,
           "kind": "direct"
         },
         {
@@ -64363,6 +64901,15 @@
         "send_open_file_request"
       ],
       "comment_inline": "Y=6: open file command",
+      "xref_summaries": [
+        "&a014 referenced 1 time by &9702"
+      ],
+      "references": [
+        {
+          "addr": 38658,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#6"
@@ -116637,6 +117184,15 @@
         "escape_error_close"
       ],
       "comment_inline": "Print newline",
+      "xref_summaries": [
+        "&bd5d referenced 1 time by &9727"
+      ],
+      "references": [
+        {
+          "addr": 38695,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
