@@ -3141,7 +3141,7 @@
     "rom_svc_num": 206,
     "fs_spool0": 207,
     "vdu_status": 208,
-    "l00ed": 237,
+    "tx_imm_idx_base": 237,
     "osbyte_a_copy": 239,
     "osword_pb_ptr": 240,
     "osword_pb_ptr_hi": 241,
@@ -3246,7 +3246,7 @@
     "tx_retry_count": 3437,
     "rx_wait_timeout": 3438,
     "peek_retry_count": 3439,
-    "l0d71": 3441,
+    "spool_control_flag": 3441,
     "bridge_status": 3442,
     "txcb_default_base": 3558,
     "rom_ws_pages": 3568,
@@ -3261,11 +3261,11 @@
     "fs_boot_option": 3589,
     "fs_messages_flag": 3590,
     "fs_eof_flags": 3591,
-    "l0e08": 3592,
+    "rx_attribute_byte": 3592,
     "fs_last_error": 3593,
     "fs_cmd_context": 3594,
     "fs_context_hi": 3595,
-    "l0e14": 3604,
+    "fs_options_shadow": 3604,
     "fs_work_16": 3606,
     "fs_filename_buf_m1": 3631,
     "fs_filename_buf": 3632,
@@ -3296,14 +3296,14 @@
     "fs_boot_data": 3862,
     "fs_exam_attr_char": 3887,
     "fs_exam_dir_flag": 3888,
-    "l0fc8": 4040,
+    "channel_status_table": 4040,
     "fs_putb_buf": 4060,
     "fs_getb_buf": 4061,
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fcb_xfer_count_lo": 4064,
     "fcb_xfer_count_mid": 4080,
-    "l0fff": 4095,
+    "print_str_idx_base": 4095,
     "fcb_count_lo": 4096,
     "fcb_attr_or_count_mid": 4112,
     "fcb_station_or_count_hi": 4128,
@@ -3385,7 +3385,7 @@
     "user_via_pcr": 65132,
     "user_via_ifr": 65133,
     "user_via_ier": 65134,
-    "lfe87": 65159,
+    "break_type_hw_reg": 65159,
     "econet_control1_or_status1": 65184,
     "econet_control23_or_status2": 65185,
     "econet_data_continue_frame": 65186,
@@ -3404,10 +3404,10 @@
     "cube_tube_data_out_from_host": 65264,
     "cube_tube_data_in_to_host": 65265,
     "cube_tube_status": 65277,
-    "lffb0": 65456,
+    "nmi_buf_idx_base": 65456,
     "osrdsc": 65465,
     "vduchr": 65468,
-    "lffbd": 65469,
+    "fcb_workspace_idx_base": 65469,
     "oseven": 65471,
     "gsinit": 65474,
     "gsread": 65477,
@@ -3456,6 +3456,14 @@
     {
       "addr": 199,
       "name": "txcb_pos",
+      "group": "zero_page",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 237,
+      "name": "tx_imm_idx_base",
       "group": "zero_page",
       "access": [
         "b"
@@ -3622,6 +3630,14 @@
       ]
     },
     {
+      "addr": 4040,
+      "name": "channel_status_table",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
       "addr": 4064,
       "name": "fcb_xfer_count_lo",
       "group": "ram_workspace",
@@ -3632,6 +3648,14 @@
     {
       "addr": 4080,
       "name": "fcb_xfer_count_mid",
+      "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 4095,
+      "name": "print_str_idx_base",
       "group": "ram_workspace",
       "access": [
         "b"
@@ -3753,6 +3777,22 @@
       "addr": 4339,
       "name": "filename_buf",
       "group": "ram_workspace",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 65456,
+      "name": "nmi_buf_idx_base",
+      "group": "idx_base",
+      "access": [
+        "b"
+      ]
+    },
+    {
+      "addr": 65469,
+      "name": "fcb_workspace_idx_base",
+      "group": "idx_base",
       "access": [
         "b"
       ]
@@ -23876,7 +23916,7 @@
         2
       ],
       "labels": [
-        "sub_c8a6c"
+        "record_break_and_setup_ws"
       ],
       "sub_labels": {
         "35438": [
@@ -25679,9 +25719,9 @@
       "comment_inline": "Clear workspace byte",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0e08",
+      "operand": "rx_attribute_byte",
       "target": 3592,
-      "target_label": "l0e08"
+      "target_label": "rx_attribute_byte"
     },
     {
       "addr": 35698,
@@ -31382,9 +31422,9 @@
       "comment_inline": "Load break type from hardware register",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "lfe87",
+      "operand": "break_type_hw_reg",
       "target": 65159,
-      "target_label": "lfe87"
+      "target_label": "break_type_hw_reg"
     },
     {
       "addr": 36551,
@@ -31988,9 +32028,9 @@
       "comment_inline": "Initialise workspace flag to &FF",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 36654,
@@ -42095,9 +42135,9 @@
       "comment_inline": "OR in channel status bits",
       "type": "code",
       "mnemonic": "ora",
-      "operand": "l0fc8,x",
+      "operand": "channel_status_table,x",
       "target": 4040,
-      "target_label": "l0fc8"
+      "target_label": "channel_status_table"
     },
     {
       "addr": 38180,
@@ -42118,9 +42158,9 @@
       "comment_inline": "Load channel status",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0fc8,x",
+      "operand": "channel_status_table,x",
       "target": 4040,
-      "target_label": "l0fc8"
+      "target_label": "channel_status_table"
     },
     {
       "addr": 38184,
@@ -42143,9 +42183,9 @@
       "comment_inline": "Clear data bits, keep state flags",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0fc8,x",
+      "operand": "channel_status_table,x",
       "target": 4040,
-      "target_label": "l0fc8"
+      "target_label": "channel_status_table"
     },
     {
       "addr": 38189,
@@ -45477,9 +45517,9 @@
       ],
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0e08",
+      "operand": "rx_attribute_byte",
       "target": 3592,
-      "target_label": "l0e08"
+      "target_label": "rx_attribute_byte"
     },
     {
       "addr": 38656,
@@ -51399,9 +51439,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0fff,y",
+      "operand": "print_str_idx_base,y",
       "target": 4095,
-      "target_label": "l0fff"
+      "target_label": "print_str_idx_base"
     },
     {
       "addr": 39491,
@@ -66505,9 +66545,9 @@
       "comment_inline": "Store to l0e16",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "l0e14",
+      "operand": "fs_options_shadow",
       "target": 3604,
-      "target_label": "l0e14"
+      "target_label": "fs_options_shadow"
     },
     {
       "addr": 41677,
@@ -70396,7 +70436,7 @@
         0
       ],
       "labels": [
-        "loop_ca4fc"
+        "loop_save_osword_ws"
       ],
       "comment_inline": "Load current workspace byte",
       "xref_summaries": [
@@ -70433,9 +70473,9 @@
       "comment_inline": "Load OSWORD parameter byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l00ed,y",
+      "operand": "tx_imm_idx_base,y",
       "target": 237,
-      "target_label": "l00ed"
+      "target_label": "tx_imm_idx_base"
     },
     {
       "addr": 42243,
@@ -70469,9 +70509,9 @@
       "comment_inline": "Loop for all 6 bytes",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_ca4fc",
+      "operand": "loop_save_osword_ws",
       "target": 42236,
-      "target_label": "loop_ca4fc"
+      "target_label": "loop_save_osword_ws"
     },
     {
       "addr": 42249,
@@ -70504,7 +70544,7 @@
         104
       ],
       "labels": [
-        "loop_ca50e"
+        "loop_restore_osword_ws"
       ],
       "comment_inline": "Restore saved workspace byte",
       "xref_summaries": [
@@ -70529,9 +70569,9 @@
       "comment_inline": "Store to osword_flag workspace",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "lffb0,y",
+      "operand": "nmi_buf_idx_base,y",
       "target": 65456,
-      "target_label": "lffb0"
+      "target_label": "nmi_buf_idx_base"
     },
     {
       "addr": 42258,
@@ -70551,9 +70591,9 @@
       "comment_inline": "Loop until all 6 restored",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_ca50e",
+      "operand": "loop_restore_osword_ws",
       "target": 42254,
-      "target_label": "loop_ca50e"
+      "target_label": "loop_restore_osword_ws"
     },
     {
       "addr": 42261,
@@ -77080,9 +77120,9 @@
       "comment_inline": "Load context byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0e08",
+      "operand": "rx_attribute_byte",
       "target": 3592,
-      "target_label": "l0e08"
+      "target_label": "rx_attribute_byte"
     },
     {
       "addr": 43013,
@@ -77347,9 +77387,9 @@
       "comment_inline": "Load bridge status",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 43053,
@@ -77515,9 +77555,9 @@
       ],
       "type": "code",
       "mnemonic": "eor",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 43075,
@@ -77883,9 +77923,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 43112,
@@ -78072,9 +78112,9 @@
       "comment_inline": "Store X (-1) as bridge counter",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 43142,
@@ -78452,9 +78492,9 @@
       "comment_inline": "Load bridge status",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "l0d71",
+      "operand": "spool_control_flag",
       "target": 3441,
-      "target_label": "l0d71"
+      "target_label": "spool_control_flag"
     },
     {
       "addr": 43198,
@@ -90497,7 +90537,7 @@
         15
       ],
       "labels": [
-        "loop_caf1c"
+        "loop_trim_trailing_spaces"
       ],
       "comment_inline": "Load character from end of buffer",
       "xref_summaries": [
@@ -90583,9 +90623,9 @@
       "comment_inline": "ALWAYS: trim next character back",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_caf1c",
+      "operand": "loop_trim_trailing_spaces",
       "target": 44828,
-      "target_label": "loop_caf1c"
+      "target_label": "loop_trim_trailing_spaces"
     },
     {
       "addr": 44843,
@@ -105311,7 +105351,7 @@
         255
       ],
       "labels": [
-        "loop_cb79f"
+        "loop_save_fcb_workspace"
       ],
       "comment_inline": "Load workspace byte",
       "xref_summaries": [
@@ -105325,9 +105365,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "lffbd,x",
+      "operand": "fcb_workspace_idx_base,x",
       "target": 65469,
-      "target_label": "lffbd"
+      "target_label": "fcb_workspace_idx_base"
     },
     {
       "addr": 47010,
@@ -105356,9 +105396,9 @@
       "comment_inline": "X<0: more bytes to save",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "loop_cb79f",
+      "operand": "loop_save_fcb_workspace",
       "target": 47007,
-      "target_label": "loop_cb79f"
+      "target_label": "loop_save_fcb_workspace"
     },
     {
       "addr": 47014,
@@ -105569,7 +105609,7 @@
         104
       ],
       "labels": [
-        "loop_cb7c3"
+        "loop_restore_fcb_ws"
       ],
       "comment_inline": "Restore fs_block_offset",
       "xref_summaries": [
@@ -105615,9 +105655,9 @@
       "comment_inline": "More bytes: continue restoring",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "loop_cb7c3",
+      "operand": "loop_restore_fcb_ws",
       "target": 47043,
-      "target_label": "loop_cb7c3"
+      "target_label": "loop_restore_fcb_ws"
     },
     {
       "addr": 47049,
@@ -110830,7 +110870,7 @@
         187
       ],
       "labels": [
-        "loop_cbaf2"
+        "loop_print_hex_row"
       ],
       "comment_inline": "Print as two hex digits",
       "xref_summaries": [
@@ -110897,9 +110937,9 @@
       "comment_inline": "Loop for all 16 columns",
       "type": "code",
       "mnemonic": "bpl",
-      "operand": "loop_cbaf2",
+      "operand": "loop_print_hex_row",
       "target": 47858,
-      "target_label": "loop_cbaf2"
+      "target_label": "loop_print_hex_row"
     },
     {
       "addr": 47869,
@@ -110986,7 +111026,7 @@
         255
       ],
       "labels": [
-        "sub_cbb09"
+        "print_char_and_pla"
       ],
       "sub_labels": {
         "47883": [

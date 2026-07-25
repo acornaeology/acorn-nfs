@@ -15975,6 +15975,30 @@ d.char_literal(0xBB72)
 d.char_literal(0xBC7A)
 d.char_literal(0xBC81)
 
+# Semantic names for indexing bases, workspace bytes and code points the
+# bootstrap left auto-labelled. Index-base / workspace / vector names and
+# the loop names come from 4.21 (variant 1) where the same routines are
+# named; the workspace-byte and two code-point names are read from the
+# 4.18 code.
+d.index_base(0x00ED, "tx_imm_idx_base", group="zero_page")
+d.index_base(0x0FC8, "channel_status_table", group="ram_workspace")
+d.index_base(0x0FFF, "print_str_idx_base", group="ram_workspace")
+d.index_base(0xFFB0, "nmi_buf_idx_base", group="idx_base")
+d.index_base(0xFFBD, "fcb_workspace_idx_base", group="idx_base")
+d.label(0x0D71, "spool_control_flag")
+d.label(0x0E08, "rx_attribute_byte")
+d.label(0x0E14, "fs_options_shadow")
+d.label(0xFE87, "break_type_hw_reg")
+d.label(0x8A6C, "record_break_and_setup_ws")
+d.label(0xBB09, "print_char_and_pla")
+d.label(0xA4FC, "loop_save_osword_ws")
+d.label(0xA50E, "loop_restore_osword_ws")
+d.label(0xAF1C, "loop_trim_trailing_spaces")
+d.label(0xB79F, "loop_save_fcb_workspace")
+d.label(0xB7C3, "loop_restore_fcb_ws")
+d.label(0xBAF2, "loop_print_hex_row")
+
+
 ir = d.disassemble()
 output = str(
     ir.render(

@@ -172,7 +172,7 @@ rom_svc_num                            = &ce
 fs_spool0                              = &cf
 vdu_status                             = &d0
 ; &d0 referenced 7 times by &aadd, &ab5c, &ab61, &ab72, &ab7b, &ab80, &abe0
-l00ed                                  = &ed
+tx_imm_idx_base                        = &ed
 ; &ed used as index base 1 time by &a500
 osbyte_a_copy                          = &ef
 ; &ef referenced 4 times by &8e92, &a4ef, &a99b, &aa69
@@ -331,7 +331,7 @@ rx_wait_timeout                        = &0d6e
 ; &0d6e referenced 1 time by &95dd
 peek_retry_count                       = &0d6f
 ; &0d6f referenced 1 time by &98ae
-l0d71                                  = &0d71
+spool_control_flag                     = &0d71
 ; &0d71 referenced 6 times by &8f2b, &a82a, &a840, &a865, &a883, &a8bb
 bridge_status                          = &0d72
 txcb_default_base                      = &0de6
@@ -359,7 +359,7 @@ fs_messages_flag                       = &0e06
 ; &0e06 referenced 2 times by &9a39, &9dd5
 fs_eof_flags                           = &0e07
 ; &0e07 referenced 5 times by &8b61, &8d7d, &8d8c, &9511, &9530
-l0e08                                  = &0e08
+rx_attribute_byte                      = &0e08
 ; &0e08 referenced 3 times by &8b6f, &96fd, &a802
 fs_last_error                          = &0e09
 ; &0e09 referenced 5 times by &950e, &9547, &9616, &a7fb, &b959
@@ -367,7 +367,7 @@ fs_cmd_context                         = &0e0a
 ; &0e0a referenced 1 time by &a2b5; also used as index base 3 times by &9ce0, &9e1f, &9e25
 fs_context_hi                          = &0e0b
 ; &0e0b referenced 1 time by &a2bc
-l0e14                                  = &0e14
+fs_options_shadow                      = &0e14
 ; &0e14 referenced 1 time by &a2ca
 fs_work_16                             = &0e16
 fs_filename_buf_m1                     = &0e2f
@@ -428,7 +428,7 @@ fs_exam_attr_char                      = &0f2f
 ; &0f2f referenced 1 time by &b39c
 fs_exam_dir_flag                       = &0f30
 ; &0f30 referenced 1 time by &b3ac
-l0fc8                                  = &0fc8
+channel_status_table                   = &0fc8
 ; &0fc8 used as index base 3 times by &9521, &9525, &952a
 fs_putb_buf                            = &0fdc
 ; &0fdc referenced 1 time by &b937; also used as index base 1 time by &b95e
@@ -442,7 +442,7 @@ fcb_xfer_count_lo                      = &0fe0
 ; &0fe0 used as index base 1 time by &b520
 fcb_xfer_count_mid                     = &0ff0
 ; &0ff0 used as index base 1 time by &b523
-l0fff                                  = &0fff
+print_str_idx_base                     = &0fff
 ; &0fff used as index base 1 time by &9a40
 fcb_count_lo                           = &1000
 ; &1000 used as index base 18 times by &8b7c, &8fb0, &8fba, &9c73, &9cb2, &9dfd, &9e66, &9eaa, &b44c, &b45c, &b467, &b526, &b78b, &b7f3, &b828, &b88e, &b8b4, &b901
@@ -532,7 +532,7 @@ system_via_ifr                         = &fe4d
 ; &fe4d referenced 2 times by &802a, &8046
 system_via_ier                         = &fe4e
 ; &fe4e referenced 2 times by &8049, &8514
-lfe87                                  = &fe87
+break_type_hw_reg                      = &fe87
 ; &fe87 referenced 1 time by &8ec4
 econet_control1_or_status1             = &fea0
 ; &fea0 referenced 32 times by &80eb, &8139, &8152, &81ce, &81df, &8209, &8227, &827f, &82c6, &82fc, &8311, &8329, &84e7, &860a, &8614, &8652, &86ed, &8708, &8734, &876e, &879c, &87ac, &87c4, &87f2, &8815, &8837, &8868, &887a, &88a4, &896b, &897a, &8a45
@@ -556,11 +556,11 @@ tube_status_register_4_and_cpu_control = &fee6
 ; &fee6 referenced 2 times by &be32, &bf6a
 tube_data_register_4                   = &fee7
 ; &fee7 referenced 1 time by &be37
-lffb0                                  = &ffb0
+nmi_buf_idx_base                       = &ffb0
 ; &ffb0 used as index base 1 time by &a50f
 osrdsc                                 = &ffb9
 ; &ffb9 referenced 1 time by &8aa4
-lffbd                                  = &ffbd
+fcb_workspace_idx_base                 = &ffbd
 ; &ffbd used as index base 1 time by &b79f
 oseven                                 = &ffbf
 ; &ffbf referenced 1 time by &8554
@@ -3836,8 +3836,8 @@ listen_jmp_hi = reset_enter_listen+2
     ldx ws_0d6a                                                       ; 8a66: ae 6a 0d    .j.      ; Already initialised?
     bne start_rom_scan                                                ; 8a69: d0 04       ..       ; Yes: skip first-time init
     inx                                                               ; 8a6b: e8          .        ; X=1 (mark as initialised)
-.sub_c8a6c
-init_rom_scan = sub_c8a6c+2
+.record_break_and_setup_ws
+init_rom_scan = record_break_and_setup_ws+2
     stx last_break_type                                               ; 8a6c: 8e 8d 02    ...      ; Set ROM present flag
 ; &8a6f referenced 1 time by &8a69
 .start_rom_scan
@@ -4053,7 +4053,7 @@ init_rom_scan = sub_c8a6c+2
     sta fs_lib_flags                                                  ; 8b67: 8d 71 10    .q.      ; Clear workspace byte
     sta svc_state                                                     ; 8b6a: 85 a9       ..       ; Clear service state
     jsr store_rx_attribute                                            ; 8b6c: 20 8f b9     ..      ; Clear receive attribute byte
-    sta l0e08                                                         ; 8b6f: 8d 08 0e    ...      ; Clear workspace byte
+    sta rx_attribute_byte                                             ; 8b6f: 8d 08 0e    ...      ; Clear workspace byte
     jsr setup_ws_ptr                                                  ; 8b72: 20 c0 8c     ..      ; Set up workspace pointers
     jsr init_channel_table                                            ; 8b75: 20 49 b4     I.      ; Initialise FS state
     ldy #&77                                                          ; 8b78: a0 77       .w       ; Y=&77: workspace block size - 1
@@ -4865,7 +4865,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     tya                                                               ; 8ebe: 98          .        ; Transfer page to A
     ldy romsel_copy                                                   ; 8ebf: a4 f4       ..       ; Get current ROM slot number
     sta rom_ws_pages,y                                                ; 8ec1: 99 f0 0d    ...      ; Store workspace page for this slot
-    ldy lfe87                                                         ; 8ec4: ac 87 fe    ...      ; Load break type from hardware register
+    ldy break_type_hw_reg                                             ; 8ec4: ac 87 fe    ...      ; Load break type from hardware register
     lda #0                                                            ; 8ec7: a9 00       ..       ; A=0
     sta net_rx_ptr                                                    ; 8ec9: 85 9c       ..       ; Clear receive block pointer low
     sta nfs_workspace                                                 ; 8ecb: 85 9e       ..       ; Clear NFS workspace pointer low
@@ -4916,7 +4916,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     stx fs_boot_option                                                ; 8f24: 8e 05 0e    ...      ; Clear workspace byte
     jsr reset_spool_buf_state                                         ; 8f27: 20 e2 aa     ..      ; Initialise ADLC protection table
     dex                                                               ; 8f2a: ca          .        ; X=&FF (underflow from X=0)
-    stx l0d71                                                         ; 8f2b: 8e 71 0d    .q.      ; Initialise workspace flag to &FF
+    stx spool_control_flag                                            ; 8f2b: 8e 71 0d    .q.      ; Initialise workspace flag to &FF
 ; &8f2e referenced 1 time by &8f3b
 .loop_alloc_handles
     lda ws_page                                                       ; 8f2e: a5 a8       ..       ; Get current workspace page
@@ -6200,11 +6200,11 @@ ws_init_data = error_bad_station+2
 ; &9520 referenced 1 time by &952e
 .loop_scan_channels
     pla                                                               ; 9520: 68          h        ; Pop accumulator
-    ora l0fc8,x                                                       ; 9521: 1d c8 0f    ...      ; OR in channel status bits
+    ora channel_status_table,x                                        ; 9521: 1d c8 0f    ...      ; OR in channel status bits
     pha                                                               ; 9524: 48          H        ; Push updated accumulator
-    lda l0fc8,x                                                       ; 9525: bd c8 0f    ...      ; Load channel status
+    lda channel_status_table,x                                        ; 9525: bd c8 0f    ...      ; Load channel status
     and #&c0                                                          ; 9528: 29 c0       ).       ; Keep only bits 6-7 (close flags)
-    sta l0fc8,x                                                       ; 952a: 9d c8 0f    ...      ; Clear data bits, keep state flags
+    sta channel_status_table,x                                        ; 952a: 9d c8 0f    ...      ; Clear data bits, keep state flags
     inx                                                               ; 952d: e8          .        ; Advance to next channel slot
     bmi loop_scan_channels                                            ; 952e: 30 f0       0.       ; Bit 7 set: more channels to scan
     stx fs_eof_flags                                                  ; 9530: 8e 07 0e    ...      ; Store last channel scanned
@@ -6568,7 +6568,7 @@ bad_prefix = bad_str_anchor+1
     jmp error_block                                                   ; 96fa: 4c 00 01    L..      ; Jump to BRK via error block
 ; &96fd referenced 1 time by &96f3
 .handle_net_error
-    sta l0e08                                                         ; 96fd: 8d 08 0e    ...      ; Store error code in workspace
+    sta rx_attribute_byte                                             ; 96fd: 8d 08 0e    ...      ; Store error code in workspace
     pha                                                               ; 9700: 48          H        ; Push error code
     txa                                                               ; 9701: 8a          .        ; Save X (error text index)
     pha                                                               ; 9702: 48          H        ; Push X
@@ -7234,7 +7234,7 @@ bad_prefix = bad_str_anchor+1
     ldy #&f4                                                          ; 9a3e: a0 f4       ..       ; Y=&F4: index into l0fff for filename
 ; &9a40 referenced 1 time by &9a47
 .loop_print_filename
-    lda l0fff,y                                                       ; 9a40: b9 ff 0f    ...      ; Load filename character from l10f3
+    lda print_str_idx_base,y                                          ; 9a40: b9 ff 0f    ...      ; Load filename character from l10f3
     jsr osasci                                                        ; 9a43: 20 e3 ff     ..      ; Print character via OSASCI
     iny                                                               ; 9a46: c8          .        ; Advance to next character
     bne loop_print_filename                                           ; 9a47: d0 f7       ..       ; Loop while Y wraps to 0 — i.e. print all 12 chars
@@ -8858,7 +8858,7 @@ bad_prefix = bad_str_anchor+1
     stx fs_block_offset                                               ; a2c4: 86 bc       ..       ; Store as block offset high
     lda #&0e                                                          ; a2c6: a9 0e       ..       ; A=&0E: OSWORD parameter size
     sta fs_options                                                    ; a2c8: 85 bb       ..       ; Store as options pointer
-    sta l0e14                                                         ; a2ca: 8d 14 0e    ...      ; Store to l0e16
+    sta fs_options_shadow                                             ; a2ca: 8d 14 0e    ...      ; Store to l0e16
     ldx #&4a                                                          ; a2cd: a2 4a       .J       ; X=&4A: FS command table offset
     ldy #5                                                            ; a2cf: a0 05       ..       ; Y=5
     jsr do_fs_cmd_iteration                                           ; a2d1: 20 51 99     Q.      ; Execute FS command iteration
@@ -9218,21 +9218,21 @@ bad_prefix = bad_str_anchor+1
     tax                                                               ; a4f9: aa          .        ; X=OSWORD handler index (0-6)
     ldy #6                                                            ; a4fa: a0 06       ..       ; Y=6: save 6 workspace bytes
 ; &a4fc referenced 1 time by &a507
-.loop_ca4fc
+.loop_save_osword_ws
     lda svc_state,y                                                   ; a4fc: b9 a9 00    ...      ; Load current workspace byte
     pha                                                               ; a4ff: 48          H        ; Save on stack
-    lda l00ed,y                                                       ; a500: b9 ed 00    ...      ; Load OSWORD parameter byte
+    lda tx_imm_idx_base,y                                             ; a500: b9 ed 00    ...      ; Load OSWORD parameter byte
     sta svc_state,y                                                   ; a503: 99 a9 00    ...      ; Copy parameter to workspace
     dey                                                               ; a506: 88          .        ; Next byte down
-    bne loop_ca4fc                                                    ; a507: d0 f3       ..       ; Loop for all 6 bytes
+    bne loop_save_osword_ws                                           ; a507: d0 f3       ..       ; Loop for all 6 bytes
     jsr osword_setup_handler                                          ; a509: 20 16 a5     ..      ; Set up dispatch and save state
     ldy #&fa                                                          ; a50c: a0 fa       ..       ; Y=&FA: restore 6 workspace bytes
 ; &a50e referenced 1 time by &a513
-.loop_ca50e
+.loop_restore_osword_ws
     pla                                                               ; a50e: 68          h        ; Restore saved workspace byte
-    sta lffb0,y                                                       ; a50f: 99 b0 ff    ...      ; Store to osword_flag workspace
+    sta nmi_buf_idx_base,y                                            ; a50f: 99 b0 ff    ...      ; Store to osword_flag workspace
     iny                                                               ; a512: c8          .        ; Next byte
-    bne loop_ca50e                                                    ; a513: d0 f9       ..       ; Loop until all 6 restored
+    bne loop_restore_osword_ws                                        ; a513: d0 f9       ..       ; Loop until all 6 restored
     rts                                                               ; a515: 60          `        ; Return from svc_8_osword
 ; ***************************************************************************************
 ; Push OSWORD handler address for RTS dispatch
@@ -9919,7 +9919,7 @@ bad_prefix = bad_str_anchor+1
 ;
 ; Returns the context byte (l0d6d) in PB[1].
 .osword_13_read_context
-    lda l0e08                                                         ; a802: ad 08 0e    ...      ; Load context byte
+    lda rx_attribute_byte                                             ; a802: ad 08 0e    ...      ; Load context byte
     bpl store_a_to_pb_1                                               ; a805: 10 f7       ..       ; Bit 7 clear: store context to PB
 ; ***************************************************************************************
 ; OSWORD &13 sub 14: read printer buffer free space
@@ -9968,7 +9968,7 @@ bad_prefix = bad_str_anchor+1
 .osword_13_bridge_query
     jsr init_bridge_poll                                              ; a825: 20 65 a8     e.      ; Poll for bridge
     ldy #0                                                            ; a828: a0 00       ..       ; Y=0
-    lda l0d71                                                         ; a82a: ad 71 0d    .q.      ; Load bridge status
+    lda spool_control_flag                                            ; a82a: ad 71 0d    .q.      ; Load bridge status
     cmp #&ff                                                          ; a82d: c9 ff       ..       ; Is it &FF (no bridge)?
     bne bridge_found                                                  ; a82f: d0 06       ..       ; No: bridge found
     tya                                                               ; a831: 98          .     
@@ -9986,7 +9986,7 @@ bad_prefix = bad_str_anchor+1
 .compare_bridge_status
 ; &a841 used as index base 1 time by &a875
 bridge_ws_init_data = compare_bridge_status+1
-    eor l0d71                                                         ; a840: 4d 71 0d    Mq.      ; Compare with bridge status
+    eor spool_control_flag                                            ; a840: 4d 71 0d    Mq.      ; Compare with bridge status
     bne rts_bridge_query                                              ; a843: d0 07       ..       ; Different: return unchanged
     beq store_bridge_station                                          ; a845: f0 03       ..       ; Same: confirm station
 ; &a847 referenced 1 time by &a83e
@@ -10035,7 +10035,7 @@ bridge_ws_init_data = compare_bridge_status+1
 ; Skips the broadcast if the table has already been populated from a previous call.
 ; &a865 referenced 4 times by &8e09, &a0b4, &a71e, &a825
 .init_bridge_poll
-    lda l0d71                                                         ; a865: ad 71 0d    .q.      ; Check bridge status
+    lda spool_control_flag                                            ; a865: ad 71 0d    .q.      ; Check bridge status
     cmp #&ff                                                          ; a868: c9 ff       ..       ; Is it &FF (uninitialised)?
     bne rts_bridge_poll                                               ; a86a: d0 58       .X       ; No: bridge already active, return
     tya                                                               ; a86c: 98          .        ; Save Y
@@ -10052,7 +10052,7 @@ bridge_ws_init_data = compare_bridge_status+1
     iny                                                               ; a87f: c8          .        ; Next workspace byte
     dex                                                               ; a880: ca          .        ; Next template byte
     bpl loop_copy_bridge_init                                         ; a881: 10 f2       ..       ; Loop for all 12 bytes
-    stx l0d71                                                         ; a883: 8e 71 0d    .q.      ; Store X (-1) as bridge counter
+    stx spool_control_flag                                            ; a883: 8e 71 0d    .q.      ; Store X (-1) as bridge counter
     rol econet_flags                                                  ; a886: 2e 61 0d    .a.      ; Restore l0d61 flag
 ; &a889 referenced 2 times by &a88c, &a8b3
 .loop_wait_ws_status
@@ -10086,7 +10086,7 @@ bridge_ws_init_data = compare_bridge_status+1
     sta (nfs_workspace),y                                             ; a8b7: 91 9e       ..       ; Store to workspace
     pla                                                               ; a8b9: 68          h        ; Restore saved Y
     tay                                                               ; a8ba: a8          .        ; Back to Y
-    lda l0d71                                                         ; a8bb: ad 71 0d    .q.      ; Load bridge status
+    lda spool_control_flag                                            ; a8bb: ad 71 0d    .q.      ; Load bridge status
     tax                                                               ; a8be: aa          .        ; X = bridge status
     eor #&ff                                                          ; a8bf: 49 ff       I.       ; Complement status
     beq rts_bridge_poll                                               ; a8c1: f0 01       ..       ; Status was &FF: return (no bridge)
@@ -11463,14 +11463,14 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     eor #&0d                                                          ; af18: 49 0d       I.       ; Is it CR (end of line)?
     bne loop_copy_char                                                ; af1a: d0 eb       ..       ; No: continue copying
 ; &af1c referenced 1 time by &af29
-.loop_caf1c
+.loop_trim_trailing_spaces
     lda fs_cmd_csd,x                                                  ; af1c: bd 03 0f    ...      ; Load character from end of buffer
     eor #' '                                                          ; af1f: 49 20       I        ; Test for space (&20)
     bne done_trim_spaces                                              ; af21: d0 08       ..       ; Not a space: done trimming
     dex                                                               ; af23: ca          .        ; Back up one position
     lda #&0d                                                          ; af24: a9 0d       ..       ; CR terminator
     sta fs_cmd_lib,x                                                  ; af26: 9d 04 0f    ...      ; Replace trailing space with CR
-    bne loop_caf1c                                                    ; af29: d0 f1       ..       ; ALWAYS: trim next character back
+    bne loop_trim_trailing_spaces                                     ; af29: d0 f1       ..       ; ALWAYS: trim next character back
 ; &af2b referenced 1 time by &af21
 .done_trim_spaces
     lda #0                                                            ; af2b: a9 00       ..       ; A=0: success return code
@@ -13218,11 +13218,11 @@ net_channel_err_string = err_net_chan_not_found+2
     pha                                                               ; b79c: 48          H        ; Push Y to stack
     ldx #&f7                                                          ; b79d: a2 f7       ..       ; X=&F7: save 9 workspace bytes (&F7..&FF)
 ; &b79f referenced 1 time by &b7a4
-.loop_cb79f
-    lda lffbd,x                                                       ; b79f: bd bd ff    ...      ; Load workspace byte
+.loop_save_fcb_workspace
+    lda fcb_workspace_idx_base,x                                      ; b79f: bd bd ff    ...      ; Load workspace byte
     pha                                                               ; b7a2: 48          H        ; Push fs_options
     inx                                                               ; b7a3: e8          .        ; Next byte
-    bmi loop_cb79f                                                    ; b7a4: 30 f9       0.       ; X<0: more bytes to save
+    bmi loop_save_fcb_workspace                                       ; b7a4: 30 f9       0.       ; X<0: more bytes to save
     ldx #&0f                                                          ; b7a6: a2 0f       ..       ; Start from FCB slot &0F
     stx cur_fcb_index                                                 ; b7a8: 8e c8 10    ...      ; Store as current FCB index
 ; &b7ab referenced 1 time by &b7bf
@@ -13244,11 +13244,11 @@ net_channel_err_string = err_net_chan_not_found+2
     bpl loop_process_fcb                                              ; b7bf: 10 ea       ..       ; More slots: continue loop
     ldx #8                                                            ; b7c1: a2 08       ..       ; X=8: restore 9 workspace bytes
 ; &b7c3 referenced 1 time by &b7c7
-.loop_cb7c3
+.loop_restore_fcb_ws
     pla                                                               ; b7c3: 68          h        ; Restore fs_block_offset
     sta fs_work_4,x                                                   ; b7c4: 95 b4       ..       ; Restore workspace byte
     dex                                                               ; b7c6: ca          .        ; Next byte down
-    bpl loop_cb7c3                                                    ; b7c7: 10 fa       ..       ; More bytes: continue restoring
+    bpl loop_restore_fcb_ws                                           ; b7c7: 10 fa       ..       ; More bytes: continue restoring
     pla                                                               ; b7c9: 68          h        ; Restore Y
     tay                                                               ; b7ca: a8          .        ; Y restored
     pla                                                               ; b7cb: 68          h        ; Restore X
@@ -13852,13 +13852,13 @@ net_channel_err_string = err_net_chan_not_found+2
     ldx #&0f                                                          ; baef: a2 0f       ..       ; X=&0F: 16 column numbers to print
     pla                                                               ; baf1: 68          h        ; Restore starting column number
 ; &baf2 referenced 1 time by &bafb
-.loop_cbaf2
+.loop_print_hex_row
     jsr print_hex_and_space                                           ; baf2: 20 03 bb     ..      ; Print as two hex digits
     sec                                                               ; baf5: 38          8        ; SEC for +1 via ADC
     adc #0                                                            ; baf6: 69 00       i.       ; Increment column number (SEC+ADC 0=+1)
     and #&0f                                                          ; baf8: 29 0f       ).       ; Wrap to low nibble (0-F)
     dex                                                               ; bafa: ca          .        ; Count down
-    bpl loop_cbaf2                                                    ; bafb: 10 f5       ..       ; Loop for all 16 columns
+    bpl loop_print_hex_row                                            ; bafb: 10 f5       ..       ; Loop for all 16 columns
     jsr osnewl                                                        ; bafd: 20 e7 ff     ..      ; Print trailer with ASCII label
     jmp osnewl                                                        ; bb00: 4c e7 ff    L..   
 ; ***************************************************************************************
@@ -13875,8 +13875,8 @@ net_channel_err_string = err_net_chan_not_found+2
     pha                                                               ; bb03: 48          H        ; Save byte value on stack
     jsr print_hex_byte                                                ; bb04: 20 2f 91     /.   
     lda #' '                                                          ; bb07: a9 20       .        ; A=&20: space character
-.sub_cbb09
-osasci_offset = sub_cbb09+2
+.print_char_and_pla
+osasci_offset = print_char_and_pla+2
     jsr osasci                                                        ; bb09: 20 e3 ff     ..      ; Print space character
 .done_print_hex_space
     pla                                                               ; bb0c: 68          h        ; Restore byte value from stack
@@ -14351,13 +14351,13 @@ save pydis_start, pydis_end
 ;     fs_load_vector:                           6
 ;     fs_server_stn:                            6
 ;     fs_ws_ptr:                                6
-;     l0d71:                                    6
 ;     nmi_rti:                                  6
 ;     os_text_ptr_hi:                           6
 ;     osfind:                                   6
 ;     quote_mode:                               6
 ;     send_net_packet:                          6
 ;     spool_buf_idx:                            6
+;     spool_control_flag:                       6
 ;     tube_main_loop:                           6
 ;     wait_net_tx_ack:                          6
 ;     attr_to_chan_index:                       5
@@ -14441,6 +14441,7 @@ save pydis_start, pydis_end
 ;     alloc_fcb_with_flags:                     3
 ;     append_byte_to_rxbuf:                     3
 ;     brk_ptr:                                  3
+;     channel_status_table:                     3
 ;     check_tube_irq_loop:                      3
 ;     close_all_net_chans:                      3
 ;     cmd_table_fs_hi:                          3
@@ -14470,8 +14471,6 @@ save pydis_start, pydis_end
 ;     handle_invalid:                           3
 ;     is_decimal_digit:                         3
 ;     jmp_restore_fs_ctx:                       3
-;     l0e08:                                    3
-;     l0fc8:                                    3
 ;     last_break_type:                          3
 ;     loop_poll_tx:                             3
 ;     loop_ps_delay:                            3
@@ -14502,6 +14501,7 @@ save pydis_start, pydis_end
 ;     rts_advance_buf:                          3
 ;     rts_bridge_poll:                          3
 ;     rts_strip_prefix:                         3
+;     rx_attribute_byte:                        3
 ;     rx_complete_update_rxcb:                  3
 ;     rx_remote_addr:                           3
 ;     save_net_tx_cb_vset:                      3
@@ -14796,6 +14796,7 @@ save pydis_start, pydis_end
 ;     boot_cmd_oscli:                           1
 ;     boot_load_cmd:                            1
 ;     boot_oscli_lo_table:                      1
+;     break_type_hw_reg:                        1
 ;     bridge_found:                             1
 ;     bridge_responded:                         1
 ;     bridge_txcb_init_table:                   1
@@ -14992,6 +14993,7 @@ save pydis_start, pydis_end
 ;     extract_digit_value:                      1
 ;     false_ref_6f6e:                           1
 ;     fcb_net_num:                              1
+;     fcb_workspace_idx_base:                   1
 ;     fcb_xfer_count_lo:                        1
 ;     fcb_xfer_count_mid:                       1
 ;     filev:                                    1
@@ -15009,6 +15011,7 @@ save pydis_start, pydis_end
 ;     fs_file_len:                              1
 ;     fs_filename_buf_2:                        1
 ;     fs_len_clear:                             1
+;     fs_options_shadow:                        1
 ;     fs_reply_data:                            1
 ;     fs_reply_stn:                             1
 ;     fs_vector_table:                          1
@@ -15058,13 +15061,7 @@ save pydis_start, pydis_end
 ;     issue_svc_osbyte:                         1
 ;     jmp_osbyte:                               1
 ;     jmp_osnewl:                               1
-;     l00ed:                                    1
-;     l0e14:                                    1
-;     l0fff:                                    1
 ;     language_entry:                           1
-;     lfe87:                                    1
-;     lffb0:                                    1
-;     lffbd:                                    1
 ;     library_dir_prefix:                       1
 ;     library_tried:                            1
 ;     listen_jmp_hi:                            1
@@ -15082,12 +15079,6 @@ save pydis_start, pydis_end
 ;     loop_bcd_add:                             1
 ;     loop_bridge_tx_delay:                     1
 ;     loop_build_wipe_cmd:                      1
-;     loop_ca4fc:                               1
-;     loop_ca50e:                               1
-;     loop_caf1c:                               1
-;     loop_cb79f:                               1
-;     loop_cb7c3:                               1
-;     loop_cbaf2:                               1
 ;     loop_check_exec_bytes:                    1
 ;     loop_check_ff_addr:                       1
 ;     loop_check_handles:                       1
@@ -15209,6 +15200,7 @@ save pydis_start, pydis_end
 ;     loop_print_dump_ascii:                    1
 ;     loop_print_dump_hex:                      1
 ;     loop_print_filename:                      1
+;     loop_print_hex_row:                       1
 ;     loop_print_name:                          1
 ;     loop_print_option_str:                    1
 ;     loop_print_poll_name:                     1
@@ -15223,13 +15215,17 @@ save pydis_start, pydis_end
 ;     loop_read_poll_char:                      1
 ;     loop_read_ps_char:                        1
 ;     loop_restore_ctx:                         1
+;     loop_restore_fcb_ws:                      1
 ;     loop_restore_name:                        1
+;     loop_restore_osword_ws:                   1
 ;     loop_restore_stack:                       1
 ;     loop_restore_tx_buf:                      1
 ;     loop_restore_txbuf:                       1
 ;     loop_retry_tx:                            1
 ;     loop_rotate_hex_accum:                    1
 ;     loop_save_before_match:                   1
+;     loop_save_fcb_workspace:                  1
+;     loop_save_osword_ws:                      1
 ;     loop_save_tube_bytes:                     1
 ;     loop_save_tx_context:                     1
 ;     loop_scan_channels:                       1
@@ -15264,6 +15260,7 @@ save pydis_start, pydis_end
 ;     loop_sum_ws:                              1
 ;     loop_swap_and_send:                       1
 ;     loop_trim_trailing:                       1
+;     loop_trim_trailing_spaces:                1
 ;     loop_tube_delay:                          1
 ;     loop_verify_addrs:                        1
 ;     loop_wait_disc_tx_ack:                    1
@@ -15283,6 +15280,7 @@ save pydis_start, pydis_end
 ;     next_scout_byte:                          1
 ;     nfs_inactive_exit:                        1
 ;     nfs_temp:                                 1
+;     nmi_buf_idx_base:                         1
 ;     nmi_code_base:                            1
 ;     nmi_data_rx_bulk:                         1
 ;     nmi_data_rx_skip:                         1
@@ -15351,6 +15349,7 @@ save pydis_start, pydis_end
 ;     print_server_is_suffix:                   1
 ;     print_shared_prefix:                      1
 ;     print_station_only:                       1
+;     print_str_idx_base:                       1
 ;     print_syntax_char:                        1
 ;     print_table_newline:                      1
 ;     process_reply_code:                       1
@@ -15633,6 +15632,7 @@ save pydis_start, pydis_end
 ;     tx_error:                                 1
 ;     tx_fifo_not_ready:                        1
 ;     tx_fifo_write:                            1
+;     tx_imm_idx_base:                          1
 ;     tx_imm_op_setup:                          1
 ;     tx_last_data:                             1
 ;     tx_line_idle_check:                       1
@@ -15682,25 +15682,8 @@ save pydis_start, pydis_end
 ;     zp_0078:                                  1
 
 ; Automatically generated labels:
-;     l00ed
-;     l0d71
-;     l0e08
-;     l0e14
-;     l0fc8
-;     l0fff
-;     lfe87
-;     lffb0
-;     lffbd
-;     loop_ca4fc
-;     loop_ca50e
-;     loop_caf1c
-;     loop_cb79f
-;     loop_cb7c3
-;     loop_cbaf2
 ;     return_1
 ;     return_2
-;     sub_c8a6c
-;     sub_cbb09
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
