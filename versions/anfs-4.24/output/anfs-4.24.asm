@@ -1910,9 +1910,9 @@ l8494 = sub_c8492+2
 ; RX immediate: POKE setup
 ;
 ; Sets up workspace offsets for receiving POKE data: port_ws_offset = &2E, rx_buf_offset
-; = &0D. Jumps to the common data-receive path at &81AF. POKE (&82) only writes memory
-; and replies, so it is serviced inline in the receive path -- not deferred like the
-; execute-class operations &83-&87.
+; = &0D. Jumps to the POKE data-receive path at port_match_found. POKE (&82) only writes
+; memory and replies, so it is serviced inline in the receive path -- not deferred like
+; the execute-class operations &83-&87.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84bc: a9 2e       ..       ; Port workspace offset = &2E
@@ -5278,7 +5278,7 @@ l8dbf = load_transfer_params+1
 ; writes 0 to the *SPOOL file handle (OSBYTE &C7 with X=0, Y=0) so the printed CR is not
 ; captured by spool, then restores the previous handle on exit.
 ;
-; Called from service_handler (&8A7C) after the 'Bad ROM <slot>' message, and from two
+; Called from service_handler (&8AB4) after the 'Bad ROM <slot>' message, and from two
 ; other diagnostic sites (&8E28, &9D3C).
 ;
 ; On Exit:
@@ -6385,8 +6385,8 @@ l8dbf = load_transfer_params+1
 ; ***************************************************************************************
 ; Write FS/PS station+network to CMOS RAM
 ;
-; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A841, *PS at
-; &A846) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A828, *PS at
+; &A82D) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
 ; saved address.
 ;
 ; The flag byte's low 6 bits (AND #&3F) double as the CMOS byte index for the relevant
@@ -6438,11 +6438,11 @@ l8dbf = load_transfer_params+1
 ; (a 3-byte JMP trampoline to svc_return_unclaimed, reached this way because BRA's 8-bit
 ; displacement can't span &9616 → &8C89).
 ;
-; osbyte_a2 ends at &9618 (3 instructions, 8 bytes); the next labelled routine is
+; osbyte_a2 ends at &9618 (3 instructions, 7 bytes); the next labelled routine is
 ; cmd_space. Counterpart of osbyte_a1 (read).
 ;
 ; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA
-; shortcut at &962C inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
+; shortcut at &962D inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
 ; byte &11 ending at osopt_cmos_writeback_jsr.
 ;
 ; On Entry:

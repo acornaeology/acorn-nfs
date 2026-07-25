@@ -551,13 +551,13 @@
       "addr": 33939,
       "name": "rx_imm_exec",
       "title": "RX immediate: JSR / UserProc / OSProc setup",
-      "description": "Sets up the port buffer to receive remote-procedure data. Copies\nthe 2-byte remote address from [`scout_data`](label:scout_data)\ninto the execution-address workspace at\n[`exec_addr_lo`](label:exec_addr_lo) / [`exec_addr_hi`](label:exec_addr_hi),\nthen jumps to the common data-receive path at `&81C1`.\n\nUsed for operation types `&83` (JSR), `&84` (UserProc), and\n`&85` (OSProc)."
+      "description": "Sets up the port buffer to receive remote-procedure data. Copies\nthe 2-byte remote address from [`scout_data`](label:scout_data)\ninto the execution-address workspace at\n[`exec_addr_lo`](label:exec_addr_lo) / [`exec_addr_hi`](label:exec_addr_hi),\nthen jumps to the common data-receive path at\n[`send_data_rx_ack`](label:send_data_rx_ack).\n\nUsed for operation types `&83` (JSR), `&84` (UserProc), and\n`&85` (OSProc)."
     },
     {
       "addr": 33969,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\ncommon data-receive path at `&81AF`. POKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
+      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\nPOKE data-receive path at [`port_match_found`](label:port_match_found).\nPOKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
     },
     {
       "addr": 33980,
@@ -1924,7 +1924,7 @@
       "addr": 38418,
       "name": "osbyte_a2",
       "title": "OSBYTE &A2 (write Master CMOS RAM byte)",
-      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BE`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9617 \u2192 &8C64).\n\n`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next\nlabelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n[`&962E`](address:962E) inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
+      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BE`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9617 \u2192 &8C64).\n\n`osbyte_a2` ends at [`&9619`](address:9619) (3 instructions, 7 bytes);\nthe next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n[`&962E`](address:962E) inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
       "on_entry": {
         "x": "CMOS RAM byte index",
         "y": "value to write"

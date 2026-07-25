@@ -2648,7 +2648,8 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data:
 `port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the
-common data-receive path at `&81AF`. POKE (`&82`) only writes
+POKE data-receive path at [`port_match_found`](label:port_match_found).
+POKE (`&82`) only writes
 memory and replies, so it is serviced inline in the receive
 path -- not deferred like the execute-class operations
 `&83`-`&87`.""",
@@ -6557,7 +6558,7 @@ mechanism temporarily writes `0` to the `*SPOOL` file handle
 (OSBYTE `&C7` with `X=0`, `Y=0`) so the printed `CR` is not
 captured by spool, then restores the previous handle on exit.
 
-Called from [`service_handler`](label:service_handler) (`&8A7C`) after
+Called from [`service_handler`](label:service_handler) (`&8AB4`) after
 the `'Bad ROM <slot>'` message, and from two other diagnostic
 sites (`&8E28`, `&9D3C`).""",
     on_entry={},
@@ -7802,8 +7803,8 @@ d.subroutine(
     "set_fs_or_ps_cmos_station",
     title="Write FS/PS station+network to CMOS RAM",
     description="""Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
-(`*FS` at [`&A841`](address:A841), `*PS` at
-`&A846`) when the caller supplies a `<net>.<stn>`
+(`*FS` at [`&A828`](address:A828), `*PS` at
+[`&A82D`](address:A82D)) when the caller supplies a `<net>.<stn>`
 argument or wants to inspect/update the saved address.
 
 The flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte
@@ -7867,13 +7868,13 @@ The trailing `BRA` lands on
 to [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way
 because `BRA`'s 8-bit displacement can't span &9616 → &8C89).
 
-`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
-labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
+`osbyte_a2` ends at [`&9618`](address:9618) (3 instructions, 7 bytes);
+the next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
 [`osbyte_a1`](label:osbyte_a1) (read).
 
 Callers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via
 `JSR`, once via fall-through), the `BRA` shortcut at
-`&962C` inside [`cmd_nospace`](label:cmd_nospace), and
+`&962D` inside [`cmd_nospace`](label:cmd_nospace), and
 an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
 [`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"},

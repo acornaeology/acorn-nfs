@@ -1889,7 +1889,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ;
 ; Sets up the port buffer to receive remote-procedure data. Copies the 2-byte remote
 ; address from scout_data into the execution-address workspace at exec_addr_lo /
-; exec_addr_hi, then jumps to the common data-receive path at &81C1.
+; exec_addr_hi, then jumps to the common data-receive path at send_data_rx_ack.
 ;
 ; Used for operation types &83 (JSR), &84 (UserProc), and &85 (OSProc).
 .rx_imm_exec
@@ -1914,9 +1914,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; RX immediate: POKE setup
 ;
 ; Sets up workspace offsets for receiving POKE data: port_ws_offset = &2E, rx_buf_offset
-; = &0D. Jumps to the common data-receive path at &81AF. POKE (&82) only writes memory
-; and replies, so it is serviced inline in the receive path -- not deferred like the
-; execute-class operations &83-&87.
+; = &0D. Jumps to the POKE data-receive path at port_match_found. POKE (&82) only writes
+; memory and replies, so it is serviced inline in the receive path -- not deferred like
+; the execute-class operations &83-&87.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84b1: a9 2e       ..       ; Port workspace offset = &2E
@@ -6572,7 +6572,7 @@ ps_template_base = load_transfer_params+1
 ; (a 3-byte JMP trampoline to svc_return_unclaimed, reached this way because BRA's 8-bit
 ; displacement can't span &9617 → &8C64).
 ;
-; osbyte_a2 ends at &9618 (3 instructions, 8 bytes); the next labelled routine is
+; osbyte_a2 ends at &9619 (3 instructions, 7 bytes); the next labelled routine is
 ; cmd_space. Counterpart of osbyte_a1 (read).
 ;
 ; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA

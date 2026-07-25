@@ -547,7 +547,7 @@
       "addr": 33980,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\ncommon data-receive path at `&81AF`. POKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
+      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\nPOKE data-receive path at [`port_match_found`](label:port_match_found).\nPOKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
     },
     {
       "addr": 33991,
@@ -1446,7 +1446,7 @@
       "addr": 37378,
       "name": "print_newline_no_spool",
       "title": "Print CR via OSASCI, bypassing any open *SPOOL file",
-      "description": "Loads `A=&0D` and falls into\n[`print_char_no_spool`](label:print_char_no_spool). The underlying\nmechanism temporarily writes `0` to the `*SPOOL` file handle\n(OSBYTE `&C7` with `X=0`, `Y=0`) so the printed `CR` is not\ncaptured by spool, then restores the previous handle on exit.\n\nCalled from [`service_handler`](label:service_handler) (`&8A7C`) after\nthe `'Bad ROM <slot>'` message, and from two other diagnostic\nsites (`&8E28`, `&9D3C`).",
+      "description": "Loads `A=&0D` and falls into\n[`print_char_no_spool`](label:print_char_no_spool). The underlying\nmechanism temporarily writes `0` to the `*SPOOL` file handle\n(OSBYTE `&C7` with `X=0`, `Y=0`) so the printed `CR` is not\ncaptured by spool, then restores the previous handle on exit.\n\nCalled from [`service_handler`](label:service_handler) (`&8AB4`) after\nthe `'Bad ROM <slot>'` message, and from two other diagnostic\nsites (`&8E28`, `&9D3C`).",
       "on_exit": {
         "a, x, y, p": "preserved (print_char_no_spool brackets the call with full register save/restore via PHA/PHP/PLP/PLA)"
       },
@@ -1816,7 +1816,7 @@
       "addr": 38381,
       "name": "set_fs_or_ps_cmos_station",
       "title": "Write FS/PS station+network to CMOS RAM",
-      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A841`](address:A841), `*PS` at\n`&A846`) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](label:parse_fs_ps_args) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](label:osbyte_a2), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](label:svc_return_unclaimed).",
+      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A828`](address:A828), `*PS` at\n[`&A82D`](address:A82D)) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](label:parse_fs_ps_args) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](label:osbyte_a2), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](label:svc_return_unclaimed).",
       "on_entry": {
         "x": "offset in cmd_table_fs of the matched entry's flag byte"
       },
@@ -1826,7 +1826,7 @@
       "addr": 38417,
       "name": "osbyte_a2",
       "title": "OSBYTE &A2 (write Master CMOS RAM byte)",
-      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9616 \u2192 &8C89).\n\n`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next\nlabelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n`&962C` inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
+      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BD`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9616 \u2192 &8C89).\n\n`osbyte_a2` ends at [`&9618`](address:9618) (3 instructions, 7 bytes);\nthe next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n`&962D` inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
       "on_entry": {
         "x": "CMOS RAM byte index",
         "y": "value to write"

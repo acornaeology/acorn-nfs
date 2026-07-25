@@ -2612,7 +2612,8 @@ d.subroutine(
 the 2-byte remote address from [`scout_data`](label:scout_data)
 into the execution-address workspace at
 [`exec_addr_lo`](label:exec_addr_lo) / [`exec_addr_hi`](label:exec_addr_hi),
-then jumps to the common data-receive path at `&81C1`.
+then jumps to the common data-receive path at
+[`send_data_rx_ack`](label:send_data_rx_ack).
 
 Used for operation types `&83` (JSR), `&84` (UserProc), and
 `&85` (OSProc).""",
@@ -2645,7 +2646,8 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data:
 `port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the
-common data-receive path at `&81AF`. POKE (`&82`) only writes
+POKE data-receive path at [`port_match_found`](label:port_match_found).
+POKE (`&82`) only writes
 memory and replies, so it is serviced inline in the receive
 path -- not deferred like the execute-class operations
 `&83`-`&87`.""",
@@ -7871,8 +7873,8 @@ The trailing `BRA` lands on
 to [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way
 because `BRA`'s 8-bit displacement can't span &9617 → &8C64).
 
-`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
-labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
+`osbyte_a2` ends at [`&9619`](address:9619) (3 instructions, 7 bytes);
+the next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
 [`osbyte_a1`](label:osbyte_a1) (read).
 
 Callers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via
