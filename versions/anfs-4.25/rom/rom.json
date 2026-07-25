@@ -1,0 +1,53 @@
+{
+    "title": "Acorn ANFS 4.25",
+    "memory_map_groups": {
+        "zero_page": "Zero page",
+        "stack": "6502 stack page",
+        "ram_workspace": "RAM workspace",
+        "hazel": "Filing system workspace (HAZEL)",
+        "mmio": "Memory-mapped I/O",
+        "ext_vectors": "MOS extended-vector trampolines",
+        "idx_base": "Indexing-base addresses (wrap into ZP)"
+    },
+    "size": 16384,
+    "md5": "306cb8ff6622dbfc79dc487ac4e407e1",
+    "sha256": "f5ead36e01925930b25c25292415717d646ffb4a791cef822416665827c8297c",
+    "cpu": "65c02",
+    "machine": "BBC Master 128",
+    "links": [
+        {
+            "label": "Acorn ANFS 4.25 in The BBC Micro ROM Library",
+            "url": "https://tobylobster.github.io/rom_library/?md5=306cb8ff6622dbfc79dc487ac4e407e1",
+            "icon": "chip"
+        },
+        {
+            "label": "Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32592",
+            "icon": "chat"
+        }
+    ],
+    "references": [
+        {
+            "id": "mos",
+            "label": "Tom Seddon's Acorn MOS disassembly (Master)",
+            "url": "https://github.com/tom-seddon/acorn_mos_disassembly",
+            "icon": "ref",
+            "category": "source",
+            "note": "Tom Seddon's disassembly of the BBC Master 128 MOS — the reference for the OS entry points and workspace semantics ANFS 4.25 (Master-only) relies on, in place of the Model-B MOS."
+        },
+        {
+            "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
+            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
+            "icon": "doc",
+            "category": "source",
+            "note": "Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions."
+        }
+    ],
+    "docs": [
+        {
+            "type": "changes",
+            "label": "Changes from ANFS 4.24",
+            "path": "CHANGES-FROM-4.24.md"
+        }
+    ]
+}
