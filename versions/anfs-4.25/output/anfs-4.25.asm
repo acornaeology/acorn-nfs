@@ -2480,7 +2480,7 @@ l85c3 = sub_c85c2+1
     sty econet_control23_or_status2                                   ; 8716: 8c a1 fe    ...      ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44                                                          ; 8719: a2 44       .D       ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 871b: 8e a0 fe    ...      ; Write to ADLC CR1
-    ldx #&b8                                                          ; 871e: a2 b8       ..       ; Next NMI handler address (low)
+    ldx #<(nmi_tx_data)                                               ; 871e: a2 b8       ..       ; Next NMI handler address (low)
     ldy #&87                                                          ; 8720: a0 87       ..       ; High byte of NMI handler address
     stx nmi_jmp_lo                                                    ; 8722: 8e 0c 0d    ...      ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 8725: 8c 0d 0d    ...      ; Write NMI vector high byte directly
@@ -2692,7 +2692,7 @@ l872f = tx_enable_nmis+2
 .tx_last_data
     lda #&3f                                                          ; 87f4: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA | CLR_RX_ST | FLAG_IDLE | FC_TDRA | 2_1_BYTE | PSE
     sta econet_control23_or_status2                                   ; 87f6: 8d a1 fe    ...      ; Write to ADLC CR2
-    lda #&fe                                                          ; 87f9: a9 fe       ..       ; Install TX->RX switch handler (low)
+    lda #<(nmi_tx_switch_rx)                                          ; 87f9: a9 fe       ..       ; Install TX->RX switch handler (low)
     jmp install_nmi_handler                                           ; 87fb: 4c 11 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
 ; TX completion: switch to RX mode
@@ -2733,7 +2733,7 @@ l872f = tx_enable_nmis+2
     jmp handshake_await_ack                                           ; 8812: 4c 57 89    LW.      ; bit0 set -- four-way handshake data phase
 ; &8815 referenced 1 time by &8810
 .install_reply_scout
-    lda #&1c                                                          ; 8815: a9 1c       ..       ; Install nmi_reply_scout (low)
+    lda #<(nmi_reply_scout)                                           ; 8815: a9 1c       ..       ; Install nmi_reply_scout (low)
     ldy #>(nmi_reply_scout)                                           ; 8817: a0 88       ..       ; Install nmi_reply_scout (high)
     jmp set_nmi_vector                                                ; 8819: 4c 0e 0d    L..      ; Install handler
 ; ***************************************************************************************
@@ -2751,7 +2751,7 @@ l872f = tx_enable_nmis+2
     lda econet_data_continue_frame                                    ; 8823: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8826: cd 22 0d    .".      ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8829: d0 19       ..       ; Not our station -- error/reject
-    lda #&30                                                          ; 882b: a9 30       .0       ; Install reply-continuation handler (low)
+    lda #<(nmi_reply_cont)                                            ; 882b: a9 30       .0       ; Install reply-continuation handler (low)
     jmp install_nmi_handler                                           ; 882d: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; RX reply continuation handler
@@ -2770,7 +2770,7 @@ l872f = tx_enable_nmis+2
     bpl reject_reply                                                  ; 8833: 10 0f       ..       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 8835: ad a2 fe    ...      ; Read destination network byte
     bne reject_reply                                                  ; 8838: d0 0a       ..       ; Non-zero -- network mismatch, error
-    lda #&47                                                          ; 883a: a9 47       .G       ; Next NMI handler address (low)
+    lda #<(nmi_reply_validate)                                        ; 883a: a9 47       .G       ; Next NMI handler address (low)
     bit econet_control1_or_status1                                    ; 883c: 2c a0 fe    ,..      ; Test SR1 IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 883f: 30 06       0.       ; IRQ set -- fall through to &884A
     jmp install_nmi_handler                                           ; 8841: 4c 11 0d    L..      ; IRQ not set -- install handler
@@ -2826,7 +2826,7 @@ l872f = tx_enable_nmis+2
     sta econet_data_continue_frame                                    ; 887f: 8d a2 fe    ...      ; Write dest station to TX FIFO
     lda tx_dst_net                                                    ; 8882: ad 21 0d    .!.      ; Write dest network to TX FIFO
     sta econet_data_continue_frame                                    ; 8885: 8d a2 fe    ...      ; Write dest network to TX FIFO
-    lda #&8f                                                          ; 8888: a9 8f       ..       ; Next NMI handler address (low)
+    lda #<(nmi_scout_ack_src)                                         ; 8888: a9 8f       ..       ; Next NMI handler address (low)
     ldy #>(nmi_scout_ack_src)                                         ; 888a: a0 88       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 888c: 4c 0e 0d    L..      ; Set NMI vector and return
 ; ***************************************************************************************
@@ -2869,12 +2869,12 @@ l872f = tx_enable_nmis+2
     lda #2                                                            ; 889f: a9 02       ..       ; Test bit 1 of tx_flags
     bit net_frame_flags                                               ; 88a1: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 88a4: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
-    lda #&bc                                                          ; 88a6: a9 bc       ..       ; Install nmi_data_tx alt-entry (low)
+    lda #<(nmi_data_tx_alt)                                           ; 88a6: a9 bc       ..       ; Install nmi_data_tx alt-entry (low)
     ldy #&88                                                          ; 88a8: a0 88       ..       ; Y=&88: high byte of nmi_data_tx
     jmp set_nmi_vector                                                ; 88aa: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &88ad referenced 1 time by &88a4
 .install_imm_data_nmi
-    lda #&16                                                          ; 88ad: a9 16       ..       ; Next NMI handler address (low)
+    lda #<(nmi_data_tx_tube)                                          ; 88ad: a9 16       ..       ; Next NMI handler address (low)
     ldy #>(nmi_data_tx_tube)                                          ; 88af: a0 89       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 88b1: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
@@ -3016,7 +3016,7 @@ tx_flags_table = check_tube_irq_loop+1
 .handshake_await_ack
     lda #&82                                                          ; 8957: a9 82       ..       ; CR1=&82: TX_RESET | RIE (switch to RX for final ACK)
     sta econet_control1_or_status1                                    ; 8959: 8d a0 fe    ...      ; Write to ADLC CR1
-    lda #&63                                                          ; 895c: a9 63       .c       ; Next NMI handler address (low)
+    lda #<(nmi_final_ack)                                             ; 895c: a9 63       .c       ; Next NMI handler address (low)
     ldy #>(nmi_final_ack)                                             ; 895e: a0 89       ..       ; Next NMI handler address (high)
     jmp set_nmi_vector                                                ; 8960: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; ***************************************************************************************
@@ -3038,7 +3038,7 @@ tx_flags_table = check_tube_irq_loop+1
     lda econet_data_continue_frame                                    ; 896a: ad a2 fe    ...      ; Read dest station
     cmp tx_src_stn                                                    ; 896d: cd 22 0d    .".      ; Compare to our station (workspace copy)
     bne tx_result_fail                                                ; 8970: d0 41       .A       ; Not our station -- error
-    lda #&77                                                          ; 8972: a9 77       .w       ; Next NMI handler address (low)
+    lda #<(nmi_final_ack_net)                                         ; 8972: a9 77       .w       ; Next NMI handler address (low)
     jmp install_nmi_handler                                           ; 8974: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; NMI handler: final-ACK source-net validation
@@ -10575,7 +10575,7 @@ la127 = osopt_cmos_writeback_jsr+1
     tya                                                               ; a726: 98          .        ; Result to A
     and #2                                                            ; a727: 29 02       ).       ; Mask bit 1 (auto-CLI flag)
     beq boot_persist_fs_maybe                                         ; a729: f0 07       ..       ; Bit clear: skip auto-CLI
-    ldx #&14                                                          ; a72b: a2 14       ..       ; -NET-FindLib command pointer (low)
+    ldx #<(findlib_oscli_cmd)                                         ; a72b: a2 14       ..       ; -NET-FindLib command pointer (low)
     ldy #>(findlib_oscli_cmd)                                         ; a72d: a0 a7       ..       ; -NET-FindLib command pointer (high)
     jsr oscli                                                         ; a72f: 20 f7 ff     ..      ; OSCLI '-NET-FindLib': dispatch to NFS via FSCV,3 (bypass service-4 broadcast)
 ; &a732 referenced 1 time by &a729

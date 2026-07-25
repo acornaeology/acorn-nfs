@@ -19333,7 +19333,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&b8"
+      "operand": "#<(nmi_tx_data)",
+      "expr": {
+        "text": "<(nmi_tx_data)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_data"
+          }
+        }
+      }
     },
     {
       "addr": 34592,
@@ -20734,7 +20743,16 @@
       "comment_inline": "Install TX->RX switch handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&fe"
+      "operand": "#<(nmi_tx_switch_rx)",
+      "expr": {
+        "text": "<(nmi_tx_switch_rx)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_switch_rx"
+          }
+        }
+      }
     },
     {
       "addr": 34811,
@@ -20905,7 +20923,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&1c"
+      "operand": "#<(nmi_reply_scout)",
+      "expr": {
+        "text": "<(nmi_reply_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_scout"
+          }
+        }
+      }
     },
     {
       "addr": 34839,
@@ -21032,7 +21059,16 @@
       "comment_inline": "Install reply-continuation handler (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&30"
+      "operand": "#<(nmi_reply_cont)",
+      "expr": {
+        "text": "<(nmi_reply_cont)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_cont"
+          }
+        }
+      }
     },
     {
       "addr": 34861,
@@ -21114,7 +21150,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&47"
+      "operand": "#<(nmi_reply_validate)",
+      "expr": {
+        "text": "<(nmi_reply_validate)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_validate"
+          }
+        }
+      }
     },
     {
       "addr": 34876,
@@ -21558,7 +21603,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&8f"
+      "operand": "#<(nmi_scout_ack_src)",
+      "expr": {
+        "text": "<(nmi_scout_ack_src)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_scout_ack_src"
+          }
+        }
+      }
     },
     {
       "addr": 34954,
@@ -21748,7 +21802,16 @@
       "comment_inline": "Install nmi_data_tx alt-entry (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&bc"
+      "operand": "#<(nmi_data_tx_alt)",
+      "expr": {
+        "text": "<(nmi_data_tx_alt)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx_alt"
+          }
+        }
+      }
     },
     {
       "addr": 34984,
@@ -21796,7 +21859,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&16"
+      "operand": "#<(nmi_data_tx_tube)",
+      "expr": {
+        "text": "<(nmi_data_tx_tube)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 34991,
@@ -23041,7 +23113,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&63"
+      "operand": "#<(nmi_final_ack)",
+      "expr": {
+        "text": "<(nmi_final_ack)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack"
+          }
+        }
+      }
     },
     {
       "addr": 35166,
@@ -23168,7 +23249,16 @@
       "comment_inline": "Next NMI handler address (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&77"
+      "operand": "#<(nmi_final_ack_net)",
+      "expr": {
+        "text": "<(nmi_final_ack_net)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack_net"
+          }
+        }
+      }
     },
     {
       "addr": 35188,
@@ -76508,7 +76598,16 @@
       "comment_inline": "-NET-FindLib command pointer (low)",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&14"
+      "operand": "#<(findlib_oscli_cmd)",
+      "expr": {
+        "text": "<(findlib_oscli_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "findlib_oscli_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 42797,
