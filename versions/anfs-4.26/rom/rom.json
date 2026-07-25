@@ -1,0 +1,58 @@
+{
+    "title": "Acorn ANFS 4.26",
+    "memory_map_groups": {
+        "zero_page": "Zero page",
+        "stack": "6502 stack page",
+        "ram_workspace": "RAM workspace",
+        "hazel": "Filing system workspace (HAZEL)",
+        "mmio": "Memory-mapped I/O",
+        "ext_vectors": "MOS extended-vector trampolines",
+        "idx_base": "Indexing-base addresses (wrap into ZP)"
+    },
+    "size": 16384,
+    "md5": "20a267ec362cb8808e4e28843cbfe734",
+    "sha256": "1e34e4396a89c61ab1d8474401f5a86091f3ef77bee2f22a2c8b62ba48cd5a6f",
+    "cpu": "65c02",
+    "machine": "BBC Master 128",
+    "links": [
+        {
+            "label": "Acorn ANFS ROMs on J.G. Harston's site",
+            "url": "https://mdfs.net/System/ROMs/Filing/Network/Acorn/",
+            "icon": "chip"
+        },
+        {
+            "label": "Acorn ANFS version notes (J.G. Harston)",
+            "url": "https://mdfs.net/System/ROMs/Filing/Network/Acorn/Versions",
+            "icon": "doc"
+        },
+        {
+            "label": "Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly",
+            "url": "https://www.stardot.org.uk/forums/viewtopic.php?t=32592",
+            "icon": "chat"
+        }
+    ],
+    "references": [
+        {
+            "id": "mos",
+            "label": "Tom Seddon's Acorn MOS disassembly (Master)",
+            "url": "https://github.com/tom-seddon/acorn_mos_disassembly",
+            "icon": "ref",
+            "category": "source",
+            "note": "Tom Seddon's disassembly of the BBC Master 128 MOS — the reference for the OS entry points and workspace semantics ANFS 4.26 (Master-only) relies on, in place of the Model-B MOS."
+        },
+        {
+            "label": "Original Acorn technical description for ANFS 4.08.61 (PDF)",
+            "url": "https://www.stardot.org.uk/forums/download/file.php?id=116634",
+            "icon": "doc",
+            "category": "source",
+            "note": "Acorn's technical description of ANFS. Written for version 4.08.61 but applicable to all ANFS versions."
+        }
+    ],
+    "docs": [
+        {
+            "type": "changes",
+            "label": "Changes from ANFS 4.25",
+            "path": "CHANGES-FROM-4.25.md"
+        }
+    ]
+}

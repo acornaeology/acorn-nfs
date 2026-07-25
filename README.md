@@ -94,6 +94,13 @@ This repository contains annotated disassemblies of the Acorn NFS ROM, produced 
   - [Acorn ANFS 4.25 in The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/?md5=306cb8ff6622dbfc79dc487ac4e407e1)
   - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
   - [Changes from ANFS 4.24](versions/anfs-4.25/CHANGES-FROM-4.24.md)
+- **Acorn ANFS 4.26**
+  - [Formatted disassembly on acornaeology.uk](https://acornaeology.uk/acorn-nfs/4.26.html)
+  - [Raw assembly source](versions/anfs-4.26/output/anfs-4.26.asm)
+  - [Acorn ANFS ROMs on J.G. Harston's site](https://mdfs.net/System/ROMs/Filing/Network/Acorn/)
+  - [Acorn ANFS version notes (J.G. Harston)](https://mdfs.net/System/ROMs/Filing/Network/Acorn/Versions)
+  - [Discuss this disassembly on the Stardot Forums thread: Acorn ANFS - A new annotated disassembly](https://www.stardot.org.uk/forums/viewtopic.php?t=32592)
+  - [Changes from ANFS 4.25](versions/anfs-4.26/CHANGES-FROM-4.25.md)
 
 ## How it works
 
@@ -133,6 +140,8 @@ uv run fantasm disassemble 4.24
 uv run fantasm verify 4.24
 uv run fantasm disassemble 4.25
 uv run fantasm verify 4.25
+uv run fantasm disassemble 4.26
+uv run fantasm verify 4.26
 ```
 
 ## (Re-)Assembling locally
@@ -153,6 +162,7 @@ beebasm -i versions/anfs-4.18/output/anfs-4.18.asm -o anfs-4.18.rom
 beebasm -i versions/anfs-4.21_variant_1/output/anfs-4.21_variant_1.asm -o anfs-4.21_variant_1.rom
 beebasm -i versions/anfs-4.24/output/anfs-4.24.asm -o anfs-4.24.rom
 beebasm -i versions/anfs-4.25/output/anfs-4.25.asm -o anfs-4.25.rom
+beebasm -i versions/anfs-4.26/output/anfs-4.26.asm -o anfs-4.26.rom
 ```
 
 ## References
