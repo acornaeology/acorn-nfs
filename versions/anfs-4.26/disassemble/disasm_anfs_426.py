@@ -65,7 +65,7 @@ _svc_dispatch_entries = [
     (0x000C, 0x806E, "econet_restore", "svc &0B: NMI release"),
     (0x000D, 0x89DB, "wait_idle_and_reset", "svc &0D: wait idle and reset"),
     (0x000E, 0x8B6D, "svc_18_fs_select", "svc &12: FS select"),
-# UNMAPPED:     (0x0F, 0x969A, "match_on_suffix", "svc &18: interactive HELP 'ON ' matcher"),
+    (0x0F, 0x9692, "match_on_suffix", "svc &18: interactive HELP 'ON ' matcher"),
     (0x0010, 0x8F03, "raise_y_to_c8", "svc &21: static workspace claim"),
     (0x0011, 0x8F18, "set_rom_ws_page", "svc &22: dynamic workspace offer"),
     (0x0012, 0x8F0A, "store_ws_page_count", "svc &23: top-of-static-workspace"),
@@ -8028,124 +8028,143 @@ immediately following are an unrelated inline string used by the
 filename walker, not part of this routine's body.""",
 )
 
-# UNMAPPED: d.label(0x968F, "help_topic_template")
+d.label(0x9688, "help_topic_template")
 
 d.comment(
     0x968A,
-    "'!Help.' prefix bytes (not used by the matcher; may be visible as a fallback help-message head)",
+    "'!Help.' filename template copied into the TXCB command buffer to open the help file",
     align=Align.INLINE,
 )
-# UNMAPPED: d.index_base(0x9697, "on_suffix_pattern")
 
-# UNMAPPED: d.comment(
-# UNMAPPED:     0x9697,
-# UNMAPPED:     "'ON ' -- 3-char pattern read by match_on_suffix at &969A via EOR &9697,X with X=0..2 to detect '... ON ' help-line suffix",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
-# UNMAPPED: d.label(0x969A, "match_on_suffix")
+d.subroutine(
+    0x9692,
+    "match_on_suffix",
+    title="svc &18: interactive-HELP 'ON ' matcher and help-topic printer",
+    description="""Interactive-HELP service handler (svc &18). Reads the command
+line at [`os_text_ptr`](label:os_text_ptr) and tests for the
+two-letter `ON` keyword (case-insensitive, `EOR #'O'` / `EOR #'N'`
+with `AND #&5F`); if it is absent the call returns unclaimed. On a
+match it copies the `'!Help.'` template plus the requested topic
+name into the TXCB command buffer, opens the resulting help file
+and prints it byte-by-byte via [`osbget`](label:osbget) /
+[`oswrch`](label:oswrch), honouring paged mode and Escape.""",
+)
 
-# UNMAPPED: d.entry(0x969A)
-d.comment(0x9698, "Copy os_text_ptr lo to work_ae", align=Align.INLINE)
-d.comment(0x969A, "Store -> work_ae", align=Align.INLINE)
-d.comment(0x969C, "Copy os_text_ptr hi", align=Align.INLINE)
-d.comment(0x969E, "Store -> addr_work", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96A3, "Restore caller Y", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96A4, "Save Y again (preserve across loop)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96A5, "X=0: pattern offset starts at 0", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96A7, "Read text byte at (work_ae)+Y", align=Align.INLINE)
-# UNMAPPED: d.label(0x96A7, "loop_match_on_suffix")
 
-# UNMAPPED: d.comment(0x96AC, "Mask bit 5 -- case-insensitive comparison", align=Align.INLINE)
-d.comment(0x96AF, "Equal: continue checking pattern", align=Align.INLINE)
-# UNMAPPED: d.label(0x96B0, "match_char_loop_cmp")
+# --- svc &18 interactive-HELP handler: labels + inline comments ---
+d.label(0x026A, "vdu_queue_count")
 
-# UNMAPPED: d.comment(0x96B1, "Return (no match)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96B2, "Advance text index", align=Align.INLINE)
-# UNMAPPED: d.label(0x96B2, "match_char_found")
-
-# UNMAPPED: d.comment(0x96B3, "Advance pattern index", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96B4, "Done all 3 chars?", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96B6, "No: continue", align=Align.INLINE)
-d.comment(0x96B3, "Match: save Y", align=Align.INLINE)
-d.comment(0x96B4, "Ensure NFS is selected (auto-select if needed)", align=Align.INLINE)
-d.label(0x96B7, "match_char_process")
-
-d.comment(0x96B8, "Advance Y to next char", align=Align.INLINE)
-d.label(0x96B8, "loop_skip_non_spaces")
-
-d.comment(0x96B9, "Read text byte at (work_ae)+Y", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96C0, "Is it CR (end-of-line)?", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96C2, "Yes: nothing to load -> return", align=Align.INLINE)
-d.comment(0x96BE, "Is it space?", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96C6, "No: continue scanning past non-space", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96C8, "Skip space char", align=Align.INLINE)
-# UNMAPPED: d.label(0x96C8, "loop_help_skip_spaces")
-
-# UNMAPPED: d.comment(0x96C9, "Read next byte", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96CB, "Is it space?", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96CD, "Yes: keep skipping spaces", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96CF, "Is it CR?", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96D1, "Yes: nothing past spaces -> return", align=Align.INLINE)
-d.comment(0x96C5, "Save Y as hazel_txcb_data (cmd buffer ptr)", align=Align.INLINE)
-d.comment(0x96C8, "Save Y as hazel_txcb_flag (cmd flag)", align=Align.INLINE)
-d.comment(0x96CB, "X=1: index for template walk", align=Align.INLINE)
-d.comment(0x96CD, "Advance template index", align=Align.INLINE)
+d.label(0x96B1, "help_return")
+d.label(0x96B3, "help_on_matched")
+d.label(0x96B8, "loop_skip_help_spaces")
+d.label(0x96C4, "help_have_topic_char")
+d.label(0x96C5, "help_build_cmd")
 d.label(0x96CD, "loop_copy_command_suffix")
-
-d.comment(0x96CE, "Read template byte from help_topic_template+X", align=Align.INLINE)
-d.comment(0x96D1, "Store at hazel_txcb_data+X", align=Align.INLINE)
-d.comment(0x96DD, "Compare with '.' (template terminator)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96E4, "Not '.': continue copying template", align=Align.INLINE)
-# UNMAPPED: d.comment(0x96E6, "Save text-buffer index", align=Align.INLINE)
-d.comment(0x96E1, "Advance dest index", align=Align.INLINE)
+d.label(0x96DD, "check_template_dot")
 d.label(0x96E1, "loop_copy_topic_name")
-
-d.comment(0x96E2, "Read topic char at (work_ae),Y", align=Align.INLINE)
-d.comment(0x96E4, "Advance source", align=Align.INLINE)
-d.comment(0x96E5, "Store at hazel_txcb_data+X", align=Align.INLINE)
-d.label(0x96E5, "loop_store_topic_char")
-
-
-d.comment(0x96E8, "CR? (end of name)", align=Align.INLINE)
-d.comment(0x96EA, "Yes: take start_help_file_load path (open file)", align=Align.INLINE)
-d.comment(0x96EC, "Space? (terminator)", align=Align.INLINE)
-d.comment(0x96EE, "No: continue copying", align=Align.INLINE)
-d.comment(0x96F0, "A=&0D: replace space with CR", align=Align.INLINE)
-d.comment(0x96F2, "BRA back to store the CR", align=Align.INLINE)
-d.comment(0x96F5, "Account for last char", align=Align.INLINE)
-d.label(0x96F5, "start_help_file_load")
-
-d.comment(0x96F6, "Read fs_lib_flags (hazel_fs_lib_flags)", align=Align.INLINE)
-d.comment(0x96F9, "Preserve low bits, clear high bits", align=Align.INLINE)
-d.comment(0x96FB, "Set bit 7 (load-pending flag)", align=Align.INLINE)
-d.comment(0x96FD, "Store back to fs_lib_flags", align=Align.INLINE)
-d.comment(0x9700, "A=&40: load mode flag", align=Align.INLINE)
-d.comment(0x9702, "Store as fs_last_byte_flag", align=Align.INLINE)
-d.comment(0x9704, "Open the help-topic file", align=Align.INLINE)
-d.comment(0x9708, "Y=0: open failed -> return", align=Align.INLINE)
+d.label(0x96E5, "store_topic_char")
+d.label(0x96F4, "start_help_file_load")
 d.label(0x970A, "loop_print_help_byte")
+d.label(0x9717, "help_next_topic")
+d.label(0x971A, "loop_help_next_topic")
+d.label(0x9725, "help_print_start")
+d.label(0x972C, "help_emit_char")
 
+d.comment(0x9692, "Save caller's command-line index Y", align=Align.INLINE)
+d.comment(0x9693, "Test fs_flags: bit 6 = interactive HELP armed", align=Align.INLINE)
+d.comment(0x9696, "Bit 6 clear: not our HELP call -> return", align=Align.INLINE)
+d.comment(0x9698, "Point work_ae at the command line (lo)", align=Align.INLINE)
+d.comment(0x969A, "Store command-line pointer lo", align=Align.INLINE)
+d.comment(0x969C, "Command-line pointer hi", align=Align.INLINE)
+d.comment(0x969E, "Store pointer hi (addr_work)", align=Align.INLINE)
+d.comment(0x96A0, "Read first keyword character", align=Align.INLINE)
+d.comment(0x96A2, "Compare with 'O' ...", align=Align.INLINE)
+d.comment(0x96A4, "... case-insensitively (mask bit 5)", align=Align.INLINE)
+d.comment(0x96A6, "Not 'O': return (line is not '...ON ')", align=Align.INLINE)
+d.comment(0x96A8, "Advance to second character", align=Align.INLINE)
+d.comment(0x96A9, "Read second keyword character", align=Align.INLINE)
+d.comment(0x96AB, "Compare with 'N' ...", align=Align.INLINE)
+d.comment(0x96AD, "... case-insensitively", align=Align.INLINE)
+d.comment(0x96AF, "'ON' matched: handle the topic", align=Align.INLINE)
+d.comment(0x96B1, "Restore caller's Y", align=Align.INLINE)
+d.comment(0x96B2, "Return to service dispatcher", align=Align.INLINE)
+d.comment(0x96B3, "Save Y across FS-select", align=Align.INLINE)
+d.comment(0x96B4, "Ensure NFS is the current filing system", align=Align.INLINE)
+d.comment(0x96B7, "Restore Y", align=Align.INLINE)
+d.comment(0x96B8, "Advance to next command-line character", align=Align.INLINE)
+d.comment(0x96B9, "Read it", align=Align.INLINE)
+d.comment(0x96BB, "Set V (topic-char marker) from &9767 bit 6", align=Align.INLINE)
+d.comment(0x96BE, "Space?", align=Align.INLINE)
+d.comment(0x96C0, "Control char (<space): stop scanning", align=Align.INLINE)
+d.comment(0x96C2, "Space: keep skipping leading spaces", align=Align.INLINE)
+d.comment(0x96C4, "Real char: clear V (topic present)", align=Align.INLINE)
+d.comment(0x96C5, "Save command-buffer index", align=Align.INLINE)
+d.comment(0x96C8, "Save it as the command flag too", align=Align.INLINE)
+d.comment(0x96CB, "X=1: template-walk index", align=Align.INLINE)
+d.comment(0x96CD, "Advance template index", align=Align.INLINE)
+d.comment(0x96CE, "Read '!Help.' template byte", align=Align.INLINE)
+d.comment(0x96D1, "Store into the command buffer", align=Align.INLINE)
+d.comment(0x96D4, "V clear (real topic char): check '.' terminator", align=Align.INLINE)
+d.comment(0x96D6, "V set (line ended): CR?", align=Align.INLINE)
+d.comment(0x96D8, "Not CR: keep copying template", align=Align.INLINE)
+d.comment(0x96DA, "Skip the CR", align=Align.INLINE)
+d.comment(0x96DB, "Open the help file", align=Align.INLINE)
+d.comment(0x96DD, "Template terminator '.'?", align=Align.INLINE)
+d.comment(0x96DF, "No: keep copying template", align=Align.INLINE)
+d.comment(0x96E1, "Advance destination index", align=Align.INLINE)
+d.comment(0x96E2, "Read topic-name character", align=Align.INLINE)
+d.comment(0x96E4, "Advance source index", align=Align.INLINE)
+d.comment(0x96E5, "Store topic character", align=Align.INLINE)
+d.comment(0x96E8, "CR (end of name)?", align=Align.INLINE)
+d.comment(0x96EA, "Yes: open the help file", align=Align.INLINE)
+d.comment(0x96EC, "Space (terminator)?", align=Align.INLINE)
+d.comment(0x96EE, "No: keep copying the name", align=Align.INLINE)
+d.comment(0x96F0, "Replace trailing space with CR", align=Align.INLINE)
+d.comment(0x96F2, "Store the CR terminator", align=Align.INLINE)
+d.comment(0x96F4, "Save command-buffer index", align=Align.INLINE)
+d.comment(0x96F5, "Account for the last character", align=Align.INLINE)
+d.comment(0x96F6, "Read fs_lib_flags", align=Align.INLINE)
+d.comment(0x96F9, "Clear the top two bits", align=Align.INLINE)
+d.comment(0x96FB, "Set bit 7 (load pending)", align=Align.INLINE)
+d.comment(0x96FD, "Store fs_lib_flags back", align=Align.INLINE)
+d.comment(0x9700, "A=&40: load-mode flag", align=Align.INLINE)
+d.comment(0x9702, "Set last-byte flag", align=Align.INLINE)
+d.comment(0x9704, "Open the help-topic file", align=Align.INLINE)
+d.comment(0x9707, "File handle -> Y (0 = open failed)", align=Align.INLINE)
+d.comment(0x9708, "Open failed: skip to next topic", align=Align.INLINE)
+d.comment(0x970A, "Read next byte from the help file", align=Align.INLINE)
 d.comment(0x970D, "C clear: byte read OK -> print it", align=Align.INLINE)
 d.comment(0x970F, "A=0: OSFIND close mode", align=Align.INLINE)
-# UNMAPPED: d.comment(0x971C, "BRA back to match_char_process (return)", align=Align.INLINE)
-# UNMAPPED: d.label(0x971E, "help_print_start")
+d.comment(0x9714, "Print a newline after the file", align=Align.INLINE)
+d.comment(0x9717, "Restore command-line index", align=Align.INLINE)
+d.comment(0x9718, "Back up over the first consumed char", align=Align.INLINE)
+d.comment(0x9719, "Back up over the second consumed char", align=Align.INLINE)
+d.comment(0x971A, "Advance to next character", align=Align.INLINE)
+d.comment(0x971B, "Read it", align=Align.INLINE)
+d.comment(0x971D, "Space?", align=Align.INLINE)
+d.comment(0x971F, "Control char: no more topics -> return", align=Align.INLINE)
+d.comment(0x9721, "Space: keep scanning", align=Align.INLINE)
+d.comment(0x9723, "Real char: process the next topic", align=Align.INLINE)
+d.comment(0x9725, "Check the Escape flag", align=Align.INLINE)
+d.comment(0x9727, "Bit 7 clear: not escaping -> print", align=Align.INLINE)
+d.comment(0x9729, "Escape pressed: abort with error", align=Align.INLINE)
+d.comment(0x972C, "Print the byte", align=Align.INLINE)
+d.comment(0x972F, "Was it a CR?", align=Align.INLINE)
+d.comment(0x9731, "No: read the next byte", align=Align.INLINE)
+d.comment(0x9733, "CR: read paged-mode line count", align=Align.INLINE)
+d.comment(0x9736, "Non-zero: no pause, continue", align=Align.INLINE)
+d.comment(0x9738, "Emit newline", align=Align.INLINE)
+d.comment(0x973B, "Loop for the next byte", align=Align.INLINE)
 
-d.comment(0x9727, "Bit 7 clear: not escaping, continue", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9722, "Escape: jump to error path escape_error_close", align=Align.INLINE)
-d.comment(0x972F, "Compare with CR", align=Align.INLINE)
-# UNMAPPED: d.label(0x9725, "help_print_char_check")
 
-# UNMAPPED: d.comment(0x9727, "Z: CR -- handle line-end (newline)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x972C, "BRA back to read next byte", align=Align.INLINE)
-# UNMAPPED: d.comment(0x972E, "Save file handle", align=Align.INLINE)
-# UNMAPPED: d.label(0x972E, "handle_help_paged_mode")
+# svc &18 help handler: genuine ASCII-character operands
+d.char_literal(0x96A3)
+d.char_literal(0x96AC)
+d.char_literal(0x96BF)
+d.char_literal(0x96DE)
+d.char_literal(0x96ED)
+d.char_literal(0x971E)
 
-# UNMAPPED: d.comment(0x972F, "A=&DA: OSBYTE &DA = read paged-mode flag", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9731, "Issue OSBYTE &DA (X=0)", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9734, "Restore handle", align=Align.INLINE)
-# UNMAPPED: d.comment(0x9735, "Result to A", align=Align.INLINE)
-d.comment(0x9736, "Non-zero: paged mode pending -> handle Escape", align=Align.INLINE)
-d.comment(0x973B, "BRA back to read next byte", align=Align.INLINE)
 d.label(0x973D, "init_txcb_bye")
 
 d.subroutine(
