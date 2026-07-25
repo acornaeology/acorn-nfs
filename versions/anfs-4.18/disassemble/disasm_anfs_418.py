@@ -5787,7 +5787,7 @@ the first character of the target string.
 |  5  | `<dir>`                                  | `*Lib`                           |
 |  6  | `<dir> (<number>)`                       | (catalogue/info commands)        |
 |  7  | `(:<CR>) <password> ((:<CR>) <new password>)` | `*Pass`                     |
-|  8  | `(<stn. id.>\|<ps type>)`                | `*PS`, `*PollPS`                 |
+|  8  | `(<stn. id.>\\|<ps type>)`                | `*PS`, `*PollPS`                 |
 |  9  | `<object> (L)(W)(R)(E)`                  | `*Access`                        |
 | 10  | `<filename> <new filename>`              | `*Rename`                        |
 | 11  | `(<stn. id.>)`                           | `*Bye`, `*Flip`, `*NetLocal` etc. |
