@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dasmos
+from dasmos.expr import sym, lo, hi
 from dasmos import Align
 from dasmos.hooks import stringhi_hook
 
@@ -606,7 +607,7 @@ d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
 d.add_move(0x0500, 0x9462, 0x100)
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
-    d.expr(addr, target_label)
+    d.expr(addr, sym(target_label))
     d.comment(addr, desc, align=Align.INLINE)
 d.subroutine(
     0x0500,
@@ -1401,15 +1402,15 @@ Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""",
 )
-d.expr(0x8018, "msg_line_jammed - error_msg_table")
-d.expr(0x8019, "msg_net_error - error_msg_table")
-d.expr(0x801A, "msg_not_listening - error_msg_table")
-d.expr(0x801B, "msg_no_clock - error_msg_table")
-d.expr(0x801C, "msg_escape - error_msg_table")
-d.expr(0x801D, "msg_escape - error_msg_table")
-d.expr(0x801E, "msg_escape - error_msg_table")
-d.expr(0x801F, "msg_bad_option - error_msg_table")
-d.expr(0x8020, "msg_no_reply - error_msg_table")
+d.expr(0x8018, sym("msg_line_jammed") - sym("error_msg_table"))
+d.expr(0x8019, sym("msg_net_error") - sym("error_msg_table"))
+d.expr(0x801A, sym("msg_not_listening") - sym("error_msg_table"))
+d.expr(0x801B, sym("msg_no_clock") - sym("error_msg_table"))
+d.expr(0x801C, sym("msg_escape") - sym("error_msg_table"))
+d.expr(0x801D, sym("msg_escape") - sym("error_msg_table"))
+d.expr(0x801E, sym("msg_escape") - sym("error_msg_table"))
+d.expr(0x801F, sym("msg_bad_option") - sym("error_msg_table"))
+d.expr(0x8020, sym("msg_no_reply") - sym("error_msg_table"))
 d.comment(0x8018, '"Line Jammed"', align=Align.INLINE)
 d.comment(0x8019, '"Net Error"', align=Align.INLINE)
 d.comment(0x801A, '"Not listening"', align=Align.INLINE)
@@ -1853,7 +1854,7 @@ d.comment(0x81B3, "NOP padding", align=Align.INLINE)
 d.comment(0x81B4, "NOP padding", align=Align.INLINE)
 d.label(0x81B5, "svc_4_star_command")
 
-d.expr(0x81B6, "cmd_roff_str - binary_version")
+d.expr(0x81B6, sym("cmd_roff_str") - sym("binary_version"))
 d.comment(0x81B7, "Try matching *ROFF command", align=Align.INLINE)
 d.comment(0x81BA, "No match: try *NET", align=Align.INLINE)
 
@@ -1905,7 +1906,7 @@ d.comment(0x81E7, "Clear workspace byte", align=Align.INLINE)
 d.comment(0x81E9, "Return", align=Align.INLINE)
 d.label(0x81EA, "match_net_cmd")
 
-d.expr(0x81EB, "cmd_net_str - binary_version")
+d.expr(0x81EB, sym("cmd_net_str") - sym("binary_version"))
 
 d.comment(0x81EC, "Try matching *NET command", align=Align.INLINE)
 d.comment(0x81EF, "No match: return unclaimed", align=Align.INLINE)
@@ -7647,21 +7648,21 @@ d.comment(0x9A76, "Jump to discard handler", align=Align.INLINE)
 d.label(0x9A79, "imm_op_dispatch_lo")
 for addr in range(0x9A79, 0x9A81):
     d.byte(addr)
-d.expr(0x9A79, "<(rx_imm_peek-1)")
+d.expr(0x9A79, lo(sym("rx_imm_peek") - 1))
 d.comment(0x9A79, "Ctrl &81: PEEK", align=Align.INLINE)
-d.expr(0x9A7A, "<(rx_imm_poke-1)")
+d.expr(0x9A7A, lo(sym("rx_imm_poke") - 1))
 d.comment(0x9A7A, "Ctrl &82: POKE", align=Align.INLINE)
-d.expr(0x9A7B, "<(rx_imm_exec-1)")
+d.expr(0x9A7B, lo(sym("rx_imm_exec") - 1))
 d.comment(0x9A7B, "Ctrl &83: JSR", align=Align.INLINE)
-d.expr(0x9A7C, "<(rx_imm_exec-1)")
+d.expr(0x9A7C, lo(sym("rx_imm_exec") - 1))
 d.comment(0x9A7C, "Ctrl &84: UserProc", align=Align.INLINE)
-d.expr(0x9A7D, "<(rx_imm_exec-1)")
+d.expr(0x9A7D, lo(sym("rx_imm_exec") - 1))
 d.comment(0x9A7D, "Ctrl &85: OSProc", align=Align.INLINE)
-d.expr(0x9A7E, "<(rx_imm_halt_cont-1)")
+d.expr(0x9A7E, lo(sym("rx_imm_halt_cont") - 1))
 d.comment(0x9A7E, "Ctrl &86: HALT", align=Align.INLINE)
-d.expr(0x9A7F, "<(rx_imm_halt_cont-1)")
+d.expr(0x9A7F, lo(sym("rx_imm_halt_cont") - 1))
 d.comment(0x9A7F, "Ctrl &87: CONTINUE", align=Align.INLINE)
-d.expr(0x9A80, "<(rx_imm_machine_type-1)")
+d.expr(0x9A80, lo(sym("rx_imm_machine_type") - 1))
 d.comment(0x9A80, "Ctrl &88: machine type query", align=Align.INLINE)
 
 

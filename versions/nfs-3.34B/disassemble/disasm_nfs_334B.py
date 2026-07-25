@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dasmos
+from dasmos.expr import sym, lo, hi
 from dasmos import Align
 from dasmos.hooks import stringhi_hook
 
@@ -542,7 +543,7 @@ d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
 d.add_move(0x0500, 0x944D, 0x100)
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
-    d.expr(addr, target_label)
+    d.expr(addr, sym(target_label))
     d.comment(addr, desc, align=Align.INLINE)
 
 d.subroutine(
@@ -1149,15 +1150,15 @@ Entry 0 (Y=0, "Line Jammed") doubles as the
 copyright string null terminator.
 Indexed by TXCB status (AND #7), or hardcoded 8.""",
 )
-d.expr(0x8014, "msg_line_jammed - error_msg_table")
-d.expr(0x8015, "msg_net_error - error_msg_table")
-d.expr(0x8016, "msg_not_listening - error_msg_table")
-d.expr(0x8017, "msg_no_clock - error_msg_table")
-d.expr(0x8018, "msg_bad_txcb - error_msg_table")
-d.expr(0x8019, "msg_escape - error_msg_table")
-d.expr(0x801A, "msg_escape - error_msg_table")
-d.expr(0x801B, "msg_bad_option - error_msg_table")
-d.expr(0x801C, "msg_no_reply - error_msg_table")
+d.expr(0x8014, sym("msg_line_jammed") - sym("error_msg_table"))
+d.expr(0x8015, sym("msg_net_error") - sym("error_msg_table"))
+d.expr(0x8016, sym("msg_not_listening") - sym("error_msg_table"))
+d.expr(0x8017, sym("msg_no_clock") - sym("error_msg_table"))
+d.expr(0x8018, sym("msg_bad_txcb") - sym("error_msg_table"))
+d.expr(0x8019, sym("msg_escape") - sym("error_msg_table"))
+d.expr(0x801A, sym("msg_escape") - sym("error_msg_table"))
+d.expr(0x801B, sym("msg_bad_option") - sym("error_msg_table"))
+d.expr(0x801C, sym("msg_no_reply") - sym("error_msg_table"))
 d.comment(0x8014, '"Line Jammed"', align=Align.INLINE)
 d.comment(0x8015, '"Net Error"', align=Align.INLINE)
 d.comment(0x8016, '"Not listening"', align=Align.INLINE)
@@ -1572,12 +1573,12 @@ unclaimed.""",
 )
 
 
-d.expr(0x8173, "cmd_roff_str - binary_version")
+d.expr(0x8173, sym("cmd_roff_str") - sym("binary_version"))
 d.comment(0x8174, "Match command against ROM string", align=Align.INLINE)
 d.comment(0x8177, "No match: try *NET command", align=Align.INLINE)
 d.comment(0x8179, "Match found: claim service (A=0)", align=Align.INLINE)
 d.label(0x817D, "match_net_cmd")
-d.expr(0x817E, "cmd_net_str - binary_version")
+d.expr(0x817E, sym("cmd_net_str") - sym("binary_version"))
 
 d.comment(0x817F, "Try matching *NET command", align=Align.INLINE)
 d.comment(0x8182, "No match: return unclaimed", align=Align.INLINE)

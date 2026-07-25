@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dasmos
+from dasmos.expr import sym, lo, hi
 from dasmos import Align
 from dasmos.hooks import stringhi_hook, stringz_hook
 
@@ -711,7 +712,7 @@ d.label(0x0500, "tube_r2_dispatch_table")
 
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
-    d.expr(addr, target_label)
+    d.expr(addr, sym(target_label))
     d.comment(addr, desc, align=Align.INLINE)
 d.index_base(0x0518, "tube_ctrl_values")
 
@@ -2636,14 +2637,14 @@ d.comment(0x8485, "Jump to discard handler", align=Align.INLINE)
 d.label(0x8488, "imm_op_dispatch_lo")
 for addr in range(0x8488, 0x8490):
     d.byte(addr)
-d.expr(0x8488, "<(rx_imm_peek-1)")
-d.expr(0x8489, "<(rx_imm_poke-1)")
-d.expr(0x848A, "<(rx_imm_exec-1)")
-d.expr(0x848B, "<(rx_imm_exec-1)")
-d.expr(0x848C, "<(rx_imm_exec-1)")
-d.expr(0x848D, "<(rx_imm_halt_cont-1)")
-d.expr(0x848E, "<(rx_imm_halt_cont-1)")
-d.expr(0x848F, "<(rx_imm_machine_type-1)")
+d.expr(0x8488, lo(sym("rx_imm_peek") - 1))
+d.expr(0x8489, lo(sym("rx_imm_poke") - 1))
+d.expr(0x848A, lo(sym("rx_imm_exec") - 1))
+d.expr(0x848B, lo(sym("rx_imm_exec") - 1))
+d.expr(0x848C, lo(sym("rx_imm_exec") - 1))
+d.expr(0x848D, lo(sym("rx_imm_halt_cont") - 1))
+d.expr(0x848E, lo(sym("rx_imm_halt_cont") - 1))
+d.expr(0x848F, lo(sym("rx_imm_machine_type") - 1))
 
 
 d.subroutine(
@@ -2848,11 +2849,11 @@ operation types.""",
 )
 for i in range(5):
     d.byte(0x853E + i)
-d.expr(0x853E, "<(tx_done_jsr-1)")
-d.expr(0x853F, "<(tx_done_econet_event-1)")
-d.expr(0x8540, "<(tx_done_os_proc-1)")
-d.expr(0x8541, "<(tx_done_halt-1)")
-d.expr(0x8542, "<(tx_done_continue-1)")
+d.expr(0x853E, lo(sym("tx_done_jsr") - 1))
+d.expr(0x853F, lo(sym("tx_done_econet_event") - 1))
+d.expr(0x8540, lo(sym("tx_done_os_proc") - 1))
+d.expr(0x8541, lo(sym("tx_done_halt") - 1))
+d.expr(0x8542, lo(sym("tx_done_continue") - 1))
 d.subroutine(
     0x8543,
     "tx_done_jsr",
@@ -3193,14 +3194,14 @@ begins immediately after the table.""",
 )
 for i in range(8):
     d.byte(0x8681 + i)
-d.expr(0x8681, "<(tx_ctrl_peek-1)")
-d.expr(0x8682, "<(tx_ctrl_poke-1)")
-d.expr(0x8683, "<(proc_op_status2-1)")
-d.expr(0x8684, "<(proc_op_status2-1)")
-d.expr(0x8685, "<(proc_op_status2-1)")
-d.expr(0x8686, "<(tx_ctrl_exit-1)")
-d.expr(0x8687, "<(tx_ctrl_exit-1)")
-d.expr(0x8688, "<(tx_ctrl_machine_type-1)")
+d.expr(0x8681, lo(sym("tx_ctrl_peek") - 1))
+d.expr(0x8682, lo(sym("tx_ctrl_poke") - 1))
+d.expr(0x8683, lo(sym("proc_op_status2") - 1))
+d.expr(0x8684, lo(sym("proc_op_status2") - 1))
+d.expr(0x8685, lo(sym("proc_op_status2") - 1))
+d.expr(0x8686, lo(sym("tx_ctrl_exit") - 1))
+d.expr(0x8687, lo(sym("tx_ctrl_exit") - 1))
+d.expr(0x8688, lo(sym("tx_ctrl_machine_type") - 1))
 d.label(0x8689, "tx_ctrl_machine_type")
 
 d.subroutine(
@@ -5269,7 +5270,7 @@ OSBYTE wrapper code in the data area.""",
 d.label(0x8E8A, "netv_handler_addr")
 
 d.word(0x8E8A)
-d.expr(0x8E8A, "netv_handler")
+d.expr(0x8E8A, sym("netv_handler"))
 
 d.label(0x8E8C, "osbyte_x0_y0")
 
@@ -5764,7 +5765,7 @@ d.comment(0x9117, "Syn 12: *Print, *Type", align=Align.INLINE)
 d.comment(0x9121, "Null terminator", align=Align.INLINE)
 for i in range(13):
     d.byte(0x9122 + i)
-d.expr(0x9122, "syn_iam - cmd_syntax_strings - 2")
+d.expr(0x9122, sym("syn_iam") - sym("cmd_syntax_strings") - 2)
 d.subroutine(
     0x9122,
     "cmd_syntax_table",
@@ -5795,17 +5796,17 @@ the first character of the target string.
 The entry for index 1 stores the offset as `(syn_opt_dir − cmd_syntax_strings − 1) AND &FF`, which evaluates to &FF because `syn_opt_dir == cmd_syntax_strings`. The print loop relies on `INY` wrapping &FF→&00 to land on the first character of `syn_opt_dir`.""",
 )
 d.expr(0x9123, "(syn_opt_dir - cmd_syntax_strings - 1) AND &FF")
-d.expr(0x9124, "syn_iam - cmd_syntax_strings - 1")
-d.expr(0x9125, "syn_object - cmd_syntax_strings - 1")
-d.expr(0x9126, "syn_file_offset - cmd_syntax_strings - 1")
-d.expr(0x9127, "syn_dir - cmd_syntax_strings - 1")
-d.expr(0x9128, "syn_dir_num - cmd_syntax_strings - 1")
-d.expr(0x9129, "syn_password - cmd_syntax_strings - 1")
-d.expr(0x912A, "syn_ps_type - cmd_syntax_strings - 1")
-d.expr(0x912B, "syn_access - cmd_syntax_strings - 1")
-d.expr(0x912C, "syn_rename - cmd_syntax_strings - 1")
-d.expr(0x912D, "syn_opt_stn - cmd_syntax_strings - 1")
-d.expr(0x912E, "syn_filename - cmd_syntax_strings - 1")
+d.expr(0x9124, sym("syn_iam") - sym("cmd_syntax_strings") - 1)
+d.expr(0x9125, sym("syn_object") - sym("cmd_syntax_strings") - 1)
+d.expr(0x9126, sym("syn_file_offset") - sym("cmd_syntax_strings") - 1)
+d.expr(0x9127, sym("syn_dir") - sym("cmd_syntax_strings") - 1)
+d.expr(0x9128, sym("syn_dir_num") - sym("cmd_syntax_strings") - 1)
+d.expr(0x9129, sym("syn_password") - sym("cmd_syntax_strings") - 1)
+d.expr(0x912A, sym("syn_ps_type") - sym("cmd_syntax_strings") - 1)
+d.expr(0x912B, sym("syn_access") - sym("cmd_syntax_strings") - 1)
+d.expr(0x912C, sym("syn_rename") - sym("cmd_syntax_strings") - 1)
+d.expr(0x912D, sym("syn_opt_stn") - sym("cmd_syntax_strings") - 1)
+d.expr(0x912E, sym("syn_filename") - sym("cmd_syntax_strings") - 1)
 
 d.label(0x912F, "print_hex_byte")
 
@@ -7507,7 +7508,7 @@ d.label(0x97AC, "rts_store_digit")
 d.comment(0x97AC, "Return", align=Align.INLINE)
 for i in range(12):
     d.byte(0x97AD + i)
-d.expr(0x97AD, "error_msg_table - error_msg_table")
+d.expr(0x97AD, sym("error_msg_table") - sym("error_msg_table"))
 d.subroutine(
     0x97AD,
     "net_error_lookup_data",
@@ -7520,27 +7521,27 @@ to suffix strings appended after the station address in
 compound errors.""",
 )
 d.comment(0x97AD, 'Class 0: &A0 "Line jammed"', align=Align.INLINE)
-d.expr(0x97AE, "msg_net_error - error_msg_table")
+d.expr(0x97AE, sym("msg_net_error") - sym("error_msg_table"))
 d.comment(0x97AE, 'Class 1: &A1 "Net error"', align=Align.INLINE)
-d.expr(0x97AF, "msg_station - error_msg_table")
+d.expr(0x97AF, sym("msg_station") - sym("error_msg_table"))
 d.comment(0x97AF, 'Class 2: &A2 "Station"', align=Align.INLINE)
-d.expr(0x97B0, "msg_no_clock - error_msg_table")
+d.expr(0x97B0, sym("msg_no_clock") - sym("error_msg_table"))
 d.comment(0x97B0, 'Class 3: &A3 "No clock"', align=Align.INLINE)
-d.expr(0x97B1, "msg_escape - error_msg_table")
+d.expr(0x97B1, sym("msg_escape") - sym("error_msg_table"))
 d.comment(0x97B1, 'Class 4: &11 "Escape"', align=Align.INLINE)
-d.expr(0x97B2, "msg_escape - error_msg_table")
+d.expr(0x97B2, sym("msg_escape") - sym("error_msg_table"))
 d.comment(0x97B2, 'Class 5: &11 "Escape" (duplicate)', align=Align.INLINE)
-d.expr(0x97B3, "msg_escape - error_msg_table")
+d.expr(0x97B3, sym("msg_escape") - sym("error_msg_table"))
 d.comment(0x97B3, 'Class 6: &11 "Escape" (duplicate)', align=Align.INLINE)
-d.expr(0x97B4, "msg_bad_option - error_msg_table")
+d.expr(0x97B4, sym("msg_bad_option") - sym("error_msg_table"))
 d.comment(0x97B4, 'Class 7: &CB "Bad option"', align=Align.INLINE)
-d.expr(0x97B5, "msg_no_reply - error_msg_table")
+d.expr(0x97B5, sym("msg_no_reply") - sym("error_msg_table"))
 d.comment(0x97B5, 'Index 8: &A5 "No reply from station"', align=Align.INLINE)
-d.expr(0x97B6, "msg_not_listening - error_msg_table")
+d.expr(0x97B6, sym("msg_not_listening") - sym("error_msg_table"))
 d.comment(0x97B6, 'Index 9: " not listening" suffix', align=Align.INLINE)
-d.expr(0x97B7, "msg_on_channel - error_msg_table")
+d.expr(0x97B7, sym("msg_on_channel") - sym("error_msg_table"))
 d.comment(0x97B7, 'Index 10: " on channel" suffix', align=Align.INLINE)
-d.expr(0x97B8, "msg_not_present - error_msg_table")
+d.expr(0x97B8, sym("msg_not_present") - sym("error_msg_table"))
 
 d.comment(0x97B8, 'Index 11: " not present" suffix', align=Align.INLINE)
 d.index_base(0x97B9, "error_msg_table")
@@ -10140,7 +10141,7 @@ d.comment(0xA3F2, "*Close cont (dispatch hi base)", align=Align.INLINE)
 d.comment(0xA3F5, "No syntax", align=Align.INLINE)
 for addr, target_label in _cmd_entries:
     d.word(addr)
-    d.expr(addr, target_label + "-1")
+    d.expr(addr, sym(target_label) - 1)
 d.comment(0xA3F8, "*Dump", align=Align.INLINE)
 d.comment(0xA3FF, "*Net (select NFS)", align=Align.INLINE)
 d.comment(0xA402, "No syntax", align=Align.INLINE)
@@ -15846,34 +15847,34 @@ d.constant(0xFEA2, "adlc_tx")
 d.constant(0xFEA3, "adlc_tx2")
 import sys
 
-d.expr(0x83FC, "<(nmi_rx_scout)")
-d.expr(0x83FE, ">(nmi_rx_scout)")
+d.expr(0x83FC, lo(sym("nmi_rx_scout")))
+d.expr(0x83FE, hi(sym("nmi_rx_scout")))
 
-d.expr(0x80D7, "<(nmi_rx_scout_net)")
-d.expr(0x81E3, "<(nmi_data_rx)")
-d.expr(0x81F7, "<(nmi_data_rx_net)")
-d.expr(0x8230, "<(nmi_data_rx_tube)")
-d.expr(0x8232, ">(nmi_data_rx_tube)")
-d.expr(0x8320, "<(nmi_ack_tx_src)")
-d.expr(0x8322, ">(nmi_ack_tx_src)")
-d.expr(0x872C, "<(nmi_tx_complete)")
-d.expr(0x872E, ">(nmi_tx_complete)")
-d.expr(0x87BB, "<(nmi_scout_ack_src)")
-d.expr(0x87BD, ">(nmi_scout_ack_src)")
-d.expr(0x87E0, "<(nmi_data_tx_tube)")
-d.expr(0x87E2, ">(nmi_data_tx_tube)")
-d.expr(0x8828, "<(discard_reset_rx)")
-d.expr(0x882A, ">(discard_reset_rx)")
-d.expr(0x887E, "<(nmi_final_ack)")
-d.expr(0x8880, ">(nmi_final_ack)")
-d.expr(0x8894, "<(nmi_final_ack_net)")
+d.expr(0x80D7, lo(sym("nmi_rx_scout_net")))
+d.expr(0x81E3, lo(sym("nmi_data_rx")))
+d.expr(0x81F7, lo(sym("nmi_data_rx_net")))
+d.expr(0x8230, lo(sym("nmi_data_rx_tube")))
+d.expr(0x8232, hi(sym("nmi_data_rx_tube")))
+d.expr(0x8320, lo(sym("nmi_ack_tx_src")))
+d.expr(0x8322, hi(sym("nmi_ack_tx_src")))
+d.expr(0x872C, lo(sym("nmi_tx_complete")))
+d.expr(0x872E, hi(sym("nmi_tx_complete")))
+d.expr(0x87BB, lo(sym("nmi_scout_ack_src")))
+d.expr(0x87BD, hi(sym("nmi_scout_ack_src")))
+d.expr(0x87E0, lo(sym("nmi_data_tx_tube")))
+d.expr(0x87E2, hi(sym("nmi_data_tx_tube")))
+d.expr(0x8828, lo(sym("discard_reset_rx")))
+d.expr(0x882A, hi(sym("discard_reset_rx")))
+d.expr(0x887E, lo(sym("nmi_final_ack")))
+d.expr(0x8880, hi(sym("nmi_final_ack")))
+d.expr(0x8894, lo(sym("nmi_final_ack_net")))
 
 d.label(0x810D, "nmi_scout_data")
 d.label(0x87EE, "nmi_data_tx_alt")
-d.expr(0x80F7, "<(nmi_scout_data)")
-d.expr(0x80F9, ">(nmi_scout_data)")
-d.expr(0x87D9, "<(nmi_data_tx_alt)")
-d.expr(0x87DB, ">(nmi_data_tx_alt)")
+d.expr(0x80F7, lo(sym("nmi_scout_data")))
+d.expr(0x80F9, hi(sym("nmi_scout_data")))
+d.expr(0x87D9, lo(sym("nmi_data_tx_alt")))
+d.expr(0x87DB, hi(sym("nmi_data_tx_alt")))
 
 ir = d.disassemble()
 output = str(
