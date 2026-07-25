@@ -103,35 +103,35 @@ _svc_dispatch_entries = [
     (0x0032, 0xA42B, "net_3_close_handle", "net handle 3: close handle"),
 ]
 _cmd_table_fs_entries = [
-# UNMAPPED: (0xA780, "Net", 0xA783, 0x80, 0xA784, "cmd_net_check_hw", "Econet HW check + select NFS"),
-# UNMAPPED: (0xA786, "Pollps", 0xA78C, 0x88, 0xA78D, "cmd_pollps", "syn 8: (<stn. id.>|<ps type>)"),
-# UNMAPPED: (0xA78F, "Prot", 0xA793, 0x80, 0xA794, "cmd_prot", "toggle CMOS protection bit"),
-# UNMAPPED: (0xA796, "PS", 0xA798, 0x88, 0xA799, "cmd_ps", "syn 8: (<stn. id.>|<ps type>)"),
-# UNMAPPED: (0xA79B, "Roff", 0xA79F, 0x80, 0xA7A0, "cmd_roff", "printer offline"),
-# UNMAPPED: (0xA7A2, "Unprot", 0xA7A8, 0x80, 0xA7A9, "cmd_unprot", "toggle CMOS protection bit"),
-# UNMAPPED: (0xA7AB, "Wdump", 0xA7B0, 0xC4, 0xA7B1, "cmd_dump", "syn 4 -- *DUMP alias"),
-# UNMAPPED: (0xA7B5, "Access", 0xA7BB, 0xC9, 0xA7BC, "cmd_fs_operation", "syn 9: <obj> (L)(W)(R)..."),
-# UNMAPPED: (0xA7BE, "Bye", 0xA7C1, 0x80, 0xA7C2, "cmd_bye", "log off FS"),
-# UNMAPPED: (0xA7C4, "Cdir", 0xA7C8, 0xC6, 0xA7C9, "cmd_cdir", "syn 6 -- create directory"),
-# UNMAPPED: (0xA7CB, "Dir", 0xA7CE, 0x81, 0xA7CF, "cmd_dir", "syn 1: (<dir>)"),
-# UNMAPPED: (0xA7D1, "Flip", 0xA7D5, 0x80, 0xA7D6, "cmd_flip", "swap fs/private workspace"),
-# UNMAPPED: (0xA7D8, "FS", 0xA7DA, 0x8B, 0xA7DB, "cmd_fs", "syn &B -- file-server selection"),
-# UNMAPPED: (0xA7DD, "I am", 0xA7E1, 0xC2, 0xA7E2, "cmd_iam_save_ctx", "syn 2: (<stn>) <user>..."),
-# UNMAPPED: (0xA7E4, "Lcat", 0xA7E8, 0x81, 0xA7E9, "cmd_lcat", "syn 1: (<dir>) -- *CAT of library"),
-# UNMAPPED: (0xA7EB, "Lex", 0xA7EE, 0x81, 0xA7EF, "cmd_lex", "syn 1: (<dir>) -- *EX of library"),
-# UNMAPPED: (0xA7F1, "Lib", 0xA7F4, 0xC5, 0xA7F5, "cmd_fs_operation", "syn 5: <dir> -- set library"),
-# UNMAPPED: (0xA7F7, "Pass", 0xA7FB, 0xC7, 0xA7FC, "cmd_pass", "syn 7: <pass> ..."),
-# UNMAPPED: (0xA7FE, "Rename", 0xA804, 0xCA, 0xA805, "cmd_rename", "syn &A: <old> <new>"),
-# UNMAPPED: (0xA807, "Wipe", 0xA80B, 0x81, 0xA80C, "cmd_wipe", "syn 1: (<dir>) -- delete with confirm"),
-# UNMAPPED: (0xA816, "Net", 0xA819, 0x80, 0xA81A, "help_net", "*HELP NET"),
-# UNMAPPED: (0xA81C, "Utils", 0xA821, 0x80, 0xA822, "help_utils", "*HELP UTILS"),
-# UNMAPPED: (0xA825, "FS", 0xA827, 0xC1, 0xA828, "set_fs_or_ps_cmos_station", "FS not selected"),
-# UNMAPPED: (0xA82A, "PS", 0xA82C, 0xC3, 0xA82D, "set_fs_or_ps_cmos_station", "PS not selected"),
-# UNMAPPED: (0xA82F, "NoSpace", 0xA836, 0x80, 0xA837, None, "caller &9623"),
-# UNMAPPED: (0xA839, "Space", 0xA83E, 0x80, 0xA83F, None, "caller &9619"),
-# UNMAPPED: (0xA842, "FS", 0xA844, 0x81, 0xA845, "print_fs_address", "caller &9670"),
-# UNMAPPED: (0xA847, "PS", 0xA849, 0x83, 0xA84A, "print_ps_address", "caller &965F"),
-# UNMAPPED: (0xA84C, "Space", 0xA851, 0x80, 0xA852, None, "caller &9641"),
+(0xA782, 'Net', 0xA785, 0x80, 0xA786, 'cmd_net_check_hw', 'Econet HW check + select NFS'),
+(0xA788, 'Pollps', 0xA78E, 0x88, 0xA78F, 'cmd_pollps', 'syn 8: (<stn. id.>|<ps type>)'),
+(0xA791, 'Prot', 0xA795, 0x80, 0xA796, 'cmd_prot', 'toggle CMOS protection bit'),
+(0xA798, 'PS', 0xA79A, 0x88, 0xA79B, 'cmd_ps', 'syn 8: (<stn. id.>|<ps type>)'),
+(0xA79D, 'Roff', 0xA7A1, 0x80, 0xA7A2, 'cmd_roff', 'printer offline'),
+(0xA7A4, 'Unprot', 0xA7AA, 0x80, 0xA7AB, 'cmd_unprot', 'toggle CMOS protection bit'),
+(0xA7AD, 'Wdump', 0xA7B2, 0xC4, 0xA7B3, 'cmd_dump', 'syn 4 -- *DUMP alias'),
+(0xA7B7, 'Access', 0xA7BD, 0xC9, 0xA7BE, 'cmd_fs_operation', 'syn 9: <obj> (L)(W)(R)...'),
+(0xA7C0, 'Bye', 0xA7C3, 0x80, 0xA7C4, 'cmd_bye', 'log off FS'),
+(0xA7C6, 'Cdir', 0xA7CA, 0xC6, 0xA7CB, 'cmd_cdir', 'syn 6 -- create directory'),
+(0xA7CD, 'Dir', 0xA7D0, 0x81, 0xA7D1, 'cmd_dir', 'syn 1: (<dir>)'),
+(0xA7D3, 'Flip', 0xA7D7, 0x80, 0xA7D8, 'cmd_flip', 'swap fs/private workspace'),
+(0xA7DA, 'FS', 0xA7DC, 0x8B, 0xA7DD, 'cmd_fs', 'syn &B -- file-server selection'),
+(0xA7DF, 'I am', 0xA7E3, 0xC2, 0xA7E4, 'cmd_iam_save_ctx', 'syn 2: (<stn>) <user>...'),
+(0xA7E6, 'Lcat', 0xA7EA, 0x81, 0xA7EB, 'cmd_lcat', 'syn 1: (<dir>) -- *CAT of library'),
+(0xA7ED, 'Lex', 0xA7F0, 0x81, 0xA7F1, 'cmd_lex', 'syn 1: (<dir>) -- *EX of library'),
+(0xA7F3, 'Lib', 0xA7F6, 0xC5, 0xA7F7, 'cmd_fs_operation', 'syn 5: <dir> -- set library'),
+(0xA7F9, 'Pass', 0xA7FD, 0xC7, 0xA7FE, 'cmd_pass', 'syn 7: <pass> ...'),
+(0xA800, 'Rename', 0xA806, 0xCA, 0xA807, 'cmd_rename', 'syn &A: <old> <new>'),
+(0xA809, 'Wipe', 0xA80D, 0x81, 0xA80E, 'cmd_wipe', 'syn 1: (<dir>) -- delete with confirm'),
+(0xA818, 'Net', 0xA81B, 0x80, 0xA81C, 'help_net', '*HELP NET'),
+(0xA81E, 'Utils', 0xA823, 0x80, 0xA824, 'help_utils', '*HELP UTILS'),
+(0xA827, 'FS', 0xA829, 0xC1, 0xA82A, 'set_fs_or_ps_cmos_station', 'FS not selected'),
+(0xA82C, 'PS', 0xA82E, 0xC3, 0xA82F, 'set_fs_or_ps_cmos_station', 'PS not selected'),
+(0xA831, 'NoSpace', 0xA838, 0x80, 0xA839, None, 'caller &9625'),
+(0xA83B, 'Space', 0xA840, 0x80, 0xA841, None, 'caller &961B'),
+(0xA844, 'FS', 0xA846, 0x81, 0xA847, 'print_fs_address', 'caller &9672'),
+(0xA849, 'PS', 0xA84B, 0x83, 0xA84C, 'print_ps_address', 'caller &9661'),
+(0xA84E, 'Space', 0xA853, 0x80, 0xA854, None, 'caller &9643'),
 ]
 _ev_dispatch = ["ev_filev", "ev_argsv", "ev_bgetv", "ev_bputv", "ev_gbpbv", "ev_findv", "ev_fscv"]
 handler_names = [
@@ -173,14 +173,14 @@ d.index_base(0x0001, "zp_ptr_hi", length=1, group="zero_page")
 
 d.index_base(0x0002, "zp_work_2", length=1, group="zero_page")
 
-# UNMAPPED: for i, (name, handler_label) in enumerate(handler_names):
-# UNMAPPED:     base_addr = 0x8ECD + i * 3
-# UNMAPPED (orphan body):     d.word(base_addr)
-# UNMAPPED (orphan body):     d.expr(base_addr, sym(handler_label))
-# UNMAPPED (orphan body):     d.comment(base_addr, "%s handler" % name, align=Align.INLINE)
-# UNMAPPED (orphan body):     if i < 6:
-# UNMAPPED (orphan body):         d.byte(base_addr + 2, 1)
-# UNMAPPED (orphan body):         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
+for i, (name, handler_label) in enumerate(handler_names):
+    base_addr = 0x8ECF + i * 3
+    d.word(base_addr)
+    d.expr(base_addr, sym(handler_label))
+    d.comment(base_addr, "%s handler" % name, align=Align.INLINE)
+    if i < 6:
+        d.byte(base_addr + 2, 1)
+        d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
 d.index_base(0x0003, "zp_work_3", length=1, group="zero_page")
 
@@ -2648,7 +2648,8 @@ d.subroutine(
     title="RX immediate: POKE setup",
     description="""Sets up workspace offsets for receiving POKE data:
 `port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the
-common data-receive path at `&81AF`. POKE (`&82`) only writes
+POKE data-receive path at [`port_match_found`](label:port_match_found).
+POKE (`&82`) only writes
 memory and replies, so it is serviced inline in the receive
 path -- not deferred like the execute-class operations
 `&83`-`&87`.""",
@@ -7806,8 +7807,8 @@ d.subroutine(
     "set_fs_or_ps_cmos_station",
     title="Write FS/PS station+network to CMOS RAM",
     description="""Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4
-(the `*FS` and `*PS` command records at
-[`&A844`](address:A844)) when the caller supplies a `<net>.<stn>`
+(`*FS` at [`&A82A`](address:A82A), `*PS` at
+[`&A82F`](address:A82F)) when the caller supplies a `<net>.<stn>`
 argument or wants to inspect/update the saved address.
 
 The flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte
@@ -7871,13 +7872,13 @@ The trailing `BRA` lands on
 to [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way
 because `BRA`'s 8-bit displacement can't span &9618 → &8C8B).
 
-`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next
-labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
+`osbyte_a2` ends at [`&961A`](address:961A) (3 instructions, 7 bytes);
+the next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of
 [`osbyte_a1`](label:osbyte_a1) (read).
 
 Callers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via
 `JSR`, once via fall-through), the `BRA` shortcut at
-`&962C` inside [`cmd_nospace`](label:cmd_nospace), and
+`&962F` inside [`cmd_nospace`](label:cmd_nospace), and
 an `OSARGS`-related read-modify-write of CMOS byte &11 ending at
 [`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).""",
     on_entry={"x": "CMOS RAM byte index", "y": "value to write"},

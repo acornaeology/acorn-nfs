@@ -547,7 +547,7 @@
       "addr": 33980,
       "name": "rx_imm_poke",
       "title": "RX immediate: POKE setup",
-      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\ncommon data-receive path at `&81AF`. POKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
+      "description": "Sets up workspace offsets for receiving POKE data:\n`port_ws_offset = &2E`, `rx_buf_offset = &0D`. Jumps to the\nPOKE data-receive path at [`port_match_found`](label:port_match_found).\nPOKE (`&82`) only writes\nmemory and replies, so it is serviced inline in the receive\npath -- not deferred like the execute-class operations\n`&83`-`&87`."
     },
     {
       "addr": 33991,
@@ -1816,7 +1816,7 @@
       "addr": 38383,
       "name": "set_fs_or_ps_cmos_station",
       "title": "Write FS/PS station+network to CMOS RAM",
-      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(the `*FS` and `*PS` command records at\n[`&A844`](address:A844)) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](label:parse_fs_ps_args) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](label:osbyte_a2), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](label:svc_return_unclaimed).",
+      "description": "Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4\n(`*FS` at [`&A82A`](address:A82A), `*PS` at\n[`&A82F`](address:A82F)) when the caller supplies a `<net>.<stn>`\nargument or wants to inspect/update the saved address.\n\nThe flag byte's low 6 bits (`AND #&3F`) double as the CMOS byte\nindex for the relevant station:\n\n| command | flag | idx | CMOS bytes      |\n| ------- | ---- | --- | --------------- |\n| `*FS`   | `&C1` | 1   | 1 = FS station, 2 = FS network |\n| `*PS`   | `&C3` | 3   | 3 = PS station, 4 = PS network |\n\nPre-reads existing CMOS[idx] and CMOS[idx+1] into `fs_work_5` /\n`fs_work_6` so that the no-argument path leaves the saved values\nunchanged. Calls\n[`parse_fs_ps_args`](label:parse_fs_ps_args) which conditionally overwrites\n`fs_work_5` (station), `fs_work_6` (canonical network: 0=local,\nnon-zero=remote) and `fs_work_7` (raw parsed network).\n\nWrites the station via [`osbyte_a2`](label:osbyte_a2), then falls\nthrough into `osbyte_a2` itself to write the raw network at\nCMOS[idx+1]. Final `BRA` inside `osbyte_a2` returns via\n[`svc_return_unclaimed`](label:svc_return_unclaimed).",
       "on_entry": {
         "x": "offset in cmd_table_fs of the matched entry's flag byte"
       },
@@ -1826,7 +1826,7 @@
       "addr": 38419,
       "name": "osbyte_a2",
       "title": "OSBYTE &A2 (write Master CMOS RAM byte)",
-      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BF`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9618 \u2192 &8C8B).\n\n`osbyte_a2` ends at &9618 (3 instructions, 8 bytes); the next\nlabelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n`&962C` inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
+      "description": "Three instructions: `LDA #&A2 / JSR OSBYTE / BRA &95BF`. Writes\nthe Master 128 CMOS RAM byte indexed by `X` with the value in `Y`.\nThe trailing `BRA` lands on\n[`bra_target_svc_return`](label:bra_target_svc_return) (a 3-byte `JMP` trampoline\nto [`svc_return_unclaimed`](label:svc_return_unclaimed), reached this way\nbecause `BRA`'s 8-bit displacement can't span &9618 \u2192 &8C8B).\n\n`osbyte_a2` ends at [`&961A`](address:961A) (3 instructions, 7 bytes);\nthe next labelled routine is [`cmd_space`](label:cmd_space). Counterpart of\n[`osbyte_a1`](label:osbyte_a1) (read).\n\nCallers: [`set_fs_or_ps_cmos_station`](label:set_fs_or_ps_cmos_station) (once via\n`JSR`, once via fall-through), the `BRA` shortcut at\n`&962F` inside [`cmd_nospace`](label:cmd_nospace), and\nan `OSARGS`-related read-modify-write of CMOS byte &11 ending at\n[`osopt_cmos_writeback_jsr`](label:osopt_cmos_writeback_jsr).",
       "on_entry": {
         "x": "CMOS RAM byte index",
         "y": "value to write"
@@ -34541,48 +34541,206 @@
       "addr": 36559,
       "bytes": [
         34,
-        156,
-        74,
+        156
+      ],
+      "comment_inline": "FILEV handler",
+      "type": "word",
+      "values": [
+        39970
+      ],
+      "expressions": [
+        {
+          "text": "filev_handler",
+          "tree": {
+            "sym": "filev_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36561,
+      "bytes": [
+        74
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        74
+      ]
+    },
+    {
+      "addr": 36562,
+      "bytes": [
         171,
-        158,
-        68,
+        158
+      ],
+      "comment_inline": "ARGSV handler",
+      "type": "word",
+      "values": [
+        40619
+      ],
+      "expressions": [
+        {
+          "text": "argsv_handler",
+          "tree": {
+            "sym": "argsv_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36564,
+      "bytes": [
+        68
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        68
+      ]
+    },
+    {
+      "addr": 36565,
+      "bytes": [
         154,
-        187,
-        87,
+        187
+      ],
+      "comment_inline": "BGETV handler",
+      "type": "word",
+      "values": [
+        48026
+      ],
+      "expressions": [
+        {
+          "text": "bgetv_handler",
+          "tree": {
+            "sym": "bgetv_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36567,
+      "bytes": [
+        87
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        87
+      ]
+    },
+    {
+      "addr": 36568,
+      "bytes": [
         25,
-        188,
-        66,
+        188
+      ],
+      "comment_inline": "BPUTV handler",
+      "type": "word",
+      "values": [
+        48153
+      ],
+      "expressions": [
+        {
+          "text": "bputv_handler",
+          "tree": {
+            "sym": "bputv_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36570,
+      "bytes": [
+        66
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        66
+      ]
+    },
+    {
+      "addr": 36571,
+      "bytes": [
         116,
-        161,
-        65,
+        161
+      ],
+      "comment_inline": "GBPBV handler",
+      "type": "word",
+      "values": [
+        41332
+      ],
+      "expressions": [
+        {
+          "text": "gbpbv_handler",
+          "tree": {
+            "sym": "gbpbv_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36573,
+      "bytes": [
+        65
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        65
+      ]
+    },
+    {
+      "addr": 36574,
+      "bytes": [
         87,
-        160,
-        82,
+        160
+      ],
+      "comment_inline": "FINDV handler",
+      "type": "word",
+      "values": [
+        41047
+      ],
+      "expressions": [
+        {
+          "text": "findv_handler",
+          "tree": {
+            "sym": "findv_handler"
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36576,
+      "bytes": [
+        82
+      ],
+      "comment_inline": "(ROM bank \u2014 not read)",
+      "type": "byte",
+      "values": [
+        82
+      ]
+    },
+    {
+      "addr": 36577,
+      "bytes": [
         101,
         142
       ],
-      "type": "byte",
+      "comment_inline": "FSCV handler",
+      "type": "word",
       "values": [
-        34,
-        156,
-        74,
-        171,
-        158,
-        68,
-        154,
-        187,
-        87,
-        25,
-        188,
-        66,
-        116,
-        161,
-        65,
-        87,
-        160,
-        82,
-        101,
-        142
+        36453
+      ],
+      "expressions": [
+        {
+          "text": "fscv_handler",
+          "tree": {
+            "sym": "fscv_handler"
+          }
+        }
       ]
     },
     {
@@ -76856,13 +77014,26 @@
     {
       "addr": 42882,
       "bytes": [
-        78
+        78,
+        101,
+        116
       ],
       "labels": [
         "cmd_table_fs"
       ],
+      "sub_labels": {
+        "42883": [
+          "cmd_dispatch_lo_table"
+        ],
+        "42884": [
+          "cmd_dispatch_hi_table"
+        ]
+      },
+      "comment_inline": "Econet HW check + select NFS",
       "xref_summaries": [
-        "&a782 used as index base 11 times by &8bff, &8c0e, &8c16, &8c23, &946c, &9474, &95ef, &a476, &a47b, &a48b, &a4c2"
+        "&a782 used as index base 11 times by &8bff, &8c0e, &8c16, &8c23, &946c, &9474, &95ef, &a476, &a47b, &a48b, &a4c2",
+        "&a783 used as index base 2 times by &8cae, &a46c",
+        "&a784 used as index base 2 times by &8caa, &a468"
       ],
       "references": [
         {
@@ -76910,67 +77081,44 @@
           "kind": "indexed"
         }
       ],
+      "type": "string",
+      "string": "Net"
+    },
+    {
+      "addr": 42885,
+      "bytes": [
+        128
+      ],
+      "comment_inline": "no syn",
       "type": "byte",
       "values": [
-        78
+        128
       ]
     },
     {
-      "addr": 42883,
+      "addr": 42886,
       "bytes": [
-        101
-      ],
-      "labels": [
-        "cmd_dispatch_lo_table"
-      ],
-      "xref_summaries": [
-        "&a783 used as index base 2 times by &8cae, &a46c"
-      ],
-      "references": [
-        {
-          "addr": 36014,
-          "kind": "indexed"
-        },
-        {
-          "addr": 42092,
-          "kind": "indexed"
-        }
-      ],
-      "type": "byte",
-      "values": [
-        101
-      ]
-    },
-    {
-      "addr": 42884,
-      "bytes": [
-        116,
-        128,
         96,
         139
       ],
-      "labels": [
-        "cmd_dispatch_hi_table"
-      ],
-      "xref_summaries": [
-        "&a784 used as index base 2 times by &8caa, &a468"
-      ],
-      "references": [
-        {
-          "addr": 36010,
-          "kind": "indexed"
-        },
-        {
-          "addr": 42088,
-          "kind": "indexed"
-        }
-      ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        116,
-        128,
-        96,
-        139
+        35680
+      ],
+      "expressions": [
+        {
+          "text": "cmd_net_check_hw - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_net_check_hw"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -76983,21 +77131,45 @@
         112,
         115
       ],
+      "comment_inline": "syn 8: (<stn. id.>|<ps type>)",
       "type": "string",
       "string": "Pollps"
     },
     {
       "addr": 42894,
       "bytes": [
-        140,
+        140
+      ],
+      "comment_inline": "syn &8",
+      "type": "byte",
+      "values": [
+        140
+      ]
+    },
+    {
+      "addr": 42895,
+      "bytes": [
         189,
         181
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        140,
-        189,
-        181
+        46525
+      ],
+      "expressions": [
+        {
+          "text": "cmd_pollps - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_pollps"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77008,31 +77180,92 @@
         111,
         116
       ],
+      "comment_inline": "toggle CMOS protection bit",
       "type": "string",
       "string": "Prot"
     },
     {
       "addr": 42901,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42902,
+      "bytes": [
         252,
-        182,
+        182
+      ],
+      "type": "word",
+      "values": [
+        46844
+      ],
+      "expressions": [
+        {
+          "text": "cmd_prot - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_prot"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 42904,
+      "bytes": [
         80,
-        83,
-        136,
+        83
+      ],
+      "comment_inline": "syn 8: (<stn. id.>|<ps type>)",
+      "type": "string",
+      "string": "PS"
+    },
+    {
+      "addr": 42906,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "syn &8",
+      "type": "byte",
+      "values": [
+        136
+      ]
+    },
+    {
+      "addr": 42907,
+      "bytes": [
         224,
         179
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        252,
-        182,
-        80,
-        83,
-        136,
-        224,
-        179
+        46048
+      ],
+      "expressions": [
+        {
+          "text": "cmd_ps - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_ps"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77043,21 +77276,45 @@
         102,
         102
       ],
+      "comment_inline": "printer offline",
       "type": "string",
       "string": "Roff"
     },
     {
       "addr": 42913,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42914,
+      "bytes": [
         17,
         139
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        17,
-        139
+        35601
+      ],
+      "expressions": [
+        {
+          "text": "cmd_roff - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_roff"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77070,21 +77327,45 @@
         111,
         116
       ],
+      "comment_inline": "toggle CMOS protection bit",
       "type": "string",
       "string": "Unprot"
     },
     {
       "addr": 42922,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42923,
+      "bytes": [
         0,
         183
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        0,
-        183
+        46848
+      ],
+      "expressions": [
+        {
+          "text": "cmd_unprot - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_unprot"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77096,21 +77377,45 @@
         109,
         112
       ],
+      "comment_inline": "syn 4 -- *DUMP alias",
       "type": "string",
       "string": "Wdump"
     },
     {
       "addr": 42930,
       "bytes": [
-        196,
+        196
+      ],
+      "comment_inline": "syn &4, V if no arg",
+      "type": "byte",
+      "values": [
+        196
+      ]
+    },
+    {
+      "addr": 42931,
+      "bytes": [
         114,
         189
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        196,
-        114,
-        189
+        48498
+      ],
+      "expressions": [
+        {
+          "text": "cmd_dump - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_dump"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77148,21 +77453,45 @@
       "labels": [
         "cmd_table_nfs"
       ],
+      "comment_inline": "syn 9: <obj> (L)(W)(R)...",
       "type": "string",
       "string": "Access"
     },
     {
       "addr": 42941,
       "bytes": [
-        201,
+        201
+      ],
+      "comment_inline": "syn &9, V if no arg",
+      "type": "byte",
+      "values": [
+        201
+      ]
+    },
+    {
+      "addr": 42942,
+      "bytes": [
         43,
         148
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        201,
-        43,
-        148
+        37931
+      ],
+      "expressions": [
+        {
+          "text": "cmd_fs_operation - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs_operation"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77172,21 +77501,45 @@
         121,
         101
       ],
+      "comment_inline": "log off FS",
       "type": "string",
       "string": "Bye"
     },
     {
       "addr": 42947,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42948,
+      "bytes": [
         117,
         151
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        117,
-        151
+        38773
+      ],
+      "expressions": [
+        {
+          "text": "cmd_bye - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_bye"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77197,21 +77550,45 @@
         105,
         114
       ],
+      "comment_inline": "syn 6 -- create directory",
       "type": "string",
       "string": "Cdir"
     },
     {
       "addr": 42954,
       "bytes": [
-        198,
+        198
+      ],
+      "comment_inline": "syn &6, V if no arg",
+      "type": "byte",
+      "values": [
+        198
+      ]
+    },
+    {
+      "addr": 42955,
+      "bytes": [
         213,
         176
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        198,
-        213,
-        176
+        45269
+      ],
+      "expressions": [
+        {
+          "text": "cmd_cdir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_cdir"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77221,21 +77598,45 @@
         105,
         114
       ],
+      "comment_inline": "syn 1: (<dir>)",
       "type": "string",
       "string": "Dir"
     },
     {
       "addr": 42960,
       "bytes": [
-        129,
+        129
+      ],
+      "comment_inline": "syn &1",
+      "type": "byte",
+      "values": [
+        129
+      ]
+    },
+    {
+      "addr": 42961,
+      "bytes": [
         24,
         149
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        129,
-        24,
-        149
+        38168
+      ],
+      "expressions": [
+        {
+          "text": "cmd_dir - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_dir"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77246,31 +77647,92 @@
         105,
         112
       ],
+      "comment_inline": "swap fs/private workspace",
       "type": "string",
       "string": "Flip"
     },
     {
       "addr": 42967,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 42968,
+      "bytes": [
         175,
-        166,
+        166
+      ],
+      "type": "word",
+      "values": [
+        42671
+      ],
+      "expressions": [
+        {
+          "text": "cmd_flip - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_flip"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 42970,
+      "bytes": [
         70,
-        83,
-        139,
+        83
+      ],
+      "comment_inline": "syn &B -- file-server selection",
+      "type": "string",
+      "string": "FS"
+    },
+    {
+      "addr": 42972,
+      "bytes": [
+        139
+      ],
+      "comment_inline": "syn &B",
+      "type": "byte",
+      "values": [
+        139
+      ]
+    },
+    {
+      "addr": 42973,
+      "bytes": [
         173,
         163
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        175,
-        166,
-        70,
-        83,
-        139,
-        173,
-        163
+        41901
+      ],
+      "expressions": [
+        {
+          "text": "cmd_fs - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77284,6 +77746,7 @@
       "labels": [
         "cmd_table_nfs_iam"
       ],
+      "comment_inline": "syn 2: (<stn>) <user>...",
       "xref_summaries": [
         "&a7df used as index base 1 time by &8de2"
       ],
@@ -77299,15 +77762,38 @@
     {
       "addr": 42979,
       "bytes": [
-        194,
+        194
+      ],
+      "comment_inline": "syn &2, V if no arg",
+      "type": "byte",
+      "values": [
+        194
+      ]
+    },
+    {
+      "addr": 42980,
+      "bytes": [
         160,
         141
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        194,
-        160,
-        141
+        36256
+      ],
+      "expressions": [
+        {
+          "text": "cmd_iam_save_ctx - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_iam_save_ctx"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77318,21 +77804,45 @@
         97,
         116
       ],
+      "comment_inline": "syn 1: (<dir>) -- *CAT of library",
       "type": "string",
       "string": "Lcat"
     },
     {
       "addr": 42986,
       "bytes": [
-        129,
+        129
+      ],
+      "comment_inline": "syn &1",
+      "type": "byte",
+      "values": [
+        129
+      ]
+    },
+    {
+      "addr": 42987,
+      "bytes": [
         38,
         177
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        129,
-        38,
-        177
+        45350
+      ],
+      "expressions": [
+        {
+          "text": "cmd_lcat - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_lcat"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77342,21 +77852,45 @@
         101,
         120
       ],
+      "comment_inline": "syn 1: (<dir>) -- *EX of library",
       "type": "string",
       "string": "Lex"
     },
     {
       "addr": 42992,
       "bytes": [
-        129,
+        129
+      ],
+      "comment_inline": "syn &1",
+      "type": "byte",
+      "values": [
+        129
+      ]
+    },
+    {
+      "addr": 42993,
+      "bytes": [
         44,
         177
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        129,
-        44,
-        177
+        45356
+      ],
+      "expressions": [
+        {
+          "text": "cmd_lex - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_lex"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77366,21 +77900,45 @@
         105,
         98
       ],
+      "comment_inline": "syn 5: <dir> -- set library",
       "type": "string",
       "string": "Lib"
     },
     {
       "addr": 42998,
       "bytes": [
-        197,
+        197
+      ],
+      "comment_inline": "syn &5, V if no arg",
+      "type": "byte",
+      "values": [
+        197
+      ]
+    },
+    {
+      "addr": 42999,
+      "bytes": [
         43,
         148
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        197,
-        43,
-        148
+        37931
+      ],
+      "expressions": [
+        {
+          "text": "cmd_fs_operation - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_fs_operation"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77391,21 +77949,45 @@
         115,
         115
       ],
+      "comment_inline": "syn 7: <pass> ...",
       "type": "string",
       "string": "Pass"
     },
     {
       "addr": 43005,
       "bytes": [
-        199,
+        199
+      ],
+      "comment_inline": "syn &7, V if no arg",
+      "type": "byte",
+      "values": [
+        199
+      ]
+    },
+    {
+      "addr": 43006,
+      "bytes": [
         238,
         141
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        199,
-        238,
-        141
+        36334
+      ],
+      "expressions": [
+        {
+          "text": "cmd_pass - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_pass"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77418,21 +78000,45 @@
         109,
         101
       ],
+      "comment_inline": "syn &A: <old> <new>",
       "type": "string",
       "string": "Rename"
     },
     {
       "addr": 43014,
       "bytes": [
-        202,
+        202
+      ],
+      "comment_inline": "syn &A, V if no arg",
+      "type": "byte",
+      "values": [
+        202
+      ]
+    },
+    {
+      "addr": 43015,
+      "bytes": [
         203,
         148
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        202,
-        203,
-        148
+        38091
+      ],
+      "expressions": [
+        {
+          "text": "cmd_rename - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_rename"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77443,15 +78049,50 @@
         112,
         101
       ],
+      "comment_inline": "syn 1: (<dir>) -- delete with confirm",
       "type": "string",
       "string": "Wipe"
     },
     {
       "addr": 43021,
       "bytes": [
-        129,
+        129
+      ],
+      "comment_inline": "syn &1",
+      "type": "byte",
+      "values": [
+        129
+      ]
+    },
+    {
+      "addr": 43022,
+      "bytes": [
         29,
-        183,
+        183
+      ],
+      "type": "word",
+      "values": [
+        46877
+      ],
+      "expressions": [
+        {
+          "text": "cmd_wipe - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_wipe"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43024,
+      "bytes": [
         128,
         70,
         142,
@@ -77463,9 +78104,6 @@
       ],
       "type": "byte",
       "values": [
-        129,
-        29,
-        183,
         128,
         70,
         142,
@@ -77483,21 +78121,45 @@
         101,
         116
       ],
+      "comment_inline": "*HELP NET",
       "type": "string",
       "string": "Net"
     },
     {
       "addr": 43035,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43036,
+      "bytes": [
         235,
         139
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        235,
-        139
+        35819
+      ],
+      "expressions": [
+        {
+          "text": "help_net - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "help_net"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77509,21 +78171,45 @@
         108,
         115
       ],
+      "comment_inline": "*HELP UTILS",
       "type": "string",
       "string": "Utils"
     },
     {
       "addr": 43043,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43044,
+      "bytes": [
         231,
         139
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        231,
-        139
+        35815
+      ],
+      "expressions": [
+        {
+          "text": "help_utils - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "help_utils"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77541,31 +78227,97 @@
       "addr": 43047,
       "bytes": [
         70,
-        83,
-        193,
-        238,
-        149,
-        80,
-        83,
-        195,
-        238,
-        149
+        83
       ],
       "labels": [
         "cmd_table_syntax_help"
       ],
+      "comment_inline": "FS not selected",
+      "type": "string",
+      "string": "FS"
+    },
+    {
+      "addr": 43049,
+      "bytes": [
+        193
+      ],
+      "comment_inline": "syn &1, V if no arg",
       "type": "byte",
       "values": [
-        70,
-        83,
-        193,
-        238,
-        149,
-        80,
-        83,
-        195,
+        193
+      ]
+    },
+    {
+      "addr": 43050,
+      "bytes": [
         238,
         149
+      ],
+      "type": "word",
+      "values": [
+        38382
+      ],
+      "expressions": [
+        {
+          "text": "set_fs_or_ps_cmos_station - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "set_fs_or_ps_cmos_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43052,
+      "bytes": [
+        80,
+        83
+      ],
+      "comment_inline": "PS not selected",
+      "type": "string",
+      "string": "PS"
+    },
+    {
+      "addr": 43054,
+      "bytes": [
+        195
+      ],
+      "comment_inline": "syn &3, V if no arg",
+      "type": "byte",
+      "values": [
+        195
+      ]
+    },
+    {
+      "addr": 43055,
+      "bytes": [
+        238,
+        149
+      ],
+      "type": "word",
+      "values": [
+        38382
+      ],
+      "expressions": [
+        {
+          "text": "set_fs_or_ps_cmos_station - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "set_fs_or_ps_cmos_station"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77579,21 +78331,30 @@
         99,
         101
       ],
+      "comment_inline": "caller &9625",
       "type": "string",
       "string": "NoSpace"
     },
     {
       "addr": 43064,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43065,
+      "bytes": [
         35,
         150
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        35,
-        150
+        38435
       ]
     },
     {
@@ -77605,21 +78366,30 @@
         99,
         101
       ],
+      "comment_inline": "caller &961B",
       "type": "string",
       "string": "Space"
     },
     {
       "addr": 43072,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43073,
+      "bytes": [
         25,
         150
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        25,
-        150
+        38425
       ]
     },
     {
@@ -77637,28 +78407,94 @@
       "addr": 43076,
       "bytes": [
         70,
-        83,
-        129,
+        83
+      ],
+      "comment_inline": "caller &9672",
+      "type": "string",
+      "string": "FS"
+    },
+    {
+      "addr": 43078,
+      "bytes": [
+        129
+      ],
+      "comment_inline": "syn &1",
+      "type": "byte",
+      "values": [
+        129
+      ]
+    },
+    {
+      "addr": 43079,
+      "bytes": [
         103,
-        150,
+        150
+      ],
+      "type": "word",
+      "values": [
+        38503
+      ],
+      "expressions": [
+        {
+          "text": "print_fs_address - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "print_fs_address"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43081,
+      "bytes": [
         80,
-        83,
-        131,
+        83
+      ],
+      "comment_inline": "caller &9661",
+      "type": "string",
+      "string": "PS"
+    },
+    {
+      "addr": 43083,
+      "bytes": [
+        131
+      ],
+      "comment_inline": "syn &3",
+      "type": "byte",
+      "values": [
+        131
+      ]
+    },
+    {
+      "addr": 43084,
+      "bytes": [
         99,
         150
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        70,
-        83,
-        129,
-        103,
-        150,
-        80,
-        83,
-        131,
-        99,
-        150
+        38499
+      ],
+      "expressions": [
+        {
+          "text": "print_ps_address - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "print_ps_address"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -77670,21 +78506,30 @@
         99,
         101
       ],
+      "comment_inline": "caller &9643",
       "type": "string",
       "string": "Space"
     },
     {
       "addr": 43091,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "no syn",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43092,
+      "bytes": [
         66,
         150
       ],
-      "type": "byte",
+      "type": "word",
       "values": [
-        128,
-        66,
-        150
+        38466
       ]
     },
     {

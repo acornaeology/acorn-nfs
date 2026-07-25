@@ -1910,9 +1910,9 @@ l8494 = sub_c8492+2
 ; RX immediate: POKE setup
 ;
 ; Sets up workspace offsets for receiving POKE data: port_ws_offset = &2E, rx_buf_offset
-; = &0D. Jumps to the common data-receive path at &81AF. POKE (&82) only writes memory
-; and replies, so it is serviced inline in the receive path -- not deferred like the
-; execute-class operations &83-&87.
+; = &0D. Jumps to the POKE data-receive path at port_match_found. POKE (&82) only writes
+; memory and replies, so it is serviced inline in the receive path -- not deferred like
+; the execute-class operations &83-&87.
 .svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84bc: a9 2e       ..       ; Port workspace offset = &2E
@@ -4640,8 +4640,19 @@ l8dc1 = load_transfer_params+1
     equw ev_gbpbv                                                     ; 8ec9: 27 ff       '.       ; GBPBV dispatch
     equw ev_findv                                                     ; 8ecb: 2a ff       *.       ; FINDV dispatch
     equw ev_fscv                                                      ; 8ecd: 2d ff       -.       ; FSCV dispatch
-    equb &22, &9c, &4a, &ab, &9e, &44, &9a, &bb, &57, &19, &bc, &42   ; 8ecf: 22 9c 4a... ".J...
-    equb &74, &a1, &41, &57, &a0, &52, &65, &8e                       ; 8edb: 74 a1 41... t.A...
+    equw filev_handler                                                ; 8ecf: 22 9c       ".       ; FILEV handler
+    equb &4a                                                          ; 8ed1: 4a          J        ; (ROM bank — not read)
+    equw argsv_handler                                                ; 8ed2: ab 9e       ..       ; ARGSV handler
+    equb &44                                                          ; 8ed4: 44          D        ; (ROM bank — not read)
+    equw bgetv_handler                                                ; 8ed5: 9a bb       ..       ; BGETV handler
+    equb &57                                                          ; 8ed7: 57          W        ; (ROM bank — not read)
+    equw bputv_handler                                                ; 8ed8: 19 bc       ..       ; BPUTV handler
+    equb &42                                                          ; 8eda: 42          B        ; (ROM bank — not read)
+    equw gbpbv_handler                                                ; 8edb: 74 a1       t.       ; GBPBV handler
+    equb &41                                                          ; 8edd: 41          A        ; (ROM bank — not read)
+    equw findv_handler                                                ; 8ede: 57 a0       W.       ; FINDV handler
+    equb &52                                                          ; 8ee0: 52          R        ; (ROM bank — not read)
+    equw fscv_handler                                                 ; 8ee1: 65 8e       e.       ; FSCV handler
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=&FF
 ;
@@ -6369,9 +6380,9 @@ l8dc1 = load_transfer_params+1
 ; ***************************************************************************************
 ; Write FS/PS station+network to CMOS RAM
 ;
-; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (the *FS and *PS command
-; records at &A844) when the caller supplies a <net>.<stn> argument or wants to
-; inspect/update the saved address.
+; Reached via PHA/PHA/RTS dispatch from cmd_table_fs sub-table 4 (*FS at &A82A, *PS at
+; &A82F) when the caller supplies a <net>.<stn> argument or wants to inspect/update the
+; saved address.
 ;
 ; The flag byte's low 6 bits (AND #&3F) double as the CMOS byte index for the relevant
 ; station:
@@ -6422,11 +6433,11 @@ l8dc1 = load_transfer_params+1
 ; (a 3-byte JMP trampoline to svc_return_unclaimed, reached this way because BRA's 8-bit
 ; displacement can't span &9618 → &8C8B).
 ;
-; osbyte_a2 ends at &9618 (3 instructions, 8 bytes); the next labelled routine is
+; osbyte_a2 ends at &961A (3 instructions, 7 bytes); the next labelled routine is
 ; cmd_space. Counterpart of osbyte_a1 (read).
 ;
 ; Callers: set_fs_or_ps_cmos_station (once via JSR, once via fall-through), the BRA
-; shortcut at &962C inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
+; shortcut at &962F inside cmd_nospace, and an OSARGS-related read-modify-write of CMOS
 ; byte &11 ending at osopt_cmos_writeback_jsr.
 ;
 ; On Entry:
@@ -10666,67 +10677,106 @@ la127 = osopt_cmos_writeback_jsr+1
 ; below name the command, syntax-template index, and dispatch target.
 ; &a782 used as index base 11 times by &8bff, &8c0e, &8c16, &8c23, &946c, &9474, &95ef, &a476, &a47b, &a48b, &a4c2
 .cmd_table_fs
-    equb &4e                                                          ; a782: 4e          N     
 ; &a783 used as index base 2 times by &8cae, &a46c
-.cmd_dispatch_lo_table
-    equb &65                                                          ; a783: 65          e     
+cmd_dispatch_lo_table = cmd_table_fs+1
 ; &a784 used as index base 2 times by &8caa, &a468
-.cmd_dispatch_hi_table
-    equb &74, &80, &60, &8b                                           ; a784: 74 80 60... t.`...
-    equs "Pollps"                                                     ; a788: 50 6f 6c... Pol...
-    equb &8c, &bd, &b5                                                ; a78e: 8c bd b5    ...   
-    equs "Prot"                                                       ; a791: 50 72 6f... Pro...
-    equb &80, &fc, &b6, &50, &53, &88, &e0, &b3                       ; a795: 80 fc b6... ......
-    equs "Roff"                                                       ; a79d: 52 6f 66... Rof...
-    equb &80, &11, &8b                                                ; a7a1: 80 11 8b    ...   
-    equs "Unprot"                                                     ; a7a4: 55 6e 70... Unp...
-    equb &80, &00, &b7                                                ; a7aa: 80 00 b7    ...   
-    equs "Wdump"                                                      ; a7ad: 57 64 75... Wdu...
-    equb &c4, &72, &bd                                                ; a7b2: c4 72 bd    .r.   
+cmd_dispatch_hi_table = cmd_table_fs+2
+    equs "Net"                                                        ; a782: 4e 65 74    Net      ; Econet HW check + select NFS
+    equb &80                                                          ; a785: 80          .        ; no syn
+    equw cmd_net_check_hw - 1                                         ; a786: 60 8b       `.    
+    equs "Pollps"                                                     ; a788: 50 6f 6c... Pol...   ; syn 8: (<stn. id.>|<ps type>)
+    equb &8c                                                          ; a78e: 8c          .        ; syn &8
+    equw cmd_pollps - 1                                               ; a78f: bd b5       ..    
+    equs "Prot"                                                       ; a791: 50 72 6f... Pro...   ; toggle CMOS protection bit
+    equb &80                                                          ; a795: 80          .        ; no syn
+    equw cmd_prot - 1                                                 ; a796: fc b6       ..    
+    equs "PS"                                                         ; a798: 50 53       PS       ; syn 8: (<stn. id.>|<ps type>)
+    equb &88                                                          ; a79a: 88          .        ; syn &8
+    equw cmd_ps - 1                                                   ; a79b: e0 b3       ..    
+    equs "Roff"                                                       ; a79d: 52 6f 66... Rof...   ; printer offline
+    equb &80                                                          ; a7a1: 80          .        ; no syn
+    equw cmd_roff - 1                                                 ; a7a2: 11 8b       ..    
+    equs "Unprot"                                                     ; a7a4: 55 6e 70... Unp...   ; toggle CMOS protection bit
+    equb &80                                                          ; a7aa: 80          .        ; no syn
+    equw cmd_unprot - 1                                               ; a7ab: 00 b7       ..    
+    equs "Wdump"                                                      ; a7ad: 57 64 75... Wdu...   ; syn 4 -- *DUMP alias
+    equb &c4                                                          ; a7b2: c4          .        ; syn &4, V if no arg
+    equw cmd_dump - 1                                                 ; a7b3: 72 bd       r.    
     equb &80                                                          ; a7b5: 80          .        ; Sub-table 1 end (walker reads &80 -> stop)
     equb &80                                                          ; a7b6: 80          .        ; Padding (alignment before sub-table 2)
 .cmd_table_nfs
-    equs "Access"                                                     ; a7b7: 41 63 63... Acc...
-    equb &c9, &2b, &94                                                ; a7bd: c9 2b 94    .+.   
-    equs "Bye"                                                        ; a7c0: 42 79 65    Bye   
-    equb &80, &75, &97                                                ; a7c3: 80 75 97    .u.   
-    equs "Cdir"                                                       ; a7c6: 43 64 69... Cdi...
-    equb &c6, &d5, &b0                                                ; a7ca: c6 d5 b0    ...   
-    equs "Dir"                                                        ; a7cd: 44 69 72    Dir   
-    equb &81, &18, &95                                                ; a7d0: 81 18 95    ...   
-    equs "Flip"                                                       ; a7d3: 46 6c 69... Fli...
-    equb &80, &af, &a6, &46, &53, &8b, &ad, &a3                       ; a7d7: 80 af a6... ......
+    equs "Access"                                                     ; a7b7: 41 63 63... Acc...   ; syn 9: <obj> (L)(W)(R)...
+    equb &c9                                                          ; a7bd: c9          .        ; syn &9, V if no arg
+    equw cmd_fs_operation - 1                                         ; a7be: 2b 94       +.    
+    equs "Bye"                                                        ; a7c0: 42 79 65    Bye      ; log off FS
+    equb &80                                                          ; a7c3: 80          .        ; no syn
+    equw cmd_bye - 1                                                  ; a7c4: 75 97       u.    
+    equs "Cdir"                                                       ; a7c6: 43 64 69... Cdi...   ; syn 6 -- create directory
+    equb &c6                                                          ; a7ca: c6          .        ; syn &6, V if no arg
+    equw cmd_cdir - 1                                                 ; a7cb: d5 b0       ..    
+    equs "Dir"                                                        ; a7cd: 44 69 72    Dir      ; syn 1: (<dir>)
+    equb &81                                                          ; a7d0: 81          .        ; syn &1
+    equw cmd_dir - 1                                                  ; a7d1: 18 95       ..    
+    equs "Flip"                                                       ; a7d3: 46 6c 69... Fli...   ; swap fs/private workspace
+    equb &80                                                          ; a7d7: 80          .        ; no syn
+    equw cmd_flip - 1                                                 ; a7d8: af a6       ..    
+    equs "FS"                                                         ; a7da: 46 53       FS       ; syn &B -- file-server selection
+    equb &8b                                                          ; a7dc: 8b          .        ; syn &B
+    equw cmd_fs - 1                                                   ; a7dd: ad a3       ..    
 ; &a7df used as index base 1 time by &8de2
 .cmd_table_nfs_iam
-    equs "I am"                                                       ; a7df: 49 20 61... I a...
-    equb &c2, &a0, &8d                                                ; a7e3: c2 a0 8d    ...   
-    equs "Lcat"                                                       ; a7e6: 4c 63 61... Lca...
-    equb &81, &26, &b1                                                ; a7ea: 81 26 b1    .&.   
-    equs "Lex"                                                        ; a7ed: 4c 65 78    Lex   
-    equb &81, &2c, &b1                                                ; a7f0: 81 2c b1    .,.   
-    equs "Lib"                                                        ; a7f3: 4c 69 62    Lib   
-    equb &c5, &2b, &94                                                ; a7f6: c5 2b 94    .+.   
-    equs "Pass"                                                       ; a7f9: 50 61 73... Pas...
-    equb &c7, &ee, &8d                                                ; a7fd: c7 ee 8d    ...   
-    equs "Rename"                                                     ; a800: 52 65 6e... Ren...
-    equb &ca, &cb, &94                                                ; a806: ca cb 94    ...   
-    equs "Wipe"                                                       ; a809: 57 69 70... Wip...
-    equb &81, &1d, &b7, &80, &46, &8e, &4f, &6e, &80, &00, &00        ; a80d: 81 1d b7... ......
-    equs "Net"                                                        ; a818: 4e 65 74    Net   
-    equb &80, &eb, &8b                                                ; a81b: 80 eb 8b    ...   
-    equs "Utils"                                                      ; a81e: 55 74 69... Uti...
-    equb &80, &e7, &8b                                                ; a823: 80 e7 8b    ...   
+    equs "I am"                                                       ; a7df: 49 20 61... I a...   ; syn 2: (<stn>) <user>...
+    equb &c2                                                          ; a7e3: c2          .        ; syn &2, V if no arg
+    equw cmd_iam_save_ctx - 1                                         ; a7e4: a0 8d       ..    
+    equs "Lcat"                                                       ; a7e6: 4c 63 61... Lca...   ; syn 1: (<dir>) -- *CAT of library
+    equb &81                                                          ; a7ea: 81          .        ; syn &1
+    equw cmd_lcat - 1                                                 ; a7eb: 26 b1       &.    
+    equs "Lex"                                                        ; a7ed: 4c 65 78    Lex      ; syn 1: (<dir>) -- *EX of library
+    equb &81                                                          ; a7f0: 81          .        ; syn &1
+    equw cmd_lex - 1                                                  ; a7f1: 2c b1       ,.    
+    equs "Lib"                                                        ; a7f3: 4c 69 62    Lib      ; syn 5: <dir> -- set library
+    equb &c5                                                          ; a7f6: c5          .        ; syn &5, V if no arg
+    equw cmd_fs_operation - 1                                         ; a7f7: 2b 94       +.    
+    equs "Pass"                                                       ; a7f9: 50 61 73... Pas...   ; syn 7: <pass> ...
+    equb &c7                                                          ; a7fd: c7          .        ; syn &7, V if no arg
+    equw cmd_pass - 1                                                 ; a7fe: ee 8d       ..    
+    equs "Rename"                                                     ; a800: 52 65 6e... Ren...   ; syn &A: <old> <new>
+    equb &ca                                                          ; a806: ca          .        ; syn &A, V if no arg
+    equw cmd_rename - 1                                               ; a807: cb 94       ..    
+    equs "Wipe"                                                       ; a809: 57 69 70... Wip...   ; syn 1: (<dir>) -- delete with confirm
+    equb &81                                                          ; a80d: 81          .        ; syn &1
+    equw cmd_wipe - 1                                                 ; a80e: 1d b7       ..    
+    equb &80, &46, &8e, &4f, &6e, &80, &00, &00                       ; a810: 80 46 8e... .F....
+    equs "Net"                                                        ; a818: 4e 65 74    Net      ; *HELP NET
+    equb &80                                                          ; a81b: 80          .        ; no syn
+    equw help_net - 1                                                 ; a81c: eb 8b       ..    
+    equs "Utils"                                                      ; a81e: 55 74 69... Uti...   ; *HELP UTILS
+    equb &80                                                          ; a823: 80          .        ; no syn
+    equw help_utils - 1                                               ; a824: e7 8b       ..    
     equb &80                                                          ; a826: 80          .        ; Sub-table 3 end (walker reads &80 -> stop)
 .cmd_table_syntax_help
-    equb &46, &53, &c1, &ee, &95, &50, &53, &c3, &ee, &95             ; a827: 46 53 c1... FS....
-    equs "NoSpace"                                                    ; a831: 4e 6f 53... NoS...
-    equb &80, &23, &96                                                ; a838: 80 23 96    .#.   
-    equs "Space"                                                      ; a83b: 53 70 61... Spa...
-    equb &80, &19, &96                                                ; a840: 80 19 96    ...   
+    equs "FS"                                                         ; a827: 46 53       FS       ; FS not selected
+    equb &c1                                                          ; a829: c1          .        ; syn &1, V if no arg
+    equw set_fs_or_ps_cmos_station - 1                                ; a82a: ee 95       ..    
+    equs "PS"                                                         ; a82c: 50 53       PS       ; PS not selected
+    equb &c3                                                          ; a82e: c3          .        ; syn &3, V if no arg
+    equw set_fs_or_ps_cmos_station - 1                                ; a82f: ee 95       ..    
+    equs "NoSpace"                                                    ; a831: 4e 6f 53... NoS...   ; caller &9625
+    equb &80                                                          ; a838: 80          .        ; no syn
+    equw &9623                                                        ; a839: 23 96       #.    
+    equs "Space"                                                      ; a83b: 53 70 61... Spa...   ; caller &961B
+    equb &80                                                          ; a840: 80          .        ; no syn
+    equw &9619                                                        ; a841: 19 96       ..    
     equb &80                                                          ; a843: 80          .        ; Sub-tables 4/5 separator
-    equb &46, &53, &81, &67, &96, &50, &53, &83, &63, &96             ; a844: 46 53 81... FS....
-    equs "Space"                                                      ; a84e: 53 70 61... Spa...
-    equb &80, &42, &96                                                ; a853: 80 42 96    .B.   
+    equs "FS"                                                         ; a844: 46 53       FS       ; caller &9672
+    equb &81                                                          ; a846: 81          .        ; syn &1
+    equw print_fs_address - 1                                         ; a847: 67 96       g.    
+    equs "PS"                                                         ; a849: 50 53       PS       ; caller &9661
+    equb &83                                                          ; a84b: 83          .        ; syn &3
+    equw print_ps_address - 1                                         ; a84c: 63 96       c.    
+    equs "Space"                                                      ; a84e: 53 70 61... Spa...   ; caller &9643
+    equb &80                                                          ; a853: 80          .        ; no syn
+    equw &9642                                                        ; a854: 42 96       B.    
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
 ;
@@ -17603,7 +17653,7 @@ save pydis_start, pydis_end
 ;     Data                     = 2261 bytes (14%)
 ;
 ;     Number of instructions   = 6961
-;     Number of data bytes     = 968 bytes
-;     Number of data words     = 14 bytes
-;     Number of string bytes   = 1279 bytes
-;     Number of strings        = 146
+;     Number of data bytes     = 881 bytes
+;     Number of data words     = 86 bytes
+;     Number of string bytes   = 1294 bytes
+;     Number of strings        = 153
