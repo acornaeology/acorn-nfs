@@ -1294,6 +1294,8 @@ tube_osword = tube_osbyte_short+1
     lda tube_data_register_2                                          ; 9620: ad e3 fe    ... :06ca[4]        ; Read byte from Tube R2 data register
     rts                                                               ; 9623: 60          ` :06cd[4]          ; Return with byte in A
     equs "Jes"                                                        ; 9624: 4a 65 73    Jes :06ce[4]      
+; ROM padding (&FF fill).
+.rom_padding_06d1
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9627: ff ff ff... ...... :06d1[4]   
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9633: ff ff ff... ...... :06dd[4]   
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 963f: ff ff ff... ...... :06e9[4]   
@@ -6952,22 +6954,24 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a82 referenced 2 times by &9a5b, &9a5f
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 9a82: 4c 72 98    Lr.      ; Jump to discard handler
-    equb <(rx_imm_peek - 1)                                           ; 9a85: d0          .     
-    equb <(rx_imm_poke - 1)                                           ; 9a86: b2          .     
-    equb <(rx_imm_exec - 1)                                           ; 9a87: 94          .     
-    equb <(rx_imm_exec - 1)                                           ; 9a88: 94          .     
-    equb <(rx_imm_exec - 1)                                           ; 9a89: 94          .     
-    equb <(rx_imm_halt_cont - 1)                                      ; 9a8a: ea          .     
-    equb <(rx_imm_halt_cont - 1)                                      ; 9a8b: ea          .     
-    equb <(rx_imm_machine_type - 1)                                   ; 9a8c: bd          .     
-    equb >(rx_imm_peek - 1)                                           ; 9a8d: 9a          .     
-    equb >(rx_imm_poke - 1)                                           ; 9a8e: 9a          .     
-    equb >(rx_imm_exec - 1)                                           ; 9a8f: 9a          .     
-    equb >(rx_imm_exec - 1)                                           ; 9a90: 9a          .     
-    equb >(rx_imm_exec - 1)                                           ; 9a91: 9a          .     
-    equb >(rx_imm_halt_cont - 1)                                      ; 9a92: 9a          .     
-    equb >(rx_imm_halt_cont - 1)                                      ; 9a93: 9a          .     
-    equb >(rx_imm_machine_type - 1)                                   ; 9a94: 9a          .     
+.imm_op_dispatch_lo
+    equb <(rx_imm_peek - 1)                                           ; 9a85: d0          .        ; Ctrl &81: PEEK
+    equb <(rx_imm_poke - 1)                                           ; 9a86: b2          .        ; Ctrl &82: POKE
+    equb <(rx_imm_exec - 1)                                           ; 9a87: 94          .        ; Ctrl &83: JSR
+    equb <(rx_imm_exec - 1)                                           ; 9a88: 94          .        ; Ctrl &84: UserProc
+    equb <(rx_imm_exec - 1)                                           ; 9a89: 94          .        ; Ctrl &85: OSProc
+    equb <(rx_imm_halt_cont - 1)                                      ; 9a8a: ea          .        ; Ctrl &86: HALT
+    equb <(rx_imm_halt_cont - 1)                                      ; 9a8b: ea          .        ; Ctrl &87: CONTINUE
+    equb <(rx_imm_machine_type - 1)                                   ; 9a8c: bd          .        ; Ctrl &88: machine-type
+.imm_op_dispatch_hi
+    equb >(rx_imm_peek - 1)                                           ; 9a8d: 9a          .        ; Ctrl &81: PEEK
+    equb >(rx_imm_poke - 1)                                           ; 9a8e: 9a          .        ; Ctrl &82: POKE
+    equb >(rx_imm_exec - 1)                                           ; 9a8f: 9a          .        ; Ctrl &83: JSR
+    equb >(rx_imm_exec - 1)                                           ; 9a90: 9a          .        ; Ctrl &84: UserProc
+    equb >(rx_imm_exec - 1)                                           ; 9a91: 9a          .        ; Ctrl &85: OSProc
+    equb >(rx_imm_halt_cont - 1)                                      ; 9a92: 9a          .        ; Ctrl &86: HALT
+    equb >(rx_imm_halt_cont - 1)                                      ; 9a93: 9a          .        ; Ctrl &87: CONTINUE
+    equb >(rx_imm_machine_type - 1)                                   ; 9a94: 9a          .        ; Ctrl &88: machine-type
 ; ***************************************************************************************
 ; RX immediate: JSR/UserProc/OSProc setup
 ;
@@ -7165,16 +7169,18 @@ tx_done_handler_hi = tx_nmi_setup+1
     lda tx_done_handler_lo,y                                          ; 9b6f: b9 f1 9a    ...      ; Load handler addr lo from table
     pha                                                               ; 9b72: 48          H        ; Push handler lo
     rts                                                               ; 9b73: 60          `        ; Dispatch via RTS (addr-1 on stack)
-    equb <(tx_done_jsr - 1)                                           ; 9b74: 7d          }     
-    equb <(tx_done_user_proc - 1)                                     ; 9b75: 86          .     
-    equb <(tx_done_os_proc - 1)                                       ; 9b76: 94          .     
-    equb <(tx_done_halt - 1)                                          ; 9b77: a0          .     
-    equb <(tx_done_continue - 1)                                      ; 9b78: b7          .     
-    equb >(tx_done_jsr - 1)                                           ; 9b79: 9b          .     
-    equb >(tx_done_user_proc - 1)                                     ; 9b7a: 9b          .     
-    equb >(tx_done_os_proc - 1)                                       ; 9b7b: 9b          .     
-    equb >(tx_done_halt - 1)                                          ; 9b7c: 9b          .     
-    equb >(tx_done_continue - 1)                                      ; 9b7d: 9b          .     
+.tx_done_dispatch_lo
+    equb <(tx_done_jsr - 1)                                           ; 9b74: 7d          }        ; Ctrl &83: JSR
+    equb <(tx_done_user_proc - 1)                                     ; 9b75: 86          .        ; Ctrl &84: UserProc
+    equb <(tx_done_os_proc - 1)                                       ; 9b76: 94          .        ; Ctrl &85: OSProc
+    equb <(tx_done_halt - 1)                                          ; 9b77: a0          .        ; Ctrl &86: HALT
+    equb <(tx_done_continue - 1)                                      ; 9b78: b7          .        ; Ctrl &87: CONTINUE
+.tx_done_dispatch_hi
+    equb >(tx_done_jsr - 1)                                           ; 9b79: 9b          .        ; Ctrl &83: JSR
+    equb >(tx_done_user_proc - 1)                                     ; 9b7a: 9b          .        ; Ctrl &84: UserProc
+    equb >(tx_done_os_proc - 1)                                       ; 9b7b: 9b          .        ; Ctrl &85: OSProc
+    equb >(tx_done_halt - 1)                                          ; 9b7c: 9b          .        ; Ctrl &86: HALT
+    equb >(tx_done_continue - 1)                                      ; 9b7d: 9b          .        ; Ctrl &87: CONTINUE
 ; ***************************************************************************************
 ; TX done: remote JSR execution
 ;
@@ -7433,22 +7439,24 @@ sr2_idle_status = test_line_idle+2
     lda intoff_test_inactive,y                                        ; 9cb6: b9 3a 9c    .:.      ; Look up handler address low from table
     pha                                                               ; 9cb9: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9cba: 60          `        ; RTS dispatches to control-byte handler
-    equb <(tx_ctrl_peek - 1)                                          ; 9cbb: ce          .     
-    equb <(tx_ctrl_poke - 1)                                          ; 9cbc: d2          .     
-    equb <(proc_op_status2 - 1)                                       ; 9cbd: 15          .     
-    equb <(proc_op_status2 - 1)                                       ; 9cbe: 15          .     
-    equb <(proc_op_status2 - 1)                                       ; 9cbf: 15          .     
-    equb <(tx_ctrl_exit - 1)                                          ; 9cc0: 25          %     
-    equb <(tx_ctrl_exit - 1)                                          ; 9cc1: 25          %     
-    equb <(imm_op_status3 - 1)                                        ; 9cc2: ca          .     
-    equb >(tx_ctrl_peek - 1)                                          ; 9cc3: 9c          .     
-    equb >(tx_ctrl_poke - 1)                                          ; 9cc4: 9c          .     
-    equb >(proc_op_status2 - 1)                                       ; 9cc5: 9d          .     
-    equb >(proc_op_status2 - 1)                                       ; 9cc6: 9d          .     
-    equb >(proc_op_status2 - 1)                                       ; 9cc7: 9d          .     
-    equb >(tx_ctrl_exit - 1)                                          ; 9cc8: 9d          .     
-    equb >(tx_ctrl_exit - 1)                                          ; 9cc9: 9d          .     
-    equb >(imm_op_status3 - 1)                                        ; 9cca: 9c          .     
+.tx_ctrl_dispatch_lo
+    equb <(tx_ctrl_peek - 1)                                          ; 9cbb: ce          .        ; Ctrl &81: PEEK
+    equb <(tx_ctrl_poke - 1)                                          ; 9cbc: d2          .        ; Ctrl &82: POKE
+    equb <(proc_op_status2 - 1)                                       ; 9cbd: 15          .        ; Ctrl &83: JSR
+    equb <(proc_op_status2 - 1)                                       ; 9cbe: 15          .        ; Ctrl &84: UserProc
+    equb <(proc_op_status2 - 1)                                       ; 9cbf: 15          .        ; Ctrl &85: OSProc
+    equb <(tx_ctrl_exit - 1)                                          ; 9cc0: 25          %        ; Ctrl &86: HALT
+    equb <(tx_ctrl_exit - 1)                                          ; 9cc1: 25          %        ; Ctrl &87: CONTINUE
+    equb <(imm_op_status3 - 1)                                        ; 9cc2: ca          .        ; Ctrl &88: machine-type
+.tx_ctrl_dispatch_hi
+    equb >(tx_ctrl_peek - 1)                                          ; 9cc3: 9c          .        ; Ctrl &81: PEEK
+    equb >(tx_ctrl_poke - 1)                                          ; 9cc4: 9c          .        ; Ctrl &82: POKE
+    equb >(proc_op_status2 - 1)                                       ; 9cc5: 9d          .        ; Ctrl &83: JSR
+    equb >(proc_op_status2 - 1)                                       ; 9cc6: 9d          .        ; Ctrl &84: UserProc
+    equb >(proc_op_status2 - 1)                                       ; 9cc7: 9d          .        ; Ctrl &85: OSProc
+    equb >(tx_ctrl_exit - 1)                                          ; 9cc8: 9d          .        ; Ctrl &86: HALT
+    equb >(tx_ctrl_exit - 1)                                          ; 9cc9: 9d          .        ; Ctrl &87: CONTINUE
+    equb >(imm_op_status3 - 1)                                        ; 9cca: 9c          .        ; Ctrl &88: machine-type
 .imm_op_status3
     lda #3                                                            ; 9ccb: a9 03       ..       ; A=3: scout_status for PEEK
     bne store_status_copy_ptr                                         ; 9ccd: d0 49       .I    
@@ -7920,9 +7928,12 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     lda #&80                                                          ; 9f20: a9 80       ..       ; &80: completion flag for &0D3A
     sta tx_clear_flag                                                 ; 9f22: 8d 62 0d    .b.      ; Signal TX complete
     jmp discard_reset_listen                                          ; 9f25: 4c 2e 9a    L..      ; Full ADLC reset and return to idle listen
-; Unreferenced data block (purpose unknown)
-    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a, &81, &00, &00, &00   ; 9f28: 0e 0e 0a... ......
-    equb &00, &01, &01, &81                                           ; 9f34: 00 01 01... ......
+; Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A.
+.tx_length_table
+    equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 9f28: 0e 0e 0a... ......
+; Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
+.tx_flags_table
+    equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 9f30: 81 00 00... ......
 ; ***************************************************************************************
 ; Calculate transfer size
 ;
@@ -8078,6 +8089,8 @@ tube_tx_count_4 = tube_tx_inc_byte4+1
     jsr osasci                                                        ; 9ff3: 20 e3 ff     ..      ; Write character
     sec                                                               ; 9ff6: 38          8        ; C=1: callers use SEC as sentinel
     rts                                                               ; 9ff7: 60          `        ; Return
+; ROM padding (&FF fill).
+.rom_padding_9ff8
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff                       ; 9ff8: ff ff ff... ......
 .pydis_end
 

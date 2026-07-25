@@ -45682,6 +45682,12 @@
         255
       ],
       "binary_addr": 38439,
+      "labels": [
+        "rom_padding_06d1"
+      ],
+      "comments_before_label": [
+        "ROM padding (&FF fill)."
+      ],
       "type": "byte",
       "values": [
         255,
@@ -52721,6 +52727,10 @@
       "bytes": [
         208
       ],
+      "labels": [
+        "imm_op_dispatch_lo"
+      ],
+      "comment_inline": "Ctrl &81: PEEK",
       "type": "byte",
       "values": [
         208
@@ -52750,6 +52760,7 @@
       "bytes": [
         178
       ],
+      "comment_inline": "Ctrl &82: POKE",
       "type": "byte",
       "values": [
         178
@@ -52779,6 +52790,7 @@
       "bytes": [
         148
       ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         148
@@ -52808,6 +52820,7 @@
       "bytes": [
         148
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         148
@@ -52837,6 +52850,7 @@
       "bytes": [
         148
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         148
@@ -52866,6 +52880,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         234
@@ -52895,6 +52910,7 @@
       "bytes": [
         234
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         234
@@ -52924,6 +52940,7 @@
       "bytes": [
         189
       ],
+      "comment_inline": "Ctrl &88: machine-type",
       "type": "byte",
       "values": [
         189
@@ -52953,6 +52970,10 @@
       "bytes": [
         154
       ],
+      "labels": [
+        "imm_op_dispatch_hi"
+      ],
+      "comment_inline": "Ctrl &81: PEEK",
       "type": "byte",
       "values": [
         154
@@ -52982,6 +53003,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &82: POKE",
       "type": "byte",
       "values": [
         154
@@ -53011,6 +53033,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         154
@@ -53040,6 +53063,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         154
@@ -53069,6 +53093,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         154
@@ -53098,6 +53123,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         154
@@ -53127,6 +53153,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         154
@@ -53156,6 +53183,7 @@
       "bytes": [
         154
       ],
+      "comment_inline": "Ctrl &88: machine-type",
       "type": "byte",
       "values": [
         154
@@ -54543,6 +54571,10 @@
       "bytes": [
         125
       ],
+      "labels": [
+        "tx_done_dispatch_lo"
+      ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         125
@@ -54572,6 +54604,7 @@
       "bytes": [
         134
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         134
@@ -54601,6 +54634,7 @@
       "bytes": [
         148
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         148
@@ -54630,6 +54664,7 @@
       "bytes": [
         160
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         160
@@ -54659,6 +54694,7 @@
       "bytes": [
         183
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         183
@@ -54688,6 +54724,10 @@
       "bytes": [
         155
       ],
+      "labels": [
+        "tx_done_dispatch_hi"
+      ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         155
@@ -54717,6 +54757,7 @@
       "bytes": [
         155
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         155
@@ -54746,6 +54787,7 @@
       "bytes": [
         155
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         155
@@ -54775,6 +54817,7 @@
       "bytes": [
         155
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         155
@@ -54804,6 +54847,7 @@
       "bytes": [
         155
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         155
@@ -56936,6 +56980,10 @@
       "bytes": [
         206
       ],
+      "labels": [
+        "tx_ctrl_dispatch_lo"
+      ],
+      "comment_inline": "Ctrl &81: PEEK",
       "type": "byte",
       "values": [
         206
@@ -56965,6 +57013,7 @@
       "bytes": [
         210
       ],
+      "comment_inline": "Ctrl &82: POKE",
       "type": "byte",
       "values": [
         210
@@ -56994,6 +57043,7 @@
       "bytes": [
         21
       ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         21
@@ -57023,6 +57073,7 @@
       "bytes": [
         21
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         21
@@ -57052,6 +57103,7 @@
       "bytes": [
         21
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         21
@@ -57081,6 +57133,7 @@
       "bytes": [
         37
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         37
@@ -57110,6 +57163,7 @@
       "bytes": [
         37
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         37
@@ -57139,6 +57193,7 @@
       "bytes": [
         202
       ],
+      "comment_inline": "Ctrl &88: machine-type",
       "type": "byte",
       "values": [
         202
@@ -57168,6 +57223,10 @@
       "bytes": [
         156
       ],
+      "labels": [
+        "tx_ctrl_dispatch_hi"
+      ],
+      "comment_inline": "Ctrl &81: PEEK",
       "type": "byte",
       "values": [
         156
@@ -57197,6 +57256,7 @@
       "bytes": [
         156
       ],
+      "comment_inline": "Ctrl &82: POKE",
       "type": "byte",
       "values": [
         156
@@ -57226,6 +57286,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Ctrl &83: JSR",
       "type": "byte",
       "values": [
         157
@@ -57255,6 +57316,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Ctrl &84: UserProc",
       "type": "byte",
       "values": [
         157
@@ -57284,6 +57346,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Ctrl &85: OSProc",
       "type": "byte",
       "values": [
         157
@@ -57313,6 +57376,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Ctrl &86: HALT",
       "type": "byte",
       "values": [
         157
@@ -57342,6 +57406,7 @@
       "bytes": [
         157
       ],
+      "comment_inline": "Ctrl &87: CONTINUE",
       "type": "byte",
       "values": [
         157
@@ -57371,6 +57436,7 @@
       "bytes": [
         156
       ],
+      "comment_inline": "Ctrl &88: machine-type",
       "type": "byte",
       "values": [
         156
@@ -61305,18 +61371,13 @@
         10,
         6,
         6,
-        10,
-        129,
-        0,
-        0,
-        0,
-        0,
-        1,
-        1,
-        129
+        10
+      ],
+      "labels": [
+        "tx_length_table"
       ],
       "comments_before_label": [
-        "Unreferenced data block (purpose unknown)"
+        "Immediate-op TX control-frame length per control byte (&81 PEEK .. &88 machine-type), read via tube_tx_byte2_operand - &81: PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A."
       ],
       "type": "byte",
       "values": [
@@ -61327,7 +61388,29 @@
         10,
         6,
         6,
-        10,
+        10
+      ]
+    },
+    {
+      "addr": 40752,
+      "bytes": [
+        129,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        129
+      ],
+      "labels": [
+        "tx_flags_table"
+      ],
+      "comments_before_label": [
+        "Immediate-op TX flags per control byte, read via tube_tx_byte4_operand - &81. Bit 7 (&80) set for the reply-generating ops PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00."
+      ],
+      "type": "byte",
+      "values": [
         129,
         0,
         0,
@@ -62566,6 +62649,12 @@
         255,
         255,
         255
+      ],
+      "labels": [
+        "rom_padding_9ff8"
+      ],
+      "comments_before_label": [
+        "ROM padding (&FF fill)."
       ],
       "type": "byte",
       "values": [
