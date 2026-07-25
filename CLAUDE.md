@@ -90,6 +90,6 @@ Both use the same shape: `{"pattern": "...", "occurrence": 0, "term"|"address": 
 - NFS ROM base address: 0x8000, size: 8192 bytes (standard BBC Micro sideways ROM)
 - ANFS ROM base address: 0x8000, size: 16384 bytes (16KB sideways ROM)
 - The ROM contains relocated code blocks (copied to pages 0x04-0x06 and zero page at runtime), handled via dasmos `d.add_move(dest, src, length)` calls
-- Disassembler is [dasmos](https://acornaeology.github.io/dasmos/) (PyPI `dasmos>=2.0.1`; needs `fantasm>=0.17.2` to parse its schema-versioned JSON and surface index-base candidates); local source-of-truth checkout at `/Users/rjs/Code/acornaeology/dasmos/`
+- Disassembler is [dasmos](https://acornaeology.github.io/dasmos/) (PyPI `dasmos>=4.0.0`; needs `fantasm>=0.18.0` to parse its schema-versioned JSON — `meta.schema_version` 4 — and surface index-base candidates); local source-of-truth checkout at `/Users/rjs/Code/acornaeology/dasmos/`. dasmos 4 renders string exprs like `<(label-1)` through its expression AST as `<(label - 1)` (spaced operators, byte-identical); `d.expr()` still accepts the legacy string form, and `access="rw"` still maps onto the new orthogonal R/W/B access flags
 - Assembly output targets beebasm syntax (renderer keyword: `'beebasm'`)
 - Assembly comments are formatted to fit within 62 characters
