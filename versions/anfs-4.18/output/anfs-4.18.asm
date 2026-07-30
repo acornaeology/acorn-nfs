@@ -1827,7 +1827,7 @@ service_handler_lo = service_entry+1
 .scout_ctrl_check
     lda (port_ws_offset),y                                            ; 8179: b1 a6       ..       ; Read port control byte from slot
     beq discard_no_match                                              ; 817b: f0 2f       ./       ; Zero = end of port list, no match
-    cmp #&7f                                                          ; 817d: c9 7f       ..       ; &7F = any-port wildcard
+    cmp #&7f                                                          ; 817d: c9 7f       ..       ; &7F = RXCB still open (&FF once completed)
     bne next_port_slot                                                ; 817f: d0 1e       ..       ; Not wildcard -- check specific port match
     iny                                                               ; 8181: c8          .        ; Y=1: advance to port byte in slot
     lda (port_ws_offset),y                                            ; 8182: b1 a6       ..       ; Read port number from slot (offset 1)
@@ -1953,6 +1953,16 @@ service_handler_lo = service_entry+1
 ; Common error/abort entry used by 12 call sites. Checks tx_flags bit 7: if clear, does a
 ; full ADLC reset and returns to idle listen (RX error path); if set, jumps to
 ; tx_result_fail (TX not-listening path).
+;
+; What raises the NMI that lands here after an unanswered transmit. While waiting for a
+; scout ACK or final ACK the ADLC runs with CR1 = &82 (TX_RESET | RIE), so receiver
+; conditions raise the interrupt. A listening station holds the line in flag fill; the
+; absence of a listener lets the line fall to all-ones idle, which latches SR2 bit 2
+; (Inactive Idle Received). SR2's stored conditions (all but RDA) are ORed into SR1 bit 1
+; (S2RQ), and RIE turns that into the NMI. The handler then finds AP clear and falls
+; through to the error path. In other words the interrupt meaning "nobody answered" is
+; the line going idle, not a timeout — see poll_adlc_tx_status for the consequence when
+; that interrupt never arrives.
 ; &8236 referenced 12 times by &81ac, &81c2, &81ec, &81f4, &81fe, &8203, &8214, &8257, &8289, &828f, &834c, &8485
 .nmi_error_dispatch
     lda net_frame_flags                                               ; 8236: ad 3e 0d    .>.      ; Check tx_flags for error path
@@ -2226,6 +2236,18 @@ service_handler_lo = service_entry+1
 ; complete). This is the NMI-to- foreground synchronisation point: wait_net_tx_ack polls
 ; this bit to detect that the reply has arrived. Falls through to discard_reset_rx to
 ; reset the ADLC to idle RX listen mode.
+;
+; Setting bit 7 also closes the block. The slot scanner at scout_ctrl_check only accepts
+; a slot whose control byte is exactly &7F; the ORA #&80 at &83D8 turns it into &FF, so
+; from this instruction onwards the slot matches nothing. An RXCB is one-shot.
+;
+; The consequence is that the ROM has no duplicate detection on inbound frames. A
+; retransmission of a reply the ROM has already consumed walks the port list, matches no
+; open slot, and is discarded silently at discard_no_match — no ACK, no NAK, no error. On
+; a real Econet wire this cannot arise: the four-way handshake is synchronous and
+; retransmission is handled beneath the ROM. The ROM assumes the layer below it
+; de-duplicates, which is an assumption a datagram transport such as AUN over UDP does
+; not satisfy.
 ; &83a5 referenced 3 times by &8399, &83a0, &8434
 .rx_complete_update_rxcb
     jsr advance_rx_buffer_ptr                                         ; 83a5: 20 4f 83     O.      ; Update buffer pointer and check for Tube
@@ -2685,7 +2707,8 @@ service_handler_lo = service_entry+1
 ; Main TX initiation entry point (called via trampoline at &06CE). Copies dest
 ; station/network from the TXCB to the scout buffer, dispatches to immediate op setup
 ; (ctrl >= &81) or normal data transfer, calculates transfer sizes, copies extra
-; parameters, then enters the INACTIVE polling loop.
+; parameters, then checks DCD (SR2 bit 5) for a clock on the line before entering the
+; INACTIVE polling loop.
 ; &858c referenced 3 times by &98d6, &a5be, &a89a
 .tx_begin
     txa                                                               ; 858c: 8a          .        ; Save X on stack
@@ -2707,7 +2730,7 @@ service_handler_lo = service_entry+1
     iny                                                               ; 85a8: c8          .        ; Y=1: port byte offset
     lda (nmi_tx_block),y                                              ; 85a9: b1 a0       ..       ; Load port byte from TX control block
     sta tx_port                                                       ; 85ab: 8d 25 0d    .%.      ; Store port byte to TX scout buffer
-    bne tx_line_idle_check                                            ; 85ae: d0 33       .3       ; Port != 0: skip immediate op setup
+    bne tx_dcd_clock_check                                            ; 85ae: d0 33       .3       ; Port != 0: skip immediate op setup
     cpx #&83                                                          ; 85b0: e0 83       ..       ; Ctrl < &83: PEEK/POKE need address calc
     bcs tx_ctrl_range_check                                           ; 85b2: b0 1b       ..       ; Ctrl >= &83: skip to range check
     sec                                                               ; 85b4: 38          8        ; SEC: init borrow for 4-byte subtract
@@ -2748,10 +2771,10 @@ service_handler_lo = service_entry+1
     cpy #&10                                                          ; 85df: c0 10       ..       ; Done 4 bytes? (Y reaches &10)
     bcc copy_imm_params                                               ; 85e1: 90 f6       ..       ; No: continue copying
 ; &85e3 referenced 1 time by &85ae
-.tx_line_idle_check
-    lda #&20                                                          ; 85e3: a9 20       .        ; A=&20: mask for SR2 INACTIVE bit
-    bit econet_control23_or_status2                                   ; 85e5: 2c a1 fe    ,..      ; BIT SR2: test if line is idle
-    bne tx_no_clock_error                                             ; 85e8: d0 55       .U       ; Line not idle: handle as line jammed
+.tx_dcd_clock_check
+    lda #&20                                                          ; 85e3: a9 20       .        ; A=&20: mask for SR2 DCD (clock/carrier detect)
+    bit econet_control23_or_status2                                   ; 85e5: 2c a1 fe    ,..      ; BIT SR2: test DCD -- is there a clock?
+    bne tx_no_clock_error                                             ; 85e8: d0 55       .U       ; DCD set: no clock on the line, abandon TX
     lda #&fd                                                          ; 85ea: a9 fd       ..       ; A=&FD: high byte of timeout counter
     pha                                                               ; 85ec: 48          H        ; Push timeout high byte to stack
     lda #6                                                            ; 85ed: a9 06       ..       ; Scout frame = 6 address+ctrl bytes
@@ -2783,6 +2806,21 @@ service_handler_lo = service_entry+1
 ; CTS (SR1 bit 4): if CTS is present, branches to tx_prepare to begin transmission. If
 ; INACTIVE is not set, re-enables NMIs via &FE20 (INTON) and decrements the 3-byte
 ; timeout counter on the stack. On timeout, falls through to tx_line_jammed.
+;
+; Why the CR2 = &67 clear is load-bearing, not hygiene. With PSE set, the MC6854 status
+; priority tree places Rx Idle above AP and RDA, and "a status bit above will inhibit one
+; below it". A quiet line latches Inactive Idle, so if that stored condition were carried
+; into the frame-reading loops it would mask the very AP and RDA bits those loops test —
+; the ROM would stop seeing incoming frames. Clearing Rx status here is what prevents
+; that.
+;
+; And why the SR1 read at &860A precedes it. CLR Rx ST (CR2 bit 5) only resets "the bits
+; which have been present during the last 'read status' operation", so the write clears
+; nothing unless a status read has happened first. The routine has in fact read both
+; registers by this point — SR2 via the BIT at &8605 and SR1 explicitly at &860A — so it
+; is correct whether the datasheet's "last read status operation" is tracked per register
+; or globally. The SR1 read is therefore a prerequisite of the clear, not merely an
+; interrupt acknowledgement.
 .intoff_test_inactive
 ; &8600 used as index base 1 time by &867c
 intoff_disable_nmi_op = intoff_test_inactive+1
@@ -2791,7 +2829,7 @@ intoff_disable_nmi_op = intoff_test_inactive+1
 .test_line_idle
     bit econet_control23_or_status2                                   ; 8605: 2c a1 fe    ,..      ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 8608: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
-    lda econet_control1_or_status1                                    ; 860a: ad a0 fe    ...      ; Read SR1 (acknowledge pending interrupt)
+    lda econet_control1_or_status1                                    ; 860a: ad a0 fe    ...      ; Read SR1 -- arms the CLR_RX_ST below
     lda #&67                                                          ; 860d: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 860f: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 8612: a9 10       ..       ; A=&10: CTS mask for SR1 bit4
@@ -6393,22 +6431,45 @@ ws_init_data = error_bad_station+2
     lda #0                                                            ; 9639: a9 00       ..       ; A=0: null terminator
     sta error_text,x                                                  ; 963b: 9d 01 01    ...      ; Terminate error text
     jmp check_net_error_code                                          ; 963e: 4c f0 96    L..      ; Check and raise network error
+; ***************************************************************************************
+; Raise a network error from a status byte
+;
+; Three entry points into one classifier. The status byte is masked to an error class
+; (AND #7) which indexes net_error_lookup_data; class 2 ("Station") additionally appends
+; the station address and one of two suffixes, chosen by the V flag:
+;
+; | V | Suffix appended  | Set by                                 |
+; |---|------------------|----------------------------------------|
+; | 1 | " not listening" | classify_reply_error — BIT bit_test_ff |
+; | 0 | " not present"   | this entry — CLV at &9649              |
+;
+; So the two halves of the compound message come from different sources, not from
+; different failures: "not listening" is what a remote reply or the general
+; send_net_packet path produces, while "not present" is reserved for the probe that
+; reaches the classifier through here.
+;
+; The 'A' → 'B' fixup exists to make that work. A local TX failure stores &41 ('A', 'not
+; listening') in TXCB byte 0, and &41 AND 7 = 1 would classify as "Net error". Rewriting
+; it to &42 ('B') yields class 2, so the message becomes "Station n.n" — and the CLV two
+; instructions later selects "not present" for it. This is why a MachinePeek at an absent
+; station reports Station n.n not present rather than "not listening", even though the
+; underlying TX result code is the not-listening one.
 ; &9641 referenced 1 time by &98c6
 .fixup_reply_status_a
-    lda (net_tx_ptr,x)                                                ; 9641: a1 9a       ..       ; Load first reply byte
-    cmp #'A'                                                          ; 9643: c9 41       .A       ; Is it 'A' (status &41)?
+    lda (net_tx_ptr,x)                                                ; 9641: a1 9a       ..       ; Load status byte from TXCB byte 0
+    cmp #'A'                                                          ; 9643: c9 41       .A       ; Is it 'A' (&41, TX 'not listening')?
     bne skip_if_not_a                                                 ; 9645: d0 02       ..       ; No: keep original
-    lda #'B'                                                          ; 9647: a9 42       .B       ; Yes: change to 'B' (&42)
+    lda #'B'                                                          ; 9647: a9 42       .B       ; Yes: 'B' (&42) -- reclassify as class 2
 ; &9649 referenced 1 time by &9645
 .skip_if_not_a
-    clv                                                               ; 9649: b8          .        ; Clear V flag
+    clv                                                               ; 9649: b8          .        ; CLV: V=0 selects the ' not present' suffix
     bvc mask_error_class                                              ; 964a: 50 05       P.    
 ; &964c referenced 1 time by &987f
 .load_reply_and_classify
     lda (net_tx_ptr,x)                                                ; 964c: a1 9a       ..       ; Load first reply byte
 ; &964e referenced 2 times by &957d, &9ddc
 .classify_reply_error
-    bit bit_test_ff                                                   ; 964e: 2c 91 94    ,..      ; Set V flag (via BIT &FF)
+    bit bit_test_ff                                                   ; 964e: 2c 91 94    ,..      ; BIT &FF: V=1 selects ' not listening'
 ; &9651 referenced 1 time by &964a
 .mask_error_class
     and #7                                                            ; 9651: 29 07       ).       ; Mask to error class (0-7)
@@ -6434,11 +6495,11 @@ ws_init_data = error_bad_station+2
 .done_station_msg
     jsr append_drv_dot_num                                            ; 9674: 20 4d 97     M.      ; Append ' net.station' suffix
     plp                                                               ; 9677: 28          (        ; Restore flags
-    bvs suffix_not_listening                                          ; 9678: 70 0c       p.       ; V set: append 'not listening'
+    bvs suffix_not_listening                                          ; 9678: 70 0c       p.       ; V set: append ' not listening' (see &9641)
     lda #&a4                                                          ; 967a: a9 a4       ..       ; Error code &A4
     jsr cond_save_error_code                                          ; 967c: 20 11 96     ..      ; Conditionally save error code
     sta error_text                                                    ; 967f: 8d 01 01    ...      ; Replace error number in block
-    ldy #&0b                                                          ; 9682: a0 0b       ..       ; Y=&0B: 'not present' suffix index
+    ldy #&0b                                                          ; 9682: a0 0b       ..       ; V clear: Y=&0B for ' not present' suffix
     bne load_suffix_offset                                            ; 9684: d0 02       ..    
 ; &9686 referenced 1 time by &9678
 .suffix_not_listening
@@ -6811,6 +6872,11 @@ bad_prefix = bad_str_anchor+1
 ; checking and retries indefinitely. With default &FF, phase 2 is never entered. Failures
 ; go to load_reply_and_classify (Line jammed, Net error, etc.), distinct from the 'No
 ; reply' timeout in wait_net_tx_ack.
+;
+; At the default 255 retries the inter-attempt delays alone come to roughly 255 x 61 ms,
+; about 15.5 seconds, on top of however long each attempt spends inside
+; poll_adlc_tx_status — which is itself unbounded, so this count places no ceiling on the
+; total wait.
 ; &983f referenced 6 times by &a977, &a9d4, &abc6, &ac51, &b05b, &b23a
 .send_net_packet
     lda tx_retry_count                                                ; 983f: ad 6d 0d    .m.      ; Load retry count from workspace
@@ -6863,7 +6929,7 @@ bad_prefix = bad_str_anchor+1
     bne loop_retry_tx                                                 ; 987c: d0 e7       ..       ; ALWAYS branch: retry with escapable
 ; &987e referenced 2 times by &9859, &9876
 .tx_send_error
-    tax                                                               ; 987e: aa          .        ; Result code to X
+    tax                                                               ; 987e: aa          .        ; A is always 0 here: X=0 for the ZP index
     jmp load_reply_and_classify                                       ; 987f: 4c 4c 96    LL.      ; Jump to classify reply and return
 ; &9882 referenced 1 time by &9856
 .tx_success
@@ -6939,7 +7005,7 @@ bad_prefix = bad_str_anchor+1
     bne restore_retry_state                                           ; 98c2: d0 1a       ..       ; Non-zero (not fatal): retry
 ; &98c4 referenced 1 time by &98e3
 .done_pass_retries
-    ldx #0                                                            ; 98c4: a2 00       ..       ; X=0: clear error status
+    ldx #0                                                            ; 98c4: a2 00       ..       ; X=0: ZP index for the (net_tx_ptr,x) read
     jmp fixup_reply_status_a                                          ; 98c6: 4c 41 96    LA.      ; Jump to fix up reply status
 ; ***************************************************************************************
 ; Wait for TX ready, then start new transmission
@@ -6952,6 +7018,20 @@ bad_prefix = bad_str_anchor+1
 ; and runs the full four-way handshake via NMI. After tx_begin returns, polls the TXCB
 ; first byte until bit 7 clears (NMI handler stores result there). Returns result in A:
 ; &00=success, &40=jammed, &41=not listening, &43=no clock, &44=bad control byte.
+;
+; This poll has no timeout. The opening ASL tx_complete_flag / BCC pair at &98C9-&98CC is
+; an unbounded spin, and tx_complete_flag is set only by the NMI completion and error
+; paths (tx_store_result, store_tx_error). The retry loop in send_net_packet is therefore
+; not an independent watchdog — every one of its attempts blocks here until an NMI
+; arrives. If the ADLC never raises the interrupt described at nmi_error_dispatch, the
+; ROM waits forever.
+;
+; The ROM's software timeouts sit either side of this window, never inside it: the
+; pre-transmit INACTIVE poll times out to 'Line Jammed', and the post-transmit reply wait
+; in wait_net_tx_ack times out (~22 s by default) to 'No reply'. The handshake itself
+; relies wholly on the ADLC, which is sound on a real wire — the line always falls idle
+; after a frame — but leaves no backstop for an ADLC implementation that fails to signal
+; Inactive Idle.
 ; &98c9 referenced 3 times by &9852, &98bb, &98cc
 .poll_adlc_tx_status
     asl tx_complete_flag                                              ; 98c9: 0e 60 0d    .`.      ; Shift ws_0d60 left to poll ADLC
@@ -15626,6 +15706,7 @@ save pydis_start, pydis_end
 ;     tx_ctrl_range_check:                      1
 ;     tx_ctrl_store_and_add:                    1
 ;     tx_data_start:                            1
+;     tx_dcd_clock_check:                       1
 ;     tx_econet_txcb_template:                  1
 ;     tx_error:                                 1
 ;     tx_fifo_not_ready:                        1
@@ -15633,7 +15714,6 @@ save pydis_start, pydis_end
 ;     tx_imm_idx_base:                          1
 ;     tx_imm_op_setup:                          1
 ;     tx_last_data:                             1
-;     tx_line_idle_check:                       1
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
 ;     tx_prepare:                               1

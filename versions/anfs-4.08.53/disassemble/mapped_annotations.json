@@ -187,7 +187,7 @@
     "0x85C5": "tx_ctrl_range_check",
     "0x85C9": "check_imm_range",
     "0x85CF": "copy_imm_params",
-    "0x85D9": "tx_line_idle_check",
+    "0x85D9": "tx_dcd_clock_check",
     "0x85F3": "test_inactive_retry",
     "0x85F5": "intoff_test_inactive",
     "0x85FB": "test_line_idle",

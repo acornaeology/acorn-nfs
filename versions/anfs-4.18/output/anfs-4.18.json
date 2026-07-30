@@ -576,7 +576,7 @@
       "addr": 33334,
       "name": "nmi_error_dispatch",
       "title": "NMI error handler dispatch",
-      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path)."
+      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path).\n\n**What raises the NMI that lands here after an unanswered\ntransmit.** While waiting for a scout ACK or final ACK the ADLC\nruns with CR1 = &82 (TX_RESET | RIE), so receiver conditions\nraise the interrupt. A listening station holds the line in flag\nfill; the *absence* of a listener lets the line fall to all-ones\nidle, which latches SR2 bit 2 (Inactive Idle Received). SR2's\nstored conditions (all but RDA) are ORed into SR1 bit 1 (S2RQ),\nand RIE turns that into the NMI. The handler then finds AP\nclear and falls through to the error path. In other words the\ninterrupt meaning \"nobody answered\" is the line going idle,\nnot a timeout \u2014 see [`poll_adlc_tx_status`](label:poll_adlc_tx_status)\nfor the consequence when that interrupt never arrives."
     },
     {
       "addr": 33348,
@@ -626,7 +626,7 @@
       "addr": 33701,
       "name": "rx_complete_update_rxcb",
       "title": "Complete RX and update RXCB",
-      "description": "Called from nmi_post_ack_dispatch after the\nfinal ACK has been transmitted. Finalises the\nreceived data transfer: calls advance_rx_buffer_ptr\nto update the 4-byte buffer pointer with the\ntransfer count (and handle Tube re-claim if\nneeded). Stores the source station, network, and\nport into the RXCB, then ORs &80 into the control\nbyte (bit 7 = complete). This is the NMI-to-\nforeground synchronisation point: wait_net_tx_ack\npolls this bit to detect that the reply has\narrived. Falls through to discard_reset_rx to\nreset the ADLC to idle RX listen mode."
+      "description": "Called from nmi_post_ack_dispatch after the\nfinal ACK has been transmitted. Finalises the\nreceived data transfer: calls advance_rx_buffer_ptr\nto update the 4-byte buffer pointer with the\ntransfer count (and handle Tube re-claim if\nneeded). Stores the source station, network, and\nport into the RXCB, then ORs &80 into the control\nbyte (bit 7 = complete). This is the NMI-to-\nforeground synchronisation point: wait_net_tx_ack\npolls this bit to detect that the reply has\narrived. Falls through to discard_reset_rx to\nreset the ADLC to idle RX listen mode.\n\n**Setting bit 7 also closes the block.** The slot\nscanner at [`scout_ctrl_check`](label:scout_ctrl_check)\nonly accepts a slot whose control byte is exactly\n&7F; the `ORA #&80` at &83D8 turns it into &FF, so\nfrom this instruction onwards the slot matches\nnothing. An RXCB is one-shot.\n\nThe consequence is that the ROM has no duplicate\ndetection on inbound frames. A retransmission of a\nreply the ROM has already consumed walks the port\nlist, matches no open slot, and is discarded\nsilently at [`discard_no_match`](label:discard_no_match)\n\u2014 no ACK, no NAK, no error. On a real Econet wire\nthis cannot arise: the four-way handshake is\nsynchronous and retransmission is handled beneath\nthe ROM. The ROM assumes the layer below it\nde-duplicates, which is an assumption a datagram\ntransport such as AUN over UDP does not satisfy."
     },
     {
       "addr": 33794,
@@ -731,7 +731,7 @@
       "addr": 34188,
       "name": "tx_begin",
       "title": "Begin TX operation",
-      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen enters the INACTIVE polling loop.",
+      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen checks DCD (SR2 bit 5) for a clock on the line before\nentering the INACTIVE polling loop.",
       "fall_through": true
     },
     {
@@ -745,7 +745,7 @@
       "addr": 34303,
       "name": "intoff_test_inactive",
       "title": "Disable NMIs and test INACTIVE",
-      "description": "Disables NMIs via two reads of &FE18 (INTOFF),\nthen polls SR2 for the INACTIVE bit (bit 2). If\nINACTIVE is detected, reads SR1 and writes CR2=&67\nto clear status, then tests CTS (SR1 bit 4): if\nCTS is present, branches to tx_prepare to begin\ntransmission. If INACTIVE is not set, re-enables\nNMIs via &FE20 (INTON) and decrements the 3-byte\ntimeout counter on the stack. On timeout, falls\nthrough to tx_line_jammed.",
+      "description": "Disables NMIs via two reads of &FE18 (INTOFF),\nthen polls SR2 for the INACTIVE bit (bit 2). If\nINACTIVE is detected, reads SR1 and writes CR2=&67\nto clear status, then tests CTS (SR1 bit 4): if\nCTS is present, branches to tx_prepare to begin\ntransmission. If INACTIVE is not set, re-enables\nNMIs via &FE20 (INTON) and decrements the 3-byte\ntimeout counter on the stack. On timeout, falls\nthrough to tx_line_jammed.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read at &860A precedes it.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the BIT\nat &8605 and SR1 explicitly at &860A \u2014 so it is correct whether\nthe datasheet's \"last read status operation\" is tracked per\nregister or globally. The SR1 read is therefore a prerequisite\nof the clear, not merely an interrupt acknowledgement.",
       "fall_through": true
     },
     {
@@ -1597,7 +1597,13 @@
       "description": "Tests bit 7 of &0D6C (FS selected flag). If\nclear, returns immediately. If set, stores A\ninto &0E09 as the last error code. This guards\nagainst writing error state when no filing system\nis active. Called internally by the error\nclassification chain and by error_inline_log.",
       "on_entry": {
         "a": "error code to store"
-      },
+      }
+    },
+    {
+      "addr": 38465,
+      "name": "fixup_reply_status_a",
+      "title": "Raise a network error from a status byte",
+      "description": "Three entry points into one classifier. The status\nbyte is masked to an error class (`AND #7`) which indexes\n[`net_error_lookup_data`](label:net_error_lookup_data); class 2\n(\"Station\") additionally appends the station address and one of\ntwo suffixes, chosen by the **V flag**:\n\n| V | Suffix appended  | Set by                              |\n|---|------------------|-------------------------------------|\n| 1 | \" not listening\" | [`classify_reply_error`](label:classify_reply_error) \u2014 `BIT bit_test_ff` |\n| 0 | \" not present\"   | this entry \u2014 `CLV` at &9649         |\n\nSo the two halves of the compound message come from different\nsources, not from different failures: \"not listening\" is what a\n*remote reply* or the general\n[`send_net_packet`](label:send_net_packet) path produces, while\n\"not present\" is reserved for the probe that reaches the\nclassifier through here.\n\nThe `'A'` \u2192 `'B'` fixup exists to make that work. A local TX\nfailure stores &41 (`'A'`, 'not listening') in TXCB byte 0, and\n&41 AND 7 = 1 would classify as \"Net error\". Rewriting it to\n&42 (`'B'`) yields class 2, so the message becomes\n\"Station n.n\" \u2014 and the `CLV` two instructions later selects\n\"not present\" for it. This is why a MachinePeek at an absent\nstation reports `Station n.n not present` rather than\n\"not listening\", even though the underlying TX result code is\nthe not-listening one.",
       "fall_through": true
     },
     {
@@ -1694,7 +1700,7 @@
       "addr": 38975,
       "name": "send_net_packet",
       "title": "Transmit Econet packet with retry",
-      "description": "Two-phase transmit with retry. Loads retry count\nfrom tx_retry_count (&0D6D, default &FF = 255;\n0 means retry forever). Each failed attempt waits\nin a nested delay loop: X = TXCB control byte\n(typically &80), Y = &60; total ~61 ms at 2 MHz\n(ROM-only fetches, unaffected by video mode).\nPhase 1 runs the full count with escape disabled.\nPhase 2 only activates when tx_retry_count = 0:\nsets need_release_tube to enable escape checking\nand retries indefinitely. With default &FF, phase\n2 is never entered. Failures go to\nload_reply_and_classify (Line jammed, Net error,\netc.), distinct from the 'No reply' timeout in\nwait_net_tx_ack."
+      "description": "Two-phase transmit with retry. Loads retry count\nfrom tx_retry_count (&0D6D, default &FF = 255;\n0 means retry forever). Each failed attempt waits\nin a nested delay loop: X = TXCB control byte\n(typically &80), Y = &60; total ~61 ms at 2 MHz\n(ROM-only fetches, unaffected by video mode).\nPhase 1 runs the full count with escape disabled.\nPhase 2 only activates when tx_retry_count = 0:\nsets need_release_tube to enable escape checking\nand retries indefinitely. With default &FF, phase\n2 is never entered. Failures go to\nload_reply_and_classify (Line jammed, Net error,\netc.), distinct from the 'No reply' timeout in\nwait_net_tx_ack.\n\nAt the default 255 retries the inter-attempt\ndelays alone come to roughly 255 x 61 ms, about\n15.5 seconds, on top of however long each attempt\nspends inside\n[`poll_adlc_tx_status`](label:poll_adlc_tx_status)\n\u2014 which is itself unbounded, so this count places\nno ceiling on the total wait."
     },
     {
       "addr": 39060,
@@ -1713,7 +1719,7 @@
       "addr": 39113,
       "name": "poll_adlc_tx_status",
       "title": "Wait for TX ready, then start new transmission",
-      "description": "Polls tx_complete_flag via ASL (testing bit 7)\nuntil set, indicating any previous TX operation\nhas completed and the ADLC is back in idle RX\nlisten mode. Then copies the TX control block\npointer from net_tx_ptr to nmi_tx_block and\ncalls tx_begin, which performs a complete\ntransmission from scratch: copies destination\nfrom TXCB to scout buffer, polls for INACTIVE,\nconfigures ADLC (CR1=&44 RX_RESET|TIE, CR2=&E7\nRTS|CLR), and runs the full four-way handshake\nvia NMI. After tx_begin returns, polls the TXCB\nfirst byte until bit 7 clears (NMI handler\nstores result there). Returns result in A:\n&00=success, &40=jammed, &41=not listening,\n&43=no clock, &44=bad control byte."
+      "description": "Polls tx_complete_flag via ASL (testing bit 7)\nuntil set, indicating any previous TX operation\nhas completed and the ADLC is back in idle RX\nlisten mode. Then copies the TX control block\npointer from net_tx_ptr to nmi_tx_block and\ncalls tx_begin, which performs a complete\ntransmission from scratch: copies destination\nfrom TXCB to scout buffer, polls for INACTIVE,\nconfigures ADLC (CR1=&44 RX_RESET|TIE, CR2=&E7\nRTS|CLR), and runs the full four-way handshake\nvia NMI. After tx_begin returns, polls the TXCB\nfirst byte until bit 7 clears (NMI handler\nstores result there). Returns result in A:\n&00=success, &40=jammed, &41=not listening,\n&43=no clock, &44=bad control byte.\n\n**This poll has no timeout.** The opening\n`ASL tx_complete_flag` / `BCC` pair at &98C9-&98CC\nis an unbounded spin, and tx_complete_flag is set\nonly by the NMI completion and error paths\n([`tx_store_result`](label:tx_store_result),\n[`store_tx_error`](label:store_tx_error)). The\nretry loop in\n[`send_net_packet`](label:send_net_packet) is\ntherefore *not* an independent watchdog \u2014 every\none of its attempts blocks here until an NMI\narrives. If the ADLC never raises the interrupt\ndescribed at\n[`nmi_error_dispatch`](label:nmi_error_dispatch),\nthe ROM waits forever.\n\nThe ROM's software timeouts sit either side of\nthis window, never inside it: the pre-transmit\nINACTIVE poll times out to 'Line Jammed', and the\npost-transmit reply wait in\n[`wait_net_tx_ack`](label:wait_net_tx_ack) times\nout (~22 s by default) to 'No reply'. The\nhandshake itself relies wholly on the ADLC, which\nis sound on a real wire \u2014 the line always falls\nidle after a frame \u2014 but leaves no backstop for\nan ADLC implementation that fails to signal\nInactive Idle."
     },
     {
       "addr": 39176,
@@ -6223,7 +6229,7 @@
         201,
         127
       ],
-      "comment_inline": "&7F = any-port wildcard",
+      "comment_inline": "&7F = RXCB still open (&FF once completed)",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&7f"
@@ -13748,9 +13754,9 @@
       "comment_inline": "Port != 0: skip immediate op setup",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "tx_line_idle_check",
+      "operand": "tx_dcd_clock_check",
       "target": 34275,
-      "target_label": "tx_line_idle_check"
+      "target_label": "tx_dcd_clock_check"
     },
     {
       "addr": 34224,
@@ -14142,9 +14148,9 @@
         32
       ],
       "labels": [
-        "tx_line_idle_check"
+        "tx_dcd_clock_check"
       ],
-      "comment_inline": "A=&20: mask for SR2 INACTIVE bit",
+      "comment_inline": "A=&20: mask for SR2 DCD (clock/carrier detect)",
       "xref_summaries": [
         "&85e3 referenced 1 time by &85ae"
       ],
@@ -14165,7 +14171,7 @@
         161,
         254
       ],
-      "comment_inline": "BIT SR2: test if line is idle",
+      "comment_inline": "BIT SR2: test DCD -- is there a clock?",
       "type": "code",
       "mnemonic": "bit",
       "operand": "econet_control23_or_status2",
@@ -14178,7 +14184,7 @@
         208,
         85
       ],
-      "comment_inline": "Line not idle: handle as line jammed",
+      "comment_inline": "DCD set: no clock on the line, abandon TX",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_no_clock_error",
@@ -14415,7 +14421,7 @@
         160,
         254
       ],
-      "comment_inline": "Read SR1 (acknowledge pending interrupt)",
+      "comment_inline": "Read SR1 -- arms the CLR_RX_ST below",
       "type": "code",
       "mnemonic": "lda",
       "operand": "econet_control1_or_status1",
@@ -43917,7 +43923,7 @@
       "labels": [
         "fixup_reply_status_a"
       ],
-      "comment_inline": "Load first reply byte",
+      "comment_inline": "Load status byte from TXCB byte 0",
       "xref_summaries": [
         "&9641 referenced 1 time by &98c6"
       ],
@@ -43939,7 +43945,7 @@
         201,
         65
       ],
-      "comment_inline": "Is it 'A' (status &41)?",
+      "comment_inline": "Is it 'A' (&41, TX 'not listening')?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#'A'",
@@ -43964,7 +43970,7 @@
         169,
         66
       ],
-      "comment_inline": "Yes: change to 'B' (&42)",
+      "comment_inline": "Yes: 'B' (&42) -- reclassify as class 2",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#'B'",
@@ -43978,7 +43984,7 @@
       "labels": [
         "skip_if_not_a"
       ],
-      "comment_inline": "Clear V flag",
+      "comment_inline": "CLV: V=0 selects the ' not present' suffix",
       "xref_summaries": [
         "&9649 referenced 1 time by &9645"
       ],
@@ -44038,7 +44044,7 @@
       "labels": [
         "classify_reply_error"
       ],
-      "comment_inline": "Set V flag (via BIT &FF)",
+      "comment_inline": "BIT &FF: V=1 selects ' not listening'",
       "xref_summaries": [
         "&964e referenced 2 times by &957d, &9ddc"
       ],
@@ -44324,7 +44330,7 @@
         112,
         12
       ],
-      "comment_inline": "V set: append 'not listening'",
+      "comment_inline": "V set: append ' not listening' (see &9641)",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "suffix_not_listening",
@@ -44376,7 +44382,7 @@
         160,
         11
       ],
-      "comment_inline": "Y=&0B: 'not present' suffix index",
+      "comment_inline": "V clear: Y=&0B for ' not present' suffix",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0b"
@@ -48048,7 +48054,7 @@
       "labels": [
         "tx_send_error"
       ],
-      "comment_inline": "Result code to X",
+      "comment_inline": "A is always 0 here: X=0 for the ZP index",
       "xref_summaries": [
         "&987e referenced 2 times by &9859, &9876"
       ],
@@ -48660,7 +48666,7 @@
       "labels": [
         "done_pass_retries"
       ],
-      "comment_inline": "X=0: clear error status",
+      "comment_inline": "X=0: ZP index for the (net_tx_ptr,x) read",
       "xref_summaries": [
         "&98c4 referenced 1 time by &98e3"
       ],

@@ -3152,7 +3152,18 @@ cmd_roff_str = copyright_string+3
 ; completion: bit 7 set = still busy (loop) bit 6 set = error (check escape or report)
 ; bit 6 clear = success (clean return) On error, checks for escape condition and handles
 ; retries. Two entry points: setup_tx_ptr_c0 (&8644) always uses the standard TXCB;
-; tx_poll_core (&8650) is general-purpose.
+; tx_poll_core (&8650) is general-purpose. This poll has no timeout. The LDA
+; (net_tx_ptr,x) / BMI pair that waits for bit 7 to clear is an unbounded spin, and that
+; bit is cleared only by the NMI completion and error paths. The retry loop around it is
+; therefore not an independent watchdog — every one of its attempts blocks here until an
+; NMI arrives. If the ADLC never raises the interrupt described at nmi_error_dispatch,
+; the ROM waits forever. (The semaphore spin at tx_semaphore_spin has the same property.)
+;
+; The ROM's software timeouts sit either side of this window, never inside it: the
+; pre-transmit INACTIVE poll times out to 'Line Jammed', and the post-transmit reply wait
+; times out to 'No reply'. The handshake itself relies wholly on the ADLC, which is sound
+; on a real wire — the line always falls idle after a frame — but leaves no backstop for
+; an ADLC implementation that fails to signal Inactive Idle.
 ;
 ; On Entry:
 ;     A: retry count (&FF = full retry)
@@ -6536,6 +6547,16 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; Common error/abort entry used by 12 call sites. Checks tx_flags bit 7: if clear, does a
 ; full ADLC reset and returns to idle listen (RX error path); if set, jumps to
 ; tx_result_fail (TX not-listening path).
+;
+; What raises the NMI that lands here after an unanswered transmit. While waiting for a
+; scout ACK or final ACK the ADLC runs with CR1 = &82 (TX_RESET | RIE), so receiver
+; conditions raise the interrupt. A listening station holds the line in flag fill; the
+; absence of a listener lets the line fall to all-ones idle, which latches SR2 bit 2
+; (Inactive Idle Received). SR2's stored conditions (all but RDA) are ORed into SR1 bit 1
+; (S2RQ), and RIE turns that into the NMI. The handler then finds AP clear and falls
+; through to the error path. In other words the interrupt meaning "nobody answered" is
+; the line going idle, not a timeout — see tx_poll_core for the consequence when that
+; interrupt never arrives.
 ; &988a referenced 12 times by &9797, &983e, &9846, &9852, &9857, &9868, &98ad, &98df, &98e5, &9930, &99b8, &9a8c
 .rx_error
 .nmi_error_dispatch
@@ -7274,7 +7295,8 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 ; Main TX initiation entry point (called via trampoline at &06CE). Copies dest
 ; station/network from the TXCB to the scout buffer, dispatches to immediate op setup
 ; (ctrl >= &81) or normal data transfer, calculates transfer sizes, copies extra
-; parameters, then enters the INACTIVE polling loop.
+; parameters, then checks DCD (SR2 bit 5) for a clock on the line before entering the
+; INACTIVE polling loop.
 ; &9be4 referenced 1 time by &9660
 .tx_begin
     txa                                                               ; 9be4: 8a          .        ; Save X on stack
@@ -7296,7 +7318,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     iny                                                               ; 9c00: c8          .        ; Y=1: port byte offset
     lda (nmi_tx_block),y                                              ; 9c01: b1 a0       ..       ; Load port byte from TX control block
     sta tx_port                                                       ; 9c03: 8d 25 0d    .%.      ; Store port byte to TX scout buffer
-    bne tx_line_idle_check                                            ; 9c06: d0 2f       ./       ; Port != 0: skip immediate op setup
+    bne tx_dcd_clock_check                                            ; 9c06: d0 2f       ./       ; Port != 0: skip immediate op setup
     cpx #&83                                                          ; 9c08: e0 83       ..       ; Ctrl < &83: PEEK/POKE need address calc
     bcs check_imm_range                                               ; 9c0a: b0 1b       ..       ; Ctrl >= &83: skip to range check
     sec                                                               ; 9c0c: 38          8        ; SEC: init borrow for 4-byte subtract
@@ -7334,10 +7356,10 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     cpy #&10                                                          ; 9c33: c0 10       ..       ; Done 4 bytes? (Y reaches &10)
     bcc copy_imm_params                                               ; 9c35: 90 f6       ..       ; No: continue copying
 ; &9c37 referenced 1 time by &9c06
-.tx_line_idle_check
-    lda #&20                                                          ; 9c37: a9 20       .        ; A=&20: mask for SR2 INACTIVE bit
-    bit econet_control23_or_status2                                   ; 9c39: 2c a1 fe    ,..      ; BIT SR2: test if line is idle
-    bne tx_no_clock_error                                             ; 9c3c: d0 56       .V       ; Line not idle: handle as line jammed
+.tx_dcd_clock_check
+    lda #&20                                                          ; 9c37: a9 20       .        ; A=&20: mask for SR2 DCD (clock/carrier detect)
+    bit econet_control23_or_status2                                   ; 9c39: 2c a1 fe    ,..      ; BIT SR2: test DCD -- is there a clock?
+    bne tx_no_clock_error                                             ; 9c3c: d0 56       .V       ; DCD set: no clock on the line, abandon TX
     lda #&fd                                                          ; 9c3e: a9 fd       ..       ; A=&FD: high byte of timeout counter
     pha                                                               ; 9c40: 48          H        ; Push timeout high byte to stack
     lda #6                                                            ; 9c41: a9 06       ..       ; Scout frame = 6 address+ctrl bytes
@@ -7367,6 +7389,21 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 ; Mid-instruction label within the INACTIVE polling loop. sr2_test_operand is the
 ; self-modifying target for patching the SR2 test. Disables NMIs twice (belt-and-braces)
 ; then tests SR2 for INACTIVE before proceeding with TX.
+;
+; Why the CR2 = &67 clear is load-bearing, not hygiene. With PSE set, the MC6854 status
+; priority tree places Rx Idle above AP and RDA, and "a status bit above will inhibit one
+; below it". A quiet line latches Inactive Idle, so if that stored condition were carried
+; into the frame-reading loops it would mask the very AP and RDA bits those loops test —
+; the ROM would stop seeing incoming frames. Clearing Rx status here is what prevents
+; that.
+;
+; And why the SR1 read that precedes it matters. CLR Rx ST (CR2 bit 5) only resets "the
+; bits which have been present during the last 'read status' operation", so the write
+; clears nothing unless a status read has happened first. The routine has in fact read
+; both registers by this point — SR2 via the BIT that tests INACTIVE, and SR1 explicitly
+; — so it is correct whether the datasheet's "last read status operation" is tracked per
+; register or globally. The SR1 read is therefore a prerequisite of the clear, not merely
+; an interrupt acknowledgement.
 ; &9c53 used as index base 1 time by &9ccf
 .intoff_test_inactive
     bit station_id_disable_net_nmis                                   ; 9c53: 2c 18 fe    ,..      ; INTOFF -- disable NMIs
@@ -7376,7 +7413,7 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 sr2_test_operand = test_line_idle+2
     bit econet_control23_or_status2                                   ; 9c59: 2c a1 fe    ,..      ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 9c5c: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
-    lda econet_control1_or_status1                                    ; 9c5e: ad a0 fe    ...      ; Read SR1 (acknowledge pending interrupt)
+    lda econet_control1_or_status1                                    ; 9c5e: ad a0 fe    ...      ; Read SR1 -- arms the CLR_RX_ST below
     lda #&67                                                          ; 9c61: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 9c63: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 9c66: a9 10       ..       ; A=&10: CTS mask for SR1 bit4
@@ -8862,6 +8899,7 @@ save pydis_start, pydis_end
 ;     tx_begin:                                 1
 ;     tx_ctrl_template:                         1
 ;     tx_data_start:                            1
+;     tx_dcd_clock_check:                       1
 ;     tx_dispatch_page_operand:                 1
 ;     tx_done_classify:                         1
 ;     tx_done_error:                            1
@@ -8872,7 +8910,6 @@ save pydis_start, pydis_end
 ;     tx_flow_control:                          1
 ;     tx_imm_op_setup:                          1
 ;     tx_last_data:                             1
-;     tx_line_idle_check:                       1
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
 ;     tx_poll_core:                             1

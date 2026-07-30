@@ -10770,7 +10770,7 @@
       "type": "label",
       "nfs_address": 39911,
       "region": "main_rom",
-      "name": "tx_line_idle_check",
+      "name": "tx_dcd_clock_check",
       "anfs_address": 34265
     },
     {

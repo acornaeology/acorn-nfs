@@ -1807,7 +1807,20 @@ an RX-error path or a TX not-listening path.
 | `net_frame_flags` bit 7 | Path |
 |---|---|
 | clear | RX error – full ADLC reset; return to idle listen |
-| set   | TX not-listening – `JMP` [`tx_result_fail`](label:tx_result_fail) |""",
+| set   | TX not-listening – `JMP` [`tx_result_fail`](label:tx_result_fail) |
+
+**What raises the NMI that lands here after an unanswered
+transmit.** While waiting for a scout ACK or final ACK the ADLC
+runs with CR1 = &82 (TX_RESET | RIE), so receiver conditions
+raise the interrupt. A listening station holds the line in flag
+fill; the *absence* of a listener lets the line fall to all-ones
+idle, which latches SR2 bit 2 (Inactive Idle Received). SR2's
+stored conditions (all but RDA) are ORed into SR1 bit 1 (S2RQ),
+and RIE turns that into the NMI. The handler then finds AP
+clear and falls through to the error path. In other words the
+interrupt meaning "nobody answered" is the line going idle,
+not a timeout — see [`poll_adlc_tx_status`](label:poll_adlc_tx_status)
+for the consequence when that interrupt never arrives.""",
 )
 
 
@@ -2217,7 +2230,24 @@ This is the **NMI-to-foreground synchronisation point**:
 that the reply has arrived.
 
 Falls through to [`discard_reset_rx`](label:discard_reset_rx) to reset
-the ADLC to idle RX-listen mode.""",
+the ADLC to idle RX-listen mode.
+
+**Setting bit 7 also closes the block.** The slot scanner at
+[`scout_ctrl_check`](label:scout_ctrl_check) only accepts a
+slot whose control byte is exactly &7F; the `ORA #&80` here
+turns it into &FF, so from that instruction onwards the slot
+matches nothing. An RXCB is one-shot.
+
+The consequence is that the ROM has no duplicate detection on
+inbound frames. A retransmission of a reply the ROM has already
+consumed walks the port list, matches no open slot, and is
+discarded silently at
+[`discard_no_match`](label:discard_no_match) — no ACK, no NAK,
+no error. On a real Econet wire this cannot arise: the four-way
+handshake is synchronous and retransmission is handled beneath
+the ROM. The ROM assumes the layer below it de-duplicates,
+which is an assumption a datagram transport such as AUN over
+UDP does not satisfy.""",
 )
 
 
@@ -3022,7 +3052,9 @@ d.subroutine(
 3. Calculates transfer sizes via
    [`tx_calc_transfer`](label:tx_calc_transfer); copies extra
    parameters into the workspace.
-4. Enters the INACTIVE polling loop at
+4. Checks DCD (SR2 bit 5): no clock on the line aborts with
+   'No Clock'.
+5. Enters the INACTIVE polling loop at
    [`inactive_poll`](label:inactive_poll).""",
 )
 
@@ -3086,11 +3118,11 @@ d.comment(0x85D8, "Copy to NMI shim workspace at &0D1A+Y", align=Align.INLINE)
 d.comment(0x85DB, "Next byte", align=Align.INLINE)
 d.comment(0x85DC, "Done 4 bytes? (Y reaches &10)", align=Align.INLINE)
 d.comment(0x85DE, "No: continue copying", align=Align.INLINE)
-d.label(0x85E0, "tx_line_idle_check")
+d.label(0x85E0, "tx_dcd_clock_check")
 
-d.comment(0x85E0, "A=&20: mask for SR2 INACTIVE bit", align=Align.INLINE)
-d.comment(0x85E2, "Test SR2 if line is idle", align=Align.INLINE)
-d.comment(0x85E5, "Line not idle: handle as line jammed", align=Align.INLINE)
+d.comment(0x85E0, "A=&20: mask for SR2 DCD (clock/carrier detect)", align=Align.INLINE)
+d.comment(0x85E2, "Test SR2 DCD -- is there a clock?", align=Align.INLINE)
+d.comment(0x85E5, "DCD set: no clock on the line, abandon TX", align=Align.INLINE)
 d.comment(0x85E7, "A=&FD: high byte of timeout counter", align=Align.INLINE)
 d.comment(0x85E9, "Push timeout high byte to stack", align=Align.INLINE)
 d.comment(0x85EA, "Scout frame = 6 address+ctrl bytes", align=Align.INLINE)
@@ -3153,7 +3185,7 @@ d.label(0x8602, "test_line_idle")
 
 d.comment(0x8602, "Z = &04 AND SR2 -- tests INACTIVE", align=Align.INLINE)
 d.comment(0x8605, "INACTIVE not set -- re-enable NMIs and loop", align=Align.INLINE)
-d.comment(0x8607, "Read SR1 (acknowledge pending interrupt)", align=Align.INLINE)
+d.comment(0x8607, "Read SR1 -- arms the CLR_RX_ST below", align=Align.INLINE)
 d.comment(0x860A, "CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE", align=Align.INLINE)
 d.comment(0x860C, "Write CR2: clear status, prepare TX", align=Align.INLINE)
 d.comment(0x860F, "A=&10: CTS mask for SR1 bit4", align=Align.INLINE)
@@ -3200,7 +3232,27 @@ detecting a quiet line.
    attempt.
 2. Pulls the 3-byte timeout state from the stack.
 3. Stores error code `&40` ("Line Jammed") in the TX control
-   block via `store_tx_error`.""",
+   block via `store_tx_error`.
+
+**Why the CR2 = &67 clear is load-bearing, not hygiene.**
+With PSE set, the MC6854 status priority tree places Rx Idle
+*above* AP and RDA, and "a status bit above will inhibit one
+below it". A quiet line latches Inactive Idle, so if that
+stored condition were carried into the frame-reading loops it
+would mask the very AP and RDA bits those loops test — the ROM
+would stop seeing incoming frames. Clearing Rx status here is
+what prevents that.
+
+**And why the SR1 read that precedes it matters.** CLR Rx ST
+(CR2 bit 5) only resets *"the bits which have been present
+during the last 'read status' operation"*, so the write clears
+nothing unless a status read has happened first. The routine
+has in fact read both registers by this point — SR2 via the
+BIT that tests INACTIVE, and SR1 explicitly — so it is correct
+whether the datasheet's "last read status operation" is tracked
+per register or globally. The SR1 read is therefore a
+prerequisite of the clear, not merely an interrupt
+acknowledgement.""",
 )
 
 
@@ -9028,7 +9080,33 @@ d.subroutine(
 |---|---|
 | non-zero | network error – branch to `handle_net_error` |
 | zero, saved error = `&DE` (FS error code) | branch to `append_error_number` to add the FS-specific code to the error text |
-| zero, saved error other | tail-jump to `&0100` (BRK error block) to trigger BRK and let MOS dispatch |""",
+| zero, saved error other | tail-jump to `&0100` (BRK error block) to trigger BRK and let MOS dispatch |
+
+**How the compound "Station n.n ..." message picks its
+suffix.** The status byte is masked to an error class
+(`AND #7`); class 2 ("Station") appends the station address and
+then one of two suffixes, chosen by the **V flag**:
+
+| V | Suffix appended  | Set by                            |
+|---|------------------|-----------------------------------|
+| 1 | " not listening" | [`classify_reply_error`](label:classify_reply_error) — `BIT bit_test_ff` |
+| 0 | " not present"   | this entry — the `CLV` below      |
+
+So the two halves come from different sources, not different
+failures: "not listening" is what a *remote reply* or the
+general [`send_net_packet`](label:send_net_packet) path
+produces, while "not present" is reserved for the probe that
+reaches the classifier through here.
+
+The `'A'` → `'B'` fixup exists to make that work. A local TX
+failure stores &41 (`'A'`, 'not listening') in TXCB byte 0, and
+&41 AND 7 = 1 would classify as "Net error". Rewriting it to
+&42 (`'B'`) yields class 2, so the message becomes
+"Station n.n" — and the `CLV` two instructions later selects
+"not present" for it. This is why a MachinePeek at an absent
+station reports `Station n.n not present` rather than "not
+listening", even though the underlying TX result code is the
+not-listening one.""",
 )
 
 
@@ -9439,7 +9517,14 @@ echoed back as the TX payload (hence "pass-through"). The
 convention left over from a 4-byte-address format the BBC
 Econet driver anticipated; for main-RAM buffers they're left
 as `&FF&FF`. Original TX buffer values are pushed on the stack
-and restored after transmission.""",
+and restored after transmission.
+
+At the default 255 retries the inter-attempt delays alone come
+to roughly 255 x 61 ms, about 15.5 seconds, on top of however
+long each attempt spends inside
+[`poll_adlc_tx_status`](label:poll_adlc_tx_status) — which is
+itself unbounded, so this count places no ceiling on the total
+wait.""",
 )
 for i in range(12):
     d.byte(0x9B75 + i)
@@ -9465,7 +9550,7 @@ d.subroutine(
     description="""Copies the template into the TX buffer (skipping
 &FD markers), saves original values on stack,
 then polls the ADLC and retries until complete.""",
-    on_exit={"a": "TX result (from poll_econet_data_continue_frame_status)"},
+    on_exit={"a": "TX result (from poll_adlc_tx_status)"},
 )
 
 
@@ -9483,9 +9568,9 @@ d.subroutine(
 TX control block, pushing the original values on the
 stack for later restoration. Skips offsets marked &FD
 in the template. Starts transmission via
-poll_econet_data_continue_frame_status and retries on failure, restoring
+poll_adlc_tx_status and retries on failure, restoring
 the original TX buffer contents when done.""",
-    on_exit={"a": "TX result (from poll_econet_data_continue_frame_status)"},
+    on_exit={"a": "TX result (from poll_adlc_tx_status)"},
 )
 
 
@@ -9524,7 +9609,7 @@ d.comment(0x9BB1, "X=0: clear error status", align=Align.INLINE)
 d.comment(0x9BB3, "Jump to fix up reply status", align=Align.INLINE)
 d.subroutine(
     0x9BB6,
-    "poll_econet_data_continue_frame_status",
+    "poll_adlc_tx_status",
     title="Wait for TX ready, then start new transmission",
     description="""1. Polls [`tx_complete_flag`](label:tx_complete_flag) via `ASL`
    (testing bit 7) until set, indicating any previous TX
@@ -10841,7 +10926,29 @@ A second indexed-base trick reads the same eight bytes through
 [`cmos_attr_table`](label:cmos_attr_table) (this label - 4): for write
 sub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double
 as the bit-shift counts that left-align the new value into its
-target field.""",
+target field.
+
+**This poll has no timeout.** The opening
+`ASL tx_complete_flag` / `BCC` pair is an unbounded spin, and
+[`tx_complete_flag`](label:tx_complete_flag) is set only by the
+NMI completion and error paths
+([`tx_store_result`](label:tx_store_result),
+[`store_tx_error`](label:store_tx_error)). The retry loop in
+[`send_net_packet`](label:send_net_packet) is therefore *not*
+an independent watchdog — every one of its attempts blocks here
+until an NMI arrives. If the ADLC never raises the interrupt
+described at
+[`nmi_error_dispatch`](label:nmi_error_dispatch), the ROM waits
+forever.
+
+The ROM's software timeouts sit either side of this window,
+never inside it: the pre-transmit INACTIVE poll times out to
+'Line Jammed', and the post-transmit reply wait in
+[`wait_net_tx_ack`](label:wait_net_tx_ack) times out (~22 s by
+default) to 'No reply'. The handshake itself relies wholly on
+the ADLC, which is sound on a real wire — the line always falls
+idle after a frame — but leaves no backstop for an ADLC
+implementation that fails to signal Inactive Idle.""",
 )
 for _i in range(8):
     d.byte(0xA103 + _i)

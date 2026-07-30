@@ -849,7 +849,7 @@
       "addr": 34384,
       "name": "tx_poll_core",
       "title": "Core transmit and poll routine (XMIT)",
-      "description": "Claims the TX semaphore (tx_ctrl_status) via ASL -- a busy-wait\nspinlock where carry=0 means the semaphore is held by another\noperation. Only after claiming the semaphore is the TX pointer\ncopied to nmi_tx_block, ensuring the low-level transmit code\nsees a consistent pointer. Then calls the ADLC TX setup routine\nand polls the control byte for completion:\n  bit 7 set = still busy (loop)\n  bit 6 set = error (check escape or report)\n  bit 6 clear = success (clean return)\nOn error, checks for escape condition and handles retries.\nTwo entry points: setup_tx_ptr_c0 (&8644) always uses the\nstandard TXCB; tx_poll_core (&8650) is general-purpose.",
+      "description": "Claims the TX semaphore (tx_ctrl_status) via ASL -- a busy-wait\nspinlock where carry=0 means the semaphore is held by another\noperation. Only after claiming the semaphore is the TX pointer\ncopied to nmi_tx_block, ensuring the low-level transmit code\nsees a consistent pointer. Then calls the ADLC TX setup routine\nand polls the control byte for completion:\n  bit 7 set = still busy (loop)\n  bit 6 set = error (check escape or report)\n  bit 6 clear = success (clean return)\nOn error, checks for escape condition and handles retries.\nTwo entry points: setup_tx_ptr_c0 (&8644) always uses the\nstandard TXCB; tx_poll_core (&8650) is general-purpose.\n**This poll has no timeout.** The `LDA (net_tx_ptr,x)` /\n`BMI` pair that waits for bit 7 to clear is an unbounded spin,\nand that bit is cleared only by the NMI completion and error\npaths. The retry loop around it is therefore *not* an\nindependent watchdog \u2014 every one of its attempts blocks here\nuntil an NMI arrives. If the ADLC never raises the interrupt\ndescribed at\n[`nmi_error_dispatch`](label:nmi_error_dispatch), the ROM waits\nforever. (The semaphore spin at\n[`tx_semaphore_spin`](label:tx_semaphore_spin) has the same\nproperty.)\n\nThe ROM's software timeouts sit either side of this window,\nnever inside it: the pre-transmit INACTIVE poll times out to\n'Line Jammed', and the post-transmit reply wait times out to\n'No reply'. The handshake itself relies wholly on the ADLC,\nwhich is sound on a real wire \u2014 the line always falls idle\nafter a frame \u2014 but leaves no backstop for an ADLC\nimplementation that fails to signal Inactive Idle.",
       "on_entry": {
         "a": "retry count (&FF = full retry)",
         "y": "timeout parameter (&60 = standard)"
@@ -1606,7 +1606,7 @@
       "addr": 39050,
       "name": "nmi_error_dispatch",
       "title": "NMI error handler dispatch",
-      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path)."
+      "description": "Common error/abort entry used by 12 call sites. Checks\ntx_flags bit 7: if clear, does a full ADLC reset and returns\nto idle listen (RX error path); if set, jumps to tx_result_fail\n(TX not-listening path).\n\n**What raises the NMI that lands here after an unanswered\ntransmit.** While waiting for a scout ACK or final ACK the ADLC\nruns with CR1 = &82 (TX_RESET | RIE), so receiver conditions\nraise the interrupt. A listening station holds the line in flag\nfill; the *absence* of a listener lets the line fall to all-ones\nidle, which latches SR2 bit 2 (Inactive Idle Received). SR2's\nstored conditions (all but RDA) are ORed into SR1 bit 1 (S2RQ),\nand RIE turns that into the NMI. The handler then finds AP\nclear and falls through to the error path. In other words the\ninterrupt meaning \"nobody answered\" is the line going idle,\nnot a timeout \u2014 see [`tx_poll_core`](label:tx_poll_core)\nfor the consequence when that interrupt never arrives."
     },
     {
       "addr": 39066,
@@ -1764,7 +1764,7 @@
       "addr": 39908,
       "name": "tx_begin",
       "title": "Begin TX operation",
-      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen enters the INACTIVE polling loop.",
+      "description": "Main TX initiation entry point (called via trampoline at &06CE).\nCopies dest station/network from the TXCB to the scout buffer,\ndispatches to immediate op setup (ctrl >= &81) or normal data\ntransfer, calculates transfer sizes, copies extra parameters,\nthen checks DCD (SR2 bit 5) for a clock on the line before\nentering the INACTIVE polling loop.",
       "fall_through": true
     },
     {
@@ -1778,7 +1778,7 @@
       "addr": 40019,
       "name": "intoff_test_inactive",
       "title": "Disable NMIs and test INACTIVE",
-      "description": "Mid-instruction label within the INACTIVE polling loop.\nsr2_test_operand is the self-modifying target for patching\nthe SR2 test. Disables NMIs twice (belt-and-braces) then\ntests SR2 for INACTIVE before proceeding with TX.",
+      "description": "Mid-instruction label within the INACTIVE polling loop.\nsr2_test_operand is the self-modifying target for patching\nthe SR2 test. Disables NMIs twice (belt-and-braces) then\ntests SR2 for INACTIVE before proceeding with TX.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read that precedes it matters.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the\nBIT that tests INACTIVE, and SR1 explicitly \u2014 so it is correct\nwhether the datasheet's \"last read status operation\" is tracked\nper register or globally. The SR1 read is therefore a\nprerequisite of the clear, not merely an interrupt\nacknowledgement.",
       "fall_through": true
     },
     {
@@ -56112,9 +56112,9 @@
       "comment_inline": "Port != 0: skip immediate op setup",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "tx_line_idle_check",
+      "operand": "tx_dcd_clock_check",
       "target": 39991,
-      "target_label": "tx_line_idle_check"
+      "target_label": "tx_dcd_clock_check"
     },
     {
       "addr": 39944,
@@ -56479,9 +56479,9 @@
         32
       ],
       "labels": [
-        "tx_line_idle_check"
+        "tx_dcd_clock_check"
       ],
-      "comment_inline": "A=&20: mask for SR2 INACTIVE bit",
+      "comment_inline": "A=&20: mask for SR2 DCD (clock/carrier detect)",
       "xref_summaries": [
         "&9c37 referenced 1 time by &9c06"
       ],
@@ -56502,7 +56502,7 @@
         161,
         254
       ],
-      "comment_inline": "BIT SR2: test if line is idle",
+      "comment_inline": "BIT SR2: test DCD -- is there a clock?",
       "type": "code",
       "mnemonic": "bit",
       "operand": "econet_control23_or_status2",
@@ -56515,7 +56515,7 @@
         208,
         86
       ],
-      "comment_inline": "Line not idle: handle as line jammed",
+      "comment_inline": "DCD set: no clock on the line, abandon TX",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_no_clock_error",
@@ -56758,7 +56758,7 @@
         160,
         254
       ],
-      "comment_inline": "Read SR1 (acknowledge pending interrupt)",
+      "comment_inline": "Read SR1 -- arms the CLR_RX_ST below",
       "type": "code",
       "mnemonic": "lda",
       "operand": "econet_control1_or_status1",

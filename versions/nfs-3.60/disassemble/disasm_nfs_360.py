@@ -3075,7 +3075,24 @@ and polls the control byte for completion:
   bit 6 clear = success (clean return)
 On error, checks for escape condition and handles retries.
 Two entry points: setup_tx_ptr_c0 (&85F7) always uses the
-standard TXCB; tx_poll_core (&8603) is general-purpose.""",
+standard TXCB; tx_poll_core (&8603) is general-purpose.
+**This poll has no timeout.** The `LDA (net_tx_ptr,x)` /
+`BMI` pair that waits for bit 7 to clear is an unbounded spin,
+and that bit is cleared only by the NMI completion and error
+paths. The retry loop around it is therefore *not* an
+independent watchdog — every one of its attempts blocks here
+until an NMI arrives. If the ADLC never raises the interrupt
+described at
+[`nmi_error_dispatch`](label:nmi_error_dispatch), the ROM waits
+forever.
+
+The ROM's software timeouts sit either side of this window,
+never inside it: the pre-transmit INACTIVE poll times out to
+'Line Jammed', and the post-transmit reply wait times out to
+'No reply'. The handshake itself relies wholly on the ADLC,
+which is sound on a real wire — the line always falls idle
+after a frame — but leaves no backstop for an ADLC
+implementation that fails to signal Inactive Idle.""",
     on_entry={"a": "retry count (&FF = full retry)", "y": "timeout parameter (&60 = standard)"},
     on_exit={"a": "entry A (retry count, restored from stack)", "x": "0", "y": "0"},
 )
@@ -7099,7 +7116,20 @@ d.subroutine(
     description="""Common error/abort entry used by 12 call sites. Checks
 tx_flags bit 7: if clear, does a full ADLC reset and returns
 to idle listen (RX error path); if set, jumps to tx_result_fail
-(TX not-listening path).""",
+(TX not-listening path).
+
+**What raises the NMI that lands here after an unanswered
+transmit.** While waiting for a scout ACK or final ACK the ADLC
+runs with CR1 = &82 (TX_RESET | RIE), so receiver conditions
+raise the interrupt. A listening station holds the line in flag
+fill; the *absence* of a listener lets the line fall to all-ones
+idle, which latches SR2 bit 2 (Inactive Idle Received). SR2's
+stored conditions (all but RDA) are ORed into SR1 bit 1 (S2RQ),
+and RIE turns that into the NMI. The handler then finds AP
+clear and falls through to the error path. In other words the
+interrupt meaning "nobody answered" is the line going idle,
+not a timeout — see [`tx_poll_core`](label:tx_poll_core)
+for the consequence when that interrupt never arrives.""",
 )
 
 
@@ -7394,7 +7424,24 @@ d.subroutine(
     description="""Post-scout completion for data transfer frames (port != 0)
 and POKE (ctrl=&82). Calls advance_rx_buffer_ptr, updates
 the open port buffer address, then writes source station/
-network, port, and control byte into the RXCB.""",
+network, port, and control byte into the RXCB.
+
+**Setting bit 7 also closes the block.** The slot scanner at
+[`scout_ctrl_check`](label:scout_ctrl_check) only accepts a
+slot whose control byte is exactly &7F; the `ORA #&80` here
+turns it into &FF, so from that instruction onwards the slot
+matches nothing. An RXCB is one-shot.
+
+The consequence is that the ROM has no duplicate detection on
+inbound frames. A retransmission of a reply the ROM has already
+consumed walks the port list, matches no open slot, and is
+discarded silently at
+[`discard_no_match`](label:discard_no_match) — no ACK, no NAK,
+no error. On a real Econet wire this cannot arise: the four-way
+handshake is synchronous and retransmission is handled beneath
+the ROM. The ROM assumes the layer below it de-duplicates,
+which is an assumption a datagram transport such as AUN over
+UDP does not satisfy.""",
 )
 
 
@@ -7922,7 +7969,8 @@ d.subroutine(
 Copies dest station/network from the TXCB to the scout buffer,
 dispatches to immediate op setup (ctrl >= &81) or normal data
 transfer, calculates transfer sizes, copies extra parameters,
-then enters the INACTIVE polling loop.""",
+then checks DCD (SR2 bit 5) for a clock on the line before
+entering the INACTIVE polling loop.""",
 )
 
 
@@ -7984,11 +8032,11 @@ d.comment(0x9BBD, "Copy to NMI shim workspace at &0D1A+Y", align=Align.INLINE)
 d.comment(0x9BC0, "Next byte", align=Align.INLINE)
 d.comment(0x9BC1, "Done 4 bytes? (Y reaches &10)", align=Align.INLINE)
 d.comment(0x9BC3, "No: continue copying", align=Align.INLINE)
-d.label(0x9BC5, "tx_line_idle_check")
+d.label(0x9BC5, "tx_dcd_clock_check")
 
-d.comment(0x9BC5, "A=&20: mask for SR2 INACTIVE bit", align=Align.INLINE)
-d.comment(0x9BC7, "BIT SR2: test if line is idle", align=Align.INLINE)
-d.comment(0x9BCA, "Line not idle: handle as line jammed", align=Align.INLINE)
+d.comment(0x9BC5, "A=&20: mask for SR2 DCD (clock/carrier detect)", align=Align.INLINE)
+d.comment(0x9BC7, "BIT SR2: test DCD -- is there a clock?", align=Align.INLINE)
+d.comment(0x9BCA, "DCD set: no clock on the line, abandon TX", align=Align.INLINE)
 d.comment(0x9BCC, "A=&FD: high byte of timeout counter", align=Align.INLINE)
 d.comment(0x9BCE, "Push timeout high byte to stack", align=Align.INLINE)
 d.comment(0x9BCF, "Scout frame = 6 address+ctrl bytes", align=Align.INLINE)
@@ -8026,7 +8074,27 @@ d.subroutine(
     description="""Mid-instruction label within the INACTIVE polling loop.
 intoff_operand is referenced as a constant for self-modifying
 code. Disables NMIs twice (belt-and-braces) then tests SR2
-for INACTIVE before proceeding with TX.""",
+for INACTIVE before proceeding with TX.
+
+**Why the CR2 = &67 clear is load-bearing, not hygiene.**
+With PSE set, the MC6854 status priority tree places Rx Idle
+*above* AP and RDA, and "a status bit above will inhibit one
+below it". A quiet line latches Inactive Idle, so if that
+stored condition were carried into the frame-reading loops it
+would mask the very AP and RDA bits those loops test — the ROM
+would stop seeing incoming frames. Clearing Rx status here is
+what prevents that.
+
+**And why the SR1 read that precedes it matters.** CLR Rx ST
+(CR2 bit 5) only resets *"the bits which have been present
+during the last 'read status' operation"*, so the write clears
+nothing unless a status read has happened first. The routine
+has in fact read both registers by this point — SR2 via the
+BIT that tests INACTIVE, and SR1 explicitly — so it is correct
+whether the datasheet's "last read status operation" is tracked
+per register or globally. The SR1 read is therefore a
+prerequisite of the clear, not merely an interrupt
+acknowledgement.""",
 )
 
 
@@ -8037,7 +8105,7 @@ d.comment(0x9BE4, "INTOFF again (belt-and-braces)", align=Align.INLINE)
 d.comment(0x9BE7, "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE", align=Align.INLINE)
 d.label(0x9BE7, "test_line_idle")
 d.comment(0x9BEA, "INACTIVE not set -- re-enable NMIs and loop", align=Align.INLINE)
-d.comment(0x9BEC, "Read SR1 (acknowledge pending interrupt)", align=Align.INLINE)
+d.comment(0x9BEC, "Read SR1 -- arms the CLR_RX_ST below", align=Align.INLINE)
 d.comment(0x9BEF, "CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE", align=Align.INLINE)
 d.comment(0x9BF1, "Write CR2: clear status, prepare TX", align=Align.INLINE)
 d.comment(0x9BF4, "A=&10: CTS mask for SR1 bit4", align=Align.INLINE)
