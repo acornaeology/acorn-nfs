@@ -4163,14 +4163,37 @@ d.subroutine(
     0x8A15,
     "service_handler",
     title="Service call dispatch",
-    description="""Handles service calls 1, 4, 8, 9, 13, 14, and 15.
-Service 1: absolute workspace claim.
-Service 4: unrecognised star command.
-Service 8: unrecognised OSWORD.
-Service 9: *HELP.
-Service 13: ROM initialisation.
-Service 14: ROM initialisation complete.
-Service 15: vectors claimed.""",
+    description="""Normalises the incoming service-call number into a
+dispatch index, then jumps to the handler via the PHA/PHA/RTS table at
+[`svc_dispatch_lo`](label:svc_dispatch_lo) /
+[`svc_dispatch_hi`](label:svc_dispatch_hi). Service call &0F (15,
+vectors claimed) is special-cased first — the prologue runs the OS version
+check and then scans the sideways ROMs, flagging every other
+`NET` ROM in `rom_ws_pages` — before falling through the dispatch as a
+no-op.
+
+The service calls ANFS acts on (service values in decimal and hex):
+
+| Dec | Hex | Idx | Handler | Purpose |
+|----:|----:|----:|---------|---------|
+| 1  | &01 | 2  | [`svc_1_abs_workspace`](label:svc_1_abs_workspace)         | Absolute workspace claim |
+| 2  | &02 | 3  | [`svc_2_private_workspace`](label:svc_2_private_workspace) | Private workspace claim |
+| 3  | &03 | 4  | [`svc_3_autoboot`](label:svc_3_autoboot)                   | Auto-boot |
+| 4  | &04 | 5  | [`svc_4_star_command`](label:svc_4_star_command)           | Unrecognised `*` command |
+| 5  | &05 | 6  | [`svc5_irq_check`](label:svc5_irq_check)                   | Unrecognised interrupt |
+| 7  | &07 | 8  | [`svc_7_osbyte`](label:svc_7_osbyte)                       | Unrecognised OSBYTE |
+| 8  | &08 | 9  | [`svc_8_osword`](label:svc_8_osword)                       | Unrecognised OSWORD |
+| 9  | &09 | 10 | [`svc_9_help`](label:svc_9_help)                           | `*HELP` |
+| 11 | &0B | 12 | [`econet_restore`](label:econet_restore)                   | NMI release |
+| 12 | &0C | 13 | [`wait_idle_and_reset`](label:wait_idle_and_reset)         | NMI claim |
+| 15 | &0F | —  | (prologue)                                                | Vectors claimed — OS check + NET-ROM scan |
+| 18 | &12 | 14 | [`svc_18_fs_select`](label:svc_18_fs_select)              | FS select |
+
+Every other value — &00, &06 and &0A (explicit no-op table slots) and
+&0D, &0E, &10, &11, &13 and up (unmapped) — resolves to
+[`dispatch_rts`](label:dispatch_rts) and returns the call unclaimed.
+Table indices 15–36 are reused by internal callers for language, FSCV,
+FS-reply and `*NET` routing, not by MOS service calls.""",
     on_entry={"a": "service call number", "x": "ROM slot", "y": "parameter"},
 )
 
