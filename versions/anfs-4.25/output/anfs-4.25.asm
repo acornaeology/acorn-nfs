@@ -3487,20 +3487,35 @@ os_spool_flag_table = nmi_return_inton+1
 ; ***************************************************************************************
 ; Service call dispatch
 ;
-; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
+; Normalises the incoming service-call number through a CMP/SBC chain into a dispatch
+; index, then jumps to the handler via the PHA/PHA/RTS table at svc_dispatch_lo /
+; svc_dispatch_hi. Service call &0F (15, vectors claimed) is special-cased first — it
+; runs the OS-version check below and then falls through the chain as a no-op.
 ;
-; | Call | Meaning                     |
-; |------|-----------------------------|
-; | 1    | Absolute workspace claim    |
-; | 4    | Unrecognised * command      |
-; | 8    | Unrecognised OSWORD         |
-; | 9    | *HELP                       |
-; | 13   | ROM initialisation          |
-; | 14   | ROM initialisation complete |
-; | 15   | Vectors claimed             |
+; The full set of service calls ANFS acts on (service values shown in decimal and hex):
 ;
-; On service 15 the ROM verifies the host OS via OSBYTE 0 with the input X=1, which
-; returns the OS version code:
+; | Dec  | Hex     | Idx  | Handler                 | Purpose                       |
+; |------|---------|------|-------------------------|-------------------------------|
+; | 0–12 | &00–&0C | 1–13 | (service 1–12 handlers) | Standard low service calls    |
+; | 15   | &0F     | —    | (prologue)              | Vectors claimed — OS check    |
+; | 18   | &12     | 14   | svc_18_fs_select        | FS select                     |
+; | 24   | &18     | 15   | match_on_suffix         | Interactive *HELP ON  matcher |
+; | 33   | &21     | 16   | raise_y_to_c8           | Static workspace claim        |
+; | 34   | &22     | 17   | set_rom_ws_page         | Dynamic workspace offer       |
+; | 35   | &23     | 18   | store_ws_page_count     | Top of static workspace       |
+; | 36   | &24     | 19   | noop_dey_rts            | Dynamic workspace claim       |
+; | 37   | &25     | 20   | copy_template_to_zp     | FS name + info reply          |
+; | 38   | &26     | 21   | svc_26_close_all_files  | Close all files               |
+; | 39   | &27     | 22   | nfs_init_body           | Post-hard-reset re-init       |
+; | 40   | &28     | 23   | print_fs_ps_help        | *FS / *PS syntax help         |
+; | 41   | &29     | 24   | svc_29_status           | *STATUS handler               |
+;
+; Every other value (&0D–&11, &13–&17, &19–&20, &2A and up) falls through to index 1
+; (dispatch_rts, a no-op) and returns the call unclaimed — deliberately ignoring e.g. &15
+; (100 Hz poll) and &2A (language-ROM startup).
+;
+; On service &0F (15, vectors claimed) the ROM verifies the host OS via OSBYTE 0 with the
+; input X=1, which returns the OS version code:
 ;
 ; | OSBYTE 1 value | Host                              |
 ; |----------------|-----------------------------------|
