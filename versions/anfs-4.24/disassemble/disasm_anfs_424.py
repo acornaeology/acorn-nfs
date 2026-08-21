@@ -6118,20 +6118,20 @@ The full set of Master 128 service calls ANFS handles, dispatched
 via the CMP/SBC normalisation chain in
 [`service_handler`](label:service_handler):
 
-| svc        | idx   | handler                   | purpose                |
-| ---------- | ----- | ------------------------- | ---------------------- |
-| `&00..&0C` | 1..13 | (svc-1..12 handlers)      | service-1 .. service-12 |
-| `&12`      | 14    | `svc_18_fs_select`        | FS select              |
-| `&18`      | 15    | `match_on_suffix`         | Interactive HELP       |
-| `&21`      | 16    | `raise_y_to_c8`           | static ws claim        |
-| `&22`      | 17    | `set_rom_ws_page`         | dynamic ws offer       |
-| `&23`      | 18    | `store_ws_page_count`     | top-of-static-ws       |
-| `&24`      | 19    | `noop_dey_rts`            | dynamic ws claim (1 pg) |
-| `&25`      | 20    | `copy_template_to_zp`     | FS name + info reply   |
-| `&26`      | 21    | `svc_26_close_all_files`  | close all files        |
-| `&27`      | 22    | `nfs_init_body` (this)    | reset re-init          |
-| `&28`      | 23    | `print_fs_ps_help` | *CONFIGURE option      |
-| `&29`      | 24    | `svc_29_status`   | *STATUS option         |
+| dec   | hex        | idx   | handler                   | purpose                |
+| ----- | ---------- | ----- | ------------------------- | ---------------------- |
+| 0..12 | `&00..&0C` | 1..13 | (svc-1..12 handlers)      | service-1 .. service-12 |
+| 18    | `&12`      | 14    | `svc_18_fs_select`        | FS select              |
+| 24    | `&18`      | 15    | `match_on_suffix`         | Interactive HELP       |
+| 33    | `&21`      | 16    | `raise_y_to_c8`           | static ws claim        |
+| 34    | `&22`      | 17    | `set_rom_ws_page`         | dynamic ws offer       |
+| 35    | `&23`      | 18    | `store_ws_page_count`     | top-of-static-ws       |
+| 36    | `&24`      | 19    | `noop_dey_rts`            | dynamic ws claim (1 pg) |
+| 37    | `&25`      | 20    | `copy_template_to_zp`     | FS name + info reply   |
+| 38    | `&26`      | 21    | `svc_26_close_all_files`  | close all files        |
+| 39    | `&27`      | 22    | `nfs_init_body` (this)    | reset re-init          |
+| 40    | `&28`      | 23    | `print_fs_ps_help`        | *CONFIGURE option      |
+| 41    | `&29`      | 24    | `svc_29_status`           | *STATUS option         |
 
 Everything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)
 falls through to
