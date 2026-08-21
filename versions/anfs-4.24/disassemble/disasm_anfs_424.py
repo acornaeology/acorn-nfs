@@ -4447,7 +4447,7 @@ d.subroutine(
     title="Service call dispatch",
     description="""Normalises the incoming service-call number through a
 `CMP`/`SBC` chain into a dispatch index, then jumps to the handler
-via the PHA/PHA/RTS table at `svc_dispatch_lo` / `svc_dispatch_hi`.
+via the PHA/PHA/RTS table at [`svc_dispatch_lo`](label:svc_dispatch_lo) / [`svc_dispatch_hi`](label:svc_dispatch_hi).
 Service call &0F (15, vectors claimed) is special-cased first — it
 runs the OS-version check below and then falls through the chain as
 a no-op.
@@ -4459,20 +4459,20 @@ decimal and hex):
 |----:|-----:|----:|--------------------------|-----------------------------|
 | 0–12| &00–&0C | 1–13 | (service 1–12 handlers) | Standard low service calls |
 |  15 |  &0F | — | (prologue)                 | Vectors claimed — OS check  |
-|  18 |  &12 | 14 | `svc_18_fs_select`        | FS select                   |
-|  24 |  &18 | 15 | `match_on_suffix`         | Interactive `*HELP` `ON ` matcher |
-|  33 |  &21 | 16 | `raise_y_to_c8`           | Static workspace claim      |
-|  34 |  &22 | 17 | `set_rom_ws_page`         | Dynamic workspace offer     |
-|  35 |  &23 | 18 | `store_ws_page_count`     | Top of static workspace     |
-|  36 |  &24 | 19 | `noop_dey_rts`            | Dynamic workspace claim     |
-|  37 |  &25 | 20 | `copy_template_to_zp`     | FS name + info reply        |
-|  38 |  &26 | 21 | `svc_26_close_all_files`  | Close all files             |
-|  39 |  &27 | 22 | `nfs_init_body`           | Post-hard-reset re-init     |
-|  40 |  &28 | 23 | `print_fs_ps_help`        | `*FS` / `*PS` syntax help   |
-|  41 |  &29 | 24 | `svc_29_status`           | `*STATUS` handler           |
+|  18 |  &12 | 14 | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select                   |
+|  24 |  &18 | 15 | [`match_on_suffix`](label:match_on_suffix)         | Interactive `*HELP` `ON ` matcher |
+|  33 |  &21 | 16 | [`raise_y_to_c8`](label:raise_y_to_c8)           | Static workspace claim      |
+|  34 |  &22 | 17 | [`set_rom_ws_page`](label:set_rom_ws_page)         | Dynamic workspace offer     |
+|  35 |  &23 | 18 | [`store_ws_page_count`](label:store_ws_page_count)     | Top of static workspace     |
+|  36 |  &24 | 19 | [`noop_dey_rts`](label:noop_dey_rts)            | Dynamic workspace claim     |
+|  37 |  &25 | 20 | [`copy_template_to_zp`](label:copy_template_to_zp)     | FS name + info reply        |
+|  38 |  &26 | 21 | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | Close all files             |
+|  39 |  &27 | 22 | [`nfs_init_body`](label:nfs_init_body)           | Post-hard-reset re-init     |
+|  40 |  &28 | 23 | [`print_fs_ps_help`](label:print_fs_ps_help)        | `*FS` / `*PS` syntax help   |
+|  41 |  &29 | 24 | [`svc_29_status`](label:svc_29_status)           | `*STATUS` handler           |
 
 Every other value (&0D–&11, &13–&17, &19–&20, &2A and up) falls
-through to index 1 (`dispatch_rts`, a no-op) and returns the call
+through to index 1 ([`dispatch_rts`](label:dispatch_rts), a no-op) and returns the call
 unclaimed — deliberately ignoring e.g. &15 (100 Hz poll) and &2A
 (language-ROM startup).
 
@@ -6121,22 +6121,22 @@ via the CMP/SBC normalisation chain in
 | dec   | hex        | handler                   | purpose                |
 | ----- | ---------- | ------------------------- | ---------------------- |
 | 0..12 | `&00..&0C` | (svc-1..12 handlers)      | service-1 .. service-12 |
-| 18    | `&12`      | `svc_18_fs_select`        | FS select              |
-| 24    | `&18`      | `match_on_suffix`         | Interactive HELP       |
-| 33    | `&21`      | `raise_y_to_c8`           | static ws claim        |
-| 34    | `&22`      | `set_rom_ws_page`         | dynamic ws offer       |
-| 35    | `&23`      | `store_ws_page_count`     | top-of-static-ws       |
-| 36    | `&24`      | `noop_dey_rts`            | dynamic ws claim (1 pg) |
-| 37    | `&25`      | `copy_template_to_zp`     | FS name + info reply   |
-| 38    | `&26`      | `svc_26_close_all_files`  | close all files        |
-| 39    | `&27`      | `nfs_init_body` (this)    | reset re-init          |
-| 40    | `&28`      | `print_fs_ps_help`        | *CONFIGURE option      |
-| 41    | `&29`      | `svc_29_status`           | *STATUS option         |
+| 18    | `&12`      | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select              |
+| 24    | `&18`      | [`match_on_suffix`](label:match_on_suffix)         | Interactive HELP       |
+| 33    | `&21`      | [`raise_y_to_c8`](label:raise_y_to_c8)           | static ws claim        |
+| 34    | `&22`      | [`set_rom_ws_page`](label:set_rom_ws_page)         | dynamic ws offer       |
+| 35    | `&23`      | [`store_ws_page_count`](label:store_ws_page_count)     | top-of-static-ws       |
+| 36    | `&24`      | [`noop_dey_rts`](label:noop_dey_rts)            | dynamic ws claim (1 pg) |
+| 37    | `&25`      | [`copy_template_to_zp`](label:copy_template_to_zp)     | FS name + info reply   |
+| 38    | `&26`      | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | close all files        |
+| 39    | `&27`      | [`nfs_init_body`](label:nfs_init_body) (this)    | reset re-init          |
+| 40    | `&28`      | [`print_fs_ps_help`](label:print_fs_ps_help)        | *CONFIGURE option      |
+| 41    | `&29`      | [`svc_29_status`](label:svc_29_status)           | *STATUS option         |
 
 Everything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)
 falls through to
 [`dispatch_svc_state_check`](label:dispatch_svc_state_check) with `A := 0` and
-dispatches to idx 1 = `dispatch_rts` (no-op) – deliberately
+dispatches to idx 1 = [`dispatch_rts`](label:dispatch_rts) (no-op) – deliberately
 ignoring svc `&15` (100 Hz poll), svc `&2A` (language ROM
 startup), etc.""",
 )
