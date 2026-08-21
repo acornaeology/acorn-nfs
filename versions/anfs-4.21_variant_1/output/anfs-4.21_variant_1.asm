@@ -3552,20 +3552,35 @@ nmi_shim_source = reset_enter_listen+2
 ; ***************************************************************************************
 ; Service call dispatch
 ;
-; Handles service calls 1, 4, 8, 9, 13, 14, and 15.
+; Normalises the incoming service-call number through a CMP/SBC chain into a dispatch
+; index, then jumps to the handler via the PHA/PHA/RTS table at svc_dispatch_lo /
+; svc_dispatch_hi. Service call &0F (15, vectors claimed) is special-cased first — it
+; runs the OS-version check below and then falls through the chain as a no-op.
 ;
-; | Call | Meaning                     |
-; |------|-----------------------------|
-; | 1    | Absolute workspace claim    |
-; | 4    | Unrecognised * command      |
-; | 8    | Unrecognised OSWORD         |
-; | 9    | *HELP                       |
-; | 13   | ROM initialisation          |
-; | 14   | ROM initialisation complete |
-; | 15   | Vectors claimed             |
+; The full set of service calls ANFS acts on (service values shown in decimal and hex):
 ;
-; On service 15 the ROM verifies the host OS via OSBYTE 0 with the input X=1, which
-; returns the OS version code:
+; | Dec  | Hex     | Idx  | Handler                   | Purpose                            |
+; |------|---------|------|---------------------------|------------------------------------|
+; | 0–12 | &00–&0C | 1–13 | (service 1–12 handlers)   | Standard low service calls         |
+; | 15   | &0F     | —    | (prologue)                | Vectors claimed — OS check         |
+; | 18   | &12     | 14   | svc_18_fs_select          | FS select                          |
+; | 24   | &18     | 15   | match_on_suffix           | Interactive *HELP ON  matcher      |
+; | 33   | &21     | 16   | svc_21_claim_abs_ws       | Claim absolute workspace (Hazel)   |
+; | 34   | &22     | 17   | svc_22_claim_private_ws   | Claim private workspace (Hazel)    |
+; | 35   | &23     | 18   | svc_23_record_abs_top     | Record top of absolute workspace   |
+; | 36   | &24     | 19   | svc_24_claim_private_page | Reserve one private-workspace page |
+; | 37   | &25     | 20   | svc_25_return_fs_info     | FS name + info reply               |
+; | 38   | &26     | 21   | svc_26_close_all_files    | Close all files                    |
+; | 39   | &27     | 22   | nfs_init_body             | Post-hard-reset re-init            |
+; | 40   | &28     | 23   | print_fs_ps_help          | *FS / *PS syntax help              |
+; | 41   | &29     | 24   | svc_29_status             | *STATUS handler                    |
+;
+; Every other value (&0D–&11, &13–&17, &19–&20, &2A and up) falls through to index 1
+; (dispatch_rts, a no-op) and returns the call unclaimed — deliberately ignoring e.g. &15
+; (100 Hz poll) and &2A (language-ROM startup).
+;
+; On service &0F (15, vectors claimed) the ROM verifies the host OS via OSBYTE 0 with the
+; input X=1, which returns the OS version code:
 ;
 ; | OSBYTE 1 value | Host                              |
 ; |----------------|-----------------------------------|
@@ -5078,20 +5093,20 @@ ps_template_base = load_transfer_params+1
 ; The full set of Master 128 service calls ANFS handles, dispatched via the CMP/SBC
 ; normalisation chain in service_handler:
 ;
-; | svc      | idx   | handler                   | purpose                 |
-; |----------|-------|---------------------------|-------------------------|
-; | &00..&0C | 1..13 | (svc-1..12 handlers)      | service-1 .. service-12 |
-; | &12      | 14    | svc_18_fs_select          | FS select               |
-; | &18      | 15    | match_on_suffix           | Interactive HELP        |
-; | &21      | 16    | svc_21_claim_abs_ws       | static ws claim         |
-; | &22      | 17    | svc_22_claim_private_ws   | dynamic ws offer        |
-; | &23      | 18    | svc_23_record_abs_top     | top-of-static-ws        |
-; | &24      | 19    | svc_24_claim_private_page | dynamic ws claim (1 pg) |
-; | &25      | 20    | svc_25_return_fs_info     | FS name + info reply    |
-; | &26      | 21    | svc_26_close_all_files    | close all files         |
-; | &27      | 22    | nfs_init_body (this)      | reset re-init           |
-; | &28      | 23    | print_fs_ps_help          | *CONFIGURE option       |
-; | &29      | 24    | svc_29_status             | *STATUS option          |
+; | dec   | hex      | handler                   | purpose                   |
+; |-------|----------|---------------------------|---------------------------|
+; | 0..12 | &00..&0C | (svc-1..12 handlers)      | service-1 .. service-12   |
+; | 18    | &12      | svc_18_fs_select          | FS select                 |
+; | 24    | &18      | match_on_suffix           | Interactive HELP          |
+; | 33    | &21      | svc_21_claim_abs_ws       | claim absolute ws (Hazel) |
+; | 34    | &22      | svc_22_claim_private_ws   | claim private ws (Hazel)  |
+; | 35    | &23      | svc_23_record_abs_top     | record top of absolute ws |
+; | 36    | &24      | svc_24_claim_private_page | reserve 1 private ws page |
+; | 37    | &25      | svc_25_return_fs_info     | FS name + info reply      |
+; | 38    | &26      | svc_26_close_all_files    | close all files           |
+; | 39    | &27      | nfs_init_body (this)      | reset re-init             |
+; | 40    | &28      | print_fs_ps_help          | *CONFIGURE option         |
+; | 41    | &29      | svc_29_status             | *STATUS option            |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
