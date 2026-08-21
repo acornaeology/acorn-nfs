@@ -66,11 +66,11 @@ _svc_dispatch_entries = [
     (0x000D, 0x89DB, "wait_idle_and_reset", "svc &0D: wait idle and reset"),
     (0x000E, 0x8B6D, "svc_18_fs_select", "svc &12: FS select"),
     (0x0F, 0x9692, "match_on_suffix", "svc &18: interactive HELP 'ON ' matcher"),
-    (0x0010, 0x8F03, "raise_y_to_c8", "svc &21: static workspace claim"),
-    (0x0011, 0x8F18, "set_rom_ws_page", "svc &22: dynamic workspace offer"),
-    (0x0012, 0x8F0A, "store_ws_page_count", "svc &23: top-of-static-workspace"),
-    (0x0013, 0x8E8B, "noop_dey_rts", "svc &24: dynamic workspace claim"),
-    (0x0014, 0x8E8D, "copy_template_to_zp", "svc &25: FS name + info reply"),
+    (0x0010, 0x8F03, "svc_21_claim_abs_ws", "svc &21: claim absolute workspace (Hazel)"),
+    (0x0011, 0x8F18, "svc_22_claim_private_ws", "svc &22: claim private workspace (Hazel)"),
+    (0x0012, 0x8F0A, "svc_23_record_abs_top", "svc &23: record top of absolute workspace"),
+    (0x0013, 0x8E8B, "svc_24_claim_private_page", "svc &24: reserve one private-workspace page"),
+    (0x0014, 0x8E8D, "svc_25_return_fs_info", "svc &25: FS name + info reply"),
     (0x0015, 0x8EA4, "svc_26_close_all_files", "svc &26: close all files"),
     (0x0016, 0x8F52, "nfs_init_body", "svc &27: post-hard-reset re-init"),
     (0x0017, 0x95A1, "print_fs_ps_help", "svc &28: print *FS/*PS no-arg syntax help"),
@@ -4462,11 +4462,11 @@ decimal and hex):
 |  15 |  &0F | — | (prologue)                 | Vectors claimed — OS check  |
 |  18 |  &12 | 14 | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select                   |
 |  24 |  &18 | 15 | [`match_on_suffix`](label:match_on_suffix)         | Interactive `*HELP` `ON ` matcher |
-|  33 |  &21 | 16 | [`raise_y_to_c8`](label:raise_y_to_c8)           | Static workspace claim      |
-|  34 |  &22 | 17 | [`set_rom_ws_page`](label:set_rom_ws_page)         | Dynamic workspace offer     |
-|  35 |  &23 | 18 | [`store_ws_page_count`](label:store_ws_page_count)     | Top of static workspace     |
-|  36 |  &24 | 19 | [`noop_dey_rts`](label:noop_dey_rts)            | Dynamic workspace claim     |
-|  37 |  &25 | 20 | [`copy_template_to_zp`](label:copy_template_to_zp)     | FS name + info reply        |
+|  33 |  &21 | 16 | [`svc_21_claim_abs_ws`](label:svc_21_claim_abs_ws)           | Claim absolute workspace (Hazel)      |
+|  34 |  &22 | 17 | [`svc_22_claim_private_ws`](label:svc_22_claim_private_ws)         | Claim private workspace (Hazel)     |
+|  35 |  &23 | 18 | [`svc_23_record_abs_top`](label:svc_23_record_abs_top)     | Record top of absolute workspace     |
+|  36 |  &24 | 19 | [`svc_24_claim_private_page`](label:svc_24_claim_private_page)            | Reserve one private-workspace page     |
+|  37 |  &25 | 20 | [`svc_25_return_fs_info`](label:svc_25_return_fs_info)     | FS name + info reply        |
 |  38 |  &26 | 21 | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | Close all files             |
 |  39 |  &27 | 22 | [`nfs_init_body`](label:nfs_init_body)           | Post-hard-reset re-init     |
 |  40 |  &28 | 23 | [`print_fs_ps_help`](label:print_fs_ps_help)        | `*FS` / `*PS` syntax help   |
@@ -5710,8 +5710,8 @@ and OSBYTE handler routing.
 
 Routine extent is &8E61-&8E88 (the `RTS` is the dispatch). The
 short Master service handlers at
-[`noop_dey_rts`](label:noop_dey_rts) (svc &24),
-[`copy_template_to_zp`](label:copy_template_to_zp) (svc &25) and
+[`svc_24_claim_private_page`](label:svc_24_claim_private_page) (svc &24),
+[`svc_25_return_fs_info`](label:svc_25_return_fs_info) (svc &25) and
 [`svc_26_close_all_files`](label:svc_26_close_all_files) sit immediately after.""",
     on_entry={"x": "base dispatch index", "y": "additional offset"},
     on_exit={"x": "fs_options value"},
@@ -5735,11 +5735,11 @@ d.comment(0x8E8B, "Claim 1 page (DEY = decrement Y by 1)", align=Align.INLINE)
 d.entry(0x8E8B)
 d.subroutine(
     0x8E8B,
-    "noop_dey_rts",
-    title="Service &24: dynamic workspace claim (1 page)",
+    "svc_24_claim_private_page",
+    title="Service &24 — reserve one private-workspace page",
     description="""Two-byte handler reached via [`svc_dispatch`](label:svc_dispatch) slot
 &13. `DEY` decrements the caller's first-available-page count by 1
-to claim a single workspace page; `RTS` returns to the dispatcher.""",
+to reserve a single private-workspace page; `RTS` returns to the dispatcher.""",
 )
 
 
@@ -5748,7 +5748,7 @@ d.comment(0x8E8D, "X = 10 (top of 11-byte template)", align=Align.INLINE)
 d.entry(0x8E8D)
 d.subroutine(
     0x8E8D,
-    "copy_template_to_zp",
+    "svc_25_return_fs_info",
     title="Service &25: FS name + info reply",
     description="""Reached via [`svc_dispatch`](label:svc_dispatch) slot &14. Copies the
 11-byte template at [`fs_info_template`](label:fs_info_template) into the
@@ -5776,7 +5776,7 @@ d.banner(
     0x8E99,
     title="FS-name reply template (11 bytes, byte-reversed)",
     description="""Source data for the byte-reverse copy in
-[`copy_template_to_zp`](label:copy_template_to_zp). When stored at
+[`svc_25_return_fs_info`](label:svc_25_return_fs_info). When stored at
 `(os_text_ptr),Y` in reverse order the destination reads
 `"NET" + 6 spaces + "/" + length-byte 5`, which is the FS name
 the ROM reports for service &25 (FS name + info reply).""",
@@ -5784,7 +5784,7 @@ the ROM reports for service &25 (FS name + info reply).""",
 
 d.comment(
     0x8E9A,
-    "11-byte template (length 5 in [0], then '       TEN'); copied to (&F2),Y by copy_template_to_zp",
+    "11-byte template (length 5 in [0], then '       TEN'); copied to (&F2),Y by svc_25_return_fs_info",
     align=Align.INLINE,
 )
 d.comment(0x8EA4, "Test bit 6 of fs_flags (NFS currently selected?)", align=Align.INLINE)
@@ -5965,11 +5965,11 @@ d.comment(0x8F00, "Dispatch to OSBYTE handler via table", align=Align.INLINE)
 d.comment(0x8F03, "Y already >= &C8?", align=Align.INLINE)
 d.entry(0x8F03)
 
-d.label(0x8F03, "raise_y_to_c8")
+d.label(0x8F03, "svc_21_claim_abs_ws")
 
 d.subroutine(
     0x8F03,
-    "raise_y_to_c8",
+    "svc_21_claim_abs_ws",
     title="Service &21 handler: claim static hidden-RAM workspace",
     description="""Four-instruction stub: `CPY #&C8 / BCS return / LDY #&C8 / RTS`.
 Reached when MOS issues service call `&21` ("Offer Static Workspace
@@ -5986,14 +5986,14 @@ previous ROM hasn't already.""",
 
 d.comment(0x8F05, "Yes: return Y unchanged", align=Align.INLINE)
 d.comment(0x8F07, "No: raise Y to &C8", align=Align.INLINE)
-d.label(0x8F09, "rts_raise_y_to_c8")
+d.label(0x8F09, "rts_svc_21_claim_abs_ws")
 
 d.comment(0x8F09, "Return", align=Align.INLINE)
-d.label(0x8F0A, "store_ws_page_count")
+d.label(0x8F0A, "svc_23_record_abs_top")
 
 d.subroutine(
     0x8F0A,
-    "store_ws_page_count",
+    "svc_23_record_abs_top",
     title="Record workspace page count (capped at &D3)",
     description="""Stores the workspace allocation from service 1 into offset `&0B` of
 the receive control block, capping the value at `&D3` to prevent
@@ -6014,7 +6014,7 @@ d.comment(0x8F14, "Store workspace page count", align=Align.INLINE)
 d.comment(0x8F16, "Pop -- save Y temporarily", align=Align.INLINE)
 d.comment(0x8F17, "Return -- ws_page count saved", align=Align.INLINE)
 d.entry(0x8F18)
-d.label(0x8F18, "set_rom_ws_page")
+d.label(0x8F18, "svc_22_claim_private_ws")
 
 d.comment(0x8F18, "Caller's page (in Y) into A", align=Align.INLINE)
 d.comment(0x8F19, "Y = current ROM slot from romsel_copy", align=Align.INLINE)
@@ -6075,7 +6075,7 @@ d.comment(0x8F47, "Clear nfs_workspace_lo (page-aligned)", align=Align.INLINE)
 d.comment(0x8F49, "Compute workspace start page via get_ws_page", align=Align.INLINE)
 d.comment(0x8F4C, "Y >= &DC?", align=Align.INLINE)
 d.comment(0x8F4E, "Restore Y from stack", align=Align.INLINE)
-d.comment(0x8F4F, "Yes: jump to set_rom_ws_page (error path)", align=Align.INLINE)
+d.comment(0x8F4F, "Yes: jump to svc_22_claim_private_ws (error path)", align=Align.INLINE)
 d.comment(0x8F51, "Return", align=Align.INLINE)
 d.entry(0x8F52)
 
@@ -6126,11 +6126,11 @@ via the CMP/SBC normalisation chain in
 | 0..12 | `&00..&0C` | (svc-1..12 handlers)      | service-1 .. service-12 |
 | 18    | `&12`      | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select              |
 | 24    | `&18`      | [`match_on_suffix`](label:match_on_suffix)         | Interactive HELP       |
-| 33    | `&21`      | [`raise_y_to_c8`](label:raise_y_to_c8)           | static ws claim        |
-| 34    | `&22`      | [`set_rom_ws_page`](label:set_rom_ws_page)         | dynamic ws offer       |
-| 35    | `&23`      | [`store_ws_page_count`](label:store_ws_page_count)     | top-of-static-ws       |
-| 36    | `&24`      | [`noop_dey_rts`](label:noop_dey_rts)            | dynamic ws claim (1 pg) |
-| 37    | `&25`      | [`copy_template_to_zp`](label:copy_template_to_zp)     | FS name + info reply   |
+| 33    | `&21`      | [`svc_21_claim_abs_ws`](label:svc_21_claim_abs_ws)           | claim absolute ws (Hazel)        |
+| 34    | `&22`      | [`svc_22_claim_private_ws`](label:svc_22_claim_private_ws)         | claim private ws (Hazel)       |
+| 35    | `&23`      | [`svc_23_record_abs_top`](label:svc_23_record_abs_top)     | record top of absolute ws       |
+| 36    | `&24`      | [`svc_24_claim_private_page`](label:svc_24_claim_private_page)            | reserve 1 private ws page |
+| 37    | `&25`      | [`svc_25_return_fs_info`](label:svc_25_return_fs_info)     | FS name + info reply   |
 | 38    | `&26`      | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | close all files        |
 | 39    | `&27`      | [`nfs_init_body`](label:nfs_init_body) (this)    | reset re-init          |
 | 40    | `&28`      | [`print_fs_ps_help`](label:print_fs_ps_help)        | *CONFIGURE option      |
@@ -19262,7 +19262,7 @@ d.label(
     "fdc_1770_command_or_status",
     description="""Master 128 1770 floppy-disk-controller command (write) / status
 (read) register, part of the `&FE24`-`&FE2F` disk interface. ANFS does not
-do disk I/O; the only access is a discarded read in `set_rom_ws_page`
+do disk I/O; the only access is a discarded read in `svc_22_claim_private_ws`
 (its result is overwritten before use).""",
     length=1,
     group="mmio",
@@ -19274,7 +19274,7 @@ d.label(
     "fdc_1770_data",
     description="""Master 128 1770 floppy-disk-controller data register, part of the
 `&FE24`-`&FE2F` disk interface. ANFS does not do disk I/O; the only
-access is a discarded read in `set_rom_ws_page` (its result is
+access is a discarded read in `svc_22_claim_private_ws` (its result is
 overwritten before use).""",
     length=1,
     group="mmio",

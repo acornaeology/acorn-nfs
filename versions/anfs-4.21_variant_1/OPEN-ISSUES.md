@@ -45,11 +45,11 @@ of `&21..&29` Master service handlers:
 
 | svc | doc role                      | dispatch idx | handler (4.21)              |
 |-----|-------------------------------|-------------:|------------------------------|
-| &21 | Static workspace claim        | &10          | raise_y_to_c8 (&8EE9)        |
-| &22 | Dynamic workspace offer       | &11          | set_rom_ws_page (&8EFE)      |
-| &23 | Top of static workspace       | &12          | store_ws_page_count (&8EF0)  |
-| &24 | Dynamic workspace requirements| &13          | noop_dey_rts (&8E71)         |
-| &25 | FS name + info reply          | &14          | copy_template_to_zp (&8E73)  |
+| &21 | Static workspace claim        | &10          | svc_21_claim_abs_ws (&8EE9)        |
+| &22 | Dynamic workspace offer       | &11          | svc_22_claim_private_ws (&8EFE)      |
+| &23 | Top of static workspace       | &12          | svc_23_record_abs_top (&8EF0)  |
+| &24 | Dynamic workspace requirements| &13          | svc_24_claim_private_page (&8E71)         |
+| &25 | FS name + info reply          | &14          | svc_25_return_fs_info (&8E73)  |
 | &26 | Close all files               | &15          | check_help_continuation (&8E8A) |
 | &27 | Reset has occurred            | &16          | nfs_init_body (&8F38)        |
 | &28 | *CONFIGURE option             | &17          | parse_filename_validate (&959A) |
@@ -200,7 +200,7 @@ chasing "who issues service 39" is the wrong direction.
 
 **Status:** RESOLVED (2026-05-02).
 
-Renamed `&8EE9` from `svc_1_abs_workspace` to `raise_y_to_c8`,
+Renamed `&8EE9` from `svc_1_abs_workspace` to `svc_21_claim_abs_ws`,
 which describes what the body actually does (`CPY #&C8 / BCS exit /
 LDY #&C8 / RTS`). Inline comments at `&8EE9..&8EEF` and the
 subroutine description updated to use `&C8` rather than the 4.18

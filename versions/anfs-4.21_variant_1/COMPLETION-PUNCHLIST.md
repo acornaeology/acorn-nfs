@@ -194,7 +194,7 @@ Stop-light dashboard at the bottom of each session update.
 ### 2026-05-02 (Buckets 1, 4, 2 landed)
 
 - **Bucket 1 (O-2/3/4):** &8EE9 svc_1_abs_workspace renamed to
-  raise_y_to_c8 (matches the &C8 threshold the body actually uses);
+  svc_21_claim_abs_ws (matches the &C8 threshold the body actually uses);
   &8A8F inline corrected to "Service call &24 (Econet-present
   query)"; dir_op_dispatch description rewritten for Y=&18 / dispatch
   indices &19..&1D. OPEN-ISSUES updated.

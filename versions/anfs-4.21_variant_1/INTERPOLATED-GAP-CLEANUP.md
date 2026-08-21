@@ -90,7 +90,7 @@ Status: `[ ]` todo, `[x]` done, `[~]` partial / blocked.
 | [x] | `&A74D..&A7A0` | 32 | 5 | `cmd_table_fs` data tail — likely all data-banner-only now; verify. |
 | [x] | `&B2F5..&B326` | 27 | 27 | `print_dec_digit_no_spool` and dividers. |
 | [x] | `&928A..&92B2` | 23 | 23 | `print_inline_no_spool` body. |
-| [x] | `&8E71..&8E9C` | 20 | 18 | `noop_dey_rts`, `copy_template_to_zp` and friends. |
+| [x] | `&8E71..&8E9C` | 20 | 18 | `svc_24_claim_private_page`, `svc_25_return_fs_info` and friends. |
 | [x] | `&8B38..&8B5F` | 19 | 19 | `cmd_net_check_hw` / `select_fs_cmd_net_fs`. |
 | [x] | `&AD20..&AD32` | 19 | 2 | OSWORD dispatch table reasons. |
 | [x] | `&8CFF..&8D24` | 18 | 12 | FSCV vector dispatch / *I am prologue. |

@@ -603,9 +603,9 @@ hazel_ctx_buffer            = &c2d9  ; HAZEL context buffer (saved register / st
 ; &c2d9 used as index base 2 times by &ba40, &baf4
 hazel_display_buf           = &c2f3
 ; &c2f3 used as index base 3 times by &9e8f, &9e97, &9ea5
-fdc_1770_command_or_status  = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
+fdc_1770_command_or_status  = &fe28  ; Master 128 1770 floppy-disk-controller command (write) / status (read) register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in svc_22_claim_private_ws (its result is overwritten before use).
 ; &fe28 referenced 1 time by &8f24
-fdc_1770_data               = &fe2b  ; Master 128 1770 floppy-disk-controller data register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in set_rom_ws_page (its result is overwritten before use).
+fdc_1770_data               = &fe2b  ; Master 128 1770 floppy-disk-controller data register, part of the &FE24-&FE2F disk interface. ANFS does not do disk I/O; the only access is a discarded read in svc_22_claim_private_ws (its result is overwritten before use).
 ; &fe2b referenced 1 time by &8f21
 romsel                      = &fe30
 ; &fe30 referenced 2 times by &8a0b, &8a19
@@ -3395,11 +3395,11 @@ os_spool_flag_table = nmi_return_inton+1
     equb <(wait_idle_and_reset - 1)                                   ; 8a32: da          .        ; &0D: svc &0D: wait idle and reset
     equb <(svc_18_fs_select - 1)                                      ; 8a33: 6c          l        ; &0E: svc &12: FS select
     equb <(match_on_suffix - 1)                                       ; 8a34: 91          .        ; &0F: svc &18: interactive HELP 'ON ' matcher
-    equb <(raise_y_to_c8 - 1)                                         ; 8a35: 02          .        ; &10: svc &21: static workspace claim
-    equb <(set_rom_ws_page - 1)                                       ; 8a36: 17          .        ; &11: svc &22: dynamic workspace offer
-    equb <(store_ws_page_count - 1)                                   ; 8a37: 09          .        ; &12: svc &23: top-of-static-workspace
-    equb <(noop_dey_rts - 1)                                          ; 8a38: 8a          .        ; &13: svc &24: dynamic workspace claim
-    equb <(copy_template_to_zp - 1)                                   ; 8a39: 8c          .        ; &14: svc &25: FS name + info reply
+    equb <(svc_21_claim_abs_ws - 1)                                   ; 8a35: 02          .        ; &10: svc &21: claim absolute workspace (Hazel)
+    equb <(svc_22_claim_private_ws - 1)                               ; 8a36: 17          .        ; &11: svc &22: claim private workspace (Hazel)
+    equb <(svc_23_record_abs_top - 1)                                 ; 8a37: 09          .        ; &12: svc &23: record top of absolute workspace
+    equb <(svc_24_claim_private_page - 1)                             ; 8a38: 8a          .        ; &13: svc &24: reserve one private-workspace page
+    equb <(svc_25_return_fs_info - 1)                                 ; 8a39: 8c          .        ; &14: svc &25: FS name + info reply
     equb <(svc_26_close_all_files - 1)                                ; 8a3a: a3          .        ; &15: svc &26: close all files
     equb <(nfs_init_body - 1)                                         ; 8a3b: 51          Q        ; &16: svc &27: post-hard-reset re-init
     equb <(print_fs_ps_help - 1)                                      ; 8a3c: a0          .        ; &17: svc &28: print *FS/*PS no-arg syntax help
@@ -3448,11 +3448,11 @@ os_spool_flag_table = nmi_return_inton+1
     equb >(wait_idle_and_reset - 1)                                   ; 8a65: 89          .        ; &0D: svc &0D: wait idle and reset
     equb >(svc_18_fs_select - 1)                                      ; 8a66: 8b          .        ; &0E: svc &12: FS select
     equb >(match_on_suffix - 1)                                       ; 8a67: 96          .        ; &0F: svc &18: interactive HELP 'ON ' matcher
-    equb >(raise_y_to_c8 - 1)                                         ; 8a68: 8f          .        ; &10: svc &21: static workspace claim
-    equb >(set_rom_ws_page - 1)                                       ; 8a69: 8f          .        ; &11: svc &22: dynamic workspace offer
-    equb >(store_ws_page_count - 1)                                   ; 8a6a: 8f          .        ; &12: svc &23: top-of-static-workspace
-    equb >(noop_dey_rts - 1)                                          ; 8a6b: 8e          .        ; &13: svc &24: dynamic workspace claim
-    equb >(copy_template_to_zp - 1)                                   ; 8a6c: 8e          .        ; &14: svc &25: FS name + info reply
+    equb >(svc_21_claim_abs_ws - 1)                                   ; 8a68: 8f          .        ; &10: svc &21: claim absolute workspace (Hazel)
+    equb >(svc_22_claim_private_ws - 1)                               ; 8a69: 8f          .        ; &11: svc &22: claim private workspace (Hazel)
+    equb >(svc_23_record_abs_top - 1)                                 ; 8a6a: 8f          .        ; &12: svc &23: record top of absolute workspace
+    equb >(svc_24_claim_private_page - 1)                             ; 8a6b: 8e          .        ; &13: svc &24: reserve one private-workspace page
+    equb >(svc_25_return_fs_info - 1)                                 ; 8a6c: 8e          .        ; &14: svc &25: FS name + info reply
     equb >(svc_26_close_all_files - 1)                                ; 8a6d: 8e          .        ; &15: svc &26: close all files
     equb >(nfs_init_body - 1)                                         ; 8a6e: 8f          .        ; &16: svc &27: post-hard-reset re-init
     equb >(print_fs_ps_help - 1)                                      ; 8a6f: 95          .        ; &17: svc &28: print *FS/*PS no-arg syntax help
@@ -3493,21 +3493,21 @@ os_spool_flag_table = nmi_return_inton+1
 ;
 ; The full set of service calls ANFS acts on (service values shown in decimal and hex):
 ;
-; | Dec  | Hex     | Idx  | Handler                 | Purpose                       |
-; |------|---------|------|-------------------------|-------------------------------|
-; | 0–12 | &00–&0C | 1–13 | (service 1–12 handlers) | Standard low service calls    |
-; | 15   | &0F     | —    | (prologue)              | Vectors claimed — OS check    |
-; | 18   | &12     | 14   | svc_18_fs_select        | FS select                     |
-; | 24   | &18     | 15   | match_on_suffix         | Interactive *HELP ON  matcher |
-; | 33   | &21     | 16   | raise_y_to_c8           | Static workspace claim        |
-; | 34   | &22     | 17   | set_rom_ws_page         | Dynamic workspace offer       |
-; | 35   | &23     | 18   | store_ws_page_count     | Top of static workspace       |
-; | 36   | &24     | 19   | noop_dey_rts            | Dynamic workspace claim       |
-; | 37   | &25     | 20   | copy_template_to_zp     | FS name + info reply          |
-; | 38   | &26     | 21   | svc_26_close_all_files  | Close all files               |
-; | 39   | &27     | 22   | nfs_init_body           | Post-hard-reset re-init       |
-; | 40   | &28     | 23   | print_fs_ps_help        | *FS / *PS syntax help         |
-; | 41   | &29     | 24   | svc_29_status           | *STATUS handler               |
+; | Dec  | Hex     | Idx  | Handler                   | Purpose                            |
+; |------|---------|------|---------------------------|------------------------------------|
+; | 0–12 | &00–&0C | 1–13 | (service 1–12 handlers)   | Standard low service calls         |
+; | 15   | &0F     | —    | (prologue)                | Vectors claimed — OS check         |
+; | 18   | &12     | 14   | svc_18_fs_select          | FS select                          |
+; | 24   | &18     | 15   | match_on_suffix           | Interactive *HELP ON  matcher      |
+; | 33   | &21     | 16   | svc_21_claim_abs_ws       | Claim absolute workspace (Hazel)   |
+; | 34   | &22     | 17   | svc_22_claim_private_ws   | Claim private workspace (Hazel)    |
+; | 35   | &23     | 18   | svc_23_record_abs_top     | Record top of absolute workspace   |
+; | 36   | &24     | 19   | svc_24_claim_private_page | Reserve one private-workspace page |
+; | 37   | &25     | 20   | svc_25_return_fs_info     | FS name + info reply               |
+; | 38   | &26     | 21   | svc_26_close_all_files    | Close all files                    |
+; | 39   | &27     | 22   | nfs_init_body             | Post-hard-reset re-init            |
+; | 40   | &28     | 23   | print_fs_ps_help          | *FS / *PS syntax help              |
+; | 41   | &29     | 24   | svc_29_status             | *STATUS handler                    |
 ;
 ; Every other value (&0D–&11, &13–&17, &19–&20, &2A and up) falls through to index 1
 ; (dispatch_rts, a no-op) and returns the call unclaimed — deliberately ignoring e.g. &15
@@ -4598,7 +4598,7 @@ ps_template_base = load_transfer_params+1
 ; and OSBYTE handler routing.
 ;
 ; Routine extent is &8E61-&8E88 (the RTS is the dispatch). The short Master service
-; handlers at noop_dey_rts (svc &24), copy_template_to_zp (svc &25) and
+; handlers at svc_24_claim_private_page (svc &24), svc_25_return_fs_info (svc &25) and
 ; svc_26_close_all_files sit immediately after.
 ;
 ; On Entry:
@@ -4623,12 +4623,12 @@ ps_template_base = load_transfer_params+1
 .dispatch_rts
     rts                                                               ; 8e8a: 60          `        ; Dispatch via RTS
 ; ***************************************************************************************
-; Service &24: dynamic workspace claim (1 page)
+; Service &24 — reserve one private-workspace page
 ;
 ; Two-byte handler reached via svc_dispatch slot &13. DEY decrements the caller's
-; first-available-page count by 1 to claim a single workspace page; RTS returns to the
-; dispatcher.
-.noop_dey_rts
+; first-available-page count by 1 to reserve a single private-workspace page; RTS returns
+; to the dispatcher.
+.svc_24_claim_private_page
     dey                                                               ; 8e8b: 88          .        ; Claim 1 page (DEY = decrement Y by 1)
     rts                                                               ; 8e8c: 60          `        ; Return
 ; ***************************************************************************************
@@ -4639,7 +4639,7 @@ ps_template_base = load_transfer_params+1
 ; from template[X], while Y increments from the caller's value, so the destination ends
 ; up holding the template byte-reversed ('NET      /' + length-byte). Returns via the
 ; shared RTS at fs_template_done.
-.copy_template_to_zp
+.svc_25_return_fs_info
     ldx #&0a                                                          ; 8e8d: a2 0a       ..       ; X = 10 (top of 11-byte template)
 ; &8e8f referenced 1 time by &8e96
 .loop_copy_return_template
@@ -4654,14 +4654,14 @@ ps_template_base = load_transfer_params+1
 ; ***************************************************************************************
 ; FS-name reply template (11 bytes, byte-reversed)
 ;
-; Source data for the byte-reverse copy in copy_template_to_zp. When stored at
+; Source data for the byte-reverse copy in svc_25_return_fs_info. When stored at
 ; (os_text_ptr),Y in reverse order the destination reads "NET" + 6 spaces + "/" +
 ; length-byte 5, which is the FS name the ROM reports for service &25 (FS name + info
 ; reply).
 ; &8e99 used as index base 1 time by &8e8f
 .fs_info_template
     equb &05                                                          ; 8e99: 05          .     
-    equs "/      TEN"                                                 ; 8e9a: 2f 20 20... /  ...   ; 11-byte template (length 5 in [0], then ' TEN'); copied to (&F2),Y by copy_template_to_zp
+    equs "/      TEN"                                                 ; 8e9a: 2f 20 20... /  ...   ; 11-byte template (length 5 in [0], then ' TEN'); copied to (&F2),Y by svc_25_return_fs_info
 ; ***************************************************************************************
 ; Service &26: close all files (FILEV via Y=0)
 ;
@@ -4821,7 +4821,7 @@ ps_template_base = load_transfer_params+1
     lda osbyte_a_copy                                                 ; 8ef2: a5 ef       ..       ; Get original OSBYTE A parameter
     sbc #&31                                                          ; 8ef4: e9 31       .1       ; Subtract &31 (map &32-&35 to 1-4)
     cmp #4                                                            ; 8ef6: c9 04       ..       ; In range 0-3?
-    bcs rts_raise_y_to_c8                                             ; 8ef8: b0 0f       ..       ; No: not ours, return unclaimed
+    bcs rts_svc_21_claim_abs_ws                                       ; 8ef8: b0 0f       ..       ; No: not ours, return unclaimed
     tax                                                               ; 8efa: aa          .        ; Transfer to X as dispatch index
     stz svc_state                                                     ; 8efb: 64 a9       d.       ; Clear svc_state
     tya                                                               ; 8efd: 98          .        ; Transfer Y to A (OSBYTE Y param)
@@ -4842,12 +4842,12 @@ ps_template_base = load_transfer_params+1
 ;
 ; On Exit:
 ;     Y: > = &C8 (ANFS static workspace base)
-.raise_y_to_c8
+.svc_21_claim_abs_ws
     cpy #&c8                                                          ; 8f03: c0 c8       ..       ; Y already >= &C8?
-    bcs rts_raise_y_to_c8                                             ; 8f05: b0 02       ..       ; Yes: return Y unchanged
+    bcs rts_svc_21_claim_abs_ws                                       ; 8f05: b0 02       ..       ; Yes: return Y unchanged
     ldy #&c8                                                          ; 8f07: a0 c8       ..       ; No: raise Y to &C8
 ; &8f09 referenced 2 times by &8ef8, &8f05
-.rts_raise_y_to_c8
+.rts_svc_21_claim_abs_ws
     rts                                                               ; 8f09: 60          `        ; Return
 ; ***************************************************************************************
 ; Record workspace page count (capped at &D3)
@@ -4858,7 +4858,7 @@ ps_template_base = load_transfer_params+1
 ;
 ; On Entry:
 ;     Y: workspace page count from service 1
-.store_ws_page_count
+.svc_23_record_abs_top
     tya                                                               ; 8f0a: 98          .        ; Transfer Y to A
     pha                                                               ; 8f0b: 48          H        ; Push for save
     cmp #&d3                                                          ; 8f0c: c9 d3       ..       ; Y >= &D3?
@@ -4871,7 +4871,7 @@ ps_template_base = load_transfer_params+1
     ply                                                               ; 8f16: 7a          z        ; Pop -- save Y temporarily
     rts                                                               ; 8f17: 60          `        ; Return -- ws_page count saved
 ; &8f18 referenced 1 time by &8f4f
-.set_rom_ws_page
+.svc_22_claim_private_ws
     tya                                                               ; 8f18: 98          .        ; Caller's page (in Y) into A
     ldy romsel_copy                                                   ; 8f19: a4 f4       ..       ; Y = current ROM slot from romsel_copy
     pha                                                               ; 8f1b: 48          H        ; Push restored value
@@ -4925,7 +4925,7 @@ ps_template_base = load_transfer_params+1
     jsr get_ws_page                                                   ; 8f49: 20 d4 8c     ..      ; Compute workspace start page via get_ws_page
     cpy #&dc                                                          ; 8f4c: c0 dc       ..       ; Y >= &DC?
     ply                                                               ; 8f4e: 7a          z        ; Restore Y from stack
-    bcs set_rom_ws_page                                               ; 8f4f: b0 c7       ..       ; Yes: jump to set_rom_ws_page (error path)
+    bcs svc_22_claim_private_ws                                       ; 8f4f: b0 c7       ..       ; Yes: jump to svc_22_claim_private_ws (error path)
     rts                                                               ; 8f51: 60          `        ; Return
 ; ***************************************************************************************
 ; ANFS initialisation body
@@ -4958,20 +4958,20 @@ ps_template_base = load_transfer_params+1
 ; The full set of Master 128 service calls ANFS handles, dispatched via the CMP/SBC
 ; normalisation chain in service_handler:
 ;
-; | dec   | hex      | handler                | purpose                 |
-; |-------|----------|------------------------|-------------------------|
-; | 0..12 | &00..&0C | (svc-1..12 handlers)   | service-1 .. service-12 |
-; | 18    | &12      | svc_18_fs_select       | FS select               |
-; | 24    | &18      | match_on_suffix        | Interactive HELP        |
-; | 33    | &21      | raise_y_to_c8          | static ws claim         |
-; | 34    | &22      | set_rom_ws_page        | dynamic ws offer        |
-; | 35    | &23      | store_ws_page_count    | top-of-static-ws        |
-; | 36    | &24      | noop_dey_rts           | dynamic ws claim (1 pg) |
-; | 37    | &25      | copy_template_to_zp    | FS name + info reply    |
-; | 38    | &26      | svc_26_close_all_files | close all files         |
-; | 39    | &27      | nfs_init_body (this)   | reset re-init           |
-; | 40    | &28      | print_fs_ps_help       | *CONFIGURE option       |
-; | 41    | &29      | svc_29_status          | *STATUS option          |
+; | dec   | hex      | handler                   | purpose                   |
+; |-------|----------|---------------------------|---------------------------|
+; | 0..12 | &00..&0C | (svc-1..12 handlers)      | service-1 .. service-12   |
+; | 18    | &12      | svc_18_fs_select          | FS select                 |
+; | 24    | &18      | match_on_suffix           | Interactive HELP          |
+; | 33    | &21      | svc_21_claim_abs_ws       | claim absolute ws (Hazel) |
+; | 34    | &22      | svc_22_claim_private_ws   | claim private ws (Hazel)  |
+; | 35    | &23      | svc_23_record_abs_top     | record top of absolute ws |
+; | 36    | &24      | svc_24_claim_private_page | reserve 1 private ws page |
+; | 37    | &25      | svc_25_return_fs_info     | FS name + info reply      |
+; | 38    | &26      | svc_26_close_all_files    | close all files           |
+; | 39    | &27      | nfs_init_body (this)      | reset re-init             |
+; | 40    | &28      | print_fs_ps_help          | *CONFIGURE option         |
+; | 41    | &29      | svc_29_status             | *STATUS option            |
 ;
 ; Everything else (svc &0D..&11, &13..&17, &19..&20, &2A+) falls through to
 ; dispatch_svc_state_check with A := 0 and dispatches to idx 1 = dispatch_rts (no-op) –
@@ -16982,8 +16982,8 @@ save pydis_start, pydis_end
 ;     rts_help_wrap:                 2
 ;     rts_inc_fcb_count:             2
 ;     rts_match_rx_code:             2
-;     rts_raise_y_to_c8:             2
 ;     rts_save_text_ptr:             2
+;     rts_svc_21_claim_abs_ws:       2
 ;     rx_extra_byte:                 2
 ;     rx_wait_timeout:               2
 ;     save_fcb_context:              2
@@ -17769,7 +17769,6 @@ save pydis_start, pydis_end
 ;     set_flags_boot:                1
 ;     set_fs_select_flag:            1
 ;     set_port_and_ctrl:             1
-;     set_rom_ws_page:               1
 ;     set_timeout:                   1
 ;     set_tube_addr:                 1
 ;     set_tx_reply_flag:             1
@@ -17855,6 +17854,7 @@ save pydis_start, pydis_end
 ;     subst_rx_page_byte:            1
 ;     subtract_ws_byte:              1
 ;     suffix_not_listening:          1
+;     svc_22_claim_private_ws:       1
 ;     svc_dispatch_hi:               1
 ;     svc_dispatch_lo:               1
 ;     syn_opt_dir:                   1

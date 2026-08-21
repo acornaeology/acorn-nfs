@@ -95,8 +95,8 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8D24` `check_credits_easter_egg` - description matches body
 - [x] `0x8E5B` `dir_op_dispatch` - description matches body's CPX/BCS/LDY-Y=&18 setup; dispatch math 'X+Y+1' lands &19..&1D for lang reply 0..4
 - [x] `0x8E61` `svc_dispatch` - description compared against body, accurate
-- [x] `0x8E71` `noop_dey_rts` - description compared against body, accurate
-- [x] `0x8E73` `copy_template_to_zp` - description compared against body, accurate
+- [x] `0x8E71` `svc_24_claim_private_page` - description compared against body, accurate
+- [x] `0x8E73` `svc_25_return_fs_info` - description compared against body, accurate
 - [x] `0x8E7F` `fs_info_template` - description compared against body, accurate
 - [x] `0x8E98` `read_cmos_byte_0` - description matches body (LDX #0, fall through to osbyte_a1)
 - [x] `0x8E9A` `osbyte_a1` - description matches body; the 'dual-use trick' note about bytes being read by write_vector_entry is genuinely accurate
@@ -104,8 +104,8 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0x8EC9` `osbyte_x0` - inline at &8EC9 had a confused claim about a 'BEQ after this is unconditional' (no BEQ exists; routine falls through to osbyte_yff). Cleaned up
 - [x] `0x8ECB` `osbyte_yff` - description matches body
 - [x] `0x8ED2` `osbyte_x0_y0` - description matches body (BEQ jmp_osbyte unconditional after LDY #0 sets Z)
-- [x] `0x8EE9` `raise_y_to_c8` - description matches body
-- [x] `0x8EF0` `store_ws_page_count` - two inline comments at &8EF2 and &8EF6 said '&21' but the cap value is &D3 (=211); fixed
+- [x] `0x8EE9` `svc_21_claim_abs_ws` - description matches body
+- [x] `0x8EF0` `svc_23_record_abs_top` - two inline comments at &8EF2 and &8EF6 said '&21' but the cap value is &D3 (=211); fixed
 - [x] `0x904F` `write_vector_entry` - description matches body's vector-installation loop
 - [x] `0x9064` `restore_fs_context` - description claimed source is fs_context_save (&0DFA) but body actually copies from the HAZEL FS state block via the hazel_minus_2 indexing-base trick (&BFFE,Y with Y=9..2 -> &C007..&C000). Rewrote
 - [x] `0x909E` `verify_ws_checksum` - description matches body's checksum verification

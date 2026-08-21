@@ -216,8 +216,8 @@ enrichments).
 | 131 | &8ECB | `osbyte_yff` | kept | already accurate |
 | 132 | &8ED2 | `osbyte_x0_y0` | done | inline-code refinement |
 | 133 | &8ED8 | `svc_7_osbyte` | kept | already accurate |
-| 134 | &8EE9 | `raise_y_to_c8` | kept | already accurate |
-| 135 | &8EF0 | `store_ws_page_count` | kept | already accurate with svc_2_private_workspace_pages link |
+| 134 | &8EE9 | `svc_21_claim_abs_ws` | kept | already accurate |
+| 135 | &8EF0 | `svc_23_record_abs_top` | kept | already accurate with svc_2_private_workspace_pages link |
 | 136 | &8F10 | `svc_2_private_workspace_pages` | kept | already accurate with all relevant links |
 | 137 | &8F38 | `nfs_init_body` | kept | already has comprehensive description |
 | 138 | &903C | `init_adlc_and_vectors` | done | restore_fs_context + write_vector_entry links |

@@ -531,7 +531,7 @@ dimensions. In priority order:
     code, the headline density dropped to 88.2 % (6245 / 7080) -- but
     this is on a denominator that's 9 % larger.
   - 14 new inline comments added for the dispatch idx 19/20/21 stubs
-    (`noop_dey_rts`, `copy_template_to_zp`, `check_help_continuation`).
+    (`svc_24_claim_private_page`, `svc_25_return_fs_info`, `check_help_continuation`).
   - The dead-code regions at &9619/&9623/&9630/&959A/&969A/&96BD --
     mostly carried-over 4.18 routines that have no callers in 4.21
     -- are traced as code but not annotated. They show up as 79 of
