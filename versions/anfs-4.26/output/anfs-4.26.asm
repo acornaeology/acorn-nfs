@@ -4850,14 +4850,24 @@ ps_template_base = load_transfer_params+1
 .rts_svc_21_claim_abs_ws
     rts                                                               ; 8f09: 60          `        ; Return
 ; ***************************************************************************************
-; Record workspace page count (capped at &D3)
+; Service &23 handler: record top of absolute workspace
 ;
-; Stores the workspace allocation from service 1 into offset &0B of the receive control
-; block, capping the value at &D3 to prevent overflow into adjacent workspace areas.
-; Called by svc_2_priv_ws after issuing the absolute workspace claim service call.
+; svc &23 handler, reached only through the PHA/PHA/RTS dispatch table (it has no other
+; callers). On the Master, service &23 tells each filing-system ROM the top of absolute
+; (static) Hazel workspace: Y holds the end page — equivalently the lowest page of
+; private workspace. ANFS records that boundary into offset &0B of the receive control
+; block, capping it at &D3 to stay clear of adjacent workspace, then returns the call
+; unclaimed so MOS keeps offering it to other ROMs.
+;
+; The stub leaves A holding the recorded page, but that is harmless: service &23 is
+; informational, and the service_handler dispatch wrapper overwrites A from svc_state on
+; exit — so the "A preserved" convention is met by the framework, not here.
 ;
 ; On Entry:
-;     Y: workspace page count from service 1
+;     Y: top page of absolute workspace (= lowest private page)
+;
+; On Exit:
+;     A: clobbered; the dispatch wrapper resets it to the service return code
 .svc_23_record_abs_top
     tya                                                               ; 8f0a: 98          .        ; Transfer Y to A
     pha                                                               ; 8f0b: 48          H        ; Push for save
@@ -4870,6 +4880,24 @@ ps_template_base = load_transfer_params+1
     sta (net_rx_ptr),y                                                ; 8f14: 91 9c       ..       ; Store workspace page count
     ply                                                               ; 8f16: 7a          z        ; Pop -- save Y temporarily
     rts                                                               ; 8f17: 60          `        ; Return -- ws_page count saved
+; ***************************************************************************************
+; Service &22 handler: claim private workspace
+;
+; svc &22 handler — the Master offers private Hazel workspace with Y = lowest free page.
+; ANFS publishes that page into rom_ws_pages[slot] (masking bit 7 to flag the workspace
+; claimed) and raises Y by one page (INY) to reserve a single page. The two reads of the
+; 1770 FDC registers are discarded — Y is reloaded immediately after and ANFS does no
+; disk I/O.
+;
+; Also entered by a branch from svc_2_priv_ws: when its computed workspace page overflows
+; past &DC, it falls into this routine to publish the (masked) page and return, reusing
+; the same rom_ws_pages bookkeeping.
+;
+; On Entry:
+;     Y: lowest free private-workspace page
+;
+; On Exit:
+;     Y: raised by one page (single page claimed)
 ; &8f18 referenced 1 time by &8f4f
 .svc_22_claim_private_ws
     tya                                                               ; 8f18: 98          .        ; Caller's page (in Y) into A

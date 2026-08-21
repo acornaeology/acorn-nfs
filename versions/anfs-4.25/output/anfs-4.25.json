@@ -1366,10 +1366,25 @@
     {
       "addr": 36618,
       "name": "svc_23_record_abs_top",
-      "title": "Record workspace page count (capped at &D3)",
-      "description": "Stores the workspace allocation from service 1 into offset `&0B` of\nthe receive control block, capping the value at `&D3` to prevent\noverflow into adjacent workspace areas. Called by\n[`svc_2_priv_ws`](label:svc_2_priv_ws) after issuing the\nabsolute workspace claim service call.",
+      "title": "Service &23 handler: record top of absolute workspace",
+      "description": "svc &23 handler, reached only through the PHA/PHA/RTS\ndispatch table (it has no other callers). On the Master, service &23\ntells each filing-system ROM the top of absolute (static) Hazel\nworkspace: `Y` holds the end page \u2014 equivalently the lowest page of\nprivate workspace. ANFS records that boundary into offset `&0B` of the\nreceive control block, capping it at `&D3` to stay clear of adjacent\nworkspace, then returns the call unclaimed so MOS keeps offering it to\nother ROMs.\n\nThe stub leaves `A` holding the recorded page, but that is harmless:\nservice &23 is informational, and the\n[`service_handler`](label:service_handler) dispatch wrapper overwrites\n`A` from `svc_state` on exit \u2014 so the \"A preserved\" convention is met\nby the framework, not here.",
       "on_entry": {
-        "y": "workspace page count from service 1"
+        "y": "top page of absolute workspace (= lowest private page)"
+      },
+      "on_exit": {
+        "a": "clobbered; the dispatch wrapper resets it to the service return code"
+      }
+    },
+    {
+      "addr": 36632,
+      "name": "svc_22_claim_private_ws",
+      "title": "Service &22 handler: claim private workspace",
+      "description": "svc &22 handler \u2014 the Master offers private Hazel\nworkspace with `Y` = lowest free page. ANFS publishes that page into\n`rom_ws_pages[slot]` (masking bit 7 to flag the workspace claimed) and\nraises `Y` by one page (`INY`) to reserve a single page. The two reads\nof the 1770 FDC registers are discarded \u2014 `Y` is reloaded immediately\nafter and ANFS does no disk I/O.\n\nAlso entered by a branch from [`svc_2_priv_ws`](label:svc_2_priv_ws):\nwhen its computed workspace page overflows past `&DC`, it falls into\nthis routine to publish the (masked) page and return, reusing the same\n`rom_ws_pages` bookkeeping.",
+      "on_entry": {
+        "y": "lowest free private-workspace page"
+      },
+      "on_exit": {
+        "y": "raised by one page (single page claimed)"
       }
     },
     {

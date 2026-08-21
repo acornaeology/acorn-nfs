@@ -5991,13 +5991,23 @@ d.label(0x8F08, "svc_23_record_abs_top")
 d.subroutine(
     0x8F08,
     "svc_23_record_abs_top",
-    title="Record workspace page count (capped at &D3)",
-    description="""Stores the workspace allocation from service 1 into offset `&0B` of
-the receive control block, capping the value at `&D3` to prevent
-overflow into adjacent workspace areas. Called by
-[`svc_2_priv_ws`](label:svc_2_priv_ws) after issuing the
-absolute workspace claim service call.""",
-    on_entry={"y": "workspace page count from service 1"},
+    title="Service &23 handler: record top of absolute workspace",
+    description="""svc &23 handler, reached only through the PHA/PHA/RTS
+dispatch table (it has no other callers). On the Master, service &23
+tells each filing-system ROM the top of absolute (static) Hazel
+workspace: `Y` holds the end page — equivalently the lowest page of
+private workspace. ANFS records that boundary into offset `&0B` of the
+receive control block, capping it at `&D3` to stay clear of adjacent
+workspace, then returns the call unclaimed so MOS keeps offering it to
+other ROMs.
+
+The stub leaves `A` holding the recorded page, but that is harmless:
+service &23 is informational, and the
+[`service_handler`](label:service_handler) dispatch wrapper overwrites
+`A` from `svc_state` on exit — so the "A preserved" convention is met
+by the framework, not here.""",
+    on_entry={"y": "top page of absolute workspace (= lowest private page)"},
+    on_exit={"a": "clobbered; the dispatch wrapper resets it to the service return code"},
 )
 d.comment(0x8F08, "Transfer Y to A", align=Align.INLINE)
 d.comment(0x8F09, "Push for save", align=Align.INLINE)
@@ -6012,6 +6022,25 @@ d.comment(0x8F14, "Pop -- save Y temporarily", align=Align.INLINE)
 d.comment(0x8F15, "Return -- ws_page count saved", align=Align.INLINE)
 d.entry(0x8F16)
 d.label(0x8F16, "svc_22_claim_private_ws")
+
+d.subroutine(
+    0x8F16,
+    "svc_22_claim_private_ws",
+    title="Service &22 handler: claim private workspace",
+    description="""svc &22 handler — the Master offers private Hazel
+workspace with `Y` = lowest free page. ANFS publishes that page into
+`rom_ws_pages[slot]` (masking bit 7 to flag the workspace claimed) and
+raises `Y` by one page (`INY`) to reserve a single page. The two reads
+of the 1770 FDC registers are discarded — `Y` is reloaded immediately
+after and ANFS does no disk I/O.
+
+Also entered by a branch from [`svc_2_priv_ws`](label:svc_2_priv_ws):
+when its computed workspace page overflows past `&DC`, it falls into
+this routine to publish the (masked) page and return, reusing the same
+`rom_ws_pages` bookkeeping.""",
+    on_entry={"y": "lowest free private-workspace page"},
+    on_exit={"y": "raised by one page (single page claimed)"},
+)
 
 d.comment(0x8F16, "Caller's page (in Y) into A", align=Align.INLINE)
 d.comment(0x8F17, "Y = current ROM slot from romsel_copy", align=Align.INLINE)
