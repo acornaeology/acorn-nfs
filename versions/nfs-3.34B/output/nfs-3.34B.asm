@@ -2575,8 +2575,8 @@ cmd_roff_str = copyright_string+3
     jsr handle_to_mask_a                                              ; 83ee: 20 89 85     ..      ; Convert SPOOL handle to bitmask
     cpy fs_spool0                                                     ; 83f1: c4 cf       ..       ; Compare SPOOL mask with file mask
     bne dispatch_fs_error                                             ; 83f3: d0 07       ..       ; Not SPOOL file: dispatch FS error
-    ldx #&45                                                          ; 83f5: a2 45       .E       ; Load '*SP.' command string low
-    ldy #&84                                                          ; 83f7: a0 84       ..       ; Y=&84: high byte of sp_dot_string
+    ldx #<(sp_dot_string)                                             ; 83f5: a2 45       .E       ; X = sp_dot_string, low byte
+    ldy #>(sp_dot_string)                                             ; 83f7: a0 84       ..       ; Y = sp_dot_string, high byte
     jsr oscli                                                         ; 83f9: 20 f7 ff     ..      ; Close SPOOL via *SP.
 ; &83fc referenced 1 time by &83f3
 .dispatch_fs_error
@@ -6876,8 +6876,8 @@ post_reply_check = scan_or_read_rxcb+1
     bpl rx_error                                                      ; 9852: 10 36       .6       ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 9854: ad a2 fe    ...      ; Read dest network byte
     bne rx_error                                                      ; 9857: d0 31       .1       ; Network != 0: wrong network -- error
-    lda #&65                                                          ; 9859: a9 65       .e       ; Install skip handler at &9865
-    ldy #&98                                                          ; 985b: a0 98       ..       ; High byte of &9865 handler
+    lda #<(nmi_data_rx_skip)                                          ; 9859: a9 65       .e       ; A = nmi_data_rx_skip, low byte
+    ldy #>(nmi_data_rx_skip)                                          ; 985b: a0 98       ..       ; Y = nmi_data_rx_skip, high byte
     bit econet_control1_or_status1                                    ; 985d: 2c a0 fe    ,..      ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 9860: 30 03       0.       ; Data ready: skip directly, no RTI
     jmp set_nmi_vector                                                ; 9862: 4c 0e 0d    L..      ; Install handler and return via RTI
@@ -6897,8 +6897,8 @@ post_reply_check = scan_or_read_rxcb+1
     lda #2                                                            ; 9870: a9 02       ..       ; A=2: Tube transfer flag mask
     bit tx_flags                                                      ; 9872: 2c 4a 0d    ,J.      ; Check if Tube transfer active
     bne install_tube_rx                                               ; 9875: d0 0c       ..       ; Tube active: use Tube RX path
-    lda #&9a                                                          ; 9877: a9 9a       ..       ; Install bulk read at &989A
-    ldy #&98                                                          ; 9879: a0 98       ..       ; High byte of &989A handler
+    lda #<(nmi_data_rx_bulk)                                          ; 9877: a9 9a       ..       ; A = nmi_data_rx_bulk, low byte
+    ldy #>(nmi_data_rx_bulk)                                          ; 9879: a0 98       ..       ; Y = nmi_data_rx_bulk, high byte
     bit econet_control1_or_status1                                    ; 987b: 2c a0 fe    ,..      ; SR1 bit7: more data already waiting?
     bmi nmi_data_rx_bulk                                              ; 987e: 30 1a       0.       ; Yes: enter bulk read directly
     jmp set_nmi_vector                                                ; 9880: 4c 0e 0d    L..      ; No: install handler and RTI
@@ -7094,8 +7094,8 @@ post_reply_check = scan_or_read_rxcb+1
     sta econet_control1_or_status1                                    ; 9968: 8d a0 fe    ...      ; Write CR1: switch to TX mode
     lda #&a7                                                          ; 996b: a9 a7       ..       ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 996d: 8d a1 fe    ...      ; Write CR2: enable TX with status clear
-    lda #&bb                                                          ; 9970: a9 bb       ..       ; Install saved next handler (&99BB for scout ACK)
-    ldy #&99                                                          ; 9972: a0 99       ..       ; High byte of post-ACK handler
+    lda #<(post_ack_scout)                                            ; 9970: a9 bb       ..       ; A = post_ack_scout, low byte
+    ldy #>(post_ack_scout)                                            ; 9972: a0 99       ..       ; Y = post_ack_scout, high byte
 ; &9974 referenced 2 times by &982a, &9b0f
 .ack_tx_write_dest
     sta nmi_next_lo                                                   ; 9974: 8d 4b 0d    .K.      ; Store next handler low byte
@@ -7625,9 +7625,9 @@ rx_ctrl_operand = check_imm_op_ctrl+1
 ; (pointing to tx_done_exit), then does JMP indirect to call the remote JSR target
 ; routine. When that routine returns via RTS, control resumes at tx_done_exit.
 .tx_done_jsr
-    lda #&9b                                                          ; 9b9b: a9 9b       ..       ; Push hi of (tx_done_exit-1)
+    lda #>(tx_done_exit - 1)                                          ; 9b9b: a9 9b       ..       ; Push high byte of tx_done_exit - 1
     pha                                                               ; 9b9d: 48          H        ; Push hi byte on stack
-    lda #&dc                                                          ; 9b9e: a9 dc       ..       ; Push lo of (tx_done_exit-1)
+    lda #<(tx_done_exit - 1)                                          ; 9b9e: a9 dc       ..       ; Push low byte of tx_done_exit - 1 (RTS adds 1)
     pha                                                               ; 9ba0: 48          H        ; Push lo byte on stack
     jmp (exec_addr_lo)                                                ; 9ba1: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit
 ; ***************************************************************************************
@@ -7869,8 +7869,8 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     sty econet_control23_or_status2                                   ; 9ca2: 8c a1 fe    ...      ; Write CR2 = Y (&E7: RTS|CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE)
     ldx #&44                                                          ; 9ca5: a2 44       .D       ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 9ca7: 8e a0 fe    ...      ; Write to ADLC CR1
-    ldx #&4c                                                          ; 9caa: a2 4c       .L       ; Install NMI handler at &9D4C (TX data handler)
-    ldy #&9d                                                          ; 9cac: a0 9d       ..       ; High byte of NMI handler address
+    ldx #<(nmi_tx_data)                                               ; 9caa: a2 4c       .L       ; X = nmi_tx_data, low byte
+    ldy #>(nmi_tx_data)                                               ; 9cac: a0 9d       ..       ; Y = nmi_tx_data, high byte
     stx nmi_jmp_lo                                                    ; 9cae: 8e 0c 0d    ...      ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 9cb1: 8c 0d 0d    ...      ; Write NMI vector high byte directly
     bit video_ula_control                                             ; 9cb4: 2c 20 fe    , .      ; INTON -- NMIs now fire for TDRA (&FE20 read)
@@ -8116,8 +8116,8 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     bpl reply_error                                                   ; 9dcb: 10 11       ..       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 9dcd: ad a2 fe    ...      ; Read destination network byte
     bne reply_error                                                   ; 9dd0: d0 0c       ..       ; Non-zero -- network mismatch, error
-    lda #&e3                                                          ; 9dd2: a9 e3       ..       ; Install next handler at &9DE3 (reply validation)
-    ldy #&9d                                                          ; 9dd4: a0 9d       ..       ; High byte of nmi_reply_validate
+    lda #<(nmi_reply_validate)                                        ; 9dd2: a9 e3       ..       ; A = nmi_reply_validate, low byte
+    ldy #>(nmi_reply_validate)                                        ; 9dd4: a0 9d       ..       ; Y = nmi_reply_validate, high byte
     bit econet_control1_or_status1                                    ; 9dd6: 2c a0 fe    ,..      ; BIT SR1: test IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 9dd9: 30 08       0.       ; IRQ set -- fall through to &9D5B without RTI
     jmp set_nmi_vector                                                ; 9ddb: 4c 0e 0d    L..      ; IRQ not set -- install handler and RTI
@@ -8160,8 +8160,8 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     sta econet_control23_or_status2                                   ; 9e01: 8d a1 fe    ...      ; Write CR2: enable RTS for TX handshake
     lda #&44                                                          ; 9e04: a9 44       .D       ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 9e06: 8d a0 fe    ...      ; Write CR1: reset RX, enable TX interrupt
-    lda #&dd                                                          ; 9e09: a9 dd       ..       ; Install next handler at &9EDD (four-way data phase) into &0D4B/&0D4C
-    ldy #&9e                                                          ; 9e0b: a0 9e       ..       ; High byte &9E of next handler address
+    lda #<(handshake_await_ack)                                       ; 9e09: a9 dd       ..       ; A = handshake_await_ack, low byte
+    ldy #>(handshake_await_ack)                                       ; 9e0b: a0 9e       ..       ; Y = handshake_await_ack, high byte
     sta nmi_next_lo                                                   ; 9e0d: 8d 4b 0d    .K.      ; Store low byte to nmi_next_lo
     sty nmi_next_hi                                                   ; 9e10: 8c 4c 0d    .L.      ; Store high byte to nmi_next_hi
     lda tx_dst_stn                                                    ; 9e13: ad 20 0d    . .      ; Load dest station for scout ACK TX
@@ -8337,8 +8337,8 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     bpl tx_result_fail                                                ; 9f02: 10 39       .9       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 9f04: ad a2 fe    ...      ; Read dest network
     bne tx_result_fail                                                ; 9f07: d0 34       .4       ; Non-zero -- network mismatch, error
-    lda #&15                                                          ; 9f09: a9 15       ..       ; Install handler at &9F15 (final ACK validation)
-    ldy #&9f                                                          ; 9f0b: a0 9f       ..       ; High byte of handler address
+    lda #<(nmi_final_ack_validate)                                    ; 9f09: a9 15       ..       ; A = nmi_final_ack_validate, low byte
+    ldy #>(nmi_final_ack_validate)                                    ; 9f0b: a0 9f       ..       ; Y = nmi_final_ack_validate, high byte
     bit econet_control1_or_status1                                    ; 9f0d: 2c a0 fe    ,..      ; BIT SR1: test IRQ -- more data ready?
     bmi nmi_final_ack_validate                                        ; 9f10: 30 03       0.       ; IRQ set -- fall through to &9F15 without RTI
     jmp set_nmi_vector                                                ; 9f12: 4c 0e 0d    L..      ; Install handler and RTI

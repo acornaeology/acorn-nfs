@@ -50119,10 +50119,19 @@
         169,
         77
       ],
-      "comment_inline": "Install skip handler at &9810",
+      "comment_inline": "A = nmi_data_rx_skip, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&4d"
+      "operand": "#<(nmi_data_rx_skip)",
+      "expr": {
+        "text": "<(nmi_data_rx_skip)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_skip"
+          }
+        }
+      }
     },
     {
       "addr": 38979,
@@ -50130,10 +50139,19 @@
         160,
         152
       ],
-      "comment_inline": "High byte of &9810 handler",
+      "comment_inline": "Y = nmi_data_rx_skip, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&98"
+      "operand": "#>(nmi_data_rx_skip)",
+      "expr": {
+        "text": ">(nmi_data_rx_skip)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_skip"
+          }
+        }
+      }
     },
     {
       "addr": 38981,
@@ -50299,10 +50317,19 @@
         169,
         128
       ],
-      "comment_inline": "Install bulk read at &9843",
+      "comment_inline": "A = nmi_data_rx_bulk, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&80"
+      "operand": "#<(nmi_data_rx_bulk)",
+      "expr": {
+        "text": "<(nmi_data_rx_bulk)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_bulk"
+          }
+        }
+      }
     },
     {
       "addr": 39009,
@@ -50310,10 +50337,19 @@
         160,
         152
       ],
-      "comment_inline": "High byte of &9843 handler",
+      "comment_inline": "Y = nmi_data_rx_bulk, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&98"
+      "operand": "#>(nmi_data_rx_bulk)",
+      "expr": {
+        "text": ">(nmi_data_rx_bulk)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_bulk"
+          }
+        }
+      }
     },
     {
       "addr": 39011,
@@ -56243,10 +56279,26 @@
       "labels": [
         "tx_done_jsr"
       ],
-      "comment_inline": "Push hi of (tx_done_exit-1)",
+      "comment_inline": "Push high byte of tx_done_exit - 1",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&9b"
+      "operand": "#>(tx_done_exit - 1)",
+      "expr": {
+        "text": ">(tx_done_exit - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_done_exit"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 39808,
@@ -56263,10 +56315,26 @@
         169,
         191
       ],
-      "comment_inline": "Push lo of (tx_done_exit-1)",
+      "comment_inline": "Push low byte of tx_done_exit - 1 (RTS adds 1)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&bf"
+      "operand": "#<(tx_done_exit - 1)",
+      "expr": {
+        "text": "<(tx_done_exit - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_done_exit"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 39811,
@@ -58096,10 +58164,19 @@
         162,
         45
       ],
-      "comment_inline": "Install NMI handler at &9D2D (nmi_tx_data)",
+      "comment_inline": "X = nmi_tx_data, low byte",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&2d"
+      "operand": "#<(nmi_tx_data)",
+      "expr": {
+        "text": "<(nmi_tx_data)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_data"
+          }
+        }
+      }
     },
     {
       "addr": 40083,
@@ -58107,10 +58184,19 @@
         160,
         157
       ],
-      "comment_inline": "High byte of NMI handler address",
+      "comment_inline": "Y = nmi_tx_data, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9d"
+      "operand": "#>(nmi_tx_data)",
+      "expr": {
+        "text": ">(nmi_tx_data)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_tx_data"
+          }
+        }
+      }
     },
     {
       "addr": 40085,
@@ -60431,10 +60517,19 @@
         169,
         194
       ],
-      "comment_inline": "Install nmi_reply_validate at &9DC2",
+      "comment_inline": "A = nmi_reply_validate, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&c2"
+      "operand": "#<(nmi_reply_validate)",
+      "expr": {
+        "text": "<(nmi_reply_validate)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_reply_validate"
+          }
+        }
+      }
     },
     {
       "addr": 40373,
@@ -60442,10 +60537,19 @@
         160,
         157
       ],
-      "comment_inline": "High byte of nmi_reply_validate",
+      "comment_inline": "Y = nmi_reply_validate, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9d"
+      "operand": "#>(nmi_reply_validate)",
+      "expr": {
+        "text": ">(nmi_reply_validate)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_reply_validate"
+          }
+        }
+      }
     },
     {
       "addr": 40375,
@@ -60753,10 +60857,19 @@
         169,
         186
       ],
-      "comment_inline": "Install next handler at &9EBA into &0D4B/&0D4C",
+      "comment_inline": "A = handshake_await_ack, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ba"
+      "operand": "#<(handshake_await_ack)",
+      "expr": {
+        "text": "<(handshake_await_ack)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "handshake_await_ack"
+          }
+        }
+      }
     },
     {
       "addr": 40426,
@@ -60764,10 +60877,19 @@
         160,
         158
       ],
-      "comment_inline": "High byte &9E of next handler address",
+      "comment_inline": "Y = handshake_await_ack, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9e"
+      "operand": "#>(handshake_await_ack)",
+      "expr": {
+        "text": ">(handshake_await_ack)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "handshake_await_ack"
+          }
+        }
+      }
     },
     {
       "addr": 40428,
@@ -62457,10 +62579,19 @@
         169,
         242
       ],
-      "comment_inline": "Install nmi_final_ack_validate at &9E84",
+      "comment_inline": "A = nmi_final_ack_validate, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&f2"
+      "operand": "#<(nmi_final_ack_validate)",
+      "expr": {
+        "text": "<(nmi_final_ack_validate)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack_validate"
+          }
+        }
+      }
     },
     {
       "addr": 40680,
@@ -62468,10 +62599,19 @@
         160,
         158
       ],
-      "comment_inline": "High byte of handler address",
+      "comment_inline": "Y = nmi_final_ack_validate, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9e"
+      "operand": "#>(nmi_final_ack_validate)",
+      "expr": {
+        "text": ">(nmi_final_ack_validate)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_final_ack_validate"
+          }
+        }
+      }
     },
     {
       "addr": 40682,

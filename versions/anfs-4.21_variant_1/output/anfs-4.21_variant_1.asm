@@ -1162,8 +1162,8 @@ rom_header_byte2 = rom_header_byte1+1
     bpl nmi_error_dispatch                                            ; 81d9: 10 3a       .:       ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 81db: ad a2 fe    ...      ; Read dest network byte
     bne nmi_error_dispatch                                            ; 81de: d0 35       .5       ; Network != 0: wrong network -- error
-    lda #&ec                                                          ; 81e0: a9 ec       ..       ; Install skip handler at &8211
-    ldy #&81                                                          ; 81e2: a0 81       ..       ; High byte of &8211 handler
+    lda #<(nmi_data_rx_skip)                                          ; 81e0: a9 ec       ..       ; A = nmi_data_rx_skip, low byte
+    ldy #>(nmi_data_rx_skip)                                          ; 81e2: a0 81       ..       ; Y = nmi_data_rx_skip, high byte
     bit econet_control1_or_status1                                    ; 81e4: 2c a0 fe    ,..      ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 81e7: 30 03       0.       ; Data ready: skip directly, no return
     jmp set_nmi_vector                                                ; 81e9: 4c 0e 0d    L..      ; Install handler and return
@@ -1411,8 +1411,8 @@ rom_header_byte2 = rom_header_byte1+1
     sta econet_control1_or_status1                                    ; 82ec: 8d a0 fe    ...      ; Write CR1: switch to TX mode
     lda #&a7                                                          ; 82ef: a9 a7       ..       ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 82f1: 8d a1 fe    ...      ; Write CR2: enable TX with status clear
-    lda #&86                                                          ; 82f4: a9 86       ..       ; Install saved next handler (scout ACK path)
-    ldy #&83                                                          ; 82f6: a0 83       ..       ; High byte of post-ACK handler
+    lda #<(nmi_post_ack_dispatch)                                     ; 82f4: a9 86       ..       ; A = nmi_post_ack_dispatch, low byte
+    ldy #>(nmi_post_ack_dispatch)                                     ; 82f6: a0 83       ..       ; Y = nmi_post_ack_dispatch, high byte
 ; ***************************************************************************************
 ; Begin ACK transmit: write destination address to ADLC
 ;
@@ -2467,7 +2467,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     ldx #&44                                                          ; 864d: a2 44       .D       ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 864f: 8e a0 fe    ...      ; Write to ADLC CR1
     ldx #<(nmi_tx_data)                                               ; 8652: a2 e7       ..       ; Next NMI handler address (low)
-    ldy #&86                                                          ; 8654: a0 86       ..       ; High byte of NMI handler address
+    ldy #>(nmi_tx_data)                                               ; 8654: a0 86       ..       ; Y = nmi_tx_data, high byte
     stx nmi_jmp_lo                                                    ; 8656: 8e 0c 0d    ...      ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 8659: 8c 0d 0d    ...      ; Write NMI vector high byte directly
     sec                                                               ; 865c: 38          8        ; SEC: prepare carry for ROR into bit 7
@@ -2760,7 +2760,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda econet_data_continue_frame                                    ; 8752: ad a2 fe    ...      ; Read first RX byte (destination station)
     cmp tx_src_stn                                                    ; 8755: cd 22 0d    .".      ; Compare to our station ID (workspace copy)
     bne reject_reply                                                  ; 8758: d0 19       ..       ; Not our station -- error/reject
-    lda #&5f                                                          ; 875a: a9 5f       ._       ; Install nmi_reply_cont continuation handler (low)
+    lda #<(nmi_reply_cont)                                            ; 875a: a9 5f       ._       ; A = nmi_reply_cont, low byte (same page)
     jmp install_nmi_handler                                           ; 875c: 4c 11 0d    L..      ; Install continuation handler
 ; ***************************************************************************************
 ; RX reply continuation handler
@@ -2825,8 +2825,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     sta econet_control23_or_status2                                   ; 8794: 8d a1 fe    ...      ; Write CR2: enable RTS for TX handshake
     lda #&44                                                          ; 8797: a9 44       .D       ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 8799: 8d a0 fe    ...      ; Write CR1: reset RX, enable TX interrupt
-    lda #&86                                                          ; 879c: a9 86       ..       ; Install handshake_await_ack into &0D43/&0D44 (four-way data phase)
-    ldy #&88                                                          ; 879e: a0 88       ..       ; High byte &88 of next handler address
+    lda #<(handshake_await_ack)                                       ; 879c: a9 86       ..       ; A = handshake_await_ack, low byte
+    ldy #>(handshake_await_ack)                                       ; 879e: a0 88       ..       ; Y = handshake_await_ack, high byte
     sta saved_nmi_lo                                                  ; 87a0: 8d 43 0d    .C.      ; Store low byte to nmi_next_lo
     sty saved_nmi_hi                                                  ; 87a3: 8c 44 0d    .D.      ; Store high byte to nmi_next_hi
     lda tx_dst_stn                                                    ; 87a6: ad 20 0d    . .      ; Load dest station for scout ACK TX
@@ -3071,7 +3071,7 @@ tx_flags_table = check_tube_irq_loop+1
     bpl tx_result_fail                                                ; 88a9: 10 37       .7       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 88ab: ad a2 fe    ...      ; Read dest network
     bne tx_result_fail                                                ; 88ae: d0 32       .2       ; Non-zero -- network mismatch, error
-    lda #&ba                                                          ; 88b0: a9 ba       ..       ; Install nmi_final_ack_validate handler
+    lda #<(nmi_final_ack_validate)                                    ; 88b0: a9 ba       ..       ; A = nmi_final_ack_validate, low byte (same page)
     bit econet_control1_or_status1                                    ; 88b2: 2c a0 fe    ,..      ; Test SR1 IRQ -- more data ready?
     bmi nmi_final_ack_validate                                        ; 88b5: 30 03       0.       ; IRQ set -- fall through to validate
     jmp install_nmi_handler                                           ; 88b7: 4c 11 0d    L..      ; Install handler

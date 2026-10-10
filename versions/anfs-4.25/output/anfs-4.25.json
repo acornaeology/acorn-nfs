@@ -472,7 +472,7 @@
       }
     },
     {
-      "addr": 33688,
+      "addr": 33687,
       "name": "nmi_post_ack_dispatch",
       "title": "Post-ACK frame-complete NMI handler",
       "description": "Installed by `ack_tx_configure` via\n[`saved_nmi_lo`](label:saved_nmi_lo) / [`saved_nmi_hi`](label:saved_nmi_hi).\nFires as an NMI after the ACK frame (CRC + closing flag) has been\nfully transmitted by the ADLC. Dispatches on `scout_port`:\n\n| `scout_port` | Control | Target |\n|---|---|---|\n| `\u2260 0` | \u2013 | [`rx_complete_update_rxcb`](label:rx_complete_update_rxcb) (finalise data transfer, mark RXCB complete) |\n| `0`   | `&82` (POKE) | [`rx_complete_update_rxcb`](label:rx_complete_update_rxcb) (same path) |\n| `0`   | other | `imm_op_build_reply` |"
@@ -10736,10 +10736,19 @@
         169,
         239
       ],
-      "comment_inline": "Install skip handler at &8211",
+      "comment_inline": "A = nmi_data_rx_skip, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&ef"
+      "operand": "#<(nmi_data_rx_skip)",
+      "expr": {
+        "text": "<(nmi_data_rx_skip)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_skip"
+          }
+        }
+      }
     },
     {
       "addr": 33253,
@@ -10747,10 +10756,19 @@
         160,
         129
       ],
-      "comment_inline": "High byte of &8211 handler",
+      "comment_inline": "Y = nmi_data_rx_skip, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&81"
+      "operand": "#>(nmi_data_rx_skip)",
+      "expr": {
+        "text": ">(nmi_data_rx_skip)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_skip"
+          }
+        }
+      }
     },
     {
       "addr": 33255,
@@ -12654,10 +12672,19 @@
         169,
         151
       ],
-      "comment_inline": "Install saved next handler (scout ACK path)",
+      "comment_inline": "A = nmi_post_ack_dispatch, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&97"
+      "operand": "#<(nmi_post_ack_dispatch)",
+      "expr": {
+        "text": "<(nmi_post_ack_dispatch)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_post_ack_dispatch"
+          }
+        }
+      }
     },
     {
       "addr": 33542,
@@ -12665,10 +12692,19 @@
         160,
         131
       ],
-      "comment_inline": "High byte of post-ACK handler",
+      "comment_inline": "Y = nmi_post_ack_dispatch, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&83"
+      "operand": "#>(nmi_post_ack_dispatch)",
+      "expr": {
+        "text": ">(nmi_post_ack_dispatch)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_post_ack_dispatch"
+          }
+        }
+      }
     },
     {
       "addr": 33544,
@@ -13613,11 +13649,12 @@
       "bytes": [
         216
       ],
-      "comment_inline": "Unreached &D8 (CLD) byte after the RTS",
-      "type": "byte",
-      "values": [
-        216
-      ]
+      "labels": [
+        "nmi_post_ack_dispatch"
+      ],
+      "comment_inline": "Clear decimal mode on NMI entry",
+      "type": "code",
+      "mnemonic": "cld"
     },
     {
       "addr": 33688,
@@ -13625,9 +13662,6 @@
         173,
         49,
         13
-      ],
-      "labels": [
-        "nmi_post_ack_dispatch"
       ],
       "comment_inline": "Load received port byte",
       "type": "code",
@@ -20232,10 +20266,19 @@
         160,
         135
       ],
-      "comment_inline": "High byte of NMI handler address",
+      "comment_inline": "Y = nmi_tx_data, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&87"
+      "operand": "#>(nmi_tx_data)",
+      "expr": {
+        "text": ">(nmi_tx_data)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_tx_data"
+          }
+        }
+      }
     },
     {
       "addr": 34594,
@@ -22607,10 +22650,19 @@
         169,
         87
       ],
-      "comment_inline": "Install handshake_await_ack into &0D43/&0D44 (four-way data phase)",
+      "comment_inline": "A = handshake_await_ack, low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&57"
+      "operand": "#<(handshake_await_ack)",
+      "expr": {
+        "text": "<(handshake_await_ack)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "handshake_await_ack"
+          }
+        }
+      }
     },
     {
       "addr": 34927,
@@ -22618,10 +22670,19 @@
         160,
         137
       ],
-      "comment_inline": "High byte &88 of next handler address",
+      "comment_inline": "Y = handshake_await_ack, high byte",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&89"
+      "operand": "#>(handshake_await_ack)",
+      "expr": {
+        "text": ">(handshake_await_ack)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "handshake_await_ack"
+          }
+        }
+      }
     },
     {
       "addr": 34929,
@@ -24476,10 +24537,19 @@
         169,
         139
       ],
-      "comment_inline": "Install nmi_final_ack_validate handler",
+      "comment_inline": "A = nmi_final_ack_validate, low byte (same page)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&8b"
+      "operand": "#<(nmi_final_ack_validate)",
+      "expr": {
+        "text": "<(nmi_final_ack_validate)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack_validate"
+          }
+        }
+      }
     },
     {
       "addr": 35203,

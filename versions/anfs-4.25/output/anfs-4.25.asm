@@ -1175,8 +1175,8 @@ rom_header_byte2 = rom_header_byte1+1
     bpl nmi_error_dispatch                                            ; 81dc: 10 3a       .:       ; SR2 bit7 clear: no data ready -- error
     lda econet_data_continue_frame                                    ; 81de: ad a2 fe    ...      ; Read dest network byte
     bne nmi_error_dispatch                                            ; 81e1: d0 35       .5       ; Network != 0: wrong network -- error
-    lda #&ef                                                          ; 81e3: a9 ef       ..       ; Install skip handler at &8211
-    ldy #&81                                                          ; 81e5: a0 81       ..       ; High byte of &8211 handler
+    lda #<(nmi_data_rx_skip)                                          ; 81e3: a9 ef       ..       ; A = nmi_data_rx_skip, low byte
+    ldy #>(nmi_data_rx_skip)                                          ; 81e5: a0 81       ..       ; Y = nmi_data_rx_skip, high byte
     bit econet_control1_or_status1                                    ; 81e7: 2c a0 fe    ,..      ; SR1 bit7: IRQ, data already waiting
     bmi nmi_data_rx_skip                                              ; 81ea: 30 03       0.       ; Data ready: skip directly, no return
     jmp set_nmi_vector                                                ; 81ec: 4c 0e 0d    L..      ; Install handler and return
@@ -1430,8 +1430,8 @@ rom_header_byte2 = rom_header_byte1+1
     sta econet_control1_or_status1                                    ; 82fc: 8d a0 fe    ...      ; Write CR1: switch to TX mode
     lda #&a7                                                          ; 82ff: a9 a7       ..       ; CR2=&A7: RTS|CLR_TX_ST|FC_TDRA|2_1_BYTE|PSE
     sta econet_control23_or_status2                                   ; 8301: 8d a1 fe    ...      ; Write CR2: enable TX with status clear
-    lda #&97                                                          ; 8304: a9 97       ..       ; Install saved next handler (scout ACK path)
-    ldy #&83                                                          ; 8306: a0 83       ..       ; High byte of post-ACK handler
+    lda #<(nmi_post_ack_dispatch)                                     ; 8304: a9 97       ..       ; A = nmi_post_ack_dispatch, low byte
+    ldy #>(nmi_post_ack_dispatch)                                     ; 8306: a0 83       ..       ; Y = nmi_post_ack_dispatch, high byte
 ; ***************************************************************************************
 ; Begin ACK transmit: write destination address to ADLC
 ;
@@ -1581,7 +1581,6 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8396 referenced 1 time by &8354
 .return_rx_complete
     rts                                                               ; 8396: 60          `        ; Return
-    equb &d8                                                          ; 8397: d8          .        ; Unreached &D8 (CLD) byte after the RTS
 ; ***************************************************************************************
 ; Post-ACK frame-complete NMI handler
 ;
@@ -1595,6 +1594,7 @@ rom_header_byte2 = rom_header_byte1+1
 ; | 0          | &82 (POKE) | rx_complete_update_rxcb (same path)                                  |
 ; | 0          | other      | imm_op_build_reply                                                   |
 .nmi_post_ack_dispatch
+    cld                                                               ; 8397: d8          .        ; Clear decimal mode on NMI entry
     lda scout_port                                                    ; 8398: ad 31 0d    .1.      ; Load received port byte
     bne rx_complete_update_rxcb                                       ; 839b: d0 0a       ..       ; Port != 0: data transfer frame
     ldy scout_ctrl                                                    ; 839d: ac 30 0d    .0.      ; Port=0: load control byte
@@ -2608,7 +2608,7 @@ tx_flags_table = tx_calc_tube_check+1
     ldx #&44                                                          ; 8719: a2 44       .D       ; CR1=&44: RX_RESET | TIE (TX active, TX interrupts enabled)
     stx econet_control1_or_status1                                    ; 871b: 8e a0 fe    ...      ; Write to ADLC CR1
     ldx #<(nmi_tx_data)                                               ; 871e: a2 b8       ..       ; Next NMI handler address (low)
-    ldy #&87                                                          ; 8720: a0 87       ..       ; High byte of NMI handler address
+    ldy #>(nmi_tx_data)                                               ; 8720: a0 87       ..       ; Y = nmi_tx_data, high byte
     stx nmi_jmp_lo                                                    ; 8722: 8e 0c 0d    ...      ; Write NMI vector low byte directly
     sty nmi_jmp_hi                                                    ; 8725: 8c 0d 0d    ...      ; Write NMI vector high byte directly
     sec                                                               ; 8728: 38          8        ; SEC: prepare carry for ROR into bit 7
@@ -2968,8 +2968,8 @@ tx_flags_table = tx_calc_tube_check+1
     sta econet_control23_or_status2                                   ; 8865: 8d a1 fe    ...      ; Write CR2: enable RTS for TX handshake
     lda #&44                                                          ; 8868: a9 44       .D       ; CR1=&44: RX_RESET | TIE (TX active for scout ACK)
     sta econet_control1_or_status1                                    ; 886a: 8d a0 fe    ...      ; Write CR1: reset RX, enable TX interrupt
-    lda #&57                                                          ; 886d: a9 57       .W       ; Install handshake_await_ack into &0D43/&0D44 (four-way data phase)
-    ldy #&89                                                          ; 886f: a0 89       ..       ; High byte &88 of next handler address
+    lda #<(handshake_await_ack)                                       ; 886d: a9 57       .W       ; A = handshake_await_ack, low byte
+    ldy #>(handshake_await_ack)                                       ; 886f: a0 89       ..       ; Y = handshake_await_ack, high byte
     sta saved_nmi_lo                                                  ; 8871: 8d 43 0d    .C.      ; Store low byte to nmi_next_lo
     sty saved_nmi_hi                                                  ; 8874: 8c 44 0d    .D.      ; Store high byte to nmi_next_hi
     lda tx_dst_stn                                                    ; 8877: ad 20 0d    . .      ; Load dest station for scout ACK TX
@@ -3210,7 +3210,7 @@ tx_flags_table = tx_calc_tube_check+1
     bpl tx_result_fail                                                ; 897a: 10 37       .7       ; No RDA -- error
     lda econet_data_continue_frame                                    ; 897c: ad a2 fe    ...      ; Read dest network
     bne tx_result_fail                                                ; 897f: d0 32       .2       ; Non-zero -- network mismatch, error
-    lda #&8b                                                          ; 8981: a9 8b       ..       ; Install nmi_final_ack_validate handler
+    lda #<(nmi_final_ack_validate)                                    ; 8981: a9 8b       ..       ; A = nmi_final_ack_validate, low byte (same page)
     bit econet_control1_or_status1                                    ; 8983: 2c a0 fe    ,..      ; Test SR1 IRQ -- more data ready?
     bmi nmi_final_ack_validate                                        ; 8986: 30 03       0.       ; IRQ set -- fall through to validate
     jmp install_nmi_handler                                           ; 8988: 4c 11 0d    L..      ; Install handler
@@ -18160,11 +18160,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14464 bytes (88%)
-;     Data                     = 1920 bytes (12%)
+;     Code                     = 14465 bytes (88%)
+;     Data                     = 1919 bytes (12%)
 ;
-;     Number of instructions   = 7129
-;     Number of data bytes     = 549 bytes
+;     Number of instructions   = 7130
+;     Number of data bytes     = 548 bytes
 ;     Number of data words     = 90 bytes
 ;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 148
