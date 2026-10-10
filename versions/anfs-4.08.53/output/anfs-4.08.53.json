@@ -2441,7 +2441,8 @@
       "addr": 44709,
       "name": "strip_token_prefix",
       "title": "Strip first character from parsed token buffer",
-      "description": "Shifts all bytes in the &0E30 buffer left by\none position (removing the first character),\nthen trims any trailing spaces by replacing\nthem with CR terminators. Used after consuming\na prefix character like '&' or ':'."
+      "description": "Shifts all bytes in the &0E30 buffer left by\none position (removing the first character),\nthen trims any trailing spaces by replacing\nthem with CR terminators. Used after consuming\na prefix character like '&' or ':'.",
+      "fall_through": true
     },
     {
       "addr": 44784,
@@ -3042,6 +3043,27 @@
       "name": "tx_flags_table",
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
+    },
+    {
+      "addr": 41911,
+      "name": "boot_cmd_load",
+      "title": "Boot commands",
+      "description": "Command lines that [`boot_cmd_oscli`](label:boot_cmd_oscli) passes\nto OSCLI for boot options 1-3, overlapped to save space:\n\n* [`boot_cmd_load`](label:boot_cmd_load): `L.!BOOT` (option 1, Load)\n* [`boot_cmd_run`](label:boot_cmd_run): `!BOOT`, the tail of the Load\n  command (option 2, Run)\n* [`boot_cmd_exec`](label:boot_cmd_exec): `E.!BOOT` (option 3, Exec)\n* [`boot_cmd_off`](label:boot_cmd_off): the CR that ends `E.!BOOT`\n  (option 0, Off). Never used: option 0 returns before the lookup.",
+      "align": "before_label"
+    },
+    {
+      "addr": 41927,
+      "name": "boot_cmd_offsets",
+      "title": "Boot command offsets",
+      "description": "Low byte of each boot option's command line, indexed by the boot\noption (0-3). [`boot_cmd_oscli`](label:boot_cmd_oscli) loads it into X\nand the page of [`boot_cmd_load`](label:boot_cmd_load) into Y, then\njumps to OSCLI.",
+      "align": "before_label"
+    },
+    {
+      "addr": 44777,
+      "name": "option_name_offsets",
+      "title": "Boot option names",
+      "description": "Offsets of the names that *CAT prints for boot options 0-3, measured\nfrom [`option_name_off`](label:option_name_off), which follows the table.\nThe other names sit in gaps between routines and have no terminator\nof their own: the opcode after each one has bit 7 set, which ends the\nprint loop.",
       "align": "before_label"
     }
   ],
@@ -68062,7 +68084,7 @@
         96
       ],
       "labels": [
-        "boot_load_cmd"
+        "boot_cancel_rts"
       ],
       "comment_inline": "CTRL pressed: cancel boot, return",
       "xref_summaries": [
@@ -68081,22 +68103,37 @@
       "addr": 41911,
       "bytes": [
         76,
-        46,
+        46
+      ],
+      "labels": [
+        "boot_cmd_load"
+      ],
+      "comment_inline": "\"L.\" of \"L.!BOOT\": Load command",
+      "type": "string",
+      "string": "L."
+    },
+    {
+      "addr": 41913,
+      "bytes": [
         33,
         66,
         79,
         79,
         84
       ],
+      "labels": [
+        "boot_cmd_run"
+      ],
+      "comment_inline": "\"!BOOT\": Run command, the tail of the Load",
       "type": "string",
-      "string": "L.!BOOT"
+      "string": "!BOOT"
     },
     {
       "addr": 41918,
       "bytes": [
         13
       ],
-      "comment_inline": "CR terminator",
+      "comment_inline": "CR ends the Load and Run commands",
       "type": "byte",
       "values": [
         13
@@ -68114,8 +68151,9 @@
         84
       ],
       "labels": [
-        "boot_exec_cmd"
+        "boot_cmd_exec"
       ],
+      "comment_inline": "\"E.!BOOT\": Exec command",
       "type": "string",
       "string": "E.!BOOT"
     },
@@ -68124,6 +68162,10 @@
       "bytes": [
         13
       ],
+      "labels": [
+        "boot_cmd_off"
+      ],
+      "comment_inline": "CR ends the Exec command (and is option 0's)",
       "type": "byte",
       "values": [
         13
@@ -68135,12 +68177,9 @@
         198
       ],
       "labels": [
-        "boot_oscli_lo_table"
+        "boot_cmd_offsets"
       ],
-      "comments_before_label": [
-        "Boot option OSCLI address table\n\nLow bytes of boot command string addresses,\nall in page &A3. Indexed by boot option 0-3\n(option 0 is never reached due to BEQ).\nEntry 2 reuses the tail of 'L.!BOOT' to\nget '!BOOT' (*RUN equivalent)."
-      ],
-      "comment_inline": "Opt 0: &A3C6 (don't-care, unused)",
+      "comment_inline": "Option 0 (Off): boot_cmd_off",
       "xref_summaries": [
         "&a3c7 used as index base 1 time by &a3d0"
       ],
@@ -68153,6 +68192,17 @@
       "type": "byte",
       "values": [
         198
+      ],
+      "expressions": [
+        {
+          "text": "<(boot_cmd_off)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "boot_cmd_off"
+            }
+          }
+        }
       ]
     },
     {
@@ -68160,10 +68210,21 @@
       "bytes": [
         183
       ],
-      "comment_inline": "Opt 1: &A3B7 'L.!BOOT' (*LOAD)",
+      "comment_inline": "Option 1 (Load): boot_cmd_load",
       "type": "byte",
       "values": [
         183
+      ],
+      "expressions": [
+        {
+          "text": "<(boot_cmd_load)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "boot_cmd_load"
+            }
+          }
+        }
       ]
     },
     {
@@ -68171,10 +68232,21 @@
       "bytes": [
         185
       ],
-      "comment_inline": "Opt 2: &A3B9 '!BOOT' (*RUN)",
+      "comment_inline": "Option 2 (Run): boot_cmd_run",
       "type": "byte",
       "values": [
         185
+      ],
+      "expressions": [
+        {
+          "text": "<(boot_cmd_run)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "boot_cmd_run"
+            }
+          }
+        }
       ]
     },
     {
@@ -68182,10 +68254,21 @@
       "bytes": [
         191
       ],
-      "comment_inline": "Opt 3: &A3BF 'E.!BOOT' (*EXEC)",
+      "comment_inline": "Option 3 (Exec): boot_cmd_exec",
       "type": "byte",
       "values": [
         191
+      ],
+      "expressions": [
+        {
+          "text": "<(boot_cmd_exec)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "boot_cmd_exec"
+            }
+          }
+        }
       ]
     },
     {
@@ -68227,9 +68310,9 @@
       "comment_inline": "Type 0: no command, just return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "boot_load_cmd",
+      "operand": "boot_cancel_rts",
       "target": 41910,
-      "target_label": "boot_load_cmd"
+      "target_label": "boot_cancel_rts"
     },
     {
       "addr": 41936,
@@ -68253,9 +68336,9 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "boot_oscli_lo_table,y",
+      "operand": "boot_cmd_offsets,y",
       "target": 41927,
-      "target_label": "boot_oscli_lo_table"
+      "target_label": "boot_cmd_offsets"
     },
     {
       "addr": 41939,
@@ -68263,10 +68346,19 @@
         160,
         163
       ],
-      "comment_inline": "Boot command address high (&A3xx)",
+      "comment_inline": "Y = page holding the boot commands",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&a3"
+      "operand": "#>(boot_cmd_load)",
+      "expr": {
+        "text": ">(boot_cmd_load)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "boot_cmd_load"
+          }
+        }
+      }
     },
     {
       "addr": 41941,
@@ -88664,9 +88756,9 @@
       "comment_inline": "Index into option string table",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "option_str_offset_data,x",
+      "operand": "option_name_offsets,x",
       "target": 44777,
-      "target_label": "option_str_offset_data"
+      "target_label": "option_name_offsets"
     },
     {
       "addr": 44554,
@@ -88690,9 +88782,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "roff_off_string,y",
+      "operand": "option_name_off,y",
       "target": 44781,
-      "target_label": "roff_off_string"
+      "target_label": "option_name_off"
     },
     {
       "addr": 44557,
@@ -90164,9 +90256,9 @@
         0
       ],
       "labels": [
-        "option_str_offset_data"
+        "option_name_offsets"
       ],
-      "comment_inline": "Data: option string offset table",
+      "comment_inline": "Option 0: offset of \"Off\"",
       "xref_summaries": [
         "&aee9 used as index base 1 time by &ae07"
       ],
@@ -90176,18 +90268,85 @@
           "kind": "indexed"
         }
       ],
-      "type": "code",
-      "mnemonic": "brk"
+      "type": "byte",
+      "values": [
+        0
+      ]
     },
     {
       "addr": 44778,
       "bytes": [
-        33,
-        46,
+        33
+      ],
+      "comment_inline": "Option 1: offset of \"Load\"",
+      "type": "byte",
+      "values": [
+        33
+      ],
+      "expressions": [
+        {
+          "text": "option_name_load - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_load"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44779,
+      "bytes": [
+        46
+      ],
+      "comment_inline": "Option 2: offset of \"Run\"",
+      "type": "byte",
+      "values": [
+        46
+      ],
+      "expressions": [
+        {
+          "text": "option_name_run - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_run"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 44780,
+      "bytes": [
         85
       ],
-      "type": "string",
-      "string": "!.U"
+      "comment_inline": "Option 3: offset of \"Exec\"",
+      "type": "byte",
+      "values": [
+        85
+      ],
+      "expressions": [
+        {
+          "text": "option_name_exec - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_exec"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
     },
     {
       "addr": 44781,
@@ -90197,8 +90356,9 @@
         102
       ],
       "labels": [
-        "roff_off_string"
+        "option_name_off"
       ],
+      "comment_inline": "\"Off\": name of boot option 0, ended by the next opcode",
       "xref_summaries": [
         "&aeed used as index base 1 time by &ae0a"
       ],
@@ -90552,6 +90712,10 @@
         97,
         100
       ],
+      "labels": [
+        "option_name_load"
+      ],
+      "comment_inline": "\"Load\": name of boot option 1, ended by the next opcode",
       "type": "string",
       "string": "Load"
     },
@@ -90670,6 +90834,10 @@
         117,
         110
       ],
+      "labels": [
+        "option_name_run"
+      ],
+      "comment_inline": "\"Run\": name of boot option 2, ended by the next opcode",
       "type": "string",
       "string": "Run"
     },
@@ -90960,27 +91128,16 @@
       "addr": 44866,
       "bytes": [
         69,
-        120
-      ],
-      "comment_inline": "Embedded string data 'Exec'",
-      "type": "code",
-      "mnemonic": "eor",
-      "operand": "zp_0078",
-      "target": 120,
-      "target_label": "zp_0078"
-    },
-    {
-      "addr": 44868,
-      "bytes": [
+        120,
         101,
         99
       ],
-      "comment_inline": "Embedded string data (contd)",
-      "type": "code",
-      "mnemonic": "adc",
-      "operand": "zp_0063",
-      "target": 99,
-      "target_label": "zp_0063"
+      "labels": [
+        "option_name_exec"
+      ],
+      "comment_inline": "\"Exec\": name of boot option 3, ended by the next opcode",
+      "type": "string",
+      "string": "Exec"
     },
     {
       "addr": 44870,

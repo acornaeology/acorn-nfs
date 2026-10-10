@@ -2064,26 +2064,26 @@ cmd_roff_str = copyright_string+3
     equb &ff                                                          ; 8259: ff          .        ; FINDV dispatch hi
     equb &2d                                                          ; 825a: 2d          -        ; FSCV dispatch lo
     equb &ff                                                          ; 825b: ff          .        ; FSCV dispatch hi
-    equb &95                                                          ; 825c: 95          .        ; FILEV handler lo (&8695)
-    equb &86                                                          ; 825d: 86          .        ; FILEV handler hi
+    equb <(filev_handler)                                             ; 825c: 95          .        ; FILEV handler lo (&8695)
+    equb >(filev_handler)                                             ; 825d: 86          .        ; FILEV handler hi
     equb &00                                                          ; 825e: 00          .        ; (ROM bank — overwritten)
-    equb &e2                                                          ; 825f: e2          .        ; ARGSV handler lo (&88E2)
-    equb &88                                                          ; 8260: 88          .        ; ARGSV handler hi
+    equb <(argsv_handler)                                             ; 825f: e2          .        ; ARGSV handler lo (&88E2)
+    equb >(argsv_handler)                                             ; 8260: 88          .        ; ARGSV handler hi
     equb &00                                                          ; 8261: 00          .        ; (ROM bank — overwritten)
-    equb &86                                                          ; 8262: 86          .        ; BGETV handler lo (&8486)
-    equb &84                                                          ; 8263: 84          .        ; BGETV handler hi
+    equb <(bgetv_handler)                                             ; 8262: 86          .        ; BGETV handler lo (&8486)
+    equb >(bgetv_handler)                                             ; 8263: 84          .        ; BGETV handler hi
     equb &00                                                          ; 8264: 00          .        ; (ROM bank — overwritten)
-    equb &a3                                                          ; 8265: a3          .        ; BPUTV handler lo (&83A3)
-    equb &83                                                          ; 8266: 83          .        ; BPUTV handler hi
+    equb <(bputv_handler)                                             ; 8265: a3          .        ; BPUTV handler lo (&83A3)
+    equb >(bputv_handler)                                             ; 8266: 83          .        ; BPUTV handler hi
     equb &00                                                          ; 8267: 00          .        ; (ROM bank — overwritten)
-    equb &eb                                                          ; 8268: eb          .        ; GBPBV handler lo (&89EB)
-    equb &89                                                          ; 8269: 89          .        ; GBPBV handler hi
+    equb <(gbpbv_handler)                                             ; 8268: eb          .        ; GBPBV handler lo (&89EB)
+    equb >(gbpbv_handler)                                             ; 8269: 89          .        ; GBPBV handler hi
     equb &00                                                          ; 826a: 00          .        ; (ROM bank — overwritten)
-    equb &4a                                                          ; 826b: 4a          J        ; FINDV handler lo (&894A)
-    equb &89                                                          ; 826c: 89          .        ; FINDV handler hi
+    equb <(findv_handler)                                             ; 826b: 4a          J        ; FINDV handler lo (&894A)
+    equb >(findv_handler)                                             ; 826c: 89          .        ; FINDV handler hi
     equb &00                                                          ; 826d: 00          .        ; (ROM bank — overwritten)
-    equb &8c                                                          ; 826e: 8c          .        ; FSCV handler lo (&808C)
-    equb &80                                                          ; 826f: 80          .        ; FSCV handler hi
+    equb <(fscv_handler)                                              ; 826e: 8c          .        ; FSCV handler lo (&808C)
+    equb >(fscv_handler)                                              ; 826f: 80          .        ; FSCV handler hi
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
 ;
@@ -2102,7 +2102,14 @@ cmd_roff_str = copyright_string+3
 ; &8276 referenced 2 times by &823d, &8272
 .return_3
     rts                                                               ; 8276: 60          `        ; Return to caller
-    equb &08, &90                                                     ; 8277: 08 90       ..    
+; ***************************************************************************************
+; NETV handler address
+;
+; Address of osword_dispatch, the NETV handler. setup_rom_ptrs_netv reads it at
+; run_fscv_cmd+&36 (the NETV slot offset) and copies it, with the ROM number, into the
+; MOS extended-vector table.
+    equb <(osword_dispatch)                                           ; 8277: 08          .        ; NETV handler low byte
+    equb >(osword_dispatch)                                           ; 8278: 90          .        ; NETV handler high byte
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ;

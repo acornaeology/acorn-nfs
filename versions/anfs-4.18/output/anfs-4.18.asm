@@ -68,9 +68,7 @@ tube_claim_flag                        = &14
 tube_claimed_id                        = &15
 ; &15 referenced 6 times by &bf14, &bf1f, &bf27, &bf30, &bf36, &bf45; also used as index base 1 time by &aa06
 zp_0063                                = &63
-; &63 referenced 1 time by &af64
 zp_0078                                = &78
-; &78 referenced 1 time by &af62
 escapable                              = &97
 need_release_tube                      = &98
 ; &98 referenced 14 times by &8dd4, &92a0, &9572, &987a, &9953, &99f5, &9d13, &a11b, &a8fd, &a95d, &ab92, &ad9b, &b238, &b37f
@@ -9138,30 +9136,48 @@ bad_prefix = bad_str_anchor+1
     txa                                                               ; a3cb: 8a          .        ; Copy X to A
     bpl load_boot_type                                                ; a3cc: 10 15       ..       ; CTRL not pressed: proceed to boot
 ; &a3ce referenced 1 time by &a3e6
-.boot_load_cmd
+.boot_cancel_rts
     rts                                                               ; a3ce: 60          `        ; CTRL pressed: cancel boot, return
-    equs "L.!BOOT"                                                    ; a3cf: 4c 2e 21... L.!...
-    equb &0d                                                          ; a3d6: 0d          .        ; CR terminator
-.boot_exec_cmd
-    equs "E.!BOOT"                                                    ; a3d7: 45 2e 21... E.!...
-    equb &0d                                                          ; a3de: 0d          .     
-; Boot option OSCLI address table
+; ***************************************************************************************
+; Boot commands
 ;
-; Low bytes of boot command string addresses, all in page &A3. Indexed by boot option 0-3 (option 0 is never reached due to BEQ). Entry 2 reuses the tail of 'L.!BOOT' to get '!BOOT' (*RUN equivalent).
+; Command lines that boot_cmd_oscli passes to OSCLI for boot options 1-3, overlapped to
+; save space:
+;
+; - boot_cmd_load: L.!BOOT (option 1, Load)
+; - boot_cmd_run: !BOOT, the tail of the Load command (option 2, Run)
+; - boot_cmd_exec: E.!BOOT (option 3, Exec)
+; - boot_cmd_off: the CR that ends E.!BOOT (option 0, Off). Never used: option 0 returns
+;   before the lookup.
+.boot_cmd_load
+    equs "L."                                                         ; a3cf: 4c 2e       L.       ; "L." of "L.!BOOT": Load command
+.boot_cmd_run
+    equs "!BOOT"                                                      ; a3d1: 21 42 4f... !BO...   ; "!BOOT": Run command, the tail of the Load
+    equb &0d                                                          ; a3d6: 0d          .        ; CR ends the Load and Run commands
+.boot_cmd_exec
+    equs "E.!BOOT"                                                    ; a3d7: 45 2e 21... E.!...   ; "E.!BOOT": Exec command
+.boot_cmd_off
+    equb &0d                                                          ; a3de: 0d          .        ; CR ends the Exec command (and is option 0's)
+; ***************************************************************************************
+; Boot command offsets
+;
+; Low byte of each boot option's command line, indexed by the boot option (0-3).
+; boot_cmd_oscli loads it into X and the page of boot_cmd_load into Y, then jumps to
+; OSCLI.
 ; &a3df used as index base 1 time by &a3e8
-.boot_oscli_lo_table
-    equb &de                                                          ; a3df: de          .     
-    equb &cf                                                          ; a3e0: cf          .     
-    equb &d1                                                          ; a3e1: d1          .     
-    equb &d7                                                          ; a3e2: d7          .     
+.boot_cmd_offsets
+    equb <(boot_cmd_off)                                              ; a3df: de          .        ; Option 0 (Off): boot_cmd_off
+    equb <(boot_cmd_load)                                             ; a3e0: cf          .        ; Option 1 (Load): boot_cmd_load
+    equb <(boot_cmd_run)                                              ; a3e1: d1          .        ; Option 2 (Run): boot_cmd_run
+    equb <(boot_cmd_exec)                                             ; a3e2: d7          .        ; Option 3 (Exec): boot_cmd_exec
 ; &a3e3 referenced 2 times by &a3c2, &a3cc
 .load_boot_type
     ldy fs_boot_option                                                ; a3e3: ac 05 0e    ...      ; Load boot type
-    beq boot_load_cmd                                                 ; a3e6: f0 e6       ..       ; Type 0: no command, just return
+    beq boot_cancel_rts                                               ; a3e6: f0 e6       ..       ; Type 0: no command, just return
 ; &a3e8 referenced 1 time by &a28e
 .boot_cmd_oscli
-    ldx boot_oscli_lo_table,y                                         ; a3e8: be df a3    ...      ; Look up boot command address low
-    ldy #&a3                                                          ; a3eb: a0 a3       ..       ; Boot command address high (&A3xx)
+    ldx boot_cmd_offsets,y                                            ; a3e8: be df a3    ...      ; Look up boot command address low
+    ldy #>(boot_cmd_load)                                             ; a3eb: a0 a3       ..       ; Y = page holding the boot commands
     jmp oscli                                                         ; a3ed: 4c f7 ff    L..      ; Execute boot command via OSCLI
 ; Star command table (4 interleaved sub-tables). Each entry: ASCII name + flag byte (&80+) + dispatch address word (PHA/PHA/RTS, addr-1). Sub-tables separated by &80 sentinel bytes. Flag byte: bit 7 = end of name marker, bit 6 = set V on return if no argument, bits 0-4 = *HELP syntax string index. 1: Utility cmds  2: NFS commands 3: Help topics  4: Copro/attributes
 ; &a3f0 used as index base 12 times by &8bae, &8bbd, &8bc5, &8bd2, &8c00, &8c07, &932a, &9332, &a145, &a14a, &a15a, &a191
@@ -11338,10 +11354,10 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     jsr print_hex_byte                                                ; ae11: 20 2f 91     /.      ; Print option as hex
     jsr print_inline                                                  ; ae14: 20 45 91     E.      ; Print ' ('
     equs " ("                                                         ; ae17: 20 28        (       ; Inline text, printed by print_inline
-    ldy option_str_offset_data,x                                      ; ae19: bc fb ae    ...      ; Y=string offset for boot option X
+    ldy option_name_offsets,x                                         ; ae19: bc fb ae    ...      ; Y=string offset for boot option X
 ; &ae1c referenced 1 time by &ae25
 .loop_print_option_str
-    lda roff_off_string,y                                             ; ae1c: b9 ff ae    ...      ; Load option description character
+    lda option_name_off,y                                             ; ae1c: b9 ff ae    ...      ; Load option description character
     bmi print_dir_header                                              ; ae1f: 30 06       0.       ; Bit 7 set: end of option string
     jsr osasci                                                        ; ae21: 20 e3 ff     ..      ; Print char (no spool)
     iny                                                               ; ae24: c8          .        ; Advance Y
@@ -11514,13 +11530,22 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     ora #&40                                                          ; aef4: 09 40       .@       ; Set FS selection flag (bit 6)
     sta fs_lib_flags                                                  ; aef6: 8d 71 10    .q.      ; Store updated flags
     bne strip_token_prefix                                            ; aef9: d0 bc       ..       ; Always taken (A has bit 6 set)
+; ***************************************************************************************
+; Boot option names
+;
+; Offsets of the names that *CAT prints for boot options 0-3, measured from
+; option_name_off, which follows the table. The other names sit in gaps between routines
+; and have no terminator of their own: the opcode after each one has bit 7 set, which
+; ends the print loop.
 ; &aefb used as index base 1 time by &ae19
-.option_str_offset_data
-    brk                                                               ; aefb: 00          .        ; Data: option string offset table
-    equs "/<c"                                                        ; aefc: 2f 3c 63    /<c   
+.option_name_offsets
+    equb &00                                                          ; aefb: 00          .        ; Option 0: offset of "Off"
+    equb option_name_load - option_name_off                           ; aefc: 2f          /        ; Option 1: offset of "Load"
+    equb option_name_run - option_name_off                            ; aefd: 3c          <        ; Option 2: offset of "Run"
+    equb option_name_exec - option_name_off                           ; aefe: 63          c        ; Option 3: offset of "Exec"
 ; &aeff used as index base 1 time by &ae1c
-.roff_off_string
-    equs "Off"                                                        ; aeff: 4f 66 66    Off   
+.option_name_off
+    equs "Off"                                                        ; aeff: 4f 66 66    Off      ; "Off": name of boot option 0, ended by the next opcode
 ; ***************************************************************************************
 ; Copy argument to TX buffer from offset zero
 ;
@@ -11583,7 +11608,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; &af2d referenced 1 time by &af43
 .rts_copy_arg
     rts                                                               ; af2d: 60          `        ; Return
-    equs "Load"                                                       ; af2e: 4c 6f 61... Loa...
+.option_name_load
+    equs "Load"                                                       ; af2e: 4c 6f 61... Loa...   ; "Load": name of boot option 1, ended by the next opcode
 ; ***************************************************************************************
 ; Clear FS selection flags from options word
 ;
@@ -11596,7 +11622,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     and #&1f                                                          ; af35: 29 1f       ).       ; Mask to low 5 bits only
     sta fs_lib_flags                                                  ; af37: 8d 71 10    .q.      ; Store masked flags
     rts                                                               ; af3a: 60          `        ; Return
-    equs "Run"                                                        ; af3b: 52 75 6e    Run   
+.option_name_run
+    equs "Run"                                                        ; af3b: 52 75 6e    Run      ; "Run": name of boot option 2, ended by the next opcode
 .fsreply_0_print_dir
     ldx #0                                                            ; af3e: a2 00       ..       ; X=0: start from first entry
 ; &af40 referenced 1 time by &af60
@@ -11633,8 +11660,8 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 .next_col_entry
     inx                                                               ; af5f: e8          .        ; Advance to next entry
     bne loop_scan_entries                                             ; af60: d0 de       ..       ; Loop for more entries
-    eor zp_0078                                                       ; af62: 45 78       Ex       ; Embedded string data 'Exec'
-    adc zp_0063                                                       ; af64: 65 63       ec       ; Embedded string data (contd)
+.option_name_exec
+    equs "Exec"                                                       ; af62: 45 78 65... Exe...   ; "Exec": name of boot option 3, ended by the next opcode
 ; ***************************************************************************************
 ; *Remove command handler
 ;
@@ -14953,9 +14980,9 @@ save pydis_start, pydis_end
 ;     assign_handle_3:                          1
 ;     bad_prefix:                               1
 ;     begin_prot_encode:                        1
+;     boot_cancel_rts:                          1
+;     boot_cmd_offsets:                         1
 ;     boot_cmd_oscli:                           1
-;     boot_load_cmd:                            1
-;     boot_oscli_lo_table:                      1
 ;     break_type_hw_reg:                        1
 ;     bridge_found:                             1
 ;     bridge_responded:                         1
@@ -15453,7 +15480,8 @@ save pydis_start, pydis_end
 ;     notify_new_fs:                            1
 ;     open_and_read_file:                       1
 ;     open_file_for_run:                        1
-;     option_str_offset_data:                   1
+;     option_name_off:                          1
+;     option_name_offsets:                      1
 ;     osargs_dispatch:                          1
 ;     osargs_ptr_dispatch:                      1
 ;     osargs_read_op:                           1
@@ -15561,7 +15589,6 @@ save pydis_start, pydis_end
 ;     return_with_handle:                       1
 ;     return_with_result:                       1
 ;     return_zero_uninit:                       1
-;     roff_off_string:                          1
 ;     rom_header_byte1:                         1
 ;     rom_header_byte2:                         1
 ;     rom_type:                                 1
@@ -15831,8 +15858,6 @@ save pydis_start, pydis_end
 ;     xfer_flag:                                1
 ;     xfer_sentinel_1:                          1
 ;     xfer_sentinel_2:                          1
-;     zp_0063:                                  1
-;     zp_0078:                                  1
 
 ; Automatically generated labels:
 ;     return_1
@@ -15841,11 +15866,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14613 bytes (89%)
-;     Data                     = 1771 bytes (11%)
+;     Code                     = 14608 bytes (89%)
+;     Data                     = 1776 bytes (11%)
 ;
-;     Number of instructions   = 7168
-;     Number of data bytes     = 535 bytes
+;     Number of instructions   = 7165
+;     Number of data bytes     = 539 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1124 bytes
-;     Number of strings        = 143
+;     Number of string bytes   = 1125 bytes
+;     Number of strings        = 144

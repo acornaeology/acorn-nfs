@@ -10283,31 +10283,12 @@ d.comment(0xA3AC, "OSBYTE &79: scan keyboard", align=Align.INLINE)
 d.comment(0xA3AE, "X = CTRL key scan code (negative-X INKEY form for OSBYTE &79)", align=Align.INLINE)
 d.comment(0xA3B3, "Copy X to A", align=Align.INLINE)
 d.comment(0xA3B4, "CTRL not pressed: proceed to boot", align=Align.INLINE)
-d.label(0xA3B6, "boot_load_cmd")
+d.label(0xA3B6, "boot_cancel_rts")
 
 d.comment(0xA3B6, "CTRL pressed: cancel boot, return", align=Align.INLINE)
-d.comment(0xA3BE, "CR terminator", align=Align.INLINE)
-d.label(0xA3BF, "boot_exec_cmd")
 
 
-d.index_base(0xA3C7, "boot_oscli_lo_table")
-for i in range(4):
-    d.byte(0xA3C7 + i)
 
-d.comment(
-    0xA3C7,
-    """Boot option OSCLI address table
-
-Low bytes of boot command string addresses,
-all in page &A3. Indexed by boot option 0-3
-(option 0 is never reached due to BEQ).
-Entry 2 reuses the tail of 'L.!BOOT' to
-get '!BOOT' (*RUN equivalent).""",
-)
-d.comment(0xA3C7, "Opt 0: &A3C6 (don't-care, unused)", align=Align.INLINE)
-d.comment(0xA3C8, "Opt 1: &A3B7 'L.!BOOT' (*LOAD)", align=Align.INLINE)
-d.comment(0xA3C9, "Opt 2: &A3B9 '!BOOT' (*RUN)", align=Align.INLINE)
-d.comment(0xA3CA, "Opt 3: &A3BF 'E.!BOOT' (*EXEC)", align=Align.INLINE)
 d.label(0xA3CB, "load_boot_type")
 
 d.comment(0xA3CB, "Load boot type", align=Align.INLINE)
@@ -10315,7 +10296,6 @@ d.comment(0xA3CE, "Type 0: no command, just return", align=Align.INLINE)
 d.label(0xA3D0, "boot_cmd_oscli")
 
 d.comment(0xA3D0, "Look up boot command address low", align=Align.INLINE)
-d.comment(0xA3D3, "Boot command address high (&A3xx)", align=Align.INLINE)
 d.comment(0xA3D5, "Execute boot command via OSCLI", align=Align.INLINE)
 d.comment(
     0xA3D8,
@@ -13049,10 +13029,7 @@ d.comment(0xAEDF, "Get flags", align=Align.INLINE)
 d.comment(0xAEE2, "Set FS selection flag (bit 6)", align=Align.INLINE)
 d.comment(0xAEE4, "Store updated flags", align=Align.INLINE)
 d.comment(0xAEE7, "Always taken (A has bit 6 set)", align=Align.INLINE)
-d.label(0xAEE9, "option_str_offset_data")
 
-d.comment(0xAEE9, "Data: option string offset table", align=Align.INLINE)
-d.index_base(0xAEED, "roff_off_string")
 
 d.label(0xAEF0, "copy_arg_to_buf_x0")
 
@@ -13185,8 +13162,6 @@ d.label(0xAF3F, "next_col_entry")
 
 d.comment(0xAF3F, "Advance to next entry", align=Align.INLINE)
 d.comment(0xAF40, "Loop for more entries", align=Align.INLINE)
-d.comment(0xAF42, "Embedded string data 'Exec'", align=Align.INLINE)
-d.comment(0xAF44, "Embedded string data (contd)", align=Align.INLINE)
 d.entry(0xAF46)
 d.label(0xAF46, "cmd_remove")
 
@@ -16331,6 +16306,90 @@ d.comment(0x8981, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INL
 d.expr(0x8982, lo(sym("nmi_rx_scout")))
 d.comment(0x8988, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
 d.expr(0x8989, hi(sym("nmi_rx_scout")))
+
+d.comment(0xA3D3, 'Y = page holding the boot commands', align=Align.INLINE)
+d.expr(0xA3D4, hi(sym("boot_cmd_load")))
+d.banner(
+    0xA3B7,
+    title="Boot commands",
+    description="""Command lines that [`boot_cmd_oscli`](label:boot_cmd_oscli) passes
+to OSCLI for boot options 1-3, overlapped to save space:
+
+* [`boot_cmd_load`](label:boot_cmd_load): `L.!BOOT` (option 1, Load)
+* [`boot_cmd_run`](label:boot_cmd_run): `!BOOT`, the tail of the Load
+  command (option 2, Run)
+* [`boot_cmd_exec`](label:boot_cmd_exec): `E.!BOOT` (option 3, Exec)
+* [`boot_cmd_off`](label:boot_cmd_off): the CR that ends `E.!BOOT`
+  (option 0, Off). Never used: option 0 returns before the lookup.""",
+)
+d.label(0xA3B7, "boot_cmd_load")
+d.string(0xA3B7, 2)
+d.label(0xA3B9, "boot_cmd_run")
+d.string(0xA3B9, 5)
+d.byte(0xA3BE)
+d.label(0xA3BF, "boot_cmd_exec")
+d.string(0xA3BF, 7)
+d.label(0xA3C6, "boot_cmd_off")
+d.byte(0xA3C6)
+d.comment(0xA3B7, '"L." of "L.!BOOT": Load command', align=Align.INLINE)
+d.comment(0xA3B9, '"!BOOT": Run command, the tail of the Load', align=Align.INLINE)
+d.comment(0xA3BE, 'CR ends the Load and Run commands', align=Align.INLINE)
+d.comment(0xA3BF, '"E.!BOOT": Exec command', align=Align.INLINE)
+d.comment(0xA3C6, "CR ends the Exec command (and is option 0's)", align=Align.INLINE)
+d.banner(
+    0xA3C7,
+    title="Boot command offsets",
+    description="""Low byte of each boot option's command line, indexed by the boot
+option (0-3). [`boot_cmd_oscli`](label:boot_cmd_oscli) loads it into X
+and the page of [`boot_cmd_load`](label:boot_cmd_load) into Y, then
+jumps to OSCLI.""",
+)
+d.label(0xA3C7, "boot_cmd_offsets")
+d.byte(0xA3C7)
+d.expr(0xA3C7, lo(sym("boot_cmd_off")))
+d.comment(0xA3C7, 'Option 0 (Off): boot_cmd_off', align=Align.INLINE)
+d.byte(0xA3C8)
+d.expr(0xA3C8, lo(sym("boot_cmd_load")))
+d.comment(0xA3C8, 'Option 1 (Load): boot_cmd_load', align=Align.INLINE)
+d.byte(0xA3C9)
+d.expr(0xA3C9, lo(sym("boot_cmd_run")))
+d.comment(0xA3C9, 'Option 2 (Run): boot_cmd_run', align=Align.INLINE)
+d.byte(0xA3CA)
+d.expr(0xA3CA, lo(sym("boot_cmd_exec")))
+d.comment(0xA3CA, 'Option 3 (Exec): boot_cmd_exec', align=Align.INLINE)
+d.banner(
+    0xAEE9,
+    title="Boot option names",
+    description="""Offsets of the names that *CAT prints for boot options 0-3, measured
+from [`option_name_off`](label:option_name_off), which follows the table.
+The other names sit in gaps between routines and have no terminator
+of their own: the opcode after each one has bit 7 set, which ends the
+print loop.""",
+)
+d.label(0xAEE9, "option_name_offsets")
+d.byte(0xAEE9)
+d.comment(0xAEE9, 'Option 0: offset of "Off"', align=Align.INLINE)
+d.label(0xAEED, "option_name_off")
+d.string(0xAEED, 3)
+d.comment(0xAEED, '"Off": name of boot option 0, ended by the next opcode', align=Align.INLINE)
+d.byte(0xAEEA)
+d.expr(0xAEEA, sym("option_name_load") - sym("option_name_off"))
+d.comment(0xAEEA, 'Option 1: offset of "Load"', align=Align.INLINE)
+d.label(0xAF0E, "option_name_load")
+d.string(0xAF0E, 4)
+d.comment(0xAF0E, '"Load": name of boot option 1, ended by the next opcode', align=Align.INLINE)
+d.byte(0xAEEB)
+d.expr(0xAEEB, sym("option_name_run") - sym("option_name_off"))
+d.comment(0xAEEB, 'Option 2: offset of "Run"', align=Align.INLINE)
+d.label(0xAF1B, "option_name_run")
+d.string(0xAF1B, 3)
+d.comment(0xAF1B, '"Run": name of boot option 2, ended by the next opcode', align=Align.INLINE)
+d.byte(0xAEEC)
+d.expr(0xAEEC, sym("option_name_exec") - sym("option_name_off"))
+d.comment(0xAEEC, 'Option 3: offset of "Exec"', align=Align.INLINE)
+d.label(0xAF42, "option_name_exec")
+d.string(0xAF42, 4)
+d.comment(0xAF42, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

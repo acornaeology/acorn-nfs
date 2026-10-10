@@ -2511,6 +2511,19 @@
       "align": "before_label"
     },
     {
+      "addr": 33457,
+      "title": "NETV handler address",
+      "description": "Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.\n[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at\n[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies\nit, with the ROM number, into the MOS extended-vector table.",
+      "align": "before_label"
+    },
+    {
+      "addr": 34071,
+      "name": "close_spool_cmd",
+      "title": "Spool and exec close commands",
+      "description": "OSCLI commands that [`handle_bput_bget`](label:handle_bput_bget)\nissues when a BPUT or BGET fails on the handle that *SPOOL or *EXEC\nis using: `SP.` stops spooling and `E.` stops the exec file, so the\nerror report is not itself spooled or followed by more exec input.",
+      "align": "before_label"
+    },
+    {
       "addr": 34158,
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 7 entries)",
@@ -9487,6 +9500,14 @@
       "type": "word",
       "values": [
         34554
+      ],
+      "expressions": [
+        {
+          "text": "filev_handler",
+          "tree": {
+            "sym": "filev_handler"
+          }
+        }
       ]
     },
     {
@@ -9510,6 +9531,14 @@
       "type": "word",
       "values": [
         35158
+      ],
+      "expressions": [
+        {
+          "text": "argsv_handler",
+          "tree": {
+            "sym": "argsv_handler"
+          }
+        }
       ]
     },
     {
@@ -9533,6 +9562,14 @@
       "type": "word",
       "values": [
         34129
+      ],
+      "expressions": [
+        {
+          "text": "bgetv_handler",
+          "tree": {
+            "sym": "bgetv_handler"
+          }
+        }
       ]
     },
     {
@@ -9556,6 +9593,14 @@
       "type": "word",
       "values": [
         33793
+      ],
+      "expressions": [
+        {
+          "text": "bputv_handler",
+          "tree": {
+            "sym": "bputv_handler"
+          }
+        }
       ]
     },
     {
@@ -9579,6 +9624,14 @@
       "type": "word",
       "values": [
         35424
+      ],
+      "expressions": [
+        {
+          "text": "gbpbv_handler",
+          "tree": {
+            "sym": "gbpbv_handler"
+          }
+        }
       ]
     },
     {
@@ -9602,6 +9655,14 @@
       "type": "word",
       "values": [
         35270
+      ],
+      "expressions": [
+        {
+          "text": "findv_handler",
+          "tree": {
+            "sym": "findv_handler"
+          }
+        }
       ]
     },
     {
@@ -9625,6 +9686,14 @@
       "type": "word",
       "values": [
         32976
+      ],
+      "expressions": [
+        {
+          "text": "fscv_handler",
+          "tree": {
+            "sym": "fscv_handler"
+          }
+        }
       ]
     },
     {
@@ -9688,18 +9757,59 @@
         }
       ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_dispatch)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "osword_dispatch"
+          }
+        }
+      }
     },
     {
       "addr": 33457,
       "bytes": [
-        131,
-        144
+        131
       ],
+      "comment_inline": "NETV handler low byte",
       "type": "byte",
       "values": [
-        131,
+        131
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_dispatch)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "osword_dispatch"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 33458,
+      "bytes": [
         144
+      ],
+      "comment_inline": "NETV handler high byte",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_dispatch)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "osword_dispatch"
+            }
+          }
+        }
       ]
     },
     {
@@ -12749,10 +12859,19 @@
         169,
         23
       ],
-      "comment_inline": "')': offset into \"SP.\" string at &8529",
+      "comment_inline": "A = low byte of \"SP.\" (stop *SPOOL)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&17"
+      "operand": "#<(close_spool_cmd)",
+      "expr": {
+        "text": "<(close_spool_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "close_spool_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33873,
@@ -12786,10 +12905,19 @@
         169,
         27
       ],
-      "comment_inline": "A=&1B: low byte of \"E.\" string address",
+      "comment_inline": "A = low byte of \"E.\" (stop *EXEC)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&1b"
+      "operand": "#<(close_exec_cmd)",
+      "expr": {
+        "text": "<(close_exec_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "close_exec_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33879,
@@ -12844,10 +12972,19 @@
         160,
         133
       ],
-      "comment_inline": "Y=&85: high byte of OSCLI string in ROM",
+      "comment_inline": "Y = page of the close commands",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&85"
+      "operand": "#>(close_spool_cmd)",
+      "expr": {
+        "text": ">(close_spool_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "close_spool_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33886,
@@ -14169,24 +14306,45 @@
         80,
         46
       ],
-      "comment_inline": "\"SP.\" remote spool command string",
+      "labels": [
+        "close_spool_cmd"
+      ],
+      "comment_inline": "\"SP.\": *SPOOL with no file closes the spool file",
       "type": "string",
       "string": "SP."
     },
     {
       "addr": 34074,
       "bytes": [
-        13,
-        69,
-        46,
         13
       ],
-      "comment_inline": "CR + \"E.\" + CR remote exec strings",
+      "comment_inline": "CR ends the command",
       "type": "byte",
       "values": [
-        13,
+        13
+      ]
+    },
+    {
+      "addr": 34075,
+      "bytes": [
         69,
-        46,
+        46
+      ],
+      "labels": [
+        "close_exec_cmd"
+      ],
+      "comment_inline": "\"E.\": *EXEC with no file closes the exec file",
+      "type": "string",
+      "string": "E."
+    },
+    {
+      "addr": 34077,
+      "bytes": [
+        13
+      ],
+      "comment_inline": "CR ends the command",
+      "type": "byte",
+      "values": [
         13
       ]
     },

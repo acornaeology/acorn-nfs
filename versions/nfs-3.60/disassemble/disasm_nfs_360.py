@@ -2167,7 +2167,6 @@ d.comment(0x82C0, "Claim pages &0D-&0F (3 pages)", align=Align.INLINE)
 d.label(0x82C2, "return_3")
 
 d.comment(0x82C2, "Return (workspace claim done)", align=Align.INLINE)
-d.comment(0x82C3, "FS page hi:lo for workspace pointer", align=Align.INLINE)
 d.subroutine(
     0x82C5,
     "svc_2_private_workspace",
@@ -2702,16 +2701,13 @@ d.comment(0x8458, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x8459, "Loop until all 32 bytes copied", align=Align.INLINE)
 d.comment(0x845B, "Copy A to X", align=Align.INLINE)
 d.comment(0x845C, "A=&C6: read *EXEC file handle", align=Align.INLINE)
-d.comment(0x8461, "')': offset into \"SP.\" string at &8529", align=Align.INLINE)
 d.comment(0x8463, "Y=value of *SPOOL file handle", align=Align.INLINE)
 d.comment(0x8465, "Handle matches SPOOL -- close it", align=Align.INLINE)
-d.comment(0x8467, "'-': offset into \"E.\" close-exec string", align=Align.INLINE)
 d.comment(0x8469, "X=value of *EXEC file handle", align=Align.INLINE)
 d.comment(0x846B, "No EXEC match -- skip close", align=Align.INLINE)
 d.label(0x846D, "close_spool_exec")
 
 d.comment(0x846D, "X = string offset for OSCLI close", align=Align.INLINE)
-d.comment(0x846E, "Y=&85: high byte of OSCLI string in ROM", align=Align.INLINE)
 d.comment(0x8470, 'Close SPOOL/EXEC via "*SP." or "*E."', align=Align.INLINE)
 d.label(0x8473, "dispatch_fs_error")
 
@@ -2906,8 +2902,6 @@ d.comment(0x8523, "Zero byte = end of message; go execute BRK", align=Align.INLI
 d.comment(0x8525, "Next source byte", align=Align.INLINE)
 d.comment(0x8526, "Next dest byte", align=Align.INLINE)
 d.comment(0x8527, "Continue copying message", align=Align.INLINE)
-d.comment(0x8529, "Set bit7: FS transaction in progress", align=Align.INLINE)
-d.comment(0x852C, "CR + E. + CR: *EXEC boot command", align=Align.INLINE)
 d.comment(0x8530, "A = '*' for FS command prefix", align=Align.INLINE)
 
 d.label(0x8530, "waitfs")
@@ -9538,6 +9532,54 @@ d.comment(0x8D57, 'Option 3: offset of "Exec"', align=Align.INLINE)
 d.label(0x8D6C, "option_name_exec")
 d.string(0x8D6C, 4)
 d.comment(0x8D6C, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
+
+d.comment(0x8461, 'A = low byte of "SP." (stop *SPOOL)', align=Align.INLINE)
+d.expr(0x8462, lo(sym("close_spool_cmd")))
+d.comment(0x8467, 'A = low byte of "E." (stop *EXEC)', align=Align.INLINE)
+d.expr(0x8468, lo(sym("close_exec_cmd")))
+d.comment(0x846E, 'Y = page of the close commands', align=Align.INLINE)
+d.expr(0x846F, hi(sym("close_spool_cmd")))
+d.banner(
+    0x8529,
+    title="Spool and exec close commands",
+    description="""OSCLI commands that [`handle_bput_bget`](label:handle_bput_bget)
+issues when a BPUT or BGET fails on the handle that *SPOOL or *EXEC
+is using: `SP.` stops spooling and `E.` stops the exec file, so the
+error report is not itself spooled or followed by more exec input.""",
+)
+d.label(0x8529, "close_spool_cmd")
+d.string(0x8529, 3)
+d.comment(0x8529, '"SP.": *SPOOL with no file closes the spool file', align=Align.INLINE)
+d.byte(0x852C)
+d.comment(0x852C, 'CR ends the command', align=Align.INLINE)
+d.label(0x852D, "close_exec_cmd")
+d.string(0x852D, 2)
+d.comment(0x852D, '"E.": *EXEC with no file closes the exec file', align=Align.INLINE)
+d.byte(0x852F)
+d.comment(0x852F, 'CR ends the command', align=Align.INLINE)
+
+d.expr(0x82A8, sym("filev_handler"))
+d.expr(0x82AB, sym("argsv_handler"))
+d.expr(0x82AE, sym("bgetv_handler"))
+d.expr(0x82B1, sym("bputv_handler"))
+d.expr(0x82B4, sym("gbpbv_handler"))
+d.expr(0x82B7, sym("findv_handler"))
+d.expr(0x82BA, sym("fscv_handler"))
+d.expr(0x82C3, lo(sym("osword_dispatch")))
+d.expr(0x82C4, hi(sym("osword_dispatch")))
+
+d.banner(
+    0x82C3,
+    title="NETV handler address",
+    description="""Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.
+[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at
+[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies
+it, with the ROM number, into the MOS extended-vector table.""",
+)
+d.byte(0x82C3)
+d.byte(0x82C4)
+d.comment(0x82C3, "NETV handler low byte", align=Align.INLINE)
+d.comment(0x82C4, "NETV handler high byte", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

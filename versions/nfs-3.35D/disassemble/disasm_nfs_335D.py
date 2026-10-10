@@ -2565,16 +2565,13 @@ d.comment(0x842E, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x842F, "Loop until all 32 bytes copied", align=Align.INLINE)
 d.comment(0x8431, "Copy A to X", align=Align.INLINE)
 d.comment(0x8432, "A=&C6: read *EXEC file handle", align=Align.INLINE)
-d.comment(0x8437, 'A=&F1: OSCLI "SP." string at &84F1', align=Align.INLINE)
 d.comment(0x8439, "Y=value of *SPOOL file handle", align=Align.INLINE)
 
 d.comment(0x843B, "Match: close SPOOL file", align=Align.INLINE)
-d.comment(0x843D, "A=&F5: offset for 'E.' string", align=Align.INLINE)
 d.comment(0x843F, "X = *EXEC handle: is it this file?", align=Align.INLINE)
 d.comment(0x8441, "No match: dispatch FS error", align=Align.INLINE)
 d.label(0x8443, "close_spool_exec")
 d.comment(0x8443, "X = string offset for OSCLI close", align=Align.INLINE)
-d.comment(0x8444, "Y=&84: high byte of OSCLI string in ROM", align=Align.INLINE)
 d.comment(0x8446, 'Close SPOOL/EXEC via "*SP." or "*E."', align=Align.INLINE)
 
 d.label(0x8449, "dispatch_fs_error")
@@ -9351,6 +9348,61 @@ d.comment(0x8CE1, 'Option 3: offset of "Exec"', align=Align.INLINE)
 d.label(0x8CF6, "option_name_exec")
 d.string(0x8CF6, 4)
 d.comment(0x8CF6, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
+
+d.comment(0x8437, 'A = low byte of "SP." (stop *SPOOL)', align=Align.INLINE)
+d.expr(0x8438, lo(sym("close_spool_cmd")))
+d.comment(0x843D, 'A = low byte of "E." (stop *EXEC)', align=Align.INLINE)
+d.expr(0x843E, lo(sym("close_exec_cmd")))
+d.comment(0x8444, 'Y = page of the close commands', align=Align.INLINE)
+d.expr(0x8445, hi(sym("close_spool_cmd")))
+d.banner(
+    0x84F1,
+    title="Spool and exec close commands",
+    description="""OSCLI commands that [`handle_bput_bget`](label:handle_bput_bget)
+issues when a BPUT or BGET fails on the handle that *SPOOL or *EXEC
+is using: `SP.` stops spooling and `E.` stops the exec file, so the
+error report is not itself spooled or followed by more exec input.""",
+)
+d.label(0x84F1, "close_spool_cmd")
+d.string(0x84F1, 3)
+d.comment(0x84F1, '"SP.": *SPOOL with no file closes the spool file', align=Align.INLINE)
+d.byte(0x84F4)
+d.comment(0x84F4, 'CR ends the command', align=Align.INLINE)
+d.label(0x84F5, "close_exec_cmd")
+d.string(0x84F5, 2)
+d.comment(0x84F5, '"E.": *EXEC with no file closes the exec file', align=Align.INLINE)
+d.byte(0x84F7)
+d.comment(0x84F7, 'CR ends the command', align=Align.INLINE)
+
+d.expr(0x8298, lo(sym("filev_handler")))
+d.expr(0x8299, hi(sym("filev_handler")))
+d.expr(0x829B, lo(sym("argsv_handler")))
+d.expr(0x829C, hi(sym("argsv_handler")))
+d.expr(0x829E, lo(sym("bgetv_handler")))
+d.expr(0x829F, hi(sym("bgetv_handler")))
+d.expr(0x82A1, lo(sym("bputv_handler")))
+d.expr(0x82A2, hi(sym("bputv_handler")))
+d.expr(0x82A4, lo(sym("gbpbv_handler")))
+d.expr(0x82A5, hi(sym("gbpbv_handler")))
+d.expr(0x82A7, lo(sym("findv_handler")))
+d.expr(0x82A8, hi(sym("findv_handler")))
+d.expr(0x82AA, lo(sym("fscv_handler")))
+d.expr(0x82AB, hi(sym("fscv_handler")))
+d.expr(0x82B3, lo(sym("osword_dispatch")))
+d.expr(0x82B4, hi(sym("osword_dispatch")))
+
+d.banner(
+    0x82B3,
+    title="NETV handler address",
+    description="""Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.
+[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at
+[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies
+it, with the ROM number, into the MOS extended-vector table.""",
+)
+d.byte(0x82B3)
+d.byte(0x82B4)
+d.comment(0x82B3, "NETV handler low byte", align=Align.INLINE)
+d.comment(0x82B4, "NETV handler high byte", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

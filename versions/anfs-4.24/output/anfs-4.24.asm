@@ -65,9 +65,7 @@ tube_claimed_id             = &15
 parse_separator_flag        = &26
 ; &26 referenced 1 time by &a4ae
 zp_0063                     = &63  ; (false ref from inline string data)
-; &63 referenced 1 time by &b334
 zp_0078                     = &78  ; (false ref from inline string data)
-; &78 referenced 1 time by &b332
 escapable                   = &97  ; b7=respond to Escape flag
 ; &97 referenced 6 times by &8231, &8288, &8421, &85b3, &85ce, &88c7
 need_release_tube           = &98  ; b7=need to release Tube
@@ -10893,7 +10891,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; dispatches via FSCV,3 directly to NFS, so the lookup deterministically hits NFS's
 ; *RUN-from-library path.
 ;
-; The same routing is used by boot_cmd_load_str (L.-NET-!Boot) and boot_cmd_exec_str
+; The same routing is used by boot_cmd_load (L.-NET-!Boot) and boot_cmd_exec
 ; (E.-NET-!Boot).
 ; &a71f referenced 1 time by &a70d
 .boot_try_findlib
@@ -10949,22 +10947,45 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; &a754 referenced 1 time by &a776
 .boot_cancel_rts
     rts                                                               ; a754: 60          `        ; Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)
-.boot_cmd_load_str
-    equs "L.-Net-!Boot"                                               ; a755: 4c 2e 2d... L.-...   ; Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
-    equb &0d                                                          ; a761: 0d          .        ; CR terminator
-.boot_cmd_exec_str
-    equs "E.-Net-!Boot"                                               ; a762: 45 2e 2d... E.-...   ; Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)
-    equb &0d                                                          ; a76e: 0d          .        ; CR terminator
+; ***************************************************************************************
+; Boot commands
+;
+; Command lines that boot_cmd_oscli passes to OSCLI for boot options 1-3, overlapped to
+; save space:
+;
+; - boot_cmd_load: L.-Net-!Boot (option 1, Load)
+; - boot_cmd_run: !Boot, the tail of the Load command (option 2, Run)
+; - boot_cmd_exec: E.-Net-!Boot (option 3, Exec)
+; - boot_cmd_off: the CR that ends E.-Net-!Boot (option 0, Off). Never used: option 0
+;   returns before the lookup.
+.boot_cmd_load
+    equs "L.-Net-"                                                    ; a755: 4c 2e 2d... L.-...   ; "L.-Net-" of "L.-Net-!Boot": Load command
+.boot_cmd_run
+    equs "!Boot"                                                      ; a75c: 21 42 6f... !Bo...   ; "!Boot": Run command, the tail of the Load
+    equb &0d                                                          ; a761: 0d          .        ; CR ends the Load and Run commands
+.boot_cmd_exec
+    equs "E.-Net-!Boot"                                               ; a762: 45 2e 2d... E.-...   ; "E.-Net-!Boot": Exec command
+.boot_cmd_off
+    equb &0d                                                          ; a76e: 0d          .        ; CR ends the Exec command (and is option 0's)
+; ***************************************************************************************
+; Boot command offsets
+;
+; Low byte of each boot option's command line, indexed by the boot option (0-3).
+; boot_cmd_oscli loads it into X and the page of boot_cmd_load into Y, then jumps to
+; OSCLI.
 ; &a76f used as index base 1 time by &a778
-.boot_cmd_lo_table
-    equs "nU\b"                                                       ; a76f: 6e 55 5c... nU\...
+.boot_cmd_offsets
+    equb <(boot_cmd_off)                                              ; a76f: 6e          n        ; Option 0 (Off): boot_cmd_off
+    equb <(boot_cmd_load)                                             ; a770: 55          U        ; Option 1 (Load): boot_cmd_load
+    equb <(boot_cmd_run)                                              ; a771: 5c          \        ; Option 2 (Run): boot_cmd_run
+    equb <(boot_cmd_exec)                                             ; a772: 62          b        ; Option 3 (Exec): boot_cmd_exec
 ; ***************************************************************************************
 ; Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli
 ;
 ; Two-instruction gate at the head of the boot-OSCLI dispatch. Loads Y from
 ; hazel_boot_option (the boot-type byte the FS reply stashed in fsreply_1_boot at &A6E1);
 ; if zero, BEQs into boot_cancel_rts — the empty / no-op boot case. Otherwise falls
-; through into boot_cmd_oscli with Y already loaded as the index into boot_cmd_lo_table.
+; through into boot_cmd_oscli with Y already loaded as the index into boot_cmd_offsets.
 ;
 ; Two callers, both from check_auto_boot_flag: the BNE at &A748 (auto-boot flag was set,
 ; skip CTRL check) and the BPL at &A73E (CTRL not pressed, proceed to boot).
@@ -10973,16 +10994,16 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     ldy hazel_boot_option                                             ; a773: ac 05 c0    ...      ; Y = boot-type byte from FS reply (0..3)
     beq boot_cancel_rts                                               ; a776: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
-; Look up boot command in boot_cmd_lo_table and OSCLI it
+; Look up boot command in boot_cmd_offsets and OSCLI it
 ;
-; Loads X = boot_cmd_lo_table,Y (low byte of the boot-command address), sets Y=&A7 (high
+; Loads X = boot_cmd_offsets,Y (low byte of the boot-command address), sets Y=&A7 (high
 ; byte — boot strings live in &A7xx), then JMPs to oscli with (X,Y) pointing at a
 ; CR-terminated command string.
 ;
 ; Two entry paths:
 ;
 ; - JMP tail-call from &A5E8 with Y=3 hardcoded — forces the exec-via-NFS boot
-;   (boot_cmd_exec_str).
+;   (boot_cmd_exec).
 ; - Fall-through from boot_select_cmd with Y already loaded from hazel_boot_option — the
 ;   normal logon-boot path, dispatching on the FS-supplied boot type.
 ;
@@ -10990,8 +11011,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;     Y: boot-command index (1=load, 2=run-on-current-FS, 3=exec)
 ; &a778 referenced 1 time by &a5e8
 .boot_cmd_oscli
-    ldx boot_cmd_lo_table,y                                           ; a778: be 6f a7    .o.      ; Load boot-command low byte from boot_cmd_lo_table[Y]
-    ldy #&a7                                                          ; a77b: a0 a7       ..       ; Y=&A7: high byte (boot strings live in &A7xx)
+    ldx boot_cmd_offsets,y                                            ; a778: be 6f a7    .o.      ; Load boot-command low byte from boot_cmd_offsets[Y]
+    ldy #>(boot_cmd_load)                                             ; a77b: a0 a7       ..       ; Y = page holding the boot commands
     jmp oscli                                                         ; a77d: 4c f7 ff    L..      ; Tail-jump to OSCLI to execute the boot command
 ; ***************************************************************************************
 ; ANFS *command dispatch tables (5 concatenated sub-tables)
@@ -13438,10 +13459,10 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_hex_byte_no_spool                                       ; b1dc: 20 55 92     U.      ; Print option as hex
     jsr print_inline_no_spool                                         ; b1df: 20 93 92     ..      ; Print ' ('
     equs " ("                                                         ; b1e2: 20 28        (       ; Inline text, printed by print_inline_no_spool
-    ldy option_str_offset_data,x                                      ; b1e4: bc cb b2    ...      ; Look up option-string offset for index X
+    ldy option_name_offsets,x                                         ; b1e4: bc cb b2    ...      ; Look up option-string offset for index X
 ; &b1e7 referenced 1 time by &b1f0
 .loop_print_option
-    lda option_offset_table,y                                         ; b1e7: b9 cf b2    ...      ; Look up option byte at the resolved offset
+    lda option_name_off,y                                             ; b1e7: b9 cf b2    ...      ; Look up option byte at the resolved offset
     bmi print_dir_header                                              ; b1ea: 30 06       0.       ; Bit 7 of A set (negative): print directory header
     jsr print_char_no_spool                                           ; b1ec: 20 04 92     ..      ; Print char (no spool)
     iny                                                               ; b1ef: c8          .        ; Advance Y
@@ -13632,13 +13653,22 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr strip_token_prefix                                            ; b2c6: 20 84 b2     ..      ; Recurse to strip the trailing component
     dex                                                               ; b2c9: ca          .        ; Decrement X (consume processed char)
     rts                                                               ; b2ca: 60          `        ; Return
+; ***************************************************************************************
+; Boot option names
+;
+; Offsets of the names that *CAT prints for boot options 0-3, measured from
+; option_name_off, which follows the table. The other names sit in gaps between routines
+; and have no terminator of their own: the opcode after each one has bit 7 set, which
+; ends the print loop.
 ; &b2cb used as index base 1 time by &b1e4
-.option_str_offset_data
-    equb &00                                                          ; b2cb: 00          .        ; Data: option string offset table
-    equs "/<c"                                                        ; b2cc: 2f 3c 63    /<c   
+.option_name_offsets
+    equb &00                                                          ; b2cb: 00          .        ; Option 0: offset of "Off"
+    equb option_name_load - option_name_off                           ; b2cc: 2f          /        ; Option 1: offset of "Load"
+    equb option_name_run - option_name_off                            ; b2cd: 3c          <        ; Option 2: offset of "Run"
+    equb option_name_exec - option_name_off                           ; b2ce: 63          c        ; Option 3: offset of "Exec"
 ; &b2cf used as index base 1 time by &b1e7
-.option_offset_table
-    equs "Off"                                                        ; b2cf: 4f 66 66    Off   
+.option_name_off
+    equs "Off"                                                        ; b2cf: 4f 66 66    Off      ; "Off": name of boot option 0, ended by the next opcode
 ; ***************************************************************************************
 ; Copy argument to TX buffer from offset zero
 ;
@@ -13712,7 +13742,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b2fd referenced 1 time by &b313
 .rts_copy_arg
     rts                                                               ; b2fd: 60          `        ; Return
-    equs "Load"                                                       ; b2fe: 4c 6f 61... Loa...
+.option_name_load
+    equs "Load"                                                       ; b2fe: 4c 6f 61... Loa...   ; "Load": name of boot option 1, ended by the next opcode
 ; ***************************************************************************************
 ; Clear FS selection flags from options word
 ;
@@ -13728,7 +13759,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
     and #&1f                                                          ; b305: 29 1f       ).       ; Keep only the 5-bit owner access mask
     sta hazel_fs_lib_flags                                            ; b307: 8d 71 c2    .q.      ; Store back, clearing FS-selection and other high bits
     rts                                                               ; b30a: 60          `        ; Return
-    equs "Run"                                                        ; b30b: 52 75 6e    Run   
+.option_name_run
+    equs "Run"                                                        ; b30b: 52 75 6e    Run      ; "Run": name of boot option 2, ended by the next opcode
 .ex_init_scan_x0
     ldx #0                                                            ; b30e: a2 00       ..       ; X=0: scan from start of TX entry
 ; &b310 referenced 1 time by &b330
@@ -13765,8 +13797,8 @@ cdir_size_thresholds = cdir_dispatch_col+2
 .col_sep_print_char
     inx                                                               ; b32f: e8          .        ; Next entry
     bne loop_scan_entries                                             ; b330: d0 de       ..       ; Loop until X wraps
-    eor zp_0078                                                       ; b332: 45 78       Ex       ; XOR with zp_0078
-    adc zp_0063                                                       ; b334: 65 63       ec       ; Add zp_0063
+.option_name_exec
+    equs "Exec"                                                       ; b332: 45 78 65... Exe...   ; "Exec": name of boot option 3, ended by the next opcode
 ; ***************************************************************************************
 ; Print 3-digit decimal via *SPOOL-bypassing print
 ;
@@ -17201,7 +17233,7 @@ save pydis_start, pydis_end
 ;     bad_prefix_table:              1
 ;     begin_prot_encode:             1
 ;     boot_cancel_rts:               1
-;     boot_cmd_lo_table:             1
+;     boot_cmd_offsets:              1
 ;     boot_cmd_oscli:                1
 ;     boot_persist_fs_maybe:         1
 ;     boot_try_findlib:              1
@@ -17714,8 +17746,8 @@ save pydis_start, pydis_end
 ;     opt_set_boot_option:           1
 ;     opt_set_messages:              1
 ;     opt_write_cmos:                1
-;     option_offset_table:           1
-;     option_str_offset_data:        1
+;     option_name_off:               1
+;     option_name_offsets:           1
 ;     os_spool_flag_table:           1
 ;     osargs_ptr_dispatch:           1
 ;     osargs_read_op:                1
@@ -18045,8 +18077,6 @@ save pydis_start, pydis_end
 ;     write_two_bytes_inc_y:         1
 ;     ws_copy_vclr_entry:            1
 ;     ws_txcb_template_data:         1
-;     zp_0063:                       1
-;     zp_0078:                       1
 
 ; Automatically generated labels:
 ;     return_1
@@ -18060,11 +18090,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14474 bytes (88%)
-;     Data                     = 1910 bytes (12%)
+;     Code                     = 14470 bytes (88%)
+;     Data                     = 1914 bytes (12%)
 ;
-;     Number of instructions   = 7135
-;     Number of data bytes     = 538 bytes
+;     Number of instructions   = 7133
+;     Number of data bytes     = 545 bytes
 ;     Number of data words     = 88 bytes
-;     Number of string bytes   = 1284 bytes
+;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 148

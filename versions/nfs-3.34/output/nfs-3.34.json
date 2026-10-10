@@ -2345,6 +2345,12 @@
       "align": "before_label"
     },
     {
+      "addr": 33398,
+      "title": "NETV handler address",
+      "description": "Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.\n[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at\n[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies\nit, with the ROM number, into the MOS extended-vector table.",
+      "align": "before_label"
+    },
+    {
       "addr": 33967,
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 8 entries)",
@@ -8962,6 +8968,17 @@
       "type": "byte",
       "values": [
         148
+      ],
+      "expressions": [
+        {
+          "text": "<(filev_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "filev_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -8973,6 +8990,17 @@
       "type": "byte",
       "values": [
         134
+      ],
+      "expressions": [
+        {
+          "text": ">(filev_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "filev_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -8995,6 +9023,17 @@
       "type": "byte",
       "values": [
         225
+      ],
+      "expressions": [
+        {
+          "text": "<(argsv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "argsv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9006,6 +9045,17 @@
       "type": "byte",
       "values": [
         136
+      ],
+      "expressions": [
+        {
+          "text": ">(argsv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "argsv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9028,6 +9078,17 @@
       "type": "byte",
       "values": [
         133
+      ],
+      "expressions": [
+        {
+          "text": "<(bgetv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "bgetv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9039,6 +9100,17 @@
       "type": "byte",
       "values": [
         132
+      ],
+      "expressions": [
+        {
+          "text": ">(bgetv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "bgetv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9061,6 +9133,17 @@
       "type": "byte",
       "values": [
         162
+      ],
+      "expressions": [
+        {
+          "text": "<(bputv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "bputv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9072,6 +9155,17 @@
       "type": "byte",
       "values": [
         131
+      ],
+      "expressions": [
+        {
+          "text": ">(bputv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "bputv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9094,6 +9188,17 @@
       "type": "byte",
       "values": [
         234
+      ],
+      "expressions": [
+        {
+          "text": "<(gbpbv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "gbpbv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9105,6 +9210,17 @@
       "type": "byte",
       "values": [
         137
+      ],
+      "expressions": [
+        {
+          "text": ">(gbpbv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "gbpbv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9127,6 +9243,17 @@
       "type": "byte",
       "values": [
         73
+      ],
+      "expressions": [
+        {
+          "text": "<(findv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "findv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9138,6 +9265,17 @@
       "type": "byte",
       "values": [
         137
+      ],
+      "expressions": [
+        {
+          "text": ">(findv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "findv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9160,6 +9298,17 @@
       "type": "byte",
       "values": [
         140
+      ],
+      "expressions": [
+        {
+          "text": "<(fscv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "fscv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9171,6 +9320,17 @@
       "type": "byte",
       "values": [
         128
+      ],
+      "expressions": [
+        {
+          "text": ">(fscv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "fscv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -9234,18 +9394,59 @@
         }
       ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_dispatch)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "osword_dispatch"
+          }
+        }
+      }
     },
     {
       "addr": 33398,
       "bytes": [
-        7,
-        144
+        7
       ],
+      "comment_inline": "NETV handler low byte",
       "type": "byte",
       "values": [
-        7,
+        7
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_dispatch)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "osword_dispatch"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 33399,
+      "bytes": [
         144
+      ],
+      "comment_inline": "NETV handler high byte",
+      "type": "byte",
+      "values": [
+        144
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_dispatch)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "osword_dispatch"
+            }
+          }
+        }
       ]
     },
     {

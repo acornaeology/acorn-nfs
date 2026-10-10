@@ -3038,7 +3038,7 @@
       "addr": 42763,
       "name": "boot_try_findlib",
       "title": "If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'",
-      "description": "Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1\n(the auto-CLI / auto-run-FindLib flag). If clear, returns\nimmediately; if set, OSCLIs [`findlib_oscli_cmd`](label:findlib_oscli_cmd)\n(`-NET-FindLib<CR>`). Falls through to\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) in either case.\n\n#### Why the `-NET-` prefix\n\n`-NET-` is MOS's hyphen-bracketed filing-system selector. The\ngeneral form `-FS-COMMAND` makes `FS` the temporary *active* FS\nfor this OSCLI without touching the currently-selected default,\nthen parses `COMMAND`. If `COMMAND` matches an internal MOS\ncommand it runs normally; on the unknown-command fallthrough\nthe temp-FS bit suppresses the service-4 ROM broadcast and\ndispatches via FSCV,3 directly to the selected FS. `NET` is\nthe short name registered by the NFS / ANFS ROM (others\nregister `DISC`, `ADFS`, `TAPE`).\n\nNFS is already the current FS by the time this code runs.\n[`svc_3_autoboot`](label:svc_3_autoboot) selects it via\n[`select_fs_via_cmd_net_fs`](label:select_fs_via_cmd_net_fs) before the\nsynchronous `*I AM` exchange on the cold-boot path, and the\nuser-typed `*I AM` route requires `*NET` first because `*I AM`\nis itself an NFS `*` command.\n\nThe prefix therefore provides defensive routing, not FS\nselection. A plain `*FindLib` would broadcast service-4 to all\nsideways ROMs before falling through to FSCV,3, exposing the\ncommand to interception by any ROM that has claimed `FindLib`\n(including by abbreviation). The `-NET-` form sets the temp-FS\nbit, which suppresses the broadcast and dispatches via FSCV,3\ndirectly to NFS, so the lookup deterministically hits NFS's\n`*RUN`-from-library path.\n\nThe same routing is used by\n[`boot_cmd_load_str`](label:boot_cmd_load_str) (`L.-NET-!Boot`) and\n[`boot_cmd_exec_str`](label:boot_cmd_exec_str) (`E.-NET-!Boot`).",
+      "description": "Reads CMOS byte `&11` via OSBYTE `&A1` and tests bit 1\n(the auto-CLI / auto-run-FindLib flag). If clear, returns\nimmediately; if set, OSCLIs [`findlib_oscli_cmd`](label:findlib_oscli_cmd)\n(`-NET-FindLib<CR>`). Falls through to\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) in either case.\n\n#### Why the `-NET-` prefix\n\n`-NET-` is MOS's hyphen-bracketed filing-system selector. The\ngeneral form `-FS-COMMAND` makes `FS` the temporary *active* FS\nfor this OSCLI without touching the currently-selected default,\nthen parses `COMMAND`. If `COMMAND` matches an internal MOS\ncommand it runs normally; on the unknown-command fallthrough\nthe temp-FS bit suppresses the service-4 ROM broadcast and\ndispatches via FSCV,3 directly to the selected FS. `NET` is\nthe short name registered by the NFS / ANFS ROM (others\nregister `DISC`, `ADFS`, `TAPE`).\n\nNFS is already the current FS by the time this code runs.\n[`svc_3_autoboot`](label:svc_3_autoboot) selects it via\n[`select_fs_via_cmd_net_fs`](label:select_fs_via_cmd_net_fs) before the\nsynchronous `*I AM` exchange on the cold-boot path, and the\nuser-typed `*I AM` route requires `*NET` first because `*I AM`\nis itself an NFS `*` command.\n\nThe prefix therefore provides defensive routing, not FS\nselection. A plain `*FindLib` would broadcast service-4 to all\nsideways ROMs before falling through to FSCV,3, exposing the\ncommand to interception by any ROM that has claimed `FindLib`\n(including by abbreviation). The `-NET-` form sets the temp-FS\nbit, which suppresses the broadcast and dispatches via FSCV,3\ndirectly to NFS, so the lookup deterministically hits NFS's\n`*RUN`-from-library path.\n\nThe same routing is used by\n[`boot_cmd_load`](label:boot_cmd_load) (`L.-NET-!Boot`) and\n[`boot_cmd_exec`](label:boot_cmd_exec) (`E.-NET-!Boot`).",
       "fall_through": true
     },
     {
@@ -3051,14 +3051,14 @@
       "addr": 42847,
       "name": "boot_select_cmd",
       "title": "Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
-      "description": "Two-instruction gate at the head of the boot-OSCLI dispatch.\nLoads `Y` from [`hazel_boot_option`](label:hazel_boot_option) (the boot-type\nbyte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,\n`BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) \u2014 the empty / no-op\nboot case. Otherwise falls through into\n[`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the\nindex into [`boot_cmd_lo_table`](label:boot_cmd_lo_table).\n\nTwo callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):\nthe `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)\nand the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).",
+      "description": "Two-instruction gate at the head of the boot-OSCLI dispatch.\nLoads `Y` from [`hazel_boot_option`](label:hazel_boot_option) (the boot-type\nbyte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,\n`BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) \u2014 the empty / no-op\nboot case. Otherwise falls through into\n[`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the\nindex into [`boot_cmd_offsets`](label:boot_cmd_offsets).\n\nTwo callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):\nthe `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)\nand the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).",
       "fall_through": true
     },
     {
       "addr": 42852,
       "name": "boot_cmd_oscli",
-      "title": "Look up boot command in boot_cmd_lo_table and OSCLI it",
-      "description": "Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command\naddress), sets `Y=&A7` (high byte \u2014 boot strings live in `&A7xx`),\nthen `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated\ncommand string.\n\nTwo entry paths:\n\n- `JMP` tail-call from `&A5D4` with `Y=3` hardcoded \u2014 forces the\n  exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).\n- Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already\n  loaded from [`hazel_boot_option`](label:hazel_boot_option) \u2014 the normal logon-boot\n  path, dispatching on the FS-supplied boot type.",
+      "title": "Look up boot command in boot_cmd_offsets and OSCLI it",
+      "description": "Loads `X = boot_cmd_offsets,Y` (low byte of the boot-command\naddress), sets `Y=&A7` (high byte \u2014 boot strings live in `&A7xx`),\nthen `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated\ncommand string.\n\nTwo entry paths:\n\n- `JMP` tail-call from `&A5D4` with `Y=3` hardcoded \u2014 forces the\n  exec-via-NFS boot ([`boot_cmd_exec`](label:boot_cmd_exec)).\n- Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already\n  loaded from [`hazel_boot_option`](label:hazel_boot_option) \u2014 the normal logon-boot\n  path, dispatching on the FS-supplied boot type.",
       "on_entry": {
         "y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"
       }
@@ -4733,10 +4733,17 @@
       "align": "before_label"
     },
     {
+      "addr": 42817,
+      "name": "boot_cmd_load",
+      "title": "Boot commands",
+      "description": "Command lines that [`boot_cmd_oscli`](label:boot_cmd_oscli) passes\nto OSCLI for boot options 1-3, overlapped to save space:\n\n* [`boot_cmd_load`](label:boot_cmd_load): `L.-NET-!Boot` (option 1, Load)\n* [`boot_cmd_run`](label:boot_cmd_run): `!Boot`, the tail of the Load\n  command (option 2, Run)\n* [`boot_cmd_exec`](label:boot_cmd_exec): `E.-NET-!Boot` (option 3, Exec)\n* [`boot_cmd_off`](label:boot_cmd_off): the CR that ends `E.-NET-!Boot`\n  (option 0, Off). Never used: option 0 returns before the lookup.",
+      "align": "before_label"
+    },
+    {
       "addr": 42843,
-      "name": "boot_cmd_lo_table",
-      "title": "Boot-command low-byte index table",
-      "description": "Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in\n[`boot_cmd_oscli`](label:boot_cmd_oscli). Combined with `Y=&A7` (high\nbyte, supplied by `boot_cmd_oscli` after the lookup), each entry\nyields a pointer to a CR-terminated boot command in the `&A7xx`\npage.\n\nThree reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable\nbecause [`boot_select_cmd`](label:boot_select_cmd) `BEQ`s out when\n`hazel_boot_option` is zero.\n\nIndex 2 (`&48`) lands inside\n[`boot_cmd_load_str`](label:boot_cmd_load_str) \u2014 at offset 7, on its `!`\nbyte \u2014 so OSCLI reads `\"!Boot<CR>\"` from the middle of the same\nstring used at index 1. This packs the \"run `*!Boot` on the\ncurrent FS\" variant into the same data as the load-via-NFS\nform, saving a third CR-terminated string.",
+      "name": "boot_cmd_offsets",
+      "title": "Boot command offsets",
+      "description": "Low byte of each boot option's command line, indexed by the boot\noption (0-3). [`boot_cmd_oscli`](label:boot_cmd_oscli) loads it into X\nand the page of [`boot_cmd_load`](label:boot_cmd_load) into Y, then\njumps to OSCLI.",
       "align": "before_label"
     },
     {
@@ -4807,6 +4814,13 @@
       "name": "cdir_alloc_size_table",
       "title": "*CDir allocation size threshold table (26 entries)",
       "description": "26 thresholds dividing 0-255 into size classes for the *CDir\ndirectory-size argument. Table base is at `cdir_dispatch_col+2`\n(overlapping the JMP operand high byte just before the table); the search\nloop (`LDX #&1B` / `DEX` / `CMP table,X` / `BCC`) scans indices\n26 down to 0. Index 0 reads `&94` from the JMP and is unreachable\nbecause index 1 (threshold `&00`) always matches first. The\nresulting `X` (1-26) is the allocation size class sent to the\nfile server. Default when no size argument is given: index 2.",
+      "align": "before_label"
+    },
+    {
+      "addr": 45720,
+      "name": "option_name_offsets",
+      "title": "Boot option names",
+      "description": "Offsets of the names that *CAT prints for boot options 0-3, measured\nfrom [`option_name_off`](label:option_name_off), which follows the table.\nThe other names sit in gaps between routines and have no terminator\nof their own: the opcode after each one has bit 7 set, which ends the\nprint loop.",
       "align": "before_label"
     },
     {
@@ -78298,7 +78312,18 @@
         78,
         69,
         84,
-        45,
+        45
+      ],
+      "labels": [
+        "boot_cmd_load"
+      ],
+      "comment_inline": "\"L.-NET-\" of \"L.-NET-!Boot\": Load command",
+      "type": "string",
+      "string": "L.-NET-"
+    },
+    {
+      "addr": 42824,
+      "bytes": [
         33,
         66,
         111,
@@ -78306,18 +78331,18 @@
         116
       ],
       "labels": [
-        "boot_cmd_load_str"
+        "boot_cmd_run"
       ],
-      "comment_inline": "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
+      "comment_inline": "\"!Boot\": Run command, the tail of the Load",
       "type": "string",
-      "string": "L.-NET-!Boot"
+      "string": "!Boot"
     },
     {
       "addr": 42829,
       "bytes": [
         13
       ],
-      "comment_inline": "CR terminator",
+      "comment_inline": "CR ends the Load and Run commands",
       "type": "byte",
       "values": [
         13
@@ -78340,9 +78365,9 @@
         116
       ],
       "labels": [
-        "boot_cmd_exec_str"
+        "boot_cmd_exec"
       ],
-      "comment_inline": "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast \u2014 see boot_try_findlib)",
+      "comment_inline": "\"E.-NET-!Boot\": Exec command",
       "type": "string",
       "string": "E.-NET-!Boot"
     },
@@ -78351,7 +78376,10 @@
       "bytes": [
         13
       ],
-      "comment_inline": "CR terminator",
+      "labels": [
+        "boot_cmd_off"
+      ],
+      "comment_inline": "CR ends the Exec command (and is option 0's)",
       "type": "byte",
       "values": [
         13
@@ -78363,9 +78391,9 @@
         90
       ],
       "labels": [
-        "boot_cmd_lo_table"
+        "boot_cmd_offsets"
       ],
-      "comment_inline": "Y=0: unreachable (boot_select_cmd BEQs out when hazel_boot_option=0); value is dead",
+      "comment_inline": "Option 0 (Off): boot_cmd_off",
       "xref_summaries": [
         "&a75b used as index base 1 time by &a764"
       ],
@@ -78378,6 +78406,17 @@
       "type": "byte",
       "values": [
         90
+      ],
+      "expressions": [
+        {
+          "text": "<(boot_cmd_off)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "boot_cmd_off"
+            }
+          }
+        }
       ]
     },
     {
@@ -78385,18 +78424,18 @@
       "bytes": [
         65
       ],
-      "comment_inline": "Y=1: lo byte of boot_cmd_load_str (&A741) \u2014 'L.-NET-!Boot'",
+      "comment_inline": "Option 1 (Load): boot_cmd_load",
       "type": "byte",
       "values": [
         65
       ],
       "expressions": [
         {
-          "text": "<(boot_cmd_load_str)",
+          "text": "<(boot_cmd_load)",
           "tree": {
             "op": "lowbyte",
             "operand": {
-              "sym": "boot_cmd_load_str"
+              "sym": "boot_cmd_load"
             }
           }
         }
@@ -78407,25 +78446,18 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') \u2014 '!Boot' on current FS",
+      "comment_inline": "Option 2 (Run): boot_cmd_run",
       "type": "byte",
       "values": [
         72
       ],
       "expressions": [
         {
-          "text": "<(boot_cmd_load_str + 7)",
+          "text": "<(boot_cmd_run)",
           "tree": {
             "op": "lowbyte",
             "operand": {
-              "op": "add",
-              "left": {
-                "sym": "boot_cmd_load_str"
-              },
-              "right": {
-                "int": 7,
-                "radix": "auto"
-              }
+              "sym": "boot_cmd_run"
             }
           }
         }
@@ -78436,18 +78468,18 @@
       "bytes": [
         78
       ],
-      "comment_inline": "Y=3: lo byte of boot_cmd_exec_str (&A74E) \u2014 'E.-NET-!Boot'",
+      "comment_inline": "Option 3 (Exec): boot_cmd_exec",
       "type": "byte",
       "values": [
         78
       ],
       "expressions": [
         {
-          "text": "<(boot_cmd_exec_str)",
+          "text": "<(boot_cmd_exec)",
           "tree": {
             "op": "lowbyte",
             "operand": {
-              "sym": "boot_cmd_exec_str"
+              "sym": "boot_cmd_exec"
             }
           }
         }
@@ -78506,7 +78538,7 @@
       "labels": [
         "boot_cmd_oscli"
       ],
-      "comment_inline": "Load boot-command low byte from boot_cmd_lo_table[Y]",
+      "comment_inline": "Load boot-command low byte from boot_cmd_offsets[Y]",
       "xref_summaries": [
         "&a764 referenced 1 time by &a5d4"
       ],
@@ -78518,9 +78550,9 @@
       ],
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "boot_cmd_lo_table,y",
+      "operand": "boot_cmd_offsets,y",
       "target": 42843,
-      "target_label": "boot_cmd_lo_table"
+      "target_label": "boot_cmd_offsets"
     },
     {
       "addr": 42855,
@@ -78528,10 +78560,19 @@
         160,
         167
       ],
-      "comment_inline": "Y=&A7: high byte (boot strings live in &A7xx)",
+      "comment_inline": "Y = page holding the boot commands",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&a7"
+      "operand": "#>(boot_cmd_load)",
+      "expr": {
+        "text": ">(boot_cmd_load)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "boot_cmd_load"
+          }
+        }
+      }
     },
     {
       "addr": 42857,
@@ -98832,9 +98873,9 @@
       "comment_inline": "Look up option-string offset for index X",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "option_str_offset_data,x",
+      "operand": "option_name_offsets,x",
       "target": 45720,
-      "target_label": "option_str_offset_data"
+      "target_label": "option_name_offsets"
     },
     {
       "addr": 45492,
@@ -98858,9 +98899,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "option_offset_table,y",
+      "operand": "option_name_off,y",
       "target": 45724,
-      "target_label": "option_offset_table"
+      "target_label": "option_name_off"
     },
     {
       "addr": 45495,
@@ -100374,9 +100415,9 @@
         0
       ],
       "labels": [
-        "option_str_offset_data"
+        "option_name_offsets"
       ],
-      "comment_inline": "Data: option string offset table",
+      "comment_inline": "Option 0: offset of \"Off\"",
       "xref_summaries": [
         "&b298 used as index base 1 time by &b1b1"
       ],
@@ -100394,12 +100435,77 @@
     {
       "addr": 45721,
       "bytes": [
-        47,
-        60,
+        47
+      ],
+      "comment_inline": "Option 1: offset of \"Load\"",
+      "type": "byte",
+      "values": [
+        47
+      ],
+      "expressions": [
+        {
+          "text": "option_name_load - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_load"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 45722,
+      "bytes": [
+        60
+      ],
+      "comment_inline": "Option 2: offset of \"Run\"",
+      "type": "byte",
+      "values": [
+        60
+      ],
+      "expressions": [
+        {
+          "text": "option_name_run - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_run"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 45723,
+      "bytes": [
         99
       ],
-      "type": "string",
-      "string": "/<c"
+      "comment_inline": "Option 3: offset of \"Exec\"",
+      "type": "byte",
+      "values": [
+        99
+      ],
+      "expressions": [
+        {
+          "text": "option_name_exec - option_name_off",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "option_name_exec"
+            },
+            "right": {
+              "sym": "option_name_off"
+            }
+          }
+        }
+      ]
     },
     {
       "addr": 45724,
@@ -100409,8 +100515,9 @@
         102
       ],
       "labels": [
-        "option_offset_table"
+        "option_name_off"
       ],
+      "comment_inline": "\"Off\": name of boot option 0, ended by the next opcode",
       "xref_summaries": [
         "&b29c used as index base 1 time by &b1b4"
       ],
@@ -100862,6 +100969,10 @@
         97,
         100
       ],
+      "labels": [
+        "option_name_load"
+      ],
+      "comment_inline": "\"Load\": name of boot option 1, ended by the next opcode",
       "type": "string",
       "string": "Load"
     },
@@ -100988,6 +101099,10 @@
         117,
         110
       ],
+      "labels": [
+        "option_name_run"
+      ],
+      "comment_inline": "\"Run\": name of boot option 2, ended by the next opcode",
       "type": "string",
       "string": "Run"
     },
@@ -101278,27 +101393,16 @@
       "addr": 45823,
       "bytes": [
         69,
-        120
-      ],
-      "comment_inline": "XOR with zp_0078",
-      "type": "code",
-      "mnemonic": "eor",
-      "operand": "zp_0078",
-      "target": 120,
-      "target_label": "zp_0078"
-    },
-    {
-      "addr": 45825,
-      "bytes": [
+        120,
         101,
         99
       ],
-      "comment_inline": "Add zp_0063",
-      "type": "code",
-      "mnemonic": "adc",
-      "operand": "zp_0063",
-      "target": 99,
-      "target_label": "zp_0063"
+      "labels": [
+        "option_name_exec"
+      ],
+      "comment_inline": "\"Exec\": name of boot option 3, ended by the next opcode",
+      "type": "string",
+      "string": "Exec"
     },
     {
       "addr": 45827,

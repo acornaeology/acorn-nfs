@@ -9252,6 +9252,36 @@ d.comment(0x8D4E, 'Option 2: "Run"', align=Align.INLINE)
 d.expr(0x8D4F, sym("option_name_exec") - sym("option_name_strings"))
 d.comment(0x8D4F, 'Option 3: "Exec"', align=Align.INLINE)
 
+d.expr(0x825C, lo(sym("filev_handler")))
+d.expr(0x825D, hi(sym("filev_handler")))
+d.expr(0x825F, lo(sym("argsv_handler")))
+d.expr(0x8260, hi(sym("argsv_handler")))
+d.expr(0x8262, lo(sym("bgetv_handler")))
+d.expr(0x8263, hi(sym("bgetv_handler")))
+d.expr(0x8265, lo(sym("bputv_handler")))
+d.expr(0x8266, hi(sym("bputv_handler")))
+d.expr(0x8268, lo(sym("gbpbv_handler")))
+d.expr(0x8269, hi(sym("gbpbv_handler")))
+d.expr(0x826B, lo(sym("findv_handler")))
+d.expr(0x826C, hi(sym("findv_handler")))
+d.expr(0x826E, lo(sym("fscv_handler")))
+d.expr(0x826F, hi(sym("fscv_handler")))
+d.expr(0x8277, lo(sym("osword_dispatch")))
+d.expr(0x8278, hi(sym("osword_dispatch")))
+
+d.banner(
+    0x8277,
+    title="NETV handler address",
+    description="""Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.
+[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at
+[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies
+it, with the ROM number, into the MOS extended-vector table.""",
+)
+d.byte(0x8277)
+d.byte(0x8278)
+d.comment(0x8277, "NETV handler low byte", align=Align.INLINE)
+d.comment(0x8278, "NETV handler high byte", align=Align.INLINE)
+
 ir = d.disassemble()
 output = str(
     ir.render(

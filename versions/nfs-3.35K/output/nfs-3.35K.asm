@@ -2087,26 +2087,26 @@ cmd_roff_str = copyright_string+3
     equb &ff                                                          ; 828b: ff          .        ; FINDV dispatch hi
     equb &2d                                                          ; 828c: 2d          -        ; FSCV dispatch lo
     equb &ff                                                          ; 828d: ff          .        ; FSCV dispatch hi
-    equb &de                                                          ; 828e: de          .        ; FILEV handler lo (&86DE)
-    equb &86                                                          ; 828f: 86          .        ; FILEV handler hi
+    equb <(filev_handler)                                             ; 828e: de          .        ; FILEV handler lo (&86DE)
+    equb >(filev_handler)                                             ; 828f: 86          .        ; FILEV handler hi
     equb &4a                                                          ; 8290: 4a          J        ; (ROM bank — not read)
-    equb &07                                                          ; 8291: 07          .        ; ARGSV handler lo (&8907)
-    equb &89                                                          ; 8292: 89          .        ; ARGSV handler hi
+    equb <(argsv_handler)                                             ; 8291: 07          .        ; ARGSV handler lo (&8907)
+    equb >(argsv_handler)                                             ; 8292: 89          .        ; ARGSV handler hi
     equb &44                                                          ; 8293: 44          D        ; (ROM bank — not read)
-    equb &2e                                                          ; 8294: 2e          .        ; BGETV handler lo (&852E)
-    equb &85                                                          ; 8295: 85          .        ; BGETV handler hi
+    equb <(bgetv_handler)                                             ; 8294: 2e          .        ; BGETV handler lo (&852E)
+    equb >(bgetv_handler)                                             ; 8295: 85          .        ; BGETV handler hi
     equb &57                                                          ; 8296: 57          W        ; (ROM bank — not read)
-    equb &dc                                                          ; 8297: dc          .        ; BPUTV handler lo (&83DC)
-    equb &83                                                          ; 8298: 83          .        ; BPUTV handler hi
+    equb <(bputv_handler)                                             ; 8297: dc          .        ; BPUTV handler lo (&83DC)
+    equb >(bputv_handler)                                             ; 8298: 83          .        ; BPUTV handler hi
     equb &42                                                          ; 8299: 42          B        ; (ROM bank — not read)
-    equb &0e                                                          ; 829a: 0e          .        ; GBPBV handler lo (&8A0E)
-    equb &8a                                                          ; 829b: 8a          .        ; GBPBV handler hi
+    equb <(gbpbv_handler)                                             ; 829a: 0e          .        ; GBPBV handler lo (&8A0E)
+    equb >(gbpbv_handler)                                             ; 829b: 8a          .        ; GBPBV handler hi
     equb &41                                                          ; 829c: 41          A        ; (ROM bank — not read)
-    equb &6f                                                          ; 829d: 6f          o        ; FINDV handler lo (&896F)
-    equb &89                                                          ; 829e: 89          .        ; FINDV handler hi
+    equb <(findv_handler)                                             ; 829d: 6f          o        ; FINDV handler lo (&896F)
+    equb >(findv_handler)                                             ; 829e: 89          .        ; FINDV handler hi
     equb &52                                                          ; 829f: 52          R        ; (ROM bank — not read)
-    equb &c7                                                          ; 82a0: c7          .        ; FSCV handler lo (&80C7)
-    equb &80                                                          ; 82a1: 80          .        ; FSCV handler hi
+    equb <(fscv_handler)                                              ; 82a0: c7          .        ; FSCV handler lo (&80C7)
+    equb >(fscv_handler)                                              ; 82a1: 80          .        ; FSCV handler hi
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
 ;
@@ -2125,7 +2125,14 @@ cmd_roff_str = copyright_string+3
 ; &82a8 referenced 2 times by &826f, &82a4
 .return_3
     rts                                                               ; 82a8: 60          `        ; Return (workspace claim done)
-    equb &74, &90                                                     ; 82a9: 74 90       t.    
+; ***************************************************************************************
+; NETV handler address
+;
+; Address of osword_dispatch, the NETV handler. setup_rom_ptrs_netv reads it at
+; run_fscv_cmd+&36 (the NETV slot offset) and copies it, with the ROM number, into the
+; MOS extended-vector table.
+    equb <(osword_dispatch)                                           ; 82a9: 74          t        ; NETV handler low byte
+    equb >(osword_dispatch)                                           ; 82aa: 90          .        ; NETV handler high byte
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ;
@@ -2572,19 +2579,19 @@ cmd_roff_str = copyright_string+3
     tax                                                               ; 8422: aa          .        ; Copy A to X
     lda #osbyte_exec_file_handle                                      ; 8423: a9 c6       ..       ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 8425: 20 f4 ff     ..      ; osbyte: exec file handle
-    lda #&ea                                                          ; 8428: a9 ea       ..       ; Default A=&EA: OSCLI no-op (CR before send_to_fs_star)
+    lda #<(close_none_cmd)                                            ; 8428: a9 ea       ..       ; A = low byte of the empty command (no-op)
     cpy fs_spool_handle                                               ; 842a: c4 ba       ..       ; Y=value of *SPOOL file handle
-    bne check_exec_handle                                             ; 842c: d0 02       ..       ; Non-zero reply: error or done
-    lda #&e4                                                          ; 842e: a9 e4       ..       ; A=&E4: OSCLI "SP." string at &84E4
+    bne check_exec_handle                                             ; 842c: d0 02       ..       ; Not the *SPOOL file: keep A
+    lda #<(close_spool_cmd)                                           ; 842e: a9 e4       ..       ; A = low byte of "SP." (stop *SPOOL)
 ; &8430 referenced 1 time by &842c
 .check_exec_handle
     cpx fs_spool_handle                                               ; 8430: e4 ba       ..       ; X=value of *EXEC file handle
-    bne close_spool_exec                                              ; 8432: d0 02       ..       ; No EXEC match -- skip close
-    lda #&e8                                                          ; 8434: a9 e8       ..       ; A=&E8: Tube OSWORD for BPUT
+    bne close_spool_exec                                              ; 8432: d0 02       ..       ; Not the *EXEC file: keep A
+    lda #<(close_exec_cmd)                                            ; 8434: a9 e8       ..       ; A = low byte of "E." (stop *EXEC)
 ; &8436 referenced 1 time by &8432
 .close_spool_exec
     tax                                                               ; 8436: aa          .        ; X = string offset for OSCLI close
-    ldy #&84                                                          ; 8437: a0 84       ..       ; Y=&84: high byte of OSCLI string in ROM
+    ldy #>(close_spool_cmd)                                           ; 8437: a0 84       ..       ; Y = page of the close commands
     jsr oscli                                                         ; 8439: 20 f7 ff     ..      ; Close SPOOL/EXEC via "*SP." or "*E."
 .dispatch_fs_error
     lda #&e0                                                          ; 843c: a9 e0       ..       ; Reset CB pointer to error buffer at &0FE0
@@ -2741,8 +2748,20 @@ cmd_roff_str = copyright_string+3
     inx                                                               ; 84e0: e8          .        ; Next dest byte
     iny                                                               ; 84e1: c8          .        ; Advance past saved flags
     bne copy_error_message                                            ; 84e2: d0 f4       ..       ; Continue copying message
-    equs "SP."                                                        ; 84e4: 53 50 2e    SP.   
-    equb &0d, &45, &2e, &0d                                           ; 84e7: 0d 45 2e... .E....
+; ***************************************************************************************
+; Spool and exec close commands
+;
+; OSCLI commands that handle_bput_bget issues when a BPUT or BGET fails: SP. stops
+; spooling if the failing handle is the *SPOOL file, E. stops the exec file if it is the
+; *EXEC file, and otherwise the final CR alone makes an empty command, so the OSCLI call
+; is always made.
+.close_spool_cmd
+    equs "SP."                                                        ; 84e4: 53 50 2e    SP.      ; "SP.": *SPOOL with no file closes the spool file
+    equb &0d                                                          ; 84e7: 0d          .        ; CR ends the command
+.close_exec_cmd
+    equs "E."                                                         ; 84e8: 45 2e       E.       ; "E.": *EXEC with no file closes the exec file
+.close_none_cmd
+    equb &0d                                                          ; 84ea: 0d          .        ; CR ends the command; alone, an empty command
 ; ***************************************************************************************
 ; Send an FS command with the standard poll count
 ;
@@ -9302,7 +9321,7 @@ save pydis_start, pydis_end
 ;     Data                     = 612 bytes (7%)
 ;
 ;     Number of instructions   = 3656
-;     Number of data bytes     = 360 bytes
+;     Number of data bytes     = 358 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 224 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 226 bytes
+;     Number of strings        = 37

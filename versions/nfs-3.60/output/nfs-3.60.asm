@@ -2165,7 +2165,14 @@ cmd_roff_str = copyright_string+3
 ; &82c2 referenced 2 times by &8289, &82be
 .return_3
     rts                                                               ; 82c2: 60          `        ; Return (workspace claim done)
-    equb &80, &90                                                     ; 82c3: 80 90       ..       ; FS page hi:lo for workspace pointer
+; ***************************************************************************************
+; NETV handler address
+;
+; Address of osword_dispatch, the NETV handler. setup_rom_ptrs_netv reads it at
+; run_fscv_cmd+&36 (the NETV slot offset) and copies it, with the ROM number, into the
+; MOS extended-vector table.
+    equb <(osword_dispatch)                                           ; 82c3: 80          .        ; NETV handler low byte
+    equb >(osword_dispatch)                                           ; 82c4: 90          .        ; NETV handler high byte
 ; ***************************************************************************************
 ; Service 2: claim private workspace and initialise NFS
 ;
@@ -2670,16 +2677,16 @@ cmd_roff_str = copyright_string+3
     tax                                                               ; 845b: aa          .        ; Copy A to X
     lda #osbyte_exec_file_handle                                      ; 845c: a9 c6       ..       ; A=&C6: read *EXEC file handle
     jsr osbyte                                                        ; 845e: 20 f4 ff     ..      ; osbyte: exec file handle
-    lda #&29                                                          ; 8461: a9 29       .)       ; ')': offset into "SP." string at &8529
+    lda #<(close_spool_cmd)                                           ; 8461: a9 29       .)       ; A = low byte of "SP." (stop *SPOOL)
     cpy fs_spool_handle                                               ; 8463: c4 ba       ..       ; Y=value of *SPOOL file handle
     beq close_spool_exec                                              ; 8465: f0 06       ..       ; Handle matches SPOOL -- close it
-    lda #&2d                                                          ; 8467: a9 2d       .-       ; '-': offset into "E." close-exec string
+    lda #<(close_exec_cmd)                                            ; 8467: a9 2d       .-       ; A = low byte of "E." (stop *EXEC)
     cpx fs_spool_handle                                               ; 8469: e4 ba       ..       ; X=value of *EXEC file handle
     bne dispatch_fs_error                                             ; 846b: d0 06       ..       ; No EXEC match -- skip close
 ; &846d referenced 1 time by &8465
 .close_spool_exec
     tax                                                               ; 846d: aa          .        ; X = string offset for OSCLI close
-    ldy #&85                                                          ; 846e: a0 85       ..       ; Y=&85: high byte of OSCLI string in ROM
+    ldy #>(close_spool_cmd)                                           ; 846e: a0 85       ..       ; Y = page of the close commands
     jsr oscli                                                         ; 8470: 20 f7 ff     ..      ; Close SPOOL/EXEC via "*SP." or "*E."
 ; &8473 referenced 1 time by &846b
 .dispatch_fs_error
@@ -2855,8 +2862,18 @@ cmd_roff_str = copyright_string+3
     iny                                                               ; 8525: c8          .        ; Next source byte
     inx                                                               ; 8526: e8          .        ; Next dest byte
     bne copy_error_message                                            ; 8527: d0 f4       ..       ; Continue copying message
-    equs "SP."                                                        ; 8529: 53 50 2e    SP.      ; Set bit7: FS transaction in progress
-    equb &0d, &45, &2e, &0d                                           ; 852c: 0d 45 2e... .E....   ; CR + E. + CR: *EXEC boot command
+; ***************************************************************************************
+; Spool and exec close commands
+;
+; OSCLI commands that handle_bput_bget issues when a BPUT or BGET fails on the handle
+; that *SPOOL or *EXEC is using: SP. stops spooling and E. stops the exec file, so the
+; error report is not itself spooled or followed by more exec input.
+.close_spool_cmd
+    equs "SP."                                                        ; 8529: 53 50 2e    SP.      ; "SP.": *SPOOL with no file closes the spool file
+    equb &0d                                                          ; 852c: 0d          .        ; CR ends the command
+.close_exec_cmd
+    equs "E."                                                         ; 852d: 45 2e       E.       ; "E.": *EXEC with no file closes the exec file
+    equb &0d                                                          ; 852f: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; Load '*' prefix and send FS command (WAITFS)
 ;
@@ -9517,7 +9534,7 @@ save pydis_start, pydis_end
 ;     Data                     = 641 bytes (8%)
 ;
 ;     Number of instructions   = 3663
-;     Number of data bytes     = 361 bytes
+;     Number of data bytes     = 359 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 228 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 230 bytes
+;     Number of strings        = 37

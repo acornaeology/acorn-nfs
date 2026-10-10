@@ -12849,8 +12849,8 @@ directly to NFS, so the lookup deterministically hits NFS's
 `*RUN`-from-library path.
 
 The same routing is used by
-[`boot_cmd_load_str`](label:boot_cmd_load_str) (`L.-NET-!Boot`) and
-[`boot_cmd_exec_str`](label:boot_cmd_exec_str) (`E.-NET-!Boot`).""",
+[`boot_cmd_load`](label:boot_cmd_load) (`L.-NET-!Boot`) and
+[`boot_cmd_exec`](label:boot_cmd_exec) (`E.-NET-!Boot`).""",
 )
 
 
@@ -12912,49 +12912,11 @@ d.comment(0xA738, "X = CTRL key scan code (negative-X INKEY form for OSBYTE &79)
 d.comment(0xA73D, "Copy X to A", align=Align.INLINE)
 d.comment(0xA73E, "CTRL not pressed: proceed to boot", align=Align.INLINE)
 d.label(0xA740, "boot_cancel_rts")
-d.label(0xA741, "boot_cmd_load_str")
-d.label(0xA74E, "boot_cmd_exec_str")
 
 
 d.comment(0xA740, "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A762)", align=Align.INLINE)
-d.comment(0xA741, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
-d.comment(0xA74D, "CR terminator", align=Align.INLINE)
-d.comment(0xA74E, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
-d.comment(0xA75A, "CR terminator", align=Align.INLINE)
-d.index_base(0xA75B, "boot_cmd_lo_table")
 
-d.banner(
-    0xA75B,
-    title="Boot-command low-byte index table",
-    description="""Four-byte table of OSCLI-pointer low bytes, indexed by `Y` in
-[`boot_cmd_oscli`](label:boot_cmd_oscli). Combined with `Y=&A7` (high
-byte, supplied by `boot_cmd_oscli` after the lookup), each entry
-yields a pointer to a CR-terminated boot command in the `&A7xx`
-page.
 
-Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
-because [`boot_select_cmd`](label:boot_select_cmd) `BEQ`s out when
-`hazel_boot_option` is zero.
-
-Index 2 (`&48`) lands inside
-[`boot_cmd_load_str`](label:boot_cmd_load_str) — at offset 7, on its `!`
-byte — so OSCLI reads `"!Boot<CR>"` from the middle of the same
-string used at index 1. This packs the "run `*!Boot` on the
-current FS" variant into the same data as the load-via-NFS
-form, saving a third CR-terminated string.""",
-)
-
-d.byte(0xA75B)
-d.byte(0xA75C)
-d.byte(0xA75D)
-d.byte(0xA75E)
-d.comment(0xA75B, "Y=0: unreachable (boot_select_cmd BEQs out when hazel_boot_option=0); value is dead", align=Align.INLINE)
-d.expr(0xA75C, lo(sym("boot_cmd_load_str")))
-d.comment(0xA75C, "Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'", align=Align.INLINE)
-d.expr(0xA75D, lo(sym("boot_cmd_load_str") + 7))
-d.comment(0xA75D, "Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS", align=Align.INLINE)
-d.expr(0xA75E, lo(sym("boot_cmd_exec_str")))
-d.comment(0xA75E, "Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'", align=Align.INLINE)
 d.label(0xA75F, "boot_select_cmd")
 
 d.subroutine(
@@ -12967,7 +12929,7 @@ byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
 `BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) — the empty / no-op
 boot case. Otherwise falls through into
 [`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the
-index into [`boot_cmd_lo_table`](label:boot_cmd_lo_table).
+index into [`boot_cmd_offsets`](label:boot_cmd_offsets).
 
 Two callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):
 the `BNE` at `&A734` (auto-boot flag was set, skip CTRL check)
@@ -12982,8 +12944,8 @@ d.label(0xA764, "boot_cmd_oscli")
 d.subroutine(
     0xA764,
     "boot_cmd_oscli",
-    title="Look up boot command in boot_cmd_lo_table and OSCLI it",
-    description="""Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command
+    title="Look up boot command in boot_cmd_offsets and OSCLI it",
+    description="""Loads `X = boot_cmd_offsets,Y` (low byte of the boot-command
 address), sets `Y=&A7` (high byte — boot strings live in `&A7xx`),
 then `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated
 command string.
@@ -12991,7 +12953,7 @@ command string.
 Two entry paths:
 
 - `JMP` tail-call from `&A5D4` with `Y=3` hardcoded — forces the
-  exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).
+  exec-via-NFS boot ([`boot_cmd_exec`](label:boot_cmd_exec)).
 - Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already
   loaded from [`hazel_boot_option`](label:hazel_boot_option) — the normal logon-boot
   path, dispatching on the FS-supplied boot type.""",
@@ -12999,8 +12961,7 @@ Two entry paths:
 )
 
 
-d.comment(0xA764, "Load boot-command low byte from boot_cmd_lo_table[Y]", align=Align.INLINE)
-d.comment(0xA767, "Y=&A7: high byte (boot strings live in &A7xx)", align=Align.INLINE)
+d.comment(0xA764, "Load boot-command low byte from boot_cmd_offsets[Y]", align=Align.INLINE)
 d.comment(0xA769, "Tail-jump to OSCLI to execute the boot command", align=Align.INLINE)
 d.index_base(0xA76C, "cmd_table_fs")
 d.banner(
@@ -15848,10 +15809,7 @@ d.comment(0xB290, "Store updated fs_lib_flags", align=Align.INLINE)
 d.comment(0xB293, "Recurse to strip the trailing component", align=Align.INLINE)
 d.comment(0xB296, "Decrement X (consume processed char)", align=Align.INLINE)
 d.comment(0xB297, "Return", align=Align.INLINE)
-d.index_base(0xB298, "option_str_offset_data")
 
-d.comment(0xB298, "Data: option string offset table", align=Align.INLINE)
-d.index_base(0xB29C, "option_offset_table")
 
 d.label(0xB29F, "copy_arg_to_buf_x0")
 
@@ -16002,8 +15960,6 @@ d.comment(0xB2FC, "Next entry", align=Align.INLINE)
 d.label(0xB2FC, "col_sep_print_char")
 
 d.comment(0xB2FD, "Loop until X wraps", align=Align.INLINE)
-d.comment(0xB2FF, "XOR with zp_0078", align=Align.INLINE)
-d.comment(0xB301, "Add zp_0063", align=Align.INLINE)
 d.comment(0xB303, "Y = value to convert (digits read off via successive divisions)", align=Align.INLINE)
 d.subroutine(
     0xB303,
@@ -19962,6 +19918,90 @@ d.comment(0x89AE, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INL
 d.expr(0x89AF, lo(sym("nmi_rx_scout")))
 d.comment(0x89B5, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
 d.expr(0x89B6, hi(sym("nmi_rx_scout")))
+
+d.comment(0xA767, 'Y = page holding the boot commands', align=Align.INLINE)
+d.expr(0xA768, hi(sym("boot_cmd_load")))
+d.banner(
+    0xA741,
+    title="Boot commands",
+    description="""Command lines that [`boot_cmd_oscli`](label:boot_cmd_oscli) passes
+to OSCLI for boot options 1-3, overlapped to save space:
+
+* [`boot_cmd_load`](label:boot_cmd_load): `L.-NET-!Boot` (option 1, Load)
+* [`boot_cmd_run`](label:boot_cmd_run): `!Boot`, the tail of the Load
+  command (option 2, Run)
+* [`boot_cmd_exec`](label:boot_cmd_exec): `E.-NET-!Boot` (option 3, Exec)
+* [`boot_cmd_off`](label:boot_cmd_off): the CR that ends `E.-NET-!Boot`
+  (option 0, Off). Never used: option 0 returns before the lookup.""",
+)
+d.label(0xA741, "boot_cmd_load")
+d.string(0xA741, 7)
+d.label(0xA748, "boot_cmd_run")
+d.string(0xA748, 5)
+d.byte(0xA74D)
+d.label(0xA74E, "boot_cmd_exec")
+d.string(0xA74E, 12)
+d.label(0xA75A, "boot_cmd_off")
+d.byte(0xA75A)
+d.comment(0xA741, '"L.-NET-" of "L.-NET-!Boot": Load command', align=Align.INLINE)
+d.comment(0xA748, '"!Boot": Run command, the tail of the Load', align=Align.INLINE)
+d.comment(0xA74D, 'CR ends the Load and Run commands', align=Align.INLINE)
+d.comment(0xA74E, '"E.-NET-!Boot": Exec command', align=Align.INLINE)
+d.comment(0xA75A, "CR ends the Exec command (and is option 0's)", align=Align.INLINE)
+d.banner(
+    0xA75B,
+    title="Boot command offsets",
+    description="""Low byte of each boot option's command line, indexed by the boot
+option (0-3). [`boot_cmd_oscli`](label:boot_cmd_oscli) loads it into X
+and the page of [`boot_cmd_load`](label:boot_cmd_load) into Y, then
+jumps to OSCLI.""",
+)
+d.label(0xA75B, "boot_cmd_offsets")
+d.byte(0xA75B)
+d.expr(0xA75B, lo(sym("boot_cmd_off")))
+d.comment(0xA75B, 'Option 0 (Off): boot_cmd_off', align=Align.INLINE)
+d.byte(0xA75C)
+d.expr(0xA75C, lo(sym("boot_cmd_load")))
+d.comment(0xA75C, 'Option 1 (Load): boot_cmd_load', align=Align.INLINE)
+d.byte(0xA75D)
+d.expr(0xA75D, lo(sym("boot_cmd_run")))
+d.comment(0xA75D, 'Option 2 (Run): boot_cmd_run', align=Align.INLINE)
+d.byte(0xA75E)
+d.expr(0xA75E, lo(sym("boot_cmd_exec")))
+d.comment(0xA75E, 'Option 3 (Exec): boot_cmd_exec', align=Align.INLINE)
+d.banner(
+    0xB298,
+    title="Boot option names",
+    description="""Offsets of the names that *CAT prints for boot options 0-3, measured
+from [`option_name_off`](label:option_name_off), which follows the table.
+The other names sit in gaps between routines and have no terminator
+of their own: the opcode after each one has bit 7 set, which ends the
+print loop.""",
+)
+d.label(0xB298, "option_name_offsets")
+d.byte(0xB298)
+d.comment(0xB298, 'Option 0: offset of "Off"', align=Align.INLINE)
+d.label(0xB29C, "option_name_off")
+d.string(0xB29C, 3)
+d.comment(0xB29C, '"Off": name of boot option 0, ended by the next opcode', align=Align.INLINE)
+d.byte(0xB299)
+d.expr(0xB299, sym("option_name_load") - sym("option_name_off"))
+d.comment(0xB299, 'Option 1: offset of "Load"', align=Align.INLINE)
+d.label(0xB2CB, "option_name_load")
+d.string(0xB2CB, 4)
+d.comment(0xB2CB, '"Load": name of boot option 1, ended by the next opcode', align=Align.INLINE)
+d.byte(0xB29A)
+d.expr(0xB29A, sym("option_name_run") - sym("option_name_off"))
+d.comment(0xB29A, 'Option 2: offset of "Run"', align=Align.INLINE)
+d.label(0xB2D8, "option_name_run")
+d.string(0xB2D8, 3)
+d.comment(0xB2D8, '"Run": name of boot option 2, ended by the next opcode', align=Align.INLINE)
+d.byte(0xB29B)
+d.expr(0xB29B, sym("option_name_exec") - sym("option_name_off"))
+d.comment(0xB29B, 'Option 3: offset of "Exec"', align=Align.INLINE)
+d.label(0xB2FF, "option_name_exec")
+d.string(0xB2FF, 4)
+d.comment(0xB2FF, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

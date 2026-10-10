@@ -2535,20 +2535,16 @@ d.comment(0x841F, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x8420, "Loop until all 32 bytes copied", align=Align.INLINE)
 d.comment(0x8422, "Copy A to X", align=Align.INLINE)
 d.comment(0x8423, "A=&C6: read *EXEC file handle", align=Align.INLINE)
-d.comment(0x8428, "Default A=&EA: OSCLI no-op (CR before send_to_fs_star)", align=Align.INLINE)
 d.comment(0x842A, "Y=value of *SPOOL file handle", align=Align.INLINE)
 
-d.comment(0x842C, "Non-zero reply: error or done", align=Align.INLINE)
-d.comment(0x842E, 'A=&E4: OSCLI "SP." string at &84E4', align=Align.INLINE)
+d.comment(0x842C, "Not the *SPOOL file: keep A", align=Align.INLINE)
 d.label(0x8430, "check_exec_handle")
 
 d.comment(0x8430, "X=value of *EXEC file handle", align=Align.INLINE)
-d.comment(0x8432, "No EXEC match -- skip close", align=Align.INLINE)
+d.comment(0x8432, "Not the *EXEC file: keep A", align=Align.INLINE)
 
-d.comment(0x8434, "A=&E8: Tube OSWORD for BPUT", align=Align.INLINE)
 d.label(0x8436, "close_spool_exec")
 d.comment(0x8436, "X = string offset for OSCLI close", align=Align.INLINE)
-d.comment(0x8437, "Y=&84: high byte of OSCLI string in ROM", align=Align.INLINE)
 d.comment(0x8439, 'Close SPOOL/EXEC via "*SP." or "*E."', align=Align.INLINE)
 
 d.label(0x843C, "dispatch_fs_error")
@@ -9348,6 +9344,65 @@ d.comment(0x8CE3, 'Option 3: offset of "Exec"', align=Align.INLINE)
 d.label(0x8CF8, "option_name_exec")
 d.string(0x8CF8, 4)
 d.comment(0x8CF8, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
+
+d.comment(0x8428, 'A = low byte of the empty command (no-op)', align=Align.INLINE)
+d.expr(0x8429, lo(sym("close_none_cmd")))
+d.comment(0x842E, 'A = low byte of "SP." (stop *SPOOL)', align=Align.INLINE)
+d.expr(0x842F, lo(sym("close_spool_cmd")))
+d.comment(0x8434, 'A = low byte of "E." (stop *EXEC)', align=Align.INLINE)
+d.expr(0x8435, lo(sym("close_exec_cmd")))
+d.comment(0x8437, 'Y = page of the close commands', align=Align.INLINE)
+d.expr(0x8438, hi(sym("close_spool_cmd")))
+d.banner(
+    0x84E4,
+    title="Spool and exec close commands",
+    description="""OSCLI commands that [`handle_bput_bget`](label:handle_bput_bget)
+issues when a BPUT or BGET fails: `SP.` stops spooling if the failing
+handle is the *SPOOL file, `E.` stops the exec file if it is the
+*EXEC file, and otherwise the final CR alone makes an empty command,
+so the OSCLI call is always made.""",
+)
+d.label(0x84E4, "close_spool_cmd")
+d.string(0x84E4, 3)
+d.comment(0x84E4, '"SP.": *SPOOL with no file closes the spool file', align=Align.INLINE)
+d.byte(0x84E7)
+d.comment(0x84E7, 'CR ends the command', align=Align.INLINE)
+d.label(0x84E8, "close_exec_cmd")
+d.string(0x84E8, 2)
+d.comment(0x84E8, '"E.": *EXEC with no file closes the exec file', align=Align.INLINE)
+d.label(0x84EA, "close_none_cmd")
+d.byte(0x84EA)
+d.comment(0x84EA, 'CR ends the command; alone, an empty command', align=Align.INLINE)
+
+d.expr(0x828E, lo(sym("filev_handler")))
+d.expr(0x828F, hi(sym("filev_handler")))
+d.expr(0x8291, lo(sym("argsv_handler")))
+d.expr(0x8292, hi(sym("argsv_handler")))
+d.expr(0x8294, lo(sym("bgetv_handler")))
+d.expr(0x8295, hi(sym("bgetv_handler")))
+d.expr(0x8297, lo(sym("bputv_handler")))
+d.expr(0x8298, hi(sym("bputv_handler")))
+d.expr(0x829A, lo(sym("gbpbv_handler")))
+d.expr(0x829B, hi(sym("gbpbv_handler")))
+d.expr(0x829D, lo(sym("findv_handler")))
+d.expr(0x829E, hi(sym("findv_handler")))
+d.expr(0x82A0, lo(sym("fscv_handler")))
+d.expr(0x82A1, hi(sym("fscv_handler")))
+d.expr(0x82A9, lo(sym("osword_dispatch")))
+d.expr(0x82AA, hi(sym("osword_dispatch")))
+
+d.banner(
+    0x82A9,
+    title="NETV handler address",
+    description="""Address of [`osword_dispatch`](label:osword_dispatch), the NETV handler.
+[`setup_rom_ptrs_netv`](label:setup_rom_ptrs_netv) reads it at
+[`run_fscv_cmd`](label:run_fscv_cmd)+&36 (the NETV slot offset) and copies
+it, with the ROM number, into the MOS extended-vector table.""",
+)
+d.byte(0x82A9)
+d.byte(0x82AA)
+d.comment(0x82A9, "NETV handler low byte", align=Align.INLINE)
+d.comment(0x82AA, "NETV handler high byte", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(
