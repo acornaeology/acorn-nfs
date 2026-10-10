@@ -4851,7 +4851,7 @@
       "addr": 42882,
       "name": "cmd_table_fs",
       "title": "ANFS *command dispatch tables (5 concatenated sub-tables)",
-      "description": "See the comment block immediately above the\n[`cmd_table_fs`](label:cmd_table_fs) declaration in the driver for the\nsub-table layout, walker contract, and flag-byte encoding. Each\nentry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS\narrives at `target`. Per-entry inline comments below name the\ncommand, syntax-template index, and dispatch target.",
+      "description": "Concatenated sub-tables of star commands. Each entry is the command\nname (bit 7 clear), a flag byte, then the handler address minus 1,\nlow byte first, for PHA/PHA/RTS dispatch. In the flag byte, bit 7\nends the name, bit 6 is the \"V if no argument\" flag and bits 0-4\nindex the syntax string. A lone &80 ends a sub-table.\n\nCallers start the walk at an offset into the table: 0 for the\nutility commands, &35 for the NFS commands, and &91 for the bare *HELP list, which begins with an \"On\" line, and &96 for *HELP topic matching. When no\nNFS command matches, the word after that sub-table's &80 is used as\nthe default handler.",
       "align": "before_label"
     },
     {
@@ -80293,8 +80293,9 @@
         0
       ],
       "comment_inline": "Zero handler: topic matching starts after it (X=&96)",
-      "type": "word",
+      "type": "byte",
       "values": [
+        0,
         0
       ]
     },

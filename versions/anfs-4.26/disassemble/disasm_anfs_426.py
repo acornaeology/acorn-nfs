@@ -12413,12 +12413,16 @@ d.index_base(0xA782, "cmd_table_fs")
 d.banner(
     0xA782,
     title="ANFS *command dispatch tables (5 concatenated sub-tables)",
-    description="""See the comment block immediately above the
-[`cmd_table_fs`](label:cmd_table_fs) declaration in the driver for the
-sub-table layout, walker contract, and flag-byte encoding. Each
-entry's two-byte dispatch word stores `target-1`; PHA/PHA/RTS
-arrives at `target`. Per-entry inline comments below name the
-command, syntax-template index, and dispatch target.""",
+    description="""Concatenated sub-tables of star commands. Each entry is the command
+name (bit 7 clear), a flag byte, then the handler address minus 1,
+low byte first, for PHA/PHA/RTS dispatch. In the flag byte, bit 7
+ends the name, bit 6 is the "V if no argument" flag and bits 0-4
+index the syntax string. A lone &80 ends a sub-table.
+
+Callers start the walk at an offset into the table: 0 for the
+utility commands, &35 for the NFS commands, and &91 for the bare *HELP list, which begins with an "On" line, and &96 for *HELP topic matching. When no
+NFS command matches, the word after that sub-table's &80 is used as
+the default handler.""",
 )
 for name_addr, name, flag_addr, flag_byte, lo_addr, target_label, role in _cmd_table_fs_entries:
     name_len = flag_addr - name_addr
@@ -19675,9 +19679,9 @@ d.expr(0xA811, sym("check_urd_prefix") - 1)
 d.comment(0xA811, "Default handler for unmatched FS commands (minus 1)", align=Align.INLINE)
 d.string(0xA813, 2)
 d.byte(0xA815)
-d.word(0xA816)
 d.comment(0xA813, '"On": first line of the bare *HELP list (X=&91)', align=Align.INLINE)
 d.comment(0xA815, "No syntax", align=Align.INLINE)
+d.byte(0xA816, 2)
 d.comment(0xA816, "Zero handler: topic matching starts after it (X=&96)", align=Align.INLINE)
 
 d.subroutine(

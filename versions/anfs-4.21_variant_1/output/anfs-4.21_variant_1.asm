@@ -11108,10 +11108,15 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; ***************************************************************************************
 ; ANFS *command dispatch tables (5 concatenated sub-tables)
 ;
-; See the comment block immediately above the cmd_table_fs declaration in the driver for
-; the sub-table layout, walker contract, and flag-byte encoding. Each entry's two-byte
-; dispatch word stores target-1; PHA/PHA/RTS arrives at target. Per-entry inline comments
-; below name the command, syntax-template index, and dispatch target.
+; Concatenated sub-tables of star commands. Each entry is the command name (bit 7 clear),
+; a flag byte, then the handler address minus 1, low byte first, for PHA/PHA/RTS
+; dispatch. In the flag byte, bit 7 ends the name, bit 6 is the "V if no argument" flag
+; and bits 0-4 index the syntax string. A lone &80 ends a sub-table.
+;
+; Callers start the walk at an offset into the table: 0 for the utility commands, &35 for
+; the NFS commands, and &91 for both the bare *HELP list and *HELP topic matching. When
+; no NFS command matches, the word after that sub-table's &80 is used as the default
+; handler.
 ; &a76c used as index base 11 times by &8bd8, &8be7, &8bef, &8bfc, &9465, &946d, &95ee, &a460, &a465, &a475, &a4ac
 .cmd_table_fs
 ; &a76d used as index base 2 times by &8c87, &a456

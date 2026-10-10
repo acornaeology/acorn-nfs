@@ -11089,10 +11089,15 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; ***************************************************************************************
 ; ANFS *command dispatch tables (5 concatenated sub-tables)
 ;
-; See the comment block immediately above the cmd_table_fs declaration in the driver for
-; the sub-table layout, walker contract, and flag-byte encoding. Each entry's two-byte
-; dispatch word stores target-1; PHA/PHA/RTS arrives at target. Per-entry inline comments
-; below name the command, syntax-template index, and dispatch target.
+; Concatenated sub-tables of star commands. Each entry is the command name (bit 7 clear),
+; a flag byte, then the handler address minus 1, low byte first, for PHA/PHA/RTS
+; dispatch. In the flag byte, bit 7 ends the name, bit 6 is the "V if no argument" flag
+; and bits 0-4 index the syntax string. A lone &80 ends a sub-table.
+;
+; Callers start the walk at an offset into the table: 0 for the utility commands, &35 for
+; the NFS commands, and &91 for the bare *HELP list, which begins with an "On" line, and
+; &96 for *HELP topic matching. When no NFS command matches, the word after that
+; sub-table's &80 is used as the default handler.
 ; &a782 used as index base 11 times by &8bff, &8c0e, &8c16, &8c23, &946c, &9474, &95ef, &a476, &a47b, &a48b, &a4c2
 .cmd_table_fs
 ; &a783 used as index base 2 times by &8cae, &a46c
@@ -11168,7 +11173,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equw check_urd_prefix - 1                                         ; a811: 46 8e       F.       ; Default handler for unmatched FS commands (minus 1)
     equs "On"                                                         ; a813: 4f 6e       On       ; "On": first line of the bare *HELP list (X=&91)
     equb &80                                                          ; a815: 80          .        ; No syntax
-    equw zp_ptr_lo                                                    ; a816: 00 00       ..       ; Zero handler: topic matching starts after it (X=&96)
+    equb &00, &00                                                     ; a816: 00 00       ..       ; Zero handler: topic matching starts after it (X=&96)
     equs "Net"                                                        ; a818: 4e 65 74    Net      ; *HELP NET
     equb &80                                                          ; a81b: 80          .        ; no syn
     equw help_net - 1                                                 ; a81c: eb 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
@@ -18194,7 +18199,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1911 bytes (12%)
 ;
 ;     Number of instructions   = 7149
-;     Number of data bytes     = 540 bytes
-;     Number of data words     = 90 bytes
+;     Number of data bytes     = 542 bytes
+;     Number of data words     = 88 bytes
 ;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 148
