@@ -73,7 +73,7 @@ net_tx_ptr                             = &9a
 net_tx_ptr_hi                          = &9b
 ; &9b referenced 6 times by &866f, &8688, &901c, &90ce, &9190, &925d
 net_rx_ptr                             = &9c
-; &9c referenced 34 times by &818c, &8193, &81ca, &8236, &82be, &82c2, &82db, &82ec, &830b, &8346, &8479, &8482, &8488, &848c, &84b7, &84bd, &84c7, &8e45, &8e9c, &8ee0, &8ef1, &8f31, &9047, &904b, &9058, &9072, &9076, &9198, &9201, &96d7, &96de, &9b2f, &9b36, &9b3c
+; &9c referenced 35 times by &818c, &8193, &81ca, &8236, &82be, &82c2, &82db, &82ec, &830b, &8346, &8479, &8482, &8488, &848c, &84b7, &84bd, &84c7, &8e45, &8e9c, &8ee0, &8ef1, &8f31, &8fc9, &9047, &904b, &9058, &9072, &9076, &9198, &9201, &96d7, &96de, &9b2f, &9b36, &9b3c
 net_rx_ptr_hi                          = &9d
 ; &9d referenced 6 times by &82b5, &8ec6, &8eda, &918a, &9231, &9ac1
 nfs_workspace                          = &9e
@@ -101,7 +101,7 @@ nfs_temp                               = &a8
 rom_svc_num                            = &a9
 ; &a9 referenced 10 times by &8076, &815d, &8163, &816d, &8173, &81b3, &8269, &8add, &8b1d, &8ea4
 osword_flag                            = &aa
-; &aa referenced 2 times by &8f79, &8fa6; also used as index base 1 time by &8e99
+; &aa referenced 2 times by &8f79, &8fa6; also used as index base 2 times by &8e99, &8fcb
 ws_ptr_lo                              = &ab
 ; &ab referenced 13 times by &8eb5, &8eb7, &8ece, &8ee3, &8f14, &8f72, &8f87, &8f9e, &8fa8, &8fb8, &9043, &9050, &9052
 ws_ptr_hi                              = &ac
@@ -5335,13 +5335,19 @@ osword_12_handler = restore_rx_flags+2
 .reenable_rx
     rol rx_flags                                                      ; 8fc3: 2e 64 0d    .d.      ; Re-enable user RX
     rts                                                               ; 8fc6: 60          `        ; Return
-    equb &a0, &02                                                     ; 8fc7: a0 02       ..       ; Y=2: copy 3 bytes (indices 2,1,0)
+; ***************************************************************************************
+; Restore three saved OSWORD argument bytes (unreferenced)
+;
+; Copies three bytes from (net_rx_ptr) back into workspace, highest first. Nothing in
+; this ROM calls, jumps or branches here, so this code appears to be unreachable.
+    ldy #2                                                            ; 8fc7: a0 02       ..       ; Y=2: copy 3 bytes (indices 2,1,0)
+; &8fc9 referenced 1 time by &8fcf
 .rest1
-    equb &b1, &9c                                                     ; 8fc9: b1 9c       ..       ; Load saved arg from (net_rx_ptr)+Y
-    equb &99, &aa, &00                                                ; 8fcb: 99 aa 00    ...      ; Restore saved OSWORD argument byte
-    equb &88                                                          ; 8fce: 88          .        ; Decrement byte counter
-    equb &10, &f8                                                     ; 8fcf: 10 f8       ..       ; Loop for bytes 2,1,0
-    equb &60                                                          ; 8fd1: 60          `        ; Return to caller
+    lda (net_rx_ptr),y                                                ; 8fc9: b1 9c       ..       ; Load saved arg from (net_rx_ptr)+Y
+    sta osword_flag,y                                                 ; 8fcb: 99 aa 00    ...      ; Restore saved OSWORD argument byte
+    dey                                                               ; 8fce: 88          .        ; Decrement byte counter
+    bpl rest1                                                         ; 8fcf: 10 f8       ..       ; Loop for bytes 2,1,0
+    rts                                                               ; 8fd1: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; Set up RX buffer pointers in NFS workspace
 ;
@@ -8203,7 +8209,7 @@ save pydis_start, pydis_end
 ;     fs_options:                              43
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             35
-;     net_rx_ptr:                              34
+;     net_rx_ptr:                              35
 ;     econet_control1_or_status1:              31
 ;     nmi_tx_block:                            29
 ;     osword_pb_ptr:                           27
@@ -8308,6 +8314,7 @@ save pydis_start, pydis_end
 ;     nmi_next_lo:                              4
 ;     osbyte_a_copy:                            4
 ;     osrdsc_ptr:                               4
+;     osword_flag:                              4
 ;     restore_ay_return:                        4
 ;     return_2:                                 4
 ;     return_a_zero:                            4
@@ -8349,7 +8356,6 @@ save pydis_start, pydis_end
 ;     openl4:                                   3
 ;     oscli:                                    3
 ;     osword:                                   3
-;     osword_flag:                              3
 ;     pad_filename_spaces:                      3
 ;     print_dir_from_offset:                    3
 ;     print_reply_bytes:                        3
@@ -8827,6 +8833,7 @@ save pydis_start, pydis_end
 ;     reloc_p6_src:                             1
 ;     reloc_zp_src:                             1
 ;     remote_osbyte_table:                      1
+;     rest1:                                    1
 ;     restore_econet_state:                     1
 ;     restore_x_and_return:                     1
 ;     restore_y_check_svc:                      1
@@ -9004,11 +9011,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7574 bytes (92%)
-;     Data                     = 618 bytes (8%)
+;     Code                     = 7585 bytes (93%)
+;     Data                     = 607 bytes (7%)
 ;
-;     Number of instructions   = 3656
-;     Number of data bytes     = 368 bytes
+;     Number of instructions   = 3662
+;     Number of data bytes     = 357 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 222 bytes
 ;     Number of strings        = 35

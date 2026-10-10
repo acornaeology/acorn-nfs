@@ -73,7 +73,7 @@ net_tx_ptr                             = &9a
 net_tx_ptr_hi                          = &9b
 ; &9b referenced 6 times by &8666, &867f, &9014, &90c6, &918b, &9258
 net_rx_ptr                             = &9c
-; &9c referenced 34 times by &8182, &8189, &81c0, &822c, &82b4, &82b8, &82d1, &82e2, &8301, &833c, &846c, &8475, &847b, &847f, &84aa, &84b0, &84ba, &8e3d, &8e94, &8ed8, &8ee9, &8f29, &903f, &9043, &9050, &906a, &906e, &9193, &91fc, &96d7, &96de, &9b2f, &9b36, &9b3c
+; &9c referenced 35 times by &8182, &8189, &81c0, &822c, &82b4, &82b8, &82d1, &82e2, &8301, &833c, &846c, &8475, &847b, &847f, &84aa, &84b0, &84ba, &8e3d, &8e94, &8ed8, &8ee9, &8f29, &8fc1, &903f, &9043, &9050, &906a, &906e, &9193, &91fc, &96d7, &96de, &9b2f, &9b36, &9b3c
 net_rx_ptr_hi                          = &9d
 ; &9d referenced 6 times by &82ab, &8ebe, &8ed2, &9185, &922c, &9ac1
 nfs_workspace                          = &9e
@@ -131,7 +131,7 @@ fs_options                             = &bb
 fs_block_offset                        = &bc
 ; &bc referenced 6 times by &85aa, &886d, &8956, &89e7, &8b3b, &8dc7
 fs_last_byte_flag                      = &bd
-; &bd referenced 7 times by &85a6, &86e4, &8925, &894c, &8952, &8f71, &8f9e; also used as index base 2 times by &8ae3, &8e91
+; &bd referenced 7 times by &85a6, &86e4, &8925, &894c, &8952, &8f71, &8f9e; also used as index base 3 times by &8ae3, &8e91, &8fc3
 fs_crc_lo                              = &be
 ; &be referenced 20 times by &85ac, &86d7, &8b2a, &8bc6, &8bd3, &8d03, &8d47, &8ead, &8eaf, &8ec6, &8edb, &8f0c, &8f6a, &8f7f, &8f96, &8fa0, &8fb0, &903b, &9048, &904a
 fs_crc_hi                              = &bf
@@ -5310,9 +5310,19 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 .reenable_rx
     rol rx_flags                                                      ; 8fbb: 2e 64 0d    .d.      ; Re-enable user RX
     rts                                                               ; 8fbe: 60          `        ; Return
-    equb &a0, &02                                                     ; 8fbf: a0 02       ..       ; Y=2: copy 3 bytes (indices 2,1,0)
+; ***************************************************************************************
+; Restore three saved OSWORD argument bytes (unreferenced)
+;
+; Copies three bytes from (net_rx_ptr) back into workspace, highest first. Nothing in
+; this ROM calls, jumps or branches here, so this code appears to be unreachable.
+    ldy #2                                                            ; 8fbf: a0 02       ..       ; Y=2: copy 3 bytes (indices 2,1,0)
+; &8fc1 referenced 1 time by &8fc7
 .rest1
-    equb &b1, &9c, &99, &bd, &00, &88, &10, &f8, &60                  ; 8fc1: b1 9c 99... ......
+    lda (net_rx_ptr),y                                                ; 8fc1: b1 9c       ..       ; Load saved arg from (net_rx_ptr)+Y
+    sta fs_last_byte_flag,y                                           ; 8fc3: 99 bd 00    ...      ; Restore saved OSWORD argument byte
+    dey                                                               ; 8fc6: 88          .        ; Decrement byte counter
+    bpl rest1                                                         ; 8fc7: 10 f8       ..       ; Loop for bytes 2,1,0
+    rts                                                               ; 8fc9: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; Set up RX buffer pointers in NFS workspace
 ;
@@ -8170,7 +8180,7 @@ save pydis_start, pydis_end
 ;     fs_options:                              43
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             35
-;     net_rx_ptr:                              34
+;     net_rx_ptr:                              35
 ;     econet_control1_or_status1:              31
 ;     nmi_tx_block:                            29
 ;     osword_pb_ptr:                           27
@@ -8198,10 +8208,10 @@ save pydis_start, pydis_end
 ;     prepare_fs_cmd:                          12
 ;     tube_data_register_2:                    12
 ;     tube_status_register_2:                  11
+;     fs_last_byte_flag:                       10
 ;     nfs_workspace_hi:                        10
 ;     rom_svc_num:                             10
 ;     tube_addr_claim:                         10
-;     fs_last_byte_flag:                        9
 ;     nmi_tx_block_hi:                          9
 ;     rx_src_stn:                               9
 ;     tube_data_register_3:                     9
@@ -8785,6 +8795,7 @@ save pydis_start, pydis_end
 ;     reloc_p4_src:                             1
 ;     reloc_zp_src:                             1
 ;     remote_osbyte_table:                      1
+;     rest1:                                    1
 ;     restore_econet_state:                     1
 ;     restore_x_and_return:                     1
 ;     restore_y_check_svc:                      1
@@ -8964,11 +8975,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7572 bytes (92%)
-;     Data                     = 620 bytes (8%)
+;     Code                     = 7583 bytes (93%)
+;     Data                     = 609 bytes (7%)
 ;
-;     Number of instructions   = 3652
-;     Number of data bytes     = 370 bytes
+;     Number of instructions   = 3658
+;     Number of data bytes     = 359 bytes
 ;     Number of data words     = 28 bytes
 ;     Number of string bytes   = 222 bytes
 ;     Number of strings        = 35

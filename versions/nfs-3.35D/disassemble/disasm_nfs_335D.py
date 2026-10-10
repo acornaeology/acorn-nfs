@@ -5434,6 +5434,14 @@ d.comment(0x8FC1, "Return zero (no free RXCB found)", align=Align.INLINE)
 d.label(0x8FC3, "reenable_rx")
 d.comment(0x8FC3, "Re-enable user RX", align=Align.INLINE)
 d.comment(0x8FC6, "Return", align=Align.INLINE)
+d.banner(
+    0x8FC7,
+    title="Restore three saved OSWORD argument bytes (unreferenced)",
+    description="""Copies three bytes from `(net_rx_ptr)` back into
+workspace, highest first. Nothing in this ROM calls, jumps or
+branches here, so this code appears to be unreachable.""",
+)
+d.entry(0x8FC7)
 d.comment(0x8FC7, "Y=2: copy 3 bytes (indices 2,1,0)", align=Align.INLINE)
 d.label(0x8FC9, "rest1")
 

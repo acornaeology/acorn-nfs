@@ -1977,6 +1977,12 @@
       "align": "before_label"
     },
     {
+      "addr": 36799,
+      "title": "Restore three saved OSWORD argument bytes (unreferenced)",
+      "description": "Copies three bytes from `(net_rx_ptr)` back into\nworkspace, highest first. Nothing in this ROM calls, jumps or\nbranches here, so this code appears to be unreachable.",
+      "align": "before_label"
+    },
+    {
       "addr": 40794,
       "name": "tx_length_table",
       "title": "Immediate-op TX control-frame length table",
@@ -32732,40 +32738,79 @@
         2
       ],
       "comment_inline": "Y=2: copy 3 bytes (indices 2,1,0)",
-      "type": "byte",
-      "values": [
-        160,
-        2
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#2"
     },
     {
       "addr": 36801,
       "bytes": [
         177,
-        156,
-        153,
-        189,
-        0,
-        136,
-        16,
-        248,
-        96
+        156
       ],
       "labels": [
         "rest1"
       ],
-      "type": "byte",
-      "values": [
-        177,
-        156,
+      "comment_inline": "Load saved arg from (net_rx_ptr)+Y",
+      "xref_summaries": [
+        "&8fc1 referenced 1 time by &8fc7"
+      ],
+      "references": [
+        {
+          "addr": 36807,
+          "kind": "direct"
+        }
+      ],
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "(net_rx_ptr),y",
+      "target": 156,
+      "target_label": "net_rx_ptr"
+    },
+    {
+      "addr": 36803,
+      "bytes": [
         153,
         189,
-        0,
-        136,
+        0
+      ],
+      "comment_inline": "Restore saved OSWORD argument byte",
+      "type": "code",
+      "mnemonic": "sta",
+      "operand": "fs_last_byte_flag,y",
+      "target": 189,
+      "target_label": "fs_last_byte_flag"
+    },
+    {
+      "addr": 36806,
+      "bytes": [
+        136
+      ],
+      "comment_inline": "Decrement byte counter",
+      "type": "code",
+      "mnemonic": "dey"
+    },
+    {
+      "addr": 36807,
+      "bytes": [
         16,
-        248,
+        248
+      ],
+      "comment_inline": "Loop for bytes 2,1,0",
+      "type": "code",
+      "mnemonic": "bpl",
+      "operand": "rest1",
+      "target": 36801,
+      "target_label": "rest1"
+    },
+    {
+      "addr": 36809,
+      "bytes": [
         96
-      ]
+      ],
+      "comment_inline": "Return to caller",
+      "type": "code",
+      "mnemonic": "rts"
     },
     {
       "addr": 36810,
