@@ -1932,6 +1932,14 @@ d.comment(0x81B9, "Check broadcast flag for ACK path", align=Align.INLINE)
 d.comment(0x81BC, "Not broadcast -- normal ACK path", align=Align.INLINE)
 d.comment(0x81BE, "Broadcast: different completion path", align=Align.INLINE)
 d.label(0x81C1, "send_data_rx_ack")
+d.subroutine(
+    0x81C1,
+    "send_data_rx_ack",
+    title="Send the scout ACK and arm data reception",
+    description="""Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the
+ACK frame for the received scout, with the data-frame receive
+handler set as the next NMI handler.""",
+)
 
 d.comment(0x81C1, "CR1=&44: RX_RESET | TIE", align=Align.INLINE)
 d.comment(0x81C3, "Write CR1: TX mode for ACK", align=Align.INLINE)
@@ -2438,6 +2446,15 @@ d.comment(0x83E4, "Discard scout and reset listen state", align=Align.INLINE)
 d.comment(0x83E7, "Pass slot index as callback parameter", align=Align.INLINE)
 d.comment(0x83E8, "Jump to TX completion with slot index", align=Align.INLINE)
 d.label(0x83EB, "discard_reset_rx")
+d.subroutine(
+    0x83EB,
+    "discard_reset_rx",
+    title="Discard the frame, reset the ADLC and listen for scouts",
+    description="""Abandons any frame in progress (`discard_reset_listen`), resets
+the ADLC for receive (`adlc_rx_listen`), and installs `nmi_rx_scout`
+as the NMI handler. The standard way back to idle listening after
+an error.""",
+)
 
 d.comment(0x83EB, "Discard scout and reset RX listen", align=Align.INLINE)
 d.label(0x83EE, "reset_adlc_rx_listen")
@@ -3526,6 +3543,14 @@ d.comment(0x8764, "BIT SR1: test IRQ (N=bit7) -- more data ready?", align=Align.
 d.comment(0x8767, "IRQ set -- fall through to &876F without RTI", align=Align.INLINE)
 d.comment(0x8769, "IRQ not set -- install handler and RTI", align=Align.INLINE)
 d.label(0x876C, "reject_reply")
+d.subroutine(
+    0x876C,
+    "reject_reply",
+    title="Abandon the reply and return to idle",
+    description="""Jumps to the routine that stores the error result in the TX
+control block and returns to idle listening. A shared target for the
+branches that abort a reply.""",
+)
 
 d.comment(0x876C, "Store error and return to idle", align=Align.INLINE)
 d.entry(0x876F)
@@ -3671,6 +3696,14 @@ d.comment(0x880B, "BIT SR1: test IRQ (N=bit7) for tight loop", align=Align.INLIN
 d.comment(0x880E, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x8810, "No IRQ: return, wait for next NMI", align=Align.INLINE)
 d.label(0x8813, "data_tx_last")
+d.subroutine(
+    0x8813,
+    "data_tx_last",
+    title="Close the transmitted data frame",
+    description="""Writes CR2=&3F (TX_LAST_DATA) to end the frame. If `tx_flags`
+bit 7 is set, installs the reset-and-listen handler as the next NMI
+handler; otherwise reinstalls the saved handler.""",
+)
 
 d.comment(0x8813, "CR2=&3F: TX_LAST_DATA (close data frame)", align=Align.INLINE)
 d.comment(0x8815, "Write CR2 to close frame", align=Align.INLINE)
@@ -5179,6 +5212,17 @@ d.comment(0x8E28, "Transfer result to A", align=Align.INLINE)
 d.comment(0x8E29, "Y=&13: handle dispatch offset", align=Align.INLINE)
 d.comment(0x8E2B, "Always taken (Y=&13)", align=Align.INLINE)
 d.label(0x8E2D, "dir_op_dispatch")
+d.subroutine(
+    0x8E2D,
+    "dir_op_dispatch",
+    title="Dispatch directory operation via PHA/PHA/RTS",
+    description="""Validates X < 5 and sets Y=&0E as the directory
+dispatch offset, then falls through to svc_dispatch
+for PHA/PHA/RTS table dispatch. Called by
+tx_done_os_proc to handle directory operations
+(e.g. FILEV, ARGSV) from the remote JSR service.""",
+    on_entry={"x": "directory operation code (0-4)"},
+)
 
 d.comment(0x8E2D, "Handle >= 5?", align=Align.INLINE)
 d.comment(0x8E2F, "Yes: out of range, return", align=Align.INLINE)
@@ -5696,6 +5740,13 @@ d.comment(0x8FC8, "Restore A", align=Align.INLINE)
 d.comment(0x8FC9, "Restore processor status", align=Align.INLINE)
 d.comment(0x8FCA, "Return (checksum valid)", align=Align.INLINE)
 d.label(0x8FCB, "error_net_checksum")
+d.subroutine(
+    0x8FCB,
+    "error_net_checksum",
+    title="Raise the workspace checksum error",
+    description="""Raises error &AA through `error_bad_inline` with an inline string
+naming the failed workspace checksum. Never returns.""",
+)
 
 d.comment(0x8FCB, "Error number &AA", align=Align.INLINE)
 d.comment(0x8FCD, "Raise 'net checksum' error", align=Align.INLINE)
@@ -6045,10 +6096,25 @@ d.comment(0x91EF, "Network 255 is reserved", align=Align.INLINE)
 d.comment(0x91F1, "255: 'Bad network number'", align=Align.INLINE)
 d.comment(0x91F3, "Return to caller with network part", align=Align.INLINE)
 d.label(0x91F4, "err_bad_hex")
+d.subroutine(
+    0x91F4,
+    "err_bad_hex",
+    title="Raise the 'Bad hex' error",
+    description="""Raises error &F1 through `error_bad_inline`, which prefixes the
+inline string with 'Bad '. Never returns.""",
+)
 
 d.comment(0x91F4, "Error code &F1", align=Align.INLINE)
 d.comment(0x91F6, "Generate 'Bad hex' error", align=Align.INLINE)
 d.label(0x91FD, "error_overflow")
+d.subroutine(
+    0x91FD,
+    "error_overflow",
+    title="Raise a number-out-of-range error",
+    description="""If `fs_work_4` bit 7 is set (decimal parsing) raises 'Bad
+parameter'; otherwise falls into the 'Bad station number' error.
+Never returns.""",
+)
 
 d.comment(0x91FD, "Test parsing mode", align=Align.INLINE)
 d.comment(0x91FF, "Decimal mode: 'Bad parameter'", align=Align.INLINE)
@@ -6411,6 +6477,15 @@ d.comment(0x92F8, "Is it '&'?", align=Align.INLINE)
 d.comment(0x92FA, "Yes: invalid filename", align=Align.INLINE)
 d.comment(0x92FC, "Return", align=Align.INLINE)
 d.label(0x92FD, "read_filename_char")
+d.subroutine(
+    0x92FD,
+    "read_filename_char",
+    title="Copy a filename into the FS command buffer",
+    description="""Copies characters into the command buffer, rejecting '&' and
+stripping BASIC token prefixes, until a CR; then sends the request
+through `send_fs_request`.""",
+    on_entry={'x': 'buffer offset'},
+)
 
 d.comment(0x92FD, "Reject '&' in current char", align=Align.INLINE)
 d.comment(0x9300, "Store character in TX buffer", align=Align.INLINE)
@@ -6420,6 +6495,12 @@ d.comment(0x9306, "Yes: send request to file server", align=Align.INLINE)
 d.comment(0x9308, "Strip BASIC token prefix byte", align=Align.INLINE)
 d.comment(0x930B, "Continue reading filename chars", align=Align.INLINE)
 d.label(0x930E, "send_fs_request")
+d.subroutine(
+    0x930E,
+    "send_fs_request",
+    title="Send an FS command with no extra dispatch offset",
+    description="""Sets Y=0 and jumps to `send_cmd_and_dispatch`.""",
+)
 
 d.comment(0x930E, "Y=0: no extra dispatch offset", align=Align.INLINE)
 d.comment(0x9310, "Send command and dispatch reply", align=Align.INLINE)
@@ -8118,6 +8199,15 @@ d.label(0x99AF, "check_display_type")
 d.comment(0x99AF, "Z set: directory entry display", align=Align.INLINE)
 d.comment(0x99B1, "Non-zero: jump to OSWORD dispatch", align=Align.INLINE)
 d.label(0x99B4, "setup_dir_display")
+d.subroutine(
+    0x99B4,
+    "setup_dir_display",
+    title="Compute the address differences for an info display",
+    description="""For four address pairs in the FS options block, saves the
+originals and replaces each with the difference between the pair,
+so the caller can show lengths without repeating the subtraction;
+then builds and sends the FS information request.""",
+)
 
 d.comment(0x99B4, "X=4: loop counter for 4 iterations", align=Align.INLINE)
 d.comment(0x99B6, "Y=&0E: FS options offset for addresses", align=Align.INLINE)
@@ -9627,6 +9717,14 @@ d.comment(0xA0F6, "Store '?' to workspace", align=Align.INLINE)
 d.comment(0xA0F8, "Restore l0d61 bit 7", align=Align.INLINE)
 d.comment(0xA0FB, "Return", align=Align.INLINE)
 d.label(0xA0FC, "fscv_3_star_cmd")
+d.subroutine(
+    0xA0FC,
+    "fscv_3_star_cmd",
+    title="FSCV 3: unrecognised * command",
+    description="""Sets the text and transfer pointers, clears the spool handle,
+then matches the command against the FS command table and dispatches
+it; unmatched commands are passed on to the file server.""",
+)
 
 d.entry(0xA0FC)
 d.comment(0xA0FC, "Set text and transfer pointers", align=Align.INLINE)
@@ -15756,6 +15854,13 @@ d.comment(0xBBAC, "Discard saved digit", align=Align.INLINE)
 d.comment(0xBBAD, "C=1: overflow", align=Align.INLINE)
 d.comment(0xBBAE, "Return with C=1", align=Align.INLINE)
 d.label(0xBBAF, "error_bad_hex_value")
+d.subroutine(
+    0xBBAF,
+    "error_bad_hex_value",
+    title="Close the file and raise 'Bad hex'",
+    description="""Closes the open dump file, then jumps to `err_bad_hex`. Never
+returns.""",
+)
 
 d.comment(0xBBAF, "Close open file before error", align=Align.INLINE)
 d.comment(0xBBB2, "Generate 'Bad hex' error", align=Align.INLINE)
@@ -15879,6 +15984,13 @@ d.comment(0xBC56, "Invalid: close file before error", align=Align.INLINE)
 d.comment(0xBC59, "Error number &FC", align=Align.INLINE)
 d.comment(0xBC5B, "Generate 'Bad address' error", align=Align.INLINE)
 d.label(0xBC66, "done_add_disp_base")
+d.subroutine(
+    0xBC66,
+    "done_add_disp_base",
+    title="Add the 4-byte address at (work_ae) to the workspace value",
+    description="""Adds the four bytes at (`work_ae`) into the 4-byte value at
+`osword_flag`, low byte first, with carry propagation.""",
+)
 
 d.comment(0xBC66, "Start from LSB", align=Align.INLINE)
 d.comment(0xBC68, "4 bytes to add", align=Align.INLINE)

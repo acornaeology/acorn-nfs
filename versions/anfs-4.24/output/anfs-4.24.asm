@@ -5878,6 +5878,11 @@ ps_template_base = load_transfer_params+1
     lda #&f1                                                          ; 9353: a9 f1       ..       ; Error code &F1
     jsr error_bad_inline                                              ; 9355: 20 a5 99     ..      ; Raise 'Bad hex' error
     equs "hex", &00                                                   ; 9358: 68 65 78... hex...
+; ***************************************************************************************
+; Raise a number-out-of-range error
+;
+; If fs_work_4 bit 7 is set (decimal parsing) raises 'Bad parameter'; otherwise falls
+; into the 'Bad station number' error. Never returns.
 ; &935c referenced 6 times by &92ed, &930e, &9313, &9316, &931a, &931e
 .error_overflow
     bit fs_work_4                                                     ; 935c: 24 b4       $.       ; Test fs_work_4 bit 7
@@ -16332,6 +16337,10 @@ net_chan_err_strings = err_net_chan_not_found+2
     pla                                                               ; bec9: 68          h        ; Discard saved X
     sec                                                               ; beca: 38          8        ; Set C: signal overflow to caller
     rts                                                               ; becb: 60          `        ; Return with C=1
+; ***************************************************************************************
+; Close the file and raise 'Bad hex'
+;
+; Closes the open dump file, then jumps to err_bad_hex. Never returns.
 ; &becc referenced 3 times by &be8d, &be97, &be9b
 .error_bad_hex_value
     jsr close_ws_file                                                 ; becc: 20 a1 bf     ..      ; Close the dump file before raising the error
@@ -16456,6 +16465,11 @@ net_chan_err_strings = err_net_chan_not_found+2
     lda #&fc                                                          ; bf76: a9 fc       ..       ; A=&FC: 'Bad address' error code
     jsr error_bad_inline                                              ; bf78: 20 a5 99     ..      ; Raise; never returns
     equs "address", &00                                               ; bf7b: 61 64 64... add...
+; ***************************************************************************************
+; Add the 4-byte address at (work_ae) to the workspace value
+;
+; Adds the four bytes at (work_ae) into the 4-byte value at osword_flag, low byte first,
+; with carry propagation.
 ; &bf83 referenced 3 times by &bf5e, &bf6c, &bf71
 .done_add_disp_base
     ldy #0                                                            ; bf83: a0 00       ..       ; Y=0: start of work_ae

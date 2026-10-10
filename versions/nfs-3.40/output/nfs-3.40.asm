@@ -558,6 +558,19 @@ tube_jmp_target = tube_dispatch_cmd+1
 ; | &04CB | tube_init_reloc — extract relocation address from ROM             |
     jmp tube_begin                                                    ; 935d: 4c 7d 04    L}. :0057[1]        ; JMP to BEGIN startup entry
     jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :005a[1]        ; JMP to tube_escape_check
+; ***************************************************************************************
+; Tube address claim / data transfer entry
+;
+; The Tube host's claim entry point. A below &80 starts a data transfer (falls into the
+; transfer set-up). A in &80-&BF releases the claim with ID A+&40 if it is the one held,
+; by falling into tube_post_init. A in &C0-&FF claims address ID A: the claim is granted
+; if no claim is held or the ID is already ours (C=1), and refused otherwise (C=0).
+;
+; On Entry:
+;     A: transfer type (&00-&7F), release ID (&80-&BF) or claim ID (&C0-&FF)
+;
+; On Exit:
+;     C: claims: 1 = granted, 0 = refused
     cmp #&80                                                          ; 9363: c9 80       .. :005d[1]         ; A>=&80: address claim; A<&80: data transfer
 .zp_63
     bcc &0087                                                         ; 9365: 90 26       .& :005f[1]         ; A<&80: data transfer setup (SENDW)
@@ -568,10 +581,21 @@ tube_jmp_target = tube_dispatch_cmd+1
     ora #&40                                                          ; 936b: 09 40       .@ :0065[1]         ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 936d: c5 15       .. :0067[1]         ; Is this for our currently-claimed address?
     bne &0086                                                         ; 936f: d0 1b       .. :0069[1]         ; Not our address: return
+; ***************************************************************************************
+; Release the Tube address claim
+;
+; Sends R4 command 5 and the claimed address ID to the co-processor, then falls into
+; tube_post_init to clear the claim flag.
     lda #5                                                            ; 9371: a9 05       .. :006b[1]         ; A=5: Tube release request code
     jsr tube_send_r4                                                  ; 9373: 20 9e 06     .. :006d[1]        ; Send release code via R4
     lda tube_claimed_id                                               ; 9376: a5 15       .. :0070[1]         ; Load current Tube claim ID
     jsr tube_send_r4                                                  ; 9378: 20 9e 06     .. :0072[1]        ; Send claim ID via R4
+; ***************************************************************************************
+; Clear the Tube address claim
+;
+; Sets tube_claim_flag to &80, meaning no address is currently claimed. Run once after
+; the Tube host code is copied into place, and reached from tube_addr_claim to release a
+; claim.
     lda #&80                                                          ; 937b: a9 80       .. :0075[1]         ; &80 sentinel: clear address claim
 
 
@@ -618,6 +642,19 @@ tube_jmp_target = tube_dispatch_cmd+1
     jmp tube_begin                                                    ; 935d: 4c 7d 04    L}. :0400[2]        ; JMP to BEGIN startup entry
 .tube_escape_entry
     jmp tube_escape_check                                             ; 9360: 4c a7 06    L.. :0403[2]        ; JMP to tube_escape_check
+; ***************************************************************************************
+; Tube address claim / data transfer entry
+;
+; The Tube host's claim entry point. A below &80 starts a data transfer (falls into the
+; transfer set-up). A in &80-&BF releases the claim with ID A+&40 if it is the one held,
+; by falling into tube_post_init. A in &C0-&FF claims address ID A: the claim is granted
+; if no claim is held or the ID is already ours (C=1), and refused otherwise (C=0).
+;
+; On Entry:
+;     A: transfer type (&00-&7F), release ID (&80-&BF) or claim ID (&C0-&FF)
+;
+; On Exit:
+;     C: claims: 1 = granted, 0 = refused
 ; &0406 referenced 10 times by &8b5d, &8b74, &8bd1, &8e19, &93f0, &9425, &99d1, &9a3a, &9f75, &9f7d
 .tube_addr_claim
     cmp #&80                                                          ; 9363: c9 80       .. :0406[2]         ; A>=&80: address claim; A<&80: data transfer
@@ -627,12 +664,23 @@ tube_jmp_target = tube_dispatch_cmd+1
     ora #&40                                                          ; 936b: 09 40       .@ :040e[2]         ; Map &80-&BF range to &C0-&FF for comparison
     cmp tube_claimed_id                                               ; 936d: c5 15       .. :0410[2]         ; Is this for our currently-claimed address?
     bne return_tube_init                                              ; 936f: d0 1b       .. :0412[2]         ; Not our address: return
+; ***************************************************************************************
+; Release the Tube address claim
+;
+; Sends R4 command 5 and the claimed address ID to the co-processor, then falls into
+; tube_post_init to clear the claim flag.
 ; &0414 referenced 1 time by &93c1
 .tube_send_release
     lda #5                                                            ; 9371: a9 05       .. :0414[2]         ; A=5: Tube release request code
     jsr tube_send_r4                                                  ; 9373: 20 9e 06     .. :0416[2]        ; Send release code via R4
     lda tube_claimed_id                                               ; 9376: a5 15       .. :0419[2]         ; Load current Tube claim ID
     jsr tube_send_r4                                                  ; 9378: 20 9e 06     .. :041b[2]        ; Send claim ID via R4
+; ***************************************************************************************
+; Clear the Tube address claim
+;
+; Sets tube_claim_flag to &80, meaning no address is currently claimed. Run once after
+; the Tube host code is copied into place, and reached from tube_addr_claim to release a
+; claim.
 ; &041e referenced 1 time by &8170
 .tube_post_init
     lda #&80                                                          ; 937b: a9 80       .. :041e[2]         ; &80 sentinel: clear address claim
@@ -748,6 +796,14 @@ tube_jmp_target = tube_dispatch_cmd+1
     bvc next_rom_page                                                 ; 941a: 50 dc       P. :04bd[2]         ; More pages: loop back to SENDW
     jsr tube_init_reloc                                               ; 941c: 20 cb 04     .. :04bf[2]        ; Re-init reloc pointers for final claim
     lda #4                                                            ; 941f: a9 04       .. :04c2[2]         ; A=4: transfer type for final address claim
+; ***************************************************************************************
+; Start a Tube transfer from the address block at &0053
+;
+; Points XY at the 4-byte transfer address at &0053 and jumps to tube_addr_claim with the
+; transfer type in A.
+;
+; On Entry:
+;     A: transfer type
 ; &04c4 referenced 1 time by &93fa
 .tube_claim_default
     ldy #0                                                            ; 9421: a0 00       .. :04c4[2]         ; Y=0: transfer address low byte
@@ -1885,6 +1941,14 @@ cmd_roff_str = copyright_string+3
     jsr osbyte                                                        ; 81c6: 20 f4 ff     ..      ; Re-enable keyboard (X=0, Y=0)  osbyte: econet kbd disable
     lda #&0a                                                          ; 81c9: a9 0a       ..       ; Function &0A: remote operation complete
     jsr setup_tx_and_send                                             ; 81cb: 20 ba 90     ..      ; Send notification to controlling station
+; ***************************************************************************************
+; Clear the Econet OS-call intercept flags
+;
+; Saves X, then calls OSBYTE &CE and &CF with Y=&7F to clear bit 7 of each Econet system
+; mask, and clears the remote-operation state.
+;
+; On Entry:
+;     X: value to preserve (saved in nfs_workspace)
 ; &81ce referenced 1 time by &84b9
 .clear_osbyte_ce_cf
     stx nfs_workspace                                                 ; 81ce: 86 9e       ..       ; Save X (return value from TX)
@@ -2196,6 +2260,19 @@ cmd_roff_str = copyright_string+3
     ldy #&36                                                          ; 832e: a0 36       .6       ; NETV extended vector offset in ROM ptr table
     sty netv                                                          ; 8330: 8c 24 02    .$.      ; Set NETV low byte = &36 (vector dispatch)
     ldx #1                                                            ; 8333: a2 01       ..       ; Install 1 entry (NETV) in ROM ptr table
+; ***************************************************************************************
+; Install extended-vector entries in the ROM pointer table
+;
+; For X entries, copies the handler address (low, high) from the table indexed by Y into
+; the MOS ROM pointer table at (osrdsc_ptr)+Y and appends the current ROM number. Returns
+; with Y set to the page after the NFS workspace.
+;
+; On Entry:
+;     X: number of entries
+;     Y: starting offset
+;
+; On Exit:
+;     Y: page after the NFS workspace
 ; &8335 referenced 2 times by &8272, &8347
 .store_rom_ptr_pair
     lda run_fscv_cmd,y                                                ; 8335: b9 89 82    ...      ; Load handler address low byte from table
@@ -2261,6 +2338,17 @@ cmd_roff_str = copyright_string+3
 ; &8379 referenced 2 times by &8364, &837e
 .skip_space_next
     iny                                                               ; 8379: c8          .        ; Skip this space
+; ***************************************************************************************
+; Skip spaces in the command line
+;
+; Advances Y past spaces at (os_text_ptr)+Y and returns with Z set if the next character
+; is a CR.
+;
+; On Entry:
+;     Y: command line offset
+;
+; On Exit:
+;     Z: 1 at end of line
 ; &837a referenced 2 times by &8376, &8de0
 .skip_spaces
     lda (os_text_ptr),y                                               ; 837a: b1 f2       ..       ; Load next input character
@@ -2277,6 +2365,14 @@ cmd_roff_str = copyright_string+3
 ; &8383 referenced 1 time by &83f0
 .init_tx_reply_port
     lda #&90                                                          ; 8383: a9 90       ..       ; A=&90: FS reply port (PREPLY)
+; ***************************************************************************************
+; Initialise the TX control block for a port
+;
+; Fills the TX control block at &00C0 from its template, stores A as the port, sets the
+; control byte to 3 and decrements the flag byte to arm the block.
+;
+; On Entry:
+;     A: port number
 ; &8385 referenced 1 time by &885a
 .init_tx_ctrl_port
     jsr init_tx_ctrl_block                                            ; 8385: 20 91 83     ..      ; Init TXCB from template
@@ -2345,6 +2441,13 @@ cmd_roff_str = copyright_string+3
     pha                                                               ; 83b5: 48          H        ; Save flag byte for command
     sec                                                               ; 83b6: 38          8        ; C=1: include flag in FS command
     bcs store_fs_hdr_fn                                               ; 83b7: b0 12       ..       ; ALWAYS branch to prepare_fs_cmd
+; ***************************************************************************************
+; Prepare an FS command with no flag byte
+;
+; Clears V and builds the FS command header via the shared prepare_fs_cmd path.
+;
+; On Entry:
+;     Y: FS function code
 ; &83b9 referenced 2 times by &8720, &87c7
 .prepare_cmd_clv
     clv                                                               ; 83b9: b8          .        ; V=0: command has no flag byte
@@ -2379,6 +2482,14 @@ cmd_roff_str = copyright_string+3
 ; &83c3 referenced 12 times by &80c5, &887d, &88f3, &893f, &8966, &89dd, &8a04, &8ada, &8b95, &8c3c, &8c73, &8cde
 .prepare_fs_cmd
     clv                                                               ; 83c3: b8          .        ; V=0: standard FS command path
+; ***************************************************************************************
+; Prepare the FS command header (V preserved)
+;
+; Copies the URD handle into the command header, then stores the function code from Y and
+; the CSD and LIB handles at &0F01-&0F04, leaving V as the caller set it.
+;
+; On Entry:
+;     Y: FS function code
 ; &83c4 referenced 2 times by &88db, &89ba
 .init_tx_ctrl_data
 .prepare_fs_cmd_v
@@ -2441,6 +2552,18 @@ cmd_roff_str = copyright_string+3
     php                                                               ; 83ea: 08          .        ; Save flags for send_fs_reply_cmd
     jsr setup_tx_ptr_c0                                               ; 83eb: 20 87 86     ..      ; Point net_tx_ptr to &00C0; transmit
     plp                                                               ; 83ee: 28          (        ; Restore flags
+; ***************************************************************************************
+; Send an FS command and check the reply
+;
+; Sets up the reply port, transmits the command and waits for the reply, then reads the
+; return code. Zero is success. With V set on entry, return code &D6 (not found) is
+; accepted as a soft error; any other non-zero code is raised through store_fs_error.
+;
+; On Entry:
+;     V: 1 to treat &D6 (not found) as a soft error
+;
+; On Exit:
+;     X: FS return code
 ; &83ef referenced 2 times by &87d3, &8ab7
 .send_fs_reply_cmd
     php                                                               ; 83ef: 08          .        ; Save flags (V flag state)
@@ -2705,6 +2828,10 @@ cmd_roff_str = copyright_string+3
     bne copy_error_message                                            ; 8512: d0 f4       ..       ; Continue copying message
     equs "SP."                                                        ; 8514: 53 50 2e    SP.   
     equb &0d, &45, &2e, &0d                                           ; 8517: 0d 45 2e... .E....
+; ***************************************************************************************
+; Send an FS command with the standard poll count
+;
+; Loads A=&2A and falls into send_to_fs.
 ; &851b referenced 5 times by &83f3, &8779, &8864, &9031, &9296
 .send_to_fs_star
     lda #&2a                                                          ; 851b: a9 2a       .*       ; A=&2A: error ptr for FS send
@@ -3552,9 +3679,17 @@ cmd_roff_str = copyright_string+3
     dey                                                               ; 87f7: 88          .        ; Next byte (descending)
     cpy #2                                                            ; 87f8: c0 02       ..       ; Copy offsets 5,4,3,2 (4 bytes)
     bcs lodrl1                                                        ; 87fa: b0 f6       ..       ; Loop while Y >= 2
+; ***************************************************************************************
+; Add 5 to Y
+;
+; Five INYs; the add_4_to_y entry skips the first.
 ; &87fc referenced 1 time by &87a9
 .add_5_to_y
     iny                                                               ; 87fc: c8          .        ; Y += 5
+; ***************************************************************************************
+; Add 4 to Y
+;
+; Four INYs.
 ; &87fd referenced 1 time by &8a91
 .add_4_to_y
     iny                                                               ; 87fd: c8          .        ; Y += 4
@@ -3582,9 +3717,17 @@ cmd_roff_str = copyright_string+3
     dey                                                               ; 880a: 88          .        ; Next byte (descending)
     cpy #2                                                            ; 880b: c0 02       ..       ; Copy offsets &0D down to 2
     bcs lodrl2                                                        ; 880d: b0 f6       ..       ; Loop until offset 2 reached
+; ***************************************************************************************
+; Subtract 4 from Y
+;
+; Four DEYs; the sub_3_from_y entry skips the first.
 ; &880f referenced 1 time by &8798
 .sub_4_from_y
     dey                                                               ; 880f: 88          .        ; Y -= 4
+; ***************************************************************************************
+; Subtract 3 from Y
+;
+; Three DEYs.
 ; &8810 referenced 2 times by &88a5, &8a99
 .sub_3_from_y
     dey                                                               ; 8810: 88          .        ; Y -= 3
@@ -4052,13 +4195,30 @@ cmd_roff_str = copyright_string+3
 ; &8a0c referenced 1 time by &89f8
 .opt_return
     bcc close_opt_return                                              ; 8a0c: 90 d8       ..       ; Return via restore_args_return
+; ***************************************************************************************
+; Adjust the transfer addresses (9 bytes)
+;
+; Sets Y=9 and adjusts the parameter-block address bytes through adjust_addrs_clc, then
+; falls into adjust_addrs_1.
 ; &8a0e referenced 1 time by &8ac9
 .adjust_addrs_9
     ldy #9                                                            ; 8a0e: a0 09       ..       ; Y=9: adjust 9 address bytes
     jsr adjust_addrs_clc                                              ; 8a10: 20 15 8a     ..      ; Adjust with carry clear
+; ***************************************************************************************
+; Adjust the transfer addresses (1 byte)
+;
+; Sets Y=1 and falls into adjust_addrs_clc.
 ; &8a13 referenced 1 time by &8bbe
 .adjust_addrs_1
     ldy #1                                                            ; 8a13: a0 01       ..       ; Y=1: adjust 1 address byte
+; ***************************************************************************************
+; Adjust parameter-block address bytes
+;
+; Clears carry and adds (or, when fs_load_addr_2 is negative, subtracts) the adjustment
+; bytes at &0E06 onwards to the parameter-block bytes starting at offset Y.
+;
+; On Entry:
+;     Y: parameter block offset
 ; &8a15 referenced 1 time by &8a10
 .adjust_addrs_clc
     clc                                                               ; 8a15: 18          .        ; C=0 for address adjustment
@@ -4291,6 +4451,12 @@ cmd_roff_str = copyright_string+3
     stx fs_load_addr_hi                                               ; 8b36: 86 b1       ..       ; Store X in fs_load_addr_hi (X=0)
     inx                                                               ; 8b38: e8          .        ; INX: X=1 after build_send_fs_cmd
     stx fs_load_addr                                                  ; 8b39: 86 b0       ..       ; Store X as reply start offset
+; ***************************************************************************************
+; Copy FS reply data to the caller's buffer
+;
+; If no Tube transfer is pending, copies the reply bytes from the FS command buffer into
+; the caller's buffer directly; otherwise claims the Tube and transfers them to the
+; co-processor.
 ; &8b3b referenced 2 times by &8aeb, &8bb3
 .copy_reply_to_caller
     lda svc_state                                                     ; 8b3b: a5 a9       ..       ; Copy FS reply to caller's buffer
@@ -4379,6 +4545,13 @@ cmd_roff_str = copyright_string+3
     sta fs_func_code                                                  ; 8bc7: 8d 06 0f    ...      ; Store in command buffer
     jsr adjust_addrs                                                  ; 8bca: 20 16 8a     ..      ; Adjust param block addresses
     beq gbpb_done                                                     ; 8bcd: f0 a8       ..       ; Z=1: all done, exit
+; ***************************************************************************************
+; Claim the Tube, retrying until granted
+;
+; Calls tube_addr_claim with claim ID &C3 until it succeeds.
+;
+; On Exit:
+;     C: 1 (claim granted)
 ; &8bcf referenced 3 times by &8b50, &8bd4, &8e10
 .tube_claim_loop
     lda #&c3                                                          ; 8bcf: a9 c3       ..       ; A=&C3: Tube claim with retry
@@ -4596,6 +4769,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &8cfb referenced 3 times by &8c41, &8cb0, &8cc2
 .print_reply_bytes
     ldy #&0a                                                          ; 8cfb: a0 0a       ..       ; Y=&0A: default print 10 characters
+; ***************************************************************************************
+; Print Y characters from the FS reply
+;
+; Prints Y bytes from the FS reply buffer starting at offset X, through OSASCI.
+;
+; On Entry:
+;     X: reply buffer offset
+;     Y: character count
 ; &8cfd referenced 2 times by &8c79, &8d05
 .print_reply_counted
     lda fs_cmd_data,x                                                 ; 8cfd: bd 05 0f    ...      ; Load reply byte at offset X
@@ -4690,6 +4871,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &8d55 referenced 1 time by &8ce5
 .print_newline
     jmp osnewl                                                        ; 8d55: 4c e7 ff    L..      ; Tail-call OSNEWL
+; ***************************************************************************************
+; Print the exec address and file length
+;
+; Prints the 4-byte exec address (parameter block offsets 9 down to 6) and the 3-byte
+; file length (offsets &0C down to &0A) in hex, followed by a space.
 ; &8d58 referenced 1 time by &8d52
 .print_exec_and_len
     ldy #9                                                            ; 8d58: a0 09       ..       ; Y=9: exec address offset (4 bytes)
@@ -4697,6 +4883,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     ldy #&0c                                                          ; 8d5d: a0 0c       ..       ; Y=&0C: file length offset
     ldx #3                                                            ; 8d5f: a2 03       ..       ; X=3: print 3 bytes (24-bit length)
     bne num01                                                         ; 8d61: d0 02       ..       ; ALWAYS branch
+; ***************************************************************************************
+; Print four address bytes in hex
+;
+; Sets X=4 and prints four parameter-block bytes, descending from offset Y, as hex, then
+; a space.
+;
+; On Entry:
+;     Y: offset of the most significant byte
 ; &8d63 referenced 2 times by &8d4f, &8d5a
 .print_hex_bytes
     ldx #4                                                            ; 8d63: a2 04       ..       ; X=4: print 4 hex bytes
@@ -4707,6 +4901,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     dey                                                               ; 8d6a: 88          .        ; Next byte (descending)
     dex                                                               ; 8d6b: ca          .        ; Count down
     bne num01                                                         ; 8d6c: d0 f7       ..       ; Loop until 4 bytes printed
+; ***************************************************************************************
+; Print a space
+;
+; Prints a single space character.
 ; &8d6e referenced 1 time by &8d45
 .print_space
     lda #' '                                                          ; 8d6e: a9 20       .        ; A=space character
@@ -4759,6 +4957,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; (high-bit terminator). Used by fscv_5_cat to display Dir. and Lib. paths.
 .fsreply_0_print_dir
     ldx #0                                                            ; 8d89: a2 00       ..       ; X=0: start from first reply byte
+; ***************************************************************************************
+; Print a directory string from the FS reply
+;
+; Prints characters from the FS reply buffer starting at offset X until a byte with bit 7
+; set; a zero byte acts as a column separator for multi-column listings.
+;
+; On Entry:
+;     X: reply buffer offset
 ; &8d8b referenced 2 times by &8d30, &8dab
 .print_dir_from_offset
     lda fs_cmd_data,x                                                 ; 8d8b: bd 05 0f    ...      ; Load byte from FS reply buffer
@@ -5202,6 +5408,17 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     sta ws_ptr_lo                                                     ; 8f0e: 85 ab       ..       ; Store offset in &AB (lo byte)
     ldx #1                                                            ; 8f10: a2 01       ..       ; X=1: copy 2 bytes
     ldy #1                                                            ; 8f12: a0 01       ..       ; Y=1: start at param block offset 1
+; ***************************************************************************************
+; Copy bytes between the OSWORD parameter block and workspace
+;
+; For X+1 bytes from offset Y: with C set, copies each parameter-block byte into the
+; workspace first; in either case the workspace byte is then written back to the
+; parameter block.
+;
+; On Entry:
+;     C: 1 to copy parameter block to workspace
+;     X: byte count - 1
+;     Y: offset
 ; &8f14 referenced 4 times by &8ece, &8ee3, &8f20, &8fb5
 .copy_param_workspace
     bcc skip_param_write                                              ; 8f14: 90 04       ..       ; C=0: skip param-to-workspace copy
@@ -5383,6 +5600,16 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda (osword_pb_ptr),y                                             ; 8fd8: b1 f0       ..       ; A = data length byte
     ldy #&20                                                          ; 8fda: a0 20       .        ; Workspace offset &20 = RX data end
     adc osword_pb_ptr                                                 ; 8fdc: 65 f0       e.       ; A = base + length = end address low
+; ***************************************************************************************
+; Store a 16-bit address in the NFS workspace
+;
+; Stores A as the low byte at (nfs_workspace)+Y and the high byte of the OSWORD parameter
+; block address, plus carry, at the next offset.
+;
+; On Entry:
+;     A: low byte
+;     Y: workspace offset
+;     C: carry into the high byte
 ; &8fde referenced 1 time by &8fd3
 .store_16bit_at_y
     sta (nfs_workspace),y                                             ; 8fde: 91 9e       ..       ; Store low byte of 16-bit address
@@ -5559,6 +5786,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     pla                                                               ; 908c: 68          h        ; Restore A
     plp                                                               ; 908d: 28          (        ; Restore processor status flags
     rts                                                               ; 908e: 60          `        ; Return with all registers preserved
+; ***************************************************************************************
+; Dispatch a NETV reason code
+;
+; Pushes the handler address for reason X from the OSWORD/NETV dispatch tables, loads A
+; from &EF and returns into the handler.
+;
+; On Entry:
+;     X: reason code
 ; &908f referenced 1 time by &9085
 .osword_trampoline
     lda osword_tbl_hi,x                                               ; 908f: bd a3 90    ...      ; PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it
@@ -5790,6 +6025,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .ctrl_block_setup
     ldy #&17                                                          ; 917c: a0 17       ..       ; Y=&17: workspace target offset (main entry)
     ldx #&1a                                                          ; 917e: a2 1a       ..       ; X=&1A: template table index (main entry)
+; ***************************************************************************************
+; Build a control block in the NFS workspace
+;
+; Clears V so the template is stored into (nfs_workspace), then runs the control-block
+; template loop.
 ; &9180 referenced 1 time by &9244
 .ctrl_block_setup_clv
     clv                                                               ; 9180: b8          .        ; V=0: target is (nfs_workspace)
@@ -6151,9 +6391,18 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     tya                                                               ; 92fd: 98          .        ; Y result from OSBYTE &85
     sta (nfs_workspace,x)                                             ; 92fe: 81 9e       ..       ; Store Y pos to workspace (X=0)
     jsr read_vdu_osbyte_x0                                            ; 9300: 20 03 93     ..      ; Self-call trick: executes twice
+; ***************************************************************************************
+; Save one VDU setting to the workspace (X=0)
+;
+; Sets X=0 and falls into read_vdu_osbyte.
 ; &9303 referenced 1 time by &9300
 .read_vdu_osbyte_x0
     ldx #0                                                            ; 9303: a2 00       ..       ; X=0 for (zp,X) addressing
+; ***************************************************************************************
+; Save one VDU setting to the workspace
+;
+; Reads the next OSBYTE number from the VDU-state table, calls it to read the current
+; value, and stores the result at the next workspace byte.
 ; &9305 referenced 1 time by &92f8
 .read_vdu_osbyte
     ldy table_idx                                                     ; 9305: a4 ad       ..       ; Index into OSBYTE number table
@@ -6173,9 +6422,17 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 
     org &9656
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff             ; 9656: ff ff ff... ......
+; ***************************************************************************************
+; Trampoline: begin a transmission
+;
+; JMP to tx_begin.
 ; &9660 referenced 2 times by &86aa, &8ed1
 .trampoline_tx_setup
     jmp tx_begin                                                      ; 9660: 4c c7 9b    L..      ; Trampoline: forward to tx_begin
+; ***************************************************************************************
+; Trampoline: full ADLC initialisation
+;
+; JMP to adlc_init.
 ; &9663 referenced 1 time by &8319
 .trampoline_adlc_init
     jmp adlc_init                                                     ; 9663: 4c 6f 96    Lo.      ; Trampoline: forward to adlc_init
@@ -6431,9 +6688,14 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda rx_port                                                       ; 978b: ad 40 0d    .@.      ; Check port byte: 0 = immediate op, non-zero = data transfer
     bne scout_match_port                                              ; 978e: d0 06       ..       ; Port non-zero -- look for matching receive block
     jmp immediate_op                                                  ; 9790: 4c 56 9a    LV.      ; Port = 0 -- immediate operation handler
+; ***************************************************************************************
+; Reject a scout for an unclaimed port
+;
+; Reached when the received scout matches no listening port; abandons the frame through
+; the receive-error path.
 ; &9793 referenced 3 times by &97de, &97e3, &9801
 .scout_no_match
-    jmp nmi_error_dispatch                                            ; 9793: 4c 72 98    Lr.      ; Port = 0 -- immediate operation handler
+    jmp nmi_error_dispatch                                            ; 9793: 4c 72 98    Lr.      ; No matching port: discard the frame
 ; &9796 referenced 1 time by &978e
 .scout_match_port
     bit tx_flags                                                      ; 9796: 2c 4a 0d    ,J.      ; Check if broadcast (bit6 of tx_flags)
@@ -6501,6 +6763,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     bit tx_flags                                                      ; 97ef: 2c 4a 0d    ,J.      ; Check broadcast flag (bit 6)
     bvc ack_scout_match                                               ; 97f2: 50 03       P.       ; Not broadcast: ACK and set up RX
     jmp copy_scout_fields                                             ; 97f4: 4c 47 9a    LG.      ; Broadcast: copy scout fields directly
+; ***************************************************************************************
+; Accept a matched scout
+;
+; Sets scout_status to 3, saves the TX block pointer, points it temporarily at the
+; matching receive control block and calculates the transfer parameters before sending
+; the ACK.
 ; &97f7 referenced 2 times by &97f2, &9abb
 .ack_scout_match
     lda #3                                                            ; 97f7: a9 03       ..       ; Match found: set scout_status = 3
@@ -6508,6 +6776,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     jsr tx_calc_transfer                                              ; 97fc: 20 38 9f     8.      ; Calculate transfer parameters
     bcs send_data_rx_ack                                              ; 97ff: b0 03       ..       ; Transfer OK: send data ACK
     jmp scout_no_match                                                ; 9801: 4c 93 97    L..      ; Broadcast: different completion path
+; ***************************************************************************************
+; Send the scout ACK and arm data reception
+;
+; Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the ACK frame for the
+; received scout, with the data-frame receive handler set as the next NMI handler.
 ; &9804 referenced 2 times by &97ff, &9ab0
 .send_data_rx_ack
     lda #&44                                                          ; 9804: a9 44       .D       ; CR1=&44: RX_RESET | TIE
@@ -6708,6 +6981,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda econet_control23_or_status2                                   ; 990e: ad a1 fe    ...      ; Re-read SR2 for next byte pair
     bne rx_tube_data                                                  ; 9911: d0 cd       ..       ; More data available: continue loop
     jmp nmi_rti                                                       ; 9913: 4c 14 0d    L..      ; Return from NMI, wait for data
+; ***************************************************************************************
+; Abandon a bad Tube data frame
+;
+; Jumps to the NMI error path. Reached when a frame received straight to the Tube ends
+; without a valid frame end.
 ; &9916 referenced 3 times by &98f6, &9928, &9934
 .data_rx_tube_error
     jmp nmi_error_dispatch                                            ; 9916: 4c 72 98    Lr.      ; Unexpected end: return from NMI
@@ -6870,8 +7148,6 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     adc open_port_buf                                                 ; 99ff: 65 a4       e.       ; Add to buffer base address
     bcc store_buf_ptr_lo                                              ; 9a01: 90 02       ..       ; No carry: skip high byte increment
 .inc_rxcb_buf_hi
-; &9a04 used as index base 1 time by &9a7d
-imm_dispatch_lo = inc_rxcb_buf_hi+1
     inc open_port_buf_hi                                              ; 9a03: e6 a5       ..       ; Carry: increment buffer high byte
 ; &9a05 referenced 1 time by &9a01
 .store_buf_ptr_lo
@@ -6880,7 +7156,6 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
     sta (port_ws_offset),y                                            ; 9a07: 91 a6       ..       ; Store updated low byte to RXCB
     iny                                                               ; 9a09: c8          .        ; Y=9: buffer high byte offset
     lda open_port_buf_hi                                              ; 9a0a: a5 a5       ..       ; Load updated buffer high byte
-; &9a0c used as index base 1 time by &9a79
 .store_rxcb_buf_hi
     sta (port_ws_offset),y                                            ; 9a0c: 91 a6       ..       ; Store high byte to RXCB
 ; &9a0e referenced 2 times by &99fa, &9a53
@@ -7000,9 +7275,9 @@ imm_dispatch_lo = inc_rxcb_buf_hi+1
 ; &9a76 referenced 2 times by &9a63, &9a71
 .imm_op_dispatch
     ldy rx_ctrl                                                       ; 9a76: ac 3f 0d    .?.      ; Reload ctrl byte for dispatch table
-    lda store_rxcb_buf_hi,y                                           ; 9a79: b9 0c 9a    ...      ; Look up handler address high byte
+    lda imm_op_dispatch_hi - &81,y                                    ; 9a79: b9 0c 9a    ...      ; Look up handler address high byte
     pha                                                               ; 9a7c: 48          H        ; Push handler address high
-    lda imm_dispatch_lo,y                                             ; 9a7d: b9 04 9a    ...      ; Load handler low byte from jump table
+    lda imm_op_dispatch_lo - &81,y                                    ; 9a7d: b9 04 9a    ...      ; Load handler low byte from jump table
     pha                                                               ; 9a80: 48          H        ; Push handler address low
     rts                                                               ; 9a81: 60          `        ; RTS dispatches to handler
 ; &9a82 referenced 2 times by &9a5b, &9a5f
@@ -7447,6 +7722,10 @@ tx_done_handler_hi = tx_nmi_setup+1
     inc stack_page_3,x                                                ; 9c63: fe 03 01    ...      ; Increment timeout counter byte 3
     bne test_inactive_retry                                           ; 9c66: d0 ce       ..       ; Not overflowed: retry INACTIVE test
     jmp tx_line_jammed                                                ; 9c68: 4c 6f 9c    Lo.      ; All 3 bytes overflowed: line jammed
+; ***************************************************************************************
+; Report the line as busy
+;
+; Loads A=&44 and branches to store it as the TX error result.
 ; TX_ACTIVE branch (A=&44 = CR1 value for TX active)
 ; &9c6b referenced 3 times by &9bdc, &9c0c, &9c10
 .tx_active_start
@@ -7734,6 +8013,11 @@ tx_done_handler_hi = tx_nmi_setup+1
     bit econet_control1_or_status1                                    ; 9db7: 2c a0 fe    ,..      ; BIT SR1: test IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 9dba: 30 06       0.       ; IRQ set -- fall through to &9DC2 without RTI
     jmp set_nmi_vector                                                ; 9dbc: 4c 0e 0d    L..      ; IRQ not set -- install handler and RTI
+; ***************************************************************************************
+; Abandon the reply and return to idle
+;
+; Jumps to the routine that stores the error result in the TX control block and returns
+; to idle listening. A shared target for the branches that abort a reply.
 ; &9dbf referenced 7 times by &9da0, &9dac, &9db1, &9dc5, &9dcd, &9dd5, &9ddc
 .reject_reply
     jmp tx_result_fail                                                ; 9dbf: 4c 1a 9f    L..      ; Store error and return to idle
@@ -7838,6 +8122,12 @@ tx_done_handler_hi = tx_nmi_setup+1
     bit econet_control1_or_status1                                    ; 9e54: 2c a0 fe    ,..      ; BIT SR1: test IRQ (N=bit7) for tight loop
     bmi data_tx_check_fifo                                            ; 9e57: 30 db       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 9e59: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
+; ***************************************************************************************
+; Close the transmitted data frame
+;
+; Writes CR2=&3F (TX_LAST_DATA) to end the frame. If tx_flags bit 7 is set, installs the
+; reset-and-listen handler as the next NMI handler; otherwise reinstalls the saved
+; handler.
 ; &9e5c referenced 4 times by &9e40, &9e50, &9e9a, &9eb0
 .data_tx_last
     lda #&3f                                                          ; 9e5c: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA (close data frame)
@@ -7847,9 +8137,14 @@ tx_done_handler_hi = tx_nmi_setup+1
     lda #&2e                                                          ; 9e66: a9 2e       ..       ; Install discard_reset_listen at &99DB
     ldy #&9a                                                          ; 9e68: a0 9a       ..       ; High byte of &99DB handler
     jmp set_nmi_vector                                                ; 9e6a: 4c 0e 0d    L..      ; Set NMI vector and return
+; ***************************************************************************************
+; Handle the end of a data transmission
+;
+; If tx_flags bit 7 is set, resets the ADLC and returns to idle listening; otherwise
+; reports error &41 ('not listening') as the TX result.
 ; &9e6d referenced 4 times by &9df8, &9e10, &9e34, &9e84
 .data_tx_error
-    lda tx_flags                                                      ; 9e6d: ad 4a 0d    .J.      ; Load saved next handler low byte
+    lda tx_flags                                                      ; 9e6d: ad 4a 0d    .J.      ; Test tx_flags bit 7 (clear = error)
     bpl jmp_tx_result_fail                                            ; 9e70: 10 03       ..       ; bit7 clear: error path
     jmp discard_reset_listen                                          ; 9e72: 4c 2e 9a    L..      ; ADLC reset and return to idle
 ; &9e75 referenced 1 time by &9e70
@@ -8686,7 +8981,6 @@ save pydis_start, pydis_end
 ;     handle_to_mask:                           1
 ;     handle_tx_result:                         1
 ;     handshake_await_ack:                      1
-;     imm_dispatch_lo:                          1
 ;     imm_op_build_reply:                       1
 ;     immediate_op:                             1
 ;     inactive_retry:                           1
@@ -8888,7 +9182,6 @@ save pydis_start, pydis_end
 ;     store_fs_hdr_clc:                         1
 ;     store_fs_hdr_fn:                          1
 ;     store_retry_count:                        1
-;     store_rxcb_buf_hi:                        1
 ;     store_status_add4:                        1
 ;     store_status_copy_ptr:                    1
 ;     store_txcb_byte:                          1

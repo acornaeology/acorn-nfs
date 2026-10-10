@@ -560,6 +560,12 @@
       "description": "Processes a completed scout frame. Writes CR1=&00\nand CR2=&84 to disable PSE and suppress FV, then\ntests SR2 for FV (frame valid). If FV is set with\nRDA, reads the remaining scout data bytes in pairs\ninto the buffer at &0D3D. Matches the port byte\n(&0D40) against open receive control blocks to find\na listener. On match, calculates the transfer size\nvia tx_calc_transfer, sets up the data RX handler\nchain, and sends a scout ACK. On no match or error,\ndiscards the frame via scout_error."
     },
     {
+      "addr": 33228,
+      "name": "send_data_rx_ack",
+      "title": "Send the scout ACK and arm data reception",
+      "description": "Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the\nACK frame for the received scout, with the data-frame receive\nhandler set as the next NMI handler."
+    },
+    {
       "addr": 33255,
       "name": "nmi_data_rx",
       "title": "Data frame RX handler (four-way handshake)",
@@ -627,6 +633,12 @@
       "name": "rx_complete_update_rxcb",
       "title": "Complete RX and update RXCB",
       "description": "Called from nmi_post_ack_dispatch after the\nfinal ACK has been transmitted. Finalises the\nreceived data transfer: calls advance_rx_buffer_ptr\nto update the 4-byte buffer pointer with the\ntransfer count (and handle Tube re-claim if\nneeded). Stores the source station, network, and\nport into the RXCB, then ORs &80 into the control\nbyte (bit 7 = complete). This is the NMI-to-\nforeground synchronisation point: wait_net_tx_ack\npolls this bit to detect that the reply has\narrived. Falls through to discard_reset_rx to\nreset the ADLC to idle RX listen mode.\n\n**Setting bit 7 also closes the block.** The slot\nscanner at [`scout_ctrl_check`](label:scout_ctrl_check)\nonly accepts a slot whose control byte is exactly\n&7F; the `ORA #&80` at &83D8 turns it into &FF, so\nfrom this instruction onwards the slot matches\nnothing. An RXCB is one-shot.\n\nThe consequence is that the ROM has no duplicate\ndetection on inbound frames. A retransmission of a\nreply the ROM has already consumed walks the port\nlist, matches no open slot, and is discarded\nsilently at [`discard_no_match`](label:discard_no_match)\n\u2014 no ACK, no NAK, no error. On a real Econet wire\nthis cannot arise: the four-way handshake is\nsynchronous and retransmission is handled beneath\nthe ROM. The ROM assumes the layer below it\nde-duplicates, which is an assumption a datagram\ntransport such as AUN over UDP does not satisfy."
+    },
+    {
+      "addr": 33781,
+      "name": "discard_reset_rx",
+      "title": "Discard the frame, reset the ADLC and listen for scouts",
+      "description": "Abandons any frame in progress (`discard_reset_listen`), resets\nthe ADLC for receive (`adlc_rx_listen`), and installs `nmi_rx_scout`\nas the NMI handler. The standard way back to idle listening after\nan error."
     },
     {
       "addr": 33794,
@@ -834,6 +846,12 @@
       "description": "Second byte of the scout ACK. Reads the destination network and validates it is zero (local network). Installs [`nmi_reply_validate`](label:nmi_reply_validate) for the remaining two bytes (source station and network).\n\nOptimisation: checks `SR1` bit 7 (IRQ still asserted) via `BMI` at &8767. If IRQ is still set the next byte has already arrived, so the routine falls through directly to [`nmi_reply_validate`](label:nmi_reply_validate) without an `RTI`, avoiding NMI re-entry overhead for short frames where all bytes arrive in quick succession."
     },
     {
+      "addr": 34678,
+      "name": "reject_reply",
+      "title": "Abandon the reply and return to idle",
+      "description": "Jumps to the routine that stores the error result in the TX\ncontrol block and returns to idle listening. A shared target for the\nbranches that abort a reply."
+    },
+    {
       "addr": 34681,
       "name": "nmi_reply_validate",
       "title": "Scout-ACK validation, then begin data TX (step 3 of handshake)",
@@ -850,6 +868,12 @@
       "name": "nmi_data_tx",
       "title": "TX data phase: send payload",
       "description": "Transmits the data payload of a four-way\nhandshake. Loads bytes from (open_port_buf),Y or\nfrom Tube R3 depending on the transfer mode, writing\npairs to the TX FIFO. After each pair, decrements\nthe byte count (port_buf_len). If the count reaches\nzero, branches to tx_last_data to signal end of\nframe. Otherwise tests SR1 bit 7 (IRQ): if still\nasserted, writes another pair without returning from\nNMI (tight loop optimisation). If IRQ clears, returns\nvia RTI."
+    },
+    {
+      "addr": 34845,
+      "name": "data_tx_last",
+      "title": "Close the transmitted data frame",
+      "description": "Writes CR2=&3F (TX_LAST_DATA) to end the frame. If `tx_flags`\nbit 7 is set, installs the reset-and-listen handler as the next NMI\nhandler; otherwise reinstalls the saved handler."
     },
     {
       "addr": 34936,
@@ -1284,7 +1308,13 @@
       "on_exit": {
         "a": "preserved",
         "y": "preserved"
-      },
+      }
+    },
+    {
+      "addr": 36836,
+      "name": "error_net_checksum",
+      "title": "Raise the workspace checksum error",
+      "description": "Raises error &AA through `error_bad_inline` with an inline string\nnaming the failed workspace checksum. Never returns.",
       "fall_through": true
     },
     {
@@ -1336,7 +1366,20 @@
       "addr": 37230,
       "name": "parse_addr_arg",
       "title": "Parse decimal or hex station address argument",
-      "description": "Reads from the command argument at (&BE),Y.\nSupports '&' prefix for hex, '.' separator for\nnet.station addresses, and plain decimal.\nReturns result in A. Raises errors for\nbad digits, overflow, or zero values.",
+      "description": "Reads from the command argument at (&BE),Y.\nSupports '&' prefix for hex, '.' separator for\nnet.station addresses, and plain decimal.\nReturns result in A. Raises errors for\nbad digits, overflow, or zero values."
+    },
+    {
+      "addr": 37384,
+      "name": "err_bad_hex",
+      "title": "Raise the 'Bad hex' error",
+      "description": "Raises error &F1 through `error_bad_inline`, which prefixes the\ninline string with 'Bad '. Never returns.",
+      "fall_through": true
+    },
+    {
+      "addr": 37393,
+      "name": "error_overflow",
+      "title": "Raise a number-out-of-range error",
+      "description": "If `fs_work_4` bit 7 is set (decimal parsing) raises 'Bad\nparameter'; otherwise falls into the 'Bad station number' error.\nNever returns.",
       "fall_through": true
     },
     {
@@ -1465,6 +1508,21 @@
       "name": "check_not_ampersand",
       "title": "Reject '&' as filename character",
       "description": "Loads the first character from the parse buffer\nat &0E30 and compares with '&' (&26). Branches\nto error_bad_filename if matched, otherwise\nreturns. Also contains read_filename_char which\nloops reading characters from the command line\ninto the TX buffer at &0F05, calling\nstrip_token_prefix on each byte and terminating\non CR. Used by cmd_fs_operation and cmd_rename."
+    },
+    {
+      "addr": 37649,
+      "name": "read_filename_char",
+      "title": "Copy a filename into the FS command buffer",
+      "description": "Copies characters into the command buffer, rejecting '&' and\nstripping BASIC token prefixes, until a CR; then sends the request\nthrough `send_fs_request`.",
+      "on_entry": {
+        "x": "buffer offset"
+      }
+    },
+    {
+      "addr": 37666,
+      "name": "send_fs_request",
+      "title": "Send an FS command with no extra dispatch offset",
+      "description": "Sets Y=0 and jumps to `send_cmd_and_dispatch`."
     },
     {
       "addr": 37671,
@@ -1741,6 +1799,12 @@
       "description": "If the 5-byte handle matches, returns\nimmediately. Otherwise sets port &92, copies\naddresses, sends, waits for acknowledgment,\nand retries on address mismatch."
     },
     {
+      "addr": 39368,
+      "name": "setup_dir_display",
+      "title": "Compute the address differences for an info display",
+      "description": "For four address pairs in the FS options block, saves the\noriginals and replaces each with the difference between the pair,\nso the caller can show lengths without repeating the subtraction;\nthen builds and sends the FS information request."
+    },
+    {
       "addr": 39511,
       "name": "print_load_exec_addrs",
       "title": "Print exec address and file length in hex",
@@ -1953,6 +2017,12 @@
       "on_exit": {
         "y": "byte offset (0, 6, 12, ... up to &42)"
       }
+    },
+    {
+      "addr": 41236,
+      "name": "fscv_3_star_cmd",
+      "title": "FSCV 3: unrecognised * command",
+      "description": "Sets the text and transfer pointers, clears the spool handle,\nthen matches the command against the FS command table and dispatches\nit; unmatched commands are passed on to the file server."
     },
     {
       "addr": 41280,
@@ -3012,10 +3082,23 @@
       "description": "Reads up to 4 hex digits from the command line\ninto a 4-byte accumulator, stopping at CR or\nspace. Each digit shifts the accumulator left\nby 4 bits before ORing in the new nybble."
     },
     {
+      "addr": 47976,
+      "name": "error_bad_hex_value",
+      "title": "Close the file and raise 'Bad hex'",
+      "description": "Closes the open dump file, then jumps to `err_bad_hex`. Never\nreturns."
+    },
+    {
       "addr": 47991,
       "name": "init_dump_buffer",
       "title": "Initialise dump buffer and parse address range",
-      "description": "Parses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent."
+      "description": "Parses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent.",
+      "fall_through": true
+    },
+    {
+      "addr": 48159,
+      "name": "done_add_disp_base",
+      "title": "Add the 4-byte address at (work_ae) to the workspace value",
+      "description": "Adds the four bytes at (`work_ae`) into the 4-byte value at\n`osword_flag`, low byte first, with carry propagation."
     },
     {
       "addr": 48189,

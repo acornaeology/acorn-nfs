@@ -1618,6 +1618,13 @@
       "fall_through": true
     },
     {
+      "addr": 37726,
+      "name": "error_overflow",
+      "title": "Raise a number-out-of-range error",
+      "description": "If `fs_work_4` bit 7 is set (decimal parsing) raises 'Bad\nparameter'; otherwise falls into the 'Bad station number' error.\nNever returns.",
+      "fall_through": true
+    },
+    {
       "addr": 37793,
       "name": "is_decimal_digit",
       "title": "Test for digit, '&', or '.' separator",
@@ -4447,13 +4454,26 @@
       }
     },
     {
+      "addr": 48846,
+      "name": "error_bad_hex_value",
+      "title": "Close the file and raise 'Bad hex'",
+      "description": "Closes the open dump file, then jumps to `err_bad_hex`. Never\nreturns."
+    },
+    {
       "addr": 48861,
       "name": "init_dump_buffer",
       "title": "Initialise dump buffer and parse address range",
       "description": "Parses the start and end addresses from the command\nline via parse_dump_range. If no end address is given,\ndefaults to the file extent. Validates both addresses\nagainst the file size, raising 'Outside file' if either\nexceeds the extent.",
       "on_entry": {
         "y": "command-line offset of the address arguments"
-      }
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 49029,
+      "name": "done_add_disp_base",
+      "title": "Add the 4-byte address at (work_ae) to the workspace value",
+      "description": "Adds the four bytes at (`work_ae`) into the 4-byte value at\n`osword_flag`, low byte first, with carry propagation."
     },
     {
       "addr": 49059,

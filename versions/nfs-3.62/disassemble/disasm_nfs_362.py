@@ -386,6 +386,19 @@ d.label(0x0403, "tube_escape_entry")
 d.entry(0x0403)
 d.comment(0x0403, "`JMP` to [`tube_escape_check`](label:tube_escape_check)", align=Align.INLINE)
 d.label(0x0406, "tube_addr_claim")
+d.subroutine(
+    0x0406,
+    "tube_addr_claim",
+    title="Tube address claim / data transfer entry",
+    description="""The Tube host's claim entry point. A below &80 starts a data
+transfer (falls into the transfer set-up). A in &80-&BF releases
+the claim with ID A+&40 if it is the one held, sending R4 command 5
+to the co-processor. A in &C0-&FF claims address ID A: the claim is
+granted if no claim is held or the ID is already ours (C=1), and
+refused otherwise (C=0).""",
+    on_entry={'a': 'transfer type (&00-&7F), release ID (&80-&BF) or claim ID (&C0-&FF)'},
+    on_exit={'c': 'claims: 1 = granted, 0 = refused'},
+)
 
 d.entry(0x0406)
 d.comment(0x0406, "A>=&80: address claim; A<&80: data transfer", align=Align.INLINE)
@@ -416,6 +429,14 @@ d.comment(0x041B, "Load our currently-claimed address", align=Align.INLINE)
 d.comment(0x041D, "Send our address as release parameter", align=Align.INLINE)
 d.comment(0x0420, "Restore interrupt state", align=Align.INLINE)
 d.label(0x0421, "tube_post_init")
+d.subroutine(
+    0x0421,
+    "tube_post_init",
+    title="Clear the Tube address claim",
+    description="""Sets `tube_claimed_id` and `tube_claim_flag` to &80, meaning no
+address is currently claimed. Run once after the Tube host code is
+copied into place.""",
+)
 
 d.entry(0x0421)
 d.comment(0x0421, "&80 sentinel: clear address claim", align=Align.INLINE)
@@ -1873,6 +1894,14 @@ d.comment(0x81CA, "Re-enable keyboard (X=0, Y=0)", align=Align.INLINE)
 d.comment(0x81CD, "Function &0A: remote operation complete", align=Align.INLINE)
 d.comment(0x81CF, "Send notification to controlling station", align=Align.INLINE)
 d.label(0x81D2, "clear_osbyte_ce_cf")
+d.subroutine(
+    0x81D2,
+    "clear_osbyte_ce_cf",
+    title="Clear the Econet OS-call intercept flags",
+    description="""Saves X, then calls OSBYTE &CE and &CF with Y=&7F to clear bit 7
+of each Econet system mask, and clears the remote-operation state.""",
+    on_entry={'x': 'value to preserve (saved in nfs_workspace)'},
+)
 
 d.comment(0x81D2, "Save X (return value from TX)", align=Align.INLINE)
 d.comment(0x81D4, "OSBYTE &CE: first system mask to reset", align=Align.INLINE)
@@ -2231,6 +2260,17 @@ d.comment(0x8332, "NETV extended vector offset in ROM ptr table", align=Align.IN
 d.comment(0x8334, "Set NETV low byte = &36 (vector dispatch)", align=Align.INLINE)
 d.comment(0x8337, "Install 1 entry (NETV) in ROM ptr table", align=Align.INLINE)
 d.label(0x8339, "store_rom_ptr_pair")
+d.subroutine(
+    0x8339,
+    "store_rom_ptr_pair",
+    title="Install extended-vector entries in the ROM pointer table",
+    description="""For X entries, copies the handler address (low, high) from the
+table indexed by Y into the MOS ROM pointer table at
+(`osrdsc_ptr`)+Y and appends the current ROM number. Returns with
+Y set to the page after the NFS workspace.""",
+    on_entry={'x': 'number of entries', 'y': 'starting offset'},
+    on_exit={'y': 'page after the NFS workspace'},
+)
 
 d.comment(0x8339, "Load handler address low byte from table", align=Align.INLINE)
 d.comment(0x833C, "Store to ROM pointer table", align=Align.INLINE)
@@ -2342,6 +2382,15 @@ for receiving the fileserver's reply.""",
 )
 d.comment(0x8387, "A=&90: FS reply port (PREPLY)", align=Align.INLINE)
 d.label(0x8389, "init_tx_ctrl_port")
+d.subroutine(
+    0x8389,
+    "init_tx_ctrl_port",
+    title="Initialise the TX control block for a port",
+    description="""Fills the TX control block at &00C0 from its template, stores A
+as the port, sets the control byte to 3 and decrements the flag
+byte to arm the block.""",
+    on_entry={'a': 'port number'},
+)
 
 d.comment(0x8389, "Init TXCB from template", align=Align.INLINE)
 d.comment(0x838C, "Store port number in TXCB", align=Align.INLINE)
@@ -2417,6 +2466,14 @@ byte-stream (BSXMIT) transmission path.""",
 d.comment(0x83BA, "C=1: include flag in FS command", align=Align.INLINE)
 d.comment(0x83BB, "ALWAYS branch to prepare_fs_cmd", align=Align.INLINE)
 d.label(0x83BD, "prepare_cmd_clv")
+d.subroutine(
+    0x83BD,
+    "prepare_cmd_clv",
+    title="Prepare an FS command with no flag byte",
+    description="""Clears V and builds the FS command header via the shared
+`prepare_fs_cmd` path.""",
+    on_entry={'y': 'FS function code'},
+)
 
 d.comment(0x83BD, "V=0: command has no flag byte", align=Align.INLINE)
 d.comment(0x83BE, "ALWAYS branch to prepare_fs_cmd", align=Align.INLINE)
@@ -2455,6 +2512,15 @@ Called before building specific FS commands for transmission.""",
 )
 d.comment(0x83C7, "V=0: standard FS command path", align=Align.INLINE)
 d.label(0x83C8, "init_tx_ctrl_data")
+d.subroutine(
+    0x83C8,
+    "init_tx_ctrl_data",
+    title="Prepare the FS command header (V preserved)",
+    description="""Copies the URD handle into the command header, then stores the
+function code from Y and the CSD and LIB handles at &0F01-&0F04,
+leaving V as the caller set it.""",
+    on_entry={'y': 'FS function code'},
+)
 
 d.label(0x83C8, "prepare_fs_cmd_v")
 
@@ -2516,6 +2582,17 @@ d.comment(0x83EE, "Save flags for send_fs_reply_cmd", align=Align.INLINE)
 d.comment(0x83EF, "Point net_tx_ptr to &00C0; transmit", align=Align.INLINE)
 d.comment(0x83F2, "Restore flags", align=Align.INLINE)
 d.label(0x83F3, "send_fs_reply_cmd")
+d.subroutine(
+    0x83F3,
+    "send_fs_reply_cmd",
+    title="Send an FS command and check the reply",
+    description="""Sets up the reply port, transmits the command and waits for the
+reply, then reads the return code. Zero is success. With V set on
+entry, return code &D6 (not found) is accepted as a soft error;
+any other non-zero code is raised through `store_fs_error`.""",
+    on_entry={'v': '1 to treat &D6 (not found) as a soft error'},
+    on_exit={'x': 'FS return code'},
+)
 
 d.comment(0x83F3, "Save flags (V flag state)", align=Align.INLINE)
 d.comment(0x83F4, "Set up RX wait for FS reply", align=Align.INLINE)
@@ -3784,10 +3861,22 @@ d.comment(0x8836, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x8837, "Copy offsets 5,4,3,2 (4 bytes)", align=Align.INLINE)
 d.comment(0x8839, "Loop while Y >= 2", align=Align.INLINE)
 d.label(0x883B, "add_5_to_y")
+d.subroutine(
+    0x883B,
+    "add_5_to_y",
+    title="Add 5 to Y",
+    description="""Five INYs; the `add_4_to_y` entry skips the first.""",
+)
 
 d.entry(0x883B)
 d.comment(0x883B, "Y += 5", align=Align.INLINE)
 d.label(0x883C, "add_4_to_y")
+d.subroutine(
+    0x883C,
+    "add_4_to_y",
+    title="Add 4 to Y",
+    description="""Four INYs.""",
+)
 
 d.comment(0x883C, "Y += 4", align=Align.INLINE)
 d.comment(0x883D, "(continued)", align=Align.INLINE)
@@ -3815,12 +3904,24 @@ d.comment(0x8849, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x884A, "Copy offsets &0D down to 2", align=Align.INLINE)
 d.comment(0x884C, "Loop until offset 2 reached", align=Align.INLINE)
 d.label(0x884E, "sub_4_from_y")
+d.subroutine(
+    0x884E,
+    "sub_4_from_y",
+    title="Subtract 4 from Y",
+    description="""Four DEYs; the `sub_3_from_y` entry skips the first.""",
+)
 
 d.entry(0x884E)
 d.comment(0x884E, "Y -= 4", align=Align.INLINE)
 
 
 d.label(0x884F, "sub_3_from_y")
+d.subroutine(
+    0x884F,
+    "sub_3_from_y",
+    title="Subtract 3 from Y",
+    description="""Three DEYs.""",
+)
 
 d.comment(0x884F, "Y -= 3", align=Align.INLINE)
 d.comment(0x8850, "(continued)", align=Align.INLINE)
@@ -4334,13 +4435,35 @@ d.label(0x8A50, "opt_return")
 
 d.comment(0x8A50, "Return via restore_args_return", align=Align.INLINE)
 d.label(0x8A52, "adjust_addrs_9")
+d.subroutine(
+    0x8A52,
+    "adjust_addrs_9",
+    title="Adjust the transfer addresses (9 bytes)",
+    description="""Sets Y=9 and adjusts the parameter-block address bytes through
+`adjust_addrs_clc`, then falls into `adjust_addrs_1`.""",
+)
 
 d.comment(0x8A52, "Y=9: adjust 9 address bytes", align=Align.INLINE)
 d.comment(0x8A54, "Adjust with carry clear", align=Align.INLINE)
 d.label(0x8A57, "adjust_addrs_1")
+d.subroutine(
+    0x8A57,
+    "adjust_addrs_1",
+    title="Adjust the transfer addresses (1 byte)",
+    description="""Sets Y=1 and falls into `adjust_addrs_clc`.""",
+)
 
 d.comment(0x8A57, "Y=1: adjust 1 address byte", align=Align.INLINE)
 d.label(0x8A59, "adjust_addrs_clc")
+d.subroutine(
+    0x8A59,
+    "adjust_addrs_clc",
+    title="Adjust parameter-block address bytes",
+    description="""Clears carry and adds (or, when `fs_load_addr_2` is negative,
+subtracts) the adjustment bytes at &0E06 onwards to the
+parameter-block bytes starting at offset Y.""",
+    on_entry={'y': 'parameter block offset'},
+)
 
 d.comment(0x8A59, "C=0 for address adjustment", align=Align.INLINE)
 
@@ -4575,6 +4698,14 @@ d.comment(0x8B7A, "Store X in fs_load_addr_hi (X=0)", align=Align.INLINE)
 d.comment(0x8B7C, "INX: X=1 after build_send_fs_cmd", align=Align.INLINE)
 d.comment(0x8B7D, "Store X as reply start offset", align=Align.INLINE)
 d.label(0x8B7F, "copy_reply_to_caller")
+d.subroutine(
+    0x8B7F,
+    "copy_reply_to_caller",
+    title="Copy FS reply data to the caller's buffer",
+    description="""If no Tube transfer is pending, copies the reply bytes from the
+FS command buffer into the caller's buffer directly; otherwise
+claims the Tube and transfers them to the co-processor.""",
+)
 
 d.comment(0x8B7F, "Copy FS reply to caller's buffer", align=Align.INLINE)
 d.comment(0x8B81, "Non-zero: use Tube transfer path", align=Align.INLINE)
@@ -4663,6 +4794,13 @@ d.comment(0x8C0B, "Store in command buffer", align=Align.INLINE)
 d.comment(0x8C0E, "Adjust param block addresses", align=Align.INLINE)
 d.comment(0x8C11, "Z=1: all done, exit", align=Align.INLINE)
 d.label(0x8C13, "tube_claim_loop")
+d.subroutine(
+    0x8C13,
+    "tube_claim_loop",
+    title="Claim the Tube, retrying until granted",
+    description="""Calls `tube_addr_claim` with claim ID &C3 until it succeeds.""",
+    on_exit={'c': '1 (claim granted)'},
+)
 
 d.comment(0x8C13, "A=&C3: Tube claim with retry", align=Align.INLINE)
 d.comment(0x8C15, "Request Tube address claim", align=Align.INLINE)
@@ -4935,6 +5073,14 @@ Used by fscv_5_cat to display directory and library names.""",
 
 d.comment(0x8D47, "Y=&0A: default print 10 characters", align=Align.INLINE)
 d.label(0x8D49, "print_reply_counted")
+d.subroutine(
+    0x8D49,
+    "print_reply_counted",
+    title="Print Y characters from the FS reply",
+    description="""Prints Y bytes from the FS reply buffer starting at offset X,
+through OSASCI.""",
+    on_entry={'x': 'reply buffer offset', 'y': 'character count'},
+)
 
 d.comment(0x8D49, "Load reply byte at offset X", align=Align.INLINE)
 d.comment(0x8D4C, "Print via OSASCI, bypassing the *SPOOL file", align=Align.INLINE)
@@ -5010,9 +5156,25 @@ d.comment(0x8D6A, "Opt 2 (Run): !BOOT at &8D5A", align=Align.INLINE)
 d.comment(0x8D6B, "Opt 3 (Exec): E.!BOOT at &8D60", align=Align.INLINE)
 d.comment(0x8D6C, '"Exec" option name string', align=Align.INLINE)
 d.label(0x8D70, "print_hex_bytes")
+d.subroutine(
+    0x8D70,
+    "print_hex_bytes",
+    title="Print four address bytes in hex",
+    description="""Sets X=4 and prints four parameter-block bytes, descending from
+offset Y, as hex, then a space.""",
+    on_entry={'y': 'offset of the most significant byte'},
+)
 
 d.comment(0x8D70, "X=4: print 4 hex bytes", align=Align.INLINE)
 d.label(0x8D72, "num01")
+d.subroutine(
+    0x8D72,
+    "num01",
+    title="Print X address bytes in hex",
+    description="""Prints X parameter-block bytes, descending from offset Y, as
+two hex digits each, then a space.""",
+    on_entry={'x': 'byte count', 'y': 'offset of the most significant byte'},
+)
 
 d.comment(0x8D72, "Load byte from parameter block", align=Align.INLINE)
 d.comment(0x8D74, "Print as two hex digits", align=Align.INLINE)
@@ -5020,6 +5182,12 @@ d.comment(0x8D77, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x8D78, "Count down", align=Align.INLINE)
 d.comment(0x8D79, "Loop until 4 bytes printed", align=Align.INLINE)
 d.label(0x8D7B, "print_space")
+d.subroutine(
+    0x8D7B,
+    "print_space",
+    title="Print a space",
+    description="""Prints a single space character.""",
+)
 
 d.comment(0x8D7B, "A=space character", align=Align.INLINE)
 d.comment(0x8D7D, "Always taken (A=&20)", align=Align.INLINE)
@@ -5080,6 +5248,15 @@ terminator). Used by fscv_5_cat to display Dir. and Lib. paths.""",
 )
 d.comment(0x8D96, "X=0: start from first reply byte", align=Align.INLINE)
 d.label(0x8D98, "print_dir_from_offset")
+d.subroutine(
+    0x8D98,
+    "print_dir_from_offset",
+    title="Print a directory string from the FS reply",
+    description="""Prints characters from the FS reply buffer starting at offset X
+until a byte with bit 7 set; a zero byte acts as a column separator
+for multi-column listings.""",
+    on_entry={'x': 'reply buffer offset'},
+)
 
 d.comment(0x8D98, "Load byte from FS reply buffer", align=Align.INLINE)
 d.comment(0x8D9B, "Bit 7 set: end of string, return", align=Align.INLINE)
@@ -5836,6 +6013,15 @@ d.comment(0x8FE0, "A = data length byte", align=Align.INLINE)
 d.comment(0x8FE2, "Workspace offset &20 = RX data end", align=Align.INLINE)
 d.comment(0x8FE4, "A = base + length = end address low", align=Align.INLINE)
 d.label(0x8FE6, "store_16bit_at_y")
+d.subroutine(
+    0x8FE6,
+    "store_16bit_at_y",
+    title="Store a 16-bit address in the NFS workspace",
+    description="""Stores A as the low byte at (`nfs_workspace`)+Y and the high byte
+of the OSWORD parameter block address, plus carry, at the next
+offset.""",
+    on_entry={'a': 'low byte', 'y': 'workspace offset', 'c': 'carry into the high byte'},
+)
 
 d.comment(0x8FE6, "Store low byte of 16-bit address", align=Align.INLINE)
 d.comment(0x8FE8, "Advance to high byte offset", align=Align.INLINE)
@@ -6019,6 +6205,14 @@ d.comment(0x9096, "Restore A", align=Align.INLINE)
 d.comment(0x9097, "Restore processor status flags", align=Align.INLINE)
 d.comment(0x9098, "Return with all registers preserved", align=Align.INLINE)
 d.label(0x9099, "osword_trampoline")
+d.subroutine(
+    0x9099,
+    "osword_trampoline",
+    title="Dispatch a NETV reason code",
+    description="""Pushes the handler address for reason X from the OSWORD/NETV
+dispatch tables, loads A from &EF and returns into the handler.""",
+    on_entry={'x': 'reason code'},
+)
 
 d.entry(0x9099)
 d.comment(0x9099, "PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it", align=Align.INLINE)
@@ -6328,6 +6522,13 @@ Template sentinel values:
 d.comment(0x9188, "Y=&17: workspace target offset (main entry)", align=Align.INLINE)
 d.comment(0x918A, "X=&1A: template table index (main entry)", align=Align.INLINE)
 d.label(0x918C, "ctrl_block_setup_clv")
+d.subroutine(
+    0x918C,
+    "ctrl_block_setup_clv",
+    title="Build a control block in the NFS workspace",
+    description="""Clears V so the template is stored into (`nfs_workspace`), then
+runs the control-block template loop.""",
+)
 
 d.comment(0x918C, "V=0: target is (nfs_workspace)", align=Align.INLINE)
 d.label(0x918D, "cbset2")
@@ -6749,9 +6950,23 @@ d.comment(0x9302, "Y result from OSBYTE &85", align=Align.INLINE)
 d.comment(0x9303, "Store Y pos to workspace (X=0)", align=Align.INLINE)
 d.comment(0x9305, "Self-call trick: executes twice", align=Align.INLINE)
 d.label(0x9308, "read_vdu_osbyte_x0")
+d.subroutine(
+    0x9308,
+    "read_vdu_osbyte_x0",
+    title="Save one VDU setting to the workspace (X=0)",
+    description="""Sets X=0 and falls into `read_vdu_osbyte`.""",
+)
 
 d.comment(0x9308, "X=0 for (zp,X) addressing", align=Align.INLINE)
 d.label(0x930A, "read_vdu_osbyte")
+d.subroutine(
+    0x930A,
+    "read_vdu_osbyte",
+    title="Save one VDU setting to the workspace",
+    description="""Reads the next OSBYTE number from the VDU-state table, calls it to
+read the current value, and stores the result at the next
+workspace byte.""",
+)
 
 d.comment(0x930A, "Index into OSBYTE number table", align=Align.INLINE)
 d.comment(0x930C, "Next table entry next time", align=Align.INLINE)
@@ -6783,8 +6998,20 @@ d.label(0x9462, "reloc_p5_src")
 
 d.label(0x9562, "reloc_p6_src")
 d.label(0x9630, "start_adlc_tx")
+d.subroutine(
+    0x9630,
+    "start_adlc_tx",
+    title="Trampoline: begin a transmission",
+    description="""JMP to `tx_begin`.""",
+)
 
 d.label(0x9633, "init_adlc_hw")
+d.subroutine(
+    0x9633,
+    "init_adlc_hw",
+    title="Trampoline: full ADLC initialisation",
+    description="""JMP to `adlc_init`.""",
+)
 
 d.label(0x9636, "econet_save")
 
@@ -7171,6 +7398,14 @@ d.comment(0x97C3, "Check broadcast flag for ACK path", align=Align.INLINE)
 d.comment(0x97C6, "Not broadcast -- normal ACK path", align=Align.INLINE)
 d.comment(0x97C8, "Broadcast: different completion path", align=Align.INLINE)
 d.label(0x97CB, "send_data_rx_ack")
+d.subroutine(
+    0x97CB,
+    "send_data_rx_ack",
+    title="Send the scout ACK and arm data reception",
+    description="""Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the
+ACK frame for the received scout, with the data-frame receive
+handler set as the next NMI handler.""",
+)
 
 d.comment(0x97CB, "CR1=&44: RX_RESET | TIE", align=Align.INLINE)
 d.comment(0x97CD, "Write CR1: TX mode for ACK", align=Align.INLINE)
@@ -8634,6 +8869,14 @@ d.comment(0x9D55, "IRQ not set -- install handler and RTI", align=Align.INLINE)
 
 
 d.label(0x9D58, "reject_reply")
+d.subroutine(
+    0x9D58,
+    "reject_reply",
+    title="Abandon the reply and return to idle",
+    description="""Jumps to the routine that stores the error result in the TX
+control block and returns to idle listening. A shared target for the
+branches that abort a reply.""",
+)
 
 d.comment(0x9D58, "Store error and return to idle", align=Align.INLINE)
 d.entry(0x9D5B)
@@ -8749,6 +8992,14 @@ d.comment(0x9DED, "BIT SR1: test IRQ (N=bit7) for tight loop", align=Align.INLIN
 d.comment(0x9DF0, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x9DF2, "No IRQ: return, wait for next NMI", align=Align.INLINE)
 d.label(0x9DF5, "data_tx_last")
+d.subroutine(
+    0x9DF5,
+    "data_tx_last",
+    title="Close the transmitted data frame",
+    description="""Writes CR2=&3F (TX_LAST_DATA) to end the frame. If `tx_flags`
+bit 7 is set, installs the reset-and-listen handler as the next NMI
+handler; otherwise reinstalls the saved handler.""",
+)
 
 d.comment(0x9DF5, "CR2=&3F: TX_LAST_DATA (close data frame)", align=Align.INLINE)
 d.comment(0x9DF7, "Write CR2 to close frame", align=Align.INLINE)

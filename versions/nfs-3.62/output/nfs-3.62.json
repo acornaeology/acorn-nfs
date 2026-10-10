@@ -276,7 +276,20 @@
       "binary_addr": 37730,
       "name": "tube_code_page4",
       "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
-      "description": "Copied from ROM at [`reloc_p4_src`](address:9362) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](label:tube_begin) (BEGIN \u2014 startup / CLI entry, break-type check) |\n| `&0403` | `JMP` to [`tube_escape_check`](label:tube_escape_check) |\n| `&0406` | [`tube_addr_claim`](label:tube_addr_claim) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_release_claim`](label:tube_release_claim) \u2014 release address claim via R4 cmd 5 |\n| `&0421` | [`tube_post_init`](label:tube_post_init) \u2014 reset claimed-address state to `&80` |\n| `&0435` | [`tube_transfer_setup`](label:tube_transfer_setup) \u2014 data transfer setup (SENDW), `&0435`\u2013`&0483` |\n| `&0484` | [`tube_begin`](label:tube_begin) \u2014 startup entry, sends ROM contents to Tube |\n| `&04CB` | [`tube_claim_default`](label:tube_claim_default) \u2014 claim default transfer address |\n| `&04D2` | [`tube_init_reloc`](label:tube_init_reloc) \u2014 extract relocation address from ROM |",
+      "description": "Copied from ROM at [`reloc_p4_src`](address:9362) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](label:tube_begin) (BEGIN \u2014 startup / CLI entry, break-type check) |\n| `&0403` | `JMP` to [`tube_escape_check`](label:tube_escape_check) |\n| `&0406` | [`tube_addr_claim`](label:tube_addr_claim) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_release_claim`](label:tube_release_claim) \u2014 release address claim via R4 cmd 5 |\n| `&0421` | [`tube_post_init`](label:tube_post_init) \u2014 reset claimed-address state to `&80` |\n| `&0435` | [`tube_transfer_setup`](label:tube_transfer_setup) \u2014 data transfer setup (SENDW), `&0435`\u2013`&0483` |\n| `&0484` | [`tube_begin`](label:tube_begin) \u2014 startup entry, sends ROM contents to Tube |\n| `&04CB` | [`tube_claim_default`](label:tube_claim_default) \u2014 claim default transfer address |\n| `&04D2` | [`tube_init_reloc`](label:tube_init_reloc) \u2014 extract relocation address from ROM |"
+    },
+    {
+      "addr": 1030,
+      "binary_addr": 37736,
+      "name": "tube_addr_claim",
+      "title": "Tube address claim / data transfer entry",
+      "description": "The Tube host's claim entry point. A below &80 starts a data\ntransfer (falls into the transfer set-up). A in &80-&BF releases\nthe claim with ID A+&40 if it is the one held, sending R4 command 5\nto the co-processor. A in &C0-&FF claims address ID A: the claim is\ngranted if no claim is held or the ID is already ours (C=1), and\nrefused otherwise (C=0).",
+      "on_entry": {
+        "a": "transfer type (&00-&7F), release ID (&80-&BF) or claim ID (&C0-&FF)"
+      },
+      "on_exit": {
+        "c": "claims: 1 = granted, 0 = refused"
+      },
       "fall_through": true
     },
     {
@@ -284,7 +297,15 @@
       "binary_addr": 37750,
       "name": "tube_release_claim",
       "title": "Release Tube address claim via R4 command 5",
-      "description": "Saves interrupt state (`PHP`/`SEI`), sends R4 command 5 (release)\nfollowed by the currently-claimed address, then restores\ninterrupts. Falls through to [`tube_post_init`](label:tube_post_init) to\nreset the claimed-address state to `&80`."
+      "description": "Saves interrupt state (`PHP`/`SEI`), sends R4 command 5 (release)\nfollowed by the currently-claimed address, then restores\ninterrupts. Falls through to [`tube_post_init`](label:tube_post_init) to\nreset the claimed-address state to `&80`.",
+      "fall_through": true
+    },
+    {
+      "addr": 1057,
+      "binary_addr": 37763,
+      "name": "tube_post_init",
+      "title": "Clear the Tube address claim",
+      "description": "Sets `tube_claimed_id` and `tube_claim_flag` to &80, meaning no\naddress is currently claimed. Run once after the Tube host code is\ncopied into place."
     },
     {
       "addr": 1156,
@@ -522,6 +543,16 @@
       "fall_through": true
     },
     {
+      "addr": 33234,
+      "name": "clear_osbyte_ce_cf",
+      "title": "Clear the Econet OS-call intercept flags",
+      "description": "Saves X, then calls OSBYTE &CE and &CF with Y=&7F to clear bit 7\nof each Econet system mask, and clears the remote-operation state.",
+      "on_entry": {
+        "x": "value to preserve (saved in nfs_workspace)"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 33265,
       "name": "svc_13_select_nfs",
       "title": "Select NFS as active filing system (INIT)",
@@ -619,7 +650,21 @@
       "addr": 33573,
       "name": "setup_rom_ptrs_netv",
       "title": "Set up ROM pointer table and NETV",
-      "description": "Reads the ROM pointer table base address via OSBYTE &A8, stores\nit in osrdsc_ptr (&F6). Sets NETV low byte to &36. Then copies\none 3-byte extended vector entry (addr=&9080, rom=current) into\nthe ROM pointer table at offset &36, installing osword_dispatch\nas the NETV handler."
+      "description": "Reads the ROM pointer table base address via OSBYTE &A8, stores\nit in osrdsc_ptr (&F6). Sets NETV low byte to &36. Then copies\none 3-byte extended vector entry (addr=&9080, rom=current) into\nthe ROM pointer table at offset &36, installing osword_dispatch\nas the NETV handler.",
+      "fall_through": true
+    },
+    {
+      "addr": 33593,
+      "name": "store_rom_ptr_pair",
+      "title": "Install extended-vector entries in the ROM pointer table",
+      "description": "For X entries, copies the handler address (low, high) from the\ntable indexed by Y into the MOS ROM pointer table at\n(`osrdsc_ptr`)+Y and appends the current ROM number. Returns with\nY set to the page after the NFS workspace.",
+      "on_entry": {
+        "x": "number of entries",
+        "y": "starting offset"
+      },
+      "on_exit": {
+        "y": "page after the NFS workspace"
+      }
     },
     {
       "addr": 33617,
@@ -652,7 +697,17 @@
       "addr": 33671,
       "name": "init_tx_reply_port",
       "title": "Initialise TX control block for FS reply on port &90",
-      "description": "Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set\nup the TX control block, stores the port and control bytes, then\ndecrements the control flag. Used by send_fs_reply_cmd to prepare\nfor receiving the fileserver's reply."
+      "description": "Loads port &90 (PREPLY) into A, calls init_tx_ctrl_block to set\nup the TX control block, stores the port and control bytes, then\ndecrements the control flag. Used by send_fs_reply_cmd to prepare\nfor receiving the fileserver's reply.",
+      "fall_through": true
+    },
+    {
+      "addr": 33673,
+      "name": "init_tx_ctrl_port",
+      "title": "Initialise the TX control block for a port",
+      "description": "Fills the TX control block at &00C0 from its template, stores A\nas the port, sets the control byte to 3 and decrements the flag\nbyte to arm the block.",
+      "on_entry": {
+        "a": "port number"
+      }
     },
     {
       "addr": 33685,
@@ -682,6 +737,16 @@
       "fall_through": true
     },
     {
+      "addr": 33725,
+      "name": "prepare_cmd_clv",
+      "title": "Prepare an FS command with no flag byte",
+      "description": "Clears V and builds the FS command header via the shared\n`prepare_fs_cmd` path.",
+      "on_entry": {
+        "y": "FS function code"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 33728,
       "name": "bye_handler",
       "title": "*BYE handler (logoff)",
@@ -705,6 +770,16 @@
       "fall_through": true
     },
     {
+      "addr": 33736,
+      "name": "init_tx_ctrl_data",
+      "title": "Prepare the FS command header (V preserved)",
+      "description": "Copies the URD handle into the command header, then stores the\nfunction code from Y and the CSD and LIB handles at &0F01-&0F04,\nleaving V as the caller set it.",
+      "on_entry": {
+        "y": "FS function code"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 33757,
       "name": "build_send_fs_cmd",
       "title": "Build and send FS command (DOFSOP)",
@@ -718,6 +793,19 @@
         "a": "0 on success",
         "x": "0 on success, &D6 on not-found",
         "y": "1 (offset past command code in reply)"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 33779,
+      "name": "send_fs_reply_cmd",
+      "title": "Send an FS command and check the reply",
+      "description": "Sets up the reply port, transmits the command and waits for the\nreply, then reads the return code. Zero is success. With V set on\nentry, return code &D6 (not found) is accepted as a soft error;\nany other non-zero code is raised through `store_fs_error`.",
+      "on_entry": {
+        "v": "1 to treat &D6 (not found) as a soft error"
+      },
+      "on_exit": {
+        "x": "FS return code"
       },
       "fall_through": true
     },
@@ -1117,7 +1205,21 @@
       "on_exit": {
         "y": "8 (final offset)",
         "a": "last byte copied"
-      }
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 34875,
+      "name": "add_5_to_y",
+      "title": "Add 5 to Y",
+      "description": "Five INYs; the `add_4_to_y` entry skips the first.",
+      "fall_through": true
+    },
+    {
+      "addr": 34876,
+      "name": "add_4_to_y",
+      "title": "Add 4 to Y",
+      "description": "Four INYs."
     },
     {
       "addr": 34881,
@@ -1126,7 +1228,21 @@
       "description": "Copies bytes from the FS command reply buffer (&0F02+) into the\nparameter block at (fs_options)+2..13. Used to fill in the OSFILE\nparameter block with information returned by the fileserver.",
       "on_entry": {
         "x": "attribute byte (stored first at offset &0D)"
-      }
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 34894,
+      "name": "sub_4_from_y",
+      "title": "Subtract 4 from Y",
+      "description": "Four DEYs; the `sub_3_from_y` entry skips the first.",
+      "fall_through": true
+    },
+    {
+      "addr": 34895,
+      "name": "sub_3_from_y",
+      "title": "Subtract 3 from Y",
+      "description": "Three DEYs."
     },
     {
       "addr": 34899,
@@ -1239,6 +1355,30 @@
       "fall_through": true
     },
     {
+      "addr": 35410,
+      "name": "adjust_addrs_9",
+      "title": "Adjust the transfer addresses (9 bytes)",
+      "description": "Sets Y=9 and adjusts the parameter-block address bytes through\n`adjust_addrs_clc`, then falls into `adjust_addrs_1`.",
+      "fall_through": true
+    },
+    {
+      "addr": 35415,
+      "name": "adjust_addrs_1",
+      "title": "Adjust the transfer addresses (1 byte)",
+      "description": "Sets Y=1 and falls into `adjust_addrs_clc`.",
+      "fall_through": true
+    },
+    {
+      "addr": 35417,
+      "name": "adjust_addrs_clc",
+      "title": "Adjust parameter-block address bytes",
+      "description": "Clears carry and adds (or, when `fs_load_addr_2` is negative,\nsubtracts) the adjustment bytes at &0E06 onwards to the\nparameter-block bytes starting at offset Y.",
+      "on_entry": {
+        "y": "parameter block offset"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 35418,
       "name": "adjust_addrs",
       "title": "Bidirectional 4-byte address adjustment",
@@ -1273,7 +1413,24 @@
       "addr": 35633,
       "name": "osgbpb_info",
       "title": "OSGBPB 5-8 info handler (OSINFO)",
-      "description": "Handles the \"messy interface tacked onto OSGBPB\" (original source).\nChecks whether the destination address is in Tube space by comparing\nthe high bytes against TBFLAG. If in Tube space, data must be\ncopied via the Tube FIFO registers (with delays to accommodate the\nslow 16032 co-processor) instead of direct memory access."
+      "description": "Handles the \"messy interface tacked onto OSGBPB\" (original source).\nChecks whether the destination address is in Tube space by comparing\nthe high bytes against TBFLAG. If in Tube space, data must be\ncopied via the Tube FIFO registers (with delays to accommodate the\nslow 16032 co-processor) instead of direct memory access.",
+      "fall_through": true
+    },
+    {
+      "addr": 35711,
+      "name": "copy_reply_to_caller",
+      "title": "Copy FS reply data to the caller's buffer",
+      "description": "If no Tube transfer is pending, copies the reply bytes from the\nFS command buffer into the caller's buffer directly; otherwise\nclaims the Tube and transfers them to the co-processor.",
+      "fall_through": true
+    },
+    {
+      "addr": 35859,
+      "name": "tube_claim_loop",
+      "title": "Claim the Tube, retrying until granted",
+      "description": "Calls `tube_addr_claim` with claim ID &C3 until it succeeds.",
+      "on_exit": {
+        "c": "1 (claim granted)"
+      }
     },
     {
       "addr": 35867,
@@ -1306,7 +1463,18 @@
       "addr": 36167,
       "name": "print_reply_bytes",
       "title": "Print reply buffer bytes",
-      "description": "Prints Y characters from the FS reply buffer (&0F05+X) to\nthe screen via OSASCI. X = starting offset, Y = count.\nUsed by fscv_5_cat to display directory and library names."
+      "description": "Prints Y characters from the FS reply buffer (&0F05+X) to\nthe screen via OSASCI. X = starting offset, Y = count.\nUsed by fscv_5_cat to display directory and library names.",
+      "fall_through": true
+    },
+    {
+      "addr": 36169,
+      "name": "print_reply_counted",
+      "title": "Print Y characters from the FS reply",
+      "description": "Prints Y bytes from the FS reply buffer starting at offset X,\nthrough OSASCI.",
+      "on_entry": {
+        "x": "reply buffer offset",
+        "y": "character count"
+      }
     },
     {
       "addr": 36187,
@@ -1318,7 +1486,34 @@
       "addr": 36199,
       "name": "boot_option_offsets",
       "title": "Boot option \u2192 OSCLI string offset table",
-      "description": "Five bytes: the first byte (&0D) is the bare-CR target for boot\noption 0; bytes 1-4 are the offset table indexed by boot option\n(0-3). Each offset is the low byte of a pointer into page &8D.\nThe code reads from boot_option_offsets+1 (&8D68) via\nLDX l8d68,Y with Y=boot_option, then LDY #&8D, JMP oscli.\nSee boot_cmd_strings for the target strings.",
+      "description": "Five bytes: the first byte (&0D) is the bare-CR target for boot\noption 0; bytes 1-4 are the offset table indexed by boot option\n(0-3). Each offset is the low byte of a pointer into page &8D.\nThe code reads from boot_option_offsets+1 (&8D68) via\nLDX l8d68,Y with Y=boot_option, then LDY #&8D, JMP oscli.\nSee boot_cmd_strings for the target strings."
+    },
+    {
+      "addr": 36208,
+      "name": "print_hex_bytes",
+      "title": "Print four address bytes in hex",
+      "description": "Sets X=4 and prints four parameter-block bytes, descending from\noffset Y, as hex, then a space.",
+      "on_entry": {
+        "y": "offset of the most significant byte"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36210,
+      "name": "num01",
+      "title": "Print X address bytes in hex",
+      "description": "Prints X parameter-block bytes, descending from offset Y, as\ntwo hex digits each, then a space.",
+      "on_entry": {
+        "x": "byte count",
+        "y": "offset of the most significant byte"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36219,
+      "name": "print_space",
+      "title": "Print a space",
+      "description": "Prints a single space character.",
       "fall_through": true
     },
     {
@@ -1352,6 +1547,16 @@
       "name": "fsreply_0_print_dir",
       "title": "Print directory name from reply buffer",
       "description": "Prints characters from the FS reply buffer (&0F05+X onwards).\nNull bytes (&00) are replaced with CR (&0D) for display.\nStops when a byte with bit 7 set is encountered (high-bit\nterminator). Used by fscv_5_cat to display Dir. and Lib. paths.",
+      "fall_through": true
+    },
+    {
+      "addr": 36248,
+      "name": "print_dir_from_offset",
+      "title": "Print a directory string from the FS reply",
+      "description": "Prints characters from the FS reply buffer starting at offset X\nuntil a byte with bit 7 set; a zero byte acts as a column separator\nfor multi-column listings.",
+      "on_entry": {
+        "x": "reply buffer offset"
+      },
       "fall_through": true
     },
     {
@@ -1594,6 +1799,18 @@
       "description": "Calculates the start address of the RX data area (&F0+1) and stores\nit at workspace offset &1C. Also reads the data length from (&F0)+1\nand adds it to &F0 to compute the end address at offset &20.",
       "on_entry": {
         "c": "clear for ADC"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 36838,
+      "name": "store_16bit_at_y",
+      "title": "Store a 16-bit address in the NFS workspace",
+      "description": "Stores A as the low byte at (`nfs_workspace`)+Y and the high byte\nof the OSWORD parameter block address, plus carry, at the next\noffset.",
+      "on_entry": {
+        "a": "low byte",
+        "y": "workspace offset",
+        "c": "carry into the high byte"
       }
     },
     {
@@ -1631,6 +1848,15 @@
         "a": "preserved",
         "x": "preserved",
         "y": "preserved"
+      }
+    },
+    {
+      "addr": 37017,
+      "name": "osword_trampoline",
+      "title": "Dispatch a NETV reason code",
+      "description": "Pushes the handler address for reason X from the OSWORD/NETV\ndispatch tables, loads A from &EF and returns into the handler.",
+      "on_entry": {
+        "x": "reason code"
       }
     },
     {
@@ -1689,7 +1915,14 @@
       "addr": 37256,
       "name": "ctrl_block_setup",
       "title": "Control block setup \u2014 main entry",
-      "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &91B4 indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer"
+      "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &91B4 indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer",
+      "fall_through": true
+    },
+    {
+      "addr": 37260,
+      "name": "ctrl_block_setup_clv",
+      "title": "Build a control block in the NFS workspace",
+      "description": "Clears V so the template is stored into (`nfs_workspace`), then\nruns the control-block template loop."
     },
     {
       "addr": 37339,
@@ -1758,7 +1991,33 @@
       "addr": 37623,
       "name": "save_vdu_state",
       "title": "Save VDU workspace state",
-      "description": "Stores the cursor position value from &0355 into NFS workspace,\nthen reads cursor position (OSBYTE &85), shadow RAM (OSBYTE &C2),\nand screen start (OSBYTE &C3) via read_vdu_osbyte, storing\neach result into consecutive workspace bytes. The JSR to\nread_vdu_osbyte_x0 is a self-calling trick: it executes\nread_vdu_osbyte twice (once for &C2, once for &C3) because the\nRTS returns to the instruction at read_vdu_osbyte_x0 itself."
+      "description": "Stores the cursor position value from &0355 into NFS workspace,\nthen reads cursor position (OSBYTE &85), shadow RAM (OSBYTE &C2),\nand screen start (OSBYTE &C3) via read_vdu_osbyte, storing\neach result into consecutive workspace bytes. The JSR to\nread_vdu_osbyte_x0 is a self-calling trick: it executes\nread_vdu_osbyte twice (once for &C2, once for &C3) because the\nRTS returns to the instruction at read_vdu_osbyte_x0 itself.",
+      "fall_through": true
+    },
+    {
+      "addr": 37640,
+      "name": "read_vdu_osbyte_x0",
+      "title": "Save one VDU setting to the workspace (X=0)",
+      "description": "Sets X=0 and falls into `read_vdu_osbyte`.",
+      "fall_through": true
+    },
+    {
+      "addr": 37642,
+      "name": "read_vdu_osbyte",
+      "title": "Save one VDU setting to the workspace",
+      "description": "Reads the next OSBYTE number from the VDU-state table, calls it to\nread the current value, and stores the result at the next\nworkspace byte."
+    },
+    {
+      "addr": 38448,
+      "name": "start_adlc_tx",
+      "title": "Trampoline: begin a transmission",
+      "description": "JMP to `tx_begin`."
+    },
+    {
+      "addr": 38451,
+      "name": "init_adlc_hw",
+      "title": "Trampoline: full ADLC initialisation",
+      "description": "JMP to `adlc_init`."
     },
     {
       "addr": 38460,
@@ -1820,6 +2079,12 @@
       "name": "scout_complete",
       "title": "Scout completion handler",
       "description": "Reached from the scout data loop when SR2 is non-zero (FV detected).\nDisables PSE to allow individual SR2 bit testing:\n  CR1=&00 (clear all enables)\n  CR2=&84 (RDA_SUPPRESS_FV | FC_TDRA) -- no PSE, no CLR bits\nThen checks FV (bit1) and RDA (bit7):\n  - No FV (BEQ) -> error &96FE (not a valid frame end)\n  - FV set, no RDA (BPL) -> error &96FE (missing last byte)\n  - FV set, RDA set -> read last byte, process scout\nAfter reading the last byte, the complete 12-byte scout buffer at rx_src_stn\ncontains: src_stn, src_net, ctrl, port [, extra_data...].\nThe port byte at &0D40 determines further processing:\n  - Port = 0 -> immediate operation (&9A46)\n  - Port non-zero -> check if it matches an open receive block"
+    },
+    {
+      "addr": 38859,
+      "name": "send_data_rx_ack",
+      "title": "Send the scout ACK and arm data reception",
+      "description": "Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the\nACK frame for the received scout, with the data-frame receive\nhandler set as the next NMI handler."
     },
     {
       "addr": 38886,
@@ -2083,6 +2348,12 @@
       "description": "Reads the second byte of the reply scout (destination network) and\nvalidates it is zero (local network). Installs nmi_reply_validate\n(&9D5B) for the remaining two bytes (source station and network).\nOptimisation: checks SR1 bit7 (IRQ still asserted) via BMI at &9D53.\nIf IRQ is still set, falls through directly to &9D5B without an RTI,\navoiding NMI re-entry overhead for short frames where all bytes arrive\nin quick succession."
     },
     {
+      "addr": 40280,
+      "name": "reject_reply",
+      "title": "Abandon the reply and return to idle",
+      "description": "Jumps to the routine that stores the error result in the TX\ncontrol block and returns to idle listening. A shared target for the\nbranches that abort a reply."
+    },
+    {
       "addr": 40283,
       "name": "nmi_reply_validate",
       "title": "RX reply validation (Path 2 for FV/PSE interaction)",
@@ -2099,6 +2370,12 @@
       "name": "nmi_data_tx",
       "title": "TX data phase: send payload",
       "description": "Sends the data frame payload from (open_port_buf),Y in pairs per NMI.\nSame pattern as the NMI TX handler at &9CCC but reads from the port\nbuffer instead of the TX workspace. Writes two bytes per iteration,\nchecking SR1 IRQ between pairs for tight looping."
+    },
+    {
+      "addr": 40437,
+      "name": "data_tx_last",
+      "title": "Close the transmitted data frame",
+      "description": "Writes CR2=&3F (TX_LAST_DATA) to end the frame. If `tx_flags`\nbit 7 is set, installs the reset-and-listen handler as the next NMI\nhandler; otherwise reinstalls the saved handler."
     },
     {
       "addr": 40528,

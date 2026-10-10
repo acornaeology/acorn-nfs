@@ -7080,6 +7080,14 @@ hex parsers when a digit is out of range. Never returns.""",
 d.comment(0x9355, "Error code &F1", align=Align.INLINE)
 d.comment(0x9357, "Raise 'Bad hex' error", align=Align.INLINE)
 d.label(0x935E, "error_overflow")
+d.subroutine(
+    0x935E,
+    "error_overflow",
+    title="Raise a number-out-of-range error",
+    description="""If `fs_work_4` bit 7 is set (decimal parsing) raises 'Bad
+parameter'; otherwise falls into the 'Bad station number' error.
+Never returns.""",
+)
 
 d.comment(0x935E, "Test fs_work_4 bit 7", align=Align.INLINE)
 d.comment(0x9360, "Bit 7 set: redirect to error_bad_param", align=Align.INLINE)
@@ -18580,6 +18588,13 @@ d.comment(0xBECB, "Discard saved X", align=Align.INLINE)
 d.comment(0xBECC, "Set C: signal overflow to caller", align=Align.INLINE)
 d.comment(0xBECD, "Return with C=1", align=Align.INLINE)
 d.label(0xBECE, "error_bad_hex_value")
+d.subroutine(
+    0xBECE,
+    "error_bad_hex_value",
+    title="Close the file and raise 'Bad hex'",
+    description="""Closes the open dump file, then jumps to `err_bad_hex`. Never
+returns.""",
+)
 
 d.comment(0xBECE, "Close the dump file before raising the error", align=Align.INLINE)
 d.comment(0xBED1, "Raise 'Bad hex' error; never returns", align=Align.INLINE)
@@ -18710,6 +18725,13 @@ d.comment(0xBF75, "Parse error: close file then raise 'Bad address'", align=Alig
 d.comment(0xBF78, "A=&FC: 'Bad address' error code", align=Align.INLINE)
 d.comment(0xBF7A, "Raise; never returns", align=Align.INLINE)
 d.label(0xBF85, "done_add_disp_base")
+d.subroutine(
+    0xBF85,
+    "done_add_disp_base",
+    title="Add the 4-byte address at (work_ae) to the workspace value",
+    description="""Adds the four bytes at (`work_ae`) into the 4-byte value at
+`osword_flag`, low byte first, with carry propagation.""",
+)
 
 d.comment(0xBF85, "Y=0: start of work_ae", align=Align.INLINE)
 d.comment(0xBF87, "X=4: 4-byte add", align=Align.INLINE)

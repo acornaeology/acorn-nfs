@@ -1794,6 +1794,11 @@ service_handler_lo = service_entry+1
     bit net_frame_flags                                               ; 81b9: 2c 3e 0d    ,>.      ; Check broadcast flag for ACK path
     bvc send_data_rx_ack                                              ; 81bc: 50 03       P.       ; Not broadcast -- normal ACK path
     jmp copy_scout_to_buffer                                          ; 81be: 4c 06 84    L..      ; Broadcast: different completion path
+; ***************************************************************************************
+; Send the scout ACK and arm data reception
+;
+; Switches the ADLC to transmit (CR1=&44, CR2=&A7) and sends the ACK frame for the
+; received scout, with the data-frame receive handler set as the next NMI handler.
 ; &81c1 referenced 2 times by &81bc, &84a1
 .send_data_rx_ack
     lda #&44                                                          ; 81c1: a9 44       .D       ; CR1=&44: RX_RESET | TIE
@@ -2220,6 +2225,12 @@ service_handler_lo = service_entry+1
     jsr discard_reset_listen                                          ; 83e4: 20 f8 83     ..      ; Discard scout and reset listen state
     tya                                                               ; 83e7: 98          .        ; Pass slot index as callback parameter
     jmp setup_sr_tx                                                   ; 83e8: 4c 05 85    L..      ; Jump to TX completion with slot index
+; ***************************************************************************************
+; Discard the frame, reset the ADLC and listen for scouts
+;
+; Abandons any frame in progress (discard_reset_listen), resets the ADLC for receive
+; (adlc_rx_listen), and installs nmi_rx_scout as the NMI handler. The standard way back
+; to idle listening after an error.
 ; &83eb referenced 6 times by &8236, &83b4, &83d5, &83e2, &886b, &88d5
 .discard_reset_rx
     jsr discard_reset_listen                                          ; 83eb: 20 f8 83     ..      ; Discard scout and reset RX listen
@@ -3096,6 +3107,11 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     bit econet_control1_or_status1                                    ; 8764: 2c a0 fe    ,..      ; BIT SR1: test IRQ (N=bit7) -- more data ready?
     bmi nmi_reply_validate                                            ; 8767: 30 06       0.       ; IRQ set -- fall through to &876F without RTI
     jmp install_nmi_handler                                           ; 8769: 4c 11 0d    L..      ; IRQ not set -- install handler and RTI
+; ***************************************************************************************
+; Abandon the reply and return to idle
+;
+; Jumps to the routine that stores the error result in the TX control block and returns
+; to idle listening. A shared target for the branches that abort a reply.
 ; &876c referenced 7 times by &8751, &875b, &8760, &8772, &877a, &8782, &8789
 .reject_reply
     jmp tx_result_fail                                                ; 876c: 4c ca 88    L..      ; Store error and return to idle
@@ -3230,6 +3246,12 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     bit econet_control1_or_status1                                    ; 880b: 2c a0 fe    ,..      ; BIT SR1: test IRQ (N=bit7) for tight loop
     bmi data_tx_check_fifo                                            ; 880e: 30 db       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 8810: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
+; ***************************************************************************************
+; Close the transmitted data frame
+;
+; Writes CR2=&3F (TX_LAST_DATA) to end the frame. If tx_flags bit 7 is set, installs the
+; reset-and-listen handler as the next NMI handler; otherwise reinstalls the saved
+; handler.
 ; &8813 referenced 5 times by &87de, &87f7, &8807, &8846, &885c
 .data_tx_last
     lda #&3f                                                          ; 8813: a9 3f       .?       ; CR2=&3F: TX_LAST_DATA (close data frame)
@@ -4591,6 +4613,15 @@ version_string = version_string_cr+1
     tya                                                               ; 8e28: 98          .        ; Transfer result to A
     ldy #&13                                                          ; 8e29: a0 13       ..       ; Y=&13: handle dispatch offset
     bne svc_dispatch                                                  ; 8e2b: d0 06       ..       ; Always taken (Y=&13)
+; ***************************************************************************************
+; Dispatch directory operation via PHA/PHA/RTS
+;
+; Validates X < 5 and sets Y=&0E as the directory dispatch offset, then falls through to
+; svc_dispatch for PHA/PHA/RTS table dispatch. Called by tx_done_os_proc to handle
+; directory operations (e.g. FILEV, ARGSV) from the remote JSR service.
+;
+; On Entry:
+;     X: directory operation code (0-4)
 ; &8e2d referenced 1 time by &8556
 .dir_op_dispatch
     cpx #5                                                            ; 8e2d: e0 05       ..       ; Handle >= 5?
@@ -5034,6 +5065,11 @@ ws_init_data = error_bad_station+2
     pla                                                               ; 8fc8: 68          h        ; Restore A
     plp                                                               ; 8fc9: 28          (        ; Restore processor status
     rts                                                               ; 8fca: 60          `        ; Return (checksum valid)
+; ***************************************************************************************
+; Raise the workspace checksum error
+;
+; Raises error &AA through error_bad_inline with an inline string naming the failed
+; workspace checksum. Never returns.
 ; &8fcb referenced 2 times by &8b25, &8fc4
 .error_net_checksum
     lda #&aa                                                          ; 8fcb: a9 aa       ..       ; Error number &AA
@@ -5324,11 +5360,21 @@ ws_init_data = error_bad_station+2
     cmp #&ff                                                          ; 91ef: c9 ff       ..       ; Network 255 is reserved
     beq error_bad_net_num                                             ; 91f1: f0 3d       .=       ; 255: 'Bad network number'
     rts                                                               ; 91f3: 60          `        ; Return to caller with network part
+; ***************************************************************************************
+; Raise the 'Bad hex' error
+;
+; Raises error &F1 through error_bad_inline, which prefixes the inline string with 'Bad
+; '. Never returns.
 ; &91f4 referenced 3 times by &9180, &9184, &bbb2
 .err_bad_hex
     lda #&f1                                                          ; 91f4: a9 f1       ..       ; Error code &F1
     jsr error_bad_inline                                              ; 91f6: 20 a2 96     ..      ; Generate 'Bad hex' error
     equs "hex", &00                                                   ; 91f9: 68 65 78... hex...
+; ***************************************************************************************
+; Raise a number-out-of-range error
+;
+; If fs_work_4 bit 7 is set (decimal parsing) raises 'Bad parameter'; otherwise falls
+; into the 'Bad station number' error. Never returns.
 ; &91fd referenced 6 times by &918e, &91af, &91b4, &91b7, &91bb, &91bf
 .error_overflow
     bit fs_work_4                                                     ; 91fd: 24 b4       $.       ; Test parsing mode
@@ -5633,6 +5679,14 @@ ws_init_data = error_bad_station+2
     cmp #'&'                                                          ; 92f8: c9 26       .&       ; Is it '&'?
     beq error_bad_filename                                            ; 92fa: f0 ea       ..       ; Yes: invalid filename
     rts                                                               ; 92fc: 60          `        ; Return
+; ***************************************************************************************
+; Copy a filename into the FS command buffer
+;
+; Copies characters into the command buffer, rejecting '&' and stripping BASIC token
+; prefixes, until a CR; then sends the request through send_fs_request.
+;
+; On Entry:
+;     X: buffer offset
 ; &92fd referenced 3 times by &92e4, &930b, &93c6
 .read_filename_char
     jsr check_not_ampersand                                           ; 92fd: 20 f5 92     ..      ; Reject '&' in current char
@@ -5642,6 +5696,10 @@ ws_init_data = error_bad_station+2
     beq send_fs_request                                               ; 9306: f0 06       ..       ; Yes: send request to file server
     jsr strip_token_prefix                                            ; 9308: 20 a5 ae     ..      ; Strip BASIC token prefix byte
     jmp read_filename_char                                            ; 930b: 4c fd 92    L..      ; Continue reading filename chars
+; ***************************************************************************************
+; Send an FS command with no extra dispatch offset
+;
+; Sets Y=0 and jumps to send_cmd_and_dispatch.
 ; &930e referenced 2 times by &9306, &93ee
 .send_fs_request
     ldy #0                                                            ; 930e: a0 00       ..       ; Y=0: no extra dispatch offset
@@ -7069,6 +7127,12 @@ bad_prefix = bad_str_anchor+1
 .check_display_type
     beq setup_dir_display                                             ; 99af: f0 03       ..       ; Z set: directory entry display
     jmp dispatch_osword_op                                            ; 99b1: 4c dd 9a    L..      ; Non-zero: jump to OSWORD dispatch
+; ***************************************************************************************
+; Compute the address differences for an info display
+;
+; For four address pairs in the FS options block, saves the originals and replaces each
+; with the difference between the pair, so the caller can show lengths without repeating
+; the subtraction; then builds and sends the FS information request.
 ; &99b4 referenced 2 times by &99af, &9ae6
 .setup_dir_display
     ldx #4                                                            ; 99b4: a2 04       ..       ; X=4: loop counter for 4 iterations
@@ -8455,6 +8519,12 @@ bad_prefix = bad_str_anchor+1
     sta (nfs_workspace),y                                             ; a0f6: 91 9e       ..       ; Store '?' to workspace
     rol econet_flags                                                  ; a0f8: 2e 61 0d    .a.      ; Restore l0d61 bit 7
     rts                                                               ; a0fb: 60          `        ; Return
+; ***************************************************************************************
+; FSCV 3: unrecognised * command
+;
+; Sets the text and transfer pointers, clears the spool handle, then matches the command
+; against the FS command table and dispatches it; unmatched commands are passed on to the
+; file server.
 ; &a0fc referenced 1 time by &8cee
 .fscv_3_star_cmd
     jsr set_text_and_xfer_ptr                                         ; a0fc: 20 7d 92     }.      ; Set text and transfer pointers
@@ -13827,6 +13897,10 @@ net_channel_err_string = err_net_chan_not_found+2
     pla                                                               ; bbac: 68          h        ; Discard saved digit
     sec                                                               ; bbad: 38          8        ; C=1: overflow
     rts                                                               ; bbae: 60          `        ; Return with C=1
+; ***************************************************************************************
+; Close the file and raise 'Bad hex'
+;
+; Closes the open dump file, then jumps to err_bad_hex. Never returns.
 ; &bbaf referenced 3 times by &bb70, &bb7a, &bb7e
 .error_bad_hex_value
     jsr close_ws_file                                                 ; bbaf: 20 0c bb     ..      ; Close open file before error
@@ -13947,6 +14021,11 @@ net_channel_err_string = err_net_chan_not_found+2
     lda #&fc                                                          ; bc59: a9 fc       ..       ; Error number &FC
     jsr error_bad_inline                                              ; bc5b: 20 a2 96     ..      ; Generate 'Bad address' error
     equs "address", &00                                               ; bc5e: 61 64 64... add...
+; ***************************************************************************************
+; Add the 4-byte address at (work_ae) to the workspace value
+;
+; Adds the four bytes at (work_ae) into the 4-byte value at osword_flag, low byte first,
+; with carry propagation.
 ; &bc66 referenced 3 times by &bc41, &bc4f, &bc54
 .done_add_disp_base
     ldy #0                                                            ; bc66: a0 00       ..       ; Start from LSB
