@@ -211,7 +211,6 @@ vdu_cursor_edit                        = &0355
 string_buf                             = &0700
 ; &0700 used as index base 2 times by &94ee, &95ec
 sr_int_handler                         = &0701
-; &0701 referenced 1 time by &9661
 nmi_code_base                          = &0cff
 ; &0cff used as index base 1 time by &96bd
 nmi_shim_07                            = &0d07
@@ -392,13 +391,6 @@ tx_ptr_sub_base                        = &7dfd
 ; &7dfd used as index base 1 time by &91b9
 reloc_p6_src                           = &9565
 ; &9565 used as index base 1 time by &815e
-start_adlc_tx                          = &9650
-; &9650 referenced 2 times by &8608, &8edc
-init_adlc_hw                           = &9653
-; &9653 referenced 1 time by &830b
-econet_save                            = &9656
-econet_restore                         = &9659
-svc5_irq_check                         = &965c
 station_id_disable_net_nmis            = &fe18
 ; &fe18 referenced 13 times by &8304, &969a, &96d0, &96e9, &9812, &9947, &9c06, &9d30, &9d6d, &9dd6, &9e99, &9fa2, &9fb2
 video_ula_control                      = &fe20
@@ -850,7 +842,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &9465
 .reloc_p5_src
 
-; Move 3: &9465 to &0500 for length 512
+; Move 3: &9465 to &0500 for length 491
     org &0500
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
@@ -1134,7 +1126,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
 .tube_poll_r2_result_branch
 ; &9565 used as index base 1 time by &8161
 tube_page6_start = tube_poll_r2_result_branch+1
-    bvc tube_poll_r2_result                                           ; 9564: 50 fb       P. :05ff[3]         ; Loop while R2 status bit 6 (V) clear — wait for result-send ready  Send carry+status to co-processor via R2
+    bvc tube_poll_r2_result                                           ; 9564: 50 fb       P. :05ff[3]         ; Loop while R2 status bit 6 (V) clear — wait for result-send ready
     stx tube_data_register_2                                          ; 9566: 8e e3 fe    ... :0601[3]        ; Send X result for 2-param OSBYTE
 ; &0604 referenced 1 time by &957c
 .bytex
@@ -1322,45 +1314,6 @@ tube_page6_start = tube_poll_r2_result_branch+1
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9633: ff ff ff... ...... :06ce[3]   
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 963f: ff ff ff... ...... :06da[3]   
     equb &ff, &ff, &ff, &ff, &ff                                      ; 964b: ff ff ff... ...... :06e6[3]     ; &FF padding (29 bytes before trampolines)
-.trampoline_tx_setup
-    jmp tx_begin                                                      ; 9650: 4c 90 9b    L.. :06eb[3]        ; Trampoline: begin TX operation
-.trampoline_adlc_init
-    jmp adlc_init                                                     ; 9653: 4c 9a 96    L.. :06ee[3]        ; Trampoline: full ADLC init
-.svc_12_nmi_release
-    jmp wait_idle_and_reset                                           ; 9656: 4c 8a 9f    L.. :06f1[3]        ; Trampoline: wait idle and reset
-.svc_11_nmi_claim
-    jmp init_nmi_workspace                                            ; 9659: 4c b8 96    L.. :06f4[3]        ; Trampoline: init NMI workspace
-; ***************************************************************************************
-; Service 5: unrecognised interrupt (SR dispatch)
-;
-; Delivers work deferred out of the Econet NMI handler. imm_op_build_reply arms the
-; system VIA shift register as a one-shot delayed interrupt source: free-running in φ2
-; shift-in mode it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles
-; after arming — by which time the NMI receive handler has already returned — and that
-; raises an ordinary IRQ which reaches the ROM here as service call &05 (unrecognised
-; interrupt). This is how a remote operation is bounced out of NMI context into the
-; normal IRQ path, where it is safe to JSR into user code or call OS routines.
-;
-; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
-; is not set, returns A=5 to pass the service call on. If SR is set, it dispatches via
-; svc5_dispatch_lo to the deferred handler — a remote JSR, user/OS procedure call, halt
-; or continue.
-;
-; For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the current LSTAT
-; protection mask (prot_status at &0D63) to saved_jsr_mask (the OLDJSR copy) and ORs in
-; bits 2-4 (ORA #&1C). Raising these bits means that while the deferred remote routine
-; runs it cannot itself trigger another remote execute operation — re-entrancy
-; protection. clear_jsr_protection restores the saved OLDJSR mask once the call returns.
-; HALT/CONTINUE (&86/&87) run no caller code, so they skip the save/raise.
-;
-; On Entry:
-;     A: 5 (service call number)
-;     X: ROM slot
-;     Y: parameter
-    lda #4                                                            ; 965c: a9 04       .. :06f7[3]         ; A=4: SR interrupt bit mask
-    bit system_via_ifr                                                ; 965e: 2c 4d fe    ,M. :06f9[3]        ; Test SR flag in VIA IFR
-    bne sr_int_handler                                                ; 9661: d0 03       .. :06fc[3]         ; SR active: handle interrupt
-    lda #5                                                            ; 9663: a9 05       .. :06fe[3]         ; A=5: NMI not for us
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -1370,7 +1323,7 @@ tube_page6_start = tube_poll_r2_result_branch+1
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear tube_dispatch_table, &0700
+    clear tube_dispatch_table, &06eb
 
     ; Set the program counter to the next position in the binary file.
     org reloc_p5_src + (* - tube_dispatch_table)
@@ -6439,8 +6392,51 @@ cmd_match_data = fs_cmd_match_table+1
     equb &85, &c2                                                     ; 9321: 85 c2       ..       ; OSBYTE &85: read cursor position
     equb &c3                                                          ; 9323: c3          .        ; OSBYTE &C3: read screen start address
 
-    org &9665
-    rts                                                               ; 9665: 60          `        ; RTS (end of save_vdu_state data)
+    org &9650
+; &9650 referenced 2 times by &8608, &8edc
+.start_adlc_tx
+    jmp tx_begin                                                      ; 9650: 4c 90 9b    L..      ; Trampoline: begin TX operation
+; &9653 referenced 1 time by &830b
+.init_adlc_hw
+    jmp adlc_init                                                     ; 9653: 4c 9a 96    L..      ; Trampoline: full ADLC init
+.econet_save
+    jmp wait_idle_and_reset                                           ; 9656: 4c 8a 9f    L..      ; Trampoline: wait idle and reset
+.econet_restore
+    jmp init_nmi_workspace                                            ; 9659: 4c b8 96    L..      ; Trampoline: init NMI workspace
+; ***************************************************************************************
+; Service 5: unrecognised interrupt (SR dispatch)
+;
+; Delivers work deferred out of the Econet NMI handler. imm_op_build_reply arms the
+; system VIA shift register as a one-shot delayed interrupt source: free-running in φ2
+; shift-in mode it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles
+; after arming — by which time the NMI receive handler has already returned — and that
+; raises an ordinary IRQ which reaches the ROM here as service call &05 (unrecognised
+; interrupt). This is how a remote operation is bounced out of NMI context into the
+; normal IRQ path, where it is safe to JSR into user code or call OS routines.
+;
+; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
+; is not set, returns A=5 to pass the service call on. If SR is set, it dispatches via
+; svc5_dispatch_lo to the deferred handler — a remote JSR, user/OS procedure call, halt
+; or continue.
+;
+; For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the current LSTAT
+; protection mask (prot_status at &0D63) to saved_jsr_mask (the OLDJSR copy) and ORs in
+; bits 2-4 (ORA #&1C). Raising these bits means that while the deferred remote routine
+; runs it cannot itself trigger another remote execute operation — re-entrancy
+; protection. clear_jsr_protection restores the saved OLDJSR mask once the call returns.
+; HALT/CONTINUE (&86/&87) run no caller code, so they skip the save/raise.
+;
+; On Entry:
+;     A: 5 (service call number)
+;     X: ROM slot
+;     Y: parameter
+.svc5_irq_check
+    lda #4                                                            ; 965c: a9 04       ..       ; A=4: SR interrupt bit mask
+    bit system_via_ifr                                                ; 965e: 2c 4d fe    ,M.      ; Test SR flag in VIA IFR
+    bne svc5_save_registers                                           ; 9661: d0 03       ..       ; SR active: handle interrupt
+    lda #5                                                            ; 9663: a9 05       ..       ; A=5: NMI not for us
+    rts                                                               ; 9665: 60          `        ; Return (NMI not claimed)
+; &9666 referenced 1 time by &9661
 .svc5_save_registers
     txa                                                               ; 9666: 8a          .        ; Save X on stack
     pha                                                               ; 9667: 48          H        ; Push saved X
@@ -9153,7 +9149,6 @@ save pydis_start, pydis_end
 ;     skip_rx_flag_set:                         1
 ;     skip_set_attrib_bit:                      1
 ;     skip_tube_update:                         1
-;     sr_int_handler:                           1
 ;     start_data_tx:                            1
 ;     stk_timeout_hi:                           1
 ;     store_16bit_at_y:                         1
@@ -9172,6 +9167,7 @@ save pydis_start, pydis_end
 ;     sub_4_from_y:                             1
 ;     subtract_adjust:                          1
 ;     svc5_dispatch_lo:                         1
+;     svc5_save_registers:                      1
 ;     svc_dispatch_range:                       1
 ;     svc_unhandled_return:                     1
 ;     tbcop1:                                   1

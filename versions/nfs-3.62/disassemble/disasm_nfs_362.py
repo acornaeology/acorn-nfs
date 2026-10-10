@@ -604,7 +604,7 @@ d.label(0x04FB, "store_xfer_end_addr")
 
 d.comment(0x04FD, "Store byte 3 of end address", align=Align.INLINE)
 d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0x9462, 0x100)
+d.add_move(0x0500, 0x9462, 0x1CE)
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
     d.expr(addr, sym(target_label))
@@ -917,16 +917,14 @@ d.comment(0x05F9, "Execute OSBYTE call", align=Align.INLINE)
 d.comment(0x05FC, "Poll R2 status for result send", align=Align.INLINE)
 d.label(0x05FC, "tube_poll_r2_result")
 
-d.comment(0x05FF, "BVC: page 5/6 boundary straddle", align=Align.INLINE)
-d.add_move(0x0600, 0x9562, 0x100)
+d.label(0x05FF, "tube_poll_r2_result_branch")
+d.comment(0x05FF, "Loop while R2 status bit 6 (V) clear — wait for result-send ready", align=Align.INLINE)
 
 
 for addr in [0x0537, 0x0596, 0x05F2, 0x0607, 0x0627, 0x0668, 0x055E, 0x052D, 0x0520, 0x0542, 0x05A9, 0x05D1]:
     d.entry(addr)
-d.comment(0x0600, "Send carry+status to co-processor via R2", align=Align.INLINE)
 d.label(0x0600, "tube_page6_start")
 
-d.entry(0x0600)
 d.comment(0x0601, "Send X result for 2-param OSBYTE", align=Align.INLINE)
 d.label(0x0604, "bytex")
 
@@ -1161,41 +1159,6 @@ d.comment(0x06C5, "Poll R2 status (bit 7 = ready)", align=Align.INLINE)
 d.comment(0x06C8, "Not ready: keep polling", align=Align.INLINE)
 d.comment(0x06CA, "Read data byte from R2", align=Align.INLINE)
 d.comment(0x06CD, "Return with byte in A", align=Align.INLINE)
-d.label(0x06CE, "trampoline_tx_setup")
-
-d.entry(0x06CE)
-d.comment(0x06CE, "Trampoline: begin TX operation", align=Align.INLINE)
-d.label(0x06D1, "trampoline_adlc_init")
-
-d.entry(0x06D1)
-
-d.comment(0x06D1, "Trampoline: full ADLC init", align=Align.INLINE)
-d.label(0x06D4, "svc_12_nmi_release")
-
-d.comment(0x06D4, "Trampoline: wait idle and reset", align=Align.INLINE)
-d.label(0x06D7, "svc_11_nmi_claim")
-
-d.comment(0x06D7, "Trampoline: init NMI workspace", align=Align.INLINE)
-d.entry(0x06DA)
-d.comment(0x06DA, "A=4: SR interrupt bit mask", align=Align.INLINE)
-d.comment(0x06DC, "Test SR flag in VIA IFR", align=Align.INLINE)
-d.comment(0x06DF, "SR active: handle interrupt", align=Align.INLINE)
-d.comment(0x06E1, "A=5: NMI not for us", align=Align.INLINE)
-d.comment(0x06E3, "Return (NMI not claimed)", align=Align.INLINE)
-d.label(0x06E4, "handle_sr_intr")
-d.comment(0x06E4, "Save X on stack", align=Align.INLINE)
-d.comment(0x06E5, "Push X for later restore", align=Align.INLINE)
-d.comment(0x06E6, "Save Y on stack", align=Align.INLINE)
-d.comment(0x06E7, "Push Y for later restore", align=Align.INLINE)
-d.comment(0x06E8, "Read VIA auxiliary control reg", align=Align.INLINE)
-d.comment(0x06EB, "Mask shift register bits", align=Align.INLINE)
-d.comment(0x06ED, "OR in TX shift register mode", align=Align.INLINE)
-d.comment(0x06F0, "Write back ACR with SR mode", align=Align.INLINE)
-d.comment(0x06F3, "Read SR to clear shift complete", align=Align.INLINE)
-d.comment(0x06F6, "A=4: SR interrupt bit", align=Align.INLINE)
-d.comment(0x06F8, "Clear SR interrupt flag", align=Align.INLINE)
-d.comment(0x06FB, "Disable SR interrupt", align=Align.INLINE)
-d.comment(0x06FE, "A=5: NMI not for us", align=Align.INLINE)
 d.index_base(0x0700, "string_buf", group="ram_workspace")
 
 d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
@@ -6676,6 +6639,36 @@ d.label(0x9636, "econet_save")
 d.label(0x9639, "econet_restore")
 
 d.entry(0x9639)
+
+d.entry(0x9630)
+d.comment(0x9630, "Trampoline: begin TX operation", align=Align.INLINE)
+
+d.entry(0x9633)
+
+d.comment(0x9633, "Trampoline: full ADLC init", align=Align.INLINE)
+
+d.comment(0x9636, "Trampoline: wait idle and reset", align=Align.INLINE)
+
+d.comment(0x9639, "Trampoline: init NMI workspace", align=Align.INLINE)
+d.entry(0x963C)
+d.comment(0x963C, "A=4: SR interrupt bit mask", align=Align.INLINE)
+d.comment(0x963E, "Test SR flag in VIA IFR", align=Align.INLINE)
+d.comment(0x9641, "SR active: handle interrupt", align=Align.INLINE)
+d.comment(0x9643, "A=5: NMI not for us", align=Align.INLINE)
+d.comment(0x9645, "Return (NMI not claimed)", align=Align.INLINE)
+d.label(0x9646, "handle_sr_intr")
+d.comment(0x9646, "Save X on stack", align=Align.INLINE)
+d.comment(0x9647, "Push X for later restore", align=Align.INLINE)
+d.comment(0x9648, "Save Y on stack", align=Align.INLINE)
+d.comment(0x9649, "Push Y for later restore", align=Align.INLINE)
+d.comment(0x964A, "Read VIA auxiliary control reg", align=Align.INLINE)
+d.comment(0x964D, "Mask shift register bits", align=Align.INLINE)
+d.comment(0x964F, "OR in TX shift register mode", align=Align.INLINE)
+d.comment(0x9652, "Write back ACR with SR mode", align=Align.INLINE)
+d.comment(0x9655, "Read SR to clear shift complete", align=Align.INLINE)
+d.comment(0x9658, "A=4: SR interrupt bit", align=Align.INLINE)
+d.comment(0x965A, "Clear SR interrupt flag", align=Align.INLINE)
+d.comment(0x965D, "Disable SR interrupt", align=Align.INLINE)
 d.subroutine(
     0x963C,
     "svc5_irq_check",
@@ -6708,7 +6701,7 @@ caller code, so they skip the save/raise.""",
     on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter"},
 )
 
-d.comment(0x9662, "CR terminator for VDU state data", align=Align.INLINE)
+d.comment(0x9660, "Load deferred operation type", align=Align.INLINE)
 d.comment(0x9663, "Y >= &86: above dispatch range", align=Align.INLINE)
 d.comment(0x9665, "Out of range: skip protection", align=Align.INLINE)
 d.comment(0x9667, "Save current JSR protection mask", align=Align.INLINE)

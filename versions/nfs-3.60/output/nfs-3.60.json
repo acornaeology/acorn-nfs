@@ -40121,7 +40121,7 @@
       ],
       "comment_inline": "BIT R1 status: check WRCH request",
       "xref_summaries": [
-        "&9341 referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[4], &0665[4], &0692[4]"
+        "&9341 referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[3], &0665[3], &0692[3]"
       ],
       "references": [
         {
@@ -40142,17 +40142,17 @@
         {
           "addr": 1540,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1637,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1682,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -43775,7 +43775,7 @@
       ],
       "comment_inline": "Poll R2 status until ready",
       "xref_summaries": [
-        "&9500 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]"
+        "&9500 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[3]"
       ],
       "references": [
         {
@@ -43796,7 +43796,7 @@
         {
           "addr": 1661,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44441,13 +44441,18 @@
       ],
       "comment_inline": "Poll R2 status for result send",
       "xref_summaries": [
-        "&955e referenced 1 time by &0625[4]"
+        "&955e referenced 2 times by &05ff[3], &0625[3]"
       ],
       "references": [
         {
+          "addr": 1535,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
           "addr": 1573,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44459,38 +44464,27 @@
     {
       "addr": 1535,
       "bytes": [
-        80
-      ],
-      "binary_addr": 38241,
-      "comment_inline": "BVC: page 5/6 boundary straddle",
-      "type": "byte",
-      "values": [
-        80
-      ]
-    },
-    {
-      "addr": 1536,
-      "bytes": [
+        80,
         251
       ],
-      "binary_addr": 38242,
+      "binary_addr": 38241,
       "labels": [
-        "tube_page6_start"
+        "tube_poll_r2_result_branch"
       ],
-      "comment_inline": "Send carry+status to co-processor via R2",
+      "sub_labels": {
+        "1536": [
+          "tube_page6_start"
+        ]
+      },
+      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready",
       "xref_summaries": [
         "&9562 used as index base 1 time by &816e"
       ],
-      "references": [
-        {
-          "addr": 33134,
-          "kind": "indexed"
-        }
-      ],
-      "type": "byte",
-      "values": [
-        251
-      ]
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "tube_poll_r2_result",
+      "target": 1532,
+      "target_label": "tube_poll_r2_result"
     },
     {
       "addr": 1537,
@@ -44520,13 +44514,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&9566 referenced 1 time by &0617[4]"
+        "&9566 referenced 1 time by &0617[3]"
       ],
       "references": [
         {
           "addr": 1559,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44682,13 +44676,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&957f referenced 1 time by &0620[4]"
+        "&957f referenced 1 time by &0620[3]"
       ],
       "references": [
         {
           "addr": 1568,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44784,13 +44778,13 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&958d referenced 1 time by &062e[4]"
+        "&958d referenced 1 time by &062e[3]"
       ],
       "references": [
         {
           "addr": 1582,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44868,18 +44862,18 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&9598 referenced 2 times by &0639[4], &0642[4]"
+        "&9598 referenced 2 times by &0639[3], &0642[3]"
       ],
       "references": [
         {
           "addr": 1593,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1602,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44978,13 +44972,13 @@
       ],
       "comment_inline": "XY=&0128: param block address for OSWORD",
       "xref_summaries": [
-        "&95a7 referenced 1 time by &0634[4]"
+        "&95a7 referenced 1 time by &0634[3]"
       ],
       "references": [
         {
           "addr": 1588,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45049,13 +45043,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&95ae referenced 1 time by &064f[4]"
+        "&95ae referenced 1 time by &064f[3]"
       ],
       "references": [
         {
           "addr": 1615,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45130,13 +45124,13 @@
       ],
       "comment_inline": "Send result block bytes from &0128 via R2",
       "xref_summaries": [
-        "&95b9 referenced 1 time by &0663[4]"
+        "&95b9 referenced 1 time by &0663[3]"
       ],
       "references": [
         {
           "addr": 1635,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45158,13 +45152,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&95bc referenced 1 time by &065d[4]"
+        "&95bc referenced 1 time by &065d[3]"
       ],
       "references": [
         {
           "addr": 1629,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45239,13 +45233,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&95c7 referenced 1 time by &0655[4]"
+        "&95c7 referenced 1 time by &0655[3]"
       ],
       "references": [
         {
           "addr": 1621,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45282,13 +45276,13 @@
       ],
       "comment_inline": "Read control block byte from R2",
       "xref_summaries": [
-        "&95cc referenced 1 time by &0670[4]"
+        "&95cc referenced 1 time by &0670[3]"
       ],
       "references": [
         {
           "addr": 1648,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45435,13 +45429,13 @@
       ],
       "comment_inline": "X=0: start of input buffer at &0700",
       "xref_summaries": [
-        "&95e2 referenced 1 time by &0679[4]"
+        "&95e2 referenced 1 time by &0679[3]"
       ],
       "references": [
         {
           "addr": 1657,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45488,13 +45482,13 @@
       ],
       "comment_inline": "Load char from input buffer",
       "xref_summaries": [
-        "&95e9 referenced 1 time by &0690[4]"
+        "&95e9 referenced 1 time by &0690[3]"
       ],
       "references": [
         {
           "addr": 1680,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45585,7 +45579,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 6 = ready)",
       "xref_summaries": [
-        "&95f7 referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]"
+        "&95f7 referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[3], &0684[3], &068a[3], &0698[3]"
       ],
       "references": [
         {
@@ -45641,22 +45635,22 @@
         {
           "addr": 1562,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1668,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1674,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1688,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45717,7 +45711,7 @@
       ],
       "comment_inline": "Poll R4 status (bit 6 = ready)",
       "xref_summaries": [
-        "&9600 referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[4]"
+        "&9600 referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[3]"
       ],
       "references": [
         {
@@ -45758,7 +45752,7 @@
         {
           "addr": 1697,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45980,33 +45974,33 @@
       ],
       "comment_inline": "Poll R1 status (bit 6 = ready)",
       "xref_summaries": [
-        "&961e referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]"
+        "&961e referenced 5 times by &06ab[3], &06b0[3], &06b4[3], &06b8[3], &06bf[3]"
       ],
       "references": [
         {
           "addr": 1707,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1712,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1716,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1720,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1727,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -46067,7 +46061,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 7 = ready)",
       "xref_summaries": [
-        "&9627 referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]"
+        "&9627 referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &0627[3], &066a[3], &06c8[3]"
       ],
       "references": [
         {
@@ -46148,32 +46142,32 @@
         {
           "addr": 1543,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1547,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1551,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1575,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1642,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1736,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -46222,17 +46216,29 @@
       "mnemonic": "rts"
     },
     {
-      "addr": 1742,
+      "addr": 38448,
       "bytes": [
         76,
         110,
         155
       ],
-      "binary_addr": 38448,
       "labels": [
-        "trampoline_tx_setup"
+        "start_adlc_tx"
       ],
       "comment_inline": "Trampoline: begin TX operation",
+      "xref_summaries": [
+        "&9630 referenced 2 times by &861a, &8ed9"
+      ],
+      "references": [
+        {
+          "addr": 34330,
+          "kind": "direct"
+        },
+        {
+          "addr": 36569,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tx_begin",
@@ -46240,17 +46246,25 @@
       "target_label": "tx_begin"
     },
     {
-      "addr": 1745,
+      "addr": 38451,
       "bytes": [
         76,
         122,
         150
       ],
-      "binary_addr": 38451,
       "labels": [
-        "trampoline_adlc_init"
+        "init_adlc_hw"
       ],
       "comment_inline": "Trampoline: full ADLC init",
+      "xref_summaries": [
+        "&9633 referenced 1 time by &831d"
+      ],
+      "references": [
+        {
+          "addr": 33565,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "adlc_init",
@@ -46258,15 +46272,14 @@
       "target_label": "adlc_init"
     },
     {
-      "addr": 1748,
+      "addr": 38454,
       "bytes": [
         76,
         87,
         159
       ],
-      "binary_addr": 38454,
       "labels": [
-        "svc_12_nmi_release"
+        "econet_save"
       ],
       "comment_inline": "Trampoline: wait idle and reset",
       "type": "code",
@@ -46276,15 +46289,14 @@
       "target_label": "wait_idle_and_reset"
     },
     {
-      "addr": 1751,
+      "addr": 38457,
       "bytes": [
         76,
         152,
         150
       ],
-      "binary_addr": 38457,
       "labels": [
-        "svc_11_nmi_claim"
+        "econet_restore"
       ],
       "comment_inline": "Trampoline: init NMI workspace",
       "type": "code",
@@ -46294,25 +46306,26 @@
       "target_label": "init_nmi_workspace"
     },
     {
-      "addr": 1754,
+      "addr": 38460,
       "bytes": [
         169,
         4
       ],
-      "binary_addr": 38460,
+      "labels": [
+        "svc5_irq_check"
+      ],
       "comment_inline": "A=4: SR interrupt bit mask",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
     },
     {
-      "addr": 1756,
+      "addr": 38462,
       "bytes": [
         44,
         77,
         254
       ],
-      "binary_addr": 38462,
       "comment_inline": "Test SR flag in VIA IFR",
       "type": "code",
       "mnemonic": "bit",
@@ -46321,102 +46334,93 @@
       "target_label": "system_via_ifr"
     },
     {
-      "addr": 1759,
+      "addr": 38465,
       "bytes": [
         208,
         3
       ],
-      "binary_addr": 38465,
       "comment_inline": "SR active: handle interrupt",
       "type": "code",
       "mnemonic": "bne",
       "operand": "handle_sr_intr",
-      "target": 1764,
+      "target": 38470,
       "target_label": "handle_sr_intr"
     },
     {
-      "addr": 1761,
+      "addr": 38467,
       "bytes": [
         169,
         5
       ],
-      "binary_addr": 38467,
       "comment_inline": "A=5: NMI not for us",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#5"
     },
     {
-      "addr": 1763,
+      "addr": 38469,
       "bytes": [
         96
       ],
-      "binary_addr": 38469,
       "comment_inline": "Return (NMI not claimed)",
       "type": "code",
       "mnemonic": "rts"
     },
     {
-      "addr": 1764,
+      "addr": 38470,
       "bytes": [
         138
       ],
-      "binary_addr": 38470,
       "labels": [
         "handle_sr_intr"
       ],
       "comment_inline": "Save X on stack",
       "xref_summaries": [
-        "&9646 referenced 1 time by &06df[4]"
+        "&9646 referenced 1 time by &9641"
       ],
       "references": [
         {
-          "addr": 1759,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 38465,
+          "kind": "direct"
         }
       ],
       "type": "code",
       "mnemonic": "txa"
     },
     {
-      "addr": 1765,
+      "addr": 38471,
       "bytes": [
         72
       ],
-      "binary_addr": 38471,
       "comment_inline": "Push X for later restore",
       "type": "code",
       "mnemonic": "pha"
     },
     {
-      "addr": 1766,
+      "addr": 38472,
       "bytes": [
         152
       ],
-      "binary_addr": 38472,
       "comment_inline": "Save Y on stack",
       "type": "code",
       "mnemonic": "tya"
     },
     {
-      "addr": 1767,
+      "addr": 38473,
       "bytes": [
         72
       ],
-      "binary_addr": 38473,
       "comment_inline": "Push Y for later restore",
       "type": "code",
       "mnemonic": "pha"
     },
     {
-      "addr": 1768,
+      "addr": 38474,
       "bytes": [
         173,
         75,
         254
       ],
-      "binary_addr": 38474,
       "comment_inline": "Read VIA auxiliary control reg",
       "type": "code",
       "mnemonic": "lda",
@@ -46425,25 +46429,23 @@
       "target_label": "system_via_acr"
     },
     {
-      "addr": 1771,
+      "addr": 38477,
       "bytes": [
         41,
         227
       ],
-      "binary_addr": 38477,
       "comment_inline": "Mask shift register bits",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&e3"
     },
     {
-      "addr": 1773,
+      "addr": 38479,
       "bytes": [
         13,
         81,
         13
       ],
-      "binary_addr": 38479,
       "comment_inline": "OR in TX shift register mode",
       "type": "code",
       "mnemonic": "ora",
@@ -46452,13 +46454,12 @@
       "target_label": "tx_work_51"
     },
     {
-      "addr": 1776,
+      "addr": 38482,
       "bytes": [
         141,
         75,
         254
       ],
-      "binary_addr": 38482,
       "comment_inline": "Write back ACR with SR mode",
       "type": "code",
       "mnemonic": "sta",
@@ -46467,13 +46468,12 @@
       "target_label": "system_via_acr"
     },
     {
-      "addr": 1779,
+      "addr": 38485,
       "bytes": [
         173,
         74,
         254
       ],
-      "binary_addr": 38485,
       "comment_inline": "Read SR to clear shift complete",
       "type": "code",
       "mnemonic": "lda",
@@ -46482,25 +46482,23 @@
       "target_label": "system_via_sr"
     },
     {
-      "addr": 1782,
+      "addr": 38488,
       "bytes": [
         169,
         4
       ],
-      "binary_addr": 38488,
       "comment_inline": "A=4: SR interrupt bit",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
     },
     {
-      "addr": 1784,
+      "addr": 38490,
       "bytes": [
         141,
         77,
         254
       ],
-      "binary_addr": 38490,
       "comment_inline": "Clear SR interrupt flag",
       "type": "code",
       "mnemonic": "sta",
@@ -46509,13 +46507,12 @@
       "target_label": "system_via_ifr"
     },
     {
-      "addr": 1787,
+      "addr": 38493,
       "bytes": [
         141,
         78,
         254
       ],
-      "binary_addr": 38493,
       "comment_inline": "Disable SR interrupt",
       "type": "code",
       "mnemonic": "sta",
@@ -46524,29 +46521,18 @@
       "target_label": "system_via_ier"
     },
     {
-      "addr": 1790,
+      "addr": 38496,
       "bytes": [
         172,
-        87
-      ],
-      "binary_addr": 38496,
-      "comment_inline": "A=5: NMI not for us",
-      "type": "byte",
-      "values": [
-        172,
-        87
-      ]
-    },
-    {
-      "addr": 38498,
-      "bytes": [
+        87,
         13
       ],
-      "comment_inline": "CR terminator for VDU state data",
-      "type": "byte",
-      "values": [
-        13
-      ]
+      "comment_inline": "Load deferred operation type",
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "tx_work_57",
+      "target": 3415,
+      "target_label": "tx_work_57"
     },
     {
       "addr": 38499,
@@ -46704,13 +46690,12 @@
       ],
       "comment_inline": "INTOFF: read station ID, disable NMIs",
       "xref_summaries": [
-        "&967a referenced 1 time by &06d1[4]"
+        "&967a referenced 1 time by &9633"
       ],
       "references": [
         {
-          "addr": 1745,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 38451,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -46880,13 +46865,12 @@
       ],
       "comment_inline": "Copy 32 bytes of NMI shim from ROM to nmi_code_base",
       "xref_summaries": [
-        "&9698 referenced 1 time by &06d7[4]"
+        "&9698 referenced 1 time by &9639"
       ],
       "references": [
         {
-          "addr": 1751,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 38457,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -55145,13 +55129,12 @@
       ],
       "comment_inline": "Save X on stack",
       "xref_summaries": [
-        "&9b6e referenced 1 time by &06ce[4]"
+        "&9b6e referenced 1 time by &9630"
       ],
       "references": [
         {
-          "addr": 1742,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 38448,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -61913,13 +61896,12 @@
       ],
       "comment_inline": "Econet not initialised -- skip to adlc_rx_listen",
       "xref_summaries": [
-        "&9f57 referenced 1 time by &06d4[4]"
+        "&9f57 referenced 1 time by &9636"
       ],
       "references": [
         {
-          "addr": 1748,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 38454,
+          "kind": "direct"
         }
       ],
       "type": "code",

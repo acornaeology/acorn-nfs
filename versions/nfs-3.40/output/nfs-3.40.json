@@ -39434,13 +39434,13 @@
       ],
       "comment_inline": "Send zero prefix byte via R2",
       "xref_summaries": [
-        "&9326 used as index base 1 time by &0626[4]"
+        "&9326 used as index base 1 time by &0626[3]"
       ],
       "references": [
         {
           "addr": 1574,
           "kind": "indexed",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -39625,7 +39625,7 @@
       ],
       "comment_inline": "BIT R1 status: check WRCH request",
       "xref_summaries": [
-        "&933c referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[4], &0665[4], &0692[4]"
+        "&933c referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[3], &0665[3], &0692[3]"
       ],
       "references": [
         {
@@ -39646,17 +39646,17 @@
         {
           "addr": 1540,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1637,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1682,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -43192,7 +43192,7 @@
       ],
       "comment_inline": "Poll R2 status until ready",
       "xref_summaries": [
-        "&94f4 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]"
+        "&94f4 referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[3]"
       ],
       "references": [
         {
@@ -43213,7 +43213,7 @@
         {
           "addr": 1661,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -43857,6 +43857,16 @@
         "tube_poll_r2_result"
       ],
       "comment_inline": "Poll R2 status for result send",
+      "xref_summaries": [
+        "&9552 referenced 1 time by &05ff[3]"
+      ],
+      "references": [
+        {
+          "addr": 1535,
+          "kind": "direct",
+          "move_id": 3
+        }
+      ],
       "type": "code",
       "mnemonic": "bit",
       "operand": "tube_status_register_2",
@@ -43866,36 +43876,27 @@
     {
       "addr": 1535,
       "bytes": [
-        80
-      ],
-      "binary_addr": 38229,
-      "type": "byte",
-      "values": [
-        80
-      ]
-    },
-    {
-      "addr": 1536,
-      "bytes": [
+        80,
         251
       ],
-      "binary_addr": 38230,
+      "binary_addr": 38229,
       "labels": [
-        "tube_page6_start"
+        "tube_poll_r2_result_branch"
       ],
+      "sub_labels": {
+        "1536": [
+          "tube_page6_start"
+        ]
+      },
+      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready",
       "xref_summaries": [
         "&9556 used as index base 1 time by &816a"
       ],
-      "references": [
-        {
-          "addr": 33130,
-          "kind": "indexed"
-        }
-      ],
-      "type": "byte",
-      "values": [
-        251
-      ]
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "tube_poll_r2_result",
+      "target": 1532,
+      "target_label": "tube_poll_r2_result"
     },
     {
       "addr": 1537,
@@ -43925,13 +43926,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&955a referenced 1 time by &0617[4]"
+        "&955a referenced 1 time by &0617[3]"
       ],
       "references": [
         {
           "addr": 1559,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44087,13 +44088,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&9573 referenced 1 time by &0620[4]"
+        "&9573 referenced 1 time by &0620[3]"
       ],
       "references": [
         {
           "addr": 1568,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44201,13 +44202,13 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&9581 referenced 1 time by &062e[4]"
+        "&9581 referenced 1 time by &062e[3]"
       ],
       "references": [
         {
           "addr": 1582,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44285,18 +44286,18 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&958c referenced 2 times by &0639[4], &0642[4]"
+        "&958c referenced 2 times by &0639[3], &0642[3]"
       ],
       "references": [
         {
           "addr": 1593,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1602,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44395,13 +44396,13 @@
       ],
       "comment_inline": "XY=&0128: param block address for OSWORD",
       "xref_summaries": [
-        "&959b referenced 1 time by &0634[4]"
+        "&959b referenced 1 time by &0634[3]"
       ],
       "references": [
         {
           "addr": 1588,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44466,13 +44467,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&95a2 referenced 1 time by &064f[4]"
+        "&95a2 referenced 1 time by &064f[3]"
       ],
       "references": [
         {
           "addr": 1615,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44547,13 +44548,13 @@
       ],
       "comment_inline": "Send result block bytes from &0128 via R2",
       "xref_summaries": [
-        "&95ad referenced 1 time by &0663[4]"
+        "&95ad referenced 1 time by &0663[3]"
       ],
       "references": [
         {
           "addr": 1635,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44575,13 +44576,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&95b0 referenced 1 time by &065d[4]"
+        "&95b0 referenced 1 time by &065d[3]"
       ],
       "references": [
         {
           "addr": 1629,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44656,13 +44657,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&95bb referenced 1 time by &0655[4]"
+        "&95bb referenced 1 time by &0655[3]"
       ],
       "references": [
         {
           "addr": 1621,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44699,13 +44700,13 @@
       ],
       "comment_inline": "Read control block byte from R2",
       "xref_summaries": [
-        "&95c0 referenced 1 time by &0670[4]"
+        "&95c0 referenced 1 time by &0670[3]"
       ],
       "references": [
         {
           "addr": 1648,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44852,13 +44853,13 @@
       ],
       "comment_inline": "X=0: start of input buffer at &0700",
       "xref_summaries": [
-        "&95d6 referenced 1 time by &0679[4]"
+        "&95d6 referenced 1 time by &0679[3]"
       ],
       "references": [
         {
           "addr": 1657,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -44905,13 +44906,13 @@
       ],
       "comment_inline": "Load char from input buffer",
       "xref_summaries": [
-        "&95dd referenced 1 time by &0690[4]"
+        "&95dd referenced 1 time by &0690[3]"
       ],
       "references": [
         {
           "addr": 1680,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45002,7 +45003,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 6 = ready)",
       "xref_summaries": [
-        "&95eb referenced 14 times by &0020[1], &0026[1], &002c[1], &0467[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]"
+        "&95eb referenced 14 times by &0020[1], &0026[1], &002c[1], &0467[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[3], &0684[3], &068a[3], &0698[3]"
       ],
       "references": [
         {
@@ -45058,22 +45059,22 @@
         {
           "addr": 1562,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1668,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1674,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1688,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45134,7 +45135,7 @@
       ],
       "comment_inline": "Poll R4 status (bit 6 = ready)",
       "xref_summaries": [
-        "&95f4 referenced 8 times by &0018[1], &0416[2], &041b[2], &0436[2], &043e[2], &0443[2], &0449[2], &06a1[4]"
+        "&95f4 referenced 8 times by &0018[1], &0416[2], &041b[2], &0436[2], &043e[2], &0443[2], &0449[2], &06a1[3]"
       ],
       "references": [
         {
@@ -45175,7 +45176,7 @@
         {
           "addr": 1697,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45397,33 +45398,33 @@
       ],
       "comment_inline": "Poll R1 status (bit 6 = ready)",
       "xref_summaries": [
-        "&9612 referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]"
+        "&9612 referenced 5 times by &06ab[3], &06b0[3], &06b4[3], &06b8[3], &06bf[3]"
       ],
       "references": [
         {
           "addr": 1707,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1712,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1716,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1720,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1727,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -45484,7 +45485,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 7 = data ready)",
       "xref_summaries": [
-        "&961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &066a[4], &06c8[4]"
+        "&961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &066a[3], &06c8[3]"
       ],
       "references": [
         {
@@ -45565,27 +45566,27 @@
         {
           "addr": 1543,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1547,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1551,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1642,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1736,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",

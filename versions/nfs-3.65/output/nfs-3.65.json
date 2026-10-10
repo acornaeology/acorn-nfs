@@ -44494,7 +44494,7 @@
           "tube_page6_start"
         ]
       },
-      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready Send carry+status to co-processor via R2",
+      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready",
       "xref_summaries": [
         "&9565 used as index base 1 time by &8161"
       ],
@@ -46302,17 +46302,29 @@
       ]
     },
     {
-      "addr": 1771,
+      "addr": 38480,
       "bytes": [
         76,
         144,
         155
       ],
-      "binary_addr": 38480,
       "labels": [
-        "trampoline_tx_setup"
+        "start_adlc_tx"
       ],
       "comment_inline": "Trampoline: begin TX operation",
+      "xref_summaries": [
+        "&9650 referenced 2 times by &8608, &8edc"
+      ],
+      "references": [
+        {
+          "addr": 34312,
+          "kind": "direct"
+        },
+        {
+          "addr": 36572,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tx_begin",
@@ -46320,17 +46332,25 @@
       "target_label": "tx_begin"
     },
     {
-      "addr": 1774,
+      "addr": 38483,
       "bytes": [
         76,
         154,
         150
       ],
-      "binary_addr": 38483,
       "labels": [
-        "trampoline_adlc_init"
+        "init_adlc_hw"
       ],
       "comment_inline": "Trampoline: full ADLC init",
+      "xref_summaries": [
+        "&9653 referenced 1 time by &830b"
+      ],
+      "references": [
+        {
+          "addr": 33547,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jmp",
       "operand": "adlc_init",
@@ -46338,15 +46358,14 @@
       "target_label": "adlc_init"
     },
     {
-      "addr": 1777,
+      "addr": 38486,
       "bytes": [
         76,
         138,
         159
       ],
-      "binary_addr": 38486,
       "labels": [
-        "svc_12_nmi_release"
+        "econet_save"
       ],
       "comment_inline": "Trampoline: wait idle and reset",
       "type": "code",
@@ -46356,15 +46375,14 @@
       "target_label": "wait_idle_and_reset"
     },
     {
-      "addr": 1780,
+      "addr": 38489,
       "bytes": [
         76,
         184,
         150
       ],
-      "binary_addr": 38489,
       "labels": [
-        "svc_11_nmi_claim"
+        "econet_restore"
       ],
       "comment_inline": "Trampoline: init NMI workspace",
       "type": "code",
@@ -46374,25 +46392,26 @@
       "target_label": "init_nmi_workspace"
     },
     {
-      "addr": 1783,
+      "addr": 38492,
       "bytes": [
         169,
         4
       ],
-      "binary_addr": 38492,
+      "labels": [
+        "svc5_irq_check"
+      ],
       "comment_inline": "A=4: SR interrupt bit mask",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
     },
     {
-      "addr": 1785,
+      "addr": 38494,
       "bytes": [
         44,
         77,
         254
       ],
-      "binary_addr": 38494,
       "comment_inline": "Test SR flag in VIA IFR",
       "type": "code",
       "mnemonic": "bit",
@@ -46401,26 +46420,24 @@
       "target_label": "system_via_ifr"
     },
     {
-      "addr": 1788,
+      "addr": 38497,
       "bytes": [
         208,
         3
       ],
-      "binary_addr": 38497,
       "comment_inline": "SR active: handle interrupt",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "sr_int_handler",
-      "target": 1793,
-      "target_label": "sr_int_handler"
+      "operand": "svc5_save_registers",
+      "target": 38502,
+      "target_label": "svc5_save_registers"
     },
     {
-      "addr": 1790,
+      "addr": 38499,
       "bytes": [
         169,
         5
       ],
-      "binary_addr": 38499,
       "comment_inline": "A=5: NMI not for us",
       "type": "code",
       "mnemonic": "lda",
@@ -46431,7 +46448,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "RTS (end of save_vdu_state data)",
+      "comment_inline": "Return (NMI not claimed)",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -46444,6 +46461,15 @@
         "svc5_save_registers"
       ],
       "comment_inline": "Save X on stack",
+      "xref_summaries": [
+        "&9666 referenced 1 time by &9661"
+      ],
+      "references": [
+        {
+          "addr": 38497,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "txa"
     },
@@ -46750,13 +46776,12 @@
       ],
       "comment_inline": "INTOFF: read station ID, disable NMIs",
       "xref_summaries": [
-        "&969a referenced 1 time by &06ee[3]"
+        "&969a referenced 1 time by &9653"
       ],
       "references": [
         {
-          "addr": 1774,
-          "kind": "direct",
-          "move_id": 3
+          "addr": 38483,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -46926,13 +46951,12 @@
       ],
       "comment_inline": "Copy 32 bytes of NMI shim from ROM to nmi_code_base",
       "xref_summaries": [
-        "&96b8 referenced 1 time by &06f4[3]"
+        "&96b8 referenced 1 time by &9659"
       ],
       "references": [
         {
-          "addr": 1780,
-          "kind": "direct",
-          "move_id": 3
+          "addr": 38489,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -55212,13 +55236,12 @@
       ],
       "comment_inline": "Save X on stack",
       "xref_summaries": [
-        "&9b90 referenced 1 time by &06eb[3]"
+        "&9b90 referenced 1 time by &9650"
       ],
       "references": [
         {
-          "addr": 1771,
-          "kind": "direct",
-          "move_id": 3
+          "addr": 38480,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -62072,13 +62095,12 @@
       ],
       "comment_inline": "Econet not initialised -- skip to adlc_rx_listen",
       "xref_summaries": [
-        "&9f8a referenced 1 time by &06f1[3]"
+        "&9f8a referenced 1 time by &9656"
       ],
       "references": [
         {
-          "addr": 1777,
-          "kind": "direct",
-          "move_id": 3
+          "addr": 38486,
+          "kind": "direct"
         }
       ],
       "type": "code",

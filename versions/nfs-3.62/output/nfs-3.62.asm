@@ -270,7 +270,7 @@ tx_work_51                             = &0d51
 ; &0d51 referenced 2 times by &964f, &9b0d
 tx_in_progress                         = &0d52
 tx_work_57                             = &0d57
-; &0d57 referenced 1 time by &9b00
+; &0d57 referenced 2 times by &9660, &9b00
 exec_addr_lo                           = &0d58
 ; &0d58 referenced 3 times by &9b2b, &9b30, &9b3c; also used as index base 1 time by &9a96
 exec_addr_hi                           = &0d59
@@ -386,13 +386,8 @@ fs_error_buf                           = &0fe0
 ; &0fe0 used as index base 1 time by &8455
 tx_ptr_sub_base                        = &7dfd
 ; &7dfd used as index base 1 time by &91b6
-start_adlc_tx                          = &9630
-; &9630 referenced 2 times by &861a, &8ed9
-init_adlc_hw                           = &9633
-; &9633 referenced 1 time by &831d
-econet_save                            = &9636
-econet_restore                         = &9639
-svc5_irq_check                         = &963c
+reloc_p6_src                           = &9562
+; &9562 used as index base 1 time by &816b
 station_id_disable_net_nmis            = &fe18
 ; &fe18 referenced 15 times by &8316, &967a, &96b0, &96c9, &97f0, &9925, &9be1, &9be4, &9cfd, &9d3a, &9da3, &9e66, &9f6a, &9f6d, &9f7d
 video_ula_control                      = &fe20
@@ -844,7 +839,7 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &9462
 .reloc_p5_src
 
-; Move 3: &9462 to &0500 for length 256
+; Move 3: &9462 to &0500 for length 462
     org &0500
 ; ***************************************************************************************
 ; Tube host code page 5 — reference: NFS13 (TASKS, BPUT-FILE)
@@ -1122,37 +1117,17 @@ tube_cmd_lo = tube_dispatch_cmd+1
     tax                                                               ; 9557: aa          . :05f5[3]          ; X = first parameter
     jsr tube_read_r2                                                  ; 9558: 20 c5 06     .. :05f6[3]        ; Read A (OSBYTE number) from R2
     jsr osbyte                                                        ; 955b: 20 f4 ff     .. :05f9[3]        ; Execute OSBYTE call
-; &05fc referenced 1 time by &9587
+; &05fc referenced 2 times by &9561, &9587
 .tube_poll_r2_result
     bit tube_status_register_2                                        ; 955e: 2c e2 fe    ,.. :05fc[3]        ; Poll R2 status for result send
-    equb &50                                                          ; 9561: 50          P :05ff[3]          ; BVC: page 5/6 boundary straddle
-
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_dispatch_table, *, reloc_p5_src
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear tube_dispatch_table, &0600
-
-    ; Set the program counter to the next position in the binary file.
-    org reloc_p5_src + (* - tube_dispatch_table)
-
-
-    org &9562
-.reloc_p6_src
-
-; Move 4: &9562 to &0600 for length 256
-    org &0600
-; &0600 used as index base 1 time by &816e
-.tube_page6_start
-    equb &fb                                                          ; 9562: fb          . :0600[4]          ; Send carry+status to co-processor via R2
-    stx tube_data_register_2                                          ; 9563: 8e e3 fe    ... :0601[4]        ; Send X result for 2-param OSBYTE
+.tube_poll_r2_result_branch
+; &9562 used as index base 1 time by &816e
+tube_page6_start = tube_poll_r2_result_branch+1
+    bvc tube_poll_r2_result                                           ; 9561: 50 fb       P. :05ff[3]         ; Loop while R2 status bit 6 (V) clear — wait for result-send ready
+    stx tube_data_register_2                                          ; 9563: 8e e3 fe    ... :0601[3]        ; Send X result for 2-param OSBYTE
 ; &0604 referenced 1 time by &9579
 .bytex
-    jmp tube_main_loop                                                ; 9566: 4c 36 00    L6. :0604[4]        ; Return to main event loop
+    jmp tube_main_loop                                                ; 9566: 4c 36 00    L6. :0604[3]        ; Return to main event loop
 ; ***************************************************************************************
 ; Tube OSBYTE 3-param handler (R2 cmd 3)
 ;
@@ -1160,23 +1135,23 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; bytes via R2. Used for OSBYTE calls needing all three parameters and returning both X
 ; and Y results.
 .tube_osbyte_long
-    jsr tube_read_r2                                                  ; 9569: 20 c5 06     .. :0607[4]        ; Read X, Y, A from R2 for 3-param OSBYTE
-    tax                                                               ; 956c: aa          . :060a[4]          ; Save in X
-    jsr tube_read_r2                                                  ; 956d: 20 c5 06     .. :060b[4]        ; Read Y parameter from co-processor
-    tay                                                               ; 9570: a8          . :060e[4]          ; Save in Y
-    jsr tube_read_r2                                                  ; 9571: 20 c5 06     .. :060f[4]        ; Read A (OSBYTE function code)
-    jsr osbyte                                                        ; 9574: 20 f4 ff     .. :0612[4]        ; Execute OSBYTE A,X,Y
-    eor #&9d                                                          ; 9577: 49 9d       I. :0615[4]         ; Test for OSBYTE &9D (fast Tube BPUT)
-    beq bytex                                                         ; 9579: f0 eb       .. :0617[4]         ; OSBYTE &9D (fast Tube BPUT): no result needed
-    ror a                                                             ; 957b: 6a          j :0619[4]          ; Encode carry (error flag) into bit 7
-    jsr tube_send_r2                                                  ; 957c: 20 95 06     .. :061a[4]        ; Send carry+status byte via R2
+    jsr tube_read_r2                                                  ; 9569: 20 c5 06     .. :0607[3]        ; Read X, Y, A from R2 for 3-param OSBYTE
+    tax                                                               ; 956c: aa          . :060a[3]          ; Save in X
+    jsr tube_read_r2                                                  ; 956d: 20 c5 06     .. :060b[3]        ; Read Y parameter from co-processor
+    tay                                                               ; 9570: a8          . :060e[3]          ; Save in Y
+    jsr tube_read_r2                                                  ; 9571: 20 c5 06     .. :060f[3]        ; Read A (OSBYTE function code)
+    jsr osbyte                                                        ; 9574: 20 f4 ff     .. :0612[3]        ; Execute OSBYTE A,X,Y
+    eor #&9d                                                          ; 9577: 49 9d       I. :0615[3]         ; Test for OSBYTE &9D (fast Tube BPUT)
+    beq bytex                                                         ; 9579: f0 eb       .. :0617[3]         ; OSBYTE &9D (fast Tube BPUT): no result needed
+    ror a                                                             ; 957b: 6a          j :0619[3]          ; Encode carry (error flag) into bit 7
+    jsr tube_send_r2                                                  ; 957c: 20 95 06     .. :061a[3]        ; Send carry+status byte via R2
 ; &061d referenced 1 time by &9582
 .tube_osbyte_send_y
-    bit tube_status_register_2                                        ; 957f: 2c e2 fe    ,.. :061d[4]        ; Poll R2 status for ready
-    bvc tube_osbyte_send_y                                            ; 9582: 50 fb       P. :0620[4]         ; Not ready: keep polling
-    sty tube_data_register_2                                          ; 9584: 8c e3 fe    ... :0622[4]        ; Send Y result, then fall through to send X
+    bit tube_status_register_2                                        ; 957f: 2c e2 fe    ,.. :061d[3]        ; Poll R2 status for ready
+    bvc tube_osbyte_send_y                                            ; 9582: 50 fb       P. :0620[3]         ; Not ready: keep polling
+    sty tube_data_register_2                                          ; 9584: 8c e3 fe    ... :0622[3]        ; Send Y result, then fall through to send X
 .tube_osbyte_short
-    bvs tube_poll_r2_result                                           ; 9587: 70 d5       p. :0625[4]         ; BVS &05FC: overlapping code — loops back to page 5 R2 poll to send X after Y
+    bvs tube_poll_r2_result                                           ; 9587: 70 d5       p. :0625[3]         ; BVS &05FC: overlapping code — loops back to page 5 R2 poll to send X after Y
 ; ***************************************************************************************
 ; Tube OSWORD handler (R2 cmd 4)
 ;
@@ -1184,50 +1159,50 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; Calls OSWORD (&FFF1), then sends the out-length result bytes from the parameter block
 ; back via R2. Returns to the main loop via tube_return_main.
 .tube_osword
-    jsr tube_read_r2                                                  ; 9589: 20 c5 06     .. :0627[4]        ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
-    tay                                                               ; 958c: a8          . :062a[4]          ; Save OSWORD number in Y
+    jsr tube_read_r2                                                  ; 9589: 20 c5 06     .. :0627[3]        ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
+    tay                                                               ; 958c: a8          . :062a[3]          ; Save OSWORD number in Y
 ; &062b referenced 1 time by &9590
 .tube_osword_read
-    bit tube_status_register_2                                        ; 958d: 2c e2 fe    ,.. :062b[4]        ; Poll R2 status for data ready
-    bpl tube_osword_read                                              ; 9590: 10 fb       .. :062e[4]         ; Not ready: keep polling
+    bit tube_status_register_2                                        ; 958d: 2c e2 fe    ,.. :062b[3]        ; Poll R2 status for data ready
+    bpl tube_osword_read                                              ; 9590: 10 fb       .. :062e[3]         ; Not ready: keep polling
 .tube_osbyte_send_x
-    ldx tube_data_register_2                                          ; 9592: ae e3 fe    ... :0630[4]        ; Read param block length from R2
-    dex                                                               ; 9595: ca          . :0633[4]          ; DEX: length 0 means no params to read
-    bmi skip_param_read                                               ; 9596: 30 0f       0. :0634[4]         ; No params (length=0): skip read loop
+    ldx tube_data_register_2                                          ; 9592: ae e3 fe    ... :0630[3]        ; Read param block length from R2
+    dex                                                               ; 9595: ca          . :0633[3]          ; DEX: length 0 means no params to read
+    bmi skip_param_read                                               ; 9596: 30 0f       0. :0634[3]         ; No params (length=0): skip read loop
 ; &0636 referenced 2 times by &959b, &95a4
 .tube_osword_read_lp
-    bit tube_status_register_2                                        ; 9598: 2c e2 fe    ,.. :0636[4]        ; Poll R2 status for data ready
-    bpl tube_osword_read_lp                                           ; 959b: 10 fb       .. :0639[4]         ; Not ready: keep polling
-    lda tube_data_register_2                                          ; 959d: ad e3 fe    ... :063b[4]        ; Read param byte from R2
-    sta tube_osword_pb,x                                              ; 95a0: 9d 28 01    .(. :063e[4]        ; Store param bytes into block at &0128
-    dex                                                               ; 95a3: ca          . :0641[4]          ; Next param byte (descending)
-    bpl tube_osword_read_lp                                           ; 95a4: 10 f2       .. :0642[4]         ; Loop until all params read
-    tya                                                               ; 95a6: 98          . :0644[4]          ; Restore OSWORD number from Y
+    bit tube_status_register_2                                        ; 9598: 2c e2 fe    ,.. :0636[3]        ; Poll R2 status for data ready
+    bpl tube_osword_read_lp                                           ; 959b: 10 fb       .. :0639[3]         ; Not ready: keep polling
+    lda tube_data_register_2                                          ; 959d: ad e3 fe    ... :063b[3]        ; Read param byte from R2
+    sta tube_osword_pb,x                                              ; 95a0: 9d 28 01    .(. :063e[3]        ; Store param bytes into block at &0128
+    dex                                                               ; 95a3: ca          . :0641[3]          ; Next param byte (descending)
+    bpl tube_osword_read_lp                                           ; 95a4: 10 f2       .. :0642[3]         ; Loop until all params read
+    tya                                                               ; 95a6: 98          . :0644[3]          ; Restore OSWORD number from Y
 ; &0645 referenced 1 time by &9596
 .skip_param_read
-    ldx #<(tube_osword_pb)                                            ; 95a7: a2 28       .( :0645[4]         ; XY=&0128: param block address for OSWORD
-    ldy #>(tube_osword_pb)                                            ; 95a9: a0 01       .. :0647[4]         ; Y=&01: param block at &0128
-    jsr osword                                                        ; 95ab: 20 f1 ff     .. :0649[4]        ; Execute OSWORD with XY=&0128
+    ldx #<(tube_osword_pb)                                            ; 95a7: a2 28       .( :0645[3]         ; XY=&0128: param block address for OSWORD
+    ldy #>(tube_osword_pb)                                            ; 95a9: a0 01       .. :0647[3]         ; Y=&01: param block at &0128
+    jsr osword                                                        ; 95ab: 20 f1 ff     .. :0649[3]        ; Execute OSWORD with XY=&0128
 ; &064c referenced 1 time by &95b1
 .poll_r2_osword_result
-    bit tube_status_register_2                                        ; 95ae: 2c e2 fe    ,.. :064c[4]        ; Poll R2 status for ready
-    bpl poll_r2_osword_result                                         ; 95b1: 10 fb       .. :064f[4]         ; Not ready: keep polling
-    ldx tube_data_register_2                                          ; 95b3: ae e3 fe    ... :0651[4]        ; Read result block length from R2
-    dex                                                               ; 95b6: ca          . :0654[4]          ; Decrement result byte counter
-    bmi tube_return_main                                              ; 95b7: 30 0e       0. :0655[4]         ; No results to send: return to main loop
+    bit tube_status_register_2                                        ; 95ae: 2c e2 fe    ,.. :064c[3]        ; Poll R2 status for ready
+    bpl poll_r2_osword_result                                         ; 95b1: 10 fb       .. :064f[3]         ; Not ready: keep polling
+    ldx tube_data_register_2                                          ; 95b3: ae e3 fe    ... :0651[3]        ; Read result block length from R2
+    dex                                                               ; 95b6: ca          . :0654[3]          ; Decrement result byte counter
+    bmi tube_return_main                                              ; 95b7: 30 0e       0. :0655[3]         ; No results to send: return to main loop
 ; &0657 referenced 1 time by &95c5
 .tube_osword_write
-    ldy tube_osword_pb,x                                              ; 95b9: bc 28 01    .(. :0657[4]        ; Send result block bytes from &0128 via R2
+    ldy tube_osword_pb,x                                              ; 95b9: bc 28 01    .(. :0657[3]        ; Send result block bytes from &0128 via R2
 ; &065a referenced 1 time by &95bf
 .tube_osword_write_lp
-    bit tube_status_register_2                                        ; 95bc: 2c e2 fe    ,.. :065a[4]        ; Poll R2 status for ready
-    bvc tube_osword_write_lp                                          ; 95bf: 50 fb       P. :065d[4]         ; Not ready: keep polling
-    sty tube_data_register_2                                          ; 95c1: 8c e3 fe    ... :065f[4]        ; Send result byte via R2
-    dex                                                               ; 95c4: ca          . :0662[4]          ; Next result byte (descending)
-    bpl tube_osword_write                                             ; 95c5: 10 f2       .. :0663[4]         ; Loop until all results sent
+    bit tube_status_register_2                                        ; 95bc: 2c e2 fe    ,.. :065a[3]        ; Poll R2 status for ready
+    bvc tube_osword_write_lp                                          ; 95bf: 50 fb       P. :065d[3]         ; Not ready: keep polling
+    sty tube_data_register_2                                          ; 95c1: 8c e3 fe    ... :065f[3]        ; Send result byte via R2
+    dex                                                               ; 95c4: ca          . :0662[3]          ; Next result byte (descending)
+    bpl tube_osword_write                                             ; 95c5: 10 f2       .. :0663[3]         ; Loop until all results sent
 ; &0665 referenced 1 time by &95b7
 .tube_return_main
-    jmp tube_main_loop                                                ; 95c7: 4c 36 00    L6. :0665[4]        ; Return to main event loop
+    jmp tube_main_loop                                                ; 95c7: 4c 36 00    L6. :0665[3]        ; Return to main event loop
 ; ***************************************************************************************
 ; Tube OSWORD 0 handler (R2 cmd 5)
 ;
@@ -1238,34 +1213,34 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; - &80 — error / escape, or
 ; - &7F — success.
 .tube_osword_rdln
-    ldx #4                                                            ; 95ca: a2 04       .. :0668[4]         ; Read 5-byte OSWORD 0 control block from R2
+    ldx #4                                                            ; 95ca: a2 04       .. :0668[3]         ; Read 5-byte OSWORD 0 control block from R2
 ; &066a referenced 1 time by &95d2
 .read_rdln_ctrl_block
-    jsr tube_read_r2                                                  ; 95cc: 20 c5 06     .. :066a[4]        ; Read control block byte from R2
-    sta zp_ptr_lo,x                                                   ; 95cf: 95 00       .. :066d[4]         ; Store in zero page params
-    dex                                                               ; 95d1: ca          . :066f[4]          ; Next byte (descending)
-    bpl read_rdln_ctrl_block                                          ; 95d2: 10 f8       .. :0670[4]         ; Loop until all 5 bytes read
-    inx                                                               ; 95d4: e8          . :0672[4]          ; X=0 after loop, A=0 for OSWORD 0 (read line)
-    ldy #0                                                            ; 95d5: a0 00       .. :0673[4]         ; Y=0 for OSWORD 0
-    txa                                                               ; 95d7: 8a          . :0675[4]          ; A=0: OSWORD 0 (read line)
-    jsr osword                                                        ; 95d8: 20 f1 ff     .. :0676[4]        ; Read input line from keyboard
-    bcc tube_rdln_send_line                                           ; 95db: 90 05       .. :0679[4]         ; C=0: line read OK; C=1: escape pressed
-    lda #&ff                                                          ; 95dd: a9 ff       .. :067b[4]         ; &FF = escape/error signal to co-processor
-    jmp tube_reply_byte                                               ; 95df: 4c 9e 05    L.. :067d[4]        ; Escape: send &FF error to co-processor
+    jsr tube_read_r2                                                  ; 95cc: 20 c5 06     .. :066a[3]        ; Read control block byte from R2
+    sta zp_ptr_lo,x                                                   ; 95cf: 95 00       .. :066d[3]         ; Store in zero page params
+    dex                                                               ; 95d1: ca          . :066f[3]          ; Next byte (descending)
+    bpl read_rdln_ctrl_block                                          ; 95d2: 10 f8       .. :0670[3]         ; Loop until all 5 bytes read
+    inx                                                               ; 95d4: e8          . :0672[3]          ; X=0 after loop, A=0 for OSWORD 0 (read line)
+    ldy #0                                                            ; 95d5: a0 00       .. :0673[3]         ; Y=0 for OSWORD 0
+    txa                                                               ; 95d7: 8a          . :0675[3]          ; A=0: OSWORD 0 (read line)
+    jsr osword                                                        ; 95d8: 20 f1 ff     .. :0676[3]        ; Read input line from keyboard
+    bcc tube_rdln_send_line                                           ; 95db: 90 05       .. :0679[3]         ; C=0: line read OK; C=1: escape pressed
+    lda #&ff                                                          ; 95dd: a9 ff       .. :067b[3]         ; &FF = escape/error signal to co-processor
+    jmp tube_reply_byte                                               ; 95df: 4c 9e 05    L.. :067d[3]        ; Escape: send &FF error to co-processor
 ; &0680 referenced 1 time by &95db
 .tube_rdln_send_line
-    ldx #0                                                            ; 95e2: a2 00       .. :0680[4]         ; X=0: start of input buffer at &0700
-    lda #&7f                                                          ; 95e4: a9 7f       .. :0682[4]         ; &7F = line read successfully
-    jsr tube_send_r2                                                  ; 95e6: 20 95 06     .. :0684[4]        ; Send &7F (success) to co-processor
+    ldx #0                                                            ; 95e2: a2 00       .. :0680[3]         ; X=0: start of input buffer at &0700
+    lda #&7f                                                          ; 95e4: a9 7f       .. :0682[3]         ; &7F = line read successfully
+    jsr tube_send_r2                                                  ; 95e6: 20 95 06     .. :0684[3]        ; Send &7F (success) to co-processor
 ; &0687 referenced 1 time by &95f2
 .tube_rdln_send_loop
-    lda string_buf,x                                                  ; 95e9: bd 00 07    ... :0687[4]        ; Load char from input buffer
+    lda string_buf,x                                                  ; 95e9: bd 00 07    ... :0687[3]        ; Load char from input buffer
 .tube_rdln_send_byte
-    jsr tube_send_r2                                                  ; 95ec: 20 95 06     .. :068a[4]        ; Send char to co-processor
-    inx                                                               ; 95ef: e8          . :068d[4]          ; Next character
-    cmp #&0d                                                          ; 95f0: c9 0d       .. :068e[4]         ; Check for CR terminator
-    bne tube_rdln_send_loop                                           ; 95f2: d0 f5       .. :0690[4]         ; Loop until CR terminator sent
-    jmp tube_main_loop                                                ; 95f4: 4c 36 00    L6. :0692[4]        ; Return to main event loop
+    jsr tube_send_r2                                                  ; 95ec: 20 95 06     .. :068a[3]        ; Send char to co-processor
+    inx                                                               ; 95ef: e8          . :068d[3]          ; Next character
+    cmp #&0d                                                          ; 95f0: c9 0d       .. :068e[3]         ; Check for CR terminator
+    bne tube_rdln_send_loop                                           ; 95f2: d0 f5       .. :0690[3]         ; Loop until CR terminator sent
+    jmp tube_main_loop                                                ; 95f4: 4c 36 00    L6. :0692[3]        ; Return to main event loop
 ; ***************************************************************************************
 ; Send byte to Tube data register R2
 ;
@@ -1275,10 +1250,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; control-block bytes.
 ; &0695 referenced 14 times by &932b, &9331, &9337, &93d6, &949d, &94d4, &94db, &9524, &952b, &954a, &957c, &95e6, &95ec, &95fa
 .tube_send_r2
-    bit tube_status_register_2                                        ; 95f7: 2c e2 fe    ,.. :0695[4]        ; Poll R2 status (bit 6 = ready)
-    bvc tube_send_r2                                                  ; 95fa: 50 fb       P. :0698[4]         ; Not ready: keep polling
-    sta tube_data_register_2                                          ; 95fc: 8d e3 fe    ... :069a[4]        ; Write A to Tube R2 data register
-    rts                                                               ; 95ff: 60          ` :069d[4]          ; Return to caller
+    bit tube_status_register_2                                        ; 95f7: 2c e2 fe    ,.. :0695[3]        ; Poll R2 status (bit 6 = ready)
+    bvc tube_send_r2                                                  ; 95fa: 50 fb       P. :0698[3]         ; Not ready: keep polling
+    sta tube_data_register_2                                          ; 95fc: 8d e3 fe    ... :069a[3]        ; Write A to Tube R2 data register
+    rts                                                               ; 95ff: 60          ` :069d[3]          ; Return to caller
 ; ***************************************************************************************
 ; Send byte to Tube data register R4
 ;
@@ -1288,25 +1263,25 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; primarily during tube_release_claim and tube_transfer_setup sequences.
 ; &069e referenced 8 times by &9323, &937a, &937f, &939d, &93a5, &93aa, &93c5, &9603
 .tube_send_r4
-    bit tube_status_register_4_and_cpu_control                        ; 9600: 2c e6 fe    ,.. :069e[4]        ; Poll R4 status (bit 6 = ready)
-    bvc tube_send_r4                                                  ; 9603: 50 fb       P. :06a1[4]         ; Not ready: keep polling
-    sta tube_data_register_4                                          ; 9605: 8d e7 fe    ... :06a3[4]        ; Write A to Tube R4 data register
-    rts                                                               ; 9608: 60          ` :06a6[4]          ; Return to caller
+    bit tube_status_register_4_and_cpu_control                        ; 9600: 2c e6 fe    ,.. :069e[3]        ; Poll R4 status (bit 6 = ready)
+    bvc tube_send_r4                                                  ; 9603: 50 fb       P. :06a1[3]         ; Not ready: keep polling
+    sta tube_data_register_4                                          ; 9605: 8d e7 fe    ... :06a3[3]        ; Write A to Tube R4 data register
+    rts                                                               ; 9608: 60          ` :06a6[3]          ; Return to caller
 ; &06a7 referenced 1 time by &9365
 .tube_escape_check
-    lda escape_flag                                                   ; 9609: a5 ff       .. :06a7[4]         ; Check OS escape flag at &FF
-    sec                                                               ; 960b: 38          8 :06a9[4]          ; SEC+ROR: put bit 7 of &FF into carry+bit 7
-    ror a                                                             ; 960c: 6a          j :06aa[4]          ; ROR: shift escape bit 7 to carry
-    bmi tube_send_r1                                                  ; 960d: 30 0f       0. :06ab[4]         ; Escape set: forward to co-processor via R1
+    lda escape_flag                                                   ; 9609: a5 ff       .. :06a7[3]         ; Check OS escape flag at &FF
+    sec                                                               ; 960b: 38          8 :06a9[3]          ; SEC+ROR: put bit 7 of &FF into carry+bit 7
+    ror a                                                             ; 960c: 6a          j :06aa[3]          ; ROR: shift escape bit 7 to carry
+    bmi tube_send_r1                                                  ; 960d: 30 0f       0. :06ab[3]         ; Escape set: forward to co-processor via R1
 .tube_event_handler
-    pha                                                               ; 960f: 48          H :06ad[4]          ; EVNTV: forward event A, Y, X to co-processor
-    lda #0                                                            ; 9610: a9 00       .. :06ae[4]         ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; 9612: 20 bc 06     .. :06b0[4]        ; Send zero prefix via R1
-    tya                                                               ; 9615: 98          . :06b3[4]          ; Y value for event
-    jsr tube_send_r1                                                  ; 9616: 20 bc 06     .. :06b4[4]        ; Send Y via R1
-    txa                                                               ; 9619: 8a          . :06b7[4]          ; X value for event
-    jsr tube_send_r1                                                  ; 961a: 20 bc 06     .. :06b8[4]        ; Send X via R1
-    pla                                                               ; 961d: 68          h :06bb[4]          ; Restore A (event type)
+    pha                                                               ; 960f: 48          H :06ad[3]          ; EVNTV: forward event A, Y, X to co-processor
+    lda #0                                                            ; 9610: a9 00       .. :06ae[3]         ; Send &00 prefix (event notification)
+    jsr tube_send_r1                                                  ; 9612: 20 bc 06     .. :06b0[3]        ; Send zero prefix via R1
+    tya                                                               ; 9615: 98          . :06b3[3]          ; Y value for event
+    jsr tube_send_r1                                                  ; 9616: 20 bc 06     .. :06b4[3]        ; Send Y via R1
+    txa                                                               ; 9619: 8a          . :06b7[3]          ; X value for event
+    jsr tube_send_r1                                                  ; 961a: 20 bc 06     .. :06b8[3]        ; Send X via R1
+    pla                                                               ; 961d: 68          h :06bb[3]          ; Restore A (event type)
 ; ***************************************************************************************
 ; Send byte to Tube data register R1
 ;
@@ -1317,10 +1292,10 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; set.
 ; &06bc referenced 5 times by &960d, &9612, &9616, &961a, &9621
 .tube_send_r1
-    bit tube_status_1_and_tube_control                                ; 961e: 2c e0 fe    ,.. :06bc[4]        ; Poll R1 status (bit 6 = ready)
-    bvc tube_send_r1                                                  ; 9621: 50 fb       P. :06bf[4]         ; Not ready: keep polling
-    sta tube_data_register_1                                          ; 9623: 8d e1 fe    ... :06c1[4]        ; Write A to Tube R1 data register
-    rts                                                               ; 9626: 60          ` :06c4[4]          ; Return to caller
+    bit tube_status_1_and_tube_control                                ; 961e: 2c e0 fe    ,.. :06bc[3]        ; Poll R1 status (bit 6 = ready)
+    bvc tube_send_r1                                                  ; 9621: 50 fb       P. :06bf[3]         ; Not ready: keep polling
+    sta tube_data_register_1                                          ; 9623: 8d e1 fe    ... :06c1[3]        ; Write A to Tube R1 data register
+    rts                                                               ; 9626: 60          ` :06c4[3]          ; Return to caller
 ; ***************************************************************************************
 ; Read a byte from Tube data register R2
 ;
@@ -1329,78 +1304,23 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; parameters from the co-processor.
 ; &06c5 referenced 21 times by &9482, &9486, &948f, &94a4, &94b4, &94c0, &94c6, &94ce, &94e8, &950d, &951e, &9535, &953d, &9554, &9558, &9569, &956d, &9571, &9589, &95cc, &962a
 .tube_read_r2
-    bit tube_status_register_2                                        ; 9627: 2c e2 fe    ,.. :06c5[4]        ; Poll R2 status (bit 7 = ready)
-    bpl tube_read_r2                                                  ; 962a: 10 fb       .. :06c8[4]         ; Not ready: keep polling
-    lda tube_data_register_2                                          ; 962c: ad e3 fe    ... :06ca[4]        ; Read data byte from R2
-    rts                                                               ; 962f: 60          ` :06cd[4]          ; Return with byte in A
-.trampoline_tx_setup
-    jmp tx_begin                                                      ; 9630: 4c 6e 9b    Ln. :06ce[4]        ; Trampoline: begin TX operation
-.trampoline_adlc_init
-    jmp adlc_init                                                     ; 9633: 4c 7a 96    Lz. :06d1[4]        ; Trampoline: full ADLC init
-.svc_12_nmi_release
-    jmp wait_idle_and_reset                                           ; 9636: 4c 57 9f    LW. :06d4[4]        ; Trampoline: wait idle and reset
-.svc_11_nmi_claim
-    jmp init_nmi_workspace                                            ; 9639: 4c 98 96    L.. :06d7[4]        ; Trampoline: init NMI workspace
-; ***************************************************************************************
-; Service 5: unrecognised interrupt (SR dispatch)
-;
-; Delivers work deferred out of the Econet NMI handler. imm_op_build_reply arms the
-; system VIA shift register as a one-shot delayed interrupt source: free-running in φ2
-; shift-in mode it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles
-; after arming — by which time the NMI receive handler has already returned — and that
-; raises an ordinary IRQ which reaches the ROM here as service call &05 (unrecognised
-; interrupt). This is how a remote operation is bounced out of NMI context into the
-; normal IRQ path, where it is safe to JSR into user code or call OS routines.
-;
-; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
-; is not set, returns A=5 to pass the service call on. If SR is set, it dispatches via
-; svc5_dispatch_lo to the deferred handler — a remote JSR, user/OS procedure call, halt
-; or continue.
-;
-; For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the current LSTAT
-; protection mask (prot_status at &0D63) to saved_jsr_mask (the OLDJSR copy) and ORs in
-; bits 2-4 (ORA #&1C). Raising these bits means that while the deferred remote routine
-; runs it cannot itself trigger another remote execute operation — re-entrancy
-; protection. clear_jsr_protection restores the saved OLDJSR mask once the call returns.
-; HALT/CONTINUE (&86/&87) run no caller code, so they skip the save/raise.
-;
-; On Entry:
-;     A: 5 (service call number)
-;     X: ROM slot
-;     Y: parameter
-    lda #4                                                            ; 963c: a9 04       .. :06da[4]         ; A=4: SR interrupt bit mask
-    bit system_via_ifr                                                ; 963e: 2c 4d fe    ,M. :06dc[4]        ; Test SR flag in VIA IFR
-    bne handle_sr_intr                                                ; 9641: d0 03       .. :06df[4]         ; SR active: handle interrupt
-    lda #5                                                            ; 9643: a9 05       .. :06e1[4]         ; A=5: NMI not for us
-    rts                                                               ; 9645: 60          ` :06e3[4]          ; Return (NMI not claimed)
-; &06e4 referenced 1 time by &9641
-.handle_sr_intr
-    txa                                                               ; 9646: 8a          . :06e4[4]          ; Save X on stack
-    pha                                                               ; 9647: 48          H :06e5[4]          ; Push X for later restore
-    tya                                                               ; 9648: 98          . :06e6[4]          ; Save Y on stack
-    pha                                                               ; 9649: 48          H :06e7[4]          ; Push Y for later restore
-    lda system_via_acr                                                ; 964a: ad 4b fe    .K. :06e8[4]        ; Read VIA auxiliary control reg
-    and #&e3                                                          ; 964d: 29 e3       ). :06eb[4]         ; Mask shift register bits
-    ora tx_work_51                                                    ; 964f: 0d 51 0d    .Q. :06ed[4]        ; OR in TX shift register mode
-    sta system_via_acr                                                ; 9652: 8d 4b fe    .K. :06f0[4]        ; Write back ACR with SR mode
-    lda system_via_sr                                                 ; 9655: ad 4a fe    .J. :06f3[4]        ; Read SR to clear shift complete
-    lda #4                                                            ; 9658: a9 04       .. :06f6[4]         ; A=4: SR interrupt bit
-    sta system_via_ifr                                                ; 965a: 8d 4d fe    .M. :06f8[4]        ; Clear SR interrupt flag
-    sta system_via_ier                                                ; 965d: 8d 4e fe    .N. :06fb[4]        ; Disable SR interrupt
-    equb &ac, &57                                                     ; 9660: ac 57       .W :06fe[4]         ; A=5: NMI not for us
+    bit tube_status_register_2                                        ; 9627: 2c e2 fe    ,.. :06c5[3]        ; Poll R2 status (bit 7 = ready)
+    bpl tube_read_r2                                                  ; 962a: 10 fb       .. :06c8[3]         ; Not ready: keep polling
+    lda tube_data_register_2                                          ; 962c: ad e3 fe    ... :06ca[3]        ; Read data byte from R2
+    rts                                                               ; 962f: 60          ` :06cd[3]          ; Return with byte in A
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_page6_start, *, reloc_p6_src
+    copyblock tube_dispatch_table, *, reloc_p5_src
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear tube_page6_start, &0700
+    clear tube_dispatch_table, &06ce
 
     ; Set the program counter to the next position in the binary file.
-    org reloc_p6_src + (* - tube_page6_start)
+    org reloc_p5_src + (* - tube_dispatch_table)
 
 
     org &8000
@@ -6446,8 +6366,65 @@ cmd_match_data = fs_cmd_match_table+1
     equb &85, &c2                                                     ; 931e: 85 c2       ..       ; OSBYTE &85: read cursor position
     equb &c3                                                          ; 9320: c3          .        ; OSBYTE &C3: read screen start address
 
-    org &9662
-    equb &0d                                                          ; 9662: 0d          .        ; CR terminator for VDU state data
+    org &9630
+; &9630 referenced 2 times by &861a, &8ed9
+.start_adlc_tx
+    jmp tx_begin                                                      ; 9630: 4c 6e 9b    Ln.      ; Trampoline: begin TX operation
+; &9633 referenced 1 time by &831d
+.init_adlc_hw
+    jmp adlc_init                                                     ; 9633: 4c 7a 96    Lz.      ; Trampoline: full ADLC init
+.econet_save
+    jmp wait_idle_and_reset                                           ; 9636: 4c 57 9f    LW.      ; Trampoline: wait idle and reset
+.econet_restore
+    jmp init_nmi_workspace                                            ; 9639: 4c 98 96    L..      ; Trampoline: init NMI workspace
+; ***************************************************************************************
+; Service 5: unrecognised interrupt (SR dispatch)
+;
+; Delivers work deferred out of the Econet NMI handler. imm_op_build_reply arms the
+; system VIA shift register as a one-shot delayed interrupt source: free-running in φ2
+; shift-in mode it sets the SR-complete flag (IFR bit 2) a fixed, short number of cycles
+; after arming — by which time the NMI receive handler has already returned — and that
+; raises an ordinary IRQ which reaches the ROM here as service call &05 (unrecognised
+; interrupt). This is how a remote operation is bounced out of NMI context into the
+; normal IRQ path, where it is safe to JSR into user code or call OS routines.
+;
+; Tests IFR bit 2 (SR complete) to confirm the shift register transfer completed. If SR
+; is not set, returns A=5 to pass the service call on. If SR is set, it dispatches via
+; svc5_dispatch_lo to the deferred handler — a remote JSR, user/OS procedure call, halt
+; or continue.
+;
+; For an execute-class op (ctrl < &86: &83/&84/&85) it first saves the current LSTAT
+; protection mask (prot_status at &0D63) to saved_jsr_mask (the OLDJSR copy) and ORs in
+; bits 2-4 (ORA #&1C). Raising these bits means that while the deferred remote routine
+; runs it cannot itself trigger another remote execute operation — re-entrancy
+; protection. clear_jsr_protection restores the saved OLDJSR mask once the call returns.
+; HALT/CONTINUE (&86/&87) run no caller code, so they skip the save/raise.
+;
+; On Entry:
+;     A: 5 (service call number)
+;     X: ROM slot
+;     Y: parameter
+.svc5_irq_check
+    lda #4                                                            ; 963c: a9 04       ..       ; A=4: SR interrupt bit mask
+    bit system_via_ifr                                                ; 963e: 2c 4d fe    ,M.      ; Test SR flag in VIA IFR
+    bne handle_sr_intr                                                ; 9641: d0 03       ..       ; SR active: handle interrupt
+    lda #5                                                            ; 9643: a9 05       ..       ; A=5: NMI not for us
+    rts                                                               ; 9645: 60          `        ; Return (NMI not claimed)
+; &9646 referenced 1 time by &9641
+.handle_sr_intr
+    txa                                                               ; 9646: 8a          .        ; Save X on stack
+    pha                                                               ; 9647: 48          H        ; Push X for later restore
+    tya                                                               ; 9648: 98          .        ; Save Y on stack
+    pha                                                               ; 9649: 48          H        ; Push Y for later restore
+    lda system_via_acr                                                ; 964a: ad 4b fe    .K.      ; Read VIA auxiliary control reg
+    and #&e3                                                          ; 964d: 29 e3       ).       ; Mask shift register bits
+    ora tx_work_51                                                    ; 964f: 0d 51 0d    .Q.      ; OR in TX shift register mode
+    sta system_via_acr                                                ; 9652: 8d 4b fe    .K.      ; Write back ACR with SR mode
+    lda system_via_sr                                                 ; 9655: ad 4a fe    .J.      ; Read SR to clear shift complete
+    lda #4                                                            ; 9658: a9 04       ..       ; A=4: SR interrupt bit
+    sta system_via_ifr                                                ; 965a: 8d 4d fe    .M.      ; Clear SR interrupt flag
+    sta system_via_ier                                                ; 965d: 8d 4e fe    .N.      ; Disable SR interrupt
+    ldy tx_work_57                                                    ; 9660: ac 57 0d    .W.      ; Load deferred operation type
     cpy #&86                                                          ; 9663: c0 86       ..       ; Y >= &86: above dispatch range
     bcs dispatch_svc5                                                 ; 9665: b0 0b       ..       ; Out of range: skip protection
     lda prot_status                                                   ; 9667: ad 63 0d    .c.      ; Save current JSR protection mask
@@ -8791,6 +8768,7 @@ save pydis_start, pydis_end
 ;     tube_init_reloc:                          2
 ;     tube_osword_pb:                           2
 ;     tube_osword_read_lp:                      2
+;     tube_poll_r2_result:                      2
 ;     tube_rdch_reply:                          2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
@@ -8806,6 +8784,7 @@ save pydis_start, pydis_end
 ;     tx_store_result:                          2
 ;     tx_tdra_error:                            2
 ;     tx_work_51:                               2
+;     tx_work_57:                               2
 ;     zp_work_2:                                2
 ;     accept_frame:                             1
 ;     accept_local_net:                         1
@@ -9241,7 +9220,6 @@ save pydis_start, pydis_end
 ;     tube_osword_write_lp:                     1
 ;     tube_page6_start:                         1
 ;     tube_poll_r2:                             1
-;     tube_poll_r2_result:                      1
 ;     tube_post_init:                           1
 ;     tube_rdln_send_line:                      1
 ;     tube_rdln_send_loop:                      1
@@ -9270,7 +9248,6 @@ save pydis_start, pydis_end
 ;     tx_src_net:                               1
 ;     tx_store_error:                           1
 ;     tx_success_exit:                          1
-;     tx_work_57:                               1
 ;     txcb_dest:                                1
 ;     txcb_pos:                                 1
 ;     update_sequence_return:                   1
@@ -9290,11 +9267,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7560 bytes (92%)
-;     Data                     = 632 bytes (8%)
+;     Code                     = 7565 bytes (92%)
+;     Data                     = 627 bytes (8%)
 ;
-;     Number of instructions   = 3667
-;     Number of data bytes     = 350 bytes
+;     Number of instructions   = 3669
+;     Number of data bytes     = 345 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 230 bytes
 ;     Number of strings        = 36

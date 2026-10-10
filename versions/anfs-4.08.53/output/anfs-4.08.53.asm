@@ -231,10 +231,6 @@ vdu_mode                               = &0355
 ; &0355 referenced 3 times by &8c28, &acd2, &acd7
 string_buf                             = &0700
 ; &0700 used as index base 2 times by &bd19, &be17
-tube_vdu_stream_end                    = &072c
-; &072c referenced 1 time by &be77
-tube_vdu_normal_byte                   = &072e
-; &072e referenced 2 times by &be60, &be66
 nmi_code_base                          = &0cff
 ; &0cff used as index base 1 time by &808e
 nmi_romsel                             = &0d07
@@ -508,10 +504,8 @@ filename_buf                           = &10f3
 ; &10f3 used as index base 4 times by &9a2c, &9b93, &9b9b, &9ba9
 false_ref_6f6e                         = &6f6e
 ; &6f6e referenced 1 time by &b484
-tube_vdu_dispatch                      = &be5e
-; &be5e referenced 1 time by &8a33
-loop_poll_r1_vdu_rom                   = &be6f
-; &be6f referenced 1 time by &be7c
+reloc_p6_src                           = &bd90
+; &bd90 used as index base 1 time by &bea6
 station_id_disable_net_nmis            = &fe18
 ; &fe18 referenced 15 times by &8069, &80a1, &80bd, &81e6, &831b, &85f5, &85f8, &8711, &874e, &87b7, &8884, &898c, &898f, &899d, &8f23
 video_ula_control                      = &fe20
@@ -587,7 +581,7 @@ oscli                                  = &fff7
     org &bc90
 .reloc_p5_src
 
-; Move 1: &bc90 to &0500 for length 256
+; Move 1: &bc90 to &0500 for length 462
     org &0500
 ; &0500 referenced 1 time by &bef9; also used as index base 1 time by &bea3
 .tube_r2_dispatch_table
@@ -829,37 +823,17 @@ oscli                                  = &fff7
     tax                                                               ; bd85: aa          . :05f5[1]          ; Transfer to X register
     jsr tube_read_r2                                                  ; bd86: 20 c5 06     .. :05f6[1]        ; Read A (OSBYTE function code) from R2
     jsr osbyte                                                        ; bd89: 20 f4 ff     .. :05f9[1]        ; Execute OSBYTE A,X
-; &05fc referenced 1 time by &bdb5
+; &05fc referenced 2 times by &bd8f, &bdb5
 .tube_poll_r2_result
     bit tube_status_register_2                                        ; bd8c: 2c e2 fe    ,.. :05fc[1]        ; Poll R2 status for result send
-    equb &50                                                          ; bd8f: 50          P :05ff[1]          ; BVC: page 5/6 boundary straddle
-
-
-    ; Copy the newly assembled block of code back to it's proper place in the binary
-    ; file.
-    ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_r2_dispatch_table, *, reloc_p5_src
-
-    ; Clear the area of memory we just temporarily used to assemble the new block,
-    ; allowing us to assemble there again if needed
-    clear tube_r2_dispatch_table, &0600
-
-    ; Set the program counter to the next position in the binary file.
-    org reloc_p5_src + (* - tube_r2_dispatch_table)
-
-
-    org &bd90
-.reloc_p6_src
-
-; Move 2: &bd90 to &0600 for length 256
-    org &0600
-; &0600 used as index base 1 time by &bea9
-.tube_osbyte_reply_block
-    equb &fb                                                          ; bd90: fb          . :0600[2]          ; Send carry+status to co-processor via R2
-    stx tube_data_register_2                                          ; bd91: 8e e3 fe    ... :0601[2]        ; Send X result for 2-param OSBYTE
+.tube_poll_r2_result_branch
+; &bd90 used as index base 1 time by &bea9
+tube_osbyte_reply_block = tube_poll_r2_result_branch+1
+    bvc tube_poll_r2_result                                           ; bd8f: 50 fb       P. :05ff[1]         ; Loop while R2 status bit 6 (V) clear — wait for result-send ready
+    stx tube_data_register_2                                          ; bd91: 8e e3 fe    ... :0601[1]        ; Send X result for 2-param OSBYTE
 ; &0604 referenced 1 time by &bda7
 .bytex
-    jmp tube_main_loop                                                ; bd94: 4c 36 00    L6. :0604[2]        ; Return to main event loop
+    jmp tube_main_loop                                                ; bd94: 4c 36 00    L6. :0604[1]        ; Return to main event loop
 ; ***************************************************************************************
 ; Tube OSBYTE 3-param handler (R2 cmd 3)
 ;
@@ -867,23 +841,23 @@ oscli                                  = &fff7
 ; bytes via R2. Used for OSBYTE calls needing all three parameters and returning both X
 ; and Y results.
 .tube_osbyte_long
-    jsr tube_read_r2                                                  ; bd97: 20 c5 06     .. :0607[2]        ; Read X, Y, A from R2 for 3-param OSBYTE
-    tax                                                               ; bd9a: aa          . :060a[2]          ; Save in X
-    jsr tube_read_r2                                                  ; bd9b: 20 c5 06     .. :060b[2]        ; Read Y parameter from co-processor
-    tay                                                               ; bd9e: a8          . :060e[2]          ; Save in Y
-    jsr tube_read_r2                                                  ; bd9f: 20 c5 06     .. :060f[2]        ; Read A (OSBYTE function code)
-    jsr osbyte                                                        ; bda2: 20 f4 ff     .. :0612[2]        ; Execute OSBYTE A,X,Y
-    eor #&9d                                                          ; bda5: 49 9d       I. :0615[2]         ; Test for OSBYTE &9D (fast Tube BPUT)
-    beq bytex                                                         ; bda7: f0 eb       .. :0617[2]         ; OSBYTE &9D (fast Tube BPUT): no result needed
-    ror a                                                             ; bda9: 6a          j :0619[2]          ; Encode carry (error flag) into bit 7
-    jsr tube_send_r2                                                  ; bdaa: 20 95 06     .. :061a[2]        ; Send carry+status byte via R2
+    jsr tube_read_r2                                                  ; bd97: 20 c5 06     .. :0607[1]        ; Read X, Y, A from R2 for 3-param OSBYTE
+    tax                                                               ; bd9a: aa          . :060a[1]          ; Save in X
+    jsr tube_read_r2                                                  ; bd9b: 20 c5 06     .. :060b[1]        ; Read Y parameter from co-processor
+    tay                                                               ; bd9e: a8          . :060e[1]          ; Save in Y
+    jsr tube_read_r2                                                  ; bd9f: 20 c5 06     .. :060f[1]        ; Read A (OSBYTE function code)
+    jsr osbyte                                                        ; bda2: 20 f4 ff     .. :0612[1]        ; Execute OSBYTE A,X,Y
+    eor #&9d                                                          ; bda5: 49 9d       I. :0615[1]         ; Test for OSBYTE &9D (fast Tube BPUT)
+    beq bytex                                                         ; bda7: f0 eb       .. :0617[1]         ; OSBYTE &9D (fast Tube BPUT): no result needed
+    ror a                                                             ; bda9: 6a          j :0619[1]          ; Encode carry (error flag) into bit 7
+    jsr tube_send_r2                                                  ; bdaa: 20 95 06     .. :061a[1]        ; Send carry+status byte via R2
 ; &061d referenced 1 time by &bdb0
 .tube_osbyte_send_y
-    bit tube_status_register_2                                        ; bdad: 2c e2 fe    ,.. :061d[2]        ; Poll R2 status for ready
-    bvc tube_osbyte_send_y                                            ; bdb0: 50 fb       P. :0620[2]         ; Not ready: keep polling
-    sty tube_data_register_2                                          ; bdb2: 8c e3 fe    ... :0622[2]        ; Send Y result, then fall through to send X
+    bit tube_status_register_2                                        ; bdad: 2c e2 fe    ,.. :061d[1]        ; Poll R2 status for ready
+    bvc tube_osbyte_send_y                                            ; bdb0: 50 fb       P. :0620[1]         ; Not ready: keep polling
+    sty tube_data_register_2                                          ; bdb2: 8c e3 fe    ... :0622[1]        ; Send Y result, then fall through to send X
 .tube_osbyte_short
-    bvs tube_poll_r2_result                                           ; bdb5: 70 d5       p. :0625[2]         ; BVS always: jump to send X via R2
+    bvs tube_poll_r2_result                                           ; bdb5: 70 d5       p. :0625[1]         ; BVS always: jump to send X via R2
 ; ***************************************************************************************
 ; Tube OSWORD handler (R2 cmd 4)
 ;
@@ -891,50 +865,50 @@ oscli                                  = &fff7
 ; Calls OSWORD (&FFF1), then sends the out-length result bytes from the parameter block
 ; back via R2. Returns to the main loop via tube_return_main.
 .tube_osword
-    jsr tube_read_r2                                                  ; bdb7: 20 c5 06     .. :0627[2]        ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
-    tay                                                               ; bdba: a8          . :062a[2]          ; Save OSWORD number in Y
+    jsr tube_read_r2                                                  ; bdb7: 20 c5 06     .. :0627[1]        ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
+    tay                                                               ; bdba: a8          . :062a[1]          ; Save OSWORD number in Y
 ; &062b referenced 1 time by &bdbe
 .tube_osword_read
-    bit tube_status_register_2                                        ; bdbb: 2c e2 fe    ,.. :062b[2]        ; Poll R2 status for data ready
-    bpl tube_osword_read                                              ; bdbe: 10 fb       .. :062e[2]         ; Not ready: keep polling
+    bit tube_status_register_2                                        ; bdbb: 2c e2 fe    ,.. :062b[1]        ; Poll R2 status for data ready
+    bpl tube_osword_read                                              ; bdbe: 10 fb       .. :062e[1]         ; Not ready: keep polling
 .tube_osbyte_send_x
-    ldx tube_data_register_2                                          ; bdc0: ae e3 fe    ... :0630[2]        ; Read param block length from R2
-    dex                                                               ; bdc3: ca          . :0633[2]          ; DEX: length 0 means no params to read
-    bmi skip_param_read                                               ; bdc4: 30 0f       0. :0634[2]         ; No params (length=0): skip read loop
+    ldx tube_data_register_2                                          ; bdc0: ae e3 fe    ... :0630[1]        ; Read param block length from R2
+    dex                                                               ; bdc3: ca          . :0633[1]          ; DEX: length 0 means no params to read
+    bmi skip_param_read                                               ; bdc4: 30 0f       0. :0634[1]         ; No params (length=0): skip read loop
 ; &0636 referenced 2 times by &bdc9, &bdd2
 .tube_osword_read_lp
-    bit tube_status_register_2                                        ; bdc6: 2c e2 fe    ,.. :0636[2]        ; Poll R2 status for data ready
-    bpl tube_osword_read_lp                                           ; bdc9: 10 fb       .. :0639[2]         ; Not ready: keep polling
-    lda tube_data_register_2                                          ; bdcb: ad e3 fe    ... :063b[2]        ; Read param byte from R2
-    sta tube_osword_pb,x                                              ; bdce: 9d 28 01    .(. :063e[2]        ; Store param bytes into block at &0128
-    dex                                                               ; bdd1: ca          . :0641[2]          ; Next param byte (descending)
-    bpl tube_osword_read_lp                                           ; bdd2: 10 f2       .. :0642[2]         ; Loop until all params read
-    tya                                                               ; bdd4: 98          . :0644[2]          ; Restore OSWORD number from Y
+    bit tube_status_register_2                                        ; bdc6: 2c e2 fe    ,.. :0636[1]        ; Poll R2 status for data ready
+    bpl tube_osword_read_lp                                           ; bdc9: 10 fb       .. :0639[1]         ; Not ready: keep polling
+    lda tube_data_register_2                                          ; bdcb: ad e3 fe    ... :063b[1]        ; Read param byte from R2
+    sta tube_osword_pb,x                                              ; bdce: 9d 28 01    .(. :063e[1]        ; Store param bytes into block at &0128
+    dex                                                               ; bdd1: ca          . :0641[1]          ; Next param byte (descending)
+    bpl tube_osword_read_lp                                           ; bdd2: 10 f2       .. :0642[1]         ; Loop until all params read
+    tya                                                               ; bdd4: 98          . :0644[1]          ; Restore OSWORD number from Y
 ; &0645 referenced 1 time by &bdc4
 .skip_param_read
-    ldx #<(tube_osword_pb)                                            ; bdd5: a2 28       .( :0645[2]         ; XY=&0128: param block address for OSWORD
-    ldy #>(tube_osword_pb)                                            ; bdd7: a0 01       .. :0647[2]         ; Y=&01: param block at &0128
-    jsr osword                                                        ; bdd9: 20 f1 ff     .. :0649[2]        ; Execute OSWORD with XY=&0128
+    ldx #<(tube_osword_pb)                                            ; bdd5: a2 28       .( :0645[1]         ; XY=&0128: param block address for OSWORD
+    ldy #>(tube_osword_pb)                                            ; bdd7: a0 01       .. :0647[1]         ; Y=&01: param block at &0128
+    jsr osword                                                        ; bdd9: 20 f1 ff     .. :0649[1]        ; Execute OSWORD with XY=&0128
 ; &064c referenced 1 time by &bddf
 .poll_r2_osword_result
-    bit tube_status_register_2                                        ; bddc: 2c e2 fe    ,.. :064c[2]        ; Poll R2 status for ready
-    bpl poll_r2_osword_result                                         ; bddf: 10 fb       .. :064f[2]         ; Not ready: keep polling
-    ldx tube_data_register_2                                          ; bde1: ae e3 fe    ... :0651[2]        ; Read result block length from R2
-    dex                                                               ; bde4: ca          . :0654[2]          ; Decrement result byte counter
-    bmi tube_return_main                                              ; bde5: 30 0e       0. :0655[2]         ; No results to send: return to main loop
+    bit tube_status_register_2                                        ; bddc: 2c e2 fe    ,.. :064c[1]        ; Poll R2 status for ready
+    bpl poll_r2_osword_result                                         ; bddf: 10 fb       .. :064f[1]         ; Not ready: keep polling
+    ldx tube_data_register_2                                          ; bde1: ae e3 fe    ... :0651[1]        ; Read result block length from R2
+    dex                                                               ; bde4: ca          . :0654[1]          ; Decrement result byte counter
+    bmi tube_return_main                                              ; bde5: 30 0e       0. :0655[1]         ; No results to send: return to main loop
 ; &0657 referenced 1 time by &bdf3
 .tube_osword_write
-    ldy tube_osword_pb,x                                              ; bde7: bc 28 01    .(. :0657[2]        ; Send result block bytes from &0128 via R2
+    ldy tube_osword_pb,x                                              ; bde7: bc 28 01    .(. :0657[1]        ; Send result block bytes from &0128 via R2
 ; &065a referenced 1 time by &bded
 .tube_osword_write_lp
-    bit tube_status_register_2                                        ; bdea: 2c e2 fe    ,.. :065a[2]        ; Poll R2 status for ready
-    bvc tube_osword_write_lp                                          ; bded: 50 fb       P. :065d[2]         ; Not ready: keep polling
-    sty tube_data_register_2                                          ; bdef: 8c e3 fe    ... :065f[2]        ; Send result byte via R2
-    dex                                                               ; bdf2: ca          . :0662[2]          ; Next result byte (descending)
-    bpl tube_osword_write                                             ; bdf3: 10 f2       .. :0663[2]         ; Loop until all results sent
+    bit tube_status_register_2                                        ; bdea: 2c e2 fe    ,.. :065a[1]        ; Poll R2 status for ready
+    bvc tube_osword_write_lp                                          ; bded: 50 fb       P. :065d[1]         ; Not ready: keep polling
+    sty tube_data_register_2                                          ; bdef: 8c e3 fe    ... :065f[1]        ; Send result byte via R2
+    dex                                                               ; bdf2: ca          . :0662[1]          ; Next result byte (descending)
+    bpl tube_osword_write                                             ; bdf3: 10 f2       .. :0663[1]         ; Loop until all results sent
 ; &0665 referenced 1 time by &bde5
 .tube_return_main
-    jmp tube_main_loop                                                ; bdf5: 4c 36 00    L6. :0665[2]        ; Return to main event loop
+    jmp tube_main_loop                                                ; bdf5: 4c 36 00    L6. :0665[1]        ; Return to main event loop
 ; ***************************************************************************************
 ; Tube OSWORD 0 handler (R2 cmd 5)
 ;
@@ -943,34 +917,34 @@ oscli                                  = &fff7
 ; &7F+CR or the input line byte-by-byte via R2, followed by &80 (error/escape) or &7F
 ; (success).
 .tube_osword_rdln
-    ldx #4                                                            ; bdf8: a2 04       .. :0668[2]         ; Read 5-byte OSWORD 0 control block from R2
+    ldx #4                                                            ; bdf8: a2 04       .. :0668[1]         ; Read 5-byte OSWORD 0 control block from R2
 ; &066a referenced 1 time by &be00
 .read_rdln_ctrl_block
-    jsr tube_read_r2                                                  ; bdfa: 20 c5 06     .. :066a[2]        ; Read control block byte from R2
-    sta zp_ptr_lo,x                                                   ; bdfd: 95 00       .. :066d[2]         ; Store in zero page params
-    dex                                                               ; bdff: ca          . :066f[2]          ; Next byte (descending)
-    bpl read_rdln_ctrl_block                                          ; be00: 10 f8       .. :0670[2]         ; Loop until all 5 bytes read
-    inx                                                               ; be02: e8          . :0672[2]          ; X=0 after loop, A=0 for OSWORD 0 (read line)
-    ldy #0                                                            ; be03: a0 00       .. :0673[2]         ; Y=0 for OSWORD 0
-    txa                                                               ; be05: 8a          . :0675[2]          ; A=0: OSWORD 0 (read line)
-    jsr osword                                                        ; be06: 20 f1 ff     .. :0676[2]        ; Read input line from keyboard
-    bcc tube_rdln_send_line                                           ; be09: 90 05       .. :0679[2]         ; C=0: line read OK; C=1: escape pressed
-    lda #&ff                                                          ; be0b: a9 ff       .. :067b[2]         ; &FF = escape/error signal to co-processor
-    jmp tube_reply_byte                                               ; be0d: 4c 9e 05    L.. :067d[2]        ; Escape: send &FF error to co-processor
+    jsr tube_read_r2                                                  ; bdfa: 20 c5 06     .. :066a[1]        ; Read control block byte from R2
+    sta zp_ptr_lo,x                                                   ; bdfd: 95 00       .. :066d[1]         ; Store in zero page params
+    dex                                                               ; bdff: ca          . :066f[1]          ; Next byte (descending)
+    bpl read_rdln_ctrl_block                                          ; be00: 10 f8       .. :0670[1]         ; Loop until all 5 bytes read
+    inx                                                               ; be02: e8          . :0672[1]          ; X=0 after loop, A=0 for OSWORD 0 (read line)
+    ldy #0                                                            ; be03: a0 00       .. :0673[1]         ; Y=0 for OSWORD 0
+    txa                                                               ; be05: 8a          . :0675[1]          ; A=0: OSWORD 0 (read line)
+    jsr osword                                                        ; be06: 20 f1 ff     .. :0676[1]        ; Read input line from keyboard
+    bcc tube_rdln_send_line                                           ; be09: 90 05       .. :0679[1]         ; C=0: line read OK; C=1: escape pressed
+    lda #&ff                                                          ; be0b: a9 ff       .. :067b[1]         ; &FF = escape/error signal to co-processor
+    jmp tube_reply_byte                                               ; be0d: 4c 9e 05    L.. :067d[1]        ; Escape: send &FF error to co-processor
 ; &0680 referenced 1 time by &be09
 .tube_rdln_send_line
-    ldx #0                                                            ; be10: a2 00       .. :0680[2]         ; X=0: start of input buffer at &0700
-    lda #&7f                                                          ; be12: a9 7f       .. :0682[2]         ; &7F = line read successfully
-    jsr tube_send_r2                                                  ; be14: 20 95 06     .. :0684[2]        ; Send &7F (success) to co-processor
+    ldx #0                                                            ; be10: a2 00       .. :0680[1]         ; X=0: start of input buffer at &0700
+    lda #&7f                                                          ; be12: a9 7f       .. :0682[1]         ; &7F = line read successfully
+    jsr tube_send_r2                                                  ; be14: 20 95 06     .. :0684[1]        ; Send &7F (success) to co-processor
 ; &0687 referenced 1 time by &be20
 .tube_rdln_send_loop
-    lda string_buf,x                                                  ; be17: bd 00 07    ... :0687[2]        ; Load char from input buffer
+    lda string_buf,x                                                  ; be17: bd 00 07    ... :0687[1]        ; Load char from input buffer
 .tube_rdln_send_byte
-    jsr tube_send_r2                                                  ; be1a: 20 95 06     .. :068a[2]        ; Send char to co-processor
-    inx                                                               ; be1d: e8          . :068d[2]          ; Next character
-    cmp #&0d                                                          ; be1e: c9 0d       .. :068e[2]         ; Check for CR terminator
-    bne tube_rdln_send_loop                                           ; be20: d0 f5       .. :0690[2]         ; Loop until CR terminator sent
-    jmp tube_main_loop                                                ; be22: 4c 36 00    L6. :0692[2]        ; Return to main event loop
+    jsr tube_send_r2                                                  ; be1a: 20 95 06     .. :068a[1]        ; Send char to co-processor
+    inx                                                               ; be1d: e8          . :068d[1]          ; Next character
+    cmp #&0d                                                          ; be1e: c9 0d       .. :068e[1]         ; Check for CR terminator
+    bne tube_rdln_send_loop                                           ; be20: d0 f5       .. :0690[1]         ; Loop until CR terminator sent
+    jmp tube_main_loop                                                ; be22: 4c 36 00    L6. :0692[1]        ; Return to main event loop
 ; ***************************************************************************************
 ; Send byte to Tube data register R2
 ;
@@ -986,10 +960,10 @@ oscli                                  = &fff7
 ;     A: preserved (value written)
 ; &0695 referenced 14 times by &bccb, &bd02, &bd09, &bd52, &bd59, &bd78, &bdaa, &be14, &be1a, &be28, &bec9, &becf, &bed5, &bf74
 .tube_send_r2
-    bit tube_status_register_2                                        ; be25: 2c e2 fe    ,.. :0695[2]        ; Poll R2 status (bit 6 = ready)
-    bvc tube_send_r2                                                  ; be28: 50 fb       P. :0698[2]         ; Not ready: keep polling
-    sta tube_data_register_2                                          ; be2a: 8d e3 fe    ... :069a[2]        ; Write A to Tube R2 data register
-    rts                                                               ; be2d: 60          ` :069d[2]          ; Return to caller
+    bit tube_status_register_2                                        ; be25: 2c e2 fe    ,.. :0695[1]        ; Poll R2 status (bit 6 = ready)
+    bvc tube_send_r2                                                  ; be28: 50 fb       P. :0698[1]         ; Not ready: keep polling
+    sta tube_data_register_2                                          ; be2a: 8d e3 fe    ... :069a[1]        ; Write A to Tube R2 data register
+    rts                                                               ; be2d: 60          ` :069d[1]          ; Return to caller
 ; ***************************************************************************************
 ; Send byte to Tube data register R4
 ;
@@ -1005,25 +979,25 @@ oscli                                  = &fff7
 ;     A: preserved (value written)
 ; &069e referenced 8 times by &be31, &bec1, &bf18, &bf1d, &bf3b, &bf43, &bf48, &bf63
 .tube_send_r4
-    bit tube_status_register_4_and_cpu_control                        ; be2e: 2c e6 fe    ,.. :069e[2]        ; Poll R4 status (bit 6 = ready)
-    bvc tube_send_r4                                                  ; be31: 50 fb       P. :06a1[2]         ; Not ready: keep polling
-    sta tube_data_register_4                                          ; be33: 8d e7 fe    ... :06a3[2]        ; Write A to Tube R4 data register
-    rts                                                               ; be36: 60          ` :06a6[2]          ; Return to caller
+    bit tube_status_register_4_and_cpu_control                        ; be2e: 2c e6 fe    ,.. :069e[1]        ; Poll R4 status (bit 6 = ready)
+    bvc tube_send_r4                                                  ; be31: 50 fb       P. :06a1[1]         ; Not ready: keep polling
+    sta tube_data_register_4                                          ; be33: 8d e7 fe    ... :06a3[1]        ; Write A to Tube R4 data register
+    rts                                                               ; be36: 60          ` :06a6[1]          ; Return to caller
 ; &06a7 referenced 1 time by &bf03
 .tube_escape_check
-    lda escape_flag                                                   ; be37: a5 ff       .. :06a7[2]         ; Check OS escape flag at &FF
-    sec                                                               ; be39: 38          8 :06a9[2]          ; SEC+ROR: put bit 7 of &FF into carry+bit 7
-    ror a                                                             ; be3a: 6a          j :06aa[2]          ; ROR: shift escape bit 7 to carry
-    bmi tube_send_r1                                                  ; be3b: 30 0f       0. :06ab[2]         ; Escape set: forward to co-processor via R1
+    lda escape_flag                                                   ; be37: a5 ff       .. :06a7[1]         ; Check OS escape flag at &FF
+    sec                                                               ; be39: 38          8 :06a9[1]          ; SEC+ROR: put bit 7 of &FF into carry+bit 7
+    ror a                                                             ; be3a: 6a          j :06aa[1]          ; ROR: shift escape bit 7 to carry
+    bmi tube_send_r1                                                  ; be3b: 30 0f       0. :06ab[1]         ; Escape set: forward to co-processor via R1
 .tube_event_handler
-    pha                                                               ; be3d: 48          H :06ad[2]          ; EVNTV: forward event A, Y, X to co-processor
-    lda #0                                                            ; be3e: a9 00       .. :06ae[2]         ; Send &00 prefix (event notification)
-    jsr tube_send_r1                                                  ; be40: 20 bc 06     .. :06b0[2]        ; Send zero prefix via R1
-    tya                                                               ; be43: 98          . :06b3[2]          ; Y value for event
-    jsr tube_send_r1                                                  ; be44: 20 bc 06     .. :06b4[2]        ; Send Y via R1
-    txa                                                               ; be47: 8a          . :06b7[2]          ; X value for event
-    jsr tube_send_r1                                                  ; be48: 20 bc 06     .. :06b8[2]        ; Send X via R1
-    pla                                                               ; be4b: 68          h :06bb[2]          ; Restore A (event type)
+    pha                                                               ; be3d: 48          H :06ad[1]          ; EVNTV: forward event A, Y, X to co-processor
+    lda #0                                                            ; be3e: a9 00       .. :06ae[1]         ; Send &00 prefix (event notification)
+    jsr tube_send_r1                                                  ; be40: 20 bc 06     .. :06b0[1]        ; Send zero prefix via R1
+    tya                                                               ; be43: 98          . :06b3[1]          ; Y value for event
+    jsr tube_send_r1                                                  ; be44: 20 bc 06     .. :06b4[1]        ; Send Y via R1
+    txa                                                               ; be47: 8a          . :06b7[1]          ; X value for event
+    jsr tube_send_r1                                                  ; be48: 20 bc 06     .. :06b8[1]        ; Send X via R1
+    pla                                                               ; be4b: 68          h :06bb[1]          ; Restore A (event type)
 ; ***************************************************************************************
 ; Send byte to Tube data register R1
 ;
@@ -1040,10 +1014,10 @@ oscli                                  = &fff7
 ;     A: preserved (value written)
 ; &06bc referenced 5 times by &be3b, &be40, &be44, &be48, &be4f
 .tube_send_r1
-    bit tube_status_1_and_tube_control                                ; be4c: 2c e0 fe    ,.. :06bc[2]        ; Poll R1 status (bit 6 = ready)
-    bvc tube_send_r1                                                  ; be4f: 50 fb       P. :06bf[2]         ; Not ready: keep polling
-    sta tube_data_register_1                                          ; be51: 8d e1 fe    ... :06c1[2]        ; Write A to Tube R1 data register
-    rts                                                               ; be54: 60          ` :06c4[2]          ; Return to caller
+    bit tube_status_1_and_tube_control                                ; be4c: 2c e0 fe    ,.. :06bc[1]        ; Poll R1 status (bit 6 = ready)
+    bvc tube_send_r1                                                  ; be4f: 50 fb       P. :06bf[1]         ; Not ready: keep polling
+    sta tube_data_register_1                                          ; be51: 8d e1 fe    ... :06c1[1]        ; Write A to Tube R1 data register
+    rts                                                               ; be54: 60          ` :06c4[1]          ; Return to caller
 ; ***************************************************************************************
 ; Read a byte from Tube data register R2
 ;
@@ -1057,114 +1031,88 @@ oscli                                  = &fff7
 ;     A: byte read from R2
 ; &06c5 referenced 21 times by &bcb0, &bcb4, &bcbd, &bcd2, &bce2, &bcee, &bcf4, &bcfc, &bd16, &bd3b, &bd4c, &bd63, &bd6b, &bd82, &bd86, &bd97, &bd9b, &bd9f, &bdb7, &bdfa, &be58
 .tube_read_r2
-    bit tube_status_register_2                                        ; be55: 2c e2 fe    ,.. :06c5[2]        ; Poll R2 status (bit 7 = ready)
-    bpl tube_read_r2                                                  ; be58: 10 fb       .. :06c8[2]         ; Not ready: keep polling
-    lda tube_data_register_2                                          ; be5a: ad e3 fe    ... :06ca[2]        ; Read data byte from R2
-    rts                                                               ; be5d: 60          ` :06cd[2]          ; Return with byte in A
-    cmp #&fe                                                          ; be5e: c9 fe       .. :06ce[2]         ; Is byte &FE (VDU stream start)?
-    bcc tube_vdu_normal_byte                                          ; be60: 90 5c       .\ :06d0[2]         ; Below &FE: normal byte
-    bne setup_tube_vectors                                            ; be62: d0 1b       .. :06d2[2]         ; &FF: set up event/break vectors
-    cpy #0                                                            ; be64: c0 00       .. :06d4[2]         ; &FE: check Y parameter
-    beq tube_vdu_normal_byte                                          ; be66: f0 56       .V :06d6[2]         ; Y=0: treat as normal byte
-    ldx #6                                                            ; be68: a2 06       .. :06d8[2]         ; X=6: six extra pages
-    lda #osbyte_explode_chars                                         ; be6a: a9 14       .. :06da[2]         ; OSBYTE &14: explode char defs
-    jsr osbyte                                                        ; be6c: 20 f4 ff     .. :06dc[2]        ; Explode character definition RAM (six extra pages), can redefine all characters 32-255 (X=6)
-; &06df referenced 1 time by &be72
-.loop_poll_r1_vdu
-    bit tube_status_1_and_tube_control                                ; be6f: 2c e0 fe    ,.. :06df[2]        ; Poll R1 status (bit 6 = ready)
-    bpl loop_poll_r1_vdu                                              ; be72: 10 fb       .. :06e2[2]         ; Not ready: keep polling
-    lda tube_data_register_1                                          ; be74: ad e1 fe    ... :06e4[2]        ; Read byte from Tube R1
-    beq tube_vdu_stream_end                                           ; be77: f0 43       .C :06e7[2]         ; Zero: end of VDU stream
-    jsr oswrch                                                        ; be79: 20 ee ff     .. :06e9[2]      
-.svc_11_nmi_claim
-    jmp loop_poll_r1_vdu_rom                                          ; be7c: 4c 6f be    Lo. :06ec[2]        ; Loop back to read next R1 byte
-; &06ef referenced 1 time by &be62
-.setup_tube_vectors
-    lda #&ad                                                          ; be7f: a9 ad       .. :06ef[2]         ; EVNTV low byte (&AD)
-    sta evntv                                                         ; be81: 8d 20 02    . . :06f1[2]        ; Store in EVNTV vector low
-    lda #6                                                            ; be84: a9 06       .. :06f4[2]         ; EVNTV high byte (page 6)
-    sta evntv + 1                                                     ; be86: 8d 21 02    .!. :06f6[2]        ; Store in EVNTV vector high
-    lda #&16                                                          ; be89: a9 16       .. :06f9[2]         ; BRKV low byte (&16)
-    sta brkv                                                          ; be8b: 8d 02 02    ... :06fb[2]        ; Store in BRKV vector
-    lda #0                                                            ; be8e: a9 00       .. :06fe[2]         ; A=0
+    bit tube_status_register_2                                        ; be55: 2c e2 fe    ,.. :06c5[1]        ; Poll R2 status (bit 7 = ready)
+    bpl tube_read_r2                                                  ; be58: 10 fb       .. :06c8[1]         ; Not ready: keep polling
+    lda tube_data_register_2                                          ; be5a: ad e3 fe    ... :06ca[1]        ; Read data byte from R2
+    rts                                                               ; be5d: 60          ` :06cd[1]          ; Return with byte in A
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
     ; file.
     ; (Note the parameter order: 'copyblock <start>,<end>,<dest>')
-    copyblock tube_osbyte_reply_block, *, reloc_p6_src
+    copyblock tube_r2_dispatch_table, *, reloc_p5_src
 
     ; Clear the area of memory we just temporarily used to assemble the new block,
     ; allowing us to assemble there again if needed
-    clear tube_osbyte_reply_block, &0700
+    clear tube_r2_dispatch_table, &06ce
 
     ; Set the program counter to the next position in the binary file.
-    org reloc_p6_src + (* - tube_osbyte_reply_block)
+    org reloc_p5_src + (* - tube_r2_dispatch_table)
 
 
     org &bebf
 .reloc_zp_src
 
-; Move 3: &bebf to &16 for length 66
+; Move 2: &bebf to &16 for length 66
     org &16
 ; &16 used as index base 1 time by &beb7
 .nmi_workspace_start
-    lda #&ff                                                          ; bebf: a9 ff       .. :0016[3]         ; A=&FF: signal error to co-processor via R4
-    jsr tube_send_r4                                                  ; bec1: 20 9e 06     .. :0018[3]        ; Send &FF error signal to Tube R4
-    lda tube_data_register_2                                          ; bec4: ad e3 fe    ... :001b[3]        ; Flush any pending R2 byte
-    lda #0                                                            ; bec7: a9 00       .. :001e[3]         ; A=0: send zero prefix to R2
+    lda #&ff                                                          ; bebf: a9 ff       .. :0016[2]         ; A=&FF: signal error to co-processor via R4
+    jsr tube_send_r4                                                  ; bec1: 20 9e 06     .. :0018[2]        ; Send &FF error signal to Tube R4
+    lda tube_data_register_2                                          ; bec4: ad e3 fe    ... :001b[2]        ; Flush any pending R2 byte
+    lda #0                                                            ; bec7: a9 00       .. :001e[2]         ; A=0: send zero prefix to R2
 .tube_send_zero_r2
-    jsr tube_send_r2                                                  ; bec9: 20 95 06     .. :0020[3]        ; Send zero prefix byte via R2
-    tay                                                               ; becc: a8          . :0023[3]          ; Y=0: start of error block at (&FD)
-    lda (brk_ptr),y                                                   ; becd: b1 fd       .. :0024[3]         ; Load error number from (&FD),0
+    jsr tube_send_r2                                                  ; bec9: 20 95 06     .. :0020[2]        ; Send zero prefix byte via R2
+    tay                                                               ; becc: a8          . :0023[2]          ; Y=0: start of error block at (&FD)
+    lda (brk_ptr),y                                                   ; becd: b1 fd       .. :0024[2]         ; Load error number from (&FD),0
 .tube_send_error_num
-    jsr tube_send_r2                                                  ; becf: 20 95 06     .. :0026[3]        ; Send error number via R2
+    jsr tube_send_r2                                                  ; becf: 20 95 06     .. :0026[2]        ; Send error number via R2
 ; &29 referenced 1 time by &bed9
 .tube_brk_send_loop
-    iny                                                               ; bed2: c8          . :0029[3]          ; Advance to next error string byte
+    iny                                                               ; bed2: c8          . :0029[2]          ; Advance to next error string byte
 .tube_send_error_byte
-    lda (brk_ptr),y                                                   ; bed3: b1 fd       .. :002a[3]         ; Load next error string byte
-    jsr tube_send_r2                                                  ; bed5: 20 95 06     .. :002c[3]        ; Send error string byte via R2
-    tax                                                               ; bed8: aa          . :002f[3]          ; Zero byte = end of error string
-    bne tube_brk_send_loop                                            ; bed9: d0 f7       .. :0030[3]         ; Loop until zero terminator sent
+    lda (brk_ptr),y                                                   ; bed3: b1 fd       .. :002a[2]         ; Load next error string byte
+    jsr tube_send_r2                                                  ; bed5: 20 95 06     .. :002c[2]        ; Send error string byte via R2
+    tax                                                               ; bed8: aa          . :002f[2]          ; Zero byte = end of error string
+    bne tube_brk_send_loop                                            ; bed9: d0 f7       .. :0030[2]         ; Loop until zero terminator sent
 ; &32 referenced 1 time by &bf77
 .tube_reset_stack
-    ldx #&ff                                                          ; bedb: a2 ff       .. :0032[3]         ; Reset stack pointer to top
-    txs                                                               ; bedd: 9a          . :0034[3]          ; TXS: set stack pointer from X
-    cli                                                               ; bede: 58          X :0035[3]          ; Enable interrupts for main loop
+    ldx #&ff                                                          ; bedb: a2 ff       .. :0032[2]         ; Reset stack pointer to top
+    txs                                                               ; bedd: 9a          . :0034[2]          ; TXS: set stack pointer from X
+    cli                                                               ; bede: 58          X :0035[2]          ; Enable interrupts for main loop
 ; &36 referenced 6 times by &bd0f, &bd36, &bd94, &bdf5, &be22, &beed
 .tube_main_loop
-    bit tube_status_1_and_tube_control                                ; bedf: 2c e0 fe    ,.. :0036[3]        ; BIT R1 status: check WRCH request
-    bpl tube_poll_r2                                                  ; bee2: 10 06       .. :0039[3]         ; R1 not ready: check R2 instead
+    bit tube_status_1_and_tube_control                                ; bedf: 2c e0 fe    ,.. :0036[2]        ; BIT R1 status: check WRCH request
+    bpl tube_poll_r2                                                  ; bee2: 10 06       .. :0039[2]         ; R1 not ready: check R2 instead
 ; &3b referenced 1 time by &bef2
 .tube_handle_wrch
-    lda tube_data_register_1                                          ; bee4: ad e1 fe    ... :003b[3]        ; Read character from Tube R1 data
-    jsr oswrch                                                        ; bee7: 20 ee ff     .. :003e[3]      
+    lda tube_data_register_1                                          ; bee4: ad e1 fe    ... :003b[2]        ; Read character from Tube R1 data
+    jsr oswrch                                                        ; bee7: 20 ee ff     .. :003e[2]      
 ; &41 referenced 1 time by &bee2
 .tube_poll_r2
-    bit tube_status_register_2                                        ; beea: 2c e2 fe    ,.. :0041[3]        ; BIT R2 status: check command byte
-    bpl tube_main_loop                                                ; beed: 10 f0       .. :0044[3]         ; R2 not ready: loop back to R1 check
-    bit tube_status_1_and_tube_control                                ; beef: 2c e0 fe    ,.. :0046[3]        ; Re-check R1: WRCH has priority over R2
-    bmi tube_handle_wrch                                              ; bef2: 30 f0       0. :0049[3]         ; R1 ready: handle WRCH first
-    ldx tube_data_register_2                                          ; bef4: ae e3 fe    ... :004b[3]        ; Read command byte from Tube R2 data
-    stx tube_cmd_lo                                                   ; bef7: 86 51       .Q :004e[3]         ; Self-modify JMP low byte for dispatch
+    bit tube_status_register_2                                        ; beea: 2c e2 fe    ,.. :0041[2]        ; BIT R2 status: check command byte
+    bpl tube_main_loop                                                ; beed: 10 f0       .. :0044[2]         ; R2 not ready: loop back to R1 check
+    bit tube_status_1_and_tube_control                                ; beef: 2c e0 fe    ,.. :0046[2]        ; Re-check R1: WRCH has priority over R2
+    bmi tube_handle_wrch                                              ; bef2: 30 f0       0. :0049[2]         ; R1 ready: handle WRCH first
+    ldx tube_data_register_2                                          ; bef4: ae e3 fe    ... :004b[2]        ; Read command byte from Tube R2 data
+    stx tube_cmd_lo                                                   ; bef7: 86 51       .Q :004e[2]         ; Self-modify JMP low byte for dispatch
 .tube_dispatch_cmd
 ; &befa referenced 1 time by &bef7
 tube_cmd_lo = tube_dispatch_cmd+1
-    jmp (tube_r2_dispatch_table)                                      ; bef9: 6c 00 05    l.. :0050[3]        ; Dispatch to handler via indirect JMP
+    jmp (tube_r2_dispatch_table)                                      ; bef9: 6c 00 05    l.. :0050[2]        ; Dispatch to handler via indirect JMP
 ; &53 referenced 2 times by &bfde, &bfee
 .tube_transfer_addr
-    equb &00                                                          ; befc: 00          . :0053[3]          ; Tube transfer address low byte
+    equb &00                                                          ; befc: 00          . :0053[2]          ; Tube transfer address low byte
 ; &54 referenced 3 times by &bfb6, &bfd4, &bff3
 .tube_xfer_page
-    equb &80                                                          ; befd: 80          . :0054[3]          ; Tube transfer page (default &80)
+    equb &80                                                          ; befd: 80          . :0054[2]          ; Tube transfer page (default &80)
 ; &55 referenced 2 times by &bfba, &bffd
 .tube_xfer_addr_2
-    equb &00                                                          ; befe: 00          . :0055[3]          ; Tube transfer address byte 2
+    equb &00                                                          ; befe: 00          . :0055[2]          ; Tube transfer address byte 2
 ; &56 referenced 2 times by &bfbe, &bffb
 .tube_xfer_addr_3
-    equb &00                                                          ; beff: 00          . :0056[3]          ; Tube transfer address byte 3
-    jmp tube_begin                                                    ; bf00: 4c 84 04    L.. :0057[3]        ; JMP to BEGIN startup entry
+    equb &00                                                          ; beff: 00          . :0056[2]          ; Tube transfer address byte 3
+    jmp tube_begin                                                    ; bf00: 4c 84 04    L.. :0057[2]        ; JMP to BEGIN startup entry
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -1183,12 +1131,12 @@ tube_cmd_lo = tube_dispatch_cmd+1
     org &bf00
 .reloc_p4_src
 
-; Move 4: &bf00 to &0400 for length 256
+; Move 3: &bf00 to &0400 for length 256
     org &0400
 ; &0400 used as index base 1 time by &be9d
 .tube_page4_vectors
-    jmp tube_begin                                                    ; bf00: 4c 84 04    L.. :0400[4]        ; JMP to BEGIN startup entry
-    jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[4]        ; JMP to tube_escape_check (&06A7)
+    jmp tube_begin                                                    ; bf00: 4c 84 04    L.. :0400[3]        ; JMP to BEGIN startup entry
+    jmp tube_escape_check                                             ; bf03: 4c a7 06    L.. :0403[3]        ; JMP to tube_escape_check (&06A7)
 ; ***************************************************************************************
 ; Tube address/data dispatch
 ;
@@ -1207,13 +1155,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ;     Y: transfer address high (data transfer only)
 ; &0406 referenced 10 times by &8371, &8445, &8929, &8931, &9fda, &9ff1, &a05d, &a2d4, &bf9a, &bfcf
 .tube_addr_data_dispatch
-    cmp #&80                                                          ; bf06: c9 80       .. :0406[4]         ; A>=&80: address claim; A<&80: data transfer
-    bcc tube_transfer_setup                                           ; bf08: 90 2b       .+ :0408[4]         ; A<&80: data transfer setup (SENDW)
-    cmp #&c0                                                          ; bf0a: c9 c0       .. :040a[4]         ; A>=&C0: new address claim from another host
-    bcs addr_claim_external                                           ; bf0c: b0 1a       .. :040c[4]         ; C=1: external claim, check ownership
-    ora #&40                                                          ; bf0e: 09 40       .@ :040e[4]         ; Map &80-&BF range to &C0-&FF for comparison
-    cmp tube_claimed_id                                               ; bf10: c5 15       .. :0410[4]         ; Is this for our currently-claimed address?
-    bne return_tube_init                                              ; bf12: d0 20       . :0412[4]          ; Not our address: return
+    cmp #&80                                                          ; bf06: c9 80       .. :0406[3]         ; A>=&80: address claim; A<&80: data transfer
+    bcc tube_transfer_setup                                           ; bf08: 90 2b       .+ :0408[3]         ; A<&80: data transfer setup (SENDW)
+    cmp #&c0                                                          ; bf0a: c9 c0       .. :040a[3]         ; A>=&C0: new address claim from another host
+    bcs addr_claim_external                                           ; bf0c: b0 1a       .. :040c[3]         ; C=1: external claim, check ownership
+    ora #&40                                                          ; bf0e: 09 40       .@ :040e[3]         ; Map &80-&BF range to &C0-&FF for comparison
+    cmp tube_claimed_id                                               ; bf10: c5 15       .. :0410[3]         ; Is this for our currently-claimed address?
+    bne return_tube_init                                              ; bf12: d0 20       . :0412[3]          ; Not our address: return
 ; ***************************************************************************************
 ; Release Tube address claim via R4 command 5
 ;
@@ -1223,13 +1171,13 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; claimed-address state to the &80 sentinel.
 ; &0414 referenced 1 time by &bf71
 .tube_release_claim
-    php                                                               ; bf14: 08          . :0414[4]          ; PHP: save interrupt state for release
-    sei                                                               ; bf15: 78          x :0415[4]          ; SEI: disable interrupts during R4 protocol
-    lda #5                                                            ; bf16: a9 05       .. :0416[4]         ; R4 cmd 5: release our address claim
-    jsr tube_send_r4                                                  ; bf18: 20 9e 06     .. :0418[4]        ; Send release command to co-processor
-    lda tube_claimed_id                                               ; bf1b: a5 15       .. :041b[4]         ; Load our currently-claimed address
-    jsr tube_send_r4                                                  ; bf1d: 20 9e 06     .. :041d[4]        ; Send our address as release parameter
-    plp                                                               ; bf20: 28          ( :0420[4]          ; Restore interrupt state
+    php                                                               ; bf14: 08          . :0414[3]          ; PHP: save interrupt state for release
+    sei                                                               ; bf15: 78          x :0415[3]          ; SEI: disable interrupts during R4 protocol
+    lda #5                                                            ; bf16: a9 05       .. :0416[3]         ; R4 cmd 5: release our address claim
+    jsr tube_send_r4                                                  ; bf18: 20 9e 06     .. :0418[3]        ; Send release command to co-processor
+    lda tube_claimed_id                                               ; bf1b: a5 15       .. :041b[3]         ; Load our currently-claimed address
+    jsr tube_send_r4                                                  ; bf1d: 20 9e 06     .. :041d[3]        ; Send our address as release parameter
+    plp                                                               ; bf20: 28          ( :0420[3]          ; Restore interrupt state
 ; ***************************************************************************************
 ; Reset Tube address claim state
 ;
@@ -1238,24 +1186,24 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; tube_release_claim (via fall-through) and during initial workspace setup.
 ; &0421 referenced 1 time by &beaf
 .clear_tube_claim
-    lda #&80                                                          ; bf21: a9 80       .. :0421[4]         ; &80 sentinel: clear address claim
-    sta tube_claimed_id                                               ; bf23: 85 15       .. :0423[4]         ; &80 sentinel = no address currently claimed
-    sta tube_claim_flag                                               ; bf25: 85 14       .. :0425[4]         ; Store to claim-in-progress flag
-    rts                                                               ; bf27: 60          ` :0427[4]          ; Return from tube_post_init
+    lda #&80                                                          ; bf21: a9 80       .. :0421[3]         ; &80 sentinel: clear address claim
+    sta tube_claimed_id                                               ; bf23: 85 15       .. :0423[3]         ; &80 sentinel = no address currently claimed
+    sta tube_claim_flag                                               ; bf25: 85 14       .. :0425[3]         ; Store to claim-in-progress flag
+    rts                                                               ; bf27: 60          ` :0427[3]          ; Return from tube_post_init
 ; &0428 referenced 1 time by &bf0c
 .addr_claim_external
-    asl tube_claim_flag                                               ; bf28: 06 14       .. :0428[4]         ; Another host claiming; check if we're owner
-    bcs accept_new_claim                                              ; bf2a: b0 06       .. :042a[4]         ; C=1: we have an active claim
-    cmp tube_claimed_id                                               ; bf2c: c5 15       .. :042c[4]         ; Compare with our claimed address
-    beq return_tube_init                                              ; bf2e: f0 04       .. :042e[4]         ; Match: return (we already have it)
-    clc                                                               ; bf30: 18          . :0430[4]          ; Not ours: CLC = we don't own this address
-    rts                                                               ; bf31: 60          ` :0431[4]          ; Return with C=0 (claim denied)
+    asl tube_claim_flag                                               ; bf28: 06 14       .. :0428[3]         ; Another host claiming; check if we're owner
+    bcs accept_new_claim                                              ; bf2a: b0 06       .. :042a[3]         ; C=1: we have an active claim
+    cmp tube_claimed_id                                               ; bf2c: c5 15       .. :042c[3]         ; Compare with our claimed address
+    beq return_tube_init                                              ; bf2e: f0 04       .. :042e[3]         ; Match: return (we already have it)
+    clc                                                               ; bf30: 18          . :0430[3]          ; Not ours: CLC = we don't own this address
+    rts                                                               ; bf31: 60          ` :0431[3]          ; Return with C=0 (claim denied)
 ; &0432 referenced 1 time by &bf2a
 .accept_new_claim
-    sta tube_claimed_id                                               ; bf32: 85 15       .. :0432[4]         ; Accept new claim: update our address
+    sta tube_claimed_id                                               ; bf32: 85 15       .. :0432[3]         ; Accept new claim: update our address
 ; &0434 referenced 2 times by &bf12, &bf2e
 .return_tube_init
-    rts                                                               ; bf34: 60          ` :0434[4]          ; Return with address updated
+    rts                                                               ; bf34: 60          ` :0434[3]          ; Return with address updated
 ; ***************************************************************************************
 ; Set up R4 transfer protocol (7-byte sequence)
 ;
@@ -1281,57 +1229,57 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; NMI; PLP; RTS
 ; &0435 referenced 1 time by &bf08
 .tube_transfer_setup
-    php                                                               ; bf35: 08          . :0435[4]          ; PHP: save interrupt state
-    sei                                                               ; bf36: 78          x :0436[4]          ; SEI: disable interrupts for R4 protocol
+    php                                                               ; bf35: 08          . :0435[3]          ; PHP: save interrupt state
+    sei                                                               ; bf36: 78          x :0436[3]          ; SEI: disable interrupts for R4 protocol
 .setup_data_transfer
-    sty tube_data_ptr_hi                                              ; bf37: 84 13       .. :0437[4]         ; Save 16-bit transfer address from (X,Y)
-    stx tube_data_ptr                                                 ; bf39: 86 12       .. :0439[4]         ; Store address pointer low byte
-    jsr tube_send_r4                                                  ; bf3b: 20 9e 06     .. :043b[4]        ; R4 byte 1 of 7: transfer type (A on entry)
-    tax                                                               ; bf3e: aa          . :043e[4]          ; X = transfer type for tube_ctrl_values lookup
-    ldy #3                                                            ; bf3f: a0 03       .. :043f[4]         ; Y=3: loop counter for 4 address bytes
-    lda tube_claimed_id                                               ; bf41: a5 15       .. :0441[4]         ; Load tube_claimed_id (Econet host ownership)
-    jsr tube_send_r4                                                  ; bf43: 20 9e 06     .. :0443[4]        ; R4 byte 2 of 7: claimed_id (Econet extension)
+    sty tube_data_ptr_hi                                              ; bf37: 84 13       .. :0437[3]         ; Save 16-bit transfer address from (X,Y)
+    stx tube_data_ptr                                                 ; bf39: 86 12       .. :0439[3]         ; Store address pointer low byte
+    jsr tube_send_r4                                                  ; bf3b: 20 9e 06     .. :043b[3]        ; R4 byte 1 of 7: transfer type (A on entry)
+    tax                                                               ; bf3e: aa          . :043e[3]          ; X = transfer type for tube_ctrl_values lookup
+    ldy #3                                                            ; bf3f: a0 03       .. :043f[3]         ; Y=3: loop counter for 4 address bytes
+    lda tube_claimed_id                                               ; bf41: a5 15       .. :0441[3]         ; Load tube_claimed_id (Econet host ownership)
+    jsr tube_send_r4                                                  ; bf43: 20 9e 06     .. :0443[3]        ; R4 byte 2 of 7: claimed_id (Econet extension)
 ; &0446 referenced 1 time by &bf4c
 .send_xfer_addr_bytes
-    lda (tube_data_ptr),y                                             ; bf46: b1 12       .. :0446[4]         ; Load address byte at offset Y (big-endian)
-    jsr tube_send_r4                                                  ; bf48: 20 9e 06     .. :0448[4]        ; R4 bytes 3-6 of 7: address Y=3,2,1,0
-    dey                                                               ; bf4b: 88          . :044b[4]          ; Y--: next address byte (3->2->1->0)
-    bpl send_xfer_addr_bytes                                          ; bf4c: 10 f8       .. :044c[4]         ; Y>=0: loop for all 4 address bytes
-    ldy #&18                                                          ; bf4e: a0 18       .. :044e[4]         ; Y=&18: enable Tube control register
-    sty tube_status_1_and_tube_control                                ; bf50: 8c e0 fe    ... :0450[4]        ; Enable Tube interrupt generation
-    lda tube_ctrl_values,x                                            ; bf53: bd 18 05    ... :0453[4]        ; Look up Tube control bits for this xfer type
-    sta tube_status_1_and_tube_control                                ; bf56: 8d e0 fe    ... :0456[4]        ; Apply transfer-specific control bits
-    lsr a                                                             ; bf59: 4a          J :0459[4]          ; LSR 1: shift ctrl bit 1 into C (discarded)
-    lsr a                                                             ; bf5a: 4a          J :045a[4]          ; LSR 2: shift ctrl bit 2 into C (flush flag)
-    bcc skip_r3_flush                                                 ; bf5b: 90 06       .. :045b[4]         ; C=0: not a P-to-H type (only 0/2 flush)
-    bit tube_data_register_3                                          ; bf5d: 2c e5 fe    ,.. :045d[4]        ; Drain R3 FIFO byte 1 (stale data from last xfer)
-    bit tube_data_register_3                                          ; bf60: 2c e5 fe    ,.. :0460[4]        ; Drain R3 FIFO byte 2 (2-byte FIFO ready for fresh data)
+    lda (tube_data_ptr),y                                             ; bf46: b1 12       .. :0446[3]         ; Load address byte at offset Y (big-endian)
+    jsr tube_send_r4                                                  ; bf48: 20 9e 06     .. :0448[3]        ; R4 bytes 3-6 of 7: address Y=3,2,1,0
+    dey                                                               ; bf4b: 88          . :044b[3]          ; Y--: next address byte (3->2->1->0)
+    bpl send_xfer_addr_bytes                                          ; bf4c: 10 f8       .. :044c[3]         ; Y>=0: loop for all 4 address bytes
+    ldy #&18                                                          ; bf4e: a0 18       .. :044e[3]         ; Y=&18: enable Tube control register
+    sty tube_status_1_and_tube_control                                ; bf50: 8c e0 fe    ... :0450[3]        ; Enable Tube interrupt generation
+    lda tube_ctrl_values,x                                            ; bf53: bd 18 05    ... :0453[3]        ; Look up Tube control bits for this xfer type
+    sta tube_status_1_and_tube_control                                ; bf56: 8d e0 fe    ... :0456[3]        ; Apply transfer-specific control bits
+    lsr a                                                             ; bf59: 4a          J :0459[3]          ; LSR 1: shift ctrl bit 1 into C (discarded)
+    lsr a                                                             ; bf5a: 4a          J :045a[3]          ; LSR 2: shift ctrl bit 2 into C (flush flag)
+    bcc skip_r3_flush                                                 ; bf5b: 90 06       .. :045b[3]         ; C=0: not a P-to-H type (only 0/2 flush)
+    bit tube_data_register_3                                          ; bf5d: 2c e5 fe    ,.. :045d[3]        ; Drain R3 FIFO byte 1 (stale data from last xfer)
+    bit tube_data_register_3                                          ; bf60: 2c e5 fe    ,.. :0460[3]        ; Drain R3 FIFO byte 2 (2-byte FIFO ready for fresh data)
 ; &0463 referenced 1 time by &bf5b
 .skip_r3_flush
-    jsr tube_send_r4                                                  ; bf63: 20 9e 06     .. :0463[4]        ; R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)
+    jsr tube_send_r4                                                  ; bf63: 20 9e 06     .. :0463[3]        ; R4 byte 7 of 7: trigger/sync (post-LSR ctrl value)
 ; &0466 referenced 1 time by &bf69
 .poll_r4_copro_ack
-    bit tube_status_register_4_and_cpu_control                        ; bf66: 2c e6 fe    ,.. :0466[4]        ; Poll R4 status for co-processor response
-    bvc poll_r4_copro_ack                                             ; bf69: 50 fb       P. :0469[4]         ; Bit 6 clear: not ready, keep polling
-    bcs copro_ack_nmi_check                                           ; bf6b: b0 0d       .. :046b[4]         ; R4 bit 7: co-processor acknowledged transfer
-    cpx #4                                                            ; bf6d: e0 04       .. :046d[4]         ; Type 4 = SENDW (host-to-parasite word xfer)
-    bne skip_nmi_release                                              ; bf6f: d0 11       .. :046f[4]         ; Not SENDW type: skip release path
+    bit tube_status_register_4_and_cpu_control                        ; bf66: 2c e6 fe    ,.. :0466[3]        ; Poll R4 status for co-processor response
+    bvc poll_r4_copro_ack                                             ; bf69: 50 fb       P. :0469[3]         ; Bit 6 clear: not ready, keep polling
+    bcs copro_ack_nmi_check                                           ; bf6b: b0 0d       .. :046b[3]         ; R4 bit 7: co-processor acknowledged transfer
+    cpx #4                                                            ; bf6d: e0 04       .. :046d[3]         ; Type 4 = SENDW (host-to-parasite word xfer)
+    bne skip_nmi_release                                              ; bf6f: d0 11       .. :046f[3]         ; Not SENDW type: skip release path
 ; &0471 referenced 1 time by &bf96
 .tube_sendw_complete
-    jsr tube_release_claim                                            ; bf71: 20 14 04     .. :0471[4]        ; SENDW complete: release, sync, restart
-    jsr tube_send_r2                                                  ; bf74: 20 95 06     .. :0474[4]        ; Sync via R2 send
-    jmp tube_reset_stack                                              ; bf77: 4c 32 00    L2. :0477[4]        ; Restart Tube main loop
+    jsr tube_release_claim                                            ; bf71: 20 14 04     .. :0471[3]        ; SENDW complete: release, sync, restart
+    jsr tube_send_r2                                                  ; bf74: 20 95 06     .. :0474[3]        ; Sync via R2 send
+    jmp tube_reset_stack                                              ; bf77: 4c 32 00    L2. :0477[3]        ; Restart Tube main loop
 ; &047a referenced 1 time by &bf6b
 .copro_ack_nmi_check
-    lsr a                                                             ; bf7a: 4a          J :047a[4]          ; LSR: check bit 0 (NMI used?)
-    bcc skip_nmi_release                                              ; bf7b: 90 05       .. :047b[4]         ; C=0: NMI not used, skip NMI release
-    ldy #&88                                                          ; bf7d: a0 88       .. :047d[4]         ; Release Tube NMI (transfer used interrupts)
-    sty tube_status_1_and_tube_control                                ; bf7f: 8c e0 fe    ... :047f[4]        ; Write &88 to Tube control to release NMI
+    lsr a                                                             ; bf7a: 4a          J :047a[3]          ; LSR: check bit 0 (NMI used?)
+    bcc skip_nmi_release                                              ; bf7b: 90 05       .. :047b[3]         ; C=0: NMI not used, skip NMI release
+    ldy #&88                                                          ; bf7d: a0 88       .. :047d[3]         ; Release Tube NMI (transfer used interrupts)
+    sty tube_status_1_and_tube_control                                ; bf7f: 8c e0 fe    ... :047f[3]        ; Write &88 to Tube control to release NMI
 ; &0482 referenced 2 times by &bf6f, &bf7b
 .skip_nmi_release
-    plp                                                               ; bf82: 28          ( :0482[4]          ; Restore interrupt state
+    plp                                                               ; bf82: 28          ( :0482[3]          ; Restore interrupt state
 .return_tube_xfer
-    rts                                                               ; bf83: 60          ` :0483[4]          ; Return from transfer setup
+    rts                                                               ; bf83: 60          ` :0483[3]          ; Return from transfer setup
 ; ***************************************************************************************
 ; Tube host startup entry (BEGIN)
 ;
@@ -1341,51 +1289,51 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; address.
 ; &0484 referenced 1 time by &bf00
 .tube_begin
-    cli                                                               ; bf84: 58          X :0484[4]          ; BEGIN: enable interrupts for Tube host code
-    bcs claim_addr_ff                                                 ; bf85: b0 11       .. :0485[4]         ; C=1: hard break, claim addr &FF
-    bne check_break_type                                              ; bf87: d0 03       .. :0487[4]         ; C=0, A!=0: re-init path
-    jmp tube_reply_ack                                                ; bf89: 4c 9c 05    L.. :0489[4]        ; Z=1 from C=0 path: just acknowledge
+    cli                                                               ; bf84: 58          X :0484[3]          ; BEGIN: enable interrupts for Tube host code
+    bcs claim_addr_ff                                                 ; bf85: b0 11       .. :0485[3]         ; C=1: hard break, claim addr &FF
+    bne check_break_type                                              ; bf87: d0 03       .. :0487[3]         ; C=0, A!=0: re-init path
+    jmp tube_reply_ack                                                ; bf89: 4c 9c 05    L.. :0489[3]        ; Z=1 from C=0 path: just acknowledge
 ; &048c referenced 1 time by &bf87
 .check_break_type
-    ldx #0                                                            ; bf8c: a2 00       .. :048c[4]         ; X=0 for OSBYTE
-    ldy #&ff                                                          ; bf8e: a0 ff       .. :048e[4]         ; Y=&FF for OSBYTE
-    lda #osbyte_last_break_type                                       ; bf90: a9 fd       .. :0490[4]         ; OSBYTE &FD: what type of reset was this?
-    jsr osbyte                                                        ; bf92: 20 f4 ff     .. :0492[4]        ; Read/Write last break type
-    txa                                                               ; bf95: 8a          . :0495[4]        
-    beq tube_sendw_complete                                           ; bf96: f0 d9       .. :0496[4]         ; Soft break (X=0): re-init Tube and restart
+    ldx #0                                                            ; bf8c: a2 00       .. :048c[3]         ; X=0 for OSBYTE
+    ldy #&ff                                                          ; bf8e: a0 ff       .. :048e[3]         ; Y=&FF for OSBYTE
+    lda #osbyte_last_break_type                                       ; bf90: a9 fd       .. :0490[3]         ; OSBYTE &FD: what type of reset was this?
+    jsr osbyte                                                        ; bf92: 20 f4 ff     .. :0492[3]        ; Read/Write last break type
+    txa                                                               ; bf95: 8a          . :0495[3]        
+    beq tube_sendw_complete                                           ; bf96: f0 d9       .. :0496[3]         ; Soft break (X=0): re-init Tube and restart
 ; &0498 referenced 2 times by &bf85, &bf9d
 .claim_addr_ff
-    lda #&ff                                                          ; bf98: a9 ff       .. :0498[4]         ; Claim address &FF (startup = highest prio)
-    jsr tube_addr_data_dispatch                                       ; bf9a: 20 06 04     .. :049a[4]        ; Request address claim from Tube system
-    bcc claim_addr_ff                                                 ; bf9d: 90 f9       .. :049d[4]         ; C=0: claim failed, retry
-    jsr tube_init_reloc                                               ; bf9f: 20 d2 04     .. :049f[4]        ; Init reloc pointers from ROM header
+    lda #&ff                                                          ; bf98: a9 ff       .. :0498[3]         ; Claim address &FF (startup = highest prio)
+    jsr tube_addr_data_dispatch                                       ; bf9a: 20 06 04     .. :049a[3]        ; Request address claim from Tube system
+    bcc claim_addr_ff                                                 ; bf9d: 90 f9       .. :049d[3]         ; C=0: claim failed, retry
+    jsr tube_init_reloc                                               ; bf9f: 20 d2 04     .. :049f[3]        ; Init reloc pointers from ROM header
 ; &04a2 referenced 1 time by &bfc4
 .next_rom_page
-    lda #7                                                            ; bfa2: a9 07       .. :04a2[4]         ; R4 cmd 7: SENDW to send ROM to parasite
-    jsr tube_claim_default                                            ; bfa4: 20 cb 04     .. :04a4[4]        ; Set up Tube for SENDW transfer
-    ldy #0                                                            ; bfa7: a0 00       .. :04a7[4]         ; Y=0: start at beginning of page
-    sty zp_ptr_lo                                                     ; bfa9: 84 00       .. :04a9[4]         ; Store to zero page pointer low byte
+    lda #7                                                            ; bfa2: a9 07       .. :04a2[3]         ; R4 cmd 7: SENDW to send ROM to parasite
+    jsr tube_claim_default                                            ; bfa4: 20 cb 04     .. :04a4[3]        ; Set up Tube for SENDW transfer
+    ldy #0                                                            ; bfa7: a0 00       .. :04a7[3]         ; Y=0: start at beginning of page
+    sty zp_ptr_lo                                                     ; bfa9: 84 00       .. :04a9[3]         ; Store to zero page pointer low byte
 ; &04ab referenced 1 time by &bfb4
 .send_rom_page_bytes
-    lda (zp_ptr_lo),y                                                 ; bfab: b1 00       .. :04ab[4]         ; Send 256-byte page via R3, byte at a time
-    sta tube_data_register_3                                          ; bfad: 8d e5 fe    ... :04ad[4]        ; Write byte to Tube R3 data register
-    nop                                                               ; bfb0: ea          . :04b0[4]          ; Timing delay: Tube data register needs NOPs
-    nop                                                               ; bfb1: ea          . :04b1[4]          ; NOP delay (2)
-    nop                                                               ; bfb2: ea          . :04b2[4]          ; NOP delay (3)
-    iny                                                               ; bfb3: c8          . :04b3[4]          ; Next byte in page
-    bne send_rom_page_bytes                                           ; bfb4: d0 f5       .. :04b4[4]         ; Loop for all 256 bytes
-    inc tube_xfer_page                                                ; bfb6: e6 54       .T :04b6[4]         ; Increment 24-bit destination addr
-    bne skip_addr_carry                                               ; bfb8: d0 06       .. :04b8[4]         ; No carry: skip higher bytes
-    inc tube_xfer_addr_2                                              ; bfba: e6 55       .U :04ba[4]         ; Carry into second byte
-    bne skip_addr_carry                                               ; bfbc: d0 02       .. :04bc[4]         ; No carry: skip third byte
-    inc tube_xfer_addr_3                                              ; bfbe: e6 56       .V :04be[4]         ; Carry into third byte
+    lda (zp_ptr_lo),y                                                 ; bfab: b1 00       .. :04ab[3]         ; Send 256-byte page via R3, byte at a time
+    sta tube_data_register_3                                          ; bfad: 8d e5 fe    ... :04ad[3]        ; Write byte to Tube R3 data register
+    nop                                                               ; bfb0: ea          . :04b0[3]          ; Timing delay: Tube data register needs NOPs
+    nop                                                               ; bfb1: ea          . :04b1[3]          ; NOP delay (2)
+    nop                                                               ; bfb2: ea          . :04b2[3]          ; NOP delay (3)
+    iny                                                               ; bfb3: c8          . :04b3[3]          ; Next byte in page
+    bne send_rom_page_bytes                                           ; bfb4: d0 f5       .. :04b4[3]         ; Loop for all 256 bytes
+    inc tube_xfer_page                                                ; bfb6: e6 54       .T :04b6[3]         ; Increment 24-bit destination addr
+    bne skip_addr_carry                                               ; bfb8: d0 06       .. :04b8[3]         ; No carry: skip higher bytes
+    inc tube_xfer_addr_2                                              ; bfba: e6 55       .U :04ba[3]         ; Carry into second byte
+    bne skip_addr_carry                                               ; bfbc: d0 02       .. :04bc[3]         ; No carry: skip third byte
+    inc tube_xfer_addr_3                                              ; bfbe: e6 56       .V :04be[3]         ; Carry into third byte
 ; &04c0 referenced 2 times by &bfb8, &bfbc
 .skip_addr_carry
-    inc zp_ptr_hi                                                     ; bfc0: e6 01       .. :04c0[4]         ; Increment page counter
-    bit zp_ptr_hi                                                     ; bfc2: 24 01       $. :04c2[4]         ; Bit 6 set = all pages transferred
-    bvc next_rom_page                                                 ; bfc4: 50 dc       P. :04c4[4]         ; More pages: loop back to SENDW
-    jsr tube_init_reloc                                               ; bfc6: 20 d2 04     .. :04c6[4]        ; Re-init reloc pointers for final claim
-    lda #4                                                            ; bfc9: a9 04       .. :04c9[4]         ; A=4: transfer type for final address claim
+    inc zp_ptr_hi                                                     ; bfc0: e6 01       .. :04c0[3]         ; Increment page counter
+    bit zp_ptr_hi                                                     ; bfc2: 24 01       $. :04c2[3]         ; Bit 6 set = all pages transferred
+    bvc next_rom_page                                                 ; bfc4: 50 dc       P. :04c4[3]         ; More pages: loop back to SENDW
+    jsr tube_init_reloc                                               ; bfc6: 20 d2 04     .. :04c6[3]        ; Re-init reloc pointers for final claim
+    lda #4                                                            ; bfc9: a9 04       .. :04c9[3]         ; A=4: transfer type for final address claim
 ; ***************************************************************************************
 ; Claim default Tube transfer address
 ;
@@ -1394,9 +1342,9 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; the page transfer loop completes.
 ; &04cb referenced 1 time by &bfa4
 .tube_claim_default
-    ldy #0                                                            ; bfcb: a0 00       .. :04cb[4]         ; Y=0: transfer address low byte
-    ldx #&53                                                          ; bfcd: a2 53       .S :04cd[4]         ; X=&53: transfer address high byte (&0053)
-    jmp tube_addr_data_dispatch                                       ; bfcf: 4c 06 04    L.. :04cf[4]        ; Claim Tube address for transfer
+    ldy #0                                                            ; bfcb: a0 00       .. :04cb[3]         ; Y=0: transfer address low byte
+    ldx #&53                                                          ; bfcd: a2 53       .S :04cd[3]         ; X=&53: transfer address high byte (&0053)
+    jmp tube_addr_data_dispatch                                       ; bfcf: 4c 06 04    L.. :04cf[3]        ; Claim Tube address for transfer
 ; ***************************************************************************************
 ; Initialise relocation address for ROM transfer
 ;
@@ -1408,31 +1356,31 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; during tube_begin: once for initial setup and once after each page transfer completes.
 ; &04d2 referenced 2 times by &bf9f, &bfc6
 .tube_init_reloc
-    lda #&80                                                          ; bfd2: a9 80       .. :04d2[4]         ; Init: start sending from &8000
-    sta tube_xfer_page                                                ; bfd4: 85 54       .T :04d4[4]         ; Store &80 as source page high byte
-    sta zp_ptr_hi                                                     ; bfd6: 85 01       .. :04d6[4]         ; Store &80 as page counter initial value
-    lda #&20                                                          ; bfd8: a9 20       . :04d8[4]          ; A=&20: bit 5 mask for ROM type check
-    and rom_type                                                      ; bfda: 2d 06 80    -.. :04da[4]        ; ROM type bit 5: reloc address in header?
-    tay                                                               ; bfdd: a8          . :04dd[4]          ; Y = 0 or &20 (reloc flag)
-    sty tube_transfer_addr                                            ; bfde: 84 53       .S :04de[4]         ; Store as transfer address selector
-    beq store_xfer_end_addr                                           ; bfe0: f0 19       .. :04e0[4]         ; No reloc addr: use defaults
-    ldx copyright_offset                                              ; bfe2: ae 07 80    ... :04e2[4]        ; Skip past copyright string to find reloc addr
+    lda #&80                                                          ; bfd2: a9 80       .. :04d2[3]         ; Init: start sending from &8000
+    sta tube_xfer_page                                                ; bfd4: 85 54       .T :04d4[3]         ; Store &80 as source page high byte
+    sta zp_ptr_hi                                                     ; bfd6: 85 01       .. :04d6[3]         ; Store &80 as page counter initial value
+    lda #&20                                                          ; bfd8: a9 20       . :04d8[3]          ; A=&20: bit 5 mask for ROM type check
+    and rom_type                                                      ; bfda: 2d 06 80    -.. :04da[3]        ; ROM type bit 5: reloc address in header?
+    tay                                                               ; bfdd: a8          . :04dd[3]          ; Y = 0 or &20 (reloc flag)
+    sty tube_transfer_addr                                            ; bfde: 84 53       .S :04de[3]         ; Store as transfer address selector
+    beq store_xfer_end_addr                                           ; bfe0: f0 19       .. :04e0[3]         ; No reloc addr: use defaults
+    ldx copyright_offset                                              ; bfe2: ae 07 80    ... :04e2[3]        ; Skip past copyright string to find reloc addr
 ; &04e5 referenced 1 time by &bfe9
 .scan_copyright_end
-    inx                                                               ; bfe5: e8          . :04e5[4]          ; Skip past null-terminated copyright string
-    lda language_entry,x                                              ; bfe6: bd 00 80    ... :04e6[4]        ; Load next byte from ROM header
-    bne scan_copyright_end                                            ; bfe9: d0 fa       .. :04e9[4]         ; Loop until null terminator found
-    lda rom_header_byte1,x                                            ; bfeb: bd 01 80    ... :04eb[4]        ; Read 4-byte reloc address from ROM header
-    sta tube_transfer_addr                                            ; bfee: 85 53       .S :04ee[4]         ; Store reloc addr byte 1 as transfer addr
-    lda rom_header_byte2,x                                            ; bff0: bd 02 80    ... :04f0[4]        ; Load reloc addr byte 2
-    sta tube_xfer_page                                                ; bff3: 85 54       .T :04f3[4]         ; Store as source page start
-    ldy service_entry,x                                               ; bff5: bc 03 80    ... :04f5[4]        ; Load reloc addr byte 3
-    lda service_handler_lo,x                                          ; bff8: bd 04 80    ... :04f8[4]        ; Load reloc addr byte 4 (highest)
+    inx                                                               ; bfe5: e8          . :04e5[3]          ; Skip past null-terminated copyright string
+    lda language_entry,x                                              ; bfe6: bd 00 80    ... :04e6[3]        ; Load next byte from ROM header
+    bne scan_copyright_end                                            ; bfe9: d0 fa       .. :04e9[3]         ; Loop until null terminator found
+    lda rom_header_byte1,x                                            ; bfeb: bd 01 80    ... :04eb[3]        ; Read 4-byte reloc address from ROM header
+    sta tube_transfer_addr                                            ; bfee: 85 53       .S :04ee[3]         ; Store reloc addr byte 1 as transfer addr
+    lda rom_header_byte2,x                                            ; bff0: bd 02 80    ... :04f0[3]        ; Load reloc addr byte 2
+    sta tube_xfer_page                                                ; bff3: 85 54       .T :04f3[3]         ; Store as source page start
+    ldy service_entry,x                                               ; bff5: bc 03 80    ... :04f5[3]        ; Load reloc addr byte 3
+    lda service_handler_lo,x                                          ; bff8: bd 04 80    ... :04f8[3]        ; Load reloc addr byte 4 (highest)
 ; &04fb referenced 1 time by &bfe0
 .store_xfer_end_addr
-    sta tube_xfer_addr_3                                              ; bffb: 85 56       .V :04fb[4]         ; Store high byte of end address
-    sty tube_xfer_addr_2                                              ; bffd: 84 55       .U :04fd[4]         ; Store byte 3 of end address
-    rts                                                               ; bfff: 60          ` :04ff[4]          ; Return with pointers initialised
+    sta tube_xfer_addr_3                                              ; bffb: 85 56       .V :04fb[3]         ; Store high byte of end address
+    sty tube_xfer_addr_2                                              ; bffd: 84 55       .U :04fd[3]         ; Store byte 3 of end address
+    rts                                                               ; bfff: 60          ` :04ff[3]          ; Return with pointers initialised
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -14053,10 +14001,50 @@ net_channel_err_string = err_net_chan_not_found+2
     rts                                                               ; bc8e: 60          `        ; Return
     equb &ff                                                          ; bc8f: ff          .        ; Padding; next byte is reloc_p5_src
 
-    org &be90
-; Resume normal ROM address space
+    org &be5e
+; ***************************************************************************************
+; Tube initialisation service calls (&FE, &FF)
 ;
-; The preceding 512 bytes are the source data for two relocated code blocks (see move() calls): page 5 source -> &0500-&05FF (Tube host code) page 6 source -> &0600-&06FF (Econet handlers) py8dis assembles those blocks at their runtime addresses (&0500/&0600) via org directives. This org restores the origin to the actual ROM address for the remaining non-relocated code.
+; Called from the service handler with the service call number in A; runs from ROM. Any
+; service below &FE returns at once.
+;
+; - &FF (Tube main initialisation): points EVNTV at &06AD and BRKV at &0016, writes the
+;   Tube control register, copies the Tube host code into pages &04-&06 and its zero-page
+;   workspace to &16, and returns A=0.
+; - &FE (Tube post-initialisation) with Y non-zero: explodes the character definitions
+;   (OSBYTE &14) and then copies bytes from Tube R1 to OSWRCH until a zero byte ends the
+;   stream. With Y=0 it returns at once.
+;
+; On Entry:
+;     A: service call number
+;     Y: service parameter
+; &be5e referenced 1 time by &8a33
+.tube_vdu_dispatch
+    cmp #&fe                                                          ; be5e: c9 fe       ..       ; Service &FE or &FF?
+    bcc return_1                                                      ; be60: 90 5c       .\       ; Below &FE: not a Tube service, return
+    bne setup_tube_vectors                                            ; be62: d0 1b       ..       ; &FF: Tube main initialisation
+    cpy #0                                                            ; be64: c0 00       ..       ; &FE: post-initialisation; Y=0?
+    beq return_1                                                      ; be66: f0 56       .V       ; Y=0: nothing to print, return
+    ldx #6                                                            ; be68: a2 06       ..       ; X=6: six extra pages
+    lda #osbyte_explode_chars                                         ; be6a: a9 14       ..       ; OSBYTE &14: explode char defs
+    jsr osbyte                                                        ; be6c: 20 f4 ff     ..      ; Explode character definition RAM (six extra pages), can redefine all characters 32-255 (X=6)
+; &be6f referenced 2 times by &be72, &be7c
+.loop_poll_r1_vdu
+    bit tube_status_1_and_tube_control                                ; be6f: 2c e0 fe    ,..      ; Poll R1 status (bit 6 = ready)
+    bpl loop_poll_r1_vdu                                              ; be72: 10 fb       ..       ; Not ready: keep polling
+    lda tube_data_register_1                                          ; be74: ad e1 fe    ...      ; Read byte from Tube R1
+    beq tube_vdu_stream_end                                           ; be77: f0 43       .C       ; Zero: end of VDU stream
+    jsr oswrch                                                        ; be79: 20 ee ff     ..   
+    jmp loop_poll_r1_vdu                                              ; be7c: 4c 6f be    Lo.      ; Loop back to read next R1 byte
+; &be7f referenced 1 time by &be62
+.setup_tube_vectors
+    lda #&ad                                                          ; be7f: a9 ad       ..       ; EVNTV low byte (&AD)
+    sta evntv                                                         ; be81: 8d 20 02    . .      ; Store in EVNTV vector low
+    lda #6                                                            ; be84: a9 06       ..       ; EVNTV high byte (page 6)
+    sta evntv + 1                                                     ; be86: 8d 21 02    .!.      ; Store in EVNTV vector high
+    lda #&16                                                          ; be89: a9 16       ..       ; BRKV low byte (&16)
+    sta brkv                                                          ; be8b: 8d 02 02    ...      ; Store in BRKV vector
+    lda #0                                                            ; be8e: a9 00       ..       ; A=0
     sta brkv + 1                                                      ; be90: 8d 03 02    ...      ; Store BRK vector high byte
     lda #&8e                                                          ; be93: a9 8e       ..       ; A=&8E: Tube control register value
     sta tube_status_1_and_tube_control                                ; be95: 8d e0 fe    ...      ; Write Tube control register
@@ -14079,7 +14067,11 @@ net_channel_err_string = err_net_chan_not_found+2
     sta nmi_workspace_start,x                                         ; beb7: 95 16       ..       ; Store to NMI workspace at &16+X
     dex                                                               ; beb9: ca          .        ; Decrement byte counter
     bpl loop_copy_zp_workspace                                        ; beba: 10 f8       ..       ; More bytes: continue copying
+; &bebc referenced 1 time by &be77
+.tube_vdu_stream_end
     lda #0                                                            ; bebc: a9 00       ..       ; A=0: return success
+; &bebe referenced 2 times by &be60, &be66
+.return_1
     rts                                                               ; bebe: 60          `        ; Return to caller
 
     org &c000
@@ -14490,6 +14482,7 @@ save pydis_start, pydis_end
 ;     loop_find_pending_fcb:                    2
 ;     loop_next_fcb_slot:                       2
 ;     loop_pass_tx_delay:                       2
+;     loop_poll_r1_vdu:                         2
 ;     loop_pop_stack_buf:                       2
 ;     loop_print_hex_byte:                      2
 ;     loop_print_syntax:                        2
@@ -14537,6 +14530,7 @@ save pydis_start, pydis_end
 ;     reset_spool_buf_state:                    2
 ;     restore_rom_slot:                         2
 ;     retreat_y_by_3:                           2
+;     return_1:                                 2
 ;     return_tube_init:                         2
 ;     return_zero_in_pb:                        2
 ;     reverse_ps_name_to_tx:                    2
@@ -14599,12 +14593,12 @@ save pydis_start, pydis_end
 ;     tube_init_reloc:                          2
 ;     tube_osword_pb:                           2
 ;     tube_osword_read_lp:                      2
+;     tube_poll_r2_result:                      2
 ;     tube_r2_dispatch_table:                   2
 ;     tube_rdch_reply:                          2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
 ;     tube_tx_fifo_write:                       2
-;     tube_vdu_normal_byte:                     2
 ;     tube_xfer_addr_2:                         2
 ;     tube_xfer_addr_3:                         2
 ;     tx_addr_base:                             2
@@ -15037,8 +15031,6 @@ save pydis_start, pydis_end
 ;     loop_pad_spaces:                          1
 ;     loop_parse_hex_digit:                     1
 ;     loop_poll_pass_tx:                        1
-;     loop_poll_r1_vdu:                         1
-;     loop_poll_r1_vdu_rom:                     1
 ;     loop_poll_ws_status:                      1
 ;     loop_pop_poll_slot:                       1
 ;     loop_pop_ps_name:                         1
@@ -15448,7 +15440,6 @@ save pydis_start, pydis_end
 ;     tube_osword_write_lp:                     1
 ;     tube_page4_vectors:                       1
 ;     tube_poll_r2:                             1
-;     tube_poll_r2_result:                      1
 ;     tube_rdln_send_line:                      1
 ;     tube_rdln_send_loop:                      1
 ;     tube_release_claim:                       1
@@ -15517,13 +15508,16 @@ save pydis_start, pydis_end
 ;     zp_0063:                                  1
 ;     zp_0078:                                  1
 
+; Automatically generated labels:
+;     return_1
+
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14586 bytes (89%)
-;     Data                     = 1798 bytes (11%)
+;     Code                     = 14588 bytes (89%)
+;     Data                     = 1796 bytes (11%)
 ;
-;     Number of instructions   = 7156
-;     Number of data bytes     = 532 bytes
+;     Number of instructions   = 7157
+;     Number of data bytes     = 530 bytes
 ;     Number of data words     = 112 bytes
 ;     Number of string bytes   = 1154 bytes
 ;     Number of strings        = 143

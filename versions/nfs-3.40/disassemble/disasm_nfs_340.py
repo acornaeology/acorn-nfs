@@ -542,7 +542,7 @@ d.label(0x04F4, "store_xfer_end_addr")
 d.comment(0x04F4, "Store high byte of end address", align=Align.INLINE)
 d.comment(0x04F6, "Store byte 3 of end address", align=Align.INLINE)
 d.comment(0x04F8, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0x9456, 0x100)
+d.add_move(0x0500, 0x9456, 0x200)
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
     d.expr(addr, sym(target_label))
@@ -853,7 +853,6 @@ d.comment(0x05F9, "Execute OSBYTE call", align=Align.INLINE)
 d.label(0x05FC, "tube_poll_r2_result")
 d.comment(0x05FC, "Poll R2 status for result send", align=Align.INLINE)
 
-d.add_move(0x0600, 0x9556, 0x100)
 
 
 for addr in [
@@ -873,8 +872,9 @@ for addr in [
     0x05F2,
 ]:
     d.entry(addr)
-d.entry(0x0600)
 d.label(0x0600, "tube_page6_start")
+d.label(0x05FF, "tube_poll_r2_result_branch")
+d.comment(0x05FF, "Loop while R2 status bit 6 (V) clear — wait for result-send ready", align=Align.INLINE)
 d.comment(0x0601, "Send X result for 2-param OSBYTE", align=Align.INLINE)
 d.label(0x0604, "bytex")
 

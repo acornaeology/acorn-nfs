@@ -2896,6 +2896,16 @@
       "name": "inx4",
       "title": "Increment X four times",
       "description": "Four consecutive INX instructions. Used as a\nbuilding block by advance_x_by_4 and\nadvance_x_by_8 via JSR/fall-through chaining."
+    },
+    {
+      "addr": 48734,
+      "name": "tube_vdu_dispatch",
+      "title": "Tube initialisation service calls (&FE, &FF)",
+      "description": "Called from the service handler with the service call number in\nA; runs from ROM. Any service below &FE returns at once.\n\n- **&FF** (Tube main initialisation): points EVNTV at &06AD and\n  BRKV at &0016, writes the Tube control register, copies the\n  Tube host code into pages &04-&06 and its zero-page workspace\n  to &16, and returns A=0.\n- **&FE** (Tube post-initialisation) with Y non-zero: explodes the\n  character definitions (OSBYTE &14) and then copies bytes from\n  Tube R1 to OSWRCH until a zero byte ends the stream. With Y=0\n  it returns at once.",
+      "on_entry": {
+        "a": "service call number",
+        "y": "service parameter"
+      }
     }
   ],
   "banners": [
@@ -3058,8 +3068,6 @@
     "vdu_display_start_hi": 849,
     "vdu_mode": 853,
     "string_buf": 1792,
-    "tube_vdu_stream_end": 1836,
-    "tube_vdu_normal_byte": 1838,
     "nmi_code_base": 3327,
     "nmi_romsel": 3335,
     "nmi_jmp_lo": 3340,
@@ -114663,7 +114671,7 @@
       ],
       "comment_inline": "Poll R2 status until ready",
       "xref_summaries": [
-        "&bd2e referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[4]"
+        "&bd2e referenced 4 times by &053f[3], &054f[3], &05a1[3], &067d[3]"
       ],
       "references": [
         {
@@ -114684,7 +114692,7 @@
         {
           "addr": 1661,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115328,13 +115336,18 @@
       ],
       "comment_inline": "Poll R2 status for result send",
       "xref_summaries": [
-        "&bd8c referenced 1 time by &0625[4]"
+        "&bd8c referenced 2 times by &05ff[3], &0625[3]"
       ],
       "references": [
         {
+          "addr": 1535,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
           "addr": 1573,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115346,38 +115359,27 @@
     {
       "addr": 1535,
       "bytes": [
-        80
-      ],
-      "binary_addr": 48527,
-      "comment_inline": "BVC: page 5/6 boundary straddle",
-      "type": "byte",
-      "values": [
-        80
-      ]
-    },
-    {
-      "addr": 1536,
-      "bytes": [
+        80,
         251
       ],
-      "binary_addr": 48528,
+      "binary_addr": 48527,
       "labels": [
-        "tube_osbyte_reply_block"
+        "tube_poll_r2_result_branch"
       ],
-      "comment_inline": "Send carry+status to co-processor via R2",
+      "sub_labels": {
+        "1536": [
+          "tube_osbyte_reply_block"
+        ]
+      },
+      "comment_inline": "Loop while R2 status bit 6 (V) clear \u2014 wait for result-send ready",
       "xref_summaries": [
         "&bd90 used as index base 1 time by &bea9"
       ],
-      "references": [
-        {
-          "addr": 48809,
-          "kind": "indexed"
-        }
-      ],
-      "type": "byte",
-      "values": [
-        251
-      ]
+      "type": "code",
+      "mnemonic": "bvc",
+      "operand": "tube_poll_r2_result",
+      "target": 1532,
+      "target_label": "tube_poll_r2_result"
     },
     {
       "addr": 1537,
@@ -115407,13 +115409,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&bd94 referenced 1 time by &0617[4]"
+        "&bd94 referenced 1 time by &0617[3]"
       ],
       "references": [
         {
           "addr": 1559,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115569,13 +115571,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&bdad referenced 1 time by &0620[4]"
+        "&bdad referenced 1 time by &0620[3]"
       ],
       "references": [
         {
           "addr": 1568,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115671,13 +115673,13 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&bdbb referenced 1 time by &062e[4]"
+        "&bdbb referenced 1 time by &062e[3]"
       ],
       "references": [
         {
           "addr": 1582,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115755,18 +115757,18 @@
       ],
       "comment_inline": "Poll R2 status for data ready",
       "xref_summaries": [
-        "&bdc6 referenced 2 times by &0639[4], &0642[4]"
+        "&bdc6 referenced 2 times by &0639[3], &0642[3]"
       ],
       "references": [
         {
           "addr": 1593,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1602,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115865,13 +115867,13 @@
       ],
       "comment_inline": "XY=&0128: param block address for OSWORD",
       "xref_summaries": [
-        "&bdd5 referenced 1 time by &0634[4]"
+        "&bdd5 referenced 1 time by &0634[3]"
       ],
       "references": [
         {
           "addr": 1588,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -115936,13 +115938,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&bddc referenced 1 time by &064f[4]"
+        "&bddc referenced 1 time by &064f[3]"
       ],
       "references": [
         {
           "addr": 1615,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116017,13 +116019,13 @@
       ],
       "comment_inline": "Send result block bytes from &0128 via R2",
       "xref_summaries": [
-        "&bde7 referenced 1 time by &0663[4]"
+        "&bde7 referenced 1 time by &0663[3]"
       ],
       "references": [
         {
           "addr": 1635,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116045,13 +116047,13 @@
       ],
       "comment_inline": "Poll R2 status for ready",
       "xref_summaries": [
-        "&bdea referenced 1 time by &065d[4]"
+        "&bdea referenced 1 time by &065d[3]"
       ],
       "references": [
         {
           "addr": 1629,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116126,13 +116128,13 @@
       ],
       "comment_inline": "Return to main event loop",
       "xref_summaries": [
-        "&bdf5 referenced 1 time by &0655[4]"
+        "&bdf5 referenced 1 time by &0655[3]"
       ],
       "references": [
         {
           "addr": 1621,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116169,13 +116171,13 @@
       ],
       "comment_inline": "Read control block byte from R2",
       "xref_summaries": [
-        "&bdfa referenced 1 time by &0670[4]"
+        "&bdfa referenced 1 time by &0670[3]"
       ],
       "references": [
         {
           "addr": 1648,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116322,13 +116324,13 @@
       ],
       "comment_inline": "X=0: start of input buffer at &0700",
       "xref_summaries": [
-        "&be10 referenced 1 time by &0679[4]"
+        "&be10 referenced 1 time by &0679[3]"
       ],
       "references": [
         {
           "addr": 1657,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116375,13 +116377,13 @@
       ],
       "comment_inline": "Load char from input buffer",
       "xref_summaries": [
-        "&be17 referenced 1 time by &0690[4]"
+        "&be17 referenced 1 time by &0690[3]"
       ],
       "references": [
         {
           "addr": 1680,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116472,7 +116474,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 6 = ready)",
       "xref_summaries": [
-        "&be25 referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[4], &0684[4], &068a[4], &0698[4]"
+        "&be25 referenced 14 times by &0020[1], &0026[1], &002c[1], &0474[2], &053b[3], &0572[3], &0579[3], &05c2[3], &05c9[3], &05e8[3], &061a[3], &0684[3], &068a[3], &0698[3]"
       ],
       "references": [
         {
@@ -116528,22 +116530,22 @@
         {
           "addr": 1562,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1668,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1674,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1688,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116604,7 +116606,7 @@
       ],
       "comment_inline": "Poll R4 status (bit 6 = ready)",
       "xref_summaries": [
-        "&be2e referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[4]"
+        "&be2e referenced 8 times by &0018[1], &0418[2], &041d[2], &043b[2], &0443[2], &0448[2], &0463[2], &06a1[3]"
       ],
       "references": [
         {
@@ -116645,7 +116647,7 @@
         {
           "addr": 1697,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116867,33 +116869,33 @@
       ],
       "comment_inline": "Poll R1 status (bit 6 = ready)",
       "xref_summaries": [
-        "&be4c referenced 5 times by &06ab[4], &06b0[4], &06b4[4], &06b8[4], &06bf[4]"
+        "&be4c referenced 5 times by &06ab[3], &06b0[3], &06b4[3], &06b8[3], &06bf[3]"
       ],
       "references": [
         {
           "addr": 1707,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1712,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1716,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1720,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1727,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -116954,7 +116956,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 7 = ready)",
       "xref_summaries": [
-        "&be55 referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[4], &060b[4], &060f[4], &0627[4], &066a[4], &06c8[4]"
+        "&be55 referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &0627[3], &066a[3], &06c8[3]"
       ],
       "references": [
         {
@@ -117035,32 +117037,32 @@
         {
           "addr": 1543,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1547,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1551,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1575,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1642,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1736,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",
@@ -117109,90 +117111,95 @@
       "mnemonic": "rts"
     },
     {
-      "addr": 1742,
+      "addr": 48734,
       "bytes": [
         201,
         254
       ],
-      "binary_addr": 48734,
-      "comment_inline": "Is byte &FE (VDU stream start)?",
+      "labels": [
+        "tube_vdu_dispatch"
+      ],
+      "comment_inline": "Service &FE or &FF?",
+      "xref_summaries": [
+        "&be5e referenced 1 time by &8a33"
+      ],
+      "references": [
+        {
+          "addr": 35379,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&fe"
     },
     {
-      "addr": 1744,
+      "addr": 48736,
       "bytes": [
         144,
         92
       ],
-      "binary_addr": 48736,
-      "comment_inline": "Below &FE: normal byte",
+      "comment_inline": "Below &FE: not a Tube service, return",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "tube_vdu_normal_byte",
-      "target": 1838,
-      "target_label": "tube_vdu_normal_byte"
+      "operand": "return_1",
+      "target": 48830,
+      "target_label": "return_1"
     },
     {
-      "addr": 1746,
+      "addr": 48738,
       "bytes": [
         208,
         27
       ],
-      "binary_addr": 48738,
-      "comment_inline": "&FF: set up event/break vectors",
+      "comment_inline": "&FF: Tube main initialisation",
       "type": "code",
       "mnemonic": "bne",
       "operand": "setup_tube_vectors",
-      "target": 1775,
+      "target": 48767,
       "target_label": "setup_tube_vectors"
     },
     {
-      "addr": 1748,
+      "addr": 48740,
       "bytes": [
         192,
         0
       ],
-      "binary_addr": 48740,
-      "comment_inline": "&FE: check Y parameter",
+      "comment_inline": "&FE: post-initialisation; Y=0?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#0"
     },
     {
-      "addr": 1750,
+      "addr": 48742,
       "bytes": [
         240,
         86
       ],
-      "binary_addr": 48742,
-      "comment_inline": "Y=0: treat as normal byte",
+      "comment_inline": "Y=0: nothing to print, return",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "tube_vdu_normal_byte",
-      "target": 1838,
-      "target_label": "tube_vdu_normal_byte"
+      "operand": "return_1",
+      "target": 48830,
+      "target_label": "return_1"
     },
     {
-      "addr": 1752,
+      "addr": 48744,
       "bytes": [
         162,
         6
       ],
-      "binary_addr": 48744,
       "comment_inline": "X=6: six extra pages",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#6"
     },
     {
-      "addr": 1754,
+      "addr": 48746,
       "bytes": [
         169,
         20
       ],
-      "binary_addr": 48746,
       "comment_inline": "OSBYTE &14: explode char defs",
       "type": "code",
       "mnemonic": "lda",
@@ -117205,13 +117212,12 @@
       }
     },
     {
-      "addr": 1756,
+      "addr": 48748,
       "bytes": [
         32,
         244,
         255
       ],
-      "binary_addr": 48748,
       "comment_inline": "Explode character definition RAM (six extra pages), can redefine all characters 32-255 (X=6)",
       "type": "code",
       "mnemonic": "jsr",
@@ -117220,25 +117226,27 @@
       "target_label": "osbyte"
     },
     {
-      "addr": 1759,
+      "addr": 48751,
       "bytes": [
         44,
         224,
         254
       ],
-      "binary_addr": 48751,
       "labels": [
         "loop_poll_r1_vdu"
       ],
       "comment_inline": "Poll R1 status (bit 6 = ready)",
       "xref_summaries": [
-        "&be6f referenced 1 time by &06e2[4]"
+        "&be6f referenced 2 times by &be72, &be7c"
       ],
       "references": [
         {
-          "addr": 1762,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 48754,
+          "kind": "direct"
+        },
+        {
+          "addr": 48764,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -117248,27 +117256,25 @@
       "target_label": "tube_status_1_and_tube_control"
     },
     {
-      "addr": 1762,
+      "addr": 48754,
       "bytes": [
         16,
         251
       ],
-      "binary_addr": 48754,
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_poll_r1_vdu",
-      "target": 1759,
+      "target": 48751,
       "target_label": "loop_poll_r1_vdu"
     },
     {
-      "addr": 1764,
+      "addr": 48756,
       "bytes": [
         173,
         225,
         254
       ],
-      "binary_addr": 48756,
       "comment_inline": "Read byte from Tube R1",
       "type": "code",
       "mnemonic": "lda",
@@ -117277,27 +117283,25 @@
       "target_label": "tube_data_register_1"
     },
     {
-      "addr": 1767,
+      "addr": 48759,
       "bytes": [
         240,
         67
       ],
-      "binary_addr": 48759,
       "comment_inline": "Zero: end of VDU stream",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tube_vdu_stream_end",
-      "target": 1836,
+      "target": 48828,
       "target_label": "tube_vdu_stream_end"
     },
     {
-      "addr": 1769,
+      "addr": 48761,
       "bytes": [
         32,
         238,
         255
       ],
-      "binary_addr": 48761,
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oswrch",
@@ -117305,42 +117309,36 @@
       "target_label": "oswrch"
     },
     {
-      "addr": 1772,
+      "addr": 48764,
       "bytes": [
         76,
         111,
         190
       ],
-      "binary_addr": 48764,
-      "labels": [
-        "svc_11_nmi_claim"
-      ],
       "comment_inline": "Loop back to read next R1 byte",
       "type": "code",
       "mnemonic": "jmp",
-      "operand": "loop_poll_r1_vdu_rom",
+      "operand": "loop_poll_r1_vdu",
       "target": 48751,
-      "target_label": "loop_poll_r1_vdu_rom"
+      "target_label": "loop_poll_r1_vdu"
     },
     {
-      "addr": 1775,
+      "addr": 48767,
       "bytes": [
         169,
         173
       ],
-      "binary_addr": 48767,
       "labels": [
         "setup_tube_vectors"
       ],
       "comment_inline": "EVNTV low byte (&AD)",
       "xref_summaries": [
-        "&be7f referenced 1 time by &06d2[4]"
+        "&be7f referenced 1 time by &be62"
       ],
       "references": [
         {
-          "addr": 1746,
-          "kind": "direct",
-          "move_id": 4
+          "addr": 48738,
+          "kind": "direct"
         }
       ],
       "type": "code",
@@ -117348,13 +117346,12 @@
       "operand": "#&ad"
     },
     {
-      "addr": 1777,
+      "addr": 48769,
       "bytes": [
         141,
         32,
         2
       ],
-      "binary_addr": 48769,
       "comment_inline": "Store in EVNTV vector low",
       "type": "code",
       "mnemonic": "sta",
@@ -117363,25 +117360,23 @@
       "target_label": "evntv"
     },
     {
-      "addr": 1780,
+      "addr": 48772,
       "bytes": [
         169,
         6
       ],
-      "binary_addr": 48772,
       "comment_inline": "EVNTV high byte (page 6)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#6"
     },
     {
-      "addr": 1782,
+      "addr": 48774,
       "bytes": [
         141,
         33,
         2
       ],
-      "binary_addr": 48774,
       "comment_inline": "Store in EVNTV vector high",
       "type": "code",
       "mnemonic": "sta",
@@ -117389,25 +117384,23 @@
       "target": 545
     },
     {
-      "addr": 1785,
+      "addr": 48777,
       "bytes": [
         169,
         22
       ],
-      "binary_addr": 48777,
       "comment_inline": "BRKV low byte (&16)",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&16"
     },
     {
-      "addr": 1787,
+      "addr": 48779,
       "bytes": [
         141,
         2,
         2
       ],
-      "binary_addr": 48779,
       "comment_inline": "Store in BRKV vector",
       "type": "code",
       "mnemonic": "sta",
@@ -117416,12 +117409,11 @@
       "target_label": "brkv"
     },
     {
-      "addr": 1790,
+      "addr": 48782,
       "bytes": [
         169,
         0
       ],
-      "binary_addr": 48782,
       "comment_inline": "A=0",
       "type": "code",
       "mnemonic": "lda",
@@ -117433,9 +117425,6 @@
         141,
         3,
         2
-      ],
-      "comments_before_label": [
-        "Resume normal ROM address space\n\nThe preceding 512 bytes are the source data for\ntwo relocated code blocks (see move() calls):\n  page 5 source -> &0500-&05FF (Tube host code)\n  page 6 source -> &0600-&06FF (Econet handlers)\npy8dis assembles those blocks at their runtime\naddresses (&0500/&0600) via org directives. This\norg restores the origin to the actual ROM address\nfor the remaining non-relocated code."
       ],
       "comment_inline": "Store BRK vector high byte",
       "type": "code",
@@ -117689,7 +117678,19 @@
         169,
         0
       ],
+      "labels": [
+        "tube_vdu_stream_end"
+      ],
       "comment_inline": "A=0: return success",
+      "xref_summaries": [
+        "&bebc referenced 1 time by &be77"
+      ],
+      "references": [
+        {
+          "addr": 48759,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "lda",
       "operand": "#0"
@@ -117699,7 +117700,23 @@
       "bytes": [
         96
       ],
+      "labels": [
+        "return_1"
+      ],
       "comment_inline": "Return to caller",
+      "xref_summaries": [
+        "&bebe referenced 2 times by &be60, &be66"
+      ],
+      "references": [
+        {
+          "addr": 48736,
+          "kind": "direct"
+        },
+        {
+          "addr": 48742,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "rts"
     },
@@ -117966,7 +117983,7 @@
       ],
       "comment_inline": "BIT R1 status: check WRCH request",
       "xref_summaries": [
-        "&bedf referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[4], &0665[4], &0692[4]"
+        "&bedf referenced 6 times by &0044[1], &057f[3], &05a6[3], &0604[3], &0665[3], &0692[3]"
       ],
       "references": [
         {
@@ -117987,17 +118004,17 @@
         {
           "addr": 1540,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1637,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         },
         {
           "addr": 1682,
           "kind": "direct",
-          "move_id": 4
+          "move_id": 3
         }
       ],
       "type": "code",

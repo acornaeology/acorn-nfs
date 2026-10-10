@@ -614,7 +614,7 @@ d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
 # as one 512-byte move recovers the instruction; declaring them
 # separately makes dasmos rightly render each byte as `equb` because
 # no instruction can span two distinct runtime spaces.
-d.add_move(0x0500, 0x9465, 0x200)
+d.add_move(0x0500, 0x9465, 0x1EB)
 
 
 for addr, target_label, desc in _tube_r2_entries:
@@ -933,10 +933,8 @@ d.label(0x05FC, "tube_poll_r2_result")
 d.label(0x05FF, "tube_poll_r2_result_branch")
 
 d.comment(0x05FF, "Loop while R2 status bit 6 (V) clear — wait for result-send ready", align=Align.INLINE)
-d.comment(0x0600, "Send carry+status to co-processor via R2", align=Align.INLINE)
 d.label(0x0600, "tube_page6_start")
 
-d.entry(0x0600)
 d.comment(0x0601, "Send X result for 2-param OSBYTE", align=Align.INLINE)
 d.label(0x0604, "bytex")
 
@@ -1171,26 +1169,6 @@ d.comment(0x06CA, "Read data byte from R2", align=Align.INLINE)
 d.comment(0x06CD, "Return with byte in A", align=Align.INLINE)
 d.comment(0x06CE, "&FF padding (29 bytes before trampolines)", align=Align.INLINE)
 
-d.label(0x06EB, "trampoline_tx_setup")
-
-d.entry(0x06EB)
-d.comment(0x06EB, "Trampoline: begin TX operation", align=Align.INLINE)
-d.label(0x06EE, "trampoline_adlc_init")
-
-d.entry(0x06EE)
-
-d.comment(0x06EE, "Trampoline: full ADLC init", align=Align.INLINE)
-d.label(0x06F1, "svc_12_nmi_release")
-
-d.comment(0x06F1, "Trampoline: wait idle and reset", align=Align.INLINE)
-d.label(0x06F4, "svc_11_nmi_claim")
-
-d.comment(0x06F4, "Trampoline: init NMI workspace", align=Align.INLINE)
-d.entry(0x06F7)
-d.comment(0x06F7, "A=4: SR interrupt bit mask", align=Align.INLINE)
-d.comment(0x06F9, "Test SR flag in VIA IFR", align=Align.INLINE)
-d.comment(0x06FC, "SR active: handle interrupt", align=Align.INLINE)
-d.comment(0x06FE, "A=5: NMI not for us", align=Align.INLINE)
 d.index_base(0x0700, "string_buf", group="ram_workspace")
 
 d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
@@ -6673,6 +6651,22 @@ d.label(0x9656, "econet_save")
 d.label(0x9659, "econet_restore")
 
 d.entry(0x9659)
+
+d.entry(0x9650)
+d.comment(0x9650, "Trampoline: begin TX operation", align=Align.INLINE)
+
+d.entry(0x9653)
+
+d.comment(0x9653, "Trampoline: full ADLC init", align=Align.INLINE)
+
+d.comment(0x9656, "Trampoline: wait idle and reset", align=Align.INLINE)
+
+d.comment(0x9659, "Trampoline: init NMI workspace", align=Align.INLINE)
+d.entry(0x965C)
+d.comment(0x965C, "A=4: SR interrupt bit mask", align=Align.INLINE)
+d.comment(0x965E, "Test SR flag in VIA IFR", align=Align.INLINE)
+d.comment(0x9661, "SR active: handle interrupt", align=Align.INLINE)
+d.comment(0x9663, "A=5: NMI not for us", align=Align.INLINE)
 d.subroutine(
     0x965C,
     "svc5_irq_check",
@@ -6705,7 +6699,7 @@ caller code, so they skip the save/raise.""",
     on_entry={"a": "5 (service call number)", "x": "ROM slot", "y": "parameter"},
 )
 
-d.comment(0x9665, "RTS (end of save_vdu_state data)", align=Align.INLINE)
+d.comment(0x9665, "Return (NMI not claimed)", align=Align.INLINE)
 d.label(0x9666, "svc5_save_registers")
 d.entry(0x9666)
 d.comment(0x9666, "Save X on stack", align=Align.INLINE)

@@ -695,7 +695,7 @@ d.label(0x04FB, "store_xfer_end_addr")
 d.comment(0x04FB, "Store high byte of end address", align=Align.INLINE)
 d.comment(0x04FD, "Store byte 3 of end address", align=Align.INLINE)
 d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0xBC90, 0x100)
+d.add_move(0x0500, 0xBC90, 0x1CE)
 d.entry(0x0500)
 d.label(0x0500, "tube_r2_dispatch_table")
 
@@ -989,8 +989,8 @@ d.comment(0x05F9, "Execute OSBYTE A,X", align=Align.INLINE)
 d.label(0x05FC, "tube_poll_r2_result")
 
 d.comment(0x05FC, "Poll R2 status for result send", align=Align.INLINE)
-d.comment(0x05FF, "BVC: page 5/6 boundary straddle", align=Align.INLINE)
-d.add_move(0x0600, 0xBD90, 0x100)
+d.label(0x05FF, "tube_poll_r2_result_branch")
+d.comment(0x05FF, "Loop while R2 status bit 6 (V) clear — wait for result-send ready", align=Align.INLINE)
 
 for i, (name, handler_addr) in enumerate(handler_names):
     base_addr = 0x8E59 + i * 3
@@ -1000,11 +1000,9 @@ for i, (name, handler_addr) in enumerate(handler_names):
         d.byte(base_addr + 2, 1)
         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
-d.entry(0x0600)
 
 d.label(0x0600, "tube_osbyte_reply_block")
 
-d.comment(0x0600, "Send carry+status to co-processor via R2", align=Align.INLINE)
 d.comment(0x0601, "Send X result for 2-param OSBYTE", align=Align.INLINE)
 d.label(0x0604, "bytex")
 
@@ -1252,37 +1250,10 @@ d.comment(0x06C5, "Poll R2 status (bit 7 = ready)", align=Align.INLINE)
 d.comment(0x06C8, "Not ready: keep polling", align=Align.INLINE)
 d.comment(0x06CA, "Read data byte from R2", align=Align.INLINE)
 d.comment(0x06CD, "Return with byte in A", align=Align.INLINE)
-d.comment(0x06CE, "Is byte &FE (VDU stream start)?", align=Align.INLINE)
-d.comment(0x06D0, "Below &FE: normal byte", align=Align.INLINE)
-d.comment(0x06D2, "&FF: set up event/break vectors", align=Align.INLINE)
-d.comment(0x06D4, "&FE: check Y parameter", align=Align.INLINE)
-d.comment(0x06D6, "Y=0: treat as normal byte", align=Align.INLINE)
-d.comment(0x06D8, "X=6: six extra pages", align=Align.INLINE)
-d.comment(0x06DA, "OSBYTE &14: explode char defs", align=Align.INLINE)
-d.label(0x06DF, "loop_poll_r1_vdu")
-
-d.comment(0x06DF, "Poll R1 status (bit 6 = ready)", align=Align.INLINE)
-d.comment(0x06E2, "Not ready: keep polling", align=Align.INLINE)
-d.comment(0x06E4, "Read byte from Tube R1", align=Align.INLINE)
-d.comment(0x06E7, "Zero: end of VDU stream", align=Align.INLINE)
-d.label(0x06EC, "svc_11_nmi_claim")
-
-d.comment(0x06EC, "Loop back to read next R1 byte", align=Align.INLINE)
-d.label(0x06EF, "setup_tube_vectors")
-
-d.entry(0x06EF)
-d.comment(0x06EF, "EVNTV low byte (&AD)", align=Align.INLINE)
-d.comment(0x06F1, "Store in EVNTV vector low", align=Align.INLINE)
-d.comment(0x06F4, "EVNTV high byte (page 6)", align=Align.INLINE)
-d.comment(0x06F6, "Store in EVNTV vector high", align=Align.INLINE)
-d.comment(0x06F9, "BRKV low byte (&16)", align=Align.INLINE)
-d.comment(0x06FB, "Store in BRKV vector", align=Align.INLINE)
-d.comment(0x06FE, "A=0", align=Align.INLINE)
 d.index_base(0x0700, "string_buf", group="ram_workspace")
 
-d.label(0x072C, "tube_vdu_stream_end")
+d.label(0xBEBC, "tube_vdu_stream_end")
 
-d.label(0x072E, "tube_vdu_normal_byte")
 
 d.index_base(0x0CFF, "nmi_code_base", group="ram_workspace")
 
@@ -15846,23 +15817,49 @@ d.comment(0xBC8F, "Padding; next byte is reloc_p5_src", align=Align.INLINE)
 d.label(0xBC90, "reloc_p5_src")
 
 d.label(0xBD90, "reloc_p6_src")
-d.label(0xBE5E, "tube_vdu_dispatch")
+d.subroutine(
+    0xBE5E,
+    "tube_vdu_dispatch",
+    title="Tube initialisation service calls (&FE, &FF)",
+    description="""Called from the service handler with the service call number in
+A; runs from ROM. Any service below &FE returns at once.
 
-d.label(0xBE6F, "loop_poll_r1_vdu_rom")
-
-d.comment(
-    0xBE90,
-    """Resume normal ROM address space
-
-The preceding 512 bytes are the source data for
-two relocated code blocks (see move() calls):
-  page 5 source -> &0500-&05FF (Tube host code)
-  page 6 source -> &0600-&06FF (Econet handlers)
-py8dis assembles those blocks at their runtime
-addresses (&0500/&0600) via org directives. This
-org restores the origin to the actual ROM address
-for the remaining non-relocated code.""",
+- **&FF** (Tube main initialisation): points EVNTV at &06AD and
+  BRKV at &0016, writes the Tube control register, copies the
+  Tube host code into pages &04-&06 and its zero-page workspace
+  to &16, and returns A=0.
+- **&FE** (Tube post-initialisation) with Y non-zero: explodes the
+  character definitions (OSBYTE &14) and then copies bytes from
+  Tube R1 to OSWRCH until a zero byte ends the stream. With Y=0
+  it returns at once.""",
+    on_entry={"a": "service call number", "y": "service parameter"},
 )
+d.label(0xBE6F, "loop_poll_r1_vdu")
+d.comment(0xBE5E, "Service &FE or &FF?", align=Align.INLINE)
+d.comment(0xBE60, "Below &FE: not a Tube service, return", align=Align.INLINE)
+d.comment(0xBE62, "&FF: Tube main initialisation", align=Align.INLINE)
+d.comment(0xBE64, "&FE: post-initialisation; Y=0?", align=Align.INLINE)
+d.comment(0xBE66, "Y=0: nothing to print, return", align=Align.INLINE)
+d.comment(0xBE68, "X=6: six extra pages", align=Align.INLINE)
+d.comment(0xBE6A, "OSBYTE &14: explode char defs", align=Align.INLINE)
+
+d.comment(0xBE6F, "Poll R1 status (bit 6 = ready)", align=Align.INLINE)
+d.comment(0xBE72, "Not ready: keep polling", align=Align.INLINE)
+d.comment(0xBE74, "Read byte from Tube R1", align=Align.INLINE)
+d.comment(0xBE77, "Zero: end of VDU stream", align=Align.INLINE)
+
+d.comment(0xBE7C, "Loop back to read next R1 byte", align=Align.INLINE)
+d.label(0xBE7F, "setup_tube_vectors")
+
+d.entry(0xBE7F)
+d.comment(0xBE7F, "EVNTV low byte (&AD)", align=Align.INLINE)
+d.comment(0xBE81, "Store in EVNTV vector low", align=Align.INLINE)
+d.comment(0xBE84, "EVNTV high byte (page 6)", align=Align.INLINE)
+d.comment(0xBE86, "Store in EVNTV vector high", align=Align.INLINE)
+d.comment(0xBE89, "BRKV low byte (&16)", align=Align.INLINE)
+d.comment(0xBE8B, "Store in BRKV vector", align=Align.INLINE)
+d.comment(0xBE8E, "A=0", align=Align.INLINE)
+
 d.comment(0xBE90, "Store BRK vector high byte", align=Align.INLINE)
 d.comment(0xBE93, "A=&8E: Tube control register value", align=Align.INLINE)
 d.comment(0xBE95, "Write Tube control register", align=Align.INLINE)
