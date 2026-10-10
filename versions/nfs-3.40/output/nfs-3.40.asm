@@ -5523,7 +5523,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     rts                                                               ; 908e: 60          `        ; Return with all registers preserved
 ; &908f referenced 1 time by &9085
 .osword_trampoline
-    lda netvec_handler_hi,x                                           ; 908f: bd a3 90    ...      ; PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it
+    lda osword_tbl_hi,x                                               ; 908f: bd a3 90    ...      ; PHA/PHA/RTS trampoline: push handler addr-1, RTS jumps to it
     pha                                                               ; 9092: 48          H        ; Push high byte of handler address
     lda osword_tbl_lo,x                                               ; 9093: bd 9a 90    ...      ; Load handler low byte from table
     pha                                                               ; 9096: 48          H        ; Push low byte of handler address
@@ -5531,27 +5531,26 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     rts                                                               ; 9099: 60          `        ; RTS dispatches to pushed handler
 ; &909a used as index base 1 time by &9093
 .osword_tbl_lo
-    equb <(return_1 - 1)                                              ; 909a: f5          .     
-    equb <(remote_print_handler - 1)                                  ; 909b: de          .     
-    equb <(remote_print_handler - 1)                                  ; 909c: de          .     
-    equb <(remote_print_handler - 1)                                  ; 909d: de          .     
-    equb <(net_write_char_handler - 1)                                ; 909e: ab          .     
-    equb <(printer_select_handler - 1)                                ; 909f: ce          .     
-    equb <(return_1 - 1)                                              ; 90a0: f5          .     
-.osword_tbl_hi
-    equb <(remote_cmd_dispatch - 1)                                   ; 90a1: dd          .     
-    equb <(nword - 1)                                                 ; 90a2: 47          G     
+    equb <(return_1 - 1)                                              ; 909a: f5          .        ; lo(return_1-1): fn 0 (null handler)
+    equb <(remote_print_handler - 1)                                  ; 909b: de          .        ; lo(remote_print_handler-1): fn 1
+    equb <(remote_print_handler - 1)                                  ; 909c: de          .        ; lo(remote_print_handler-1): fn 2
+    equb <(remote_print_handler - 1)                                  ; 909d: de          .        ; lo(remote_print_handler-1): fn 3
+    equb <(net_write_char_handler - 1)                                ; 909e: ab          .        ; lo(net_write_char_handler-1): fn 4
+    equb <(printer_select_handler - 1)                                ; 909f: ce          .        ; lo(printer_select_handler-1): fn 5
+    equb <(return_1 - 1)                                              ; 90a0: f5          .        ; lo(return_1-1): fn 6 (null handler)
+    equb <(remote_cmd_dispatch - 1)                                   ; 90a1: dd          .        ; lo(remote_cmd_dispatch-1): fn 7
+    equb <(nword - 1)                                                 ; 90a2: 47          G        ; lo(nword-1): fn 8
 ; &90a3 used as index base 1 time by &908f
-.netvec_handler_hi
-    equb >(return_1 - 1)                                              ; 90a3: 80          .     
-    equb >(remote_print_handler - 1)                                  ; 90a4: 91          .     
-    equb >(remote_print_handler - 1)                                  ; 90a5: 91          .     
-    equb >(remote_print_handler - 1)                                  ; 90a6: 91          .     
-    equb >(net_write_char_handler - 1)                                ; 90a7: 90          .     
-    equb >(printer_select_handler - 1)                                ; 90a8: 91          .     
-    equb >(return_1 - 1)                                              ; 90a9: 80          .     
-    equb >(remote_cmd_dispatch - 1)                                   ; 90aa: 90          .     
-    equb >(nword - 1)                                                 ; 90ab: 91          .     
+.osword_tbl_hi
+    equb >(return_1 - 1)                                              ; 90a3: 80          .        ; hi(return_1-1): fn 0 (null handler)
+    equb >(remote_print_handler - 1)                                  ; 90a4: 91          .        ; hi(remote_print_handler-1): fn 1
+    equb >(remote_print_handler - 1)                                  ; 90a5: 91          .        ; hi(remote_print_handler-1): fn 2
+    equb >(remote_print_handler - 1)                                  ; 90a6: 91          .        ; hi(remote_print_handler-1): fn 3
+    equb >(net_write_char_handler - 1)                                ; 90a7: 90          .        ; hi(net_write_char_handler-1): fn 4
+    equb >(printer_select_handler - 1)                                ; 90a8: 91          .        ; hi(printer_select_handler-1): fn 5
+    equb >(return_1 - 1)                                              ; 90a9: 80          .        ; hi(return_1-1): fn 6 (null handler)
+    equb >(remote_cmd_dispatch - 1)                                   ; 90aa: 90          .        ; hi(remote_cmd_dispatch-1): fn 7
+    equb >(nword - 1)                                                 ; 90ab: 91          .        ; hi(nword-1): fn 8
 .net_write_char_handler
     tsx                                                               ; 90ac: ba          .        ; Get stack pointer for P register access
     ror stack_page_6,x                                                ; 90ad: 7e 06 01    ~..      ; ROR/ASL on stacked P: zeros carry to signal success
@@ -8676,7 +8675,6 @@ save pydis_start, pydis_end
 ;     nbyte5:                                   1
 ;     nbyte6:                                   1
 ;     netv:                                     1
-;     netvec_handler_hi:                        1
 ;     next_block:                               1
 ;     next_dir_entry:                           1
 ;     next_rom_page:                            1
@@ -8710,6 +8708,7 @@ save pydis_start, pydis_end
 ;     osrdsc_ptr_hi:                            1
 ;     osword_12_offsets:                        1
 ;     osword_handler_lo:                        1
+;     osword_tbl_hi:                            1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1
 ;     parse_decimal:                            1

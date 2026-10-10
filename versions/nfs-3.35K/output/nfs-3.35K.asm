@@ -5528,26 +5528,26 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     rts                                                               ; 9097: 60          `        ; RTS dispatches to pushed handler
 ; &9098 used as index base 1 time by &9091
 .osword_tbl_lo
-    equb <(return_2 - 1)                                              ; 9098: 6b          k     
-    equb <(remote_print_handler - 1)                                  ; 9099: d3          .     
-    equb <(remote_print_handler - 1)                                  ; 909a: d3          .     
-    equb <(remote_print_handler - 1)                                  ; 909b: d3          .     
-    equb <(nwrch_handler - 1)                                         ; 909c: a9          .     
-    equb <(printer_select_handler - 1)                                ; 909d: c3          .     
-    equb <(return_2 - 1)                                              ; 909e: 6b          k     
-    equb <(remote_cmd_dispatch - 1)                                   ; 909f: cf          .     
-    equb <(remote_osword_handler - 1)                                 ; 90a0: 39          9     
+    equb <(return_2 - 1)                                              ; 9098: 6b          k        ; lo(return_2-1): fn 0 (null handler)
+    equb <(remote_print_handler - 1)                                  ; 9099: d3          .        ; lo(remote_print_handler-1): fn 1
+    equb <(remote_print_handler - 1)                                  ; 909a: d3          .        ; lo(remote_print_handler-1): fn 2
+    equb <(remote_print_handler - 1)                                  ; 909b: d3          .        ; lo(remote_print_handler-1): fn 3
+    equb <(nwrch_handler - 1)                                         ; 909c: a9          .        ; lo(nwrch_handler-1): fn 4
+    equb <(printer_select_handler - 1)                                ; 909d: c3          .        ; lo(printer_select_handler-1): fn 5
+    equb <(return_2 - 1)                                              ; 909e: 6b          k        ; lo(return_2-1): fn 6 (null handler)
+    equb <(remote_cmd_dispatch - 1)                                   ; 909f: cf          .        ; lo(remote_cmd_dispatch-1): fn 7
+    equb <(remote_osword_handler - 1)                                 ; 90a0: 39          9        ; lo(remote_osword_handler-1): fn 8
 ; &90a1 used as index base 1 time by &908d
 .osword_tbl_hi
-    equb >(return_2 - 1)                                              ; 90a1: 81          .     
-    equb >(remote_print_handler - 1)                                  ; 90a2: 91          .     
-    equb >(remote_print_handler - 1)                                  ; 90a3: 91          .     
-    equb >(remote_print_handler - 1)                                  ; 90a4: 91          .     
-    equb >(nwrch_handler - 1)                                         ; 90a5: 90          .     
-    equb >(printer_select_handler - 1)                                ; 90a6: 91          .     
-    equb >(return_2 - 1)                                              ; 90a7: 81          .     
-    equb >(remote_cmd_dispatch - 1)                                   ; 90a8: 90          .     
-    equb >(remote_osword_handler - 1)                                 ; 90a9: 91          .     
+    equb >(return_2 - 1)                                              ; 90a1: 81          .        ; hi(return_2-1): fn 0 (null handler)
+    equb >(remote_print_handler - 1)                                  ; 90a2: 91          .        ; hi(remote_print_handler-1): fn 1
+    equb >(remote_print_handler - 1)                                  ; 90a3: 91          .        ; hi(remote_print_handler-1): fn 2
+    equb >(remote_print_handler - 1)                                  ; 90a4: 91          .        ; hi(remote_print_handler-1): fn 3
+    equb >(nwrch_handler - 1)                                         ; 90a5: 90          .        ; hi(nwrch_handler-1): fn 4
+    equb >(printer_select_handler - 1)                                ; 90a6: 91          .        ; hi(printer_select_handler-1): fn 5
+    equb >(return_2 - 1)                                              ; 90a7: 81          .        ; hi(return_2-1): fn 6 (null handler)
+    equb >(remote_cmd_dispatch - 1)                                   ; 90a8: 90          .        ; hi(remote_cmd_dispatch-1): fn 7
+    equb >(remote_osword_handler - 1)                                 ; 90a9: 91          .        ; hi(remote_osword_handler-1): fn 8
 ; ***************************************************************************************
 ; NETVEC reason 4: write character to network (NWRCH)
 ;

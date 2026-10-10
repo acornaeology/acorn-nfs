@@ -34244,9 +34244,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "netvec_handler_hi,x",
+      "operand": "osword_tbl_hi,x",
       "target": 37027,
-      "target_label": "netvec_handler_hi"
+      "target_label": "osword_tbl_hi"
     },
     {
       "addr": 37010,
@@ -34327,6 +34327,7 @@
       "labels": [
         "osword_tbl_lo"
       ],
+      "comment_inline": "lo(return_1-1): fn 0 (null handler)",
       "xref_summaries": [
         "&909a used as index base 1 time by &9093"
       ],
@@ -34365,6 +34366,7 @@
       "bytes": [
         222
       ],
+      "comment_inline": "lo(remote_print_handler-1): fn 1",
       "type": "byte",
       "values": [
         222
@@ -34394,6 +34396,7 @@
       "bytes": [
         222
       ],
+      "comment_inline": "lo(remote_print_handler-1): fn 2",
       "type": "byte",
       "values": [
         222
@@ -34423,6 +34426,7 @@
       "bytes": [
         222
       ],
+      "comment_inline": "lo(remote_print_handler-1): fn 3",
       "type": "byte",
       "values": [
         222
@@ -34452,6 +34456,7 @@
       "bytes": [
         171
       ],
+      "comment_inline": "lo(net_write_char_handler-1): fn 4",
       "type": "byte",
       "values": [
         171
@@ -34481,6 +34486,7 @@
       "bytes": [
         206
       ],
+      "comment_inline": "lo(printer_select_handler-1): fn 5",
       "type": "byte",
       "values": [
         206
@@ -34510,6 +34516,7 @@
       "bytes": [
         245
       ],
+      "comment_inline": "lo(return_1-1): fn 6 (null handler)",
       "type": "byte",
       "values": [
         245
@@ -34539,9 +34546,7 @@
       "bytes": [
         221
       ],
-      "labels": [
-        "osword_tbl_hi"
-      ],
+      "comment_inline": "lo(remote_cmd_dispatch-1): fn 7",
       "type": "byte",
       "values": [
         221
@@ -34571,6 +34576,7 @@
       "bytes": [
         71
       ],
+      "comment_inline": "lo(nword-1): fn 8",
       "type": "byte",
       "values": [
         71
@@ -34601,8 +34607,9 @@
         128
       ],
       "labels": [
-        "netvec_handler_hi"
+        "osword_tbl_hi"
       ],
+      "comment_inline": "hi(return_1-1): fn 0 (null handler)",
       "xref_summaries": [
         "&90a3 used as index base 1 time by &908f"
       ],
@@ -34641,6 +34648,7 @@
       "bytes": [
         145
       ],
+      "comment_inline": "hi(remote_print_handler-1): fn 1",
       "type": "byte",
       "values": [
         145
@@ -34670,6 +34678,7 @@
       "bytes": [
         145
       ],
+      "comment_inline": "hi(remote_print_handler-1): fn 2",
       "type": "byte",
       "values": [
         145
@@ -34699,6 +34708,7 @@
       "bytes": [
         145
       ],
+      "comment_inline": "hi(remote_print_handler-1): fn 3",
       "type": "byte",
       "values": [
         145
@@ -34728,6 +34738,7 @@
       "bytes": [
         144
       ],
+      "comment_inline": "hi(net_write_char_handler-1): fn 4",
       "type": "byte",
       "values": [
         144
@@ -34757,6 +34768,7 @@
       "bytes": [
         145
       ],
+      "comment_inline": "hi(printer_select_handler-1): fn 5",
       "type": "byte",
       "values": [
         145
@@ -34786,6 +34798,7 @@
       "bytes": [
         128
       ],
+      "comment_inline": "hi(return_1-1): fn 6 (null handler)",
       "type": "byte",
       "values": [
         128
@@ -34815,6 +34828,7 @@
       "bytes": [
         144
       ],
+      "comment_inline": "hi(remote_cmd_dispatch-1): fn 7",
       "type": "byte",
       "values": [
         144
@@ -34844,6 +34858,7 @@
       "bytes": [
         145
       ],
+      "comment_inline": "hi(nword-1): fn 8",
       "type": "byte",
       "values": [
         145
