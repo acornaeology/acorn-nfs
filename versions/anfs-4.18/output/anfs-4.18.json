@@ -1294,13 +1294,6 @@
       "description": "Uses print_inline to output 'Econet Station ',\nthen reads the station ID from offset 1 of the\nreceive control block and prints it as a decimal\nnumber via print_num_no_leading. Tests ADLC\nstatus register 2 (&FEA1) to detect the Econet\nclock; if absent, appends ' No Clock' via a\nsecond inline string. Finishes with OSNEWL.\nCalled by print_version_header and svc_3_auto_boot."
     },
     {
-      "addr": 36898,
-      "name": "cmd_syntax_strings",
-      "title": "*HELP command syntax strings (13 entries)",
-      "description": "13 null-terminated syntax help strings displayed by `*HELP`\nafter each command name. Multi-line entries use &0D as a line\nbreak.\n\nIndexed by [`cmd_syntax_table`](label:cmd_syntax_table) via the low 5\nbits of each command's syntax descriptor byte. Each table\nentry holds the offset of (the byte before) the corresponding\nstring, since the print loop at\n[`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.",
-      "fall_through": true
-    },
-    {
       "addr": 37154,
       "name": "cmd_syntax_table",
       "title": "Command syntax-string offset table (13 entries)",
@@ -3103,6 +3096,13 @@
       "name": "tx_flags_table",
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
+    },
+    {
+      "addr": 36898,
+      "name": "syn_opt_dir",
+      "title": "*HELP command syntax strings (13 entries)",
+      "description": "13 null-terminated syntax help strings displayed by `*HELP`\nafter each command name. Multi-line entries use &0D as a line\nbreak.\n\nIndexed by [`cmd_syntax_table`](label:cmd_syntax_table) via the low 5\nbits of each command's syntax descriptor byte. Each table\nentry holds the offset of (the byte before) the corresponding\nstring, since the print loop at\n[`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.",
       "align": "before_label"
     }
   ],
@@ -33566,7 +33566,13 @@
     {
       "addr": 36898,
       "bytes": [
-        40
+        40,
+        60,
+        100,
+        105,
+        114,
+        62,
+        41
       ],
       "labels": [
         "syn_opt_dir",
@@ -33582,21 +33588,8 @@
           "kind": "indexed"
         }
       ],
-      "type": "code",
-      "mnemonic": "plp"
-    },
-    {
-      "addr": 36899,
-      "bytes": [
-        60,
-        100,
-        105,
-        114,
-        62,
-        41
-      ],
       "type": "string",
-      "string": "<dir>)"
+      "string": "(<dir>)"
     },
     {
       "addr": 36905,

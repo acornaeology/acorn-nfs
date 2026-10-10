@@ -5711,9 +5711,8 @@ d.label(0x9021, "syntax_strings")
 
 d.label(0x9022, "syn_opt_dir")
 
-d.subroutine(
+d.banner(
     0x9022,
-    "cmd_syntax_strings",
     title="*HELP command syntax strings (13 entries)",
     description="""13 null-terminated syntax help strings displayed by `*HELP`
 after each command name. Multi-line entries use &0D as a line
@@ -5725,6 +5724,7 @@ entry holds the offset of (the byte before) the corresponding
 string, since the print loop at
 [`&8BD5`](address:8BD5?hex) does `INY` before `LDA`.""",
 )
+d.index_base(0x9022, "cmd_syntax_strings")
 d.comment(0x9022, "Syn 1: *Dir, *LCat, *LEx, *Wipe", align=Align.INLINE)
 d.comment(0x9029, "Null terminator", align=Align.INLINE)
 d.label(0x902A, "syn_iam")

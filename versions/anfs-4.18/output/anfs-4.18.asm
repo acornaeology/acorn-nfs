@@ -5132,8 +5132,7 @@ ws_init_data = error_bad_station+2
 ; &9022 used as index base 1 time by &8be1
 .syn_opt_dir
 .cmd_syntax_strings
-    plp                                                               ; 9022: 28          (        ; Syn 1: *Dir, *LCat, *LEx, *Wipe
-    equs "<dir>)"                                                     ; 9023: 3c 64 69... <di...
+    equs "(<dir>)"                                                    ; 9022: 28 3c 64... (<d...   ; Syn 1: *Dir, *LCat, *LEx, *Wipe
     equb &00                                                          ; 9029: 00          .        ; Null terminator
 .syn_iam
     equs "(<stn. id.>) <user id.> "                                   ; 902a: 28 3c 73... (<s...   ; Syn 2: *I Am (login)
@@ -15769,11 +15768,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14617 bytes (89%)
-;     Data                     = 1767 bytes (11%)
+;     Code                     = 14616 bytes (89%)
+;     Data                     = 1768 bytes (11%)
 ;
-;     Number of instructions   = 7170
+;     Number of instructions   = 7169
 ;     Number of data bytes     = 535 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1120 bytes
+;     Number of string bytes   = 1121 bytes
 ;     Number of strings        = 143
