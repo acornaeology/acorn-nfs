@@ -439,9 +439,9 @@ hazel_fs_context_copy       = &c003  ; Multi-purpose sub-byte of the &C000 block
 ; &c003 referenced 4 times by &9571, &a688, &a69a, &aa36; also used as index base 2 times by &9798, &a2c2
 hazel_fs_prefix_stn         = &c004  ; Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type.
 ; &c004 referenced 5 times by &97a8, &a2c8, &a69e, &a6bf, &aa50
-hazel_fs_flags              = &c005  ; Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by *OPT 4,n, shown in the *CAT header and used to choose the boot action.
+hazel_boot_option           = &c005  ; Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by *OPT 4,n, shown in the *CAT header and used to choose the boot action.
 ; &c005 referenced 6 times by &8f90, &a0ca, &a28f, &a6e1, &a75f, &b1a5
-hazel_fs_messages_flag      = &c006
+hazel_fs_messages_flag      = &c006  ; Local messages flag, set by *OPT 1,n (or *OPT 0,n).
 ; &c006 referenced 3 times by &8f8d, &9d26, &a0b6
 hazel_fs_pending_state      = &c007
 ; &c007 referenced 5 times by &8b8d, &8d93, &8da0, &97ee, &9810
@@ -4668,15 +4668,40 @@ ps_template_base = load_transfer_params+1
     lda hazel_txcb_data                                               ; 8e44: ad 05 c1    ...      ; Load first reply byte
     ldy #&25                                                          ; 8e47: a0 25       .%       ; Y=&25: logon dispatch offset
     bne svc_dispatch                                                  ; 8e49: d0 16       ..    
+; ***************************************************************************************
+; FSCV handler (filing-system control)
+;
+; Target of the filing-system control vector. Saves A, X and Y in the FS workspace (X in
+; fs_options, Y in fs_block_offset), ignores reason codes &0C and above, clears the FS
+; selection flags and dispatches through svc_dispatch at index reason + &1E:
+;
+; | A    | Handler                                      |
+; |------|----------------------------------------------|
+; | 0    | fscv_0_opt_entry (*OPT)                      |
+; | 1    | fscv_1_eof (EOF)                             |
+; | 2, 4 | cmd_run_via_urd (*RUN)                       |
+; | 3    | fscv_3_star_cmd (unrecognised * command)     |
+; | 5    | fscv_5_cat (*CAT)                            |
+; | 6    | fscv_6_shutdown (new filing system selected) |
+; | 7    | fscv_7_read_handles (read handle range)      |
+; | 8    | dispatch_rts (ignored)                       |
+; | 9    | ps_scan_resume                               |
+; | 10   | cmd_info_dispatch (*INFO)                    |
+; | 11   | check_urd_present                            |
+;
+; On Entry:
+;     A: FSCV reason code
+;     X: depends on reason
+;     Y: depends on reason
 .fscv_handler
-    jsr set_xfer_params                                               ; 8e4b: 20 d7 93     ..      ; Parse reply as decimal number
-    cmp #&0c                                                          ; 8e4e: c9 0c       ..       ; Result >= 8?
-    bcs dispatch_rts                                                  ; 8e50: b0 1e       ..       ; Yes: out of range, return
-    tax                                                               ; 8e52: aa          .        ; Transfer handle to X
-    jsr mask_owner_access                                             ; 8e53: 20 cf b2     ..      ; Look up in open files table
-    tya                                                               ; 8e56: 98          .        ; Transfer result to A
-    ldy #&1d                                                          ; 8e57: a0 1d       ..       ; Y=&1D: handle dispatch offset
-    bne svc_dispatch                                                  ; 8e59: d0 06       ..    
+    jsr set_xfer_params                                               ; 8e4b: 20 d7 93     ..      ; Save A/X/Y: X to fs_options, Y to fs_block_offset
+    cmp #&0c                                                          ; 8e4e: c9 0c       ..       ; FSCV reason >= &0C?
+    bcs dispatch_rts                                                  ; 8e50: b0 1e       ..       ; Yes: not handled, return
+    tax                                                               ; 8e52: aa          .        ; X = reason code
+    jsr mask_owner_access                                             ; 8e53: 20 cf b2     ..      ; Clear FS selection flags
+    tya                                                               ; 8e56: 98          .        ; A = caller's Y
+    ldy #&1d                                                          ; 8e57: a0 1d       ..       ; Y=&1D: dispatch at index reason + &1E
+    bne svc_dispatch                                                  ; 8e59: d0 06       ..       ; Always taken
 ; ***************************************************************************************
 ; Dispatch directory operation via PHA/PHA/RTS
 ;
@@ -5155,7 +5180,7 @@ ps_template_base = load_transfer_params+1
     dex                                                               ; 8f8a: ca          .        ; Decrement counter
     bne loop_copy_init_data                                           ; 8f8b: d0 f7       ..       ; More bytes: loop
     stx hazel_fs_messages_flag                                        ; 8f8d: 8e 06 c0    ...      ; Clear workspace flag
-    stx hazel_fs_flags                                                ; 8f90: 8e 05 c0    ...      ; Clear workspace byte
+    stx hazel_boot_option                                             ; 8f90: 8e 05 c0    ...      ; Clear workspace byte
     jsr reset_spool_buf_state                                         ; 8f93: 20 64 ae     d.      ; Initialise ADLC protection table
     dex                                                               ; 8f96: ca          .        ; X=&FF (underflow from X=0)
     stx spool_control_flag                                            ; 8f97: 8e 71 0d    .q.      ; Initialise workspace flag to &FF
@@ -8516,7 +8541,7 @@ bad_prefix_table = bad_str_anchor+1
     iny                                                               ; 9d21: c8          .        ; Advance to next byte
     cpy #&12                                                          ; 9d22: c0 12       ..       ; Y=&12: end of protection fields?
     bne loop_copy_file_info                                           ; 9d24: d0 f6       ..       ; No: copy next byte
-    ldy hazel_fs_messages_flag                                        ; 9d26: ac 06 c0    ...      ; Load display flag from fs_messages_flag
+    ldy hazel_fs_messages_flag                                        ; 9d26: ac 06 c0    ...      ; Load the local messages flag
     beq rts_advance_y                                                 ; 9d29: f0 45       .E       ; Zero: skip display, return
     ldy #&f4                                                          ; 9d2b: a0 f4       ..       ; Y=&F4: index into hazel_display_buf for filename
 ; &9d2d referenced 1 time by &9d34
@@ -9316,61 +9341,67 @@ bad_prefix_table = bad_str_anchor+1
     sta hazel_fcb_state_byte,y                                        ; a0a4: 99 40 c2    .@.      ; Clear hazel_fcb_state_byte for slot Y
     beq done_close                                                    ; a0a7: f0 f3       ..       ; Z still set from LDA #0: always branch to done_close
 ; ***************************************************************************************
-; FSCV reason 0: read OSARGS
+; FSCV 0: *OPT handler
 ;
-; Handles OSARGS via the FSCV vector. If A=0 (initialise dot-seen flag) clears the flag
-; and proceeds. Compares X against 4 (number of args): out-of-range exits via the OSARGS
-; dispatch chain to a shared error path; otherwise dispatches to the per-argument
-; handler. Reached via the FSCV vector with reason code 0.
+; Handles *OPT X,Y. On entry X and the Z flag hold the option number (loaded from
+; fs_options by the dispatcher) and Y the value.
+;
+; | Form                    | Effect                                                                                                                                             |
+; |-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+; | *OPT 0,Y or *OPT 1,Y    | Set the local messages flag (hazel_fs_messages_flag) to Y                                                                                          |
+; | *OPT 4,Y (Y=0-3)        | Send the boot option to the file server (FS command &16) and record it in hazel_boot_option                                                        |
+; | *OPT 2-*OPT 8 otherwise | Merge Y into CMOS RAM byte &11, at the bit position given by cmos_attr_table and under cmos_opt_mask_table; *OPT 5 accepts Y=0-1, the others Y=0-3 |
+;
+; Any other option or value raises error class 7, "Bad option".
 ;
 ; On Entry:
-;     A: OSARGS sub-function (0 = initialise)
-;     X: argument index (0-3)
+;     X: option number
+;     Y: option value
 .fscv_0_opt_entry
-    beq store_display_flag                                            ; a0a9: f0 0b       ..       ; A=0 (init sub-code): jump to store_display_flag
-    cpx #4                                                            ; a0ab: e0 04       ..       ; Non-zero A: X==4? (read OSARGS args)
-    bne osargs_dispatch                                               ; a0ad: d0 04       ..       ; X != 4: take normal OSARGS dispatch
-    cpy #4                                                            ; a0af: c0 04       ..       ; X==4 path: Y < 4?
-    bcc send_osargs_request                                           ; a0b1: 90 0d       ..       ; Yes: send OSARGS request via TXCB
+    beq opt_set_messages                                              ; a0a9: f0 0b       ..       ; X=0 (*OPT 0): treat as *OPT 1
+    cpx #4                                                            ; a0ab: e0 04       ..       ; *OPT 4?
+    bne opt_check_messages                                            ; a0ad: d0 04       ..       ; No: check the other options
+    cpy #4                                                            ; a0af: c0 04       ..       ; Boot option must be 0-3
+    bcc opt_set_boot_option                                           ; a0b1: 90 0d       ..       ; Valid: set the boot option
 ; &a0b3 referenced 1 time by &a0ad
-.osargs_dispatch
-    dex                                                               ; a0b3: ca          .        ; X-- (osargs_dispatch entry): step sub-code down
-    bne osargs_store_ptr_lo                                           ; a0b4: d0 19       ..       ; X != 1: take store-ptr-lo path
+.opt_check_messages
+    dex                                                               ; a0b3: ca          .        ; X = option - 1
+    bne opt_check_cmos                                                ; a0b4: d0 19       ..       ; Not *OPT 0/1: try the CMOS options
 ; &a0b6 referenced 1 time by &a0a9
-.store_display_flag
-    sty hazel_fs_messages_flag                                        ; a0b6: 8c 06 c0    ...      ; Store Y as hazel_fs_messages_flag (display control)
+.opt_set_messages
+    sty hazel_fs_messages_flag                                        ; a0b6: 8c 06 c0    ...      ; *OPT 0/1: set the local messages flag
     bcc done_close                                                    ; a0b9: 90 e1       ..       ; Tail-branch to done_close
 ; &a0bb referenced 2 times by &a0d1, &a0dd
-.error_osargs
-    lda #7                                                            ; a0bb: a9 07       ..       ; A=7: error code (out-of-range OSARGS sub-code)
-    jmp classify_reply_error                                          ; a0bd: 4c 3d 99    L=.      ; Raise BRK error
+.error_bad_option
+    lda #7                                                            ; a0bb: a9 07       ..       ; Error class 7: Bad option
+    jmp classify_reply_error                                          ; a0bd: 4c 3d 99    L=.      ; Raise the error
 ; &a0c0 referenced 1 time by &a0b1
-.send_osargs_request
-    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...      ; Store Y as TXCB data byte (OSARGS payload)
-    ldy #&16                                                          ; a0c3: a0 16       ..       ; Y=&16: TXCB function code (OSARGS request)
-    jsr save_net_tx_cb                                                ; a0c5: 20 8a 97     ..      ; Send OSARGS request via TX control block
-    ldy fs_block_offset                                               ; a0c8: a4 bc       ..       ; Reload Y from fs_block_offset
-    sty hazel_fs_flags                                                ; a0ca: 8c 05 c0    ...      ; Update hazel_fs_flags from OSARGS reply
-    bpl done_close                                                    ; a0cd: 10 cd       ..       ; No error (positive): tail to done_close
+.opt_set_boot_option
+    sty hazel_txcb_data                                               ; a0c0: 8c 05 c1    ...      ; Boot option into the FS command data
+    ldy #&16                                                          ; a0c3: a0 16       ..       ; Y=&16: FS command (set boot option)
+    jsr save_net_tx_cb                                                ; a0c5: 20 8a 97     ..      ; Send it to the file server
+    ldy fs_block_offset                                               ; a0c8: a4 bc       ..       ; Recover the requested option (caller's Y)
+    sty hazel_boot_option                                             ; a0ca: 8c 05 c0    ...      ; Record it as the boot option
+    bpl done_close                                                    ; a0cd: 10 cd       ..       ; Always taken (0-3): return
 ; &a0cf referenced 1 time by &a0b4
-.osargs_store_ptr_lo
-    cpx #8                                                            ; a0cf: e0 08       ..       ; X >= 8?
-    bcs error_osargs                                                  ; a0d1: b0 e8       ..       ; Yes: out-of-range OSARGS sub-code
-    cpx #4                                                            ; a0d3: e0 04       ..       ; X == 4?
-    beq osargs_check_length                                           ; a0d5: f0 04       ..       ; Yes: take fast read path (osargs_check_length)
-    cpy #4                                                            ; a0d7: c0 04       ..       ; Y < 4?
-    bcc osopt_check_cmos_protect                                      ; a0d9: 90 04       ..       ; Yes: take CMOS-protect path
+.opt_check_cmos
+    cpx #8                                                            ; a0cf: e0 08       ..       ; Option 9 or above?
+    bcs error_bad_option                                              ; a0d1: b0 e8       ..       ; Yes: bad option
+    cpx #4                                                            ; a0d3: e0 04       ..       ; *OPT 5?
+    beq opt_check_value_0_1                                           ; a0d5: f0 04       ..       ; Yes: value must be 0-1
+    cpy #4                                                            ; a0d7: c0 04       ..       ; Value 0-3?
+    bcc opt_write_cmos                                                ; a0d9: 90 04       ..       ; Yes: write it to CMOS
 ; &a0db referenced 1 time by &a0d5
-.osargs_check_length
-    cpy #2                                                            ; a0db: c0 02       ..       ; Y >= 2?
-    bcs error_osargs                                                  ; a0dd: b0 dc       ..       ; Yes: argument out of range
+.opt_check_value_0_1
+    cpy #2                                                            ; a0db: c0 02       ..       ; Value 0-1?
+    bcs error_bad_option                                              ; a0dd: b0 dc       ..       ; No: bad option
 ; &a0df referenced 1 time by &a0d9
-.osopt_check_cmos_protect
+.opt_write_cmos
     phy                                                               ; a0df: 5a          Z     
-    phx                                                               ; a0e0: da          .        ; Save sub-code across the CMOS read
+    phx                                                               ; a0e0: da          .        ; Save option - 1 across the CMOS read
     ldx #&11                                                          ; a0e1: a2 11       ..       ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; a0e3: 20 9a 8e     ..      ; Read CMOS &11 (Econet status) -> Y
-    plx                                                               ; a0e6: fa          .        ; Restore sub-code
+    plx                                                               ; a0e6: fa          .        ; Restore option - 1
     tya                                                               ; a0e7: 98          .        ; Read CMOS &11 result to A
     and cmos_opt_mask_table,x                                         ; a0e8: 3d 03 a1    =..      ; Mask CMOS &11 with cmos_opt_mask_table[X]
     ply                                                               ; a0eb: 7a          z     
@@ -9396,9 +9427,9 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; ***************************************************************************************
 ; CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)
 ;
-; Used by the OSARGS-via-FSCV / *OPT 4 path (osopt_check_cmos_protect) to read or update
-; bit fields inside CMOS RAM byte &11 (the Econet status byte holding the auto-boot type
-; and printer/messages flags).
+; Used by the OSARGS-via-FSCV / *OPT 4 path (opt_write_cmos) to read or update bit fields
+; inside CMOS RAM byte &11 (the Econet status byte holding the auto-boot type and
+; printer/messages flags).
 ;
 ; - Indices 0-3 are extraction masks: AND CMOS_&11 with &01, &02, &04, &06 returns bit 0,
 ;   bit 1, bit 2 or bits 1+2 respectively.
@@ -9813,13 +9844,13 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Send OSBPUT data block to file server
 ;
 ; Sets Y=&15 (TX buffer size for OSBPUT data) and calls save_net_tx_cb to dispatch the
-; TX. Then copies the display flag from hazel_fs_flags to hazel_txcb_byte_16 (TX header
+; TX. Then copies the boot option from hazel_boot_option to hazel_txcb_byte_16 (TX header
 ; continuation). Single caller in the OSBPUT-buffered-write path.
 ; &a28a referenced 1 time by &a2ba
 .send_osbput_data
     ldy #&15                                                          ; a28a: a0 15       ..       ; Y=&15: TX buffer size for OSBPUT data
     jsr save_net_tx_cb                                                ; a28c: 20 8a 97     ..      ; Send TX control block
-    lda hazel_fs_flags                                                ; a28f: ad 05 c0    ...      ; Load display flag from hazel_fs_flags
+    lda hazel_boot_option                                             ; a28f: ad 05 c0    ...      ; Load the boot option
     sta hazel_txcb_byte_16                                            ; a292: 8d 16 c1    ...      ; Store in hazel_txcb_byte_16
     stx fs_load_addr                                                  ; a295: 86 b0       ..       ; Clear fs_load_addr (X=0)
     stx fs_load_addr_hi                                               ; a297: 86 b1       ..       ; Clear fs_load_addr_hi
@@ -10780,8 +10811,8 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;
 ; Closes all network channels via close_all_net_chans, sets bit 6 of fs_flags (TSB &0D6C,
 ; marking the boot-pending state), SECs to signal boot-pending downstream, loads the
-; boot-type byte from the FS reply (hazel_txcb_result) into hazel_fs_flags, pushes it on
-; the stack, and falls through into fsreply_2_copy_handles.
+; boot-type byte from the FS reply (hazel_txcb_result) into hazel_boot_option, pushes it
+; on the stack, and falls through into fsreply_2_copy_handles.
 ;
 ; The pushed byte is not consumed by fsreply_2_copy_handles itself — that routine only
 ; copies the per-handle table and uses PHP/PLP for its own Carry handling. The matching
@@ -10795,7 +10826,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     tsb fs_flags                                                      ; a6da: 0c 6c 0d    .l.      ; Set boot-pending bit on fs_flags (TSB = test-and-set)
     sec                                                               ; a6dd: 38          8        ; C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)
     lda hazel_txcb_result                                             ; a6de: ad 08 c1    ...      ; Load boot-type byte from FS reply (hazel_txcb_result)
-    sta hazel_fs_flags                                                ; a6e1: 8d 05 c0    ...      ; Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)
+    sta hazel_boot_option                                             ; a6e1: 8d 05 c0    ...      ; Store boot type as hazel_boot_option (consumed later by boot_select_cmd)
     pha                                                               ; a6e4: 48          H        ; Push boot-type byte (popped later by boot_persist_fs_maybe at &A71C)
 ; ***************************************************************************************
 ; FS reply 2: install handles and (optionally) boot
@@ -10944,7 +10975,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; a pointer to a CR-terminated boot command in the &A7xx page.
 ;
 ; Three reachable entries (Y = 1, 2, 3); Y=0 is unreachable because boot_select_cmd BEQs
-; out when hazel_fs_flags is zero.
+; out when hazel_boot_option is zero.
 ;
 ; Index 2 (&48) lands inside boot_cmd_load_str — at offset 7, on its ! byte — so OSCLI
 ; reads "!Boot<CR>" from the middle of the same string used at index 1. This packs the
@@ -10952,7 +10983,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; saving a third CR-terminated string.
 ; &a75b used as index base 1 time by &a764
 .boot_cmd_lo_table
-    equb &5a                                                          ; a75b: 5a          Z        ; Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead
+    equb &5a                                                          ; a75b: 5a          Z        ; Y=0: unreachable (boot_select_cmd BEQs out when hazel_boot_option=0); value is dead
     equb <(boot_cmd_load_str)                                         ; a75c: 41          A        ; Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'
     equb <(boot_cmd_load_str + 7)                                     ; a75d: 48          H        ; Y=2: lo byte of &A748 (offset 7 into boot_cmd_load_str, on '!') — '!Boot' on current FS
     equb <(boot_cmd_exec_str)                                         ; a75e: 4e          N        ; Y=3: lo byte of boot_cmd_exec_str (&A74E) — 'E.-NET-!Boot'
@@ -10960,15 +10991,15 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli
 ;
 ; Two-instruction gate at the head of the boot-OSCLI dispatch. Loads Y from
-; hazel_fs_flags (the boot-type byte the FS reply stashed in fsreply_1_boot at &A6E1); if
-; zero, BEQs into boot_cancel_rts — the empty / no-op boot case. Otherwise falls through
-; into boot_cmd_oscli with Y already loaded as the index into boot_cmd_lo_table.
+; hazel_boot_option (the boot-type byte the FS reply stashed in fsreply_1_boot at &A6E1);
+; if zero, BEQs into boot_cancel_rts — the empty / no-op boot case. Otherwise falls
+; through into boot_cmd_oscli with Y already loaded as the index into boot_cmd_lo_table.
 ;
 ; Two callers, both from check_auto_boot_flag: the BNE at &A734 (auto-boot flag was set,
 ; skip CTRL check) and the BPL at &A73E (CTRL not pressed, proceed to boot).
 ; &a75f referenced 2 times by &a734, &a73e
 .boot_select_cmd
-    ldy hazel_fs_flags                                                ; a75f: ac 05 c0    ...      ; Y = boot-type byte from FS reply (0..3)
+    ldy hazel_boot_option                                             ; a75f: ac 05 c0    ...      ; Y = boot-type byte from FS reply (0..3)
     beq boot_cancel_rts                                               ; a762: f0 dc       ..       ; Z (boot type 0): cancel boot via boot_cancel_rts
 ; ***************************************************************************************
 ; Look up boot command in boot_cmd_lo_table and OSCLI it
@@ -10981,7 +11012,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ;
 ; - JMP tail-call from &A5D4 with Y=3 hardcoded — forces the exec-via-NFS boot
 ;   (boot_cmd_exec_str).
-; - Fall-through from boot_select_cmd with Y already loaded from hazel_fs_flags — the
+; - Fall-through from boot_select_cmd with Y already loaded from hazel_boot_option — the
 ;   normal logon-boot path, dispatching on the FS-supplied boot type.
 ;
 ; On Entry:
@@ -13426,7 +13457,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     jsr print_chars_from_buf                                          ; b194: 20 1c b2     ..      ; Print file entry
     jsr print_inline_no_spool                                         ; b197: 20 8a 92     ..      ; Print ' Option '
     equs "    Option "                                                ; b19a: 20 20 20...    ...
-    lda hazel_fs_flags                                                ; b1a5: ad 05 c0    ...      ; Read hazel_fs_flags
+    lda hazel_boot_option                                             ; b1a5: ad 05 c0    ...      ; Read hazel_boot_option
     tax                                                               ; b1a8: aa          .        ; Transfer to X for table lookup
     jsr print_hex_byte_no_spool                                       ; b1a9: 20 4c 92     L.      ; Print option as hex
     jsr print_inline_no_spool                                         ; b1ac: 20 8a 92     ..      ; Print ' ('
@@ -16778,9 +16809,9 @@ save pydis_start, pydis_end
 ;     fs_crc_hi:                     6
 ;     fs_work_7:                     6
 ;     fs_ws_ptr:                     6
+;     hazel_boot_option:             6
 ;     hazel_exec_addr:               6
 ;     hazel_fs_context_copy:         6
-;     hazel_fs_flags:                6
 ;     hazel_fs_station:              6
 ;     hazel_quote_mode:              6
 ;     nmi_rti:                       6
@@ -17008,10 +17039,10 @@ save pydis_start, pydis_end
 ;     enable_irq_and_poll:           2
 ;     err_net_chan_invalid:          2
 ;     error_bad_number:              2
+;     error_bad_option:              2
 ;     error_bad_param:               2
 ;     error_bad_prefix:              2
 ;     error_net_checksum:            2
-;     error_osargs:                  2
 ;     error_outside_file:            2
 ;     exec_addr_hi:                  2
 ;     fallback_calc_transfer:        2
@@ -17728,13 +17759,16 @@ save pydis_start, pydis_end
 ;     on_suffix_pattern:             1
 ;     open_file_for_read:            1
 ;     open_file_for_run:             1
+;     opt_check_cmos:                1
+;     opt_check_messages:            1
+;     opt_check_value_0_1:           1
+;     opt_set_boot_option:           1
+;     opt_set_messages:              1
+;     opt_write_cmos:                1
 ;     option_offset_table:           1
 ;     option_str_offset_data:        1
-;     osargs_check_length:           1
-;     osargs_dispatch:               1
 ;     osargs_ptr_dispatch:           1
 ;     osargs_read_op:                1
-;     osargs_store_ptr_lo:           1
 ;     osargs_write_ptr:              1
 ;     osbyte_a2_value_tya:           1
 ;     osbyte_x0_y0:                  1
@@ -17743,7 +17777,6 @@ save pydis_start, pydis_end
 ;     osfile:                        1
 ;     osfind_close_or_open:          1
 ;     osfind_with_channel:           1
-;     osopt_check_cmos_protect:      1
 ;     osword_13_dispatch_hi:         1
 ;     osword_13_dispatch_lo:         1
 ;     osword_13_read_ctx_3:          1
@@ -17888,7 +17921,6 @@ save pydis_start, pydis_end
 ;     send_delete_request:           1
 ;     send_info_request:             1
 ;     send_open_file_request:        1
-;     send_osargs_request:           1
 ;     send_osbput_data:              1
 ;     send_pass_to_fs:               1
 ;     send_request_nowrite:          1
@@ -17967,7 +17999,6 @@ save pydis_start, pydis_end
 ;     store_buf_ptr_lo:              1
 ;     store_digit:                   1
 ;     store_direction_flag:          1
-;     store_display_flag:            1
 ;     store_fcb_flags:               1
 ;     store_owner_flags:             1
 ;     store_port_and_send:           1

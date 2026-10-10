@@ -1248,6 +1248,18 @@
       "fall_through": true
     },
     {
+      "addr": 36451,
+      "name": "fscv_handler",
+      "title": "FSCV handler (filing-system control)",
+      "description": "Target of the filing-system control vector. Saves A, X and Y in\nthe FS workspace (X in `fs_options`, Y in `fs_block_offset`),\nignores reason codes &0C and above, clears the FS selection flags\nand dispatches through `svc_dispatch` at index reason + &1E:\n\n| A | Handler |\n|---|---|\n| 0 | [`fscv_0_opt_entry`](label:fscv_0_opt_entry) (`*OPT`) |\n| 1 | `fscv_1_eof` (EOF) |\n| 2, 4 | `cmd_run_via_urd` (`*RUN`) |\n| 3 | `fscv_3_star_cmd` (unrecognised `*` command) |\n| 5 | `fscv_5_cat` (`*CAT`) |\n| 6 | `fscv_6_shutdown` (new filing system selected) |\n| 7 | `fscv_7_read_handles` (read handle range) |\n| 8 | `dispatch_rts` (ignored) |\n| 9 | `ps_scan_resume` |\n| 10 | `cmd_info_dispatch` (`*INFO`) |\n| 11 | `check_urd_present` |",
+      "on_entry": {
+        "a": "FSCV reason code",
+        "x": "depends on reason",
+        "y": "depends on reason"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 36467,
       "name": "dir_op_dispatch",
       "title": "Dispatch directory operation via PHA/PHA/RTS",
@@ -2548,11 +2560,11 @@
     {
       "addr": 41167,
       "name": "fscv_0_opt_entry",
-      "title": "FSCV reason 0: read OSARGS",
-      "description": "Handles OSARGS via the FSCV vector. If `A=0` (initialise dot-seen\nflag) clears the flag and proceeds. Compares `X` against 4 (number\nof args): out-of-range exits via the OSARGS dispatch chain to a\nshared error path; otherwise dispatches to the per-argument\nhandler. Reached via the FSCV vector with reason code 0.",
+      "title": "FSCV 0: *OPT handler",
+      "description": "Handles `*OPT X,Y`. On entry X and the Z flag hold the option\nnumber (loaded from `fs_options` by the dispatcher) and Y the\nvalue.\n\n| Form | Effect |\n|---|---|\n| `*OPT 0,Y` or `*OPT 1,Y` | Set the local messages flag ([`hazel_fs_messages_flag`](label:hazel_fs_messages_flag)) to Y |\n| `*OPT 4,Y` (Y=0-3) | Send the boot option to the file server (FS command &16) and record it in [`hazel_boot_option`](label:hazel_boot_option) |\n| `*OPT 2`-`*OPT 8` otherwise | Merge Y into CMOS RAM byte &11, at the bit position given by `cmos_attr_table` and under `cmos_opt_mask_table`; `*OPT 5` accepts Y=0-1, the others Y=0-3 |\n\nAny other option or value raises error class 7, \"Bad option\".",
       "on_entry": {
-        "a": "OSARGS sub-function (0 = initialise)",
-        "x": "argument index (0-3)"
+        "x": "option number",
+        "y": "option value"
       },
       "fall_through": true
     },
@@ -2677,7 +2689,7 @@
       "addr": 41630,
       "name": "send_osbput_data",
       "title": "Send OSBPUT data block to file server",
-      "description": "Sets `Y=&15` (TX buffer size for OSBPUT data) and calls\n[`save_net_tx_cb`](label:save_net_tx_cb) to dispatch the TX. Then copies\nthe display flag from `hazel_fs_flags` to `hazel_txcb_byte_16` (TX header continuation).\nSingle caller in the OSBPUT-buffered-write path.",
+      "description": "Sets `Y=&15` (TX buffer size for OSBPUT data) and calls\n[`save_net_tx_cb`](label:save_net_tx_cb) to dispatch the TX. Then copies\nthe boot option from `hazel_boot_option` to `hazel_txcb_byte_16` (TX header continuation).\nSingle caller in the OSBPUT-buffered-write path.",
       "fall_through": true
     },
     {
@@ -2936,7 +2948,7 @@
       "addr": 42729,
       "name": "fsreply_1_boot",
       "title": "FS reply 1: flag boot pending, then fall into handle-copy",
-      "description": "Closes all network channels via\n[`close_all_net_chans`](label:close_all_net_chans), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal\nboot-pending downstream, loads the boot-type byte from the FS\nreply ([`hazel_txcb_result`](label:hazel_txcb_result)) into\n[`hazel_fs_flags`](label:hazel_fs_flags), pushes it on the stack, and\nfalls through into [`fsreply_2_copy_handles`](label:fsreply_2_copy_handles).\n\nThe pushed byte is **not** consumed by `fsreply_2_copy_handles`\nitself \u2014 that routine only copies the per-handle table and uses\n`PHP`/`PLP` for its own Carry handling. The matching `PLA` lives\nmuch further down the boot chain, in\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) at `&A730`, which\ntests the recovered boot-type byte against `2` to decide whether\nto call OSBYTE `&6D`. Anyone following the stack across this\nfall-through should look past `fsreply_2_copy_handles` and\n`boot_try_findlib` to find the pop.",
+      "description": "Closes all network channels via\n[`close_all_net_chans`](label:close_all_net_chans), sets bit 6 of `fs_flags`\n(`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal\nboot-pending downstream, loads the boot-type byte from the FS\nreply ([`hazel_txcb_result`](label:hazel_txcb_result)) into\n[`hazel_boot_option`](label:hazel_boot_option), pushes it on the stack, and\nfalls through into [`fsreply_2_copy_handles`](label:fsreply_2_copy_handles).\n\nThe pushed byte is **not** consumed by `fsreply_2_copy_handles`\nitself \u2014 that routine only copies the per-handle table and uses\n`PHP`/`PLP` for its own Carry handling. The matching `PLA` lives\nmuch further down the boot chain, in\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) at `&A730`, which\ntests the recovered boot-type byte against `2` to decide whether\nto call OSBYTE `&6D`. Anyone following the stack across this\nfall-through should look past `fsreply_2_copy_handles` and\n`boot_try_findlib` to find the pop.",
       "fall_through": true
     },
     {
@@ -2966,14 +2978,14 @@
       "addr": 42867,
       "name": "boot_select_cmd",
       "title": "Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
-      "description": "Two-instruction gate at the head of the boot-OSCLI dispatch.\nLoads `Y` from [`hazel_fs_flags`](label:hazel_fs_flags) (the boot-type\nbyte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,\n`BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) \u2014 the empty / no-op\nboot case. Otherwise falls through into\n[`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the\nindex into [`boot_cmd_lo_table`](label:boot_cmd_lo_table).\n\nTwo callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):\nthe `BNE` at `&A748` (auto-boot flag was set, skip CTRL check)\nand the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).",
+      "description": "Two-instruction gate at the head of the boot-OSCLI dispatch.\nLoads `Y` from [`hazel_boot_option`](label:hazel_boot_option) (the boot-type\nbyte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,\n`BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) \u2014 the empty / no-op\nboot case. Otherwise falls through into\n[`boot_cmd_oscli`](label:boot_cmd_oscli) with `Y` already loaded as the\nindex into [`boot_cmd_lo_table`](label:boot_cmd_lo_table).\n\nTwo callers, both from [`check_auto_boot_flag`](label:check_auto_boot_flag):\nthe `BNE` at `&A748` (auto-boot flag was set, skip CTRL check)\nand the `BPL` at `&A73E` (CTRL not pressed, proceed to boot).",
       "fall_through": true
     },
     {
       "addr": 42872,
       "name": "boot_cmd_oscli",
       "title": "Look up boot command in boot_cmd_lo_table and OSCLI it",
-      "description": "Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command\naddress), sets `Y=&A7` (high byte \u2014 boot strings live in `&A7xx`),\nthen `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated\ncommand string.\n\nTwo entry paths:\n\n- `JMP` tail-call from `&A5E8` with `Y=3` hardcoded \u2014 forces the\n  exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).\n- Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already\n  loaded from [`hazel_fs_flags`](label:hazel_fs_flags) \u2014 the normal logon-boot\n  path, dispatching on the FS-supplied boot type.",
+      "description": "Loads `X = boot_cmd_lo_table,Y` (low byte of the boot-command\naddress), sets `Y=&A7` (high byte \u2014 boot strings live in `&A7xx`),\nthen `JMP`s to `oscli` with `(X,Y)` pointing at a CR-terminated\ncommand string.\n\nTwo entry paths:\n\n- `JMP` tail-call from `&A5E8` with `Y=3` hardcoded \u2014 forces the\n  exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).\n- Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already\n  loaded from [`hazel_boot_option`](label:hazel_boot_option) \u2014 the normal logon-boot\n  path, dispatching on the FS-supplied boot type.",
       "on_entry": {
         "y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"
       }
@@ -4671,7 +4683,7 @@
       "addr": 41257,
       "name": "cmos_opt_mask_table",
       "title": "CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
-      "description": "Used by the OSARGS-via-FSCV / *OPT 4 path\n([`osopt_check_cmos_protect`](label:osopt_check_cmos_protect)) to read or update bit\nfields inside CMOS RAM byte `&11` (the Econet status byte holding\nthe auto-boot type and printer/messages flags).\n\n- **Indices 0-3** are extraction masks: `AND CMOS_&11` with\n  `&01`, `&02`, `&04`, `&06` returns bit 0, bit 1, bit 2 or\n  bits 1+2 respectively.\n- **Indices 4-7** are clear masks: `AND CMOS_&11` with `&FD`,\n  `&F3`, `&CF`, `&3F` zeroes bits 1, 2-3, 4-5 or 6-7 in turn,\n  before OR-ing the new value back in.\n\nA second indexed-base trick reads the same eight bytes through\n[`cmos_attr_table`](address:A0FF) (this label - 4): for write\nsub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double\nas the bit-shift counts that left-align the new value into its\ntarget field.",
+      "description": "Used by the OSARGS-via-FSCV / *OPT 4 path\n([`opt_write_cmos`](label:opt_write_cmos)) to read or update bit\nfields inside CMOS RAM byte `&11` (the Econet status byte holding\nthe auto-boot type and printer/messages flags).\n\n- **Indices 0-3** are extraction masks: `AND CMOS_&11` with\n  `&01`, `&02`, `&04`, `&06` returns bit 0, bit 1, bit 2 or\n  bits 1+2 respectively.\n- **Indices 4-7** are clear masks: `AND CMOS_&11` with `&FD`,\n  `&F3`, `&CF`, `&3F` zeroes bits 1, 2-3, 4-5 or 6-7 in turn,\n  before OR-ing the new value back in.\n\nA second indexed-base trick reads the same eight bytes through\n[`cmos_attr_table`](address:A0FF) (this label - 4): for write\nsub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double\nas the bit-shift counts that left-align the new value into its\ntarget field.",
       "align": "before_label"
     },
     {
@@ -5050,7 +5062,7 @@
     "hazel_fs_saved_station": 49154,
     "hazel_fs_context_copy": 49155,
     "hazel_fs_prefix_stn": 49156,
-    "hazel_fs_flags": 49157,
+    "hazel_boot_option": 49157,
     "hazel_fs_messages_flag": 49158,
     "hazel_fs_pending_state": 49159,
     "hazel_fs_error_code": 49160,
@@ -6861,7 +6873,7 @@
     },
     {
       "addr": 49157,
-      "name": "hazel_fs_flags",
+      "name": "hazel_boot_option",
       "length": 1,
       "group": "hazel",
       "access": [
@@ -6869,6 +6881,17 @@
         "w"
       ],
       "description": "Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by `*OPT 4,n`, shown in the `*CAT` header and used to choose the boot action."
+    },
+    {
+      "addr": 49158,
+      "name": "hazel_fs_messages_flag",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Local messages flag, set by `*OPT 1,n` (or `*OPT 0,n`)."
     },
     {
       "addr": 49160,
@@ -34622,7 +34645,7 @@
       "labels": [
         "fscv_handler"
       ],
-      "comment_inline": "Parse reply as decimal number",
+      "comment_inline": "Save A/X/Y: X to fs_options, Y to fs_block_offset",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "set_xfer_params",
@@ -34635,7 +34658,7 @@
         201,
         12
       ],
-      "comment_inline": "Result >= 8?",
+      "comment_inline": "FSCV reason >= &0C?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&0c"
@@ -34646,7 +34669,7 @@
         176,
         30
       ],
-      "comment_inline": "Yes: out of range, return",
+      "comment_inline": "Yes: not handled, return",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "dispatch_rts",
@@ -34658,7 +34681,7 @@
       "bytes": [
         170
       ],
-      "comment_inline": "Transfer handle to X",
+      "comment_inline": "X = reason code",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -34669,7 +34692,7 @@
         2,
         179
       ],
-      "comment_inline": "Look up in open files table",
+      "comment_inline": "Clear FS selection flags",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "mask_owner_access",
@@ -34681,7 +34704,7 @@
       "bytes": [
         152
       ],
-      "comment_inline": "Transfer result to A",
+      "comment_inline": "A = caller's Y",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -34691,7 +34714,7 @@
         160,
         29
       ],
-      "comment_inline": "Y=&1D: handle dispatch offset",
+      "comment_inline": "Y=&1D: dispatch at index reason + &1E",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&1d"
@@ -34702,7 +34725,7 @@
         208,
         6
       ],
-      "comment_inline": "Not matched: fall to service dispatch",
+      "comment_inline": "Always taken",
       "type": "code",
       "mnemonic": "bne",
       "operand": "svc_dispatch",
@@ -37075,9 +37098,9 @@
       "comment_inline": "Clear workspace byte",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 36783,
@@ -60354,7 +60377,7 @@
         6,
         192
       ],
-      "comment_inline": "Load display flag from fs_messages_flag",
+      "comment_inline": "Load the local messages flag",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "hazel_fs_messages_flag",
@@ -66912,12 +66935,12 @@
       "labels": [
         "fscv_0_opt_entry"
       ],
-      "comment_inline": "A=0 (init sub-code): jump to store_display_flag",
+      "comment_inline": "X=0 (*OPT 0): treat as *OPT 1",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "store_display_flag",
+      "operand": "opt_set_messages",
       "target": 41180,
-      "target_label": "store_display_flag"
+      "target_label": "opt_set_messages"
     },
     {
       "addr": 41169,
@@ -66925,7 +66948,7 @@
         224,
         4
       ],
-      "comment_inline": "Non-zero A: X==4? (read OSARGS args)",
+      "comment_inline": "*OPT 4?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#4"
@@ -66936,12 +66959,12 @@
         208,
         4
       ],
-      "comment_inline": "X != 4: take normal OSARGS dispatch",
+      "comment_inline": "No: check the other options",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "osargs_dispatch",
+      "operand": "opt_check_messages",
       "target": 41177,
-      "target_label": "osargs_dispatch"
+      "target_label": "opt_check_messages"
     },
     {
       "addr": 41173,
@@ -66949,7 +66972,7 @@
         192,
         4
       ],
-      "comment_inline": "X==4 path: Y < 4?",
+      "comment_inline": "Boot option must be 0-3",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#4"
@@ -66960,12 +66983,12 @@
         144,
         13
       ],
-      "comment_inline": "Yes: send OSARGS request via TXCB",
+      "comment_inline": "Valid: set the boot option",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "send_osargs_request",
+      "operand": "opt_set_boot_option",
       "target": 41190,
-      "target_label": "send_osargs_request"
+      "target_label": "opt_set_boot_option"
     },
     {
       "addr": 41177,
@@ -66973,9 +66996,9 @@
         202
       ],
       "labels": [
-        "osargs_dispatch"
+        "opt_check_messages"
       ],
-      "comment_inline": "X-- (osargs_dispatch entry): step sub-code down",
+      "comment_inline": "X = option - 1",
       "xref_summaries": [
         "&a0d9 referenced 1 time by &a0d3"
       ],
@@ -66994,12 +67017,12 @@
         208,
         25
       ],
-      "comment_inline": "X != 1: take store-ptr-lo path",
+      "comment_inline": "Not *OPT 0/1: try the CMOS options",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "osargs_store_ptr_lo",
+      "operand": "opt_check_cmos",
       "target": 41205,
-      "target_label": "osargs_store_ptr_lo"
+      "target_label": "opt_check_cmos"
     },
     {
       "addr": 41180,
@@ -67009,9 +67032,9 @@
         192
       ],
       "labels": [
-        "store_display_flag"
+        "opt_set_messages"
       ],
-      "comment_inline": "Store Y as hazel_fs_messages_flag (display control)",
+      "comment_inline": "*OPT 0/1: set the local messages flag",
       "xref_summaries": [
         "&a0dc referenced 1 time by &a0cf"
       ],
@@ -67047,9 +67070,9 @@
         7
       ],
       "labels": [
-        "error_osargs"
+        "error_bad_option"
       ],
-      "comment_inline": "A=7: error code (out-of-range OSARGS sub-code)",
+      "comment_inline": "Error class 7: Bad option",
       "xref_summaries": [
         "&a0e1 referenced 2 times by &a0f7, &a103"
       ],
@@ -67074,7 +67097,7 @@
         59,
         153
       ],
-      "comment_inline": "Raise BRK error",
+      "comment_inline": "Raise the error",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "classify_reply_error",
@@ -67089,9 +67112,9 @@
         193
       ],
       "labels": [
-        "send_osargs_request"
+        "opt_set_boot_option"
       ],
-      "comment_inline": "Store Y as TXCB data byte (OSARGS payload)",
+      "comment_inline": "Boot option into the FS command data",
       "xref_summaries": [
         "&a0e6 referenced 1 time by &a0d7"
       ],
@@ -67113,7 +67136,7 @@
         160,
         22
       ],
-      "comment_inline": "Y=&16: TXCB function code (OSARGS request)",
+      "comment_inline": "Y=&16: FS command (set boot option)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&16"
@@ -67125,7 +67148,7 @@
         136,
         151
       ],
-      "comment_inline": "Send OSARGS request via TX control block",
+      "comment_inline": "Send it to the file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "save_net_tx_cb",
@@ -67138,7 +67161,7 @@
         164,
         188
       ],
-      "comment_inline": "Reload Y from fs_block_offset",
+      "comment_inline": "Recover the requested option (caller's Y)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "fs_block_offset",
@@ -67152,12 +67175,12 @@
         5,
         192
       ],
-      "comment_inline": "Update hazel_fs_flags from OSARGS reply",
+      "comment_inline": "Record it as the boot option",
       "type": "code",
       "mnemonic": "sty",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 41203,
@@ -67165,7 +67188,7 @@
         16,
         205
       ],
-      "comment_inline": "No error (positive): tail to done_close",
+      "comment_inline": "Always taken (0-3): return",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "done_close",
@@ -67179,9 +67202,9 @@
         8
       ],
       "labels": [
-        "osargs_store_ptr_lo"
+        "opt_check_cmos"
       ],
-      "comment_inline": "X >= 8?",
+      "comment_inline": "Option 9 or above?",
       "xref_summaries": [
         "&a0f5 referenced 1 time by &a0da"
       ],
@@ -67201,12 +67224,12 @@
         176,
         232
       ],
-      "comment_inline": "Yes: out-of-range OSARGS sub-code",
+      "comment_inline": "Yes: bad option",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "error_osargs",
+      "operand": "error_bad_option",
       "target": 41185,
-      "target_label": "error_osargs"
+      "target_label": "error_bad_option"
     },
     {
       "addr": 41209,
@@ -67214,7 +67237,7 @@
         224,
         4
       ],
-      "comment_inline": "X == 4?",
+      "comment_inline": "*OPT 5?",
       "type": "code",
       "mnemonic": "cpx",
       "operand": "#4"
@@ -67225,12 +67248,12 @@
         240,
         4
       ],
-      "comment_inline": "Yes: take fast read path (osargs_check_length)",
+      "comment_inline": "Yes: value must be 0-1",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "osargs_check_length",
+      "operand": "opt_check_value_0_1",
       "target": 41217,
-      "target_label": "osargs_check_length"
+      "target_label": "opt_check_value_0_1"
     },
     {
       "addr": 41213,
@@ -67238,7 +67261,7 @@
         192,
         4
       ],
-      "comment_inline": "Y < 4?",
+      "comment_inline": "Value 0-3?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#4"
@@ -67249,12 +67272,12 @@
         144,
         4
       ],
-      "comment_inline": "Yes: take CMOS-protect path",
+      "comment_inline": "Yes: write it to CMOS",
       "type": "code",
       "mnemonic": "bcc",
-      "operand": "osopt_check_cmos_protect",
+      "operand": "opt_write_cmos",
       "target": 41221,
-      "target_label": "osopt_check_cmos_protect"
+      "target_label": "opt_write_cmos"
     },
     {
       "addr": 41217,
@@ -67263,9 +67286,9 @@
         2
       ],
       "labels": [
-        "osargs_check_length"
+        "opt_check_value_0_1"
       ],
-      "comment_inline": "Y >= 2?",
+      "comment_inline": "Value 0-1?",
       "xref_summaries": [
         "&a101 referenced 1 time by &a0fb"
       ],
@@ -67285,12 +67308,12 @@
         176,
         220
       ],
-      "comment_inline": "Yes: argument out of range",
+      "comment_inline": "No: bad option",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "error_osargs",
+      "operand": "error_bad_option",
       "target": 41185,
-      "target_label": "error_osargs"
+      "target_label": "error_bad_option"
     },
     {
       "addr": 41221,
@@ -67298,7 +67321,7 @@
         90
       ],
       "labels": [
-        "osopt_check_cmos_protect"
+        "opt_write_cmos"
       ],
       "comment_inline": "Save Y",
       "xref_summaries": [
@@ -67318,7 +67341,7 @@
       "bytes": [
         218
       ],
-      "comment_inline": "Save sub-code across the CMOS read",
+      "comment_inline": "Save option - 1 across the CMOS read",
       "type": "code",
       "mnemonic": "phx"
     },
@@ -67352,7 +67375,7 @@
       "bytes": [
         250
       ],
-      "comment_inline": "Restore sub-code",
+      "comment_inline": "Restore option - 1",
       "type": "code",
       "mnemonic": "plx"
     },
@@ -70149,12 +70172,12 @@
         5,
         192
       ],
-      "comment_inline": "Load display flag from hazel_fs_flags",
+      "comment_inline": "Load the boot option",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 41638,
@@ -77681,12 +77704,12 @@
         5,
         192
       ],
-      "comment_inline": "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)",
+      "comment_inline": "Store boot type as hazel_boot_option (consumed later by boot_select_cmd)",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 42744,
@@ -78374,9 +78397,9 @@
       ],
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 42870,
@@ -98682,12 +98705,12 @@
         5,
         192
       ],
-      "comment_inline": "Read hazel_fs_flags",
+      "comment_inline": "Read hazel_boot_option",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_flags",
+      "operand": "hazel_boot_option",
       "target": 49157,
-      "target_label": "hazel_fs_flags"
+      "target_label": "hazel_boot_option"
     },
     {
       "addr": 45531,

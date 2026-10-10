@@ -5662,19 +5662,42 @@ d.comment(0x8E57, "Load reply function code", align=Align.INLINE)
 d.comment(0x8E5A, "Zero: no reply, return", align=Align.INLINE)
 d.comment(0x8E5C, "Load first reply byte", align=Align.INLINE)
 d.comment(0x8E5F, "Y=&25: logon dispatch offset", align=Align.INLINE)
-d.comment(0x8E63, "Parse reply as decimal number", align=Align.INLINE)
-d.label(0x8E63, "fscv_handler")
+d.comment(0x8E63, "Save A/X/Y: X to fs_options, Y to fs_block_offset", align=Align.INLINE)
+d.subroutine(
+    0x8E63,
+    "fscv_handler",
+    title="FSCV handler (filing-system control)",
+    description="""Target of the filing-system control vector. Saves A, X and Y in
+the FS workspace (X in `fs_options`, Y in `fs_block_offset`),
+ignores reason codes &0C and above, clears the FS selection flags
+and dispatches through `svc_dispatch` at index reason + &1E:
+
+| A | Handler |
+|---|---|
+| 0 | [`fscv_0_opt_entry`](label:fscv_0_opt_entry) (`*OPT`) |
+| 1 | `fscv_1_eof` (EOF) |
+| 2, 4 | `cmd_run_via_urd` (`*RUN`) |
+| 3 | `fscv_3_star_cmd` (unrecognised `*` command) |
+| 5 | `fscv_5_cat` (`*CAT`) |
+| 6 | `fscv_6_shutdown` (new filing system selected) |
+| 7 | `fscv_7_read_handles` (read handle range) |
+| 8 | `dispatch_rts` (ignored) |
+| 9 | `ps_scan_resume` |
+| 10 | `cmd_info_dispatch` (`*INFO`) |
+| 11 | `check_urd_present` |""",
+    on_entry={"a": "FSCV reason code", "x": "depends on reason", "y": "depends on reason"},
+)
 for i, ev in enumerate(_ev_dispatch):
     addr = 0x8EBF + i * 2
     d.word(addr)
     d.expr(addr, sym(ev))
     d.comment(addr, "%s dispatch" % ev[3:].upper(), align=Align.INLINE)
-d.comment(0x8E66, "Result >= 8?", align=Align.INLINE)
-d.comment(0x8E68, "Yes: out of range, return", align=Align.INLINE)
-d.comment(0x8E6A, "Transfer handle to X", align=Align.INLINE)
-d.comment(0x8E6B, "Look up in open files table", align=Align.INLINE)
-d.comment(0x8E6E, "Transfer result to A", align=Align.INLINE)
-d.comment(0x8E6F, "Y=&1D: handle dispatch offset", align=Align.INLINE)
+d.comment(0x8E66, "FSCV reason >= &0C?", align=Align.INLINE)
+d.comment(0x8E68, "Yes: not handled, return", align=Align.INLINE)
+d.comment(0x8E6A, "X = reason code", align=Align.INLINE)
+d.comment(0x8E6B, "Clear FS selection flags", align=Align.INLINE)
+d.comment(0x8E6E, "A = caller's Y", align=Align.INLINE)
+d.comment(0x8E6F, "Y=&1D: dispatch at index reason + &1E", align=Align.INLINE)
 d.label(0x8E73, "dir_op_dispatch")
 
 d.subroutine(
@@ -10030,7 +10053,7 @@ d.comment(0x9D1D, "Store in FS options at offset Y", align=Align.INLINE)
 d.comment(0x9D1F, "Advance to next byte", align=Align.INLINE)
 d.comment(0x9D20, "Y=&12: end of protection fields?", align=Align.INLINE)
 d.comment(0x9D22, "No: copy next byte", align=Align.INLINE)
-d.comment(0x9D24, "Load display flag from fs_messages_flag", align=Align.INLINE)
+d.comment(0x9D24, "Load the local messages flag", align=Align.INLINE)
 d.comment(0x9D27, "Zero: skip display, return", align=Align.INLINE)
 d.comment(0x9D29, "Y=&F4: index into hazel_display_buf for filename", align=Align.INLINE)
 d.label(0x9D2B, "loop_print_filename")
@@ -10868,60 +10891,66 @@ d.label(0xA0CF, "fscv_0_opt_entry")
 d.subroutine(
     0xA0CF,
     "fscv_0_opt_entry",
-    title="FSCV reason 0: read OSARGS",
-    description="""Handles OSARGS via the FSCV vector. If `A=0` (initialise dot-seen
-flag) clears the flag and proceeds. Compares `X` against 4 (number
-of args): out-of-range exits via the OSARGS dispatch chain to a
-shared error path; otherwise dispatches to the per-argument
-handler. Reached via the FSCV vector with reason code 0.""",
-    on_entry={"a": "OSARGS sub-function (0 = initialise)", "x": "argument index (0-3)"},
+    title="FSCV 0: *OPT handler",
+    description="""Handles `*OPT X,Y`. On entry X and the Z flag hold the option
+number (loaded from `fs_options` by the dispatcher) and Y the
+value.
+
+| Form | Effect |
+|---|---|
+| `*OPT 0,Y` or `*OPT 1,Y` | Set the local messages flag ([`hazel_fs_messages_flag`](label:hazel_fs_messages_flag)) to Y |
+| `*OPT 4,Y` (Y=0-3) | Send the boot option to the file server (FS command &16) and record it in [`hazel_boot_option`](label:hazel_boot_option) |
+| `*OPT 2`-`*OPT 8` otherwise | Merge Y into CMOS RAM byte &11, at the bit position given by `cmos_attr_table` and under `cmos_opt_mask_table`; `*OPT 5` accepts Y=0-1, the others Y=0-3 |
+
+Any other option or value raises error class 7, "Bad option".""",
+    on_entry={"x": "option number", "y": "option value"},
 )
 
 
 d.entry(0xA0CF)
-d.comment(0xA0CF, "A=0 (init sub-code): jump to store_display_flag", align=Align.INLINE)
-d.comment(0xA0D1, "Non-zero A: X==4? (read OSARGS args)", align=Align.INLINE)
-d.comment(0xA0D3, "X != 4: take normal OSARGS dispatch", align=Align.INLINE)
-d.comment(0xA0D5, "X==4 path: Y < 4?", align=Align.INLINE)
-d.comment(0xA0D7, "Yes: send OSARGS request via TXCB", align=Align.INLINE)
-d.label(0xA0D9, "osargs_dispatch")
+d.comment(0xA0CF, "X=0 (*OPT 0): treat as *OPT 1", align=Align.INLINE)
+d.comment(0xA0D1, "*OPT 4?", align=Align.INLINE)
+d.comment(0xA0D3, "No: check the other options", align=Align.INLINE)
+d.comment(0xA0D5, "Boot option must be 0-3", align=Align.INLINE)
+d.comment(0xA0D7, "Valid: set the boot option", align=Align.INLINE)
+d.label(0xA0D9, "opt_check_messages")
 
-d.comment(0xA0D9, "X-- (osargs_dispatch entry): step sub-code down", align=Align.INLINE)
-d.comment(0xA0DA, "X != 1: take store-ptr-lo path", align=Align.INLINE)
-d.label(0xA0DC, "store_display_flag")
+d.comment(0xA0D9, "X = option - 1", align=Align.INLINE)
+d.comment(0xA0DA, "Not *OPT 0/1: try the CMOS options", align=Align.INLINE)
+d.label(0xA0DC, "opt_set_messages")
 
-d.comment(0xA0DC, "Store Y as hazel_fs_messages_flag (display control)", align=Align.INLINE)
+d.comment(0xA0DC, "*OPT 0/1: set the local messages flag", align=Align.INLINE)
 d.comment(0xA0DF, "Tail-branch to done_close", align=Align.INLINE)
-d.label(0xA0E1, "error_osargs")
+d.label(0xA0E1, "error_bad_option")
 
-d.comment(0xA0E1, "A=7: error code (out-of-range OSARGS sub-code)", align=Align.INLINE)
-d.comment(0xA0E3, "Raise BRK error", align=Align.INLINE)
-d.label(0xA0E6, "send_osargs_request")
+d.comment(0xA0E1, "Error class 7: Bad option", align=Align.INLINE)
+d.comment(0xA0E3, "Raise the error", align=Align.INLINE)
+d.label(0xA0E6, "opt_set_boot_option")
 
-d.comment(0xA0E6, "Store Y as TXCB data byte (OSARGS payload)", align=Align.INLINE)
-d.comment(0xA0E9, "Y=&16: TXCB function code (OSARGS request)", align=Align.INLINE)
-d.comment(0xA0EB, "Send OSARGS request via TX control block", align=Align.INLINE)
-d.comment(0xA0EE, "Reload Y from fs_block_offset", align=Align.INLINE)
-d.comment(0xA0F0, "Update hazel_fs_flags from OSARGS reply", align=Align.INLINE)
-d.comment(0xA0F3, "No error (positive): tail to done_close", align=Align.INLINE)
-d.label(0xA0F5, "osargs_store_ptr_lo")
+d.comment(0xA0E6, "Boot option into the FS command data", align=Align.INLINE)
+d.comment(0xA0E9, "Y=&16: FS command (set boot option)", align=Align.INLINE)
+d.comment(0xA0EB, "Send it to the file server", align=Align.INLINE)
+d.comment(0xA0EE, "Recover the requested option (caller's Y)", align=Align.INLINE)
+d.comment(0xA0F0, "Record it as the boot option", align=Align.INLINE)
+d.comment(0xA0F3, "Always taken (0-3): return", align=Align.INLINE)
+d.label(0xA0F5, "opt_check_cmos")
 
-d.comment(0xA0F5, "X >= 8?", align=Align.INLINE)
-d.comment(0xA0F7, "Yes: out-of-range OSARGS sub-code", align=Align.INLINE)
-d.comment(0xA0F9, "X == 4?", align=Align.INLINE)
-d.comment(0xA0FB, "Yes: take fast read path (osargs_check_length)", align=Align.INLINE)
-d.comment(0xA0FD, "Y < 4?", align=Align.INLINE)
-d.comment(0xA0FF, "Yes: take CMOS-protect path", align=Align.INLINE)
-d.label(0xA101, "osargs_check_length")
+d.comment(0xA0F5, "Option 9 or above?", align=Align.INLINE)
+d.comment(0xA0F7, "Yes: bad option", align=Align.INLINE)
+d.comment(0xA0F9, "*OPT 5?", align=Align.INLINE)
+d.comment(0xA0FB, "Yes: value must be 0-1", align=Align.INLINE)
+d.comment(0xA0FD, "Value 0-3?", align=Align.INLINE)
+d.comment(0xA0FF, "Yes: write it to CMOS", align=Align.INLINE)
+d.label(0xA101, "opt_check_value_0_1")
 
-d.comment(0xA101, "Y >= 2?", align=Align.INLINE)
-d.comment(0xA103, "Yes: argument out of range", align=Align.INLINE)
-d.label(0xA105, "osopt_check_cmos_protect")
+d.comment(0xA101, "Value 0-1?", align=Align.INLINE)
+d.comment(0xA103, "No: bad option", align=Align.INLINE)
+d.label(0xA105, "opt_write_cmos")
 
-d.comment(0xA106, "Save sub-code across the CMOS read", align=Align.INLINE)
+d.comment(0xA106, "Save option - 1 across the CMOS read", align=Align.INLINE)
 d.comment(0xA107, "X=&11: CMOS RAM byte index", align=Align.INLINE)
 d.comment(0xA109, "Read CMOS &11 (Econet status) -> Y", align=Align.INLINE)
-d.comment(0xA10C, "Restore sub-code", align=Align.INLINE)
+d.comment(0xA10C, "Restore option - 1", align=Align.INLINE)
 d.comment(0xA10D, "Read CMOS &11 result to A", align=Align.INLINE)
 d.comment(0xA10E, "Mask CMOS &11 with cmos_opt_mask_table[X]", align=Align.INLINE)
 d.comment(0xA112, "Push CMOS value", align=Align.INLINE)
@@ -10956,7 +10985,7 @@ d.banner(
     0xA129,
     title="CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
     description="""Used by the OSARGS-via-FSCV / *OPT 4 path
-([`osopt_check_cmos_protect`](label:osopt_check_cmos_protect)) to read or update bit
+([`opt_write_cmos`](label:opt_write_cmos)) to read or update bit
 fields inside CMOS RAM byte `&11` (the Econet status byte holding
 the auto-boot type and printer/messages flags).
 
@@ -11402,7 +11431,7 @@ d.subroutine(
     title="Send OSBPUT data block to file server",
     description="""Sets `Y=&15` (TX buffer size for OSBPUT data) and calls
 [`save_net_tx_cb`](label:save_net_tx_cb) to dispatch the TX. Then copies
-the display flag from `hazel_fs_flags` to `hazel_txcb_byte_16` (TX header continuation).
+the boot option from `hazel_boot_option` to `hazel_txcb_byte_16` (TX header continuation).
 Single caller in the OSBPUT-buffered-write path.""",
 )
 
@@ -11410,7 +11439,7 @@ Single caller in the OSBPUT-buffered-write path.""",
 d.entry(0xA29E)
 d.comment(0xA29E, "Y=&15: TX buffer size for OSBPUT data", align=Align.INLINE)
 d.comment(0xA2A0, "Send TX control block", align=Align.INLINE)
-d.comment(0xA2A3, "Load display flag from hazel_fs_flags", align=Align.INLINE)
+d.comment(0xA2A3, "Load the boot option", align=Align.INLINE)
 d.comment(0xA2A6, "Store in hazel_txcb_byte_16", align=Align.INLINE)
 d.comment(0xA2A9, "Clear fs_load_addr (X=0)", align=Align.INLINE)
 d.comment(0xA2AB, "Clear fs_load_addr_hi", align=Align.INLINE)
@@ -12505,7 +12534,7 @@ d.subroutine(
 (`TSB &0D6C`, marking the boot-pending state), `SEC`s to signal
 boot-pending downstream, loads the boot-type byte from the FS
 reply ([`hazel_txcb_result`](label:hazel_txcb_result)) into
-[`hazel_fs_flags`](label:hazel_fs_flags), pushes it on the stack, and
+[`hazel_boot_option`](label:hazel_boot_option), pushes it on the stack, and
 falls through into [`fsreply_2_copy_handles`](label:fsreply_2_copy_handles).
 
 The pushed byte is **not** consumed by `fsreply_2_copy_handles`
@@ -12526,7 +12555,7 @@ d.comment(0xA6EC, "A=&40: bit-6 mask for fs_flags (boot-pending flag)", align=Al
 d.comment(0xA6EE, "Set boot-pending bit on fs_flags (TSB = test-and-set)", align=Align.INLINE)
 d.comment(0xA6F1, "C=1: signal boot-pending to fsreply_2_copy_handles (its BCS at &A6F9 takes the boot path)", align=Align.INLINE)
 d.comment(0xA6F2, "Load boot-type byte from FS reply (hazel_txcb_result)", align=Align.INLINE)
-d.comment(0xA6F5, "Store boot type as hazel_fs_flags (consumed later by boot_select_cmd)", align=Align.INLINE)
+d.comment(0xA6F5, "Store boot type as hazel_boot_option (consumed later by boot_select_cmd)", align=Align.INLINE)
 d.comment(0xA6F8, "Push boot-type byte (popped later by boot_persist_fs_maybe at &A730)", align=Align.INLINE)
 d.label(0xA6F9, "fsreply_2_copy_handles")
 
@@ -12718,7 +12747,7 @@ d.comment(0xA762, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing se
 # UNMAPPED: 
 # UNMAPPED: Three reachable entries (`Y` = 1, 2, 3); `Y=0` is unreachable
 # UNMAPPED: because [`boot_select_cmd`](label:boot_select_cmd) `BEQ`s out when
-# UNMAPPED: `hazel_fs_flags` is zero.
+# UNMAPPED: `hazel_boot_option` is zero.
 # UNMAPPED: 
 # UNMAPPED: Index 2 (`&48`) lands inside
 # UNMAPPED: [`boot_cmd_load_str`](label:boot_cmd_load_str) — at offset 7, on its `!`
@@ -12732,7 +12761,7 @@ d.comment(0xA762, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing se
 # UNMAPPED: d.byte(0xA75C)
 # UNMAPPED: d.byte(0xA75D)
 # UNMAPPED: d.byte(0xA75E)
-# UNMAPPED: d.comment(0xA75B, "Y=0: unreachable (boot_select_cmd BEQs out when hazel_fs_flags=0); value is dead", align=Align.INLINE)
+# UNMAPPED: d.comment(0xA75B, "Y=0: unreachable (boot_select_cmd BEQs out when hazel_boot_option=0); value is dead", align=Align.INLINE)
 # UNMAPPED: d.expr(0xA75C, "<boot_cmd_load_str")
 # UNMAPPED: d.comment(0xA75C, "Y=1: lo byte of boot_cmd_load_str (&A741) — 'L.-NET-!Boot'", align=Align.INLINE)
 # UNMAPPED: d.expr(0xA75D, "<(boot_cmd_load_str + 7)")
@@ -12746,7 +12775,7 @@ d.subroutine(
     "boot_select_cmd",
     title="Branch to boot_cancel_rts on boot type 0, else fall into boot_cmd_oscli",
     description="""Two-instruction gate at the head of the boot-OSCLI dispatch.
-Loads `Y` from [`hazel_fs_flags`](label:hazel_fs_flags) (the boot-type
+Loads `Y` from [`hazel_boot_option`](label:hazel_boot_option) (the boot-type
 byte the FS reply stashed in fsreply_1_boot at `&A6E1`); if zero,
 `BEQ`s into [`boot_cancel_rts`](label:boot_cancel_rts) — the empty / no-op
 boot case. Otherwise falls through into
@@ -12777,7 +12806,7 @@ Two entry paths:
 - `JMP` tail-call from `&A5E8` with `Y=3` hardcoded — forces the
   exec-via-NFS boot ([`boot_cmd_exec_str`](label:boot_cmd_exec_str)).
 - Fall-through from [`boot_select_cmd`](label:boot_select_cmd) with `Y` already
-  loaded from [`hazel_fs_flags`](label:hazel_fs_flags) — the normal logon-boot
+  loaded from [`hazel_boot_option`](label:hazel_boot_option) — the normal logon-boot
   path, dispatching on the FS-supplied boot type.""",
     on_entry={"y": "boot-command index (1=load, 2=run-on-current-FS, 3=exec)"},
 )
@@ -15390,7 +15419,7 @@ d.comment(0xB1C4, "Advance X past header", align=Align.INLINE)
 d.comment(0xB1C5, "Y=&10: print 16 chars", align=Align.INLINE)
 d.comment(0xB1C7, "Print file entry", align=Align.INLINE)
 d.comment(0xB1CA, "Print '    Option '", align=Align.INLINE)
-d.comment(0xB1D8, "Read hazel_fs_flags", align=Align.INLINE)
+d.comment(0xB1D8, "Read hazel_boot_option", align=Align.INLINE)
 d.comment(0xB1DB, "Transfer to X for table lookup", align=Align.INLINE)
 d.comment(0xB1DC, "Print option as hex", align=Align.INLINE)
 d.comment(0xB1DF, "Print ' ('", align=Align.INLINE)
@@ -18946,14 +18975,21 @@ d.label(
 
 d.label(
     0xC005,
-    "hazel_fs_flags",
+    "hazel_boot_option",
     description="Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by `*OPT 4,n`, shown in the `*CAT` header and used to choose the boot action.",
     length=1,
     group="hazel",
     access="rw",
 )
 
-d.label(0xC006, "hazel_fs_messages_flag")
+d.label(
+    0xC006,
+    "hazel_fs_messages_flag",
+    description="Local messages flag, set by `*OPT 1,n` (or `*OPT 0,n`).",
+    length=1,
+    group="hazel",
+    access="rw",
+)
 
 d.label(0xC007, "hazel_fs_pending_state")
 
@@ -19823,7 +19859,7 @@ d.comment(0x8E0A, "Read a character (password entry, no echo)", align=Align.INLI
 d.comment(0x8E0D, "Ctrl-U (&15): line-delete?", align=Align.INLINE)
 d.comment(0x8E37, "Branch to send the command", align=Align.INLINE)
 d.comment(0x8E61, "Not matched: fall to service dispatch", align=Align.INLINE)
-d.comment(0x8E71, "Not matched: fall to service dispatch", align=Align.INLINE)
+d.comment(0x8E71, "Always taken", align=Align.INLINE)
 d.comment(0x8EEE, "Zero: tail-call OSBYTE", align=Align.INLINE)
 d.comment(0x8F62, "Test the FS flags", align=Align.INLINE)
 d.comment(0x8F6D, "Y=&21: workspace flag offset", align=Align.INLINE)
