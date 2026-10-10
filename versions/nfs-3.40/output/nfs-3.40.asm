@@ -68,11 +68,11 @@ escapable                              = &97
 need_release_tube                      = &98
 prot_flags                             = &99
 net_tx_ptr                             = &9a
-; &9a referenced 16 times by &8530, &8557, &8689, &86a2, &8ffe, &90c4, &90ca, &90db, &9261, &926f, &9272, &927b, &927e, &928d, &9294, &929b; also used as index base 9 times by &84fb, &8698, &869a, &86ad, &90d5, &9115, &9117, &99b2, &9f5d
+; &9a referenced 17 times by &8530, &8557, &8689, &86a2, &8ffe, &90c4, &90ca, &90db, &91a5, &9261, &926f, &9272, &927b, &927e, &928d, &9294, &929b; also used as index base 9 times by &84fb, &8698, &869a, &86ad, &90d5, &9115, &9117, &99b2, &9f5d
 net_tx_ptr_hi                          = &9b
 ; &9b referenced 8 times by &868d, &86a6, &9017, &90c7, &90ce, &90d8, &9196, &9263
 net_rx_ptr                             = &9c
-; &9c referenced 32 times by &81ba, &81c1, &81f8, &8242, &82ca, &82ce, &82e7, &82f8, &8317, &8352, &849c, &84a5, &84ab, &84af, &84da, &84e0, &84ea, &8e5b, &8e8e, &8ea5, &8eda, &8eeb, &8f37, &9042, &9046, &9055, &906c, &9070, &9207, &9b03, &9b0a, &9b10
+; &9c referenced 33 times by &81ba, &81c1, &81f8, &8242, &82ca, &82ce, &82e7, &82f8, &8317, &8352, &849c, &84a5, &84ab, &84af, &84da, &84e0, &84ea, &8e5b, &8e8e, &8ea5, &8eda, &8eeb, &8f37, &9042, &9046, &9055, &906c, &9070, &919e, &9207, &9b03, &9b0a, &9b10
 net_rx_ptr_hi                          = &9d
 ; &9d referenced 6 times by &82c1, &8ec0, &8ed4, &9190, &9237, &9aa1
 nfs_workspace                          = &9e
@@ -5742,7 +5742,7 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &9180 referenced 1 time by &9244
 .ctrl_block_setup_clv
     clv                                                               ; 9180: b8          .        ; V=0: target is (nfs_workspace)
-; &9181 referenced 1 time by &917a
+; &9181 referenced 2 times by &917a, &91a2
 .cbset2
     lda ctrl_block_template,x                                         ; 9181: bd a8 91    ...      ; Load template byte from ctrl_block_template[X]
     cmp #&fe                                                          ; 9184: c9 fe       ..       ; &FE = stop sentinel
@@ -5756,29 +5756,25 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     lda nfs_workspace_hi                                              ; 9194: a5 9f       ..       ; V=0: use (nfs_workspace) page
 ; &9196 referenced 1 time by &9192
 .rxcb_matched
-    sta net_tx_ptr_hi                                                 ; 9196: 85 9b       ..       ; PAGE byte → Y=&02 / Y=&74
+    sta net_tx_ptr_hi                                                 ; 9196: 85 9b       ..       ; Page byte is also net_tx_ptr's high byte
 ; &9198 referenced 1 time by &918e
 .cbset3
-    bvs cbset4                                                        ; 9198: 70 04       p.       ; → Y=&04 / Y=&76
-    sta (nfs_workspace),y                                             ; 919a: 91 9e       ..       ; PAGE byte → Y=&06 / Y=&78
-    equb &50                                                          ; 919c: 50          P        ; → Y=&08 / Y=&7A
-    equb &02                                                          ; 919d: 02          .     
+    bvs cbset4                                                        ; 9198: 70 04       p.       ; V=1: store via (net_rx_ptr)
+    sta (nfs_workspace),y                                             ; 919a: 91 9e       ..       ; V=0: store into (nfs_workspace)+Y
+    bvc cb_template_main_start                                        ; 919c: 50 02       P.       ; Always taken (V=0): next byte
 ; &919e referenced 1 time by &9198
 .cbset4
-    equb &91                                                          ; 919e: 91          .        ; Alt-path only → Y=&70
-    equb &9c                                                          ; 919f: 9c          .     
-; &91a0 referenced 1 time by &918a
+    sta (net_rx_ptr),y                                                ; 919e: 91 9c       ..       ; Store into (net_rx_ptr)+Y
+; &91a0 referenced 2 times by &918a, &919c
 .cb_template_main_start
-    equb &88                                                          ; 91a0: 88          .        ; SKIP
-    equb &ca                                                          ; 91a1: ca          .        ; → Y=&01 / Y=&73
-    equb &10                                                          ; 91a2: 10          .     
-    equb &dd                                                          ; 91a3: dd          .     
+    dey                                                               ; 91a0: 88          .        ; Next target offset
+    dex                                                               ; 91a1: ca          .        ; Next template byte
+    bpl cbset2                                                        ; 91a2: 10 dd       ..       ; Loop until all template bytes done
 ; &91a4 referenced 1 time by &9186
 .cb_template_tail
-    equb &c8                                                          ; 91a4: c8          .     
-    equb &84                                                          ; 91a5: 84          .     
-    equb &9a                                                          ; 91a6: 9a          .        ; PAGE byte → Y=&06 / Y=&78
-    equb &60                                                          ; 91a7: 60          `        ; → Y=&07 / Y=&79
+    iny                                                               ; 91a4: c8          .        ; Y+1
+    sty net_tx_ptr                                                    ; 91a5: 84 9a       ..       ; net_tx_ptr low byte = Y (high byte set above)
+    rts                                                               ; 91a7: 60          `        ; Return
 ; ***************************************************************************************
 ; Control block initialisation template
 ;
@@ -5795,29 +5791,33 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &91a8 used as index base 1 time by &9181
 .ctrl_block_template
     equb &85                                                          ; 91a8: 85          .        ; Alt-path only → Y=&6F
-    equb &00                                                          ; 91a9: 00          .     
+    equb &00                                                          ; 91a9: 00          .        ; Alt-path only → Y=&70
     equb &fd                                                          ; 91aa: fd          .        ; SKIP
-    equb &fd                                                          ; 91ab: fd          .     
-    equb &7d                                                          ; 91ac: 7d          }        ; → Y=&0C (main only)
-    equb &fc                                                          ; 91ad: fc          .        ; → Y=&0D (main only)
+    equb &fd                                                          ; 91ab: fd          .        ; SKIP
+    equb &7d                                                          ; 91ac: 7d          }        ; → Y=&01 / Y=&73
+    equb &fc                                                          ; 91ad: fc          .        ; PAGE byte → Y=&02 / Y=&74
     equb &ff                                                          ; 91ae: ff          .        ; → Y=&03 / Y=&75
-    equb &ff                                                          ; 91af: ff          .        ; SKIP (main only)
-    equb &7e                                                          ; 91b0: 7e          ~        ; → Y=&10 (main only)
-    equb &fc                                                          ; 91b1: fc          .     
-    equb &ff                                                          ; 91b2: ff          .     
+    equb &ff                                                          ; 91af: ff          .        ; → Y=&04 / Y=&76
+    equb &7e                                                          ; 91b0: 7e          ~        ; → Y=&05 / Y=&77
+    equb &fc                                                          ; 91b1: fc          .        ; PAGE byte → Y=&06 / Y=&78
+    equb &ff                                                          ; 91b2: ff          .        ; → Y=&07 / Y=&79
     equb &ff                                                          ; 91b3: ff          .        ; → Y=&08 / Y=&7A
     equb &00                                                          ; 91b4: 00          .        ; → Y=&09 / Y=&7B
-    equb &00                                                          ; 91b5: 00          .        ; PAGE byte → Y=&15 (main only)
-    equb &fe                                                          ; 91b6: fe          .        ; → Y=&16 (main only)
-    equb &80                                                          ; 91b7: 80          .     
-    equb &93                                                          ; 91b8: 93          .     
-    equb &fd, &fd, &d9                                                ; 91b9: fd fd d9    ...      ; SKIP (main only)
+    equb &00                                                          ; 91b5: 00          .        ; → Y=&0A / Y=&7C
+    equb &fe                                                          ; 91b6: fe          .        ; STOP — main-path boundary
+    equb &80                                                          ; 91b7: 80          .        ; → Y=&0C (main only)
+    equb &93                                                          ; 91b8: 93          .        ; → Y=&0D (main only)
+    equb &fd                                                          ; 91b9: fd          .        ; SKIP (main only)
+    equb &fd                                                          ; 91ba: fd          .        ; SKIP (main only)
+    equb &d9                                                          ; 91bb: d9          .        ; → Y=&10 (main only)
     equb &fc                                                          ; 91bc: fc          .        ; PAGE byte → Y=&11 (main only)
     equb &ff                                                          ; 91bd: ff          .        ; → Y=&12 (main only)
     equb &ff                                                          ; 91be: ff          .        ; → Y=&13 (main only)
-    equb &de, &fc, &ff                                                ; 91bf: de fc ff    ...      ; → Y=&14 (main only)
-    equb &ff, &fe, &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff   ; 91c2: ff fe d1... ......
-    equb &ff                                                          ; 91ce: ff          .        ; → Y=&17 (main only)
+    equb &de                                                          ; 91bf: de          .        ; → Y=&14 (main only)
+    equb &fc                                                          ; 91c0: fc          .        ; PAGE byte → Y=&15 (main only)
+    equb &ff                                                          ; 91c1: ff          .        ; → Y=&16 (main only)
+    equb &ff                                                          ; 91c2: ff          .        ; → Y=&17 (main only)
+    equb &fe, &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff   ; 91c3: fe d1 fd... ......
 ; ***************************************************************************************
 ; Fn 5: printer selection changed (SELECT)
 ;
@@ -8123,11 +8123,11 @@ save pydis_start, pydis_end
 ;     econet_data_continue_frame:              37
 ;     fs_cmd_data:                             37
 ;     port_ws_offset:                          35
-;     net_rx_ptr:                              32
+;     net_rx_ptr:                              33
 ;     econet_control1_or_status1:              31
+;     net_tx_ptr:                              26
 ;     osword_pb_ptr:                           26
 ;     tx_flags:                                26
-;     net_tx_ptr:                              25
 ;     osbyte:                                  23
 ;     set_nmi_vector:                          22
 ;     port_buf_len:                            20
@@ -8304,6 +8304,8 @@ save pydis_start, pydis_end
 ;     boot_option_text:                         2
 ;     brk_ptr:                                  2
 ;     call_fscv_shutdown:                       2
+;     cb_template_main_start:                   2
+;     cbset2:                                   2
 ;     check_rom_end:                            2
 ;     check_svc_12:                             2
 ;     claim_addr_ff:                            2
@@ -8480,9 +8482,7 @@ save pydis_start, pydis_end
 ;     cat_check_access:                         1
 ;     cat_column_separator:                     1
 ;     cattxt:                                   1
-;     cb_template_main_start:                   1
 ;     cb_template_tail:                         1
-;     cbset2:                                   1
 ;     cbset3:                                   1
 ;     cbset4:                                   1
 ;     cha4:                                     1
@@ -8929,11 +8929,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7503 bytes (92%)
-;     Data                     = 689 bytes (8%)
+;     Code                     = 7515 bytes (92%)
+;     Data                     = 677 bytes (8%)
 ;
-;     Number of instructions   = 3617
-;     Number of data bytes     = 394 bytes
+;     Number of instructions   = 3625
+;     Number of data bytes     = 382 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34

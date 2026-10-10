@@ -6032,25 +6032,25 @@ cmd_match_data = fs_cmd_match_table+1
     lda nfs_workspace_hi                                              ; 91a3: a5 9f       ..       ; V=0: use (nfs_workspace) page
 ; &91a5 referenced 1 time by &91a1
 .rxcb_matched
-    sta net_tx_ptr_hi                                                 ; 91a5: 85 9b       ..       ; PAGE byte → Y=&02 / Y=&74
+    sta net_tx_ptr_hi                                                 ; 91a5: 85 9b       ..       ; Page byte is also net_tx_ptr's high byte
 ; &91a7 referenced 1 time by &919d
 .cbset3
-    bvs cbset4                                                        ; 91a7: 70 04       p.       ; → Y=&04 / Y=&76
-    sta (nfs_workspace),y                                             ; 91a9: 91 9e       ..       ; PAGE byte → Y=&06 / Y=&78
-    bvc cb_template_main_start                                        ; 91ab: 50 02       P.       ; → Y=&08 / Y=&7A
+    bvs cbset4                                                        ; 91a7: 70 04       p.       ; V=1: store via (net_rx_ptr)
+    sta (nfs_workspace),y                                             ; 91a9: 91 9e       ..       ; V=0: store into (nfs_workspace)+Y
+    bvc cb_template_main_start                                        ; 91ab: 50 02       P.       ; Always taken (V=0): next byte
 ; &91ad referenced 1 time by &91a7
 .cbset4
-    sta (net_rx_ptr),y                                                ; 91ad: 91 9c       ..       ; Alt-path only → Y=&70
+    sta (net_rx_ptr),y                                                ; 91ad: 91 9c       ..       ; Store into (net_rx_ptr)+Y
 ; &91af referenced 2 times by &9199, &91ab
 .cb_template_main_start
-    dey                                                               ; 91af: 88          .        ; → Y=&0C (main only)
-    dex                                                               ; 91b0: ca          .        ; → Y=&0D (main only)
+    dey                                                               ; 91af: 88          .        ; Next target offset
+    dex                                                               ; 91b0: ca          .        ; Next template byte
     bpl cbset2                                                        ; 91b1: 10 dd       ..       ; Loop until all template bytes done
 ; &91b3 referenced 1 time by &9195
 .cb_template_tail
-    iny                                                               ; 91b3: c8          .        ; → Y=&10 (main only)
-    sty net_tx_ptr                                                    ; 91b4: 84 9a       ..       ; Store final offset as net_tx_ptr
-    rts                                                               ; 91b6: 60          `        ; → Y=&07 / Y=&79
+    iny                                                               ; 91b3: c8          .        ; Y+1
+    sty net_tx_ptr                                                    ; 91b4: 84 9a       ..       ; net_tx_ptr low byte = Y (high byte set above)
+    rts                                                               ; 91b6: 60          `        ; Return
 ; ***************************************************************************************
 ; Control block initialisation template
 ;

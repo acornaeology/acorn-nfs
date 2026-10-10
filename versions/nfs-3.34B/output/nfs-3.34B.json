@@ -36537,7 +36537,7 @@
       "labels": [
         "rxcb_matched"
       ],
-      "comment_inline": "PAGE byte \u2192 Y=&02 / Y=&74",
+      "comment_inline": "Page byte is also net_tx_ptr's high byte",
       "xref_summaries": [
         "&917d referenced 1 time by &9179"
       ],
@@ -36562,7 +36562,7 @@
       "labels": [
         "cbset3"
       ],
-      "comment_inline": "\u2192 Y=&04 / Y=&76",
+      "comment_inline": "V=1: store via (net_rx_ptr)",
       "xref_summaries": [
         "&917f referenced 1 time by &9175"
       ],
@@ -36584,7 +36584,7 @@
         145,
         158
       ],
-      "comment_inline": "PAGE byte \u2192 Y=&06 / Y=&78",
+      "comment_inline": "V=0: store into (nfs_workspace)+Y",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -36597,7 +36597,7 @@
         80,
         2
       ],
-      "comment_inline": "\u2192 Y=&08 / Y=&7A",
+      "comment_inline": "Always taken (V=0): next byte",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "cb_template_main_start",
@@ -36613,7 +36613,7 @@
       "labels": [
         "cbset4"
       ],
-      "comment_inline": "Alt-path only \u2192 Y=&70",
+      "comment_inline": "Store into (net_rx_ptr)+Y",
       "xref_summaries": [
         "&9185 referenced 1 time by &917f"
       ],
@@ -36637,7 +36637,7 @@
       "labels": [
         "cb_template_main_start"
       ],
-      "comment_inline": "\u2192 Y=&0C (main only)",
+      "comment_inline": "Next target offset",
       "xref_summaries": [
         "&9187 referenced 2 times by &9171, &9183"
       ],
@@ -36659,7 +36659,7 @@
       "bytes": [
         202
       ],
-      "comment_inline": "\u2192 Y=&0D (main only)",
+      "comment_inline": "Next template byte",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -36684,7 +36684,7 @@
       "labels": [
         "cb_template_tail"
       ],
-      "comment_inline": "\u2192 Y=&10 (main only)",
+      "comment_inline": "Y+1",
       "xref_summaries": [
         "&918b referenced 1 time by &916d"
       ],
@@ -36703,7 +36703,7 @@
         132,
         154
       ],
-      "comment_inline": "Store final offset as net_tx_ptr",
+      "comment_inline": "net_tx_ptr low byte = Y (high byte set above)",
       "type": "code",
       "mnemonic": "sty",
       "operand": "net_tx_ptr",
@@ -36715,7 +36715,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "\u2192 Y=&07 / Y=&79",
+      "comment_inline": "Return",
       "type": "code",
       "mnemonic": "rts"
     },

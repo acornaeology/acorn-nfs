@@ -5746,25 +5746,25 @@ post_reply_check = scan_or_read_rxcb+1
     lda nfs_workspace_hi                                              ; 917b: a5 9f       ..       ; V=0: use (nfs_workspace) page
 ; &917d referenced 1 time by &9179
 .rxcb_matched
-    sta net_tx_ptr_hi                                                 ; 917d: 85 9b       ..       ; PAGE byte → Y=&02 / Y=&74
+    sta net_tx_ptr_hi                                                 ; 917d: 85 9b       ..       ; Page byte is also net_tx_ptr's high byte
 ; &917f referenced 1 time by &9175
 .cbset3
-    bvs cbset4                                                        ; 917f: 70 04       p.       ; → Y=&04 / Y=&76
-    sta (nfs_workspace),y                                             ; 9181: 91 9e       ..       ; PAGE byte → Y=&06 / Y=&78
-    bvc cb_template_main_start                                        ; 9183: 50 02       P.       ; → Y=&08 / Y=&7A
+    bvs cbset4                                                        ; 917f: 70 04       p.       ; V=1: store via (net_rx_ptr)
+    sta (nfs_workspace),y                                             ; 9181: 91 9e       ..       ; V=0: store into (nfs_workspace)+Y
+    bvc cb_template_main_start                                        ; 9183: 50 02       P.       ; Always taken (V=0): next byte
 ; &9185 referenced 1 time by &917f
 .cbset4
-    sta (net_rx_ptr),y                                                ; 9185: 91 9c       ..       ; Alt-path only → Y=&70
+    sta (net_rx_ptr),y                                                ; 9185: 91 9c       ..       ; Store into (net_rx_ptr)+Y
 ; &9187 referenced 2 times by &9171, &9183
 .cb_template_main_start
-    dey                                                               ; 9187: 88          .        ; → Y=&0C (main only)
-    dex                                                               ; 9188: ca          .        ; → Y=&0D (main only)
+    dey                                                               ; 9187: 88          .        ; Next target offset
+    dex                                                               ; 9188: ca          .        ; Next template byte
     bpl cbset2                                                        ; 9189: 10 dd       ..       ; Loop until all template bytes done
 ; &918b referenced 1 time by &916d
 .cb_template_tail
-    iny                                                               ; 918b: c8          .        ; → Y=&10 (main only)
-    sty net_tx_ptr                                                    ; 918c: 84 9a       ..       ; Store final offset as net_tx_ptr
-    rts                                                               ; 918e: 60          `        ; → Y=&07 / Y=&79
+    iny                                                               ; 918b: c8          .        ; Y+1
+    sty net_tx_ptr                                                    ; 918c: 84 9a       ..       ; net_tx_ptr low byte = Y (high byte set above)
+    rts                                                               ; 918e: 60          `        ; Return
 ; ***************************************************************************************
 ; Control block initialisation template
 ;

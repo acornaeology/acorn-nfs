@@ -5830,26 +5830,26 @@ d.comment(0x9177, "V=1: use (net_rx_ptr) page", align=Align.INLINE)
 d.comment(0x9179, "V=1: skip to net_rx_ptr page", align=Align.INLINE)
 d.comment(0x917B, "V=0: use (nfs_workspace) page", align=Align.INLINE)
 
-d.comment(0x917D, "PAGE byte → Y=&02 / Y=&74", align=Align.INLINE)
 d.label(0x917D, "rxcb_matched")
+d.comment(0x917D, "Page byte is also net_tx_ptr's high byte", align=Align.INLINE)
+d.comment(0x917F, "V=1: store via (net_rx_ptr)", align=Align.INLINE)
+d.comment(0x9181, "V=0: store into (nfs_workspace)+Y", align=Align.INLINE)
+d.comment(0x9183, "Always taken (V=0): next byte", align=Align.INLINE)
+d.comment(0x9185, "Store into (net_rx_ptr)+Y", align=Align.INLINE)
+d.comment(0x9187, "Next target offset", align=Align.INLINE)
+d.comment(0x9188, "Next template byte", align=Align.INLINE)
+d.comment(0x9189, "Loop until all template bytes done", align=Align.INLINE)
+d.comment(0x918B, "Y+1", align=Align.INLINE)
+d.comment(0x918C, "net_tx_ptr low byte = Y (high byte set above)", align=Align.INLINE)
+d.comment(0x918E, "Return", align=Align.INLINE)
 d.label(0x917F, "cbset3")
 
-d.comment(0x917F, "→ Y=&04 / Y=&76", align=Align.INLINE)
-d.comment(0x9181, "PAGE byte → Y=&06 / Y=&78", align=Align.INLINE)
-d.comment(0x9183, "→ Y=&08 / Y=&7A", align=Align.INLINE)
 d.label(0x9185, "cbset4")
 
-d.comment(0x9185, "Alt-path only → Y=&70", align=Align.INLINE)
 
 d.label(0x9187, "cb_template_main_start")
-d.comment(0x9187, "→ Y=&0C (main only)", align=Align.INLINE)
-d.comment(0x9188, "→ Y=&0D (main only)", align=Align.INLINE)
 
-d.comment(0x9189, "Loop until all template bytes done", align=Align.INLINE)
 d.label(0x918B, "cb_template_tail")
-d.comment(0x918B, "→ Y=&10 (main only)", align=Align.INLINE)
-d.comment(0x918C, "Store final offset as net_tx_ptr", align=Align.INLINE)
-d.comment(0x918E, "→ Y=&07 / Y=&79", align=Align.INLINE)
 d.subroutine(
     0x918F,
     "ctrl_block_template",
