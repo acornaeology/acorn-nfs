@@ -3299,63 +3299,28 @@ d.comment(0x873B, "Look up tx_flags from table", align=Align.INLINE)
 d.comment(0x873E, "Store operation flags", align=Align.INLINE)
 d.comment(0x8741, "Look up tx_length from table", align=Align.INLINE)
 d.comment(0x8744, "Store expected transfer length", align=Align.INLINE)
-d.comment(0x8747, "A=&87: high byte of tx_ctrl_* dispatch target", align=Align.INLINE)
+d.comment(0x8747, "All handlers lie in page &87: high byte", align=Align.INLINE)
+d.expr(0x8748, hi(sym("tx_ctrl_peek") - 1))
 d.comment(0x8749, "Push high byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
-d.comment(0x874A, "Look up handler address low from table", align=Align.INLINE)
+d.comment(0x874A, "Look up handler address low byte", align=Align.INLINE)
+d.expr(0x874B, sym("tx_ctrl_dispatch_lo") - 0x81)
 d.comment(0x874D, "Push low byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
 d.comment(0x874E, "RTS dispatches to control-byte handler", align=Align.INLINE)
 
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x867E,
-# UNMAPPED:     "tx_ctrl_dispatch_lo",
-# UNMAPPED:     title="TX ctrl dispatch lo-byte table (8 entries)",
-# UNMAPPED:     description="""Low bytes of PHA/PHA/RTS dispatch targets for TX control byte
-# UNMAPPED: types `&81`-`&88`. Read by the dispatch at `&8679` via
-# UNMAPPED: `LDA tx_ctrl_dispatch_lo-&81,Y` (the operand lands mid-
-# UNMAPPED: instruction inside
-# UNMAPPED: [`intoff_test_inactive`](address:85FC)). High byte pushed by
-# UNMAPPED: the dispatcher is always `&86`, so targets are `&86xx+1`. Last
-# UNMAPPED: entry (`&88`) dispatches to
-# UNMAPPED: [`tx_ctrl_machine_type`](address:8686), the 4 bytes immediately
-# UNMAPPED: after the table.""",
-# UNMAPPED: )
-# UNMAPPED: for i in range(8):
-# UNMAPPED:     d.byte(0x867E + i)
-# UNMAPPED: d.expr(0x867E, "<(tx_ctrl_peek-1)")
-# UNMAPPED: d.comment(0x867E, "ctrl &81: PEEK", align=Align.INLINE)
-# UNMAPPED: d.expr(0x867F, "<(tx_ctrl_poke-1)")
-# UNMAPPED: d.comment(0x867F, "ctrl &82: POKE", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8680, "<(proc_op_status2-1)")
-# UNMAPPED: d.comment(0x8680, "ctrl &83: JSR", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8681, "<(proc_op_status2-1)")
-# UNMAPPED: d.comment(0x8681, "ctrl &84: UserProc", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8682, "<(proc_op_status2-1)")
-# UNMAPPED: d.comment(0x8682, "ctrl &85: OSProc", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8683, "<(tx_ctrl_exit-1)")
-# UNMAPPED: d.comment(0x8683, "ctrl &86: HALT", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8684, "<(tx_ctrl_exit-1)")
-# UNMAPPED: d.comment(0x8684, "ctrl &87: CONTINUE", align=Align.INLINE)
-# UNMAPPED: d.expr(0x8685, "<(tx_ctrl_machine_type-1)")
-# UNMAPPED: d.comment(0x8685, "ctrl &88: machine type", align=Align.INLINE)
-# UNMAPPED: d.label(0x8686, "tx_ctrl_machine_type")
+d.subroutine(
+    0x874F,
+    "tx_ctrl_machine_type",
+    title="TX ctrl: machine-type query setup",
+    description="""Handler for control byte `&88`. Sets `scout_status = 3` and
+branches to `store_status_copy_ptr`, skipping the 4-byte address
+addition (no address parameters needed for a machine-type query).
 
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0x8686,
-# UNMAPPED:     "tx_ctrl_machine_type",
-# UNMAPPED:     title="TX ctrl: machine-type query setup",
-# UNMAPPED:     description="""Handler for control byte `&88`. Sets `scout_status = 3` and
-# UNMAPPED: branches to `store_status_copy_ptr`, skipping the 4-byte address
-# UNMAPPED: addition (no address parameters needed for a machine-type query).
-# UNMAPPED: 
-# UNMAPPED: Reached only via `PHA`/`PHA`/`RTS` dispatch from
-# UNMAPPED: [`tx_ctrl_dispatch_lo`](address:867E) entry `&88`.""",
-# UNMAPPED:     on_exit={"a": "3 (scout_status for machine type query)"},
-# UNMAPPED: )
-
-
-# UNMAPPED: d.comment(0x8686, "A=3: scout_status for machine type query", align=Align.INLINE)
-# UNMAPPED: d.entry(0x8686)
+Reached only via `PHA`/`PHA`/`RTS` dispatch from
+[`tx_ctrl_dispatch_lo`](label:tx_ctrl_dispatch_lo) entry `&88`.""",
+    on_exit={"a": "3 (scout_status for machine type query)"},
+)
+d.comment(0x874F, "A=3: scout_status for machine type query", align=Align.INLINE)
 d.comment(0x8751, "Skip address addition, store status", align=Align.INLINE)
 d.subroutine(
     0x8753,
@@ -3477,6 +3442,35 @@ d.comment(0x87AA, "Restore stacked registers (4 PLAs)", align=Align.INLINE)
 d.comment(0x87AE, "Restore X from A", align=Align.INLINE)
 d.comment(0x87AF, "Return to caller", align=Align.INLINE)
 d.entry(0x87B8)
+d.subroutine(
+    0x87B0,
+    "tx_ctrl_dispatch_lo",
+    title="TX ctrl dispatch lo-byte table (8 entries)",
+    description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX control
+byte types `&81`-`&88`, read via `LDA tx_ctrl_dispatch_lo-&81,Y`.
+The dispatcher always pushes `&87` as the high byte, since every
+handler lies in page `&87`.""",
+)
+for i in range(8):
+    d.byte(0x87B0 + i)
+d.expr(0x87B0, lo(sym("tx_ctrl_peek") - 1))
+d.comment(0x87B0, "ctrl &81: PEEK", align=Align.INLINE)
+d.expr(0x87B1, lo(sym("tx_ctrl_poke") - 1))
+d.comment(0x87B1, "ctrl &82: POKE", align=Align.INLINE)
+d.expr(0x87B2, lo(sym("proc_op_status2") - 1))
+d.comment(0x87B2, "ctrl &83: JSR", align=Align.INLINE)
+d.expr(0x87B3, lo(sym("proc_op_status2") - 1))
+d.comment(0x87B3, "ctrl &84: UserProc", align=Align.INLINE)
+d.expr(0x87B4, lo(sym("proc_op_status2") - 1))
+d.comment(0x87B4, "ctrl &85: OSProc", align=Align.INLINE)
+d.expr(0x87B5, lo(sym("tx_ctrl_exit") - 1))
+d.comment(0x87B5, "ctrl &86: HALT", align=Align.INLINE)
+d.expr(0x87B6, lo(sym("tx_ctrl_exit") - 1))
+d.comment(0x87B6, "ctrl &87: CONTINUE", align=Align.INLINE)
+d.expr(0x87B7, lo(sym("tx_ctrl_machine_type") - 1))
+d.comment(0x87B7, "ctrl &88: machine type", align=Align.INLINE)
+
+
 d.subroutine(
     0x87B8,
     "nmi_tx_data",
@@ -20122,7 +20116,6 @@ d.char_literal(0xBFE7)
 
 
 # Semantic names for auto-labelled data-table indexing bases (see 4.24).
-d.label(0x872F, "tx_ctrl_dispatch_lo")
 d.label(0x8DC1, "ps_template_base")
 d.label(0xA127, "cmos_attr_table")
 d.label(0xABE7, "bridge_err_table")

@@ -2574,8 +2574,6 @@ tx_flags_table = tx_calc_tube_check+1
     ror prot_flags                                                    ; 8727: 66 99       f.       ; Rotate carry into bit 7 of prot_flags (Tube-claimed)
     lda #&2c                                                          ; 8729: a9 2c       .,       ; A=&2C: 'line jammed' status code
 .tx_enable_nmis
-; &872d used as index base 1 time by &8748
-tx_ctrl_dispatch_lo = tx_enable_nmis+2
     sta net_poll_status                                               ; 872b: 8d 1c 0d    ...      ; Store net poll-status byte
     bit enable_net_nmis                                               ; 872e: 2c 3c fe    ,<.      ; INTON -- NMIs now fire for TDRA (Master &FE3C)
     lda tx_port                                                       ; 8731: ad 25 0d    .%.      ; Load destination port number
@@ -2585,13 +2583,25 @@ tx_ctrl_dispatch_lo = tx_enable_nmis+2
     sta net_frame_flags                                               ; 873c: 8d 3e 0d    .>.      ; Store operation flags
     lda tx_length_table,y                                             ; 873f: b9 b9 85    ...      ; Look up tx_length from table
     sta rx_ctrl                                                       ; 8742: 8d 3f 0d    .?.      ; Store expected transfer length
-    lda #&87                                                          ; 8745: a9 87       ..       ; A=&87: high byte of tx_ctrl_* dispatch target
+    lda #>(tx_ctrl_peek - 1)                                          ; 8745: a9 87       ..       ; All handlers lie in page &87: high byte
     pha                                                               ; 8747: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
-    lda tx_ctrl_dispatch_lo,y                                         ; 8748: b9 2d 87    .-.      ; Look up handler address low from table
+    lda tx_ctrl_dispatch_lo - &81,y                                   ; 8748: b9 2d 87    .-.      ; Look up handler address low byte
     pha                                                               ; 874b: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 874c: 60          `        ; RTS dispatches to control-byte handler
-    equb &a9, &03                                                     ; 874d: a9 03       ..    
-    equb &d0, &48                                                     ; 874f: d0 48       .H       ; Skip address addition, store status
+; ***************************************************************************************
+; TX ctrl: machine-type query setup
+;
+; Handler for control byte &88. Sets scout_status = 3 and branches to
+; store_status_copy_ptr, skipping the 4-byte address addition (no address parameters
+; needed for a machine-type query).
+;
+; Reached only via PHA/PHA/RTS dispatch from tx_ctrl_dispatch_lo entry &88.
+;
+; On Exit:
+;     A: 3 (scout_status for machine type query)
+.tx_ctrl_machine_type
+    lda #3                                                            ; 874d: a9 03       ..       ; A=3: scout_status for machine type query
+    bne store_status_copy_ptr                                         ; 874f: d0 48       .H       ; Skip address addition, store status
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
 ;
@@ -2682,6 +2692,7 @@ tx_ctrl_dispatch_lo = tx_enable_nmis+2
     sta net_frame_flags                                               ; 8794: 8d 3e 0d    .>.      ; Clear tx_flags
 .proc_op_status2
     lda #2                                                            ; 8797: a9 02       ..       ; scout_status=2: data transfer pending
+; &8799 referenced 1 time by &874f
 .store_status_copy_ptr
     sta rx_port                                                       ; 8799: 8d 40 0d    .@.      ; Store scout status
 ; &879c referenced 1 time by &876e
@@ -2700,7 +2711,21 @@ tx_ctrl_dispatch_lo = tx_enable_nmis+2
     pla                                                               ; 87ab: 68          h        ; Unwind third stacked byte
     tax                                                               ; 87ac: aa          .        ; Restore X from A
     rts                                                               ; 87ad: 60          `        ; Return to caller
-    equb &50, &54, &96, &96, &96, &a6, &a6, &4c                       ; 87ae: 50 54 96... PT....
+; ***************************************************************************************
+; TX ctrl dispatch lo-byte table (8 entries)
+;
+; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte types &81-&88, read via
+; LDA tx_ctrl_dispatch_lo-&81,Y. The dispatcher always pushes &87 as the high byte, since
+; every handler lies in page &87.
+.tx_ctrl_dispatch_lo
+    equb <(tx_ctrl_peek - 1)                                          ; 87ae: 50          P        ; ctrl &81: PEEK
+    equb <(tx_ctrl_poke - 1)                                          ; 87af: 54          T        ; ctrl &82: POKE
+    equb <(proc_op_status2 - 1)                                       ; 87b0: 96          .        ; ctrl &83: JSR
+    equb <(proc_op_status2 - 1)                                       ; 87b1: 96          .        ; ctrl &84: UserProc
+    equb <(proc_op_status2 - 1)                                       ; 87b2: 96          .        ; ctrl &85: OSProc
+    equb <(tx_ctrl_exit - 1)                                          ; 87b3: a6          .        ; ctrl &86: HALT
+    equb <(tx_ctrl_exit - 1)                                          ; 87b4: a6          .        ; ctrl &87: CONTINUE
+    equb <(tx_ctrl_machine_type - 1)                                  ; 87b5: 4c          L        ; ctrl &88: machine type
 ; ***************************************************************************************
 ; NMI TX data handler
 ;
@@ -17881,6 +17906,7 @@ save pydis_start, pydis_end
 ;     store_stack_byte:              1
 ;     store_station_and_flush:       1
 ;     store_station_lo:              1
+;     store_status_copy_ptr:         1
 ;     store_topic_char:              1
 ;     store_tx_ctrl_byte:            1
 ;     store_tx_ptr_hi:               1
@@ -17904,7 +17930,6 @@ save pydis_start, pydis_end
 ;     tube_write_setup:              1
 ;     tx_buffer_scratch:             1
 ;     tx_check_tdra_ready:           1
-;     tx_ctrl_dispatch_lo:           1
 ;     tx_ctrl_exit:                  1
 ;     tx_ctrl_range_check:           1
 ;     tx_ctrl_store_and_add:         1
@@ -17974,11 +17999,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14476 bytes (88%)
-;     Data                     = 1908 bytes (12%)
+;     Code                     = 14480 bytes (88%)
+;     Data                     = 1904 bytes (12%)
 ;
-;     Number of instructions   = 7134
-;     Number of data bytes     = 542 bytes
+;     Number of instructions   = 7136
+;     Number of data bytes     = 538 bytes
 ;     Number of data words     = 86 bytes
 ;     Number of string bytes   = 1280 bytes
 ;     Number of strings        = 148

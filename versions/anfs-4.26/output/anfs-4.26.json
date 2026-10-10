@@ -679,6 +679,16 @@
       }
     },
     {
+      "addr": 34639,
+      "name": "tx_ctrl_machine_type",
+      "title": "TX ctrl: machine-type query setup",
+      "description": "Handler for control byte `&88`. Sets `scout_status = 3` and\nbranches to `store_status_copy_ptr`, skipping the 4-byte address\naddition (no address parameters needed for a machine-type query).\n\nReached only via `PHA`/`PHA`/`RTS` dispatch from\n[`tx_ctrl_dispatch_lo`](label:tx_ctrl_dispatch_lo) entry `&88`.",
+      "on_exit": {
+        "a": "3 (scout_status for machine type query)"
+      },
+      "fall_through": true
+    },
+    {
       "addr": 34643,
       "name": "tx_ctrl_peek",
       "title": "TX ctrl: PEEK transfer setup",
@@ -713,6 +723,12 @@
       "name": "tx_ctrl_proc",
       "title": "TX ctrl: tail of address-add loop + setup_data_xfer entry",
       "description": "Tail of the 4-byte transfer-address addition loop that started in\n[`tx_ctrl_store_and_add`](label:tx_ctrl_store_and_add): `CPY #&10` ends the\nloop when Y reaches `&10`, `PLP` restores the saved carry, and\n`BNE` skips the buffer-setup code if the transfer size is zero.\n\nFalls through (or is reached via the dispatch from\n[`tx_prepare`](label:tx_prepare) when port != 0) to\n`setup_data_xfer` at `&8770`, which dispatches between broadcast\nand unicast based on whether `tx_dst_stn` and `tx_dst_net` are\nboth `&FF`."
+    },
+    {
+      "addr": 34736,
+      "name": "tx_ctrl_dispatch_lo",
+      "title": "TX ctrl dispatch lo-byte table (8 entries)",
+      "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX control\nbyte types `&81`-`&88`, read via `LDA tx_ctrl_dispatch_lo-&81,Y`.\nThe dispatcher always pushes `&87` as the high byte, since every\nhandler lies in page `&87`."
     },
     {
       "addr": 34744,
@@ -19947,15 +19963,7 @@
       "labels": [
         "tx_enable_nmis"
       ],
-      "sub_labels": {
-        "34607": [
-          "tx_ctrl_dispatch_lo"
-        ]
-      },
       "comment_inline": "Store net poll-status byte",
-      "xref_summaries": [
-        "&872f used as index base 1 time by &874a"
-      ],
       "type": "code",
       "mnemonic": "sta",
       "operand": "net_poll_status",
@@ -20079,10 +20087,26 @@
         169,
         135
       ],
-      "comment_inline": "A=&87: high byte of tx_ctrl_* dispatch target",
+      "comment_inline": "All handlers lie in page &87: high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&87"
+      "operand": "#>(tx_ctrl_peek - 1)",
+      "expr": {
+        "text": ">(tx_ctrl_peek - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_ctrl_peek"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 34633,
@@ -20100,12 +20124,24 @@
         47,
         135
       ],
-      "comment_inline": "Look up handler address low from table",
+      "comment_inline": "Look up handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_ctrl_dispatch_lo,y",
-      "target": 34607,
-      "target_label": "tx_ctrl_dispatch_lo"
+      "operand": "tx_ctrl_dispatch_lo - &81,y",
+      "expr": {
+        "text": "tx_ctrl_dispatch_lo - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_ctrl_dispatch_lo"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 34607
     },
     {
       "addr": 34637,
@@ -20131,11 +20167,13 @@
         169,
         3
       ],
-      "type": "byte",
-      "values": [
-        169,
-        3
-      ]
+      "labels": [
+        "tx_ctrl_machine_type"
+      ],
+      "comment_inline": "A=3: scout_status for machine type query",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#3"
     },
     {
       "addr": 34641,
@@ -20144,11 +20182,11 @@
         72
       ],
       "comment_inline": "Skip address addition, store status",
-      "type": "byte",
-      "values": [
-        208,
-        72
-      ]
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "store_status_copy_ptr",
+      "target": 34715,
+      "target_label": "store_status_copy_ptr"
     },
     {
       "addr": 34643,
@@ -20647,6 +20685,15 @@
         "store_status_copy_ptr"
       ],
       "comment_inline": "Store scout status",
+      "xref_summaries": [
+        "&879b referenced 1 time by &8751"
+      ],
+      "references": [
+        {
+          "addr": 34641,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "sta",
       "operand": "rx_port",
@@ -20804,30 +20851,257 @@
       ],
       "comment_inline": "Return to caller",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(tx_ctrl_peek - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_ctrl_peek"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 34736,
       "bytes": [
-        82,
-        86,
-        152,
-        152,
-        152,
-        168,
-        168,
-        78
+        82
       ],
+      "labels": [
+        "tx_ctrl_dispatch_lo"
+      ],
+      "comment_inline": "ctrl &81: PEEK",
       "type": "byte",
       "values": [
-        82,
-        86,
-        152,
-        152,
-        152,
-        168,
-        168,
+        82
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_peek - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_peek"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34737,
+      "bytes": [
+        86
+      ],
+      "comment_inline": "ctrl &82: POKE",
+      "type": "byte",
+      "values": [
+        86
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_poke - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_poke"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34738,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "ctrl &83: JSR",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34739,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "ctrl &84: UserProc",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34740,
+      "bytes": [
+        152
+      ],
+      "comment_inline": "ctrl &85: OSProc",
+      "type": "byte",
+      "values": [
+        152
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34741,
+      "bytes": [
+        168
+      ],
+      "comment_inline": "ctrl &86: HALT",
+      "type": "byte",
+      "values": [
+        168
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_exit - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_exit"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34742,
+      "bytes": [
+        168
+      ],
+      "comment_inline": "ctrl &87: CONTINUE",
+      "type": "byte",
+      "values": [
+        168
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_exit - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_exit"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 34743,
+      "bytes": [
         78
+      ],
+      "comment_inline": "ctrl &88: machine type",
+      "type": "byte",
+      "values": [
+        78
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_machine_type - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_machine_type"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
