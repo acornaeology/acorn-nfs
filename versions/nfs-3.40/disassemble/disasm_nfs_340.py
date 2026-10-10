@@ -5921,9 +5921,8 @@ d.label(0x919E, "cbset4")
 d.label(0x91A0, "cb_template_main_start")
 
 d.label(0x91A4, "cb_template_tail")
-d.subroutine(
+d.banner(
     0x91A8,
-    "ctrl_block_template",
     title="Control block initialisation template",
     description="""Read by the loop at &9181, indexed by X from a starting value
 down to 0. Values are stored into either (nfs_workspace) or
@@ -5938,6 +5937,7 @@ Sentinel values:
   &FD = skip this offset (decrement Y but don't store)
   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)""",
 )
+d.index_base(0x91A8, "ctrl_block_template")
 d.byte(0x91A8, 1)
 d.comment(0x91A8, "Alt-path only → Y=&6F", align=Align.INLINE)
 d.byte(0x91A9, 1)

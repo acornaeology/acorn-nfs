@@ -45,7 +45,7 @@ event_network_error            = &08
 
 ; Memory locations
 zp_ptr_lo                              = &00
-; &00 referenced 4 times by &91b4, &940b, &940d, &9518; also used as index base 3 times by &94d9, &9548, &95cf
+; &00 referenced 3 times by &940b, &940d, &9518; also used as index base 3 times by &94d9, &9548, &95cf
 zp_ptr_hi                              = &01
 ; &01 referenced 4 times by &9422, &9424, &9438, &951a; also used as index base 2 times by &9510, &9529
 zp_work_2                              = &02
@@ -384,8 +384,6 @@ fs_error_flags                         = &0fdf
 ; &0fdf referenced 2 times by &8418, &856a
 fs_error_buf                           = &0fe0
 ; &0fe0 used as index base 1 time by &8455
-tx_ptr_sub_base                        = &7dfd
-; &7dfd used as index base 1 time by &91b6
 reloc_p6_src                           = &9562
 ; &9562 used as index base 1 time by &816b
 station_id_disable_net_nmis            = &fe18
@@ -6037,23 +6035,34 @@ cmd_match_data = fs_cmd_match_table+1
 ; store) &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)
 ; &91b4 used as index base 1 time by &918d
 .ctrl_block_template
-    sta zp_ptr_lo                                                     ; 91b4: 85 00       ..       ; Alt-path only → Y=&6F
-    sbc tx_ptr_sub_base,x                                             ; 91b6: fd fd 7d    ..}   
-    equb &fc                                                          ; 91b9: fc          .        ; → Y=&0D (main only)
+    equb &85                                                          ; 91b4: 85          .        ; Alt-path only → Y=&6F
+    equb &00                                                          ; 91b5: 00          .        ; Alt-path only → Y=&70
+    equb &fd                                                          ; 91b6: fd          .        ; SKIP
+    equb &fd                                                          ; 91b7: fd          .        ; SKIP
+    equb &7d                                                          ; 91b8: 7d          }        ; → Y=&01 / Y=&73
+    equb &fc                                                          ; 91b9: fc          .        ; PAGE byte → Y=&02 / Y=&74
     equb &ff                                                          ; 91ba: ff          .        ; → Y=&03 / Y=&75
-    equb &ff                                                          ; 91bb: ff          .        ; SKIP (main only)
-    equb &7e, &fc, &ff                                                ; 91bc: 7e fc ff    ~..      ; → Y=&10 (main only)
+    equb &ff                                                          ; 91bb: ff          .        ; → Y=&04 / Y=&76
+    equb &7e                                                          ; 91bc: 7e          ~        ; → Y=&05 / Y=&77
+    equb &fc                                                          ; 91bd: fc          .        ; PAGE byte → Y=&06 / Y=&78
+    equb &ff                                                          ; 91be: ff          .        ; → Y=&07 / Y=&79
     equb &ff                                                          ; 91bf: ff          .        ; → Y=&08 / Y=&7A
     equb &00                                                          ; 91c0: 00          .        ; → Y=&09 / Y=&7B
-    equb &00                                                          ; 91c1: 00          .        ; PAGE byte → Y=&15 (main only)
-    equb &fe, &80, &93                                                ; 91c2: fe 80 93    ...      ; → Y=&16 (main only)
-    equb &fd, &fd, &d9                                                ; 91c5: fd fd d9    ...      ; SKIP (main only)
+    equb &00                                                          ; 91c1: 00          .        ; → Y=&0A / Y=&7C
+    equb &fe                                                          ; 91c2: fe          .        ; STOP — main-path boundary
+    equb &80                                                          ; 91c3: 80          .        ; → Y=&0C (main only)
+    equb &93                                                          ; 91c4: 93          .        ; → Y=&0D (main only)
+    equb &fd                                                          ; 91c5: fd          .        ; SKIP (main only)
+    equb &fd                                                          ; 91c6: fd          .        ; SKIP (main only)
+    equb &d9                                                          ; 91c7: d9          .        ; → Y=&10 (main only)
     equb &fc                                                          ; 91c8: fc          .        ; PAGE byte → Y=&11 (main only)
     equb &ff                                                          ; 91c9: ff          .        ; → Y=&12 (main only)
     equb &ff                                                          ; 91ca: ff          .        ; → Y=&13 (main only)
-    equb &de, &fc, &ff                                                ; 91cb: de fc ff    ...      ; → Y=&14 (main only)
-    equb &ff, &fe, &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff   ; 91ce: ff fe d1... ......
-    equb &ff                                                          ; 91da: ff          .        ; → Y=&17 (main only)
+    equb &de                                                          ; 91cb: de          .        ; → Y=&14 (main only)
+    equb &fc                                                          ; 91cc: fc          .        ; PAGE byte → Y=&15 (main only)
+    equb &ff                                                          ; 91cd: ff          .        ; → Y=&16 (main only)
+    equb &ff                                                          ; 91ce: ff          .        ; → Y=&17 (main only)
+    equb &fe, &d1, &fd, &fd, &1f, &fd, &ff, &ff, &fd, &fd, &ff, &ff   ; 91cf: fe d1 fd... ......
 ; ***************************************************************************************
 ; Fn 5: printer selection changed (SELECT)
 ;
@@ -8495,7 +8504,6 @@ save pydis_start, pydis_end
 ;     tube_claimed_id:                          7
 ;     tx_clear_flag:                            7
 ;     tx_dst_stn:                               7
-;     zp_ptr_lo:                                7
 ;     copy_string_to_cmd:                       6
 ;     fs_block_offset:                          6
 ;     fs_last_byte_flag:                        6
@@ -8504,6 +8512,7 @@ save pydis_start, pydis_end
 ;     nmi_rti:                                  6
 ;     tube_main_loop:                           6
 ;     zp_ptr_hi:                                6
+;     zp_ptr_lo:                                6
 ;     copy_filename:                            5
 ;     dispatch:                                 5
 ;     error_block:                              5
@@ -9223,7 +9232,6 @@ save pydis_start, pydis_end
 ;     tx_line_jammed:                           1
 ;     tx_no_clock_error:                        1
 ;     tx_prepare:                               1
-;     tx_ptr_sub_base:                          1
 ;     tx_src_net:                               1
 ;     tx_store_error:                           1
 ;     tx_success_exit:                          1
@@ -9246,11 +9254,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7553 bytes (92%)
-;     Data                     = 639 bytes (8%)
+;     Code                     = 7548 bytes (92%)
+;     Data                     = 644 bytes (8%)
 ;
-;     Number of instructions   = 3664
-;     Number of data bytes     = 357 bytes
+;     Number of instructions   = 3662
+;     Number of data bytes     = 362 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 230 bytes
 ;     Number of strings        = 36

@@ -1454,12 +1454,6 @@
       "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &919D indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer"
     },
     {
-      "addr": 37277,
-      "name": "ctrl_block_template",
-      "title": "Control block initialisation template",
-      "description": "Read by the loop at &9176, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &8374\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)"
-    },
-    {
       "addr": 37316,
       "name": "printer_select_handler",
       "title": "Fn 5: printer selection changed (SELECT)",
@@ -1980,6 +1974,13 @@
       "addr": 36799,
       "title": "Restore three saved OSWORD argument bytes (unreferenced)",
       "description": "Copies three bytes from `(net_rx_ptr)` back into\nworkspace, highest first. Nothing in this ROM calls, jumps or\nbranches here, so this code appears to be unreachable.",
+      "align": "before_label"
+    },
+    {
+      "addr": 37277,
+      "name": "ctrl_block_template",
+      "title": "Control block initialisation template",
+      "description": "Read by the loop at &9176, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &8374\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)",
       "align": "before_label"
     },
     {

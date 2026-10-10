@@ -6272,9 +6272,8 @@ d.label(0x91AF, "cb_template_main_start")
 
 d.label(0x91B3, "cb_template_tail")
 
-d.subroutine(
+d.banner(
     0x91B7,
-    "ctrl_block_template",
     title="Control block initialisation template",
     description="""Read by the loop at &918D, indexed by X from a starting value
 down to 0. Values are stored into either (nfs_workspace) or
@@ -6289,23 +6288,63 @@ Sentinel values:
   &FD = skip this offset (decrement Y but don't store)
   &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)""",
 )
+d.index_base(0x91B7, "ctrl_block_template")
+d.byte(0x91B7, 1)
 d.comment(0x91B7, "Alt-path only → Y=&6F", align=Align.INLINE)
-
-
-d.comment(0x91BC, "→ Y=&0D (main only)", align=Align.INLINE)
+d.byte(0x91B8, 1)
+d.comment(0x91B8, "Alt-path only → Y=&70", align=Align.INLINE)
+d.byte(0x91B9, 1)
+d.comment(0x91B9, "SKIP", align=Align.INLINE)
+d.byte(0x91BA, 1)
+d.comment(0x91BA, "SKIP", align=Align.INLINE)
+d.byte(0x91BB, 1)
+d.comment(0x91BB, "→ Y=&01 / Y=&73", align=Align.INLINE)
+d.byte(0x91BC, 1)
+d.comment(0x91BC, "PAGE byte → Y=&02 / Y=&74", align=Align.INLINE)
+d.byte(0x91BD, 1)
 d.comment(0x91BD, "→ Y=&03 / Y=&75", align=Align.INLINE)
-d.comment(0x91BE, "SKIP (main only)", align=Align.INLINE)
-d.comment(0x91BF, "→ Y=&10 (main only)", align=Align.INLINE)
+d.byte(0x91BE, 1)
+d.comment(0x91BE, "→ Y=&04 / Y=&76", align=Align.INLINE)
+d.byte(0x91BF, 1)
+d.comment(0x91BF, "→ Y=&05 / Y=&77", align=Align.INLINE)
+d.byte(0x91C0, 1)
+d.comment(0x91C0, "PAGE byte → Y=&06 / Y=&78", align=Align.INLINE)
+d.byte(0x91C1, 1)
+d.comment(0x91C1, "→ Y=&07 / Y=&79", align=Align.INLINE)
+d.byte(0x91C2, 1)
 d.comment(0x91C2, "→ Y=&08 / Y=&7A", align=Align.INLINE)
+d.byte(0x91C3, 1)
 d.comment(0x91C3, "→ Y=&09 / Y=&7B", align=Align.INLINE)
-d.comment(0x91C4, "PAGE byte → Y=&15 (main only)", align=Align.INLINE)
-d.comment(0x91C5, "→ Y=&16 (main only)", align=Align.INLINE)
+d.byte(0x91C4, 1)
+d.comment(0x91C4, "→ Y=&0A / Y=&7C", align=Align.INLINE)
+d.byte(0x91C5, 1)
+d.comment(0x91C5, "STOP — main-path boundary", align=Align.INLINE)
+d.byte(0x91C6, 1)
+d.comment(0x91C6, "→ Y=&0C (main only)", align=Align.INLINE)
+d.byte(0x91C7, 1)
+d.comment(0x91C7, "→ Y=&0D (main only)", align=Align.INLINE)
+d.byte(0x91C8, 1)
 d.comment(0x91C8, "SKIP (main only)", align=Align.INLINE)
+d.byte(0x91C9, 1)
+d.comment(0x91C9, "SKIP (main only)", align=Align.INLINE)
+d.byte(0x91CA, 1)
+d.comment(0x91CA, "→ Y=&10 (main only)", align=Align.INLINE)
+d.byte(0x91CB, 1)
 d.comment(0x91CB, "PAGE byte → Y=&11 (main only)", align=Align.INLINE)
+d.byte(0x91CC, 1)
 d.comment(0x91CC, "→ Y=&12 (main only)", align=Align.INLINE)
+d.byte(0x91CD, 1)
 d.comment(0x91CD, "→ Y=&13 (main only)", align=Align.INLINE)
+d.byte(0x91CE, 1)
 d.comment(0x91CE, "→ Y=&14 (main only)", align=Align.INLINE)
+d.byte(0x91CF, 1)
+d.comment(0x91CF, "PAGE byte → Y=&15 (main only)", align=Align.INLINE)
+d.byte(0x91D0, 1)
+d.comment(0x91D0, "→ Y=&16 (main only)", align=Align.INLINE)
+d.byte(0x91D1, 1)
 d.comment(0x91D1, "→ Y=&17 (main only)", align=Align.INLINE)
+
+
 d.subroutine(
     0x91DE,
     "printer_select_handler",

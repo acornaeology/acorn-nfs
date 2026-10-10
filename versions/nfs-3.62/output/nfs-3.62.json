@@ -1660,13 +1660,6 @@
       "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &91B4 indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer"
     },
     {
-      "addr": 37300,
-      "name": "ctrl_block_template",
-      "title": "Control block initialisation template",
-      "description": "Read by the loop at &918D, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &83B3\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)",
-      "fall_through": true
-    },
-    {
       "addr": 37339,
       "name": "printer_select_handler",
       "title": "Fn 5: printer selection changed (SELECT)",
@@ -2245,6 +2238,13 @@
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 7 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "align": "before_label"
+    },
+    {
+      "addr": 37300,
+      "name": "ctrl_block_template",
+      "title": "Control block initialisation template",
+      "description": "Read by the loop at &918D, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &83B3\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)",
       "align": "before_label"
     },
     {
@@ -37341,8 +37341,7 @@
     {
       "addr": 37300,
       "bytes": [
-        133,
-        0
+        133
       ],
       "labels": [
         "ctrl_block_template"
@@ -37357,31 +37356,61 @@
           "kind": "indexed"
         }
       ],
-      "type": "code",
-      "mnemonic": "sta",
-      "operand": "zp_ptr_lo",
-      "target": 0,
-      "target_label": "zp_ptr_lo"
+      "type": "byte",
+      "values": [
+        133
+      ]
+    },
+    {
+      "addr": 37301,
+      "bytes": [
+        0
+      ],
+      "comment_inline": "Alt-path only \u2192 Y=&70",
+      "type": "byte",
+      "values": [
+        0
+      ]
     },
     {
       "addr": 37302,
       "bytes": [
-        253,
-        253,
+        253
+      ],
+      "comment_inline": "SKIP",
+      "type": "byte",
+      "values": [
+        253
+      ]
+    },
+    {
+      "addr": 37303,
+      "bytes": [
+        253
+      ],
+      "comment_inline": "SKIP",
+      "type": "byte",
+      "values": [
+        253
+      ]
+    },
+    {
+      "addr": 37304,
+      "bytes": [
         125
       ],
-      "type": "code",
-      "mnemonic": "sbc",
-      "operand": "tx_ptr_sub_base,x",
-      "target": 32253,
-      "target_label": "tx_ptr_sub_base"
+      "comment_inline": "\u2192 Y=&01 / Y=&73",
+      "type": "byte",
+      "values": [
+        125
+      ]
     },
     {
       "addr": 37305,
       "bytes": [
         252
       ],
-      "comment_inline": "\u2192 Y=&0D (main only)",
+      "comment_inline": "PAGE byte \u2192 Y=&02 / Y=&74",
       "type": "byte",
       "values": [
         252
@@ -37403,7 +37432,7 @@
       "bytes": [
         255
       ],
-      "comment_inline": "SKIP (main only)",
+      "comment_inline": "\u2192 Y=&04 / Y=&76",
       "type": "byte",
       "values": [
         255
@@ -37412,15 +37441,33 @@
     {
       "addr": 37308,
       "bytes": [
-        126,
-        252,
-        255
+        126
       ],
-      "comment_inline": "\u2192 Y=&10 (main only)",
+      "comment_inline": "\u2192 Y=&05 / Y=&77",
       "type": "byte",
       "values": [
-        126,
-        252,
+        126
+      ]
+    },
+    {
+      "addr": 37309,
+      "bytes": [
+        252
+      ],
+      "comment_inline": "PAGE byte \u2192 Y=&06 / Y=&78",
+      "type": "byte",
+      "values": [
+        252
+      ]
+    },
+    {
+      "addr": 37310,
+      "bytes": [
+        255
+      ],
+      "comment_inline": "\u2192 Y=&07 / Y=&79",
+      "type": "byte",
+      "values": [
         255
       ]
     },
@@ -37451,7 +37498,7 @@
       "bytes": [
         0
       ],
-      "comment_inline": "PAGE byte \u2192 Y=&15 (main only)",
+      "comment_inline": "\u2192 Y=&0A / Y=&7C",
       "type": "byte",
       "values": [
         0
@@ -37460,30 +37507,66 @@
     {
       "addr": 37314,
       "bytes": [
-        254,
-        128,
-        147
+        254
       ],
-      "comment_inline": "\u2192 Y=&16 (main only)",
+      "comment_inline": "STOP \u2014 main-path boundary",
       "type": "byte",
       "values": [
-        254,
-        128,
+        254
+      ]
+    },
+    {
+      "addr": 37315,
+      "bytes": [
+        128
+      ],
+      "comment_inline": "\u2192 Y=&0C (main only)",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 37316,
+      "bytes": [
+        147
+      ],
+      "comment_inline": "\u2192 Y=&0D (main only)",
+      "type": "byte",
+      "values": [
         147
       ]
     },
     {
       "addr": 37317,
       "bytes": [
-        253,
-        253,
-        217
+        253
       ],
       "comment_inline": "SKIP (main only)",
       "type": "byte",
       "values": [
-        253,
-        253,
+        253
+      ]
+    },
+    {
+      "addr": 37318,
+      "bytes": [
+        253
+      ],
+      "comment_inline": "SKIP (main only)",
+      "type": "byte",
+      "values": [
+        253
+      ]
+    },
+    {
+      "addr": 37319,
+      "bytes": [
+        217
+      ],
+      "comment_inline": "\u2192 Y=&10 (main only)",
+      "type": "byte",
+      "values": [
         217
       ]
     },
@@ -37523,22 +37606,50 @@
     {
       "addr": 37323,
       "bytes": [
-        222,
-        252,
-        255
+        222
       ],
       "comment_inline": "\u2192 Y=&14 (main only)",
       "type": "byte",
       "values": [
-        222,
-        252,
+        222
+      ]
+    },
+    {
+      "addr": 37324,
+      "bytes": [
+        252
+      ],
+      "comment_inline": "PAGE byte \u2192 Y=&15 (main only)",
+      "type": "byte",
+      "values": [
+        252
+      ]
+    },
+    {
+      "addr": 37325,
+      "bytes": [
+        255
+      ],
+      "comment_inline": "\u2192 Y=&16 (main only)",
+      "type": "byte",
+      "values": [
         255
       ]
     },
     {
       "addr": 37326,
       "bytes": [
-        255,
+        255
+      ],
+      "comment_inline": "\u2192 Y=&17 (main only)",
+      "type": "byte",
+      "values": [
+        255
+      ]
+    },
+    {
+      "addr": 37327,
+      "bytes": [
         254,
         209,
         253,
@@ -37552,10 +37663,8 @@
         255,
         255
       ],
-      "comment_inline": "\u2192 Y=&17 (main only)",
       "type": "byte",
       "values": [
-        255,
         254,
         209,
         253,

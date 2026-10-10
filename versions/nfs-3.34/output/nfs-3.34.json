@@ -1441,12 +1441,6 @@
       "description": "Sets X=&1A, Y=&17, clears V (stores to nfs_workspace).\nReads the template table at &918E indexed by X, storing each\nvalue into the target workspace at offset Y. Both X and Y\nare decremented on each iteration.\n\nTemplate sentinel values:\n  &FE = stop (end of template for this entry path)\n  &FD = skip (leave existing value unchanged)\n  &FC = use page high byte of target pointer"
     },
     {
-      "addr": 37262,
-      "name": "ctrl_block_template",
-      "title": "Control block initialisation template",
-      "description": "Read by the loop at &9167, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &833A\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)"
-    },
-    {
       "addr": 37301,
       "name": "printer_select_handler",
       "title": "Fn 5: printer selection changed (SELECT)",
@@ -1968,6 +1962,13 @@
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 8 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&A4` | Bad Txcb       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "align": "before_label"
+    },
+    {
+      "addr": 37262,
+      "name": "ctrl_block_template",
+      "title": "Control block initialisation template",
+      "description": "Read by the loop at &9167, indexed by X from a starting value\ndown to 0. Values are stored into either (nfs_workspace) or\n(net_rx_ptr) at offset Y, depending on the V flag.\n\nTwo entry paths read different slices of this table:\n  ctrl_block_setup:   X=&1A (26) down, Y=&17 (23) down, V=0\n  ctrl_block_setup_alt: X=&0D (13) down, Y=&7C (124) down, V from BIT &833A\n\nSentinel values:\n  &FE = stop processing\n  &FD = skip this offset (decrement Y but don't store)\n  &FC = substitute the page byte (net_rx_ptr_hi or nfs_workspace_hi)",
       "align": "before_label"
     },
     {
