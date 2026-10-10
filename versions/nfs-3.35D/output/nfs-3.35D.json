@@ -374,7 +374,7 @@
       "addr": 33002,
       "name": "service_handler",
       "title": "Service-call handler",
-      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nChecks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If\nbit 7 is set, returns immediately; service calls `&FE` / `&FF`\nbypass this check.\n\nIntercepts three service calls:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nChecks the per-ROM disable flag at `&0DF0+X`. If\nbit 7 is set, returns immediately; service calls `&FE` / `&FF`\nbypass this check.\n\nIntercepts three service calls:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).",
       "fall_through": true
     },
     {
@@ -388,7 +388,7 @@
       "addr": 33037,
       "name": "init_vectors_and_copy",
       "title": "NFS initialisation (service &FF: full reset)",
-      "description": "New in 3.35D: table-driven vector initialisation replaces\nthe hardcoded LDA/STA pairs of 3.34B. Reads 4 triplets from\nthe data table at &8177 (low byte, high byte, vector offset)\nand stores each 16-bit value at &0200+offset:\n  EVNTV (&0220) = &06E5   BRKV  (&0202) = &0016\n  RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C\nThen writes &8E to Tube control register (&FEE0) and copies\n3 pages of Tube host code from ROM (reloc_p4_src /\nreloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600),\ncalls tube_post_init (&0414), and copies 97 bytes of\nworkspace init from ROM (reloc_zp_src) to &0016-&0076.",
+      "description": "Table-driven vector initialisation. Reads 4 triplets from\nthe data table at &8177 (low byte, high byte, vector offset)\nand stores each 16-bit value at &0200+offset:\n  EVNTV (&0220) = &06E5   BRKV  (&0202) = &0016\n  RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C\nThen writes &8E to Tube control register (&FEE0) and copies\n3 pages of Tube host code from ROM (reloc_p4_src /\nreloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600),\ncalls tube_post_init (&0414), and copies 97 bytes of\nworkspace init from ROM (reloc_zp_src) to &0016-&0076.",
       "fall_through": true
     },
     {
@@ -601,7 +601,7 @@
       "addr": 33734,
       "name": "send_fs_reply_timed",
       "title": "Send FS command with standard timeout",
-      "description": "Wrapper for send_fs_reply_cmd that sets the timeout counter\n(fs_error_ptr at &B8) to &2A before falling through. The &2A\nvalue becomes the outer loop count in send_to_fs's 3-level\npolling loop (~42 x 65536 iterations). Called after file\ntransfer operations to send the completion command to the\nfileserver. Eliminated in 3.35K where call sites inline the\nLDA #&2A / STA fs_error_ptr sequence directly.",
+      "description": "Wrapper for send_fs_reply_cmd that sets the timeout counter\n(fs_error_ptr at &B8) to &2A before falling through. The &2A\nvalue becomes the outer loop count in send_to_fs's 3-level\npolling loop (~42 x 65536 iterations). Called after file\ntransfer operations to send the completion command to the\nfileserver.",
       "fall_through": true
     },
     {
@@ -1556,7 +1556,7 @@
       "addr": 38535,
       "name": "adlc_init_workspace",
       "title": "Initialise NMI workspace",
-      "description": "New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service\nrequest) before copying the NMI shim. Sub-entry at &968A skips\nthe service request for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9FD9) to RAM (nmi_code_base), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
+      "description": "Issues OSBYTE &8F with X=&0C (NMI claim service\nrequest) before copying the NMI shim. Sub-entry at &968A skips\nthe service request for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9FD9) to RAM (nmi_code_base), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
       "fall_through": true
     },
     {
@@ -7165,7 +7165,7 @@
         "unused_data_8177"
       ],
       "comments_before_label": [
-        "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined."
+        "Unreferenced data block; no reader located. Purpose undetermined."
       ],
       "type": "byte",
       "values": [

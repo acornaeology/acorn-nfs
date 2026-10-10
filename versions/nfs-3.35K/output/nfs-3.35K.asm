@@ -1076,7 +1076,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     inx                                                               ; 9569: e8          . :060f[4]          ; X=0 after loop
     ldy #0                                                            ; 956a: a0 00       .. :0610[4]         ; Y=0 for OSGBPB call
     jsr osgbpb                                                        ; 956c: 20 d1 ff     .. :0612[4]      
-    ror a                                                             ; 956f: 6a          j :0615[4]          ; 3.35K fix: send carry result to co-processor. 3.35D had PHA here (never sent, never popped).
+    ror a                                                             ; 956f: 6a          j :0615[4]          ; Send the carry result to the co-processor.
     jsr tube_send_r2                                                  ; 9570: 20 d0 06     .. :0616[4]        ; Send OSGBPB carry result via R2
     ldx #&0c                                                          ; 9573: a2 0c       .. :0619[4]         ; X=12: send 13 updated param bytes
 ; &061b referenced 1 time by &957b
@@ -1613,8 +1613,7 @@ cmd_roff_str = copyright_string+3
 ; | &FF       | Full init — vector setup, copy code to RAM, select NFS |
 ; | &12 (Y=5) | Select NFS as active filing system                     |
 ;
-; All other service calls <&0D dispatch via dispatch. 3.35K removes the per-ROM disable
-; flag check that 3.35D has.
+; All other service calls <&0D dispatch via dispatch.
 ; &80ea referenced 1 time by &8003
 .service_handler
 .check_svc_high
@@ -1633,13 +1632,12 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; NFS initialisation (service &FF: full reset)
 ;
-; New in 3.35D: table-driven vector initialisation replaces the hardcoded LDA/STA pairs
-; of 3.34B. Reads 4 triplets from the data table at &816D (low byte, high byte, vector
-; offset) and stores each 16-bit value at &0200+offset: EVNTV (&0220) = &06E8   BRKV
-; (&0202) = &0016 RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C Then writes &8E to Tube
-; control register (&FEE0) and copies 3 pages of Tube host code from ROM (reloc_p4_src et
-; seq.) to RAM (&0400/&0500/&0600), calls tube_post_init (&0414), and copies 97 bytes of
-; workspace init from ROM (reloc_zp_src) to &0016-&0076.
+; Table-driven vector initialisation. Reads 4 triplets from the data table at &816D (low
+; byte, high byte, vector offset) and stores each 16-bit value at &0200+offset: EVNTV
+; (&0220) = &06E8   BRKV  (&0202) = &0016 RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
+; Then writes &8E to Tube control register (&FEE0) and copies 3 pages of Tube host code
+; from ROM (reloc_p4_src et seq.) to RAM (&0400/&0500/&0600), calls tube_post_init
+; (&0414), and copies 97 bytes of workspace init from ROM (reloc_zp_src) to &0016-&0076.
 ; &8103 referenced 1 time by &80ee
 .init_vectors_and_copy
     sty zp_temp_10                                                    ; 8103: 84 10       ..       ; Save Y (ROM number) for later
@@ -1721,7 +1719,7 @@ cmd_roff_str = copyright_string+3
 ; &816c referenced 1 time by &8150; also used as index base 3 times by &8107, &810b, &8112
 .return_2
     rts                                                               ; 816c: 60          `        ; Return (not our command)
-; Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.
+; Unreferenced data block; no reader located. Purpose undetermined.
 .unused_data_816d
     equb &1c, &05, &0e, &e7, &04, &10, &16, &00, &02, &e8, &06, &20   ; 816d: 1c 05 0e... ......
 ; ***************************************************************************************
@@ -2665,9 +2663,8 @@ cmd_roff_str = copyright_string+3
 ; the channel before raising the error — preventing the system from continuing to spool
 ; output to a broken file handle.
 ;
-; 3.35K restructures the SPOOL/EXEC close logic: both handles are always checked (3.35D
-; skipped EXEC if SPOOL matched), and OSCLI is always called (with a harmless "." default
-; if neither matched).
+; Both the SPOOL and EXEC handles are always checked, and OSCLI is always called (with a
+; harmless "." default if neither matched).
 ; &851d referenced 2 times by &84fd, &8690
 .check_escape
     lda #osbyte_acknowledge_escape                                    ; 851d: a9 7e       .~       ; A=&7E: OSBYTE acknowledge escape
@@ -2681,7 +2678,7 @@ cmd_roff_str = copyright_string+3
     bit escape_flag                                                   ; 851f: 24 ff       $.       ; Test escape flag (bit 7)
     bpl return_4                                                      ; 8521: 10 29       .)       ; Bit 7 clear: no escape, return
     jsr osbyte                                                        ; 8523: 20 f4 ff     ..      ; Acknowledge escape via OSBYTE &7E  Clear escape condition and perform escape effects
-; 3.35K fix: initialise Y=0 before the indexed store. In 3.35D, Y could hold any value here after the OSBYTE escape acknowledge call.
+; Y=0 for the indexed store; Y is undefined after the OSBYTE escape acknowledge call.
     ldy #0                                                            ; 8526: a0 00       ..       ; Y=0 for indexed store
     lsr a                                                             ; 8528: 4a          J        ; LSR: get escape result bit
     sta (net_tx_ptr),y                                                ; 8529: 91 9a       ..       ; Store escape result to TXCB
@@ -2694,7 +2691,7 @@ cmd_roff_str = copyright_string+3
     lda #&fe                                                          ; 8533: a9 fe       ..       ; A=&FE: mask for EOF check
     bit fs_error_flags                                                ; 8535: 2c df 0f    ,..      ; BIT l0fdf: test error flags
     bvs return_4                                                      ; 8538: 70 12       p.       ; V=1: error, return early
-; 3.35K fix: EOF hint clear/set are now mutually exclusive. In 3.35D, both clear_fs_flag and set_fs_flag were called when N=0, with the clear immediately undone by the set — making the EOF hint always set regardless of file position.
+; The EOF hint is either cleared or set, never both: only one of clear_fs_flag / set_fs_flag runs.
     clc                                                               ; 853a: 18          .        ; CLC: no error
     bmi set_eof_flag                                                  ; 853b: 30 07       0.       ; N=1: at/past EOF, set EOF flag
     lda fs_spool0                                                     ; 853d: a5 cf       ..       ; Load SPOOL handle mask
@@ -3903,7 +3900,7 @@ cmd_roff_str = copyright_string+3
     lda fs_cmd_data                                                   ; 899a: ad 05 0f    ...      ; Load reply handle from FS
     tax                                                               ; 899d: aa          .        ; X = new file handle
     jsr set_fs_flag                                                   ; 899e: 20 59 86     Y.      ; Set EOF hint + sequence bits
-; 3.35K fix: OR handle bit into fs_sequence_nos (&0E08). Without this, a newly opened file could inherit a stale sequence number from a previous file using the same handle, causing byte-stream protocol errors.
+; OR handle bit into fs_sequence_nos (&0E08). Without this, a newly opened file could inherit a stale sequence number from a previous file using the same handle, causing byte-stream protocol errors.
     txa                                                               ; 89a1: 8a          .        ; A=handle bitmask for new file
     ora fs_sequence_nos                                               ; 89a2: 0d 08 0e    ...      ; OR new handle into seq tracker
     sta fs_sequence_nos                                               ; 89a5: 8d 08 0e    ...      ; Store updated sequence byte
@@ -6203,13 +6200,12 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ;
-; New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service request) before copying
-; the NMI shim. Sub-entry at &968A skips the service request for quick re-init. Then
-; copies 32 bytes of NMI shim from ROM (&9FE8) to RAM (nmi_code_base), patches the
-; current ROM bank number into the shim's self-modifying code at &0D07, sets TX clear
-; flag and econet_init_flag to &80, reads station ID from &FE18 (INTOFF side effect),
-; stores it in the TX scout buffer, and re-enables NMIs by reading &FE20 (INTON side
-; effect).
+; Issues OSBYTE &8F with X=&0C (NMI claim service request) before copying the NMI shim.
+; Sub-entry at &968A skips the service request for quick re-init. Then copies 32 bytes of
+; NMI shim from ROM (&9FE8) to RAM (nmi_code_base), patches the current ROM bank number
+; into the shim's self-modifying code at &0D07, sets TX clear flag and econet_init_flag
+; to &80, reads station ID from &FE18 (INTOFF side effect), stores it in the TX scout
+; buffer, and re-enables NMIs by reading &FE20 (INTON side effect).
 .adlc_init_workspace
     jsr osbyte                                                        ; 9687: 20 f4 ff     ..      ; Issue paged ROM service call, Reason X
 ; ***************************************************************************************

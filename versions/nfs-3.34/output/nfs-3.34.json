@@ -46089,7 +46089,7 @@
         "unused_data_964c"
       ],
       "comments_before_label": [
-        "Unreferenced 20-byte data block; no reader located and absent from DNFS 3.60+. Purpose undetermined."
+        "Unreferenced 20-byte data block; no reader located. Purpose undetermined."
       ],
       "type": "byte",
       "values": [

@@ -4987,8 +4987,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; Prints the byte in A as two hex digits (e.g. &3F prints "3F"). Saves A, shifts high
 ; nibble down, prints it via print_hex_nibble, then recovers the original A and prints
 ; the low nibble. The nibble-to-hex conversion uses ORA #&30 / CMP #&3A to distinguish
-; 0-9 (ASCII &30-&39) from A-F (add 7 more). New in 3.65: moved inline from &9F9D (end of
-; ROM in 3.62).
+; 0-9 (ASCII &30-&39) from A-F (add 7 more).
 ; &8dca referenced 2 times by &8cc5, &8d62
 .print_hex_byte
     pha                                                               ; 8dca: 48          H        ; Save original byte
@@ -5221,8 +5220,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; *NET3: close handle (mark as unused)
 ;
 ; Looks up the handle in &F0 via calc_handle_offset. Writes &3F ('?') to mark the handle
-; slot as closed in the NFS workspace. Returns via RTS (earlier versions preserved the
-; carry flag across the write using ROL/ROR on rx_flags, but 3.60 simplified this).
+; slot as closed in the NFS workspace. Returns via RTS.
 ;
 ; On Exit:
 ;     A: &3F (close marker) or 0 if invalid
@@ -7750,7 +7748,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
 ; &9c58 referenced 1 time by &9c1d
 .clock_detected
     ldx #&c0                                                          ; 9c58: a2 c0       ..       ; X=&C0: CR1 = AC | RX_RESET
-    stx econet_control1_or_status1                                    ; 9c5a: 8e a0 fe    ...      ; Write CR1: reset RX before TX (new in 3.65)
+    stx econet_control1_or_status1                                    ; 9c5a: 8e a0 fe    ...      ; Write CR1: reset RX before TX
 ; ***************************************************************************************
 ; TX preparation
 ;

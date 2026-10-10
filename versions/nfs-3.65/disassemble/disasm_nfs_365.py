@@ -5103,8 +5103,7 @@ d.subroutine(
 Saves A, shifts high nibble down, prints it via print_hex_nibble,
 then recovers the original A and prints the low nibble.
 The nibble-to-hex conversion uses ORA #&30 / CMP #&3A to
-distinguish 0-9 (ASCII &30-&39) from A-F (add 7 more).
-New in 3.65: moved inline from &9F9D (end of ROM in 3.62).""",
+distinguish 0-9 (ASCII &30-&39) from A-F (add 7 more).""",
 )
 d.comment(0x8DCA, "Save original byte", align=Align.INLINE)
 d.comment(0x8DCB, "Shift high nibble to low position", align=Align.INLINE)
@@ -5382,9 +5381,7 @@ d.subroutine(
     title="*NET3: close handle (mark as unused)",
     description="""Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
-workspace. Returns via RTS (earlier versions preserved the
-carry flag across the write using ROL/ROR on rx_flags, but
-3.60 simplified this).""",
+workspace. Returns via RTS.""",
     on_exit={"a": "&3F (close marker) or 0 if invalid"},
 )
 d.comment(0x8E80, "Look up handle &F0 in workspace", align=Align.INLINE)
@@ -8260,7 +8257,7 @@ d.comment(0x9C55, "Restore X saved by caller", align=Align.INLINE)
 d.comment(0x9C56, "Move to X register", align=Align.INLINE)
 d.comment(0x9C57, "Return to TX caller", align=Align.INLINE)
 d.comment(0x9C58, "X=&C0: CR1 = AC | RX_RESET", align=Align.INLINE)
-d.comment(0x9C5A, "Write CR1: reset RX before TX (new in 3.65)", align=Align.INLINE)
+d.comment(0x9C5A, "Write CR1: reset RX before TX", align=Align.INLINE)
 
 
 d.subroutine(

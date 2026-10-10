@@ -5362,9 +5362,7 @@ d.subroutine(
     title="*NET3: close handle (mark as unused)",
     description="""Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
-workspace. Returns via RTS (earlier versions preserved the
-carry flag across the write using ROL/ROR on rx_flags, but
-3.60 simplified this).""",
+workspace. Returns via RTS.""",
     on_exit={"a": "&3F (close marker) or 0 if invalid"},
 )
 d.comment(0x8E7D, "Look up handle &F0 in workspace", align=Align.INLINE)

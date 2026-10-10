@@ -788,8 +788,7 @@ d.comment(0x060F, "X=0 after loop", align=Align.INLINE)
 d.comment(0x0610, "Y=0 for OSGBPB call", align=Align.INLINE)
 d.comment(
     0x0615,
-    """3.35K fix: send carry result to co-processor.
-3.35D had PHA here (never sent, never popped).""",
+    """Send the carry result to the co-processor.""",
     align=Align.INLINE,
 )
 
@@ -1424,8 +1423,7 @@ Intercepts three service calls before normal dispatch:
 | `&FF`      | Full init — vector setup, copy code to RAM, select NFS |
 | `&12` (`Y=5`) | Select NFS as active filing system |
 
-All other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).
-3.35K removes the per-ROM disable flag check that 3.35D has.""",
+All other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).""",
 )
 
 
@@ -1446,8 +1444,7 @@ d.subroutine(
     0x8103,
     "init_vectors_and_copy",
     title="NFS initialisation (service &FF: full reset)",
-    description="""New in 3.35D: table-driven vector initialisation replaces
-the hardcoded LDA/STA pairs of 3.34B. Reads 4 triplets from
+    description="""Table-driven vector initialisation. Reads 4 triplets from
 the data table at &816D (low byte, high byte, vector offset)
 and stores each 16-bit value at &0200+offset:
   EVNTV (&0220) = &06E8   BRKV  (&0202) = &0016
@@ -2638,9 +2635,8 @@ the failing handle is the current SPOOL or EXEC handle (OSBYTE
 close the channel before raising the error — preventing the system
 from continuing to spool output to a broken file handle.
 
-3.35K restructures the SPOOL/EXEC close logic: both handles
-are always checked (3.35D skipped EXEC if SPOOL matched),
-and OSCLI is always called (with a harmless "." default if
+Both the SPOOL and EXEC handles are always checked, and
+OSCLI is always called (with a harmless "." default if
 neither matched).""",
 )
 d.comment(0x851D, "A=&7E: OSBYTE acknowledge escape", align=Align.INLINE)
@@ -2659,8 +2655,7 @@ d.comment(0x8521, "Bit 7 clear: no escape, return", align=Align.INLINE)
 d.comment(0x8523, "Acknowledge escape via OSBYTE &7E", align=Align.INLINE)
 d.comment(
     0x8526,
-    """3.35K fix: initialise Y=0 before the indexed store.
-In 3.35D, Y could hold any value here after the
+    """Y=0 for the indexed store; Y is undefined after the
 OSBYTE escape acknowledge call.""",
 )
 d.comment(0x8526, "Y=0 for indexed store", align=Align.INLINE)
@@ -2679,11 +2674,8 @@ d.comment(0x8535, "BIT l0fdf: test error flags", align=Align.INLINE)
 d.comment(0x8538, "V=1: error, return early", align=Align.INLINE)
 d.comment(
     0x853A,
-    """3.35K fix: EOF hint clear/set are now mutually
-exclusive. In 3.35D, both clear_fs_flag and
-set_fs_flag were called when N=0, with the clear
-immediately undone by the set — making the EOF
-hint always set regardless of file position.""",
+    """The EOF hint is either cleared or set, never both:
+only one of clear_fs_flag / set_fs_flag runs.""",
 )
 
 d.comment(0x853A, "CLC: no error", align=Align.INLINE)
@@ -3946,7 +3938,7 @@ d.comment(0x899D, "X = new file handle", align=Align.INLINE)
 d.comment(0x899E, "Set EOF hint + sequence bits", align=Align.INLINE)
 d.comment(
     0x89A1,
-    """3.35K fix: OR handle bit into fs_sequence_nos
+    """OR handle bit into fs_sequence_nos
 (&0E08). Without this, a newly opened file could
 inherit a stale sequence number from a previous
 file using the same handle, causing byte-stream
@@ -6445,7 +6437,7 @@ d.subroutine(
     0x9687,
     "adlc_init_workspace",
     title="Initialise NMI workspace",
-    description="""New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
+    description="""Issues OSBYTE &8F with X=&0C (NMI claim service
 request) before copying the NMI shim. Sub-entry at &968A skips
 the service request for quick re-init. Then copies 32 bytes of
 NMI shim from ROM (&9FE8) to RAM (nmi_code_base), patches the current
@@ -8774,7 +8766,7 @@ d.comment(0x9CF0, "Ctrl &86: HALT", align=Align.INLINE)
 d.comment(0x9CF1, "Ctrl &87: CONTINUE", align=Align.INLINE)
 d.comment(0x9CF2, "Ctrl &88: machine-type", align=Align.INLINE)
 
-d.comment(0x816D, "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.")
+d.comment(0x816D, "Unreferenced data block; no reader located. Purpose undetermined.")
 d.label(0x816D, "unused_data_816d")
 
 d.banner(0x9F5A, title="Immediate-op TX control-frame length table",

@@ -3700,7 +3700,7 @@
       "addr": 45612,
       "name": "parse_filename_arg",
       "title": "Parse filename via GSREAD with prefix handling",
-      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
+      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
       "on_entry": {
         "y": "current command-line offset (consumed by gsread_to_buf)"
       },

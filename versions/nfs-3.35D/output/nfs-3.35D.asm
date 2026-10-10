@@ -1610,8 +1610,8 @@ cmd_roff_str = copyright_string+3
 ;
 ; Entry point for MOS service-call dispatch — the JMP target from service_entry.
 ;
-; Checks the per-ROM disable flag at &0DF0+X (new in 3.35D). If bit 7 is set, returns
-; immediately; service calls &FE / &FF bypass this check.
+; Checks the per-ROM disable flag at &0DF0+X. If bit 7 is set, returns immediately;
+; service calls &FE / &FF bypass this check.
 ;
 ; Intercepts three service calls:
 ;
@@ -1653,13 +1653,13 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; NFS initialisation (service &FF: full reset)
 ;
-; New in 3.35D: table-driven vector initialisation replaces the hardcoded LDA/STA pairs
-; of 3.34B. Reads 4 triplets from the data table at &8177 (low byte, high byte, vector
-; offset) and stores each 16-bit value at &0200+offset: EVNTV (&0220) = &06E5   BRKV
-; (&0202) = &0016 RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C Then writes &8E to Tube
-; control register (&FEE0) and copies 3 pages of Tube host code from ROM (reloc_p4_src /
-; reloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600), calls tube_post_init (&0414),
-; and copies 97 bytes of workspace init from ROM (reloc_zp_src) to &0016-&0076.
+; Table-driven vector initialisation. Reads 4 triplets from the data table at &8177 (low
+; byte, high byte, vector offset) and stores each 16-bit value at &0200+offset: EVNTV
+; (&0220) = &06E5   BRKV  (&0202) = &0016 RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C
+; Then writes &8E to Tube control register (&FEE0) and copies 3 pages of Tube host code
+; from ROM (reloc_p4_src / reloc_p5_src / reloc_p6_src) to RAM (&0400/&0500/&0600), calls
+; tube_post_init (&0414), and copies 97 bytes of workspace init from ROM (reloc_zp_src)
+; to &0016-&0076.
 ; &810d referenced 1 time by &80f8
 .init_vectors_and_copy
     sty zp_temp_10                                                    ; 810d: 84 10       ..       ; Save Y (ROM number) for later
@@ -1748,7 +1748,7 @@ cmd_roff_str = copyright_string+3
 ; &8176 referenced 1 time by &815a; also used as index base 3 times by &8111, &8115, &811c
 .return_2
     rts                                                               ; 8176: 60          `        ; Return (not our command)
-; Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.
+; Unreferenced data block; no reader located. Purpose undetermined.
 .unused_data_8177
     equb &1c, &05, &0e, &e7, &04, &10, &16, &00, &02, &e5, &06, &20   ; 8177: 1c 05 0e... ......
 ; ***************************************************************************************
@@ -2369,8 +2369,7 @@ cmd_roff_str = copyright_string+3
 ; Wrapper for send_fs_reply_cmd that sets the timeout counter (fs_error_ptr at &B8) to
 ; &2A before falling through. The &2A value becomes the outer loop count in send_to_fs's
 ; 3-level polling loop (~42 x 65536 iterations). Called after file transfer operations to
-; send the completion command to the fileserver. Eliminated in 3.35K where call sites
-; inline the LDA #&2A / STA fs_error_ptr sequence directly.
+; send the completion command to the fileserver.
 ; &83c6 referenced 2 times by &87b9, &8a99
 .send_fs_reply_timed
     lda #&2a                                                          ; 83c6: a9 2a       .*       ; A=&2A: error ptr for retry
@@ -6220,13 +6219,12 @@ osword_12_handler = restore_rx_flags+2
 ; ***************************************************************************************
 ; Initialise NMI workspace
 ;
-; New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service request) before copying
-; the NMI shim. Sub-entry at &968A skips the service request for quick re-init. Then
-; copies 32 bytes of NMI shim from ROM (&9FD9) to RAM (nmi_code_base), patches the
-; current ROM bank number into the shim's self-modifying code at &0D07, sets TX clear
-; flag and econet_init_flag to &80, reads station ID from &FE18 (INTOFF side effect),
-; stores it in the TX scout buffer, and re-enables NMIs by reading &FE20 (INTON side
-; effect).
+; Issues OSBYTE &8F with X=&0C (NMI claim service request) before copying the NMI shim.
+; Sub-entry at &968A skips the service request for quick re-init. Then copies 32 bytes of
+; NMI shim from ROM (&9FD9) to RAM (nmi_code_base), patches the current ROM bank number
+; into the shim's self-modifying code at &0D07, sets TX clear flag and econet_init_flag
+; to &80, reads station ID from &FE18 (INTOFF side effect), stores it in the TX scout
+; buffer, and re-enables NMIs by reading &FE20 (INTON side effect).
 .adlc_init_workspace
     jsr osbyte                                                        ; 9687: 20 f4 ff     ..      ; Issue paged ROM service call, Reason X
 ; ***************************************************************************************

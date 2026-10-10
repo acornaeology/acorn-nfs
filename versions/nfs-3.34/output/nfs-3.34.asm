@@ -6114,7 +6114,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     equb &c3                                                          ; 9306: c3          .        ; OSBYTE &C3: read screen start address
 
     org &964c
-; Unreferenced 20-byte data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.
+; Unreferenced 20-byte data block; no reader located. Purpose undetermined.
 .unused_data_964c
     equb &60, &ff, &42, &ff, &00, &ff, &77, &ff, &ff, &ff, &df, &ff   ; 964c: 60 ff 42... `.B...
     equb &00, &ff, &00, &ff, &00, &ff, &04, &ff                       ; 9658: 00 ff 00... ......

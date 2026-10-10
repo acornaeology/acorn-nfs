@@ -160,7 +160,7 @@ d.use_environment(
 )
 d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
-# 4.25 dispatch-table bases (read from each dispatcher's operand; the
+# Dispatch-table bases (read from each dispatcher's operand; the
 # tables hold shifted handler addresses so they don't opcode-map).
 for idx, name, role in _netv_dispatch_entries:
     d.expr(0xAD42 + idx, lo(sym(name) - 1))
@@ -8064,7 +8064,7 @@ CMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared
 tail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then
 CMOS[X-1] separated by a `.`.
 
-In 4.25 the two entry points share one body: `print_fs_address` (`X=2`)
+The two entry points share one body: `print_fs_address` (`X=2`)
 falls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,
 skipping the `LDX #2`.""",
 )
@@ -15536,7 +15536,7 @@ d.subroutine(
     "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
     description="""Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line
-string into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL
+string into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL
 parse buffer at &C030), then falls through to
 [`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,
 `'.'` and `'#'` prefix characters.""",
@@ -20172,7 +20172,7 @@ d.char_literal(0xBFE0)
 d.char_literal(0xBFE7)
 
 
-# Semantic names for auto-labelled data-table indexing bases (see 4.24).
+# Semantic names for auto-labelled data-table indexing bases.
 d.label(0x8DC1, "ps_template_base")
 d.label(0xA127, "cmos_attr_table")
 d.label(0xABE7, "bridge_err_table")

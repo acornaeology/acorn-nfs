@@ -10345,9 +10345,13 @@ d.subroutine(
     description="""Handles MOS service call 8 (unrecognised OSWORD).
 Filters OSWORD codes &0E-&14 by subtracting &0E (via
 CLC/SBC &0D) and rejecting values outside 0-6. For
-valid codes, calls osword_setup_handler to push the
-dispatch address, then copies 3 bytes from the RX
-buffer to osword_flag workspace.""",
+valid codes, saves the six workspace bytes at
+&AA-&AF on the stack and replaces them with copies of
+the MOS OSWORD state at &EE-&F3 (so the parameter
+block pointer at &F0/&F1 lands in &AC/&AD), then calls
+[`osword_setup_handler`](label:osword_setup_handler) to
+dispatch to the handler. On return, restores the six
+saved workspace bytes.""",
 )
 
 
@@ -10378,14 +10382,13 @@ d.subroutine(
     0xA516,
     "osword_setup_handler",
     title="Push OSWORD handler address for RTS dispatch",
-    description="""Indexes the OSWORD dispatch table by X to
-push a handler address (hi then lo) onto the
-stack. Copies 3 bytes from the osword_flag
-workspace into the RX buffer, loads PB byte 0
-(the OSWORD sub-code), and clears svc_state.
-The subsequent RTS dispatches to the pushed
-handler address.""",
-    on_entry={"x": "OSWORD handler index (0-6)"},
+    description="""Indexes the OSWORD dispatch table by X and pushes the
+handler address (hi then lo) onto the stack. Loads
+the first parameter-block byte (the OSWORD sub-code)
+into A and clears svc_state. The RTS then dispatches
+to the pushed handler address.""",
+    on_entry={"x": "OSWORD handler index (0-6)", "y": "0 (from the save loop)"},
+    on_exit={"a": "PB[0], the OSWORD sub-code", "y": "0"},
 )
 
 
@@ -10393,7 +10396,7 @@ d.comment(0xA516, "Load handler address high byte (X = OSWORD index 0-6)", align
 d.comment(0xA519, "Push high byte for RTS dispatch", align=Align.INLINE)
 d.comment(0xA51A, "Load handler address low byte", align=Align.INLINE)
 d.comment(0xA51D, "Push low byte for RTS dispatch", align=Align.INLINE)
-d.comment(0xA51E, "Copy 3 bytes (Y=2,1,0)", align=Align.INLINE)
+d.comment(0xA51E, "A = PB[0]: OSWORD sub-code", align=Align.INLINE)
 d.comment(0xA520, "Y=0 from copy loop above — clear svc_state", align=Align.INLINE)
 d.label(0xA522, "rts_osword_setup")
 d.comment(0xA522, "RTS dispatches to pushed handler", align=Align.INLINE)
@@ -16091,9 +16094,8 @@ d.char_literal(0xBC81)
 
 # Semantic names for indexing bases, workspace bytes and code points the
 # bootstrap left auto-labelled. Index-base / workspace / vector names and
-# the loop names come from 4.21 (variant 1) where the same routines are
-# named; the workspace-byte and two code-point names are read from the
-# 4.18 code.
+# the loop names follow the other ANFS drivers; the workspace-byte and
+# two code-point names are read from this ROM's code.
 d.index_base(0x00ED, "tx_imm_idx_base", group="zero_page")
 d.index_base(0x0FC8, "channel_status_table", group="ram_workspace")
 d.index_base(0x0FFF, "print_str_idx_base", group="ram_workspace")

@@ -8616,7 +8616,7 @@ d.comment(0x9CE1, "Ctrl &86: HALT", align=Align.INLINE)
 d.comment(0x9CE2, "Ctrl &87: CONTINUE", align=Align.INLINE)
 d.comment(0x9CE3, "Ctrl &88: machine-type", align=Align.INLINE)
 
-d.comment(0x964C, "Unreferenced 20-byte data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.")
+d.comment(0x964C, "Unreferenced 20-byte data block; no reader located. Purpose undetermined.")
 d.label(0x964C, "unused_data_964c")
 
 d.banner(0x9F4B, title="Immediate-op TX control-frame length table",

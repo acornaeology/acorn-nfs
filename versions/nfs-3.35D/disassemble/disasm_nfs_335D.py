@@ -1413,7 +1413,7 @@ d.subroutine(
     description="""Entry point for MOS service-call dispatch — the `JMP` target
 from [`service_entry`](label:service_entry).
 
-Checks the per-ROM disable flag at `&0DF0+X` (new in 3.35D). If
+Checks the per-ROM disable flag at `&0DF0+X`. If
 bit 7 is set, returns immediately; service calls `&FE` / `&FF`
 bypass this check.
 
@@ -1460,8 +1460,7 @@ d.subroutine(
     0x810D,
     "init_vectors_and_copy",
     title="NFS initialisation (service &FF: full reset)",
-    description="""New in 3.35D: table-driven vector initialisation replaces
-the hardcoded LDA/STA pairs of 3.34B. Reads 4 triplets from
+    description="""Table-driven vector initialisation. Reads 4 triplets from
 the data table at &8177 (low byte, high byte, vector offset)
 and stores each 16-bit value at &0200+offset:
   EVNTV (&0220) = &06E5   BRKV  (&0202) = &0016
@@ -2313,8 +2312,7 @@ d.subroutine(
 value becomes the outer loop count in send_to_fs's 3-level
 polling loop (~42 x 65536 iterations). Called after file
 transfer operations to send the completion command to the
-fileserver. Eliminated in 3.35K where call sites inline the
-LDA #&2A / STA fs_error_ptr sequence directly.""",
+fileserver.""",
 )
 
 
@@ -6436,7 +6434,7 @@ d.subroutine(
     0x9687,
     "adlc_init_workspace",
     title="Initialise NMI workspace",
-    description="""New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service
+    description="""Issues OSBYTE &8F with X=&0C (NMI claim service
 request) before copying the NMI shim. Sub-entry at &968A skips
 the service request for quick re-init. Then copies 32 bytes of
 NMI shim from ROM (&9FD9) to RAM (nmi_code_base), patches the current
@@ -8789,7 +8787,7 @@ d.comment(0x9CF0, "Ctrl &86: HALT", align=Align.INLINE)
 d.comment(0x9CF1, "Ctrl &87: CONTINUE", align=Align.INLINE)
 d.comment(0x9CF2, "Ctrl &88: machine-type", align=Align.INLINE)
 
-d.comment(0x8177, "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.")
+d.comment(0x8177, "Unreferenced data block; no reader located. Purpose undetermined.")
 d.label(0x8177, "unused_data_8177")
 
 d.banner(0x9F5A, title="Immediate-op TX control-frame length table",

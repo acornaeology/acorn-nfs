@@ -5182,8 +5182,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; *NET3: close handle (mark as unused)
 ;
 ; Looks up the handle in &F0 via calc_handle_offset. Writes &3F ('?') to mark the handle
-; slot as closed in the NFS workspace. Returns via RTS (earlier versions preserved the
-; carry flag across the write using ROL/ROR on rx_flags, but 3.60 simplified this).
+; slot as closed in the NFS workspace. Returns via RTS.
 ;
 ; On Exit:
 ;     A: &3F (close marker) or 0 if invalid

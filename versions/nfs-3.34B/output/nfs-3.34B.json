@@ -46095,7 +46095,7 @@
         "unused_data_964d"
       ],
       "comments_before_label": [
-        "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined."
+        "Unreferenced data block; no reader located. Purpose undetermined."
       ],
       "type": "byte",
       "values": [

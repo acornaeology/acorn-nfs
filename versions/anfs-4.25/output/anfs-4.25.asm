@@ -6723,8 +6723,8 @@ ps_template_base = load_transfer_params+1
 ; network byte) and branches into the shared tail at print_cmos_pair, which prints
 ; CMOS[X] then CMOS[X-1] separated by a ..
 ;
-; In 4.25 the two entry points share one body: print_fs_address (X=2) falls straight in,
-; while print_ps_address (X=4) reaches it by BRA, skipping the LDX #2.
+; The two entry points share one body: print_fs_address (X=2) falls straight in, while
+; print_ps_address (X=4) reaches it by BRA, skipping the LDX #2.
 ; &9664 referenced 1 time by &9640
 .print_ps_address
     ldx #4                                                            ; 9664: a2 04       ..       ; X=4: CMOS RAM byte 4 (PS network number)
@@ -13506,9 +13506,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Parse filename via GSREAD with prefix handling
 ;
-; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the 4.21
-; HAZEL parse buffer at &C030), then falls through to parse_access_prefix to process '&',
-; ':', '.' and '#' prefix characters.
+; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the HAZEL
+; parse buffer at &C030), then falls through to parse_access_prefix to process '&', ':',
+; '.' and '#' prefix characters.
 ;
 ; On Entry:
 ;     Y: current command-line offset (consumed by gsread_to_buf)

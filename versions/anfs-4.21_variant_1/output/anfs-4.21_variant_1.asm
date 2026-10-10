@@ -13556,9 +13556,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Parse filename via GSREAD with prefix handling
 ;
-; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the 4.21
-; HAZEL parse buffer at &C030), then falls through to parse_access_prefix to process '&',
-; ':', '.' and '#' prefix characters.
+; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the HAZEL
+; parse buffer at &C030), then falls through to parse_access_prefix to process '&', ':',
+; '.' and '#' prefix characters.
 ;
 ; On Entry:
 ;     Y: current command-line offset (consumed by gsread_to_buf)

@@ -1487,7 +1487,7 @@
       "addr": 36477,
       "name": "net_3_close_handle",
       "title": "*NET3: close handle (mark as unused)",
-      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS (earlier versions preserved the\ncarry flag across the write using ROL/ROR on rx_flags, but\n3.60 simplified this).",
+      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS.",
       "on_exit": {
         "a": "&3F (close marker) or 0 if invalid"
       }
@@ -2226,7 +2226,7 @@
       "addr": 40885,
       "name": "ex_exec_trampoline",
       "title": "*EX vs *EXEC disambiguation trampoline",
-      "description": "Added in 3.62 to fix *EX matching *EXEC. The \"EX\" command table\nentry dispatches here instead of directly to ex_handler. Checks\nthe next character in the command line: if < &21 (space/CR/ctrl)\nthe command is *EX so jumps to ex_handler; if >= &21 (printable)\nthe command continues (e.g. *EXEC) so forwards to the FS."
+      "description": "Keeps *EX from matching *EXEC. The \"EX\" command table\nentry dispatches here instead of directly to ex_handler. Checks\nthe next character in the command line: if < &21 (space/CR/ctrl)\nthe command is *EX so jumps to ex_handler; if >= &21 (printable)\nthe command continues (e.g. *EXEC) so forwards to the FS."
     }
   ],
   "banners": [

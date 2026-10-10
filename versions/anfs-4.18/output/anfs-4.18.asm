@@ -9240,8 +9240,10 @@ bad_prefix = bad_str_anchor+1
 ;
 ; Handles MOS service call 8 (unrecognised OSWORD). Filters OSWORD codes &0E-&14 by
 ; subtracting &0E (via CLC/SBC &0D) and rejecting values outside 0-6. For valid codes,
-; calls osword_setup_handler to push the dispatch address, then copies 3 bytes from the
-; RX buffer to osword_flag workspace.
+; saves the six workspace bytes at &AA-&AF on the stack and replaces them with copies of
+; the MOS OSWORD state at &EE-&F3 (so the parameter block pointer at &F0/&F1 lands in
+; &AC/&AD), then calls osword_setup_handler to dispatch to the handler. On return,
+; restores the six saved workspace bytes.
 .svc_8_osword
     clc                                                               ; a4ee: 18          .        ; CLC so SBC subtracts value+1
     lda osbyte_a_copy                                                 ; a4ef: a5 ef       ..       ; A = OSWORD number
@@ -9271,20 +9273,24 @@ bad_prefix = bad_str_anchor+1
 ; ***************************************************************************************
 ; Push OSWORD handler address for RTS dispatch
 ;
-; Indexes the OSWORD dispatch table by X to push a handler address (hi then lo) onto the
-; stack. Copies 3 bytes from the osword_flag workspace into the RX buffer, loads PB byte
-; 0 (the OSWORD sub-code), and clears svc_state. The subsequent RTS dispatches to the
-; pushed handler address.
+; Indexes the OSWORD dispatch table by X and pushes the handler address (hi then lo) onto
+; the stack. Loads the first parameter-block byte (the OSWORD sub-code) into A and clears
+; svc_state. The RTS then dispatches to the pushed handler address.
 ;
 ; On Entry:
 ;     X: OSWORD handler index (0-6)
+;     Y: 0 (from the save loop)
+;
+; On Exit:
+;     A: PB[0], the OSWORD sub-code
+;     Y: 0
 ; &a516 referenced 1 time by &a509
 .osword_setup_handler
     lda osword_dispatch_hi_table,x                                    ; a516: bd 2a a5    .*.      ; Load handler address high byte (X = OSWORD index 0-6)
     pha                                                               ; a519: 48          H        ; Push high byte for RTS dispatch
     lda osword_dispatch_lo_table,x                                    ; a51a: bd 23 a5    .#.      ; Load handler address low byte
     pha                                                               ; a51d: 48          H        ; Push low byte for RTS dispatch
-    lda (ws_ptr_hi),y                                                 ; a51e: b1 ac       ..       ; Copy 3 bytes (Y=2,1,0)
+    lda (ws_ptr_hi),y                                                 ; a51e: b1 ac       ..       ; A = PB[0]: OSWORD sub-code
     sty svc_state                                                     ; a520: 84 a9       ..       ; Y=0 from copy loop above — clear svc_state
 ; &a522 referenced 2 times by &a4f3, &a4f7
 .rts_osword_setup

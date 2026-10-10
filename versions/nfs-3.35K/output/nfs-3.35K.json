@@ -374,14 +374,14 @@
       "addr": 33002,
       "name": "service_handler",
       "title": "Service-call handler",
-      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).\n3.35K removes the per-ROM disable flag check that 3.35D has.",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nIntercepts three service calls before normal dispatch:\n\n| Svc        | Action |\n|------------|--------|\n| `&FE`      | Tube init \u2014 explode character definitions |\n| `&FF`      | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via [`dispatch`](label:dispatch).",
       "fall_through": true
     },
     {
       "addr": 33027,
       "name": "init_vectors_and_copy",
       "title": "NFS initialisation (service &FF: full reset)",
-      "description": "New in 3.35D: table-driven vector initialisation replaces\nthe hardcoded LDA/STA pairs of 3.34B. Reads 4 triplets from\nthe data table at &816D (low byte, high byte, vector offset)\nand stores each 16-bit value at &0200+offset:\n  EVNTV (&0220) = &06E8   BRKV  (&0202) = &0016\n  RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C\nThen writes &8E to Tube control register (&FEE0) and copies\n3 pages of Tube host code from ROM (reloc_p4_src et seq.)\nto RAM (&0400/&0500/&0600), calls tube_post_init (&0414),\nand copies 97 bytes of workspace init from ROM (reloc_zp_src) to\n&0016-&0076.",
+      "description": "Table-driven vector initialisation. Reads 4 triplets from\nthe data table at &816D (low byte, high byte, vector offset)\nand stores each 16-bit value at &0200+offset:\n  EVNTV (&0220) = &06E8   BRKV  (&0202) = &0016\n  RDCHV (&0210) = &04E7   WRCHV (&020E) = &051C\nThen writes &8E to Tube control register (&FEE0) and copies\n3 pages of Tube host code from ROM (reloc_p4_src et seq.)\nto RAM (&0400/&0500/&0600), calls tube_post_init (&0414),\nand copies 97 bytes of workspace init from ROM (reloc_zp_src) to\n&0016-&0076.",
       "fall_through": true
     },
     {
@@ -643,7 +643,7 @@
       "addr": 34077,
       "name": "check_escape",
       "title": "Check and handle escape condition (ESC)",
-      "description": "Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed\nwith the software enable flag ESCAP. Both must have bit 7 set for\nescape to fire. ESCAP is set non-zero during data port operations\n(LOADOP stores the data port &90, serving double duty as both the\nport number and the escape-enable flag). ESCAP is disabled via LSR\nin the ENTER routine, which clears bit 7 \u2014 PHP/PLP around the LSR\npreserves the carry flag since ENTER is called from contexts where\ncarry has semantic meaning (e.g., PUTBYT vs BGET distinction).\nThis architecture allows escape between retransmission attempts\nbut prevents interruption during critical FS transactions. If\nescape fires: acknowledges via OSBYTE &7E, then checks whether\nthe failing handle is the current SPOOL or EXEC handle (OSBYTE\n&C6/&C7); if so, issues \"*SP.\" or \"*E.\" via OSCLI to gracefully\nclose the channel before raising the error \u2014 preventing the system\nfrom continuing to spool output to a broken file handle.\n\n3.35K restructures the SPOOL/EXEC close logic: both handles\nare always checked (3.35D skipped EXEC if SPOOL matched),\nand OSCLI is always called (with a harmless \".\" default if\nneither matched).",
+      "description": "Two-level escape gating: the MOS escape flag (&FF bit 7) is ANDed\nwith the software enable flag ESCAP. Both must have bit 7 set for\nescape to fire. ESCAP is set non-zero during data port operations\n(LOADOP stores the data port &90, serving double duty as both the\nport number and the escape-enable flag). ESCAP is disabled via LSR\nin the ENTER routine, which clears bit 7 \u2014 PHP/PLP around the LSR\npreserves the carry flag since ENTER is called from contexts where\ncarry has semantic meaning (e.g., PUTBYT vs BGET distinction).\nThis architecture allows escape between retransmission attempts\nbut prevents interruption during critical FS transactions. If\nescape fires: acknowledges via OSBYTE &7E, then checks whether\nthe failing handle is the current SPOOL or EXEC handle (OSBYTE\n&C6/&C7); if so, issues \"*SP.\" or \"*E.\" via OSCLI to gracefully\nclose the channel before raising the error \u2014 preventing the system\nfrom continuing to spool output to a broken file handle.\n\nBoth the SPOOL and EXEC handles are always checked, and\nOSCLI is always called (with a harmless \".\" default if\nneither matched).",
       "fall_through": true
     },
     {
@@ -1539,7 +1539,7 @@
       "addr": 38535,
       "name": "adlc_init_workspace",
       "title": "Initialise NMI workspace",
-      "description": "New in 3.35D: issues OSBYTE &8F with X=&0C (NMI claim service\nrequest) before copying the NMI shim. Sub-entry at &968A skips\nthe service request for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9FE8) to RAM (nmi_code_base), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
+      "description": "Issues OSBYTE &8F with X=&0C (NMI claim service\nrequest) before copying the NMI shim. Sub-entry at &968A skips\nthe service request for quick re-init. Then copies 32 bytes of\nNMI shim from ROM (&9FE8) to RAM (nmi_code_base), patches the current\nROM bank number into the shim's self-modifying code at &0D07,\nsets TX clear flag and econet_init_flag to &80, reads station ID\nfrom &FE18 (INTOFF side effect), stores it in the TX scout buffer,\nand re-enables NMIs by reading &FE20 (INTON side effect).",
       "fall_through": true
     },
     {
@@ -7050,7 +7050,7 @@
         "unused_data_816d"
       ],
       "comments_before_label": [
-        "Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined."
+        "Unreferenced data block; no reader located. Purpose undetermined."
       ],
       "type": "byte",
       "values": [
@@ -13762,7 +13762,7 @@
         0
       ],
       "comments_before_label": [
-        "3.35K fix: initialise Y=0 before the indexed store.\nIn 3.35D, Y could hold any value here after the\nOSBYTE escape acknowledge call."
+        "Y=0 for the indexed store; Y is undefined after the\nOSBYTE escape acknowledge call."
       ],
       "comment_inline": "Y=0 for indexed store",
       "type": "code",
@@ -13892,7 +13892,7 @@
         24
       ],
       "comments_before_label": [
-        "3.35K fix: EOF hint clear/set are now mutually\nexclusive. In 3.35D, both clear_fs_flag and\nset_fs_flag were called when N=0, with the clear\nimmediately undone by the set \u2014 making the EOF\nhint always set regardless of file position."
+        "The EOF hint is either cleared or set, never both:\nonly one of clear_fs_flag / set_fs_flag runs."
       ],
       "comment_inline": "CLC: no error",
       "type": "code",
@@ -21959,7 +21959,7 @@
         138
       ],
       "comments_before_label": [
-        "3.35K fix: OR handle bit into fs_sequence_nos\n(&0E08). Without this, a newly opened file could\ninherit a stale sequence number from a previous\nfile using the same handle, causing byte-stream\nprotocol errors."
+        "OR handle bit into fs_sequence_nos\n(&0E08). Without this, a newly opened file could\ninherit a stale sequence number from a previous\nfile using the same handle, causing byte-stream\nprotocol errors."
       ],
       "comment_inline": "A=handle bitmask for new file",
       "type": "code",
@@ -44286,7 +44286,7 @@
         106
       ],
       "binary_addr": 38255,
-      "comment_inline": "3.35K fix: send carry result to co-processor.\n3.35D had PHA here (never sent, never popped).",
+      "comment_inline": "Send the carry result to the co-processor.",
       "type": "code",
       "mnemonic": "ror"
     },

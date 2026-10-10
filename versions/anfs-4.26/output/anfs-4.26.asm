@@ -6722,8 +6722,8 @@ ps_template_base = load_transfer_params+1
 ; network byte) and branches into the shared tail at print_cmos_pair, which prints
 ; CMOS[X] then CMOS[X-1] separated by a ..
 ;
-; In 4.26 the two entry points share one body: print_fs_address (X=2) falls straight in,
-; while print_ps_address (X=4) reaches it by BRA, skipping the LDX #2.
+; The two entry points share one body: print_fs_address (X=2) falls straight in, while
+; print_ps_address (X=4) reaches it by BRA, skipping the LDX #2.
 ; &9664 referenced 1 time by &9640
 .print_ps_address
     ldx #4                                                            ; 9664: a2 04       ..       ; X=4: CMOS RAM byte 4 (PS network number)
@@ -11205,7 +11205,7 @@ cmd_dispatch_hi_table = cmd_table_fs+2
 ; Saves the current TX control block, reads the clock/date fields returned in the HAZEL
 ; TXCB workspace, converts each to packed BCD via bin_to_bcd, forms the year (7-bit field
 ; plus base &51), adjusting into the 20xx century when it reaches 100, and writes the
-; formatted result to the OSWORD reply buffer at (ws_ptr_hi),Y. Reworked in 4.26.
+; formatted result to the OSWORD reply buffer at (ws_ptr_hi),Y.
 ; &a8b1 referenced 3 times by &a8a3, &a8aa, &a904
 .save_txcb_and_convert
     phy                                                               ; a8b1: 5a          Z        ; Save Y (reply buffer offset)
@@ -13514,9 +13514,9 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; ***************************************************************************************
 ; Parse filename via GSREAD with prefix handling
 ;
-; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the 4.21
-; HAZEL parse buffer at &C030), then falls through to parse_access_prefix to process '&',
-; ':', '.' and '#' prefix characters.
+; Calls gsread_to_buf to read the command-line string into hazel_parse_buf (the HAZEL
+; parse buffer at &C030), then falls through to parse_access_prefix to process '&', ':',
+; '.' and '#' prefix characters.
 ;
 ; On Entry:
 ;     Y: current command-line offset (consumed by gsread_to_buf)
@@ -16599,9 +16599,9 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; ***************************************************************************************
 ; Read current filing-system number via OSARGS
 ;
-; New in 4.26. Reads the current filing-system number with OSARGS (reason 0) and compares
-; it with 5 (NetFS), returning Z=1 (EQ) when NetFS is current. osword_0e_dispatch uses
-; this to service the clock OSWORD only under NetFS, leaving it for other filing systems
+; Reads the current filing-system number with OSARGS (reason 0) and compares it with 5
+; (NetFS), returning Z=1 (EQ) when NetFS is current. osword_0e_dispatch uses this to
+; service the clock OSWORD only under NetFS, leaving it for other filing systems
 ; otherwise.
 ;
 ; The PHA / PLX pair is a deliberate register relay, not a save/restore. On entry A holds
@@ -16611,8 +16611,8 @@ net_chan_err_strings = err_net_chan_not_found+2
 ; protects the sub-code across OSARGS and moves it from A to X. Zeroing A for the call
 ; via TYA (rather than LDA #0) likewise leans on Y already being 0 at entry.
 ;
-; Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double as the
-; hazel_minus_2 / hazel_minus_1 indexing-base anchors.
+; Sits at the end of the ROM; its final bytes double as the hazel_minus_2 / hazel_minus_1
+; indexing-base anchors.
 ;
 ; On Entry:
 ;     A: OSWORD sub-code (relayed out in X)

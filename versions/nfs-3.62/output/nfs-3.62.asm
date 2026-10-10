@@ -5185,8 +5185,7 @@ cmd_match_data = fs_cmd_match_table+1
 ; *NET3: close handle (mark as unused)
 ;
 ; Looks up the handle in &F0 via calc_handle_offset. Writes &3F ('?') to mark the handle
-; slot as closed in the NFS workspace. Returns via RTS (earlier versions preserved the
-; carry flag across the write using ROL/ROR on rx_flags, but 3.60 simplified this).
+; slot as closed in the NFS workspace. Returns via RTS.
 ;
 ; On Exit:
 ;     A: &3F (close marker) or 0 if invalid
@@ -8468,10 +8467,10 @@ listen_jmp_hi = reset_enter_listen+2
 ; ***************************************************************************************
 ; *EX vs *EXEC disambiguation trampoline
 ;
-; Added in 3.62 to fix *EX matching *EXEC. The "EX" command table entry dispatches here
-; instead of directly to ex_handler. Checks the next character in the command line: if <
-; &21 (space/CR/ctrl) the command is *EX so jumps to ex_handler; if >= &21 (printable)
-; the command continues (e.g. *EXEC) so forwards to the FS.
+; Keeps *EX from matching *EXEC. The "EX" command table entry dispatches here instead of
+; directly to ex_handler. Checks the next character in the command line: if < &21
+; (space/CR/ctrl) the command is *EX so jumps to ex_handler; if >= &21 (printable) the
+; command continues (e.g. *EXEC) so forwards to the FS.
 .ex_trampoline
 .ex_exec_trampoline
     lda (fs_crc_lo),y                                                 ; 9fb5: b1 be       ..       ; Load next char from command line

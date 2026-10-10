@@ -1387,7 +1387,7 @@
       "addr": 36298,
       "name": "print_hex_byte",
       "title": "Print A as two hexadecimal digits",
-      "description": "Prints the byte in A as two hex digits (e.g. &3F prints \"3F\").\nSaves A, shifts high nibble down, prints it via print_hex_nibble,\nthen recovers the original A and prints the low nibble.\nThe nibble-to-hex conversion uses ORA #&30 / CMP #&3A to\ndistinguish 0-9 (ASCII &30-&39) from A-F (add 7 more).\nNew in 3.65: moved inline from &9F9D (end of ROM in 3.62).",
+      "description": "Prints the byte in A as two hex digits (e.g. &3F prints \"3F\").\nSaves A, shifts high nibble down, prints it via print_hex_nibble,\nthen recovers the original A and prints the low nibble.\nThe nibble-to-hex conversion uses ORA #&30 / CMP #&3A to\ndistinguish 0-9 (ASCII &30-&39) from A-F (add 7 more).",
       "fall_through": true
     },
     {
@@ -1503,7 +1503,7 @@
       "addr": 36480,
       "name": "net_3_close_handle",
       "title": "*NET3: close handle (mark as unused)",
-      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS (earlier versions preserved the\ncarry flag across the write using ROL/ROR on rx_flags, but\n3.60 simplified this).",
+      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS.",
       "on_exit": {
         "a": "&3F (close marker) or 0 if invalid"
       }
@@ -56797,7 +56797,7 @@
         160,
         254
       ],
-      "comment_inline": "Write CR1: reset RX before TX (new in 3.65)",
+      "comment_inline": "Write CR1: reset RX before TX",
       "type": "code",
       "mnemonic": "stx",
       "operand": "econet_control1_or_status1",

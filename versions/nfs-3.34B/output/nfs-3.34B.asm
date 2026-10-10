@@ -6118,7 +6118,7 @@ post_reply_check = scan_or_read_rxcb+1
     equb &c3                                                          ; 9307: c3          .        ; OSBYTE &C3: read screen start address
 
     org &964d
-; Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.
+; Unreferenced data block; no reader located. Purpose undetermined.
 .unused_data_964d
     equb &ff, &42, &ff, &00, &ff, &77, &ff, &ff, &ff, &df, &ff, &00   ; 964d: ff 42 ff... .B....
     equb &ff, &00, &ff, &00, &ff, &04, &ff                            ; 9659: ff 00 ff... ......

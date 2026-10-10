@@ -160,7 +160,7 @@ d.use_environment(
 )
 d.index_base(0x0000, "zp_ptr_lo", length=1, group="zero_page")
 
-# 4.26 dispatch-table bases (read from each dispatcher's operand; the
+# Dispatch-table bases (read from each dispatcher's operand; the
 # tables hold shifted handler addresses so they don't opcode-map).
 for idx, name, role in _netv_dispatch_entries:
     d.expr(0xAD42 + idx, lo(sym(name) - 1))
@@ -8064,7 +8064,7 @@ CMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared
 tail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then
 CMOS[X-1] separated by a `.`.
 
-In 4.26 the two entry points share one body: `print_fs_address` (`X=2`)
+The two entry points share one body: `print_fs_address` (`X=2`)
 falls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,
 skipping the `LDX #2`.""",
 )
@@ -15496,7 +15496,7 @@ d.subroutine(
     "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
     description="""Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line
-string into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL
+string into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL
 parse buffer at &C030), then falls through to
 [`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,
 `'.'` and `'#'` prefix characters.""",
@@ -20132,7 +20132,7 @@ d.char_literal(0xBFE0)
 d.char_literal(0xBFE7)
 
 
-# Semantic names for auto-labelled data-table indexing bases (see 4.24).
+# Semantic names for auto-labelled data-table indexing bases.
 d.label(0x8DC1, "ps_template_base")
 d.label(0xA127, "cmos_attr_table")
 d.label(0xABE7, "bridge_err_table")
@@ -20144,11 +20144,10 @@ d.label(0x85C2, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
 
 
-# --- 4.26 delta: reworked OSWORD &0E (=OSWORD 14) real-time-clock routine
-# --- and the new OSARGS filing-system-check helper (&BFF7). Reached via
-# --- PHA/PHA/RTS dispatch, so declared as explicit code entries. Meaning
-# --- of the changes cross-checked against J.G. Harston's "ANFS 4.26 updated
-# --- OSWORD 14 RTC routine".
+# OSWORD &0E (=OSWORD 14) real-time-clock routine and the OSARGS
+# filing-system-check helper (&BFF7). Reached via PHA/PHA/RTS dispatch, so
+# declared as explicit code entries. Cross-checked against J.G. Harston's
+# notes on the ANFS OSWORD 14 RTC routine.
 d.entry(0xA89A)
 d.subroutine(
     0xA89A,
@@ -20184,7 +20183,7 @@ d.subroutine(
 returned in the HAZEL TXCB workspace, converts each to packed BCD via
 [`bin_to_bcd`](label:bin_to_bcd), forms the year (7-bit field plus base &51),
 adjusting into the 20xx century when it reaches 100, and writes the formatted
-result to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Reworked in 4.26.""",
+result to the OSWORD reply buffer at (`ws_ptr_hi`),Y.""",
 )
 d.comment(0xA8B1, "Save Y (reply buffer offset)", align=Align.INLINE)
 d.comment(0xA8B2, "Y=&10: length of TXCB to save", align=Align.INLINE)
@@ -20284,7 +20283,7 @@ d.subroutine(
     0xBFF7,
     "fs_num_via_osargs",
     title="Read current filing-system number via OSARGS",
-    description="""New in 4.26. Reads the current filing-system number with OSARGS
+    description="""Reads the current filing-system number with OSARGS
 (reason 0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is
 current. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the
 clock OSWORD only under NetFS, leaving it for other filing systems otherwise.
@@ -20297,7 +20296,7 @@ preserve `X`). `PLX` then recovers the sub-code into `X` -- so the caller's
 across `OSARGS` and moves it from `A` to `X`. Zeroing `A` for the call via `TYA`
 (rather than `LDA #0`) likewise leans on `Y` already being 0 at entry.
 
-Occupies ROM-tail space that was &FF padding in 4.25; its final bytes double
+Sits at the end of the ROM; its final bytes double
 as the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)
 indexing-base anchors.""",
     on_entry={"a": "OSWORD sub-code (relayed out in X)", "y": "0 -- used as the OSARGS reason code"},
@@ -20314,8 +20313,6 @@ d.comment(0xBFFC, "Relay the stashed sub-code into X (not a restore) for the cal
 d.comment(0xBFFD, "Current FS = 5 (NetFS)? (sets Z)", align=Align.INLINE)
 d.comment(0xBFFF, "Return: Z = NetFS selected, A = FS number, X = OSWORD sub-code", align=Align.INLINE)
 
-# &94C0: 4.26 fixes the 'Bad string' error path -- 4.25 read brk_ptr (LDA &FD)
-# instead of loading the error number, so the error was not set correctly.
 d.comment(0x94C0, "A=&FD: 'Bad string' error number (LDA #&FD)", align=Align.INLINE)
 d.comment(0xA8D5, "Shift high nibble down (2 of 4)", align=Align.INLINE)
 d.comment(0xA8D6, "Shift high nibble down (3 of 4)", align=Align.INLINE)

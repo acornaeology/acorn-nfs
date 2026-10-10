@@ -1487,7 +1487,7 @@
       "addr": 36477,
       "name": "net_3_close_handle",
       "title": "*NET3: close handle (mark as unused)",
-      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS (earlier versions preserved the\ncarry flag across the write using ROL/ROR on rx_flags, but\n3.60 simplified this).",
+      "description": "Looks up the handle in &F0 via calc_handle_offset. Writes\n&3F ('?') to mark the handle slot as closed in the NFS\nworkspace. Returns via RTS.",
       "on_exit": {
         "a": "&3F (close marker) or 0 if invalid"
       }

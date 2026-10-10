@@ -1917,7 +1917,7 @@
       "addr": 38498,
       "name": "print_ps_address",
       "title": "Print printer-server address from CMOS",
-      "description": "Prints the printer server's saved `network.station` from\nCMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared\ntail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then\nCMOS[X-1] separated by a `.`.\n\nIn 4.24 the two entry points share one body: `print_fs_address` (`X=2`)\nfalls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,\nskipping the `LDX #2`.",
+      "description": "Prints the printer server's saved `network.station` from\nCMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared\ntail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then\nCMOS[X-1] separated by a `.`.\n\nThe two entry points share one body: `print_fs_address` (`X=2`)\nfalls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,\nskipping the `LDX #2`.",
       "fall_through": true
     },
     {
@@ -3633,7 +3633,7 @@
       "addr": 45663,
       "name": "parse_filename_arg",
       "title": "Parse filename via GSREAD with prefix handling",
-      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
+      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
       "on_entry": {
         "y": "current command-line offset (consumed by gsread_to_buf)"
       },

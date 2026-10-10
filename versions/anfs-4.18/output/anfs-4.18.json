@@ -1994,15 +1994,20 @@
       "addr": 42222,
       "name": "svc_8_osword",
       "title": "Filing system OSWORD entry",
-      "description": "Handles MOS service call 8 (unrecognised OSWORD).\nFilters OSWORD codes &0E-&14 by subtracting &0E (via\nCLC/SBC &0D) and rejecting values outside 0-6. For\nvalid codes, calls osword_setup_handler to push the\ndispatch address, then copies 3 bytes from the RX\nbuffer to osword_flag workspace."
+      "description": "Handles MOS service call 8 (unrecognised OSWORD).\nFilters OSWORD codes &0E-&14 by subtracting &0E (via\nCLC/SBC &0D) and rejecting values outside 0-6. For\nvalid codes, saves the six workspace bytes at\n&AA-&AF on the stack and replaces them with copies of\nthe MOS OSWORD state at &EE-&F3 (so the parameter\nblock pointer at &F0/&F1 lands in &AC/&AD), then calls\n[`osword_setup_handler`](label:osword_setup_handler) to\ndispatch to the handler. On return, restores the six\nsaved workspace bytes."
     },
     {
       "addr": 42262,
       "name": "osword_setup_handler",
       "title": "Push OSWORD handler address for RTS dispatch",
-      "description": "Indexes the OSWORD dispatch table by X to\npush a handler address (hi then lo) onto the\nstack. Copies 3 bytes from the osword_flag\nworkspace into the RX buffer, loads PB byte 0\n(the OSWORD sub-code), and clears svc_state.\nThe subsequent RTS dispatches to the pushed\nhandler address.",
+      "description": "Indexes the OSWORD dispatch table by X and pushes the\nhandler address (hi then lo) onto the stack. Loads\nthe first parameter-block byte (the OSWORD sub-code)\ninto A and clears svc_state. The RTS then dispatches\nto the pushed handler address.",
       "on_entry": {
-        "x": "OSWORD handler index (0-6)"
+        "x": "OSWORD handler index (0-6)",
+        "y": "0 (from the save loop)"
+      },
+      "on_exit": {
+        "a": "PB[0], the OSWORD sub-code",
+        "y": "0"
       }
     },
     {
@@ -70594,7 +70599,7 @@
         177,
         172
       ],
-      "comment_inline": "Copy 3 bytes (Y=2,1,0)",
+      "comment_inline": "A = PB[0]: OSWORD sub-code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(ws_ptr_hi),y",

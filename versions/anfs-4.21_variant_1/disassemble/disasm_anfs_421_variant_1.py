@@ -15562,7 +15562,7 @@ d.subroutine(
     "parse_filename_arg",
     title="Parse filename via GSREAD with prefix handling",
     description="""Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line
-string into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL
+string into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL
 parse buffer at &C030), then falls through to
 [`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,
 `'.'` and `'#'` prefix characters.""",

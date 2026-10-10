@@ -5363,9 +5363,7 @@ d.subroutine(
     title="*NET3: close handle (mark as unused)",
     description="""Looks up the handle in &F0 via calc_handle_offset. Writes
 &3F ('?') to mark the handle slot as closed in the NFS
-workspace. Returns via RTS (earlier versions preserved the
-carry flag across the write using ROL/ROR on rx_flags, but
-3.60 simplified this).""",
+workspace. Returns via RTS.""",
     on_exit={"a": "&3F (close marker) or 0 if invalid"},
 )
 d.comment(0x8E7D, "Look up handle &F0 in workspace", align=Align.INLINE)
@@ -9115,7 +9113,7 @@ d.subroutine(
     0x9FB5,
     "ex_exec_trampoline",
     title="*EX vs *EXEC disambiguation trampoline",
-    description="""Added in 3.62 to fix *EX matching *EXEC. The "EX" command table
+    description="""Keeps *EX from matching *EXEC. The "EX" command table
 entry dispatches here instead of directly to ex_handler. Checks
 the next character in the command line: if < &21 (space/CR/ctrl)
 the command is *EX so jumps to ex_handler; if >= &21 (printable)

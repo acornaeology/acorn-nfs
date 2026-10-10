@@ -1917,7 +1917,7 @@
       "addr": 38500,
       "name": "print_ps_address",
       "title": "Print printer-server address from CMOS",
-      "description": "Prints the printer server's saved `network.station` from\nCMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared\ntail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then\nCMOS[X-1] separated by a `.`.\n\nIn 4.26 the two entry points share one body: `print_fs_address` (`X=2`)\nfalls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,\nskipping the `LDX #2`.",
+      "description": "Prints the printer server's saved `network.station` from\nCMOS RAM. Sets `X=4` (the PS network byte) and branches into the shared\ntail at [`print_cmos_pair`](label:print_cmos_pair), which prints CMOS[X] then\nCMOS[X-1] separated by a `.`.\n\nThe two entry points share one body: `print_fs_address` (`X=2`)\nfalls straight in, while `print_ps_address` (`X=4`) reaches it by `BRA`,\nskipping the `LDX #2`.",
       "fall_through": true
     },
     {
@@ -3600,7 +3600,7 @@
       "addr": 45665,
       "name": "parse_filename_arg",
       "title": "Parse filename via GSREAD with prefix handling",
-      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the 4.21 HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
+      "description": "Calls [`gsread_to_buf`](label:gsread_to_buf) to read the command-line\nstring into [`hazel_parse_buf`](label:hazel_parse_buf) (the HAZEL\nparse buffer at &C030), then falls through to\n[`parse_access_prefix`](label:parse_access_prefix) to process `'&'`, `':'`,\n`'.'` and `'#'` prefix characters.",
       "on_entry": {
         "y": "current command-line offset (consumed by gsread_to_buf)"
       },
@@ -4548,7 +4548,7 @@
       "addr": 43185,
       "name": "save_txcb_and_convert",
       "title": "OSWORD &0E: save TXCB and format the real-time clock reply",
-      "description": "Saves the current TX control block, reads the clock/date fields\nreturned in the HAZEL TXCB workspace, converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd), forms the year (7-bit field plus base &51),\nadjusting into the 20xx century when it reaches 100, and writes the formatted\nresult to the OSWORD reply buffer at (`ws_ptr_hi`),Y. Reworked in 4.26."
+      "description": "Saves the current TX control block, reads the clock/date fields\nreturned in the HAZEL TXCB workspace, converts each to packed BCD via\n[`bin_to_bcd`](label:bin_to_bcd), forms the year (7-bit field plus base &51),\nadjusting into the 20xx century when it reaches 100, and writes the formatted\nresult to the OSWORD reply buffer at (`ws_ptr_hi`),Y."
     },
     {
       "addr": 43267,
@@ -4566,7 +4566,7 @@
       "addr": 49143,
       "name": "fs_num_via_osargs",
       "title": "Read current filing-system number via OSARGS",
-      "description": "New in 4.26. Reads the current filing-system number with OSARGS\n(reason 0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is\ncurrent. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the\nclock OSWORD only under NetFS, leaving it for other filing systems otherwise.\n\nThe `PHA` / `PLX` pair is a deliberate register **relay**, not a save/restore.\nOn entry `A` holds the OSWORD sub-code; `PHA` stashes it on the stack so it\nsurvives the `OSARGS` call (which returns the FS number in `A` and need not\npreserve `X`). `PLX` then recovers the sub-code into `X` -- so the caller's\n`TXA` picks it up to dispatch on. One push/pull thus both protects the sub-code\nacross `OSARGS` and moves it from `A` to `X`. Zeroing `A` for the call via `TYA`\n(rather than `LDA #0`) likewise leans on `Y` already being 0 at entry.\n\nOccupies ROM-tail space that was &FF padding in 4.25; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors.",
+      "description": "Reads the current filing-system number with OSARGS\n(reason 0) and compares it with 5 (NetFS), returning Z=1 (EQ) when NetFS is\ncurrent. [`osword_0e_dispatch`](label:osword_0e_dispatch) uses this to service the\nclock OSWORD only under NetFS, leaving it for other filing systems otherwise.\n\nThe `PHA` / `PLX` pair is a deliberate register **relay**, not a save/restore.\nOn entry `A` holds the OSWORD sub-code; `PHA` stashes it on the stack so it\nsurvives the `OSARGS` call (which returns the FS number in `A` and need not\npreserve `X`). `PLX` then recovers the sub-code into `X` -- so the caller's\n`TXA` picks it up to dispatch on. One push/pull thus both protects the sub-code\nacross `OSARGS` and moves it from `A` to `X`. Zeroing `A` for the call via `TYA`\n(rather than `LDA #0`) likewise leans on `Y` already being 0 at entry.\n\nSits at the end of the ROM; its final bytes double\nas the [`hazel_minus_2`](label:hazel_minus_2) / [`hazel_minus_1`](label:hazel_minus_1)\nindexing-base anchors.",
       "on_entry": {
         "a": "OSWORD sub-code (relayed out in X)",
         "y": "0 -- used as the OSARGS reason code"
