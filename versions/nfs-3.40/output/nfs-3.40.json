@@ -1789,7 +1789,7 @@
       "addr": 39994,
       "name": "intoff_test_inactive",
       "title": "Disable NMIs and test INACTIVE",
-      "description": "Mid-instruction label within the INACTIVE polling loop. The\naddress &9BE2 is referenced as a constant for self-modifying\ncode. Disables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read that precedes it matters.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the\nBIT that tests INACTIVE, and SR1 explicitly \u2014 so it is correct\nwhether the datasheet's \"last read status operation\" is tracked\nper register or globally. The SR1 read is therefore a\nprerequisite of the clear, not merely an interrupt\nacknowledgement.",
+      "description": "Disables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read that precedes it matters.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the\nBIT that tests INACTIVE, and SR1 explicitly \u2014 so it is correct\nwhether the datasheet's \"last read status operation\" is tracked\nper register or globally. The SR1 read is therefore a\nprerequisite of the clear, not merely an interrupt\nacknowledgement.",
       "fall_through": true
     },
     {
@@ -56173,15 +56173,6 @@
         "intoff_test_inactive"
       ],
       "comment_inline": "INTOFF -- disable NMIs",
-      "xref_summaries": [
-        "&9c3a used as index base 1 time by &9cb6"
-      ],
-      "references": [
-        {
-          "addr": 40118,
-          "kind": "indexed"
-        }
-      ],
       "type": "code",
       "mnemonic": "bit",
       "operand": "station_id_disable_net_nmis",
@@ -56212,15 +56203,7 @@
       "labels": [
         "test_line_idle"
       ],
-      "sub_labels": {
-        "40002": [
-          "sr2_idle_status"
-        ]
-      },
       "comment_inline": "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE",
-      "xref_summaries": [
-        "&9c42 used as index base 1 time by &9cb2"
-      ],
       "type": "code",
       "mnemonic": "bit",
       "operand": "econet_control23_or_status2",
@@ -56868,12 +56851,24 @@
         175,
         158
       ],
-      "comment_inline": "Look up tx_flags from table",
+      "comment_inline": "Look up tx_flags for this control byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tube_tx_count_4,y",
-      "target": 40623,
-      "target_label": "tube_tx_count_4"
+      "operand": "tx_flags_table - &81,y",
+      "expr": {
+        "text": "tx_flags_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_flags_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 40623
     },
     {
       "addr": 40105,
@@ -56896,12 +56891,24 @@
         167,
         158
       ],
-      "comment_inline": "Look up tx_length from table",
+      "comment_inline": "Look up tx_length for this control byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tube_tx_count_2,y",
-      "target": 40615,
-      "target_label": "tube_tx_count_2"
+      "operand": "tx_length_table - &81,y",
+      "expr": {
+        "text": "tx_length_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_length_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 40615
     },
     {
       "addr": 40111,
@@ -56924,12 +56931,24 @@
         66,
         156
       ],
-      "comment_inline": "Load handler from dispatch table",
+      "comment_inline": "Look up handler address high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "sr2_idle_status,y",
-      "target": 40002,
-      "target_label": "sr2_idle_status"
+      "operand": "tx_ctrl_dispatch_hi - &81,y",
+      "expr": {
+        "text": "tx_ctrl_dispatch_hi - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_ctrl_dispatch_hi"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 40002
     },
     {
       "addr": 40117,
@@ -56947,10 +56966,23 @@
         58,
         156
       ],
-      "comment_inline": "Look up handler address low from table",
+      "comment_inline": "Look up handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "intoff_test_inactive,y",
+      "operand": "tx_ctrl_dispatch_lo - &81,y",
+      "expr": {
+        "text": "tx_ctrl_dispatch_lo - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_ctrl_dispatch_lo"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
       "target": 39994,
       "target_label": "intoff_test_inactive"
     },
@@ -60515,15 +60547,7 @@
       "labels": [
         "tube_tx_inc_byte2"
       ],
-      "sub_labels": {
-        "40615": [
-          "tube_tx_count_2"
-        ]
-      },
       "comment_inline": "Carry into second byte",
-      "xref_summaries": [
-        "&9ea7 used as index base 1 time by &9cac"
-      ],
       "type": "code",
       "mnemonic": "inc",
       "operand": "port_buf_len_hi",
@@ -60581,15 +60605,7 @@
       "labels": [
         "tube_tx_inc_byte4"
       ],
-      "sub_labels": {
-        "40623": [
-          "tube_tx_count_4"
-        ]
-      },
       "comment_inline": "Carry into fourth byte",
-      "xref_summaries": [
-        "&9eaf used as index base 1 time by &9ca6"
-      ],
       "type": "code",
       "mnemonic": "inc",
       "operand": "open_port_buf_hi",

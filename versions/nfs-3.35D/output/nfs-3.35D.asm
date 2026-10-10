@@ -7462,9 +7462,8 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; ***************************************************************************************
 ; Disable NMIs and test INACTIVE
 ;
-; Mid-instruction label within the INACTIVE polling loop. The address &9BE2 is referenced
-; as a constant for self-modifying code. Disables NMIs twice (belt-and-braces) then tests
-; SR2 for INACTIVE before proceeding with TX.
+; Disables NMIs twice (belt-and-braces) then tests SR2 for INACTIVE before proceeding
+; with TX.
 ;
 ; Why the CR2 = &67 clear is load-bearing, not hygiene. With PSE set, the MC6854 status
 ; priority tree places Rx Idle above AP and RDA, and "a status bit above will inhibit one
@@ -7480,13 +7479,10 @@ tx_nmi_lo_operand = tx_nmi_setup+1
 ; — so it is correct whether the datasheet's "last read status operation" is tracked per
 ; register or globally. The SR1 read is therefore a prerequisite of the clear, not merely
 ; an interrupt acknowledgement.
-; &9c62 used as index base 1 time by &9cde
 .intoff_test_inactive
     bit station_id_disable_net_nmis                                   ; 9c62: 2c 18 fe    ,..      ; INTOFF -- disable NMIs
     bit station_id_disable_net_nmis                                   ; 9c65: 2c 18 fe    ,..      ; INTOFF again (belt-and-braces)
 .test_line_idle
-; &9c6a used as index base 1 time by &9cda
-sr2_test_operand = test_line_idle+2
     bit econet_control23_or_status2                                   ; 9c68: 2c a1 fe    ,..      ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE
     beq inactive_retry                                                ; 9c6b: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
     lda econet_control1_or_status1                                    ; 9c6d: ad a0 fe    ...      ; Read SR1 -- arms the CLR_RX_ST below
@@ -7556,13 +7552,13 @@ sr2_test_operand = test_line_idle+2
     lda tx_port                                                       ; 9cc6: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 9cc9: d0 5a       .Z       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 9ccb: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
-    lda tube_tx_byte4_operand,y                                       ; 9cce: b9 e1 9e    ...      ; Look up tx_flags from table
+    lda tx_flags_table - &81,y                                        ; 9cce: b9 e1 9e    ...      ; Look up tx_flags for this control byte
     sta tx_flags                                                      ; 9cd1: 8d 4a 0d    .J.      ; Store operation flags
-    lda tube_tx_byte2_operand,y                                       ; 9cd4: b9 d9 9e    ...      ; Look up tx_length from table
+    lda tx_length_table - &81,y                                       ; 9cd4: b9 d9 9e    ...      ; Look up tx_length for this control byte
     sta tx_length                                                     ; 9cd7: 8d 50 0d    .P.      ; Store expected transfer length
-    lda sr2_test_operand,y                                            ; 9cda: b9 6a 9c    .j.      ; Load handler from dispatch table
+    lda tx_ctrl_dispatch_hi - &81,y                                   ; 9cda: b9 6a 9c    .j.      ; Look up handler address high byte
     pha                                                               ; 9cdd: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
-    lda intoff_test_inactive,y                                        ; 9cde: b9 62 9c    .b.      ; Look up handler address low from table
+    lda tx_ctrl_dispatch_lo - &81,y                                   ; 9cde: b9 62 9c    .b.      ; Look up handler address low byte
     pha                                                               ; 9ce1: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9ce2: 60          `        ; RTS dispatches to control-byte handler
 .tx_ctrl_dispatch_lo
@@ -7952,16 +7948,12 @@ sr2_test_operand = test_line_idle+2
     inc port_buf_len                                                  ; 9ed4: e6 a2       ..       ; Increment 4-byte counter (second byte)
     bne check_tube_irq_loop                                           ; 9ed6: d0 0c       ..       ; Low byte didn't wrap
 .tube_tx_inc_byte2
-; &9ed9 used as index base 1 time by &9cd4
-tube_tx_byte2_operand = tube_tx_inc_byte2+1
     inc port_buf_len_hi                                               ; 9ed8: e6 a3       ..       ; Carry into second byte
     bne check_tube_irq_loop                                           ; 9eda: d0 08       ..       ; No further carry
 .tube_tx_inc_byte3
     inc open_port_buf                                                 ; 9edc: e6 a4       ..       ; Carry into third byte
     bne check_tube_irq_loop                                           ; 9ede: d0 04       ..       ; No further carry
 .tube_tx_inc_byte4
-; &9ee1 used as index base 1 time by &9cce
-tube_tx_byte4_operand = tube_tx_inc_byte4+1
     inc open_port_buf_hi                                              ; 9ee0: e6 a5       ..       ; Carry into fourth byte
     beq data_tx_last                                                  ; 9ee2: f0 a8       ..       ; Counter wrapped to zero: last data
 ; &9ee4 referenced 3 times by &9ed6, &9eda, &9ede
@@ -8728,7 +8720,6 @@ save pydis_start, pydis_end
 ;     install_reply_scout:                      1
 ;     install_saved_handler:                    1
 ;     install_tube_rx:                          1
-;     intoff_test_inactive:                     1
 ;     issue_vectors_claimed:                    1
 ;     jmp_rx_listen:                            1
 ;     jump_via_addr:                            1
@@ -8914,7 +8905,6 @@ save pydis_start, pydis_end
 ;     skip_param_read:                          1
 ;     skip_set_attrib_bit:                      1
 ;     skpspi:                                   1
-;     sr2_test_operand:                         1
 ;     stack_page_4:                             1
 ;     start_data_tx:                            1
 ;     store_16bit_at_y:                         1
@@ -8962,8 +8952,6 @@ save pydis_start, pydis_end
 ;     tube_setup_transfer:                      1
 ;     tube_status_register_3:                   1
 ;     tube_transfer:                            1
-;     tube_tx_byte2_operand:                    1
-;     tube_tx_byte4_operand:                    1
 ;     tube_tx_fifo_write:                       1
 ;     tube_xfer_addr_2:                         1
 ;     tube_xfer_addr_3:                         1

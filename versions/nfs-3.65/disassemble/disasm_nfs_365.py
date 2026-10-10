@@ -8089,9 +8089,7 @@ d.subroutine(
     0x9C06,
     "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
-    description="""Mid-instruction label within the INACTIVE polling loop. The
-address &9BE2 is referenced as a constant for self-modifying
-code. Disables NMIs twice (belt-and-braces) then tests SR2
+    description="""Disables NMIs twice (belt-and-braces) then tests SR2
 for INACTIVE before proceeding with TX.
 
 **Why the CR2 = &67 clear is load-bearing, not hygiene.**

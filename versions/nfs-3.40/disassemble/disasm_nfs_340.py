@@ -7670,9 +7670,7 @@ d.subroutine(
     0x9C3A,
     "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
-    description="""Mid-instruction label within the INACTIVE polling loop. The
-address &9BE2 is referenced as a constant for self-modifying
-code. Disables NMIs twice (belt-and-braces) then tests SR2
+    description="""Disables NMIs twice (belt-and-braces) then tests SR2
 for INACTIVE before proceeding with TX.
 
 **Why the CR2 = &67 clear is load-bearing, not hygiene.**
@@ -7699,7 +7697,6 @@ d.comment(0x9C3D, "INTOFF again (belt-and-braces)", align=Align.INLINE)
 d.comment(0x9C40, "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE", align=Align.INLINE)
 d.label(0x9C40, "test_line_idle")
 
-d.label(0x9C42, "sr2_idle_status")
 
 d.comment(0x9C43, "INACTIVE not set -- re-enable NMIs and loop", align=Align.INLINE)
 d.comment(0x9C45, "Read SR1 -- arms the CLR_RX_ST below", align=Align.INLINE)
@@ -7774,14 +7771,18 @@ d.comment(0x9C9B, "INTON -- NMIs now fire for TDRA (&FE20 read)", align=Align.IN
 d.comment(0x9C9E, "Load destination port number", align=Align.INLINE)
 d.comment(0x9CA1, "Port != 0: standard data transfer", align=Align.INLINE)
 d.comment(0x9CA3, "Port 0: load control byte for table lookup", align=Align.INLINE)
-d.comment(0x9CA6, "Look up tx_flags from table", align=Align.INLINE)
+d.comment(0x9CA6, "Look up tx_flags for this control byte", align=Align.INLINE)
+d.expr(0x9CA7, sym("tx_flags_table") - 0x81)
 d.comment(0x9CA9, "Store operation flags", align=Align.INLINE)
-d.comment(0x9CAC, "Look up tx_length from table", align=Align.INLINE)
+d.comment(0x9CAC, "Look up tx_length for this control byte", align=Align.INLINE)
+d.expr(0x9CAD, sym("tx_length_table") - 0x81)
 d.comment(0x9CAF, "Store expected transfer length", align=Align.INLINE)
 
-d.comment(0x9CB2, "Load handler from dispatch table", align=Align.INLINE)
+d.comment(0x9CB2, "Look up handler address high byte", align=Align.INLINE)
+d.expr(0x9CB3, sym("tx_ctrl_dispatch_hi") - 0x81)
 d.comment(0x9CB5, "Push high byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
-d.comment(0x9CB6, "Look up handler address low from table", align=Align.INLINE)
+d.comment(0x9CB6, "Look up handler address low byte", align=Align.INLINE)
+d.expr(0x9CB7, sym("tx_ctrl_dispatch_lo") - 0x81)
 d.comment(0x9CB9, "Push low byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
 d.comment(0x9CBA, "RTS dispatches to control-byte handler", align=Align.INLINE)
 d.label(0x9CCB, "imm_op_status3")
@@ -8195,7 +8196,6 @@ d.comment(0x9EA4, "Low byte didn't wrap", align=Align.INLINE)
 d.comment(0x9EA6, "Carry into second byte", align=Align.INLINE)
 d.label(0x9EA6, "tube_tx_inc_byte2")
 
-d.label(0x9EA7, "tube_tx_count_2")
 
 d.comment(0x9EA8, "No further carry", align=Align.INLINE)
 
@@ -8205,7 +8205,6 @@ d.comment(0x9EAC, "No further carry", align=Align.INLINE)
 d.comment(0x9EAE, "Carry into fourth byte", align=Align.INLINE)
 d.label(0x9EAE, "tube_tx_inc_byte4")
 
-d.label(0x9EAF, "tube_tx_count_4")
 
 d.comment(0x9EB0, "Counter wrapped to zero: last data", align=Align.INLINE)
 
