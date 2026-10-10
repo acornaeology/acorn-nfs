@@ -8204,20 +8204,66 @@ d.comment(0x9C77, "INTON -- NMIs now fire for TDRA (&FE20 read)", align=Align.IN
 d.comment(0x9C7A, "Load destination port number", align=Align.INLINE)
 d.comment(0x9C7D, "Port != 0: standard data transfer", align=Align.INLINE)
 d.comment(0x9C7F, "Port 0: load control byte for table lookup", align=Align.INLINE)
-d.comment(0x9C82, "Look up tx_flags from table", align=Align.INLINE)
+d.comment(0x9C82, "Look up tx_flags for this control byte", align=Align.INLINE)
 d.comment(0x9C85, "Store operation flags", align=Align.INLINE)
-d.comment(0x9C88, "Look up tx_length from table", align=Align.INLINE)
+d.comment(0x9C88, "Look up tx_length for this control byte", align=Align.INLINE)
 d.comment(0x9C8B, "Store expected transfer length", align=Align.INLINE)
-d.comment(0x9C8E, "Push high byte of return address (&9C)", align=Align.INLINE)
+d.comment(0x9C8E, "All handlers lie in page &9C: high byte", align=Align.INLINE)
 d.comment(0x9C90, "Push high byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
-d.comment(0x9C91, "Look up handler address low from table", align=Align.INLINE)
+d.comment(0x9C91, "Look up handler address low byte", align=Align.INLINE)
 d.comment(0x9C94, "Push low byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
 d.comment(0x9C95, "RTS dispatches to control-byte handler", align=Align.INLINE)
-d.comment(0x9C96, "Control byte → CR2 value lookup table", align=Align.INLINE)
+d.expr(0x9C83, sym("tx_flags_table") - 0x81)
+d.expr(0x9C89, sym("tx_length_table") - 0x81)
+d.expr(0x9C8F, hi(sym("tx_ctrl_peek") - 1))
+d.expr(0x9C92, sym("tx_ctrl_dispatch_lo") - 0x81)
+d.banner(
+    0x9C96,
+    title="TX control-byte dispatch table (low bytes)",
+    description="""Low bytes of the handler addresses (minus 1) for
+control bytes &81-&88, indexed by the control byte. The
+dispatcher pushes a fixed high byte of &9C, since every
+handler lies in page &9C, then the low byte from here,
+and the `RTS` jumps to the handler.""",
+)
+d.label(0x9C96, "tx_ctrl_dispatch_lo")
+d.byte(0x9C96)
+d.expr(0x9C96, lo(sym("tx_ctrl_peek") - 1))
+d.byte(0x9C97)
+d.expr(0x9C97, lo(sym("tx_ctrl_poke") - 1))
+d.byte(0x9C98)
+d.expr(0x9C98, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C99)
+d.expr(0x9C99, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C9A)
+d.expr(0x9C9A, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C9B)
+d.expr(0x9C9B, lo(sym("tx_ctrl_exit") - 1))
+d.byte(0x9C9C)
+d.expr(0x9C9C, lo(sym("tx_ctrl_exit") - 1))
+d.byte(0x9C9D)
+d.expr(0x9C9D, lo(sym("imm_op_status3") - 1))
+d.comment(0x9C96, "Ctrl &81: PEEK", align=Align.INLINE)
+d.comment(0x9C97, "Ctrl &82: POKE", align=Align.INLINE)
+d.comment(0x9C98, "Ctrl &83: JSR", align=Align.INLINE)
+d.comment(0x9C99, "Ctrl &84: UserProc", align=Align.INLINE)
+d.comment(0x9C9A, "Ctrl &85: OSProc", align=Align.INLINE)
+d.comment(0x9C9B, "Ctrl &86: HALT", align=Align.INLINE)
+d.comment(0x9C9C, "Ctrl &87: CONTINUE", align=Align.INLINE)
+d.comment(0x9C9D, "Ctrl &88: machine-type", align=Align.INLINE)
 
 
-d.label(0x9C9E, "imm_op_status3")
-d.comment(0x9C9E, "A=3: scout_status for PEEK", align=Align.INLINE)
+d.subroutine(
+    0x9C9E,
+    "imm_op_status3",
+    title="TX ctrl: machine-type setup",
+    description="""Handler for control byte &88 (machine type), reached
+through [`tx_ctrl_dispatch_lo`](label:tx_ctrl_dispatch_lo). Sets
+scout_status to 3, as for PEEK, and joins the common
+status-store path.""",
+)
+d.comment(0x9C9E, "A=3: scout_status (as for PEEK)", align=Align.INLINE)
+d.comment(0x9CA0, "Always taken: store status and continue", align=Align.INLINE)
 d.subroutine(
     0x9CA2,
     "tx_ctrl_peek",
@@ -8618,7 +8664,6 @@ d.comment(0x9E69, "No further carry", align=Align.INLINE)
 d.label(0x9E6B, "tube_tx_inc_byte3")
 
 d.comment(0x9E6B, "Carry into third byte", align=Align.INLINE)
-d.label(0x9E6C, "tube_tx_inc_operand")
 
 d.comment(0x9E6D, "No further carry", align=Align.INLINE)
 d.comment(0x9E6F, "Carry into fourth byte", align=Align.INLINE)
@@ -8627,7 +8672,6 @@ d.comment(0x9E71, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x9E73, "check_tube_irq_loop")
 
 d.comment(0x9E73, "BIT SR1: test IRQ for tight loop", align=Align.INLINE)
-d.label(0x9E74, "tube_tx_sr1_operand")
 
 d.comment(0x9E76, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x9E78, "No IRQ: return, wait for next NMI", align=Align.INLINE)
@@ -9011,7 +9055,6 @@ d.label(0x0D1C, "nmi_shim_opcode")
 d.index_base(0x7DFD, "tx_ptr_sub_base", group="idx_base")
 d.label(0x0701, "sr_int_handler")
 d.label(0x9ABE, "enter_data_rx_path")
-d.label(0x9C15, "clock_detect_write_cr2")
 d.label(0x9C1F, "reenable_nmis")
 d.label(0x9C58, "clock_detected")
 

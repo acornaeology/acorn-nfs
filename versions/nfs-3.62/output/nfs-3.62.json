@@ -1985,7 +1985,7 @@
       "addr": 39905,
       "name": "intoff_test_inactive",
       "title": "Disable NMIs and test INACTIVE",
-      "description": "Mid-instruction label within the INACTIVE polling loop.\nThe intoff_operand address (intoff_test_inactive+1) is\nreferenced as a constant for self-modifying code.\nDisables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read that precedes it matters.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the\nBIT that tests INACTIVE, and SR1 explicitly \u2014 so it is correct\nwhether the datasheet's \"last read status operation\" is tracked\nper register or globally. The SR1 read is therefore a\nprerequisite of the clear, not merely an interrupt\nacknowledgement.",
+      "description": "Disables NMIs twice (belt-and-braces) then tests SR2\nfor INACTIVE before proceeding with TX.\n\n**Why the CR2 = &67 clear is load-bearing, not hygiene.**\nWith PSE set, the MC6854 status priority tree places Rx Idle\n*above* AP and RDA, and \"a status bit above will inhibit one\nbelow it\". A quiet line latches Inactive Idle, so if that\nstored condition were carried into the frame-reading loops it\nwould mask the very AP and RDA bits those loops test \u2014 the ROM\nwould stop seeing incoming frames. Clearing Rx status here is\nwhat prevents that.\n\n**And why the SR1 read that precedes it matters.** CLR Rx ST\n(CR2 bit 5) only resets *\"the bits which have been present\nduring the last 'read status' operation\"*, so the write clears\nnothing unless a status read has happened first. The routine\nhas in fact read both registers by this point \u2014 SR2 via the\nBIT that tests INACTIVE, and SR1 explicitly \u2014 so it is correct\nwhether the datasheet's \"last read status operation\" is tracked\nper register or globally. The SR1 read is therefore a\nprerequisite of the clear, not merely an interrupt\nacknowledgement.",
       "fall_through": true
     },
     {
@@ -1999,6 +1999,13 @@
       "name": "tx_prepare",
       "title": "TX preparation",
       "description": "Configures ADLC for transmission: asserts RTS via CR2, enables TIE via CR1,\ninstalls NMI TX handler at &9CCC (nmi_tx_data), and re-enables NMIs.\nFor port-0 (immediate) operations, dispatches via a lookup table indexed\nby control byte to set tx_flags, tx_length, and a per-operation handler.\nFor port non-zero, branches to c9c8e for standard data transfer setup."
+    },
+    {
+      "addr": 40043,
+      "name": "imm_op_status3",
+      "title": "TX ctrl: machine-type setup",
+      "description": "Handler for control byte &88 (machine type), reached\nthrough [`tx_ctrl_dispatch_lo`](label:tx_ctrl_dispatch_lo). Sets\nscout_status to 3, as for PEEK, and joins the common\nstatus-store path.",
+      "fall_through": true
     },
     {
       "addr": 40047,
@@ -2238,6 +2245,13 @@
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 7 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "align": "before_label"
+    },
+    {
+      "addr": 40035,
+      "name": "tx_ctrl_dispatch_lo",
+      "title": "TX control-byte dispatch table (low bytes)",
+      "description": "Low bytes of the handler addresses (minus 1) for\ncontrol bytes &81-&88, indexed by the control byte. The\ndispatcher pushes a fixed high byte of &9C, since every\nhandler lies in page &9C, then the low byte from here,\nand the `RTS` jumps to the handler.",
       "align": "before_label"
     },
     {
@@ -55978,15 +55992,7 @@
       "labels": [
         "intoff_test_inactive"
       ],
-      "sub_labels": {
-        "39906": [
-          "intoff_operand"
-        ]
-      },
       "comment_inline": "INTOFF -- disable NMIs",
-      "xref_summaries": [
-        "&9be2 used as index base 1 time by &9c5e"
-      ],
       "type": "code",
       "mnemonic": "bit",
       "operand": "station_id_disable_net_nmis",
@@ -56685,12 +56691,24 @@
         65,
         158
       ],
-      "comment_inline": "Look up tx_flags from table",
+      "comment_inline": "Look up tx_flags for this control byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tube_tx_sr1_operand,y",
-      "target": 40513,
-      "target_label": "tube_tx_sr1_operand"
+      "operand": "tx_flags_table - &81,y",
+      "expr": {
+        "text": "tx_flags_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_flags_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 40513
     },
     {
       "addr": 40018,
@@ -56713,12 +56731,24 @@
         57,
         158
       ],
-      "comment_inline": "Look up tx_length from table",
+      "comment_inline": "Look up tx_length for this control byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tube_tx_inc_operand,y",
-      "target": 40505,
-      "target_label": "tube_tx_inc_operand"
+      "operand": "tx_length_table - &81,y",
+      "expr": {
+        "text": "tx_length_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_length_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 40505
     },
     {
       "addr": 40024,
@@ -56740,10 +56770,26 @@
         169,
         156
       ],
-      "comment_inline": "Push high byte of return address (&9C)",
+      "comment_inline": "All handlers lie in page &9C: high byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&9c"
+      "operand": "#>(tx_ctrl_peek - 1)",
+      "expr": {
+        "text": ">(tx_ctrl_peek - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_ctrl_peek"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 40029,
@@ -56761,12 +56807,24 @@
         226,
         155
       ],
-      "comment_inline": "Look up handler address low from table",
+      "comment_inline": "Look up handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "intoff_operand,y",
-      "target": 39906,
-      "target_label": "intoff_operand"
+      "operand": "tx_ctrl_dispatch_lo - &81,y",
+      "expr": {
+        "text": "tx_ctrl_dispatch_lo - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_ctrl_dispatch_lo"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 39906
     },
     {
       "addr": 40033,
@@ -56784,52 +56842,285 @@
       ],
       "comment_inline": "RTS dispatches to control-byte handler",
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(tx_ctrl_peek - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "tx_ctrl_peek"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 40035,
       "bytes": [
-        110,
-        114,
-        180,
-        180,
-        180,
-        196,
-        196,
-        106
+        110
       ],
-      "comment_inline": "TX timeout/retry parameter table",
+      "labels": [
+        "tx_ctrl_dispatch_lo"
+      ],
+      "comment_inline": "Ctrl &81: PEEK",
       "type": "byte",
       "values": [
-        110,
-        114,
-        180,
-        180,
-        180,
-        196,
-        196,
+        110
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_peek - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_peek"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40036,
+      "bytes": [
+        114
+      ],
+      "comment_inline": "Ctrl &82: POKE",
+      "type": "byte",
+      "values": [
+        114
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_poke - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_poke"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40037,
+      "bytes": [
+        180
+      ],
+      "comment_inline": "Ctrl &83: JSR",
+      "type": "byte",
+      "values": [
+        180
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40038,
+      "bytes": [
+        180
+      ],
+      "comment_inline": "Ctrl &84: UserProc",
+      "type": "byte",
+      "values": [
+        180
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40039,
+      "bytes": [
+        180
+      ],
+      "comment_inline": "Ctrl &85: OSProc",
+      "type": "byte",
+      "values": [
+        180
+      ],
+      "expressions": [
+        {
+          "text": "<(proc_op_status2 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "proc_op_status2"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40040,
+      "bytes": [
+        196
+      ],
+      "comment_inline": "Ctrl &86: HALT",
+      "type": "byte",
+      "values": [
+        196
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_exit - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_exit"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40041,
+      "bytes": [
+        196
+      ],
+      "comment_inline": "Ctrl &87: CONTINUE",
+      "type": "byte",
+      "values": [
+        196
+      ],
+      "expressions": [
+        {
+          "text": "<(tx_ctrl_exit - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "tx_ctrl_exit"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 40042,
+      "bytes": [
         106
+      ],
+      "comment_inline": "Ctrl &88: machine-type",
+      "type": "byte",
+      "values": [
+        106
+      ],
+      "expressions": [
+        {
+          "text": "<(imm_op_status3 - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "imm_op_status3"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "addr": 40043,
       "bytes": [
         169,
-        3,
-        208,
-        72
+        3
       ],
       "labels": [
         "imm_op_status3"
       ],
-      "comment_inline": "A=3: scout_status for PEEK",
-      "type": "byte",
-      "values": [
-        169,
-        3,
+      "comment_inline": "A=3: scout_status (as for PEEK)",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "#3"
+    },
+    {
+      "addr": 40045,
+      "bytes": [
         208,
         72
-      ]
+      ],
+      "comment_inline": "Always taken: store status and continue",
+      "type": "code",
+      "mnemonic": "bne",
+      "operand": "store_status_copy_ptr",
+      "target": 40119,
+      "target_label": "store_status_copy_ptr"
     },
     {
       "addr": 40047,
@@ -57326,6 +57617,15 @@
         "store_status_copy_ptr"
       ],
       "comment_inline": "Store scout status",
+      "xref_summaries": [
+        "&9cb7 referenced 1 time by &9c6d"
+      ],
+      "references": [
+        {
+          "addr": 40045,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "sta",
       "operand": "scout_status",
@@ -59749,15 +60049,7 @@
       "labels": [
         "tube_tx_inc_byte3"
       ],
-      "sub_labels": {
-        "40505": [
-          "tube_tx_inc_operand"
-        ]
-      },
       "comment_inline": "Carry into third byte",
-      "xref_summaries": [
-        "&9e39 used as index base 1 time by &9c55"
-      ],
       "type": "code",
       "mnemonic": "inc",
       "operand": "open_port_buf",
@@ -59816,15 +60108,9 @@
       "labels": [
         "check_tube_irq_loop"
       ],
-      "sub_labels": {
-        "40513": [
-          "tube_tx_sr1_operand"
-        ]
-      },
       "comment_inline": "BIT SR1: test IRQ for tight loop",
       "xref_summaries": [
-        "&9e40 referenced 3 times by &9e32, &9e36, &9e3a",
-        "&9e41 used as index base 1 time by &9c4f"
+        "&9e40 referenced 3 times by &9e32, &9e36, &9e3a"
       ],
       "references": [
         {

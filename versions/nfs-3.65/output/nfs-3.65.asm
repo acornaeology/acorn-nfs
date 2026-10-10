@@ -7650,8 +7650,6 @@ svc5_dispatch_lo = enter_data_rx_path+1
     beq reenable_nmis                                                 ; 9c0e: f0 0f       ..       ; INACTIVE not set -- re-enable NMIs and loop
     lda econet_control1_or_status1                                    ; 9c10: ad a0 fe    ...      ; Read SR1 -- arms the CLR_RX_ST below
     lda #&67                                                          ; 9c13: a9 67       .g       ; CR2=&67: CLR_TX_ST|CLR_RX_ST|FC_TDRA|2_1_BYTE|PSE
-; &9c15 used as index base 1 time by &9c91
-.clock_detect_write_cr2
     sta econet_control23_or_status2                                   ; 9c15: 8d a1 fe    ...      ; Write CR2: clear status, prepare TX
     lda #&10                                                          ; 9c18: a9 10       ..       ; A=&10: CTS mask for SR1 bit4
     bit econet_control1_or_status1                                    ; 9c1a: 2c a0 fe    ,..      ; BIT SR1: tests CTS present
@@ -7730,18 +7728,38 @@ svc5_dispatch_lo = enter_data_rx_path+1
     lda tx_port                                                       ; 9c7a: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 9c7d: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 9c7f: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
-    lda tube_tx_sr1_operand,y                                         ; 9c82: b9 74 9e    .t.      ; Look up tx_flags from table
+    lda tx_flags_table - &81,y                                        ; 9c82: b9 74 9e    .t.      ; Look up tx_flags for this control byte
     sta tx_flags                                                      ; 9c85: 8d 4a 0d    .J.      ; Store operation flags
-    lda tube_tx_inc_operand,y                                         ; 9c88: b9 6c 9e    .l.      ; Look up tx_length from table
+    lda tx_length_table - &81,y                                       ; 9c88: b9 6c 9e    .l.      ; Look up tx_length for this control byte
     sta tx_length                                                     ; 9c8b: 8d 50 0d    .P.      ; Store expected transfer length
-    lda #&9c                                                          ; 9c8e: a9 9c       ..       ; Push high byte of return address (&9C)
+    lda #>(tx_ctrl_peek - 1)                                          ; 9c8e: a9 9c       ..       ; All handlers lie in page &9C: high byte
     pha                                                               ; 9c90: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
-    lda clock_detect_write_cr2,y                                      ; 9c91: b9 15 9c    ...      ; Look up handler address low from table
+    lda tx_ctrl_dispatch_lo - &81,y                                   ; 9c91: b9 15 9c    ...      ; Look up handler address low byte
     pha                                                               ; 9c94: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 9c95: 60          `        ; RTS dispatches to control-byte handler
-    equb &a1, &a5, &e7, &e7, &e7, &f7, &f7, &9d                       ; 9c96: a1 a5 e7... ......   ; Control byte → CR2 value lookup table
+; ***************************************************************************************
+; TX control-byte dispatch table (low bytes)
+;
+; Low bytes of the handler addresses (minus 1) for control bytes &81-&88, indexed by the
+; control byte. The dispatcher pushes a fixed high byte of &9C, since every handler lies
+; in page &9C, then the low byte from here, and the RTS jumps to the handler.
+.tx_ctrl_dispatch_lo
+    equb <(tx_ctrl_peek - 1)                                          ; 9c96: a1          .        ; Ctrl &81: PEEK
+    equb <(tx_ctrl_poke - 1)                                          ; 9c97: a5          .        ; Ctrl &82: POKE
+    equb <(proc_op_status2 - 1)                                       ; 9c98: e7          .        ; Ctrl &83: JSR
+    equb <(proc_op_status2 - 1)                                       ; 9c99: e7          .        ; Ctrl &84: UserProc
+    equb <(proc_op_status2 - 1)                                       ; 9c9a: e7          .        ; Ctrl &85: OSProc
+    equb <(tx_ctrl_exit - 1)                                          ; 9c9b: f7          .        ; Ctrl &86: HALT
+    equb <(tx_ctrl_exit - 1)                                          ; 9c9c: f7          .        ; Ctrl &87: CONTINUE
+    equb <(imm_op_status3 - 1)                                        ; 9c9d: 9d          .        ; Ctrl &88: machine-type
+; ***************************************************************************************
+; TX ctrl: machine-type setup
+;
+; Handler for control byte &88 (machine type), reached through tx_ctrl_dispatch_lo. Sets
+; scout_status to 3, as for PEEK, and joins the common status-store path.
 .imm_op_status3
-    equb &a9, &03, &d0, &48                                           ; 9c9e: a9 03 d0... ......   ; A=3: scout_status for PEEK
+    lda #3                                                            ; 9c9e: a9 03       ..       ; A=3: scout_status (as for PEEK)
+    bne store_status_copy_ptr                                         ; 9ca0: d0 48       .H       ; Always taken: store status and continue
 ; ***************************************************************************************
 ; TX ctrl: PEEK transfer setup
 ;
@@ -7807,6 +7825,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
     sta tx_flags                                                      ; 9ce5: 8d 4a 0d    .J.      ; Clear tx_flags
 .proc_op_status2
     lda #2                                                            ; 9ce8: a9 02       ..       ; scout_status=2: data transfer pending
+; &9cea referenced 1 time by &9ca0
 .store_status_copy_ptr
     sta scout_status                                                  ; 9cea: 8d 5c 0d    .\.      ; Store scout status
 ; &9ced referenced 1 time by &9cbf
@@ -8090,8 +8109,6 @@ svc5_dispatch_lo = enter_data_rx_path+1
     inc port_buf_len_hi                                               ; 9e67: e6 a3       ..       ; Carry into second byte
     bne check_tube_irq_loop                                           ; 9e69: d0 08       ..       ; No further carry
 .tube_tx_inc_byte3
-; &9e6c used as index base 1 time by &9c88
-tube_tx_inc_operand = tube_tx_inc_byte3+1
     inc open_port_buf                                                 ; 9e6b: e6 a4       ..       ; Carry into third byte
     bne check_tube_irq_loop                                           ; 9e6d: d0 04       ..       ; No further carry
 .tube_tx_inc_byte4
@@ -8099,8 +8116,6 @@ tube_tx_inc_operand = tube_tx_inc_byte3+1
     beq data_tx_last                                                  ; 9e71: f0 b5       ..       ; Counter wrapped to zero: last data
 ; &9e73 referenced 3 times by &9e65, &9e69, &9e6d
 .check_tube_irq_loop
-; &9e74 used as index base 1 time by &9c82
-tube_tx_sr1_operand = check_tube_irq_loop+1
     bit econet_control1_or_status1                                    ; 9e73: 2c a0 fe    ,..      ; BIT SR1: test IRQ for tight loop
     bmi tube_tx_fifo_write                                            ; 9e76: 30 cd       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 9e78: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
@@ -8809,7 +8824,6 @@ save pydis_start, pydis_end
 ;     clear_osbyte_ce_cf:                       1
 ;     clear_osbyte_masks:                       1
 ;     clear_release_flag:                       1
-;     clock_detect_write_cr2:                   1
 ;     clock_detected:                           1
 ;     cloop:                                    1
 ;     close_handle:                             1
@@ -9151,6 +9165,7 @@ save pydis_start, pydis_end
 ;     store_fs_hdr_fn:                          1
 ;     store_retry_count:                        1
 ;     store_status_add4:                        1
+;     store_status_copy_ptr:                    1
 ;     store_txcb_byte:                          1
 ;     store_xfer_end_addr:                      1
 ;     string_buf_done:                          1
@@ -9192,8 +9207,6 @@ save pydis_start, pydis_end
 ;     tube_transfer:                            1
 ;     tube_transfer_setup:                      1
 ;     tube_tx_fifo_write:                       1
-;     tube_tx_inc_operand:                      1
-;     tube_tx_sr1_operand:                      1
 ;     tx_begin:                                 1
 ;     tx_ctrl_exit:                             1
 ;     tx_ctrl_range_check:                      1
@@ -9230,11 +9243,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7552 bytes (92%)
-;     Data                     = 640 bytes (8%)
+;     Code                     = 7556 bytes (92%)
+;     Data                     = 636 bytes (8%)
 ;
-;     Number of instructions   = 3654
-;     Number of data bytes     = 363 bytes
+;     Number of instructions   = 3656
+;     Number of data bytes     = 359 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 225 bytes
 ;     Number of strings        = 36

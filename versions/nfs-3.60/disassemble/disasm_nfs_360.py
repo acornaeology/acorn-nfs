@@ -8071,9 +8071,7 @@ d.subroutine(
     0x9BE1,
     "intoff_test_inactive",
     title="Disable NMIs and test INACTIVE",
-    description="""Mid-instruction label within the INACTIVE polling loop.
-intoff_operand is referenced as a constant for self-modifying
-code. Disables NMIs twice (belt-and-braces) then tests SR2
+    description="""Disables NMIs twice (belt-and-braces) then tests SR2
 for INACTIVE before proceeding with TX.
 
 **Why the CR2 = &67 clear is load-bearing, not hygiene.**
@@ -8099,7 +8097,6 @@ acknowledgement.""",
 
 
 d.comment(0x9BE1, "INTOFF -- disable NMIs", align=Align.INLINE)
-d.label(0x9BE2, "intoff_operand")
 
 d.comment(0x9BE4, "INTOFF again (belt-and-braces)", align=Align.INLINE)
 d.comment(0x9BE7, "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE", align=Align.INLINE)
@@ -8181,20 +8178,66 @@ d.comment(0x9C44, "INTON -- NMIs now fire for TDRA (&FE20 read)", align=Align.IN
 d.comment(0x9C47, "Load destination port number", align=Align.INLINE)
 d.comment(0x9C4A, "Port != 0: standard data transfer", align=Align.INLINE)
 d.comment(0x9C4C, "Port 0: load control byte for table lookup", align=Align.INLINE)
-d.comment(0x9C4F, "Look up tx_flags from table", align=Align.INLINE)
+d.comment(0x9C4F, "Look up tx_flags for this control byte", align=Align.INLINE)
 d.comment(0x9C52, "Store operation flags", align=Align.INLINE)
-d.comment(0x9C55, "Look up tx_length from table", align=Align.INLINE)
+d.comment(0x9C55, "Look up tx_length for this control byte", align=Align.INLINE)
 d.comment(0x9C58, "Store expected transfer length", align=Align.INLINE)
-d.comment(0x9C5B, "Push high byte of return address (&9C)", align=Align.INLINE)
+d.comment(0x9C5B, "All handlers lie in page &9C: high byte", align=Align.INLINE)
 d.comment(0x9C5D, "Push high byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
-d.comment(0x9C5E, "Look up handler address low from table", align=Align.INLINE)
+d.comment(0x9C5E, "Look up handler address low byte", align=Align.INLINE)
 d.comment(0x9C61, "Push low byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
 d.comment(0x9C62, "RTS dispatches to control-byte handler", align=Align.INLINE)
-d.comment(0x9C63, "TX timeout/retry parameter table", align=Align.INLINE)
+d.expr(0x9C50, sym("tx_flags_table") - 0x81)
+d.expr(0x9C56, sym("tx_length_table") - 0x81)
+d.expr(0x9C5C, hi(sym("tx_ctrl_peek") - 1))
+d.expr(0x9C5F, sym("tx_ctrl_dispatch_lo") - 0x81)
+d.banner(
+    0x9C63,
+    title="TX control-byte dispatch table (low bytes)",
+    description="""Low bytes of the handler addresses (minus 1) for
+control bytes &81-&88, indexed by the control byte. The
+dispatcher pushes a fixed high byte of &9C, since every
+handler lies in page &9C, then the low byte from here,
+and the `RTS` jumps to the handler.""",
+)
+d.label(0x9C63, "tx_ctrl_dispatch_lo")
+d.byte(0x9C63)
+d.expr(0x9C63, lo(sym("tx_ctrl_peek") - 1))
+d.byte(0x9C64)
+d.expr(0x9C64, lo(sym("tx_ctrl_poke") - 1))
+d.byte(0x9C65)
+d.expr(0x9C65, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C66)
+d.expr(0x9C66, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C67)
+d.expr(0x9C67, lo(sym("proc_op_status2") - 1))
+d.byte(0x9C68)
+d.expr(0x9C68, lo(sym("tx_ctrl_exit") - 1))
+d.byte(0x9C69)
+d.expr(0x9C69, lo(sym("tx_ctrl_exit") - 1))
+d.byte(0x9C6A)
+d.expr(0x9C6A, lo(sym("imm_op_status3") - 1))
+d.comment(0x9C63, "Ctrl &81: PEEK", align=Align.INLINE)
+d.comment(0x9C64, "Ctrl &82: POKE", align=Align.INLINE)
+d.comment(0x9C65, "Ctrl &83: JSR", align=Align.INLINE)
+d.comment(0x9C66, "Ctrl &84: UserProc", align=Align.INLINE)
+d.comment(0x9C67, "Ctrl &85: OSProc", align=Align.INLINE)
+d.comment(0x9C68, "Ctrl &86: HALT", align=Align.INLINE)
+d.comment(0x9C69, "Ctrl &87: CONTINUE", align=Align.INLINE)
+d.comment(0x9C6A, "Ctrl &88: machine-type", align=Align.INLINE)
 
 
-d.label(0x9C6B, "imm_op_status3")
-d.comment(0x9C6B, "A=3: scout_status for PEEK", align=Align.INLINE)
+d.subroutine(
+    0x9C6B,
+    "imm_op_status3",
+    title="TX ctrl: machine-type setup",
+    description="""Handler for control byte &88 (machine type), reached
+through [`tx_ctrl_dispatch_lo`](label:tx_ctrl_dispatch_lo). Sets
+scout_status to 3, as for PEEK, and joins the common
+status-store path.""",
+)
+d.comment(0x9C6B, "A=3: scout_status (as for PEEK)", align=Align.INLINE)
+d.comment(0x9C6D, "Always taken: store status and continue", align=Align.INLINE)
 d.subroutine(
     0x9C6F,
     "tx_ctrl_peek",
@@ -8595,7 +8638,6 @@ d.comment(0x9E36, "No further carry", align=Align.INLINE)
 d.label(0x9E38, "tube_tx_inc_byte3")
 
 d.comment(0x9E38, "Carry into third byte", align=Align.INLINE)
-d.label(0x9E39, "tube_tx_inc_operand")
 
 d.comment(0x9E3A, "No further carry", align=Align.INLINE)
 d.comment(0x9E3C, "Carry into fourth byte", align=Align.INLINE)
@@ -8604,7 +8646,6 @@ d.comment(0x9E3E, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x9E40, "check_tube_irq_loop")
 
 d.comment(0x9E40, "BIT SR1: test IRQ for tight loop", align=Align.INLINE)
-d.label(0x9E41, "tube_tx_sr1_operand")
 
 d.comment(0x9E43, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x9E45, "No IRQ: return, wait for next NMI", align=Align.INLINE)
