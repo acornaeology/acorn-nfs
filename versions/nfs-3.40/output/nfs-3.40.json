@@ -8860,6 +8860,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Econet Station "
     },
@@ -8969,6 +8970,7 @@
         99,
         107
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " No Clock"
     },
@@ -26904,6 +26906,7 @@
       "bytes": [
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "("
     },
@@ -26959,6 +26962,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ")     "
     },
@@ -27013,6 +27017,7 @@
         114,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Owner."
     },
@@ -27066,6 +27071,7 @@
         99,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Public."
     },
@@ -27169,6 +27175,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "    Option "
     },
@@ -27229,6 +27236,7 @@
         32,
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " ("
     },
@@ -27358,6 +27366,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ").Dir. "
     },
@@ -27414,6 +27423,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "     Lib. "
     },
@@ -27961,6 +27971,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -29046,6 +29057,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "  "
     },
@@ -46865,10 +46877,19 @@
         201,
         242
       ],
-      "comment_inline": "Check if low byte is expected value",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (low byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&f2"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 38588,
@@ -46903,10 +46924,19 @@
         201,
         150
       ],
-      "comment_inline": "Check if high byte is &96",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (high byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&96"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 38595,

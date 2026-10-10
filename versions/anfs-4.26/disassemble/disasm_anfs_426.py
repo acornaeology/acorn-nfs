@@ -137,11 +137,11 @@ _cmd_table_fs_entries = [
 (0xA81E, 'Utils', 0xA823, 0x0080, 0xA824, 'help_utils', '*HELP UTILS'),
 (0xA827, 'FS', 0xA829, 0x00C1, 0xA82A, 'set_fs_or_ps_cmos_station', 'FS not selected'),
 (0xA82C, 'PS', 0xA82E, 0x00C3, 0xA82F, 'set_fs_or_ps_cmos_station', 'PS not selected'),
-(0xA831, 'NoSpace', 0xA838, 0x0080, 0xA839, None, 'caller &9625'),
-(0xA83B, 'Space', 0xA840, 0x0080, 0xA841, None, 'caller &961B'),
-(0xA844, 'FS', 0xA846, 0x0081, 0xA847, 'print_fs_address', 'caller &9672'),
-(0xA849, 'PS', 0xA84B, 0x0083, 0xA84C, 'print_ps_address', 'caller &9661'),
-(0xA84E, 'Space', 0xA853, 0x0080, 0xA854, None, 'caller &9643'),
+(0xA831, "NoSpace", 0xA838, 0x0080, 0xA839, "cmd_nospace", "*NoSpace: disable the space display"),
+(0xA83B, "Space", 0xA840, 0x0080, 0xA841, "cmd_space", "*Space: enable the space display"),
+(0xA844, "FS", 0xA846, 0x0081, 0xA847, "print_fs_address", "*STATUS FS"),
+(0xA849, "PS", 0xA84B, 0x0083, 0xA84C, "print_ps_address", "*STATUS PS"),
+(0xA84E, "Space", 0xA853, 0x0080, 0xA854, "status_space", "*STATUS Space"),
 ]
 _ev_dispatch = ["ev_filev", "ev_argsv", "ev_bgetv", "ev_bputv", "ev_gbpbv", "ev_findv", "ev_fscv"]
 handler_names = [
@@ -4295,7 +4295,6 @@ d.comment(0x89DE, "Not initialised: skip to RX listen", align=Align.INLINE)
 d.label(0x89E0, "poll_nmi_idle")
 
 d.comment(0x89E0, "Read current NMI handler low byte", align=Align.INLINE)
-d.comment(0x89E3, "Expected: &B3 (nmi_rx_scout low)", align=Align.INLINE)
 d.comment(0x89E5, "Not idle: spin and wait", align=Align.INLINE)
 d.comment(0x89E7, "Read current NMI handler high byte", align=Align.INLINE)
 # UNMAPPED: d.comment(0x89B5, "Test if high byte = &80 (page of nmi_rx_scout)", align=Align.INLINE)
@@ -4980,6 +4979,7 @@ d.comment(0x8C04, "End of table: finish up", align=Align.INLINE)
 d.label(0x8C07, "print_indent")
 
 d.comment(0x8C07, "Print two-space indent", align=Align.INLINE)
+d.comment(0x8C0A, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C0C, "Y=9: cmd_table_fs sub-table 1 offset", align=Align.INLINE)
 d.comment(0x8C0E, "Read cmd_table_fs+X (entry name byte)", align=Align.INLINE)
 # UNMAPPED: d.comment(0x8BE7, "Read cmd_table_fs+X (entry name byte)", align=Align.INLINE)
@@ -5399,6 +5399,7 @@ d.comment(0x8D39, "Caller's Y already >= &10?", align=Align.INLINE)
 d.comment(0x8D3B, "Yes: keep it", align=Align.INLINE)
 d.comment(0x8D3D, "Y < &10 with bit set: clamp to &10", align=Align.INLINE)
 d.comment(0x8D3F, "Return", align=Align.INLINE)
+d.comment(0x8D47, "CR terminator", align=Align.INLINE)
 d.subroutine(
     0x8D48,
     "check_credits_easter_egg",
@@ -6278,6 +6279,7 @@ d.label(0x8FD9, "alloc_post_restore_check")
 d.comment(0x8FDC, "Y (CMOS value) into A", align=Align.INLINE)
 d.comment(0x8FDD, "Non-zero: station ID valid -> alloc_common_entry", align=Align.INLINE)
 d.comment(0x8FDF, "Print 'Station number in CMOS RAM invalid...' warning", align=Align.INLINE)
+d.comment(0x8FE2, "Inline text, printed by print_inline", align=Align.INLINE)
 d.label(0x8FDF, "alloc_error_overflow")
 
 d.comment(0x9004, "A=1: default station ID", align=Align.INLINE)
@@ -6508,6 +6510,7 @@ only resettable by a control-BREAK. Never returns.""",
 
 d.comment(0x90BE, "Error number &AA", align=Align.INLINE)
 d.comment(0x90C0, "Raise 'net checksum' error", align=Align.INLINE)
+d.comment(0x90C3, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.subroutine(
     0x90D0,
     "print_station_id",
@@ -6527,6 +6530,7 @@ Called by [`print_version_header`](label:print_version_header) and
 
 
 d.comment(0x90D0, "Print 'Station ' inline string", align=Align.INLINE)
+d.comment(0x90D3, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x90E2, "Y=1: PB station-byte offset", align=Align.INLINE)
 d.comment(0x90E4, "Read RX[1] = station number", align=Align.INLINE)
 d.comment(0x90E6, "Print as decimal (no leading zeros)", align=Align.INLINE)
@@ -6535,6 +6539,7 @@ d.comment(0x90E9, "Space character", align=Align.INLINE)
 d.comment(0x90EB, "Check ADLC status register 2", align=Align.INLINE)
 d.comment(0x90EE, "Clock present: skip warning", align=Align.INLINE)
 d.comment(0x90F0, "Print ' No Clock' via inline", align=Align.INLINE)
+d.comment(0x90F3, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x90FC, "String terminator", align=Align.INLINE)
 d.label(0x90FD, "done_print_newline")
 
@@ -6564,14 +6569,17 @@ cmd_syntax_table via the low 5 bits of each
 command's syntax descriptor byte.""",
 )
 d.comment(0x9101, "Syn 1: *Dir, *LCat, *LEx, *Wipe", align=Align.INLINE)
+d.comment(0x9108, "String terminator", align=Align.INLINE)
 d.label(0x9109, "syn_iam")
 
 d.comment(0x9109, "Syn 2: *I Am (login)", align=Align.INLINE)
 d.comment(0x9121, "Line break", align=Align.INLINE)
 d.comment(0x9122, "syntax help for *Pass / *I am", align=Align.INLINE)
+d.comment(0x9135, "String terminator", align=Align.INLINE)
 d.label(0x9136, "syn_object")
 
 d.comment(0x9136, "Syn 3: *Delete, *FS, *Remove", align=Align.INLINE)
+d.comment(0x913E, "String terminator", align=Align.INLINE)
 d.comment(0x914F, "Store as string pointer low", align=Align.INLINE)
 d.comment(0x9152, "Store as string pointer high", align=Align.INLINE)
 d.comment(0x9155, "Syn 4 continued: address clause", align=Align.INLINE)
@@ -6579,11 +6587,17 @@ d.comment(0x9161, "Null terminator", align=Align.INLINE)
 d.label(0x9162, "syn_dir")
 
 d.comment(0x9162, "Syn 5: *Lib", align=Align.INLINE)
+d.comment(0x9168, "Syntax help text", align=Align.INLINE)
+d.comment(0x9167, "String terminator", align=Align.INLINE)
+d.comment(0x9178, "String terminator", align=Align.INLINE)
 d.label(0x9179, "syn_password")
 
 d.comment(0x9179, "Syn 7: *Pass", align=Align.INLINE)
+d.comment(0x918C, "CR terminator", align=Align.INLINE)
 d.comment(0x918D, "Syn 7 continued: new password", align=Align.INLINE)
+d.comment(0x919B, "String terminator", align=Align.INLINE)
 d.comment(0x919C, "syntax help for *PS / *Pollps", align=Align.INLINE)
+d.comment(0x91B4, "String terminator", align=Align.INLINE)
 d.label(0x91B5, "syn_access")
 
 d.comment(0x91B5, "Syn 9: *Access", align=Align.INLINE)
@@ -7080,6 +7094,7 @@ hex parsers when a digit is out of range. Never returns.""",
 
 d.comment(0x9355, "Error code &F1", align=Align.INLINE)
 d.comment(0x9357, "Raise 'Bad hex' error", align=Align.INLINE)
+d.comment(0x935A, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x935E, "error_overflow")
 d.subroutine(
     0x935E,
@@ -7096,18 +7111,22 @@ d.label(0x9362, "err_bad_station_num")
 
 d.comment(0x9362, "A=&D0: 'Bad station' error code", align=Align.INLINE)
 d.comment(0x9364, "Raise via error_bad_inline (never returns)", align=Align.INLINE)
+d.comment(0x9367, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x9376, "error_bad_number")
 
 d.comment(0x9376, "A=&F0: 'Bad number' error code", align=Align.INLINE)
 d.comment(0x9378, "Raise via error_bad_inline (never returns)", align=Align.INLINE)
+d.comment(0x937B, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x9382, "error_bad_param")
 
 d.comment(0x9382, "A=&94: 'Bad parameter' error code", align=Align.INLINE)
 d.comment(0x9384, "Raise via error_bad_inline (never returns)", align=Align.INLINE)
+d.comment(0x9387, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x9391, "error_bad_net_num")
 
 d.comment(0x9391, "A=&D1: 'Bad net number' error code", align=Align.INLINE)
 d.comment(0x9393, "Raise via error_bad_inline (never returns)", align=Align.INLINE)
+d.comment(0x9396, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x93A1, "is_decimal_digit")
 
 d.subroutine(
@@ -7499,6 +7518,7 @@ validators. Never returns.""",
 
 d.comment(0x943E, "Error number &CC", align=Align.INLINE)
 d.comment(0x9440, "Raise 'Bad file name' error", align=Align.INLINE)
+d.comment(0x9443, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x944D, "check_not_ampersand")
 
 d.subroutine(
@@ -7695,6 +7715,7 @@ d.label(0x94E1, "error_bad_rename")
 
 d.comment(0x94E1, "Error number &B0", align=Align.INLINE)
 d.comment(0x94E3, "Raise 'Bad rename' error", align=Align.INLINE)
+d.comment(0x94E6, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0x94ED, "store_rename_char")
 
 d.comment(0x94ED, "Store character in TX buffer", align=Align.INLINE)
@@ -7790,6 +7811,7 @@ d.comment(0x9565, "Status 2 (found)?", align=Align.INLINE)
 d.comment(0x9567, "Yes: proceed to dir change", align=Align.INLINE)
 d.comment(0x9569, "Error number &D6", align=Align.INLINE)
 d.comment(0x956B, "Raise 'Not found' error", align=Align.INLINE)
+d.comment(0x956E, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0x9578, "dir_found_send")
 
 d.comment(0x9578, "Load current FS station byte", align=Align.INLINE)
@@ -7826,6 +7848,7 @@ d.label(0x95BF, "bra_target_svc_return")
 
 d.comment(0x95BF, "JMP to svc_return_unclaimed (long-distance via this 3-byte trampoline)", align=Align.INLINE)
 d.comment(0x95C2, "Print 'P' prefix", align=Align.INLINE)
+d.comment(0x95C5, "Inline text, printed by print_inline", align=Align.INLINE)
 d.subroutine(
     0x95C2,
     "print_station_low",
@@ -7849,6 +7872,7 @@ d.comment(
     align=Align.INLINE,
 )
 d.comment(0x95C9, "Print 'F' prefix", align=Align.INLINE)
+d.comment(0x95CC, "Inline text, printed by print_inline", align=Align.INLINE)
 d.subroutine(
     0x95C9,
     "print_fs_station",
@@ -7862,6 +7886,7 @@ no-arg help and `*STATUS` displays.""",
 
 
 d.comment(0x95CD, "NOP -- bit-7 terminator; falls through into the shared 'S       ' tail at &95CC", align=Align.INLINE)
+d.comment(0x95D1, "Inline text, printed by print_inline", align=Align.INLINE)
 d.label(0x95CE, "print_field_tail_s")
 
 d.comment(
@@ -7871,6 +7896,7 @@ d.comment(
 )
 d.comment(0x95D9, "Bit-7 terminator", align=Align.INLINE)
 d.comment(0x95DA, "Return", align=Align.INLINE)
+d.comment(0x95DE, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(
     0x95DB,
     "Print '[<D>.]<D>\\r' (file-name syntax fragment, shared between *FS/*PS no-arg help and *Dir)",
@@ -8047,12 +8073,14 @@ d.comment(0x9637, "Print 'FS       ' header", align=Align.INLINE)
 d.comment(0x963A, "Print FS network.station from CMOS &02/&01", align=Align.INLINE)
 d.comment(0x963D, "Print 'PS       ' header", align=Align.INLINE)
 d.comment(0x9640, "Print PS network.station from CMOS &04/&03", align=Align.INLINE)
+d.label(0x9643, "status_space")
 d.comment(0x9643, "X=&11: CMOS RAM byte index", align=Align.INLINE)
 d.comment(0x9645, "Read CMOS &11 (FS state)", align=Align.INLINE)
 d.comment(0x9648, "A = CMOS &11", align=Align.INLINE)
 d.comment(0x9649, "Mask bit 0 (FS-active flag)", align=Align.INLINE)
 d.comment(0x964B, "Bit set: skip 'No ' prefix", align=Align.INLINE)
 d.comment(0x964D, "Print 'No ' prefix via inline", align=Align.INLINE)
+d.comment(0x9650, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x9653, "Bit-7 terminator + resume", align=Align.INLINE)
 d.comment(0x9654, "Print 'Space        ' or similar via inline", align=Align.INLINE)
 d.label(0x9654, "parse_object_space_print")
@@ -8090,6 +8118,7 @@ d.comment(0x966B, "Read CMOS[X] (network number) via osbyte_a1", align=Align.INL
 d.comment(0x966E, "A = CMOS network byte", align=Align.INLINE)
 d.comment(0x966F, "Print as decimal (no leading zeros)", align=Align.INLINE)
 d.comment(0x9672, "Print '.' separator via inline", align=Align.INLINE)
+d.comment(0x9675, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x9676, "PLX terminator: restore X (network index)", align=Align.INLINE)
 d.comment(0x9677, "X-1: the station byte sits just below the network byte", align=Align.INLINE)
 d.label(0x9678, "print_cmos_decimal_nl")
@@ -8104,6 +8133,7 @@ d.comment(0x9685, "X=&C2: setup index for the dispatch chain", align=Align.INLIN
 d.label(0x9685, "help_dispatch_setup")
 
 d.comment(0x9687, "JMP svc4_dispatch_lookup -- shared parser dispatch", align=Align.INLINE)
+d.comment(0x9691, "CR terminator", align=Align.INLINE)
 d.subroutine(
     0x9687,
     "dispatch_help_command",
@@ -8639,6 +8669,7 @@ d.comment(0x9816, "Pull final OR accumulator", align=Align.INLINE)
 d.comment(0x9817, "Bit 0 (was bit 6 of any &40 byte) -> C", align=Align.INLINE)
 d.comment(0x9818, "Any channel was active: skip the warning", align=Align.INLINE)
 d.comment(0x981A, "No active channels were lost: print 'Data Lost' warning via inline string", align=Align.INLINE)
+d.comment(0x981D, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.label(0x9827, "scan_channel_store_reply")
 
 d.comment(0x9827, "Reload error code from &C009", align=Align.INLINE)
@@ -8725,6 +8756,7 @@ d.comment(0x987E, "Commit the language-reply state byte", align=Align.INLINE)
 d.entry(0x987E)
 d.comment(0x9881, "A=0: 'Bad' error code", align=Align.INLINE)
 d.comment(0x9883, "Raise via error_inline_log (never returns)", align=Align.INLINE)
+d.comment(0x9886, "Error message text (error_inline_log)", align=Align.INLINE)
 d.comment(0x988F, "Read escape_flag", align=Align.INLINE)
 d.subroutine(
     0x988F,
@@ -9410,6 +9442,7 @@ d.comment(0x9ABD, "Null terminator", align=Align.INLINE)
 d.label(0x9ABE, "msg_station")
 
 d.comment(0x9ABE, "Error &A2: Station", align=Align.INLINE)
+d.comment(0x9ABF, "Error message text", align=Align.INLINE)
 d.label(0x9AC7, "msg_no_clock")
 
 d.byte(0x9AD0)
@@ -9418,10 +9451,12 @@ d.label(0x9AD1, "msg_escape")
 
 d.byte(0x9AD1)
 d.comment(0x9AD1, "Error &11: Escape", align=Align.INLINE)
+d.comment(0x9AD2, "Error message text", align=Align.INLINE)
 d.label(0x9AD9, "msg_bad_option")
 
 d.byte(0x9AD9)
 d.comment(0x9AD9, "Error &CB: Bad option", align=Align.INLINE)
+d.comment(0x9ADA, "Error message text", align=Align.INLINE)
 d.comment(0x9AE4, "Null terminator + Error &A5: No reply from station", align=Align.INLINE)
 d.label(0x9AE5, "msg_no_reply")
 
@@ -11927,6 +11962,7 @@ d.label(0xA458, "error_syntax")
 
 d.comment(0xA458, "Error code &DC", align=Align.INLINE)
 d.comment(0xA45A, "Raise 'Syntax' error", align=Align.INLINE)
+d.comment(0xA45D, "Error message text (error_inline)", align=Align.INLINE)
 d.label(0xA464, "dispatch_fs_cmd")
 
 d.comment(0xA464, "A=0: clear svc_state", align=Align.INLINE)
@@ -12230,6 +12266,7 @@ table entry matches the user's input. Never returns.""",
 
 d.comment(0xA5B7, "Error code &FE", align=Align.INLINE)
 d.comment(0xA5B9, "Raise 'Bad command' error", align=Align.INLINE)
+d.comment(0xA5BC, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0xA5C4, "check_exec_addr")
 
 d.subroutine(
@@ -12257,6 +12294,7 @@ d.comment(0xA5CB, "Try next byte", align=Align.INLINE)
 d.comment(0xA5CC, "Loop until all checked", align=Align.INLINE)
 d.comment(0xA5CE, "A=&93: error code 'Bad command'", align=Align.INLINE)
 d.comment(0xA5D0, "Generate 'No!' error", align=Align.INLINE)
+d.comment(0xA5D3, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xA5D9, "alloc_run_channel")
 
 d.subroutine(
@@ -12618,6 +12656,7 @@ d.comment(0xA70B, "Set boot config for station", align=Align.INLINE)
 d.comment(0xA70E, "Restore processor status", align=Align.INLINE)
 d.comment(0xA70F, "Carry set: proceed with boot", align=Align.INLINE)
 d.comment(0xA711, "Return with last flag", align=Align.INLINE)
+d.comment(0xA720, "CR terminator", align=Align.INLINE)
 d.label(0xA714, "findlib_oscli_cmd")
 d.banner(
     0xA714,
@@ -12736,6 +12775,7 @@ d.comment(0xA756, "Cancel boot, return (CTRL held, or boot type 0 via BEQ at &A7
 d.comment(0xA757, "Boot cmd '*LOAD -NET-!Boot' (load !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
 d.comment(0xA763, "CR terminator", align=Align.INLINE)
 d.comment(0xA764, "Boot cmd '*EXEC -NET-!Boot' (exec !Boot via NFS, bypassing service-4 broadcast — see boot_try_findlib)", align=Align.INLINE)
+d.comment(0xA770, "CR terminator", align=Align.INLINE)
 # UNMAPPED: d.comment(0xA75A, "CR terminator", align=Align.INLINE)
 # UNMAPPED: d.index_base(0xA75B, "boot_cmd_lo_table")
 
@@ -12837,6 +12877,7 @@ for name_addr, name, flag_addr, flag_byte, lo_addr, target_label, role in _cmd_t
         d.byte(name_addr)
     d.byte(flag_addr)
     d.word(lo_addr)
+    d.comment(lo_addr, "Handler address - 1 (PHA/PHA/RTS)", align=Align.INLINE)
     if target_label is not None:
         d.expr(lo_addr, sym(target_label) - 1)
     d.comment(name_addr, role, align=Align.INLINE)
@@ -14860,10 +14901,12 @@ printer server while one is already active. Never returns.""",
 
 d.comment(0xAF9D, "A=&A6: 'Printer busy' error code", align=Align.INLINE)
 d.comment(0xAF9F, "Raise via error_inline_log (never returns)", align=Align.INLINE)
+d.comment(0xAFA2, "Error message text (error_inline_log)", align=Align.INLINE)
 d.comment(0xAFC9, "A=&A7: 'Printer jammed' error code", align=Align.INLINE)
 # UNMAPPED: d.label(0xAF92, "printer_busy_msg")
 
 d.comment(0xAFCB, "Raise via error_inline_log (never returns)", align=Align.INLINE)
+d.comment(0xAFCE, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xAFDD, "send_disconnect_reply")
 
 d.subroutine(
@@ -15358,15 +15401,19 @@ d.comment(0xB185, "Send request to file server", align=Align.INLINE)
 d.comment(0xB188, "X=3: offset to directory title", align=Align.INLINE)
 d.comment(0xB18A, "Print directory title (10 chars)", align=Align.INLINE)
 d.comment(0xB18D, "Print '('", align=Align.INLINE)
+d.comment(0xB190, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB191, "Load FS object-type code from hazel_txcb_objtype (file/dir/etc)", align=Align.INLINE)
 d.comment(0xB197, "Print ')     ' to close the type-code field", align=Align.INLINE)
+d.comment(0xB19A, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB1A0, "Read hazel_txcb_type (FS reply opcode)", align=Align.INLINE)
 d.comment(0xB1A3, "Non-zero (private library): take the public-label branch", align=Align.INLINE)
 d.comment(0xB1A5, "Print 'Owner' + CR", align=Align.INLINE)
+d.comment(0xB1A8, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB1AE, "Non-zero: branch to cat_after_label_print", align=Align.INLINE)
 d.label(0xB1B0, "print_public_label")
 
 d.comment(0xB1B0, "Print 'Public' + CR", align=Align.INLINE)
+d.comment(0xB1B3, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.label(0xB1BA, "cat_after_label_print")
 
 d.comment(0xB1BA, "Read hazel_fs_lib_flags", align=Align.INLINE)
@@ -15378,10 +15425,12 @@ d.comment(0xB1C6, "Advance X past header", align=Align.INLINE)
 d.comment(0xB1C7, "Y=&10: print 16 chars", align=Align.INLINE)
 d.comment(0xB1C9, "Print file entry", align=Align.INLINE)
 d.comment(0xB1CC, "Print '    Option '", align=Align.INLINE)
+d.comment(0xB1CF, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB1DA, "Read hazel_boot_option", align=Align.INLINE)
 d.comment(0xB1DD, "Transfer to X for table lookup", align=Align.INLINE)
 d.comment(0xB1DE, "Print option as hex", align=Align.INLINE)
 d.comment(0xB1E1, "Print ' ('", align=Align.INLINE)
+d.comment(0xB1E4, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB1B1, "Look up option-string offset for index X", align=Align.INLINE)
 # UNMAPPED: d.label(0xB1B4, "loop_print_dir_format")
 
@@ -15396,6 +15445,7 @@ d.comment(0xB1F2, "Loop until Y wraps", align=Align.INLINE)
 d.label(0xB1F4, "print_dir_header")
 
 d.comment(0xB1F4, "Print ')\\rDir. ' header for the directory listing", align=Align.INLINE)
+d.comment(0xB1F7, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB1FE, "X=&11: filename offset in TX buffer", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB1CB, "Print 10-char filename", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB1CE, "Print inline 'attr-bits' fragment", align=Align.INLINE)
@@ -15745,6 +15795,7 @@ d.comment(0xB31F, "Wrap to 0..3 (4 columns per row)", align=Align.INLINE)
 d.comment(0xB321, "Save the new column index", align=Align.INLINE)
 d.comment(0xB323, "Wrapped to 0: end of row, print newline", align=Align.INLINE)
 d.comment(0xB325, "Mid-row: print 2-space column separator via inline", align=Align.INLINE)
+d.comment(0xB328, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB32A, "Non-zero: take col_sep_print_char tail", align=Align.INLINE)
 d.comment(0xB32C, "A=&0D: CR character", align=Align.INLINE)
 d.comment(0xB32E, "Print CR (no spool)", align=Align.INLINE)
@@ -16180,10 +16231,12 @@ d.comment(0xB493, "Y=&20: marker offset", align=Align.INLINE)
 d.comment(0xB495, "Read marker byte", align=Align.INLINE)
 d.comment(0xB497, "Non-zero: print 'now <stn>'", align=Align.INLINE)
 d.comment(0xB499, "Print 'still ' fragment", align=Align.INLINE)
+d.comment(0xB49C, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB4A2, "Bit-7 terminator (next opcode)", align=Align.INLINE)
 d.label(0xB4A5, "print_ps_now")
 
 d.comment(0xB4A5, "Print 'now ' fragment", align=Align.INLINE)
+d.comment(0xB4A8, "Inline text, printed by print_inline", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB473, "Bit-7 terminator", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB474, "Print station number and newline", align=Align.INLINE)
 # UNMAPPED: d.label(0xB474, "print_ps_padding")
@@ -16221,6 +16274,7 @@ print_printer_server_is.""",
 
 
 d.comment(0xB4C0, "Print 'File' via inline string", align=Align.INLINE)
+d.comment(0xB4C3, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB4C7, "Clear V so the BVC below is taken", align=Align.INLINE)
 d.comment(
     0xB4C8,
@@ -16241,6 +16295,7 @@ d.subroutine(
 
 
 d.comment(0xB4CA, "Print 'Printer' via inline string", align=Align.INLINE)
+d.comment(0xB4CD, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB4D4, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
 d.label(0xB4D5, "print_server_is_suffix")
 
@@ -16493,6 +16548,7 @@ d.label(0xB5A3, "skip_if_local_net")
 
 d.comment(0xB5A3, "V set: skip leading-space padding", align=Align.INLINE)
 d.comment(0xB5A5, "V clear (caller wanted padding): print 4 leading spaces via inline string", align=Align.INLINE)
+d.comment(0xB5A8, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB5AC, "Read station number (fs_work_5)", align=Align.INLINE)
 d.label(0xB5AC, "local_net_prefix")
 
@@ -16654,10 +16710,12 @@ d.comment(0xB650, "Store pointer low", align=Align.INLINE)
 d.comment(0xB652, "Clear V flag", align=Align.INLINE)
 d.comment(0xB653, "Print station address (V=0)", align=Align.INLINE)
 d.comment(0xB656, "Print ' is '", align=Align.INLINE)
+d.comment(0xB659, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB65D, "X=0: indexed-indirect access mode", align=Align.INLINE)
 d.comment(0xB65F, "Read printer status byte", align=Align.INLINE)
 d.comment(0xB661, "Non-zero: not ready", align=Align.INLINE)
 d.comment(0xB663, "Print 'ready'", align=Align.INLINE)
+d.comment(0xB666, "Inline text, printed by print_inline", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB657, "Ensure V clear so next BVC always taken", align=Align.INLINE)
 # UNMAPPED: d.label(0xB65A, "check_poll_jammed")
 
@@ -16672,11 +16730,13 @@ d.comment(0xB663, "Print 'ready'", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB66A, "Status = 1?", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB66C, "Not 1 or 2: default to jammed", align=Align.INLINE)
 d.comment(0xB6A2, "Print 'busy'", align=Align.INLINE)
+d.comment(0xB6A5, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB6A9, "Advance work_ae to next status byte (lo)", align=Align.INLINE)
 d.comment(0xB6AB, "Read client station number", align=Align.INLINE)
 d.comment(0xB6AD, "Store station low", align=Align.INLINE)
 d.comment(0xB6AF, "Zero: no client info, skip", align=Align.INLINE)
 d.comment(0xB6B1, "Print ' with station '", align=Align.INLINE)
+d.comment(0xB6B4, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB6C2, "Advance work_ae to next status byte (lo)", align=Align.INLINE)
 d.comment(0xB6C4, "Read network number byte via (work_ae,X)", align=Align.INLINE)
 d.comment(0xB6C6, "Store network number", align=Align.INLINE)
@@ -16936,6 +16996,7 @@ d.comment(0xB7A4, "Advance index", align=Align.INLINE)
 d.comment(0xB7A5, "End of TX[5+X] name field at offset &3E?", align=Align.INLINE)
 d.comment(0xB7A7, "No: continue printing", align=Align.INLINE)
 d.comment(0xB7A9, "Print 'Wipe? ' help suffix via inline string", align=Align.INLINE)
+d.comment(0xB7AC, "Inline text, printed by print_inline_no_spool", align=Align.INLINE)
 d.comment(0xB7AE, "Bit-7 terminator + resume", align=Align.INLINE)
 d.comment(0xB7AF, "Re-prompt user with prompt_yn", align=Align.INLINE)
 d.label(0xB7B2, "check_wipe_response")
@@ -17124,9 +17185,11 @@ d.comment(0xB848, "Error code &DE", align=Align.INLINE)
 d.label(0xB84A, "err_net_chan_not_found")
 
 d.comment(0xB84A, "Generate 'Net channel' error", align=Align.INLINE)
+d.comment(0xB84D, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xB84C, "net_chan_err_strings")
 d.comment(0xB859, "Error string continuation (unreachable)", align=Align.INLINE)
 d.comment(0xB85C, "Clear tx_buffer_scratch+X scratch", align=Align.INLINE)
+d.comment(0xB871, "String terminator", align=Align.INLINE)
 d.label(0xB872, "lookup_chan_by_char")
 
 d.subroutine(
@@ -17216,6 +17279,7 @@ d.comment(0xB8BA, "Test directory flag (bit 1)", align=Align.INLINE)
 d.comment(0xB8BC, "Not a directory: return OK", align=Align.INLINE)
 d.comment(0xB8BE, "Error code &A8", align=Align.INLINE)
 d.comment(0xB8C0, "Generate 'Is a dir.' error", align=Align.INLINE)
+d.comment(0xB8C3, "Error message text (error_inline_log)", align=Align.INLINE)
 d.comment(0xB8D2, "Return", align=Align.INLINE)
 d.label(0xB8D3, "alloc_fcb_slot")
 
@@ -17281,6 +17345,7 @@ d.comment(0xB90A, "Try to allocate an FCB slot", align=Align.INLINE)
 d.comment(0xB90D, "Success: slot allocated", align=Align.INLINE)
 d.comment(0xB90F, "Error code &C0", align=Align.INLINE)
 d.comment(0xB911, "Generate 'No more FCBs' error", align=Align.INLINE)
+d.comment(0xB914, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xB928, "return_alloc_success")
 
 d.comment(0xB928, "Restore argument", align=Align.INLINE)
@@ -17862,6 +17927,7 @@ d.comment(0xBBA5, "Test write-only flag (bit 5)", align=Align.INLINE)
 d.comment(0xBBA7, "Not write-only: proceed with read", align=Align.INLINE)
 d.comment(0xBBA9, "Error code &D4", align=Align.INLINE)
 d.comment(0xBBAB, "Generate 'Write only' error", align=Align.INLINE)
+d.comment(0xBBAE, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xBBB9, "done_read_fcb_byte")
 
 d.comment(0xBBB9, "Clear V (first-pass matching)", align=Align.INLINE)
@@ -17889,6 +17955,7 @@ d.label(0xBBE3, "error_end_of_file")
 
 d.comment(0xBBE3, "Error code &DF", align=Align.INLINE)
 d.comment(0xBBE5, "Generate 'End of file' error", align=Align.INLINE)
+d.comment(0xBBE8, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xBBF4, "done_load_from_buf")
 
 d.comment(0xBBF4, "Load current byte count (= offset)", align=Align.INLINE)
@@ -17943,6 +18010,7 @@ d.comment(0xBC28, "Load channel flags", align=Align.INLINE)
 d.comment(0xBC2B, "Bit 7 set: channel open, proceed", align=Align.INLINE)
 d.comment(0xBC2D, "Error &C1: Not open for update", align=Align.INLINE)
 d.comment(0xBC2F, "Raise error with inline string", align=Align.INLINE)
+d.comment(0xBC32, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xBC46, "done_test_write_flag")
 
 d.comment(0xBC46, "Test write flag (bit 5)", align=Align.INLINE)
@@ -18203,6 +18271,7 @@ d.label(0xBD5F, "escape_error_close")
 d.comment(0xBD62, "Acknowledge escape condition", align=Align.INLINE)
 d.comment(0xBD67, "Error number &11", align=Align.INLINE)
 d.comment(0xBD69, "Generate 'Escape' BRK error", align=Align.INLINE)
+d.comment(0xBD6C, "Error message text (error_inline)", align=Align.INLINE)
 d.comment(0xBD73, "Open the file (handle stored in ws_page)", align=Align.INLINE)
 d.entry(0xBD73)
 
@@ -18324,6 +18393,7 @@ d.comment(0xBDD9, "Done all 4 bytes (Y=&14)?", align=Align.INLINE)
 d.comment(0xBDDB, "No: continue propagating", align=Align.INLINE)
 d.comment(0xBDDD, "Restore final C", align=Align.INLINE)
 d.comment(0xBDDE, "Print ' : ' separator before hex byte field", align=Align.INLINE)
+d.comment(0xBDE1, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xBDE4, "Y=0: start of buffer", align=Align.INLINE)
 d.comment(0xBDE6, "X = byte counter (-1 initially, INC'd to 0..&0F)", align=Align.INLINE)
 d.label(0xBDE8, "loop_print_dump_hex")
@@ -18351,6 +18421,7 @@ d.comment(0xBDF2, "Step counter (Y was off-by-one from line read)", align=Align.
 d.comment(0xBDF3, "Have a real byte? Print it", align=Align.INLINE)
 d.comment(0xBDF5, "End of partial line: pad with 3 spaces", align=Align.INLINE)
 d.comment(0xBDF6, "Print '   ' inline", align=Align.INLINE)
+d.comment(0xBDF9, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xBDFC, "NOP -- bit-7 terminator + harmless resume opcode", align=Align.INLINE)
 d.comment(0xBDFD, "Restore Y", align=Align.INLINE)
 d.comment(0xBDFE, "Continue padding the rest of the hex column", align=Align.INLINE)
@@ -18358,6 +18429,7 @@ d.label(0xBE01, "done_print_separator")
 
 d.comment(0xBE01, "Counter has finished -- step it once more for the ASCII test", align=Align.INLINE)
 d.comment(0xBE02, "Print ': ' inline (ASCII field separator)", align=Align.INLINE)
+d.comment(0xBE05, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xBE07, "Y=0: rewind to start of line buffer", align=Align.INLINE)
 d.comment(0xBE09, "Skip 16 padding spaces if needed (inx16)", align=Align.INLINE)
 d.label(0xBE0C, "loop_print_dump_ascii")
@@ -18685,6 +18757,7 @@ d.comment(0xBF73, "Success: continue with displacement-add", align=Align.INLINE)
 d.comment(0xBF75, "Parse error: close file then raise 'Bad address'", align=Align.INLINE)
 d.comment(0xBF78, "A=&FC: 'Bad address' error code", align=Align.INLINE)
 d.comment(0xBF7A, "Raise; never returns", align=Align.INLINE)
+d.comment(0xBF7D, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.label(0xBF85, "done_add_disp_base")
 d.subroutine(
     0xBF85,
@@ -18763,6 +18836,7 @@ d.comment(0xBFBD, "Stash the handle in ws_page for later close", align=Align.INL
 d.comment(0xBFBF, "Non-zero: open succeeded, skip error path", align=Align.INLINE)
 d.comment(0xBFC1, "A=&D6: 'Not found' error code", align=Align.INLINE)
 d.comment(0xBFC3, "Raise the error with the inline string below; never returns", align=Align.INLINE)
+d.comment(0xBFC6, "Error message text (error_inline)", align=Align.INLINE)
 d.label(0xBFD0, "restore_text_ptr")
 
 d.comment(
@@ -19598,6 +19672,7 @@ d.comment(0xAF98, "Non-zero: retry from start_spool_retry", align=Align.INLINE)
 d.comment(0xAFB1, "Not 1: take printer_busy_msg path", align=Align.INLINE)
 d.comment(0xAFB3, "A=&AB: 'Printer off line' error code", align=Align.INLINE)
 d.comment(0xAFB5, "Raise via error_inline_log (never returns)", align=Align.INLINE)
+d.comment(0xAFB8, "Error message text (error_inline_log)", align=Align.INLINE)
 d.comment(0xB0A3, "Store at (nfs_workspace)+Y", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB1E4, "Look up option-string offset for index X", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB1E7, "Look up option byte at the resolved offset", align=Align.INLINE)
@@ -19616,6 +19691,7 @@ d.comment(0xB66B, "Ensure V clear so next BVC always taken", align=Align.INLINE)
 d.comment(0xB676, "Status = 2?", align=Align.INLINE)
 d.comment(0xB678, "No: check for busy", align=Align.INLINE)
 d.comment(0xB67A, "Print 'jammed'", align=Align.INLINE)
+d.comment(0xB67D, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB685, "Clear V", align=Align.INLINE)
 d.comment(0xB688, "Status = 1?", align=Align.INLINE)
 d.comment(0xB69F, "Not 1 or 2: default to jammed", align=Align.INLINE)
@@ -19666,7 +19742,6 @@ d.expr(0xA72E, hi(sym("findlib_oscli_cmd")))
 d.expr(0x8816, lo(sym("nmi_reply_scout")))
 d.expr(0x8818, hi(sym("nmi_reply_scout")))
 d.subroutine(0x8A1F, "nmi_return_inton", title="NMI exit: re-enable NMIs and return", description="""Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`.""")
-d.label(0x84DC, "imm_reply_flag")
 d.label(0x86BB, "tx_irq_off")
 d.label(0x872D, "tx_enable_nmis")
 d.label(0xA5F5, "run_copy_arg_to_buf")
@@ -19750,6 +19825,7 @@ d.comment(0xADF2, "OSWORD &7A", align=Align.INLINE)
 d.comment(0xADF3, "OSWORD &86", align=Align.INLINE)
 d.comment(0x9AA6, "BRK error code &A0 (first table entry)", align=Align.INLINE)
 d.comment(0x9AC7, "BRK error code &A3", align=Align.INLINE)
+d.comment(0x9AC8, "Error message text", align=Align.INLINE)
 d.comment(0x9AE5, "BRK error code &A5", align=Align.INLINE)
 d.label(
     0x0D36,
@@ -19803,7 +19879,6 @@ d.comment(0x850F, "Reply buffer hi = &0C", align=Align.INLINE)
 d.comment(0x8511, "Set open_port_buf_hi", align=Align.INLINE)
 d.comment(0x8513, "Always taken: join common reply-send path", align=Align.INLINE)
 d.index_base(0x8027, "machine_id_bytes", description="3-byte machine identity returned by the MachinePeek (&88) immediate op; copied to &0D37 by rx_imm_machine_type.")
-# UNMAPPED: d.comment(0xA80E, "&80 sub-table separator; the &8E44 word is the FS-command sub-table default handler (&8E45-1); the following &4F &6E &80 &00 &00 (ASCII 'On' + markers) is a 5-byte record new in this build", align=Align.INLINE)
 d.comment(0x8397, "Unreached &D8 (CLD) byte after the RTS", align=Align.INLINE)
 d.comment(0x8A23, "Padding before the service-dispatch low-byte table", align=Align.INLINE)
 d.comment(0xADE5, "Range 1+2: OSWORD &0A", align=Align.INLINE)
@@ -19833,7 +19908,6 @@ d.comment(0x8755, "Non-zero: store control byte and add", align=Align.INLINE)
 d.comment(0x8792, "C set: control byte out of range, exit", align=Align.INLINE)
 d.comment(0x87E0, "Branch to store TX error", align=Align.INLINE)
 d.comment(0x8817, "Install nmi_reply_scout (high)", align=Align.INLINE)
-d.comment(0x89EA, "Compare to &80 (line-idle threshold)", align=Align.INLINE)
 d.comment(0x89EE, "A=&40: 'line inactive' status code", align=Align.INLINE)
 d.comment(0x89F0, "Store net poll-status byte", align=Align.INLINE)
 d.comment(0x89F6, "A=0", align=Align.INLINE)
@@ -19874,9 +19948,11 @@ d.comment(0x9254, "Tail-call OSASCI to print the nybble", align=Align.INLINE)
 d.comment(0x9422, "Mask the FCB status flags", align=Align.INLINE)
 d.comment(0x948C, "Copy A to X", align=Align.INLINE)
 d.comment(0x95B6, "Print inline string", align=Align.INLINE)
+d.comment(0x95B9, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x95BC, "Print the 'Space' free-space label", align=Align.INLINE)
 d.comment(0x9657, "Branch to the shared CMOS-print return", align=Align.INLINE)
 d.comment(0x9659, "Print inline string", align=Align.INLINE)
+d.comment(0x965C, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x9662, "bit-7 terminator + resume opcode", align=Align.INLINE)
 d.comment(0x9663, "Return", align=Align.INLINE)
 d.comment(0x967F, "Print newline", align=Align.INLINE)
@@ -19962,6 +20038,7 @@ d.comment(0xB674, "N set: status off line", align=Align.INLINE)
 d.comment(0xB686, "Off-line printed: branch to end-of-entry (always)", align=Align.INLINE)
 d.comment(0xB68A, "Status = 1: print at cb6a0", align=Align.INLINE)
 d.comment(0xB68C, "Print 'jammed'", align=Align.INLINE)
+d.comment(0xB68F, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xB695, "bit-7 terminator + resume opcode", align=Align.INLINE)
 d.comment(0xB696, "Print newline after the status line", align=Align.INLINE)
 d.comment(0xB699, "Pull saved slot index", align=Align.INLINE)
@@ -20349,6 +20426,44 @@ d.expr(0x84EC, lo(sym("imm_op_arm_deferred")))
 d.expr(0x84EE, hi(sym("imm_op_arm_deferred")))
 
 d.expr(0x88A9, hi(sym("nmi_data_tx_alt")))
+d.byte(0xA810)
+d.comment(0xA810, "&80: end of sub-table 2", align=Align.INLINE)
+d.word(0xA811)
+d.expr(0xA811, sym("check_urd_prefix") - 1)
+d.comment(0xA811, "Default handler for unmatched FS commands (minus 1)", align=Align.INLINE)
+d.string(0xA813, 2)
+d.byte(0xA815, 3)
+d.comment(0xA813, "5-byte record: 'On', &80, &00, &00", align=Align.INLINE)
+
+d.subroutine(
+    0x855F,
+    "tx_done_dispatch_lo",
+    title="TX done dispatch lo-byte table (5 entries)",
+    description="""Low bytes of PHA/PHA/RTS dispatch targets for TX operation types
+`&83`-`&87`, read by [`dispatch_svc5`](label:dispatch_svc5) via
+`LDA tx_done_dispatch_lo-&83,Y`. The dispatcher pushes `&85` as the
+high byte, so targets are `&85xx+1`.""",
+)
+for i in range(5):
+    d.byte(0x855F + i)
+d.expr(0x855F, lo(sym("tx_done_jsr") - 1))
+d.comment(0x855F, "op &83: remote JSR", align=Align.INLINE)
+d.expr(0x8560, lo(sym("tx_done_econet_event") - 1))
+d.comment(0x8560, "op &84: fire Econet event", align=Align.INLINE)
+d.expr(0x8561, lo(sym("tx_done_os_proc") - 1))
+d.comment(0x8561, "op &85: OSProc call", align=Align.INLINE)
+d.expr(0x8562, lo(sym("tx_done_halt") - 1))
+d.comment(0x8562, "op &86: HALT", align=Align.INLINE)
+d.expr(0x8563, lo(sym("tx_done_continue") - 1))
+d.comment(0x8563, "op &87: CONTINUE", align=Align.INLINE)
+d.expr(0x804E, sym("tx_done_dispatch_lo") - 0x83)
+
+# NMI vector compared against a handler address.
+d.comment(0x89E3, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INLINE)
+d.expr(0x89E4, lo(sym("nmi_rx_scout")))
+d.comment(0x89EA, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
+d.expr(0x89EB, hi(sym("nmi_rx_scout")))
+
 ir = d.disassemble()
 output = str(
     ir.render(

@@ -20562,10 +20562,19 @@
         201,
         179
       ],
-      "comment_inline": "Expected: &B3 (nmi_rx_scout low)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (low byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&b3"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 35203,
@@ -20600,10 +20609,19 @@
         73,
         128
       ],
-      "comment_inline": "Test if high byte = &80 (page of nmi_rx_scout)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (high byte)",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&80"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 35210,
@@ -26116,6 +26134,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "  "
     },
@@ -26549,6 +26568,7 @@
       "bytes": [
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "("
     },
@@ -28461,6 +28481,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -28812,6 +28833,7 @@
         67,
         111
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "B Co"
     },
@@ -33231,6 +33253,7 @@
         109,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "net checksum."
     },
@@ -33283,6 +33306,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Econet Station "
     },
@@ -33390,6 +33414,7 @@
         99,
         107
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " No Clock"
     },
@@ -36302,6 +36327,7 @@
         120,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "hex."
     },
@@ -36431,6 +36457,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "station number."
     },
@@ -36486,6 +36513,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "number."
     },
@@ -36544,6 +36572,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "parameter."
     },
@@ -36603,6 +36632,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "network number."
     },
@@ -38056,6 +38086,7 @@
         101,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "file name."
     },
@@ -38986,6 +39017,7 @@
         103,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "string."
     },
@@ -39182,6 +39214,7 @@
         101,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "rename."
     },
@@ -40029,6 +40062,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Not found."
     },
@@ -42119,6 +42153,7 @@
         116,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Data Lost."
     },
@@ -42921,6 +42956,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Remoted."
     },
@@ -47068,6 +47104,7 @@
         111,
         114
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Net error"
     },
@@ -47107,6 +47144,7 @@
         111,
         110
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Station"
     },
@@ -47147,6 +47185,7 @@
         99,
         107
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "No clock"
     },
@@ -47185,6 +47224,7 @@
         112,
         101
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Escape"
     },
@@ -47227,6 +47267,7 @@
         111,
         110
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Bad option"
     },
@@ -47280,6 +47321,7 @@
         111,
         110
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "No reply from station"
     },
@@ -63440,6 +63482,7 @@
         120,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Syntax."
     },
@@ -65736,6 +65779,7 @@
         100,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "command."
     },
@@ -65856,6 +65900,7 @@
         33,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "No!."
     },
@@ -68052,6 +68097,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -85096,6 +85142,7 @@
         121,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Printer busy."
     },
@@ -85155,6 +85202,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Printer jammed."
     },
@@ -88236,6 +88284,7 @@
       "bytes": [
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "("
     },
@@ -88291,6 +88340,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ")     "
     },
@@ -88345,6 +88395,7 @@
         114,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Owner."
     },
@@ -88398,6 +88449,7 @@
         99,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Public."
     },
@@ -88538,6 +88590,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "    Option "
     },
@@ -88598,6 +88651,7 @@
         32,
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " ("
     },
@@ -88727,6 +88781,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ").Dir. "
     },
@@ -88783,6 +88838,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "     Lib. "
     },
@@ -90797,6 +90853,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "  "
     },
@@ -93258,6 +93315,7 @@
         108,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "still "
     },
@@ -93317,6 +93375,7 @@
         119,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "now "
     },
@@ -93482,6 +93541,7 @@
         108,
         101
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "File"
     },
@@ -93548,6 +93608,7 @@
         101,
         114
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Printer"
     },
@@ -93601,6 +93662,7 @@
         115,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " server is "
     },
@@ -95157,6 +95219,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "    "
     },
@@ -96228,6 +96291,7 @@
         32,
         34
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " \""
     },
@@ -96620,6 +96684,7 @@
         115,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " is "
     },
@@ -96683,6 +96748,7 @@
         100,
         121
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "ready"
     },
@@ -96780,6 +96846,7 @@
         101,
         100
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "jammed"
     },
@@ -96863,6 +96930,7 @@
         115,
         121
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "busy"
     },
@@ -96950,6 +97018,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " with station "
     },
@@ -98760,6 +98829,7 @@
         41,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "(Y/N/?) "
     },
@@ -98945,6 +99015,7 @@
         41,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " (Y/N) "
     },
@@ -100208,6 +100279,7 @@
         108,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Net channel."
     },
@@ -100258,6 +100330,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -100830,6 +100903,7 @@
         46,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Is a dir.."
     },
@@ -101325,6 +101399,7 @@
         115,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "No more FCBs."
     },
@@ -105792,6 +105867,7 @@
         121,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Write only."
     },
@@ -106114,6 +106190,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "End of file."
     },
@@ -106547,6 +106624,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Not open for update."
     },
@@ -109112,6 +109190,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Escape."
     },
@@ -109923,6 +110002,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " : "
     },
@@ -110121,6 +110201,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "   "
     },
@@ -110206,6 +110287,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ": "
     },
@@ -110790,6 +110872,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ":    ASCII data.."
     },
@@ -111108,6 +111191,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Not found."
     },
@@ -112572,6 +112656,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Outside file."
     },
@@ -113275,6 +113360,7 @@
         115,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "address."
     },

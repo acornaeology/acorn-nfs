@@ -8322,6 +8322,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Econet Station "
     },
@@ -8418,6 +8419,7 @@
         99,
         107
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " No Clock"
     },
@@ -12634,6 +12636,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -26748,6 +26751,7 @@
       "bytes": [
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "("
     },
@@ -26798,6 +26802,7 @@
       "bytes": [
         41
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ")"
     },
@@ -26877,6 +26882,7 @@
         114,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Owner."
     },
@@ -26930,6 +26936,7 @@
         99,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Public."
     },
@@ -27054,6 +27061,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Option "
     },
@@ -27114,6 +27122,7 @@
         32,
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " ("
     },
@@ -27243,6 +27252,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ").Dir. "
     },
@@ -27319,6 +27329,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Lib. "
     },
@@ -27810,6 +27821,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -27834,6 +27846,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -28342,6 +28355,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -28363,6 +28377,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -28383,6 +28398,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0

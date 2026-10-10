@@ -62913,10 +62913,19 @@
         201,
         223
       ],
-      "comment_inline": "Expected: &DF (nmi_rx_scout low)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (low byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&df"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 40852,
@@ -62951,10 +62960,19 @@
         201,
         150
       ],
-      "comment_inline": "Expected: &96 (nmi_rx_scout high)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (high byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&96"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 40859,

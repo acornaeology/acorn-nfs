@@ -2005,6 +2005,7 @@ prints " No Clock" if absent. Falls through to init_fs_vectors.""",
 
 
 d.comment(0x822E, "Print 'Econet Station ' banner", align=Align.INLINE)
+d.comment(0x8231, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8240, "Y=&14: offset for station number", align=Align.INLINE)
 d.comment(0x8242, "Load station number", align=Align.INLINE)
 d.comment(0x8244, "Print as 3-digit decimal", align=Align.INLINE)
@@ -2016,6 +2017,7 @@ d.label(0x824C, "dofsl1")
 
 d.comment(0x824C, "Clock present: skip warning", align=Align.INLINE)
 d.comment(0x824E, "Print ' No Clock' warning", align=Align.INLINE)
+d.comment(0x8251, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x825A, "NOP (padding after inline string)", align=Align.INLINE)
 
 d.label(0x825B, "skip_no_clock_msg")
@@ -4796,16 +4798,20 @@ d.comment(0x8C3C, "Send the request", align=Align.INLINE)
 d.comment(0x8C3F, "X=3: start printing from reply offset 3", align=Align.INLINE)
 d.comment(0x8C41, "Print directory title (10 chars)", align=Align.INLINE)
 d.comment(0x8C44, "Print '('", align=Align.INLINE)
+d.comment(0x8C47, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C48, "Load station number from FS reply", align=Align.INLINE)
 d.comment(0x8C4B, "Print station number as decimal", align=Align.INLINE)
 d.comment(0x8C4E, "Print ')     '", align=Align.INLINE)
+d.comment(0x8C51, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C57, "Load access level from reply", align=Align.INLINE)
 d.comment(0x8C5A, "Non-zero: Public access", align=Align.INLINE)
 d.comment(0x8C5C, "Print 'Owner' + CR", align=Align.INLINE)
+d.comment(0x8C5F, "Inline text, printed by print_inline", align=Align.INLINE)
 
 d.comment(0x8C65, "ALWAYS branch past 'Owner'", align=Align.INLINE)
 d.label(0x8C67, "print_public")
 d.comment(0x8C67, "Print 'Public' + CR", align=Align.INLINE)
+d.comment(0x8C6A, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C71, "Y=&15: FS function code (read user environment)", align=Align.INLINE)
 d.comment(0x8C73, "Send request to file server", align=Align.INLINE)
 d.label(0x8C71, "cat_check_access")
@@ -4814,10 +4820,12 @@ d.comment(0x8C76, "X=1: past command code byte", align=Align.INLINE)
 d.comment(0x8C77, "Y=&10: print 16 characters", align=Align.INLINE)
 d.comment(0x8C79, "Print disc/CSD name from reply", align=Align.INLINE)
 d.comment(0x8C7C, "Print '    Option '", align=Align.INLINE)
+d.comment(0x8C7F, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C8A, "Load boot option from reply", align=Align.INLINE)
 d.comment(0x8C8D, "X = boot option for name table lookup", align=Align.INLINE)
 d.comment(0x8C8E, "Print boot option as hex digit", align=Align.INLINE)
 d.comment(0x8C91, "Print ' ('", align=Align.INLINE)
+d.comment(0x8C94, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C96, "Y=string offset for this option", align=Align.INLINE)
 d.label(0x8C99, "cattxt")
 
@@ -4829,9 +4837,11 @@ d.comment(0x8CA2, "Continue printing option name", align=Align.INLINE)
 
 d.label(0x8CA4, "done_option_name")
 d.comment(0x8CA4, "Print ')' + CR + 'Dir. '", align=Align.INLINE)
+d.comment(0x8CA7, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8CAE, "X=&11: Dir. name offset in reply", align=Align.INLINE)
 d.comment(0x8CB0, "Print directory name (10 chars)", align=Align.INLINE)
 d.comment(0x8CB3, "Print '     Lib. ' header", align=Align.INLINE)
+d.comment(0x8CB6, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8CC0, "X=&1B: Lib. name offset in reply", align=Align.INLINE)
 d.comment(0x8CC2, "Print library name", align=Align.INLINE)
 
@@ -4913,6 +4923,7 @@ having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""",
 
 
 d.comment(0x8D07, "Return from column separator", align=Align.INLINE)
+d.comment(0x8D13, "CR terminator", align=Align.INLINE)
 d.index_base(0x8D08, "boot_option_text")
 
 d.subroutine(
@@ -5126,6 +5137,7 @@ d.comment(0x8D98, "Modulo 4 columns", align=Align.INLINE)
 d.comment(0x8D9A, "Update column counter", align=Align.INLINE)
 d.comment(0x8D9C, "Column 0: start new line", align=Align.INLINE)
 d.comment(0x8D9E, "Print 2-space column separator", align=Align.INLINE)
+d.comment(0x8DA1, "Inline text, printed by print_inline", align=Align.INLINE)
 
 d.comment(0x8DA3, "More entries: skip final newline", align=Align.INLINE)
 d.label(0x8DA5, "dir_column_check")
@@ -6825,10 +6837,8 @@ d.comment(0x96B5, "Init done: enter RX listen mode", align=Align.INLINE)
 d.label(0x96B7, "nmi_vec_lo_match")
 
 d.comment(0x96B7, "Load NMI vector low byte", align=Align.INLINE)
-d.comment(0x96BA, "Check if low byte is expected value", align=Align.INLINE)
 d.comment(0x96BC, "Mismatch: keep polling", align=Align.INLINE)
 d.comment(0x96BE, "Load NMI vector high byte", align=Align.INLINE)
-d.comment(0x96C1, "Check if high byte is &96", align=Align.INLINE)
 d.comment(0x96C3, "Mismatch: keep polling", align=Align.INLINE)
 d.comment(0x96C5, "BIT INTOFF: disable NMIs", align=Align.INLINE)
 d.subroutine(
@@ -9180,6 +9190,12 @@ d.expr(0x9EC0, lo(sym("nmi_final_ack")))
 d.expr(0x9EC2, hi(sym("nmi_final_ack")))
 d.expr(0x9ED6, lo(sym("nmi_final_ack_net")))
 d.expr(0x9ED8, hi(sym("nmi_final_ack_net")))
+
+# NMI vector compared against a handler address.
+d.comment(0x96BA, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INLINE)
+d.expr(0x96BB, lo(sym("nmi_rx_scout")))
+d.comment(0x96C1, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
+d.expr(0x96C2, hi(sym("nmi_rx_scout")))
 
 ir = d.disassemble()
 output = str(

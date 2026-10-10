@@ -8638,10 +8638,10 @@ svc5_dispatch_lo = enter_data_rx_path+1
 ; &9f8f referenced 2 times by &9f94, &9f9b
 .poll_nmi_idle
     lda nmi_jmp_lo                                                    ; 9f8f: ad 0c 0d    ...      ; Spin until NMI handler = &96DF (nmi_rx_scout)
-    cmp #&df                                                          ; 9f92: c9 df       ..       ; Expected: &DF (nmi_rx_scout low)
+    cmp #<(nmi_rx_scout)                                              ; 9f92: c9 df       ..       ; Is the NMI handler nmi_rx_scout? (low byte)
     bne poll_nmi_idle                                                 ; 9f94: d0 f9       ..       ; Not idle: spin and wait
     lda nmi_jmp_hi                                                    ; 9f96: ad 0d 0d    ...      ; Read current NMI handler high byte
-    cmp #&96                                                          ; 9f99: c9 96       ..       ; Expected: &96 (nmi_rx_scout high)
+    cmp #>(nmi_rx_scout)                                              ; 9f99: c9 96       ..       ; Is the NMI handler nmi_rx_scout? (high byte)
     bne poll_nmi_idle                                                 ; 9f9b: d0 f2       ..       ; Not idle: spin and wait
     lda #&40                                                          ; 9f9d: a9 40       .@       ; A=&40: RTI opcode (disable NMI processing)
     sta nmi_shim_opcode                                               ; 9f9f: 8d 1c 0d    ...      ; Self-modify NMI shim at &0D1C: disable

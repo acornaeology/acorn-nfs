@@ -2086,7 +2086,7 @@ cmd_roff_str = copyright_string+3
 ; Issue 'vectors claimed' service and optionally auto-boot
 ;
 ; Issues service &0F (vectors claimed) via OSBYTE &8F, then service &0A. If l00a8 is zero
-; (soft break — RXCBs already initialised), sets up the command string "I .BOOT" at &828E
+; (soft break — RXCBs already initialised), sets up the command string "I .BOOT" at &8292
 ; and jumps to the FSCV 3 unrecognised-command handler (which matches against the command
 ; table at &8C4B). The "I." prefix triggers the catch-all entry which forwards the
 ; command to the fileserver. Falls through to run_fscv_cmd.
@@ -2109,10 +2109,10 @@ cmd_roff_str = copyright_string+3
 ; the handler address table.
 ; &828d used as index base 2 times by &8339, &833f
 .run_fscv_cmd
-    equb &a0                                                          ; 828d: a0          .        ; Y=&82: ROM page high byte
+    ldy #&82                                                          ; 828d: a0 82       ..       ; Y=&82: ROM page high byte
+    jmp fscv_3_star_cmd                                               ; 828f: 4c 1b 8c    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equb &82, "L", &1b, &8c, "I .B"                                   ; 828e: 82 4c 1b... .L....
-    equb &4f, &4f                                                     ; 8296: 4f 4f       OO       ; Auto-boot string tail / NETV handler data
+    equs "I .BOO"                                                     ; 8292: 49 20 2e... I ....   ; Auto-boot command 'I .BOOT', continued at &8298
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -2124,7 +2124,7 @@ cmd_roff_str = copyright_string+3
 ; addr_hi, then a padding byte that is not read at runtime (store_rom_ptr_pair writes the
 ; current ROM bank number without reading). The last entry (FSCV) has no padding byte.
 .fs_vector_addrs
-    equb &54, &0d                                                     ; 8298: 54 0d       T.       ; Auto-boot string tail / NETV handler data
+    equb &54, &0d                                                     ; 8298: 54 0d       T.       ; 'T', CR: auto-boot string tail / vector table header
 ; &829a used as index base 1 time by &8266
 .fs_dispatch_addrs
     equw &ff1b                                                        ; 829a: 1b ff       ..       ; FILEV dispatch (&FF1B)
@@ -4702,6 +4702,7 @@ error_table_base = bgetv_shared_jsr+1
 ; found, it dispatches via PHA/PHA/RTS to the entry's handler address.
 ;
 ; After matching, adjusts fs_crc_lo/fs_crc_hi to point past the matched command text.
+; &8c1b referenced 1 time by &828f
 .fscv_3_star_cmd
     jsr save_fscv_args_with_ptrs                                      ; 8c1b: 20 49 86     I.      ; Save A/X/Y and set up command ptr
     ldx #&ff                                                          ; 8c1e: a2 ff       ..       ; X=&FF: table index (pre-incremented)
@@ -8586,10 +8587,10 @@ svc5_dispatch_lo = enter_data_rx_path+1
 ; &9f5c referenced 2 times by &9f61, &9f68
 .poll_nmi_idle
     lda nmi_jmp_lo                                                    ; 9f5c: ad 0c 0d    ...      ; Spin until NMI handler = &96BF (nmi_rx_scout)
-    cmp #&bf                                                          ; 9f5f: c9 bf       ..       ; Expected: &BF (nmi_rx_scout low)
+    cmp #<(nmi_rx_scout)                                              ; 9f5f: c9 bf       ..       ; Is the NMI handler nmi_rx_scout? (low byte)
     bne poll_nmi_idle                                                 ; 9f61: d0 f9       ..       ; Not idle: spin and wait
     lda nmi_jmp_hi                                                    ; 9f63: ad 0d 0d    ...      ; Read current NMI handler high byte
-    cmp #&96                                                          ; 9f66: c9 96       ..       ; Expected: &96 (nmi_rx_scout high)
+    cmp #>(nmi_rx_scout)                                              ; 9f66: c9 96       ..       ; Is the NMI handler nmi_rx_scout? (high byte)
     bne poll_nmi_idle                                                 ; 9f68: d0 f2       ..       ; Not idle: spin and wait
     bit station_id_disable_net_nmis                                   ; 9f6a: 2c 18 fe    ,..      ; INTOFF before clearing state
 ; ***************************************************************************************
@@ -9191,6 +9192,7 @@ save pydis_start, pydis_end
 ;     fs_wait_cleanup:                          1
 ;     fs_work_16:                               1
 ;     fscv:                                     1
+;     fscv_3_star_cmd:                          1
 ;     fsdiel:                                   1
 ;     fstxl1:                                   1
 ;     fstxl2:                                   1
@@ -9511,11 +9513,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7548 bytes (92%)
-;     Data                     = 644 bytes (8%)
+;     Code                     = 7553 bytes (92%)
+;     Data                     = 639 bytes (8%)
 ;
-;     Number of instructions   = 3662
-;     Number of data bytes     = 362 bytes
+;     Number of instructions   = 3664
+;     Number of data bytes     = 359 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 230 bytes
+;     Number of string bytes   = 228 bytes
 ;     Number of strings        = 36

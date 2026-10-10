@@ -9360,10 +9360,8 @@ d.label(0x9F8F, "poll_nmi_idle")
 d.comment(0x9F8F, "Spin until NMI handler = &96DF (nmi_rx_scout)", align=Align.INLINE)
 
 
-d.comment(0x9F92, "Expected: &DF (nmi_rx_scout low)", align=Align.INLINE)
 d.comment(0x9F94, "Not idle: spin and wait", align=Align.INLINE)
 d.comment(0x9F96, "Read current NMI handler high byte", align=Align.INLINE)
-d.comment(0x9F99, "Expected: &96 (nmi_rx_scout high)", align=Align.INLINE)
 d.comment(0x9F9B, "Not idle: spin and wait", align=Align.INLINE)
 d.comment(0x9F9D, "A=&40: RTI opcode (disable NMI processing)", align=Align.INLINE)
 d.comment(0x9F9F, "Self-modify NMI shim at &0D1C: disable", align=Align.INLINE)
@@ -9513,6 +9511,12 @@ d.expr(0x9E33, lo(sym("discard_reset_listen")))
 d.expr(0x9E35, hi(sym("discard_reset_listen")))
 d.expr(0x9E89, lo(sym("nmi_final_ack")))
 d.expr(0x9E8B, hi(sym("nmi_final_ack")))
+
+# NMI vector compared against a handler address.
+d.comment(0x9F92, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INLINE)
+d.expr(0x9F93, lo(sym("nmi_rx_scout")))
+d.comment(0x9F99, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
+d.expr(0x9F9A, hi(sym("nmi_rx_scout")))
 
 ir = d.disassemble()
 output = str(

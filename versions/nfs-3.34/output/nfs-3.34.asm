@@ -1971,14 +1971,14 @@ cmd_roff_str = copyright_string+3
 ; &81e6 referenced 1 time by &81da
 .print_station_info
     jsr print_inline                                                  ; 81e6: 20 3b 85     ;.      ; Print 'Econet Station ' banner
-    equs "Econet Station "                                            ; 81e9: 45 63 6f... Eco...
+    equs "Econet Station "                                            ; 81e9: 45 63 6f... Eco...   ; Inline text, printed by print_inline
     lda tx_clear_flag                                                 ; 81f8: ad 62 0d    .b.      ; Load local station number
     jsr print_decimal                                                 ; 81fb: 20 af 85     ..      ; Print station number as decimal
     lda #&20                                                          ; 81fe: a9 20       .        ; A=&20: test bit 5 of SR2 (clock)
     bit econet_control23_or_status2                                   ; 8200: 2c a1 fe    ,..      ; Test ADLC SR2 for network clock
     beq skip_no_clock_msg                                             ; 8203: f0 0d       ..       ; Clock present: skip warning msg
     jsr print_inline                                                  ; 8205: 20 3b 85     ;.      ; Print ' No Clock' warning
-    equs " No Clock"                                                  ; 8208: 20 4e 6f...  No...
+    equs " No Clock"                                                  ; 8208: 20 4e 6f...  No...   ; Inline text, printed by print_inline
     nop                                                               ; 8211: ea          .        ; NOP (padding after inline string)
 ; &8212 referenced 1 time by &8203
 .skip_no_clock_msg
@@ -2623,7 +2623,7 @@ cmd_roff_str = copyright_string+3
     jmp error_block                                                   ; 8441: 4c 00 01    L..      ; Execute constructed BRK error
 .sp_dot_string
     equs "SP."                                                        ; 8444: 53 50 2e    SP.   
-    equb &0d                                                          ; 8447: 0d          .     
+    equb &0d                                                          ; 8447: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Send an FS command with the standard poll count
 ;
@@ -4665,22 +4665,22 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     ldx #3                                                            ; 8c1b: a2 03       ..       ; X=3: start printing from reply offset 3
     jsr print_reply_bytes                                             ; 8c1d: 20 4f 8d     O.      ; Print directory title (10 chars)
     jsr print_inline                                                  ; 8c20: 20 3b 85     ;.      ; Print '('
-    equs "("                                                          ; 8c23: 28          (     
+    equs "("                                                          ; 8c23: 28          (        ; Inline text, printed by print_inline
     lda fs_reply_stn                                                  ; 8c24: ad 13 0f    ...      ; Load station number from FS reply
     jsr print_decimal                                                 ; 8c27: 20 af 85     ..      ; Print station number as decimal
     jsr print_inline                                                  ; 8c2a: 20 3b 85     ;.      ; Print ') '
-    equs ")"                                                          ; 8c2d: 29          )     
+    equs ")"                                                          ; 8c2d: 29          )        ; Inline text, printed by print_inline
     ldx #5                                                            ; 8c2e: a2 05       ..       ; X=5: space padding count
     jsr print_spaces                                                  ; 8c30: 20 5c 8d     \.      ; Print 5 spaces for alignment
     ldx fs_access_level                                               ; 8c33: ae 12 0f    ...      ; Access: 0=Owner, non-zero=Public
     bne print_public                                                  ; 8c36: d0 0b       ..       ; Non-zero: Public access
     jsr print_inline                                                  ; 8c38: 20 3b 85     ;.      ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; 8c3b: 4f 77 6e... Own...
+    equs "Owner", &0d                                                 ; 8c3b: 4f 77 6e... Own...   ; Inline text, printed by print_inline
     bne cat_access_setup                                              ; 8c41: d0 0a       ..       ; Always taken (high-bit term. str)
 ; &8c43 referenced 1 time by &8c36
 .print_public
     jsr print_inline                                                  ; 8c43: 20 3b 85     ;.      ; Print 'Public' + CR
-    equs "Public", &0d                                                ; 8c46: 50 75 62... Pub...
+    equs "Public", &0d                                                ; 8c46: 50 75 62... Pub...   ; Inline text, printed by print_inline
 ; &8c4d referenced 1 time by &8c41
 .cat_access_setup
     ldy #&15                                                          ; 8c4d: a0 15       ..       ; Y=&15: FS function code (read user environment)
@@ -4691,12 +4691,12 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     ldx #4                                                            ; 8c58: a2 04       ..       ; X=4: space padding count
     jsr print_spaces                                                  ; 8c5a: 20 5c 8d     \.      ; Print 4 spaces for alignment
     jsr print_inline                                                  ; 8c5d: 20 3b 85     ;.      ; Print 'Option ' label
-    equs "Option "                                                    ; 8c60: 4f 70 74... Opt...
+    equs "Option "                                                    ; 8c60: 4f 70 74... Opt...   ; Inline text, printed by print_inline
     lda fs_boot_option                                                ; 8c67: ad 05 0e    ...      ; Load boot option from workspace
     tax                                                               ; 8c6a: aa          .        ; X = boot option for name table lookup
     jsr print_hex                                                     ; 8c6b: 20 eb 85     ..      ; Print boot option as hex digit
     jsr print_inline                                                  ; 8c6e: 20 3b 85     ;.      ; Print ' ('
-    equs " ("                                                         ; 8c71: 20 28        (    
+    equs " ("                                                         ; 8c71: 20 28        (       ; Inline text, printed by print_inline
     ldy option_name_offsets,x                                         ; 8c73: bc 4b 8d    .K.      ; Load string offset for option name
 ; &8c76 referenced 1 time by &8c7f
 .print_option_char
@@ -4708,13 +4708,13 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &8c81 referenced 1 time by &8c79
 .done_option_name
     jsr print_inline                                                  ; 8c81: 20 3b 85     ;.      ; Print ')' + CR + 'Dir. '
-    equs ")", &0d, "Dir. "                                            ; 8c84: 29 0d 44... ).D...
+    equs ")", &0d, "Dir. "                                            ; 8c84: 29 0d 44... ).D...   ; Inline text, printed by print_inline
     ldx #&11                                                          ; 8c8b: a2 11       ..       ; X=&11: CSD name offset in reply
     jsr print_reply_bytes                                             ; 8c8d: 20 4f 8d     O.      ; Print current directory name
     ldx #5                                                            ; 8c90: a2 05       ..       ; X=5: space padding count
     jsr print_spaces                                                  ; 8c92: 20 5c 8d     \.      ; Print 5 spaces for alignment
     jsr print_inline                                                  ; 8c95: 20 3b 85     ;.      ; Print 'Lib. ' label
-    equs "Lib. "                                                      ; 8c98: 4c 69 62... Lib...
+    equs "Lib. "                                                      ; 8c98: 4c 69 62... Lib...   ; Inline text, printed by print_inline
     ldx #&1b                                                          ; 8c9d: a2 1b       ..       ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8c9f: 20 4f 8d     O.      ; Print library name
     jsr print_inline                                                  ; 8ca2: 20 3b 85     ;.      ; Print two CRs (blank line)
@@ -4769,9 +4769,9 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; duty as both executable code and ASCII text.
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8cea: 42 4f 4f... BOO...
-    equb &0d                                                          ; 8cee: 0d          .     
+    equb &0d                                                          ; 8cee: 0d          .        ; CR terminator
     equs "E.!BOOT"                                                    ; 8cef: 45 2e 21... E.!...
-    equb &0d                                                          ; 8cf6: 0d          .     
+    equb &0d                                                          ; 8cf6: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Set library handle
 ;
@@ -4879,11 +4879,11 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &8d3a used as index base 1 time by &8c76
 .option_name_strings
     equs "Off"                                                        ; 8d3a: 4f 66 66    Off   
-    equb &00                                                          ; 8d3d: 00          .     
+    equb &00                                                          ; 8d3d: 00          .        ; String terminator
     equs "Load"                                                       ; 8d3e: 4c 6f 61... Loa...
-    equb &00                                                          ; 8d42: 00          .     
+    equb &00                                                          ; 8d42: 00          .        ; String terminator
     equs "Run"                                                        ; 8d43: 52 75 6e    Run   
-    equb &00                                                          ; 8d46: 00          .     
+    equb &00                                                          ; 8d46: 00          .        ; String terminator
     equs "Exec"                                                       ; 8d47: 45 78 65... Exe...
 ; ***************************************************************************************
 ; Option name offsets

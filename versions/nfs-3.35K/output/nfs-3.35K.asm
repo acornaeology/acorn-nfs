@@ -1994,7 +1994,7 @@ cmd_roff_str = copyright_string+3
 ; &8218 referenced 1 time by &820c
 .print_station_info
     jsr print_inline                                                  ; 8218: 20 d9 85     ..      ; Print 'Econet Station ' banner
-    equs "Econet Station "                                            ; 821b: 45 63 6f... Eco...
+    equs "Econet Station "                                            ; 821b: 45 63 6f... Eco...   ; Inline text, printed by print_inline
     ldy #&14                                                          ; 822a: a0 14       ..       ; Y=&14: OSBYTE for version number
     lda (net_rx_ptr),y                                                ; 822c: b1 9c       ..       ; Load station number
     jsr print_decimal                                                 ; 822e: 20 7e 8d     ~.      ; Print as 3-digit decimal
@@ -2002,7 +2002,7 @@ cmd_roff_str = copyright_string+3
     bit econet_control23_or_status2                                   ; 8233: 2c a1 fe    ,..      ; Test DCD: clock present if bit 5 clear
     beq skip_no_clock_msg                                             ; 8236: f0 0d       ..       ; Clock present: skip warning
     jsr print_inline                                                  ; 8238: 20 d9 85     ..      ; Print ' No Clock' warning
-    equs " No Clock"                                                  ; 823b: 20 4e 6f...  No...
+    equs " No Clock"                                                  ; 823b: 20 4e 6f...  No...   ; Inline text, printed by print_inline
     nop                                                               ; 8244: ea          .        ; NOP (padding after inline string)
 ; &8245 referenced 1 time by &8236
 .skip_no_clock_msg
@@ -4632,20 +4632,20 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     ldx #3                                                            ; 8c20: a2 03       ..       ; X=3: start printing from reply offset 3
     jsr print_reply_bytes                                             ; 8c22: 20 b2 8d     ..      ; Print directory title (10 chars)
     jsr print_inline                                                  ; 8c25: 20 d9 85     ..      ; Print '('
-    equs "("                                                          ; 8c28: 28          (     
+    equs "("                                                          ; 8c28: 28          (        ; Inline text, printed by print_inline
     lda fs_reply_stn                                                  ; 8c29: ad 13 0f    ...      ; Load station number from FS reply
     jsr print_decimal                                                 ; 8c2c: 20 7e 8d     ~.      ; Print station number as decimal
     jsr print_inline                                                  ; 8c2f: 20 d9 85     ..      ; Print ') '
-    equs ")     "                                                     ; 8c32: 29 20 20... )  ...
+    equs ")     "                                                     ; 8c32: 29 20 20... )  ...   ; Inline text, printed by print_inline
     ldx fs_access_level                                               ; 8c38: ae 12 0f    ...      ; Load access level from FS reply
     bne print_public                                                  ; 8c3b: d0 0b       ..       ; Non-zero: Public access
     jsr print_inline                                                  ; 8c3d: 20 d9 85     ..      ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; 8c40: 4f 77 6e... Own...
+    equs "Owner", &0d                                                 ; 8c40: 4f 77 6e... Own...   ; Inline text, printed by print_inline
     bne cat_print_header                                              ; 8c46: d0 0a       ..       ; Skip past 'Owner' string
 ; &8c48 referenced 1 time by &8c3b
 .print_public
     jsr print_inline                                                  ; 8c48: 20 d9 85     ..      ; Print 'Public' + CR
-    equs "Public", &0d                                                ; 8c4b: 50 75 62... Pub...
+    equs "Public", &0d                                                ; 8c4b: 50 75 62... Pub...   ; Inline text, printed by print_inline
 ; &8c52 referenced 1 time by &8c46
 .cat_print_header
     ldy #&15                                                          ; 8c52: a0 15       ..       ; Y=&15: FS function code (read user environment)
@@ -4654,12 +4654,12 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     ldy #&10                                                          ; 8c58: a0 10       ..       ; Y=&10: print 16 characters
     jsr print_reply_counted                                           ; 8c5a: 20 b4 8d     ..      ; Print disc/CSD name from reply
     jsr print_inline                                                  ; 8c5d: 20 d9 85     ..      ; Print ' Option '
-    equs "    Option "                                                ; 8c60: 20 20 20...    ...
+    equs "    Option "                                                ; 8c60: 20 20 20...    ...   ; Inline text, printed by print_inline
     lda fs_boot_option                                                ; 8c6b: ad 05 0e    ...      ; Load boot option from FS workspace
     tax                                                               ; 8c6e: aa          .        ; X = boot option for name table lookup
     jsr print_hex                                                     ; 8c6f: 20 9d 8d     ..      ; Print boot option as hex digit
     jsr print_inline                                                  ; 8c72: 20 d9 85     ..      ; Print ' ('
-    equs " ("                                                         ; 8c75: 20 28        (    
+    equs " ("                                                         ; 8c75: 20 28        (       ; Inline text, printed by print_inline
     ldy return_9,x                                                    ; 8c77: bc e0 8c    ...      ; Y = option name offset from table
 ; &8c7a referenced 1 time by &8c83
 .print_option_char
@@ -4671,11 +4671,11 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &8c85 referenced 1 time by &8c7d
 .done_option_name
     jsr print_inline                                                  ; 8c85: 20 d9 85     ..      ; Print ')' + CR + 'Dir. '
-    equs ")", &0d, "Dir. "                                            ; 8c88: 29 0d 44... ).D...
+    equs ")", &0d, "Dir. "                                            ; 8c88: 29 0d 44... ).D...   ; Inline text, printed by print_inline
     ldx #&11                                                          ; 8c8f: a2 11       ..       ; X=&11: CSD name offset in reply
     jsr print_reply_bytes                                             ; 8c91: 20 b2 8d     ..      ; Print CSD name from reply buffer
     jsr print_inline                                                  ; 8c94: 20 d9 85     ..      ; Print ' Lib. ' header
-    equs "     Lib. "                                                 ; 8c97: 20 20 20...    ...
+    equs "     Lib. "                                                 ; 8c97: 20 20 20...    ...   ; Inline text, printed by print_inline
     ldx #&1b                                                          ; 8ca1: a2 1b       ..       ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8ca3: 20 b2 8d     ..      ; Print library name
     jsr print_inline                                                  ; 8ca6: 20 d9 85     ..      ; Print two CRs (blank line)
@@ -4724,7 +4724,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; sequences to save space.
 .boot_cmd_strings
     equs "BOOT"                                                       ; 8ce7: 42 4f 4f... BOO...
-    equb &0d                                                          ; 8ceb: 0d          .     
+    equb &0d                                                          ; 8ceb: 0d          .        ; CR terminator
     equs "E.!BOOT"                                                    ; 8cec: 45 2e 21... E.!...
     equb &0d                                                          ; 8cf3: 0d          .     
 ; ***************************************************************************************
@@ -4890,7 +4890,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     sta fs_crflag                                                     ; 8d68: 85 b9       ..       ; Update column counter
     beq print_cr_separator                                            ; 8d6a: f0 07       ..       ; Column 0: start new line
     jsr print_inline                                                  ; 8d6c: 20 d9 85     ..      ; Print 2-space column separator
-    equs "  "                                                         ; 8d6f: 20 20             
+    equs "  "                                                         ; 8d6f: 20 20                ; Inline text, printed by print_inline
     bne next_dir_entry                                                ; 8d71: d0 05       ..       ; Not last column: skip CR
 ; &8d73 referenced 2 times by &8d62, &8d6a
 .print_cr_separator
@@ -6527,10 +6527,10 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; &96be referenced 2 times by &96c3, &96ca
 .nmi_vec_lo_match
     lda nmi_jmp_lo                                                    ; 96be: ad 0c 0d    ...      ; Load NMI vector low byte
-    cmp #0                                                            ; 96c1: c9 00       ..       ; Check if low byte is expected value
+    cmp #<(nmi_rx_scout)                                              ; 96c1: c9 00       ..       ; Is the NMI handler nmi_rx_scout? (low byte)
     bne nmi_vec_lo_match                                              ; 96c3: d0 f9       ..       ; Mismatch: keep polling
     lda nmi_jmp_hi                                                    ; 96c5: ad 0d 0d    ...      ; Load NMI vector high byte
-    cmp #&97                                                          ; 96c8: c9 97       ..       ; Check if high byte is &97
+    cmp #>(nmi_rx_scout)                                              ; 96c8: c9 97       ..       ; Is the NMI handler nmi_rx_scout? (high byte)
     bne nmi_vec_lo_match                                              ; 96ca: d0 f2       ..       ; Mismatch: keep polling
     bit station_id_disable_net_nmis                                   ; 96cc: 2c 18 fe    ,..      ; BIT INTOFF: disable NMIs
 ; ***************************************************************************************

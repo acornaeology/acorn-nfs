@@ -606,7 +606,7 @@
       "addr": 33403,
       "name": "issue_vectors_claimed",
       "title": "Issue 'vectors claimed' service and optionally auto-boot",
-      "description": "Issues service &0F (vectors claimed) via OSBYTE &8F, then\nservice &0A. If l00a8 is zero (soft break \u2014 RXCBs already\ninitialised), sets up the command string \"I .BOOT\" at &828E\nand jumps to the FSCV 3 unrecognised-command handler (which\nmatches against the command table at &8C4B). The \"I.\" prefix\ntriggers the catch-all entry which forwards the command to\nthe fileserver. Falls through to run_fscv_cmd.",
+      "description": "Issues service &0F (vectors claimed) via OSBYTE &8F, then\nservice &0A. If l00a8 is zero (soft break \u2014 RXCBs already\ninitialised), sets up the command string \"I .BOOT\" at &8292\nand jumps to the FSCV 3 unrecognised-command handler (which\nmatches against the command table at &8C4B). The \"I.\" prefix\ntriggers the catch-all entry which forwards the command to\nthe fileserver. Falls through to run_fscv_cmd.",
       "fall_through": true
     },
     {
@@ -9473,7 +9473,8 @@
     {
       "addr": 33421,
       "bytes": [
-        160
+        160,
+        130
       ],
       "labels": [
         "run_fscv_cmd"
@@ -9492,41 +9493,40 @@
           "kind": "indexed"
         }
       ],
-      "type": "byte",
-      "values": [
-        160
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#&82"
     },
     {
-      "addr": 33422,
+      "addr": 33423,
       "bytes": [
-        130,
         76,
         27,
-        140,
+        140
+      ],
+      "comment_inline": "Execute command string at (X, Y)",
+      "type": "code",
+      "mnemonic": "jmp",
+      "operand": "fscv_3_star_cmd",
+      "target": 35867,
+      "target_label": "fscv_3_star_cmd"
+    },
+    {
+      "addr": 33426,
+      "bytes": [
         73,
         32,
         46,
-        66
+        66,
+        79,
+        79
       ],
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
+      "comment_inline": "Auto-boot command 'I .BOOT', continued at &8298",
       "type": "string",
-      "string": ".L..I .B"
-    },
-    {
-      "addr": 33430,
-      "bytes": [
-        79,
-        79
-      ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
-      "type": "byte",
-      "values": [
-        79,
-        79
-      ]
+      "string": "I .BOO"
     },
     {
       "addr": 33432,
@@ -9537,7 +9537,7 @@
       "labels": [
         "fs_vector_addrs"
       ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
+      "comment_inline": "'T', CR: auto-boot string tail / vector table header",
       "type": "byte",
       "values": [
         84,
@@ -26858,6 +26858,15 @@
         "fscv_3_star_cmd"
       ],
       "comment_inline": "Save A/X/Y and set up command ptr",
+      "xref_summaries": [
+        "&8c1b referenced 1 time by &828f"
+      ],
+      "references": [
+        {
+          "addr": 33423,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
       "mnemonic": "jsr",
       "operand": "save_fscv_args_with_ptrs",
@@ -62706,10 +62715,19 @@
         201,
         191
       ],
-      "comment_inline": "Expected: &BF (nmi_rx_scout low)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (low byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&bf"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 40801,
@@ -62744,10 +62762,19 @@
         201,
         150
       ],
-      "comment_inline": "Expected: &96 (nmi_rx_scout high)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (high byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&96"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 40808,

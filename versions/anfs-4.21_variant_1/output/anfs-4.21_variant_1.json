@@ -24664,10 +24664,19 @@
         201,
         155
       ],
-      "comment_inline": "Expected: &B3 (nmi_rx_scout low)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (low byte)",
       "type": "code",
       "mnemonic": "cmp",
-      "operand": "#&9b"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 35248,
@@ -24702,10 +24711,19 @@
         73,
         128
       ],
-      "comment_inline": "Test if high byte = &80 (page of nmi_rx_scout)",
+      "comment_inline": "Is the NMI handler nmi_rx_scout? (high byte)",
       "type": "code",
       "mnemonic": "eor",
-      "operand": "#&80"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 35255,
@@ -30803,6 +30821,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "  "
     },
@@ -32954,6 +32973,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -33280,6 +33300,7 @@
         101,
         59
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "The authors of ANFS are;"
     },
@@ -33308,6 +33329,7 @@
         114,
         110
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "B Cockburn"
     },
@@ -33316,6 +33338,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -33329,6 +33352,7 @@
         68,
         117
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "J Du"
     },
@@ -33346,6 +33370,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -33366,6 +33391,7 @@
         111,
         110
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "B Robertson"
     },
@@ -33374,6 +33400,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -33390,6 +33417,7 @@
         108,
         115
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "J Wills"
     },
@@ -37604,6 +37632,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Station number in CMOS RAM invalid..Using 1 instead!..."
     },
@@ -38992,6 +39021,7 @@
         109,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "net checksum."
     },
@@ -39044,6 +39074,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Econet Station "
     },
@@ -39151,6 +39182,7 @@
         99,
         107
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " No Clock"
     },
@@ -39234,6 +39266,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39317,6 +39350,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39346,6 +39380,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39452,6 +39487,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39477,6 +39513,7 @@
         62,
         41
       ],
+      "comment_inline": "Syntax help text",
       "type": "string",
       "string": "<dir> (<number>)"
     },
@@ -39485,6 +39522,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39525,6 +39563,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -39557,6 +39596,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -39597,6 +39637,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -42886,6 +42927,7 @@
         120,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "hex."
     },
@@ -43011,6 +43053,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "station number."
     },
@@ -43066,6 +43109,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "number."
     },
@@ -43124,6 +43168,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "parameter."
     },
@@ -43183,6 +43228,7 @@
         114,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "network number."
     },
@@ -44592,6 +44638,7 @@
         101,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "file name."
     },
@@ -45682,6 +45729,7 @@
         101,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "rename."
     },
@@ -46510,6 +46558,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Not found."
     },
@@ -46871,6 +46920,7 @@
         101,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Space.NoSpace."
     },
@@ -46944,6 +46994,7 @@
       "bytes": [
         80
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "P"
     },
@@ -47004,6 +47055,7 @@
       "bytes": [
         70
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "F"
     },
@@ -47054,6 +47106,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "S       "
     },
@@ -47119,6 +47172,7 @@
         62,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "[<D>.]<D>."
     },
@@ -47732,6 +47786,9 @@
         162,
         17
       ],
+      "labels": [
+        "status_space"
+      ],
       "comment_inline": "X=&11: CMOS RAM byte index",
       "type": "code",
       "mnemonic": "ldx",
@@ -47805,6 +47862,7 @@
         111,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "No "
     },
@@ -47853,6 +47911,7 @@
         101,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Space."
     },
@@ -47957,6 +48016,7 @@
       "bytes": [
         46
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "."
     },
@@ -48063,6 +48123,7 @@
       "bytes": [
         46
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "."
     },
@@ -51331,6 +51392,7 @@
         116,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "Data Lost."
     },
@@ -52006,6 +52068,7 @@
         7,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Remoted.."
     },
@@ -56354,6 +56417,7 @@
         111,
         110
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Station"
     },
@@ -56392,6 +56456,7 @@
         99,
         107
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "No clock"
     },
@@ -56430,6 +56495,7 @@
         112,
         101
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Escape"
     },
@@ -56471,6 +56537,7 @@
         111,
         110
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Bad option"
     },
@@ -73156,6 +73223,7 @@
         120,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Syntax."
     },
@@ -75655,6 +75723,7 @@
         100,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "command."
     },
@@ -75777,6 +75846,7 @@
         116,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Won't."
     },
@@ -77817,6 +77887,7 @@
       "bytes": [
         13
       ],
+      "comment_inline": "CR terminator",
       "type": "byte",
       "values": [
         13
@@ -78567,6 +78638,7 @@
         56,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35640
@@ -78618,6 +78690,7 @@
         128,
         181
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         46464
@@ -78667,6 +78740,7 @@
         209,
         182
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         46801
@@ -78714,6 +78788,7 @@
         171,
         179
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45995
@@ -78763,6 +78838,7 @@
         233,
         138
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35561
@@ -78814,6 +78890,7 @@
         213,
         182
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         46805
@@ -78864,6 +78941,7 @@
         64,
         189
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         48448
@@ -78940,6 +79018,7 @@
         36,
         148
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37924
@@ -78988,6 +79067,7 @@
         117,
         151
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38773
@@ -79037,6 +79117,7 @@
         160,
         176
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45216
@@ -79085,6 +79166,7 @@
         17,
         149
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38161
@@ -79134,6 +79216,7 @@
         153,
         166
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         42649
@@ -79181,6 +79264,7 @@
         151,
         163
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         41879
@@ -79242,6 +79326,7 @@
         134,
         141
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36230
@@ -79291,6 +79376,7 @@
         241,
         176
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45297
@@ -79339,6 +79425,7 @@
         247,
         176
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45303
@@ -79387,6 +79474,7 @@
         36,
         148
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37924
@@ -79436,6 +79524,7 @@
         212,
         141
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36308
@@ -79487,6 +79576,7 @@
         196,
         148
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38084
@@ -79536,6 +79626,7 @@
         242,
         182
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         46834
@@ -79620,6 +79711,7 @@
         195,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35779
@@ -79670,6 +79762,7 @@
         191,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35775
@@ -79731,6 +79824,7 @@
         237,
         149
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38381
@@ -79778,6 +79872,7 @@
         237,
         149
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38381
@@ -79809,7 +79904,7 @@
         99,
         101
       ],
-      "comment_inline": "caller &9623",
+      "comment_inline": "*NoSpace: disable the space display",
       "type": "string",
       "string": "NoSpace"
     },
@@ -79830,9 +79925,25 @@
         34,
         150
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38434
+      ],
+      "expressions": [
+        {
+          "text": "cmd_nospace - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_nospace"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -79844,7 +79955,7 @@
         99,
         101
       ],
-      "comment_inline": "caller &9619",
+      "comment_inline": "*Space: enable the space display",
       "type": "string",
       "string": "Space"
     },
@@ -79865,9 +79976,25 @@
         24,
         150
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38424
+      ],
+      "expressions": [
+        {
+          "text": "cmd_space - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "cmd_space"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -79887,7 +80014,7 @@
         70,
         83
       ],
-      "comment_inline": "caller &9670",
+      "comment_inline": "*STATUS FS",
       "type": "string",
       "string": "FS"
     },
@@ -79908,6 +80035,7 @@
         111,
         150
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38511
@@ -79934,7 +80062,7 @@
         80,
         83
       ],
-      "comment_inline": "caller &965F",
+      "comment_inline": "*STATUS PS",
       "type": "string",
       "string": "PS"
     },
@@ -79955,6 +80083,7 @@
         94,
         150
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38494
@@ -79984,7 +80113,7 @@
         99,
         101
       ],
-      "comment_inline": "caller &9641",
+      "comment_inline": "*STATUS Space",
       "type": "string",
       "string": "Space"
     },
@@ -80005,9 +80134,25 @@
         65,
         150
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38465
+      ],
+      "expressions": [
+        {
+          "text": "status_space - 1",
+          "tree": {
+            "op": "sub",
+            "left": {
+              "sym": "status_space"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
       ]
     },
     {
@@ -95069,6 +95214,7 @@
         121,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Printer busy."
     },
@@ -95128,6 +95274,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Printer jammed."
     },
@@ -98305,6 +98452,7 @@
       "bytes": [
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "("
     },
@@ -98360,6 +98508,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": ")     "
     },
@@ -98414,6 +98563,7 @@
         114,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "Owner."
     },
@@ -98467,6 +98617,7 @@
         99,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "Public."
     },
@@ -98607,6 +98758,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "    Option "
     },
@@ -98667,6 +98819,7 @@
         32,
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": " ("
     },
@@ -98796,6 +98949,7 @@
         46,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": ").Dir. "
     },
@@ -101017,6 +101171,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": "  "
     },
@@ -103754,6 +103909,7 @@
         108,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "still "
     },
@@ -103813,6 +103969,7 @@
         119,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "now "
     },
@@ -103978,6 +104135,7 @@
         108,
         101
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "File"
     },
@@ -104044,6 +104202,7 @@
         101,
         114
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Printer"
     },
@@ -105651,6 +105810,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "    "
     },
@@ -106719,6 +106879,7 @@
         32,
         34
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " \""
     },
@@ -107111,6 +107272,7 @@
         115,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " is "
     },
@@ -107174,6 +107336,7 @@
         100,
         121
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "ready"
     },
@@ -107271,6 +107434,7 @@
         101,
         100
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "jammed"
     },
@@ -107354,6 +107518,7 @@
         115,
         121
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "busy"
     },
@@ -107441,6 +107606,7 @@
         110,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " with station "
     },
@@ -109123,6 +109289,7 @@
         32,
         40
       ],
+      "comment_inline": "Inline text, printed by print_inline_no_spool",
       "type": "string",
       "string": " ("
     },
@@ -110334,6 +110501,7 @@
         108,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Net channel."
     },
@@ -110395,6 +110563,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "String terminator",
       "type": "byte",
       "values": [
         0
@@ -110962,6 +111131,7 @@
         121,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Is a directory."
     },
@@ -111457,6 +111627,7 @@
         115,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "No more FCBs."
     },
@@ -115798,6 +115969,7 @@
         121,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Write only."
     },
@@ -116110,6 +116282,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "End of file."
     },
@@ -116536,6 +116709,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline_log)",
       "type": "string",
       "string": "Not open for update."
     },
@@ -118496,6 +118670,7 @@
         101,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Escape."
     },
@@ -119307,6 +119482,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": " : "
     },
@@ -119470,6 +119646,7 @@
         32,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "   "
     },
@@ -119546,6 +119723,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ": "
     },
@@ -122104,6 +122282,7 @@
         115,
         0
       ],
+      "comment_inline": "Error text, appended to 'Bad '",
       "type": "string",
       "string": "address."
     },
@@ -122631,6 +122810,7 @@
         100,
         0
       ],
+      "comment_inline": "Error message text (error_inline)",
       "type": "string",
       "string": "Not found."
     },

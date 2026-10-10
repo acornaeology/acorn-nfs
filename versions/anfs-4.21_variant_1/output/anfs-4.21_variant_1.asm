@@ -3324,10 +3324,10 @@ tx_flags_table = check_tube_irq_loop+1
 ; &89ab referenced 2 times by &89b0, &89b7
 .poll_nmi_idle
     lda nmi_jmp_lo                                                    ; 89ab: ad 0c 0d    ...      ; Read current NMI handler low byte
-    cmp #&9b                                                          ; 89ae: c9 9b       ..       ; Expected: &B3 (nmi_rx_scout low)
+    cmp #<(nmi_rx_scout)                                              ; 89ae: c9 9b       ..       ; Is the NMI handler nmi_rx_scout? (low byte)
     bne poll_nmi_idle                                                 ; 89b0: d0 f9       ..       ; Not idle: spin and wait
     lda nmi_jmp_hi                                                    ; 89b2: ad 0d 0d    ...      ; Read current NMI handler high byte
-    eor #&80                                                          ; 89b5: 49 80       I.       ; Test if high byte = &80 (page of nmi_rx_scout)
+    eor #>(nmi_rx_scout)                                              ; 89b5: 49 80       I.       ; Is the NMI handler nmi_rx_scout? (high byte)
     bne poll_nmi_idle                                                 ; 89b7: d0 f2       ..       ; Not idle: spin and wait
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX-listen
@@ -4042,7 +4042,7 @@ nmi_shim_source = reset_enter_listen+2
 ; &8be0 referenced 1 time by &8bdb
 .print_indent
     jsr print_inline                                                  ; 8be0: 20 61 92     a.      ; Print two-space indent
-    equs "  "                                                         ; 8be3: 20 20             
+    equs "  "                                                         ; 8be3: 20 20                ; Inline text, printed by print_inline
     ldy #9                                                            ; 8be5: a0 09       ..       ; Y=9: cmd_table_fs sub-table 1 offset
     lda cmd_table_fs,x                                                ; 8be7: bd 6c a7    .l.      ; Read cmd_table_fs+X (entry name byte)
 ; &8bea referenced 1 time by &8bf2
@@ -4414,7 +4414,7 @@ nmi_shim_source = reset_enter_listen+2
 .return_1
     rts                                                               ; 8d1b: 60          `        ; Return
     equs "i .Boot"                                                    ; 8d1c: 69 20 2e... i ....
-    equb &0d                                                          ; 8d23: 0d          .     
+    equb &0d                                                          ; 8d23: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Easter egg: match *HELP keyword to author credits
 ;
@@ -4460,16 +4460,16 @@ nmi_shim_source = reset_enter_listen+2
 ; &8d45 used as index base 2 times by &8d2a, &8d39
 .credits_keyword_start
     equb &0d                                                          ; 8d45: 0d          .        ; CR
-    equs "The authors of ANFS are;"                                   ; 8d46: 54 68 65... The...
+    equs "The authors of ANFS are;"                                   ; 8d46: 54 68 65... The...   ; Credits text
     equb &0d                                                          ; 8d5e: 0d          .        ; CR
-    equs "B Cockburn"                                                 ; 8d5f: 42 20 43... B C...
-    equb &0d                                                          ; 8d69: 0d          .     
-    equs "J Du"                                                       ; 8d6a: 4a 20 44... J D...
+    equs "B Cockburn"                                                 ; 8d5f: 42 20 43... B C...   ; Credits text
+    equb &0d                                                          ; 8d69: 0d          .        ; CR terminator
+    equs "J Du"                                                       ; 8d6a: 4a 20 44... J D...   ; Credits text
     equs "nn"                                                         ; 8d6e: 6e 6e       nn    
-    equb &0d                                                          ; 8d70: 0d          .     
-    equs "B Robertson"                                                ; 8d71: 42 20 52... B R...
-    equb &0d                                                          ; 8d7c: 0d          .     
-    equs "J Wills"                                                    ; 8d7d: 4a 20 57... J W...
+    equb &0d                                                          ; 8d70: 0d          .        ; CR terminator
+    equs "B Robertson"                                                ; 8d71: 42 20 52... B R...   ; Credits text
+    equb &0d                                                          ; 8d7c: 0d          .        ; CR terminator
+    equs "J Wills"                                                    ; 8d7d: 4a 20 57... J W...   ; Credits text
     equb &0d                                                          ; 8d84: 0d          .        ; CR
     equb &0d, &00                                                     ; 8d85: 0d 00       ..    
 .cmd_iam_save_ctx
@@ -5212,7 +5212,7 @@ ps_template_base = load_transfer_params+1
 ; &8fc1 referenced 1 time by &9000
 .alloc_error_overflow
     jsr print_inline                                                  ; 8fc1: 20 61 92     a.      ; Print 'Station number in CMOS RAM invalid...' warning
-    equs "Station number in CMOS RAM invalid.", &0d, "Using 1 instead!", &07, &0d, &0d  ; 8fc4: 53 74 61... Sta...
+    equs "Station number in CMOS RAM invalid.", &0d, "Using 1 instead!", &07, &0d, &0d  ; 8fc4: 53 74 61... Sta...  ; Inline text, printed by print_inline
     lda #1                                                            ; 8ffb: a9 01       ..       ; A=1: default station ID
     bra alloc_store_station_id                                        ; 8ffd: 80 05       ..       ; BRA to alloc_store_station_id with default
 ; &8fff referenced 1 time by &8fbf
@@ -5417,7 +5417,7 @@ ps_template_base = load_transfer_params+1
 .error_net_checksum
     lda #&aa                                                          ; 90b5: a9 aa       ..       ; Error number &AA
     jsr error_bad_inline                                              ; 90b7: 20 a7 99     ..      ; Raise 'net checksum' error
-    equs "net checksum", &00                                          ; 90ba: 6e 65 74... net...
+    equs "net checksum", &00                                          ; 90ba: 6e 65 74... net...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Print Econet station number and clock status
 ;
@@ -5434,7 +5434,7 @@ ps_template_base = load_transfer_params+1
 ; &90c7 referenced 2 times by &8caa, &8ce4
 .print_station_id
     jsr print_inline                                                  ; 90c7: 20 61 92     a.      ; Print 'Station ' inline string
-    equs "Econet Station "                                            ; 90ca: 45 63 6f... Eco...
+    equs "Econet Station "                                            ; 90ca: 45 63 6f... Eco...   ; Inline text, printed by print_inline
     ldy #1                                                            ; 90d9: a0 01       ..       ; Y=1: PB station-byte offset
     lda (net_rx_ptr),y                                                ; 90db: b1 9c       ..       ; Read RX[1] = station number
     jsr print_num_no_leading                                          ; 90dd: 20 27 b3     '.      ; Print as decimal (no leading zeros)
@@ -5442,7 +5442,7 @@ ps_template_base = load_transfer_params+1
     bit econet_control23_or_status2                                   ; 90e2: 2c a1 fe    ,..      ; Check ADLC status register 2
     beq done_print_newline                                            ; 90e5: f0 0d       ..       ; Clock present: skip warning
     jsr print_inline                                                  ; 90e7: 20 61 92     a.      ; Print ' No Clock' via inline
-    equs " No Clock"                                                  ; 90ea: 20 4e 6f...  No...
+    equs " No Clock"                                                  ; 90ea: 20 4e 6f...  No...   ; Inline text, printed by print_inline
     nop                                                               ; 90f3: ea          .        ; String terminator
 ; &90f4 referenced 1 time by &90e5
 .done_print_newline
@@ -5462,15 +5462,15 @@ ps_template_base = load_transfer_params+1
 .cmd_syntax_strings
 .syn_opt_dir
     equs "(<dir>)"                                                    ; 90f8: 28 3c 64... (<d...   ; Syn 1: *Dir, *LCat, *LEx, *Wipe
-    equb &00                                                          ; 90ff: 00          .     
+    equb &00                                                          ; 90ff: 00          .        ; String terminator
 .syn_iam
     equs "(<stn. id.>) <user id.> "                                   ; 9100: 28 3c 73... (<s...   ; Syn 2: *I Am (login)
     equb &0d                                                          ; 9118: 0d          .        ; Line break
     equs "((:<CR>)<password>)"                                        ; 9119: 28 28 3a... ((:...   ; syntax help for *Pass / *I am
-    equb &00                                                          ; 912c: 00          .     
+    equb &00                                                          ; 912c: 00          .        ; String terminator
 .syn_object
     equs "<object>"                                                   ; 912d: 3c 6f 62... <ob...   ; Syn 3: *Delete, *FS, *Remove
-    equb &00                                                          ; 9135: 00          .     
+    equb &00                                                          ; 9135: 00          .        ; String terminator
     equs "<filename> (<off"                                           ; 9136: 3c 66 69... <fi...
     equs "set"                                                        ; 9146: 73 65 74    set      ; Store as string pointer low
     equb &3e, &20, &0d                                                ; 9149: 3e 20 0d    > .      ; Store as string pointer high
@@ -5478,16 +5478,16 @@ ps_template_base = load_transfer_params+1
     equb &00                                                          ; 9158: 00          .        ; Null terminator
 .syn_dir
     equs "<dir>"                                                      ; 9159: 3c 64 69... <di...   ; Syn 5: *Lib
-    equb &00                                                          ; 915e: 00          .     
-    equs "<dir> (<number>)"                                           ; 915f: 3c 64 69... <di...
-    equb &00                                                          ; 916f: 00          .     
+    equb &00                                                          ; 915e: 00          .        ; String terminator
+    equs "<dir> (<number>)"                                           ; 915f: 3c 64 69... <di...   ; Syntax help text
+    equb &00                                                          ; 916f: 00          .        ; String terminator
 .syn_password
     equs "(:<CR>) <password> "                                        ; 9170: 28 3a 3c... (:<...   ; Syn 7: *Pass
-    equb &0d                                                          ; 9183: 0d          .     
+    equb &0d                                                          ; 9183: 0d          .        ; CR terminator
     equs "<new password>"                                             ; 9184: 3c 6e 65... <ne...   ; Syn 7 continued: new password
-    equb &00                                                          ; 9192: 00          .     
+    equb &00                                                          ; 9192: 00          .        ; String terminator
     equs "(<stn. id.>|<ps type>)"                                     ; 9193: 28 3c 73... (<s...   ; syntax help for *PS / *Pollps
-    equb &00                                                          ; 91a9: 00          .     
+    equb &00                                                          ; 91a9: 00          .        ; String terminator
 .syn_access
     equs "<object> (L)(W)(R)(/(W)(R))"                                ; 91aa: 3c 6f 62... <ob...   ; Syn 9: *Access
     equb &00                                                          ; 91c5: 00          .        ; Null terminator
@@ -5933,7 +5933,7 @@ ps_template_base = load_transfer_params+1
 .err_bad_hex
     lda #&f1                                                          ; 934a: a9 f1       ..       ; Error code &F1
     jsr error_bad_inline                                              ; 934c: 20 a7 99     ..      ; Raise 'Bad hex' error
-    equs "hex", &00                                                   ; 934f: 68 65 78... hex...
+    equs "hex", &00                                                   ; 934f: 68 65 78... hex...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Raise a number-out-of-range error
 ;
@@ -5947,22 +5947,22 @@ ps_template_base = load_transfer_params+1
 .err_bad_station_num
     lda #&d0                                                          ; 9357: a9 d0       ..       ; A=&D0: 'Bad station' error code
     jsr error_bad_inline                                              ; 9359: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
-    equs "station number", &00                                        ; 935c: 73 74 61... sta...
+    equs "station number", &00                                        ; 935c: 73 74 61... sta...   ; Error text, appended to 'Bad '
 ; &936b referenced 2 times by &92fd, &933f
 .error_bad_number
     lda #&f0                                                          ; 936b: a9 f0       ..       ; A=&F0: 'Bad number' error code
     jsr error_bad_inline                                              ; 936d: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
-    equs "number", &00                                                ; 9370: 6e 75 6d... num...
+    equs "number", &00                                                ; 9370: 6e 75 6d... num...   ; Error text, appended to 'Bad '
 ; &9377 referenced 2 times by &9322, &9355
 .error_bad_param
     lda #&94                                                          ; 9377: a9 94       ..       ; A=&94: 'Bad parameter' error code
     jsr error_bad_inline                                              ; 9379: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
-    equs "parameter", &00                                             ; 937c: 70 61 72... par...
+    equs "parameter", &00                                             ; 937c: 70 61 72... par...   ; Error text, appended to 'Bad '
 ; &9386 referenced 1 time by &9347
 .error_bad_net_num
     lda #&d1                                                          ; 9386: a9 d1       ..       ; A=&D1: 'Bad net number' error code
     jsr error_bad_inline                                              ; 9388: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
-    equs "network number", &00                                        ; 938b: 6e 65 74... net...
+    equs "network number", &00                                        ; 938b: 6e 65 74... net...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Test for digit, '&', or '.' separator
 ;
@@ -6284,7 +6284,7 @@ ps_template_base = load_transfer_params+1
 .error_bad_filename
     lda #&cc                                                          ; 9437: a9 cc       ..       ; Error number &CC
     jsr error_bad_inline                                              ; 9439: 20 a7 99     ..      ; Raise 'Bad file name' error
-    equs "file name", &00                                             ; 943c: 66 69 6c... fil...
+    equs "file name", &00                                             ; 943c: 66 69 6c... fil...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Reject '&' as filename character
 ;
@@ -6465,7 +6465,7 @@ ps_template_base = load_transfer_params+1
 .error_bad_rename
     lda #&b0                                                          ; 94da: a9 b0       ..       ; Error number &B0
     jsr error_bad_inline                                              ; 94dc: 20 a7 99     ..      ; Raise 'Bad rename' error
-    equs "rename", &00                                                ; 94df: 72 65 6e... ren...
+    equs "rename", &00                                                ; 94df: 72 65 6e... ren...   ; Error text, appended to 'Bad '
 ; &94e6 referenced 1 time by &94d8
 .store_rename_char
     sta hazel_txcb_data,x                                             ; 94e6: 9d 05 c1    ...      ; Store character in TX buffer
@@ -6556,7 +6556,7 @@ ps_template_base = load_transfer_params+1
     beq dir_found_send                                                ; 9560: f0 0f       ..       ; Yes: proceed to dir change
     lda #&d6                                                          ; 9562: a9 d6       ..       ; Error number &D6
     jsr error_inline_log                                              ; 9564: 20 c0 99     ..      ; Raise 'Not found' error
-    equs "Not found", &00                                             ; 9567: 4e 6f 74... Not...
+    equs "Not found", &00                                             ; 9567: 4e 6f 74... Not...   ; Error message text (error_inline_log)
 ; &9571 referenced 1 time by &9560
 .dir_found_send
     lda hazel_fs_context_copy                                         ; 9571: ad 03 c0    ...      ; Load current FS station byte
@@ -6586,7 +6586,7 @@ ps_template_base = load_transfer_params+1
     jsr print_station_low                                             ; 95a6: 20 c1 95     ..      ; Print 'PS ' header
     jsr print_dir_syntax                                              ; 95a9: 20 da 95     ..      ; Print '[<D>.]<D>\r' again
     jsr print_inline                                                  ; 95ac: 20 61 92     a.      ; Print final 'Space\rNoSpace\r' lines
-    equs "Space", &0d, "NoSpace", &0d                                 ; 95af: 53 70 61... Spa...
+    equs "Space", &0d, "NoSpace", &0d                                 ; 95af: 53 70 61... Spa...   ; Inline text, printed by print_inline
     nop                                                               ; 95bd: ea          .        ; NOP -- bit-7 terminator + resume opcode for the preceding inline string
 ; &95be referenced 1 time by &9617
 .bra_target_svc_return
@@ -6600,7 +6600,7 @@ ps_template_base = load_transfer_params+1
 ; &95c1 referenced 2 times by &95a6, &963c
 .print_station_low
     jsr print_inline                                                  ; 95c1: 20 61 92     a.      ; Print 'P' prefix
-    equs "P"                                                          ; 95c4: 50          P     
+    equs "P"                                                          ; 95c4: 50          P        ; Inline text, printed by print_inline
     clv                                                               ; 95c5: b8          .        ; CLV -- bit-7 terminator + resume (V flag is irrelevant here, used as 1-byte resume opcode)
     bvc print_field_tail_s                                            ; 95c6: 50 05       P.       ; BVC: V was just cleared -> always taken; falls into the shared 'S ' tail at &95CD
 ; ***************************************************************************************
@@ -6612,12 +6612,12 @@ ps_template_base = load_transfer_params+1
 ; &95c8 referenced 2 times by &95a0, &9636
 .print_fs_station
     jsr print_inline                                                  ; 95c8: 20 61 92     a.      ; Print 'F' prefix
-    equs "F"                                                          ; 95cb: 46          F     
+    equs "F"                                                          ; 95cb: 46          F        ; Inline text, printed by print_inline
     nop                                                               ; 95cc: ea          .        ; NOP -- bit-7 terminator; falls through into the shared 'S ' tail at &95CD
 ; &95cd referenced 1 time by &95c6
 .print_field_tail_s
     jsr print_inline                                                  ; 95cd: 20 61 92     a.      ; Print 'S ' (S + 7 spaces) -- the shared 8-char field used by both 'FS' and 'PS' callers
-    equs "S       "                                                   ; 95d0: 53 20 20... S  ...
+    equs "S       "                                                   ; 95d0: 53 20 20... S  ...   ; Inline text, printed by print_inline
     nop                                                               ; 95d8: ea          .        ; Bit-7 terminator
     rts                                                               ; 95d9: 60          `        ; Return
 ; ***************************************************************************************
@@ -6628,7 +6628,7 @@ ps_template_base = load_transfer_params+1
 ; &95da referenced 2 times by &95a3, &95a9
 .print_dir_syntax
     jsr print_inline                                                  ; 95da: 20 61 92     a.      ; Print '[<D>.]<D>\r' (file-name syntax fragment, shared between *FS/*PS no-arg help and *Dir)
-    equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D...
+    equs "[<D>.]<D>", &0d                                             ; 95dd: 5b 3c 44... [<D...   ; Inline text, printed by print_inline
     nop                                                               ; 95e7: ea          .        ; Bit-7 terminator
     rts                                                               ; 95e8: 60          `        ; Return
 ; &95e9 referenced 1 time by &959e
@@ -6755,18 +6755,19 @@ ps_template_base = load_transfer_params+1
     jsr print_fs_address                                              ; 9639: 20 70 96     p.      ; Print FS network.station from CMOS &02/&01
     jsr print_station_low                                             ; 963c: 20 c1 95     ..      ; Print 'PS ' header
     jsr print_ps_address                                              ; 963f: 20 5f 96     _.      ; Print PS network.station from CMOS &04/&03
+.status_space
     ldx #&11                                                          ; 9642: a2 11       ..       ; X=&11: CMOS RAM byte index
     jsr osbyte_a1                                                     ; 9644: 20 9a 8e     ..      ; Read CMOS &11 (FS state)
     tya                                                               ; 9647: 98          .        ; A = CMOS &11
     and #1                                                            ; 9648: 29 01       ).       ; Mask bit 0 (FS-active flag)
     bne parse_object_space_print                                      ; 964a: d0 07       ..       ; Bit set: skip 'No ' prefix
     jsr print_inline                                                  ; 964c: 20 61 92     a.      ; Print 'No ' prefix via inline
-    equs "No "                                                        ; 964f: 4e 6f 20    No    
+    equs "No "                                                        ; 964f: 4e 6f 20    No       ; Inline text, printed by print_inline
     nop                                                               ; 9652: ea          .        ; Bit-7 terminator + resume
 ; &9653 referenced 1 time by &964a
 .parse_object_space_print
     jsr print_inline                                                  ; 9653: 20 61 92     a.      ; Print 'Space ' or similar via inline
-    equs "Space", &0d                                                 ; 9656: 53 70 61... Spa...
+    equs "Space", &0d                                                 ; 9656: 53 70 61... Spa...   ; Inline text, printed by print_inline
     clv                                                               ; 965c: b8          .        ; Bit-7 terminator + resume opcode
     bvc print_cmos_done                                               ; 965d: 50 2a       P*       ; Always taken (V clear)
 ; ***************************************************************************************
@@ -6783,7 +6784,7 @@ ps_template_base = load_transfer_params+1
     tya                                                               ; 9664: 98          .        ; A = CMOS &04 value
     jsr print_num_no_leading                                          ; 9665: 20 27 b3     '.      ; Print as decimal (no leading zeros)
     jsr print_inline                                                  ; 9668: 20 61 92     a.      ; Print '.' separator via inline
-    equs "."                                                          ; 966b: 2e          .     
+    equs "."                                                          ; 966b: 2e          .        ; Inline text, printed by print_inline
     ldx #3                                                            ; 966c: a2 03       ..       ; X=3: CMOS &03 (PS station)
     bra print_cmos_decimal_nl                                         ; 966e: 80 0f       ..       ; BRA print_cmos_decimal_nl: shared print-and-trail
 ; ***************************************************************************************
@@ -6800,7 +6801,7 @@ ps_template_base = load_transfer_params+1
     tya                                                               ; 9675: 98          .        ; A = CMOS &02
     jsr print_num_no_leading                                          ; 9676: 20 27 b3     '.      ; Print as decimal
     jsr print_inline                                                  ; 9679: 20 61 92     a.      ; Print '.' separator via inline
-    equs "."                                                          ; 967c: 2e          .     
+    equs "."                                                          ; 967c: 2e          .        ; Inline text, printed by print_inline
     ldx #1                                                            ; 967d: a2 01       ..       ; X=1: CMOS &01 (port)
 ; &967f referenced 1 time by &966e
 .print_cmos_decimal_nl
@@ -7262,7 +7263,7 @@ help_topic_template = dispatch_help_command+1
     ror a                                                             ; 9817: 6a          j        ; Bit 0 (was bit 6 of any &40 byte) -> C
     bcc scan_channel_store_reply                                      ; 9818: 90 0d       ..       ; Any channel was active: skip the warning
     jsr print_inline_no_spool                                         ; 981a: 20 8a 92     ..      ; No active channels were lost: print 'Data Lost' warning via inline string
-    equs "Data Lost", &0d                                             ; 981d: 44 61 74... Dat...
+    equs "Data Lost", &0d                                             ; 981d: 44 61 74... Dat...   ; Inline text, printed by print_inline_no_spool
 ; &9827 referenced 1 time by &9818
 .scan_channel_store_reply
     ldx hazel_fs_last_error                                           ; 9827: ae 09 c0    ...      ; Reload error code from &C009
@@ -7339,7 +7340,7 @@ help_topic_template = dispatch_help_command+1
     jsr commit_state_byte                                             ; 987e: 20 5f b0     _.      ; Commit the language-reply state byte
     lda #0                                                            ; 9881: a9 00       ..       ; A=0: 'Bad' error code
     jsr error_inline_log                                              ; 9883: 20 c0 99     ..      ; Raise via error_inline_log (never returns)
-    equs "Remoted", &07, &00                                          ; 9886: 52 65 6d... Rem...
+    equs "Remoted", &07, &00                                          ; 9886: 52 65 6d... Rem...   ; Error message text (error_inline_log)
 ; ***************************************************************************************
 ; Acknowledge escape (if pressed) and classify reply
 ;
@@ -7975,19 +7976,19 @@ bad_prefix_table = bad_str_anchor+1
     equb &00                                                          ; 9abd: 00          .        ; Null terminator
 .msg_station
     equb &a2                                                          ; 9abe: a2          .        ; Error &A2: Station
-    equs "Station"                                                    ; 9abf: 53 74 61... Sta...
+    equs "Station"                                                    ; 9abf: 53 74 61... Sta...   ; Error message text
     equb &00                                                          ; 9ac6: 00          .     
 .msg_no_clock
     equb &a3                                                          ; 9ac7: a3          .     
-    equs "No clock"                                                   ; 9ac8: 4e 6f 20... No ...
+    equs "No clock"                                                   ; 9ac8: 4e 6f 20... No ...   ; Error message text
     equb &00                                                          ; 9ad0: 00          .        ; Null terminator
 .msg_escape
     equb &11                                                          ; 9ad1: 11          .        ; Error &11: Escape
-    equs "Escape"                                                     ; 9ad2: 45 73 63... Esc...
+    equs "Escape"                                                     ; 9ad2: 45 73 63... Esc...   ; Error message text
     equb &00                                                          ; 9ad8: 00          .     
 .msg_bad_option
     equb &cb                                                          ; 9ad9: cb          .        ; Error &CB: Bad option
-    equs "Bad option"                                                 ; 9ada: 42 61 64... Bad...
+    equs "Bad option"                                                 ; 9ada: 42 61 64... Bad...   ; Error message text
     equb &00                                                          ; 9ae4: 00          .        ; Null terminator + Error &A5: No reply from station
 .msg_no_reply
     equb &a5                                                          ; 9ae5: a5          .     
@@ -10260,7 +10261,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .error_syntax
     lda #&dc                                                          ; a442: a9 dc       ..       ; Error code &DC
     jsr error_inline                                                  ; a444: 20 c3 99     ..      ; Raise 'Syntax' error
-    equs "Syntax", &00                                                ; a447: 53 79 6e... Syn...
+    equs "Syntax", &00                                                ; a447: 53 79 6e... Syn...   ; Error message text (error_inline)
 ; &a44e referenced 2 times by &a43e, &a440
 .dispatch_fs_cmd
     lda #0                                                            ; a44e: a9 00       ..       ; A=0: clear svc_state
@@ -10546,7 +10547,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 .error_bad_command
     lda #&fe                                                          ; a5a1: a9 fe       ..       ; Error code &FE
     jsr error_bad_inline                                              ; a5a3: 20 a7 99     ..      ; Raise 'Bad command' error
-    equs "command", &00                                               ; a5a6: 63 6f 6d... com...
+    equs "command", &00                                               ; a5a6: 63 6f 6d... com...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Validate exec address is non-zero
 ;
@@ -10573,7 +10574,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     bne loop_check_exec_bytes                                         ; a5b6: d0 f8       ..       ; Loop until all checked
     lda #&93                                                          ; a5b8: a9 93       ..       ; A=&93: error code 'Bad command'
     jsr error_inline_log                                              ; a5ba: 20 c0 99     ..      ; Generate 'No!' error
-    equs "Won't", &00                                                 ; a5bd: 57 6f 6e... Won...
+    equs "Won't", &00                                                 ; a5bd: 57 6f 6e... Won...   ; Error message text (error_inline_log)
 ; ***************************************************************************************
 ; Allocate FCB slot for *RUN target file
 ;
@@ -10880,7 +10881,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
 ; used here rather than a plain *FindLib.
 .findlib_oscli_cmd
     equs "-NET-FindLib"                                               ; a6fe: 2d 4e 45... -NE...
-    equb &0d                                                          ; a70a: 0d          .     
+    equb &0d                                                          ; a70a: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; If CMOS auto-CLI bit set, OSCLI '-NET-FindLib'
 ;
@@ -11041,103 +11042,103 @@ cmd_dispatch_lo_table = cmd_table_fs+1
 cmd_dispatch_hi_table = cmd_table_fs+2
     equs "Net"                                                        ; a76c: 4e 65 74    Net      ; Econet HW check + select NFS
     equb &80                                                          ; a76f: 80          .        ; no syn
-    equw cmd_net_check_hw - 1                                         ; a770: 38 8b       8.    
+    equw cmd_net_check_hw - 1                                         ; a770: 38 8b       8.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Pollps"                                                     ; a772: 50 6f 6c... Pol...   ; syn 8: (<stn. id.>|<ps type>)
     equb &88                                                          ; a778: 88          .        ; syn &8
-    equw cmd_pollps - 1                                               ; a779: 80 b5       ..    
+    equw cmd_pollps - 1                                               ; a779: 80 b5       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Prot"                                                       ; a77b: 50 72 6f... Pro...   ; toggle CMOS protection bit
     equb &80                                                          ; a77f: 80          .        ; no syn
-    equw cmd_prot - 1                                                 ; a780: d1 b6       ..    
+    equw cmd_prot - 1                                                 ; a780: d1 b6       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "PS"                                                         ; a782: 50 53       PS       ; syn 8: (<stn. id.>|<ps type>)
     equb &88                                                          ; a784: 88          .        ; syn &8
-    equw cmd_ps - 1                                                   ; a785: ab b3       ..    
+    equw cmd_ps - 1                                                   ; a785: ab b3       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Roff"                                                       ; a787: 52 6f 66... Rof...   ; printer offline
     equb &80                                                          ; a78b: 80          .        ; no syn
-    equw cmd_roff - 1                                                 ; a78c: e9 8a       ..    
+    equw cmd_roff - 1                                                 ; a78c: e9 8a       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Unprot"                                                     ; a78e: 55 6e 70... Unp...   ; toggle CMOS protection bit
     equb &80                                                          ; a794: 80          .        ; no syn
-    equw cmd_unprot - 1                                               ; a795: d5 b6       ..    
+    equw cmd_unprot - 1                                               ; a795: d5 b6       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Wdump"                                                      ; a797: 57 64 75... Wdu...   ; syn 4 -- *DUMP alias
     equb &c4                                                          ; a79c: c4          .        ; syn &4, V if no arg
-    equw cmd_dump - 1                                                 ; a79d: 40 bd       @.    
+    equw cmd_dump - 1                                                 ; a79d: 40 bd       @.       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a79f: 80          .        ; Sub-table 1 end (walker reads &80 -> stop)
     equb &80                                                          ; a7a0: 80          .        ; Padding (alignment before sub-table 2)
 .cmd_table_nfs
     equs "Access"                                                     ; a7a1: 41 63 63... Acc...   ; syn 9: <obj> (L)(W)(R)...
     equb &c9                                                          ; a7a7: c9          .        ; syn &9, V if no arg
-    equw cmd_fs_operation - 1                                         ; a7a8: 24 94       $.    
+    equw cmd_fs_operation - 1                                         ; a7a8: 24 94       $.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Bye"                                                        ; a7aa: 42 79 65    Bye      ; log off FS
     equb &80                                                          ; a7ad: 80          .        ; no syn
-    equw cmd_bye - 1                                                  ; a7ae: 75 97       u.    
+    equw cmd_bye - 1                                                  ; a7ae: 75 97       u.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Cdir"                                                       ; a7b0: 43 64 69... Cdi...   ; syn 6 -- create directory
     equb &c6                                                          ; a7b4: c6          .        ; syn &6, V if no arg
-    equw cmd_cdir - 1                                                 ; a7b5: a0 b0       ..    
+    equw cmd_cdir - 1                                                 ; a7b5: a0 b0       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Dir"                                                        ; a7b7: 44 69 72    Dir      ; syn 1: (<dir>)
     equb &81                                                          ; a7ba: 81          .        ; syn &1
-    equw cmd_dir - 1                                                  ; a7bb: 11 95       ..    
+    equw cmd_dir - 1                                                  ; a7bb: 11 95       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Flip"                                                       ; a7bd: 46 6c 69... Fli...   ; swap fs/private workspace
     equb &80                                                          ; a7c1: 80          .        ; no syn
-    equw cmd_flip - 1                                                 ; a7c2: 99 a6       ..    
+    equw cmd_flip - 1                                                 ; a7c2: 99 a6       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "FS"                                                         ; a7c4: 46 53       FS       ; syn &B -- file-server selection
     equb &8b                                                          ; a7c6: 8b          .        ; syn &B
-    equw cmd_fs - 1                                                   ; a7c7: 97 a3       ..    
+    equw cmd_fs - 1                                                   ; a7c7: 97 a3       ..       ; Handler address - 1 (PHA/PHA/RTS)
 ; &a7c9 used as index base 1 time by &8dc8
 .cmd_table_nfs_iam
     equs "I am"                                                       ; a7c9: 49 20 61... I a...   ; syn 2: (<stn>) <user>...
     equb &c2                                                          ; a7cd: c2          .        ; syn &2, V if no arg
-    equw cmd_iam_save_ctx - 1                                         ; a7ce: 86 8d       ..    
+    equw cmd_iam_save_ctx - 1                                         ; a7ce: 86 8d       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lcat"                                                       ; a7d0: 4c 63 61... Lca...   ; syn 1: (<dir>) -- *CAT of library
     equb &81                                                          ; a7d4: 81          .        ; syn &1
-    equw cmd_lcat - 1                                                 ; a7d5: f1 b0       ..    
+    equw cmd_lcat - 1                                                 ; a7d5: f1 b0       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lex"                                                        ; a7d7: 4c 65 78    Lex      ; syn 1: (<dir>) -- *EX of library
     equb &81                                                          ; a7da: 81          .        ; syn &1
-    equw cmd_lex - 1                                                  ; a7db: f7 b0       ..    
+    equw cmd_lex - 1                                                  ; a7db: f7 b0       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lib"                                                        ; a7dd: 4c 69 62    Lib      ; syn 5: <dir> -- set library
     equb &c5                                                          ; a7e0: c5          .        ; syn &5, V if no arg
-    equw cmd_fs_operation - 1                                         ; a7e1: 24 94       $.    
+    equw cmd_fs_operation - 1                                         ; a7e1: 24 94       $.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Pass"                                                       ; a7e3: 50 61 73... Pas...   ; syn 7: <pass> ...
     equb &c7                                                          ; a7e7: c7          .        ; syn &7, V if no arg
-    equw cmd_pass - 1                                                 ; a7e8: d4 8d       ..    
+    equw cmd_pass - 1                                                 ; a7e8: d4 8d       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Rename"                                                     ; a7ea: 52 65 6e... Ren...   ; syn &A: <old> <new>
     equb &ca                                                          ; a7f0: ca          .        ; syn &A, V if no arg
-    equw cmd_rename - 1                                               ; a7f1: c4 94       ..    
+    equw cmd_rename - 1                                               ; a7f1: c4 94       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Wipe"                                                       ; a7f3: 57 69 70... Wip...   ; syn 1: (<dir>) -- delete with confirm
     equb &81                                                          ; a7f7: 81          .        ; syn &1
-    equw cmd_wipe - 1                                                 ; a7f8: f2 b6       ..    
+    equw cmd_wipe - 1                                                 ; a7f8: f2 b6       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a7fa: 80          .        ; Sub-table 2 end (walker reads &80 -> stop)
     equb &2c                                                          ; a7fb: 2c          ,        ; Padding -- &2C 8E happens to spell &8E2D = check_urd_prefix but is never read
     equb &8e                                                          ; a7fc: 8e          .        ; Padding (continued)
 .cmd_table_help_topics
     equs "Net"                                                        ; a7fd: 4e 65 74    Net      ; *HELP NET
     equb &80                                                          ; a800: 80          .        ; no syn
-    equw help_net - 1                                                 ; a801: c3 8b       ..    
+    equw help_net - 1                                                 ; a801: c3 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Utils"                                                      ; a803: 55 74 69... Uti...   ; *HELP UTILS
     equb &80                                                          ; a808: 80          .        ; no syn
-    equw help_utils - 1                                               ; a809: bf 8b       ..    
+    equw help_utils - 1                                               ; a809: bf 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a80b: 80          .        ; Sub-table 3 end (walker reads &80 -> stop)
 .cmd_table_syntax_help
     equs "FS"                                                         ; a80c: 46 53       FS       ; FS not selected
     equb &c1                                                          ; a80e: c1          .        ; syn &1, V if no arg
-    equw set_fs_or_ps_cmos_station - 1                                ; a80f: ed 95       ..    
+    equw set_fs_or_ps_cmos_station - 1                                ; a80f: ed 95       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "PS"                                                         ; a811: 50 53       PS       ; PS not selected
     equb &c3                                                          ; a813: c3          .        ; syn &3, V if no arg
-    equw set_fs_or_ps_cmos_station - 1                                ; a814: ed 95       ..    
-    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS...   ; caller &9623
+    equw set_fs_or_ps_cmos_station - 1                                ; a814: ed 95       ..       ; Handler address - 1 (PHA/PHA/RTS)
+    equs "NoSpace"                                                    ; a816: 4e 6f 53... NoS...   ; *NoSpace: disable the space display
     equb &80                                                          ; a81d: 80          .        ; no syn
-    equw &9622                                                        ; a81e: 22 96       ".    
-    equs "Space"                                                      ; a820: 53 70 61... Spa...   ; caller &9619
+    equw cmd_nospace - 1                                              ; a81e: 22 96       ".       ; Handler address - 1 (PHA/PHA/RTS)
+    equs "Space"                                                      ; a820: 53 70 61... Spa...   ; *Space: enable the space display
     equb &80                                                          ; a825: 80          .        ; no syn
-    equw &9618                                                        ; a826: 18 96       ..    
+    equw cmd_space - 1                                                ; a826: 18 96       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a828: 80          .        ; Sub-tables 4/5 separator
-    equs "FS"                                                         ; a829: 46 53       FS       ; caller &9670
+    equs "FS"                                                         ; a829: 46 53       FS       ; *STATUS FS
     equb &81                                                          ; a82b: 81          .        ; syn &1
-    equw print_fs_address - 1                                         ; a82c: 6f 96       o.    
-    equs "PS"                                                         ; a82e: 50 53       PS       ; caller &965F
+    equw print_fs_address - 1                                         ; a82c: 6f 96       o.       ; Handler address - 1 (PHA/PHA/RTS)
+    equs "PS"                                                         ; a82e: 50 53       PS       ; *STATUS PS
     equb &83                                                          ; a830: 83          .        ; syn &3
-    equw print_ps_address - 1                                         ; a831: 5e 96       ^.    
-    equs "Space"                                                      ; a833: 53 70 61... Spa...   ; caller &9641
+    equw print_ps_address - 1                                         ; a831: 5e 96       ^.       ; Handler address - 1 (PHA/PHA/RTS)
+    equs "Space"                                                      ; a833: 53 70 61... Spa...   ; *STATUS Space
     equb &80                                                          ; a838: 80          .        ; no syn
-    equw &9641                                                        ; a839: 41 96       A.    
+    equw status_space - 1                                             ; a839: 41 96       A.       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a83b: 80          .        ; &80: end of command table
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
@@ -12987,12 +12988,12 @@ bridge_err_table = compare_bridge_status+1
 .err_printer_busy
     lda #&a6                                                          ; af80: a9 a6       ..       ; A=&A6: 'Printer busy' error code
     jsr error_inline_log                                              ; af82: 20 c0 99     ..      ; Raise via error_inline_log (never returns)
-    equs "Printer busy", &00                                          ; af85: 50 72 69... Pri...
+    equs "Printer busy", &00                                          ; af85: 50 72 69... Pri...   ; Error message text (error_inline_log)
 ; &af92 referenced 1 time by &af7e
 .printer_busy_msg
     lda #&a7                                                          ; af92: a9 a7       ..       ; A=&A7: 'Printer jammed' error code
     jsr error_inline_log                                              ; af94: 20 c0 99     ..      ; Raise via error_inline_log (never returns)
-    equs "Printer jammed", &00                                        ; af97: 50 72 69... Pri...
+    equs "Printer jammed", &00                                        ; af97: 50 72 69... Pri...   ; Error message text (error_inline_log)
 ; ***************************************************************************************
 ; Send Econet disconnect reply packet
 ;
@@ -13434,20 +13435,20 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ldx #3                                                            ; b153: a2 03       ..       ; X=3: offset to directory title
     jsr print_10_chars                                                ; b155: 20 1a b2     ..      ; Print directory title (10 chars)
     jsr print_inline_no_spool                                         ; b158: 20 8a 92     ..      ; Print '('
-    equs "("                                                          ; b15b: 28          (     
+    equs "("                                                          ; b15b: 28          (        ; Inline text, printed by print_inline_no_spool
     lda hazel_txcb_objtype                                            ; b15c: ad 13 c1    ...      ; Load FS object-type code from hazel_txcb_objtype (file/dir/etc)
     jsr print_dec_3dig_no_spool                                       ; b15f: 20 03 b3     ..      ; Print a 3-digit decimal (no spool)
     jsr print_inline_no_spool                                         ; b162: 20 8a 92     ..      ; Print ') ' to close the type-code field
-    equs ")     "                                                     ; b165: 29 20 20... )  ...
+    equs ")     "                                                     ; b165: 29 20 20... )  ...   ; Inline text, printed by print_inline_no_spool
     ldy hazel_txcb_type                                               ; b16b: ac 12 c1    ...      ; Read hazel_txcb_type (FS reply opcode)
     bne print_public_label                                            ; b16e: d0 0b       ..       ; Non-zero (private library): take the public-label branch
     jsr print_inline_no_spool                                         ; b170: 20 8a 92     ..      ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own...
+    equs "Owner", &0d                                                 ; b173: 4f 77 6e... Own...   ; Inline text, printed by print_inline_no_spool
     bne cat_after_label_print                                         ; b179: d0 0a       ..       ; Non-zero: branch to cat_after_label_print
 ; &b17b referenced 1 time by &b16e
 .print_public_label
     jsr print_inline_no_spool                                         ; b17b: 20 8a 92     ..      ; Print 'Public' + CR
-    equs "Public", &0d                                                ; b17e: 50 75 62... Pub...
+    equs "Public", &0d                                                ; b17e: 50 75 62... Pub...   ; Inline text, printed by print_inline_no_spool
 ; &b185 referenced 1 time by &b179
 .cat_after_label_print
     lda hazel_fs_lib_flags                                            ; b185: ad 71 c2    .q.      ; Read hazel_fs_lib_flags
@@ -13459,12 +13460,12 @@ cdir_size_thresholds = cdir_dispatch_col+2
     ldy #&10                                                          ; b192: a0 10       ..       ; Y=&10: print 16 chars
     jsr print_chars_from_buf                                          ; b194: 20 1c b2     ..      ; Print file entry
     jsr print_inline_no_spool                                         ; b197: 20 8a 92     ..      ; Print ' Option '
-    equs "    Option "                                                ; b19a: 20 20 20...    ...
+    equs "    Option "                                                ; b19a: 20 20 20...    ...   ; Inline text, printed by print_inline_no_spool
     lda hazel_boot_option                                             ; b1a5: ad 05 c0    ...      ; Read hazel_boot_option
     tax                                                               ; b1a8: aa          .        ; Transfer to X for table lookup
     jsr print_hex_byte_no_spool                                       ; b1a9: 20 4c 92     L.      ; Print option as hex
     jsr print_inline_no_spool                                         ; b1ac: 20 8a 92     ..      ; Print ' ('
-    equs " ("                                                         ; b1af: 20 28        (    
+    equs " ("                                                         ; b1af: 20 28        (       ; Inline text, printed by print_inline_no_spool
     ldy option_str_offset_data,x                                      ; b1b1: bc 98 b2    ...      ; Look up option-string offset for index X
 ; &b1b4 referenced 1 time by &b1bd
 .loop_print_dir_format
@@ -13476,7 +13477,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b1bf referenced 1 time by &b1b7
 .print_dir_header
     jsr print_inline_no_spool                                         ; b1bf: 20 8a 92     ..      ; Print ')\rDir. ' header for the directory listing
-    equs ")", &0d, "Dir. "                                            ; b1c2: 29 0d 44... ).D...
+    equs ")", &0d, "Dir. "                                            ; b1c2: 29 0d 44... ).D...   ; Inline text, printed by print_inline_no_spool
     ldx #&11                                                          ; b1c9: a2 11       ..       ; X=&11: filename offset in TX buffer
     jsr print_10_chars                                                ; b1cb: 20 1a b2     ..      ; Print 10-char filename
     jsr print_inline_no_spool                                         ; b1ce: 20 8a 92     ..      ; Print inline 'attr-bits' fragment
@@ -13780,7 +13781,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
     sta fs_spool_handle                                               ; b2ec: 85 ba       ..       ; Save the new column index
     beq col_sep_eol_check                                             ; b2ee: f0 07       ..       ; Wrapped to 0: end of row, print newline
     jsr print_inline_no_spool                                         ; b2f0: 20 8a 92     ..      ; Mid-row: print 2-space column separator via inline
-    equs "  "                                                         ; b2f3: 20 20             
+    equs "  "                                                         ; b2f3: 20 20                ; Inline text, printed by print_inline_no_spool
     bne col_sep_print_char                                            ; b2f5: d0 05       ..       ; Non-zero: take col_sep_print_char tail
 ; &b2f7 referenced 2 times by &b2e6, &b2ee
 .col_sep_eol_check
@@ -14179,13 +14180,13 @@ cdir_size_thresholds = cdir_dispatch_col+2
     lda (net_rx_ptr),y                                                ; b45c: b1 9c       ..       ; Read marker byte
     bne print_ps_now                                                  ; b45e: d0 0c       ..       ; Non-zero: print 'now <stn>'
     jsr print_inline                                                  ; b460: 20 61 92     a.      ; Print 'still ' fragment
-    equs "still "                                                     ; b463: 73 74 69... sti...
+    equs "still "                                                     ; b463: 73 74 69... sti...   ; Inline text, printed by print_inline
     clv                                                               ; b469: b8          .        ; Bit-7 terminator (next opcode)
     bvc print_ps_padding                                              ; b46a: 50 08       P.       ; Always taken (V clear)
 ; &b46c referenced 1 time by &b45e
 .print_ps_now
     jsr print_inline                                                  ; b46c: 20 61 92     a.      ; Print 'now ' fragment
-    equs "now "                                                       ; b46f: 6e 6f 77... now...
+    equs "now "                                                       ; b46f: 6e 6f 77... now...   ; Inline text, printed by print_inline
     nop                                                               ; b473: ea          .        ; Bit-7 terminator
 ; &b474 referenced 1 time by &b46a
 .print_ps_padding
@@ -14216,7 +14217,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b483 referenced 1 time by &a3b8
 .print_file_server_is
     jsr print_inline                                                  ; b483: 20 61 92     a.      ; Print 'File' via inline string
-    equs "File"                                                       ; b486: 46 69 6c... Fil...
+    equs "File"                                                       ; b486: 46 69 6c... Fil...   ; Inline text, printed by print_inline
     clv                                                               ; b48a: b8          .        ; Clear V so the BVC below is taken
     bvc print_server_is_suffix                                        ; b48b: 50 0b       P.       ; Always taken (V was just cleared); skip the 'Printer' prologue and reach the shared ' server is ' suffix
 ; ***************************************************************************************
@@ -14229,7 +14230,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; &b48d referenced 2 times by &b457, &b5fe
 .print_printer_server_is
     jsr print_inline                                                  ; b48d: 20 61 92     a.      ; Print 'Printer' via inline string
-    equs "Printer"                                                    ; b490: 50 72 69... Pri...
+    equs "Printer"                                                    ; b490: 50 72 69... Pri...   ; Inline text, printed by print_inline
     nop                                                               ; b497: ea          .        ; NOP -- bit-7 terminator + harmless resume opcode
 ; &b498 referenced 1 time by &b48b
 .print_server_is_suffix
@@ -14459,7 +14460,7 @@ ps_print_template = write_ps_slot_hi_link+1
 .skip_if_local_net
     bvs local_net_prefix                                              ; b566: 70 07       p.       ; V set: skip leading-space padding
     jsr print_inline                                                  ; b568: 20 61 92     a.      ; V clear (caller wanted padding): print 4 leading spaces via inline string
-    equs "    "                                                       ; b56b: 20 20 20...    ...
+    equs "    "                                                       ; b56b: 20 20 20...    ...   ; Inline text, printed by print_inline
 ; &b56f referenced 1 time by &b566
 .local_net_prefix
     lda fs_work_5                                                     ; b56f: a5 b5       ..       ; Read station number (fs_work_5)
@@ -14575,7 +14576,7 @@ ps_print_template = write_ps_slot_hi_link+1
     bit always_set_v_byte                                             ; b604: 2c 69 97    ,i.      ; Set V and N flags
     jsr print_station_addr                                            ; b607: 20 56 b5     V.      ; Print station address
     jsr print_inline                                                  ; b60a: 20 61 92     a.      ; Print ' "'
-    equs " ", &22                                                     ; b60d: 20 22        "    
+    equs " ", &22                                                     ; b60d: 20 22        "       ; Inline text, printed by print_inline
     ldy #&18                                                          ; b60f: a0 18       ..       ; Y=&18: name field offset in RX buffer
 ; &b611 referenced 1 time by &b61d
 .loop_print_poll_name
@@ -14612,12 +14613,12 @@ ps_print_template = write_ps_slot_hi_link+1
     clv                                                               ; b63e: b8          .        ; Clear V flag
     jsr print_station_addr                                            ; b63f: 20 56 b5     V.      ; Print station address (V=0)
     jsr print_inline                                                  ; b642: 20 61 92     a.      ; Print ' is '
-    equs " is "                                                       ; b645: 20 69 73...  is...
+    equs " is "                                                       ; b645: 20 69 73...  is...   ; Inline text, printed by print_inline
     ldx #0                                                            ; b649: a2 00       ..       ; X=0: indexed-indirect access mode
     lda (work_ae,x)                                                   ; b64b: a1 ae       ..       ; Read printer status byte
     bne check_poll_jammed                                             ; b64d: d0 0b       ..       ; Non-zero: not ready
     jsr print_inline                                                  ; b64f: 20 61 92     a.      ; Print 'ready'
-    equs "ready"                                                      ; b652: 72 65 61... rea...
+    equs "ready"                                                      ; b652: 72 65 61... rea...   ; Inline text, printed by print_inline
     clv                                                               ; b657: b8          .        ; Ensure V clear so next BVC always taken
     bvc done_poll_status_line                                         ; b658: 50 40       P@       ; Always taken (V clear)
 ; &b65a referenced 1 time by &b64d
@@ -14627,7 +14628,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b65e referenced 1 time by &b66c
 .print_poll_jammed
     jsr print_inline                                                  ; b65e: 20 61 92     a.      ; Print 'jammed'
-    equs "jammed"                                                     ; b661: 6a 61 6d... jam...
+    equs "jammed"                                                     ; b661: 6a 61 6d... jam...   ; Inline text, printed by print_inline
     clv                                                               ; b667: b8          .        ; Clear V
     bvc done_poll_status_line                                         ; b668: 50 30       P0       ; Always taken (V clear)
 ; &b66a referenced 1 time by &b65c
@@ -14635,13 +14636,13 @@ ps_print_template = write_ps_slot_hi_link+1
     cmp #1                                                            ; b66a: c9 01       ..       ; Status = 1?
     bne print_poll_jammed                                             ; b66c: d0 f0       ..       ; Not 1 or 2: default to jammed
     jsr print_inline                                                  ; b66e: 20 61 92     a.      ; Print 'busy'
-    equs "busy"                                                       ; b671: 62 75 73... bus...
+    equs "busy"                                                       ; b671: 62 75 73... bus...   ; Inline text, printed by print_inline
     inc work_ae                                                       ; b675: e6 ae       ..       ; Advance work_ae to next status byte (lo)
     lda (work_ae,x)                                                   ; b677: a1 ae       ..       ; Read client station number
     sta fs_work_5                                                     ; b679: 85 b5       ..       ; Store station low
     beq done_poll_status_line                                         ; b67b: f0 1d       ..       ; Zero: no client info, skip
     jsr print_inline                                                  ; b67d: 20 61 92     a.      ; Print ' with station '
-    equs " with station "                                             ; b680: 20 77 69...  wi...
+    equs " with station "                                             ; b680: 20 77 69...  wi...   ; Inline text, printed by print_inline
     inc work_ae                                                       ; b68e: e6 ae       ..       ; Advance work_ae to next status byte (lo)
     lda (work_ae,x)                                                   ; b690: a1 ae       ..       ; Read network number byte via (work_ae,X)
     sta fs_work_6                                                     ; b692: 85 b6       ..       ; Store network number
@@ -14868,7 +14869,7 @@ ps_print_template = write_ps_slot_hi_link+1
     cpx #&3e                                                          ; b77a: e0 3e       .>       ; End of TX[5+X] name field at offset &3E?
     bne loop_print_wipe_info                                          ; b77c: d0 f5       ..       ; No: continue printing
     jsr print_inline_no_spool                                         ; b77e: 20 8a 92     ..      ; Print 'Wipe? ' help suffix via inline string
-    equs " ("                                                         ; b781: 20 28        (    
+    equs " ("                                                         ; b781: 20 28        (       ; Inline text, printed by print_inline_no_spool
     nop                                                               ; b783: ea          .        ; Bit-7 terminator + resume
     jsr prompt_yn                                                     ; b784: 20 cb b7     ..      ; Re-prompt user with prompt_yn
 ; &b787 referenced 1 time by &b76a
@@ -15046,11 +15047,11 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b821 used as index base 2 times by &b867, &b87b
 net_chan_err_strings = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b81f: 20 c0 99     ..      ; Generate 'Net channel' error
-    equs "Net channel", &00                                           ; b822: 4e 65 74... Net...
+    equs "Net channel", &00                                           ; b822: 4e 65 74... Net...   ; Error message text (error_inline_log)
     jsr false_ref_6f6e                                                ; b82e: 20 6e 6f     no      ; Error string continuation (unreachable)
     stz tx_buffer_scratch,x                                           ; b831: 74 20       t        ; Clear tx_buffer_scratch+X scratch
     equs "on this file server"                                        ; b833: 6f 6e 20... on ...
-    equb &00                                                          ; b846: 00          .     
+    equb &00                                                          ; b846: 00          .        ; String terminator
 ; ***************************************************************************************
 ; Look up channel by character code
 ;
@@ -15131,7 +15132,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     beq return_7                                                      ; b891: f0 14       ..       ; Not a directory: return OK
     lda #&a8                                                          ; b893: a9 a8       ..       ; Error code &A8
     jsr error_inline_log                                              ; b895: 20 c0 99     ..      ; Generate 'Is a dir.' error
-    equs "Is a directory", &00                                        ; b898: 49 73 20... Is ...
+    equs "Is a directory", &00                                        ; b898: 49 73 20... Is ...   ; Error message text (error_inline_log)
 ; &b8a7 referenced 1 time by &b891
 .return_7
     rts                                                               ; b8a7: 60          `        ; Return
@@ -15197,7 +15198,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bne return_alloc_success                                          ; b8e2: d0 12       ..       ; Success: slot allocated
     lda #&c0                                                          ; b8e4: a9 c0       ..       ; Error code &C0
     jsr error_inline_log                                              ; b8e6: 20 c0 99     ..      ; Generate 'No more FCBs' error
-    equs "No more FCBs", &00                                          ; b8e9: 4e 6f 20... No ...
+    equs "No more FCBs", &00                                          ; b8e9: 4e 6f 20... No ...   ; Error message text (error_inline_log)
 ; &b8f6 referenced 1 time by &b8e2
 .return_alloc_success
     pla                                                               ; b8f6: 68          h        ; Restore argument
@@ -15728,7 +15729,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     beq done_read_fcb_byte                                            ; bb75: f0 10       ..       ; Not write-only: proceed with read
     lda #&d4                                                          ; bb77: a9 d4       ..       ; Error code &D4
     jsr error_inline_log                                              ; bb79: 20 c0 99     ..      ; Generate 'Write only' error
-    equs "Write only", &00                                            ; bb7c: 57 72 69... Wri...
+    equs "Write only", &00                                            ; bb7c: 57 72 69... Wri...   ; Error message text (error_inline_log)
 ; &bb87 referenced 1 time by &bb75
 .done_read_fcb_byte
     clv                                                               ; bb87: b8          .        ; Clear V (first-pass matching)
@@ -15756,7 +15757,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 .error_end_of_file
     lda #&df                                                          ; bbb1: a9 df       ..       ; Error code &DF
     jsr error_inline_log                                              ; bbb3: 20 c0 99     ..      ; Generate 'End of file' error
-    equs "End of file", &00                                           ; bbb6: 45 6e 64... End...
+    equs "End of file", &00                                           ; bbb6: 45 6e 64... End...   ; Error message text (error_inline_log)
 ; &bbc2 referenced 2 times by &bb8b, &bb93
 .done_load_from_buf
     lda hazel_fcb_addr_lo,y                                           ; bbc2: b9 00 c2    ...      ; Load current byte count (= offset)
@@ -15808,7 +15809,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bmi done_test_write_flag                                          ; bbf9: 30 19       0.       ; Bit 7 set: channel open, proceed
     lda #&c1                                                          ; bbfb: a9 c1       ..       ; Error &C1: Not open for update
     jsr error_inline_log                                              ; bbfd: 20 c0 99     ..      ; Raise error with inline string
-    equs "Not open for update", &00                                   ; bc00: 4e 6f 74... Not...
+    equs "Not open for update", &00                                   ; bc00: 4e 6f 74... Not...   ; Error message text (error_inline_log)
 ; &bc14 referenced 1 time by &bbf9
 .done_test_write_flag
     and #&20                                                          ; bc14: 29 20       )        ; Test write flag (bit 5)
@@ -16067,7 +16068,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr osbyte                                                        ; bd32: 20 f4 ff     ..      ; Clear escape condition and perform escape effects
     lda #&11                                                          ; bd35: a9 11       ..       ; Error number &11
     jsr error_inline                                                  ; bd37: 20 c3 99     ..      ; Generate 'Escape' BRK error
-    equs "Escape", &00                                                ; bd3a: 45 73 63... Esc...
+    equs "Escape", &00                                                ; bd3a: 45 73 63... Esc...   ; Error message text (error_inline)
 ; ***************************************************************************************
 ; *Dump command handler
 ;
@@ -16173,7 +16174,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bne loop_inc_dump_addr                                            ; bda9: d0 f3       ..       ; No: continue propagating
     plp                                                               ; bdab: 28          (        ; Restore final C
     jsr print_inline                                                  ; bdac: 20 61 92     a.      ; Print ' : ' separator before hex byte field
-    equs " : "                                                        ; bdaf: 20 3a 20     :    
+    equs " : "                                                        ; bdaf: 20 3a 20     :       ; Inline text, printed by print_inline
     ldy #0                                                            ; bdb2: a0 00       ..       ; Y=0: start of buffer
     ldx osword_flag                                                   ; bdb4: a6 aa       ..       ; X = byte counter (-1 initially, INC'd to 0..&0F)
 ; &bdb6 referenced 1 time by &bdc1
@@ -16199,7 +16200,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bpl loop_print_dump_hex                                           ; bdc1: 10 f3       ..       ; Have a real byte? Print it
     phy                                                               ; bdc3: 5a          Z        ; End of partial line: pad with 3 spaces
     jsr print_inline                                                  ; bdc4: 20 61 92     a.      ; Print ' ' inline
-    equs "   "                                                        ; bdc7: 20 20 20          
+    equs "   "                                                        ; bdc7: 20 20 20             ; Inline text, printed by print_inline
     nop                                                               ; bdca: ea          .        ; NOP -- bit-7 terminator + harmless resume opcode
     ply                                                               ; bdcb: 7a          z        ; Restore Y
     jmp loop_next_dump_col                                            ; bdcc: 4c bb bd    L..      ; Continue padding the rest of the hex column
@@ -16207,7 +16208,7 @@ net_chan_err_strings = err_net_chan_not_found+2
 .done_print_separator
     dex                                                               ; bdcf: ca          .        ; Counter has finished -- step it once more for the ASCII test
     jsr print_inline                                                  ; bdd0: 20 61 92     a.      ; Print ': ' inline (ASCII field separator)
-    equs ": "                                                         ; bdd3: 3a 20       :     
+    equs ": "                                                         ; bdd3: 3a 20       :        ; Inline text, printed by print_inline
     ldy #0                                                            ; bdd5: a0 00       ..       ; Y=0: rewind to start of line buffer
     jsr inx16                                                         ; bdd7: 20 ba bf     ..      ; Skip 16 padding spaces if needed (inx16)
 ; &bdda referenced 1 time by &bdf1
@@ -16506,7 +16507,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     jsr close_ws_file                                                 ; bf43: 20 71 bf     q.      ; Parse error: close file then raise 'Bad address'
     lda #&fc                                                          ; bf46: a9 fc       ..       ; A=&FC: 'Bad address' error code
     jsr error_bad_inline                                              ; bf48: 20 a7 99     ..      ; Raise; never returns
-    equs "address", &00                                               ; bf4b: 61 64 64... add...
+    equs "address", &00                                               ; bf4b: 61 64 64... add...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Add the 4-byte address at (work_ae) to the workspace value
 ;
@@ -16578,7 +16579,7 @@ net_chan_err_strings = err_net_chan_not_found+2
     bne restore_text_ptr                                              ; bf8d: d0 0f       ..       ; Non-zero: open succeeded, skip error path
     lda #&d6                                                          ; bf8f: a9 d6       ..       ; A=&D6: 'Not found' error code
     jsr error_inline                                                  ; bf91: 20 c3 99     ..      ; Raise the error with the inline string below; never returns
-    equs "Not found", &00                                             ; bf94: 4e 6f 74... Not...
+    equs "Not found", &00                                             ; bf94: 4e 6f 74... Not...   ; Error message text (error_inline)
 ; &bf9e referenced 1 time by &bf8d
 .restore_text_ptr
     pla                                                               ; bf9e: 68          h        ; Restore the saved filename high byte into os_text_ptr_hi -- but wait, this writes the FILENAME address into os_text_ptr; the caller intentionally moves os_text_ptr to scan past the filename below

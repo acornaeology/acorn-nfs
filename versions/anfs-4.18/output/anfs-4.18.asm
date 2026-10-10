@@ -3591,10 +3591,10 @@ service_handler_lo = service_entry+1
 ; &8988 referenced 2 times by &898d, &8994
 .poll_nmi_idle
     lda nmi_jmp_lo                                                    ; 8988: ad 0c 0d    ...      ; Read current NMI handler low byte
-    cmp #&be                                                          ; 898b: c9 be       ..       ; Expected: &B3 (nmi_rx_scout low)
+    cmp #<(nmi_rx_scout)                                              ; 898b: c9 be       ..       ; Is the NMI handler nmi_rx_scout? (low byte)
     bne poll_nmi_idle                                                 ; 898d: d0 f9       ..       ; Not idle: spin and wait
     lda nmi_jmp_hi                                                    ; 898f: ad 0d 0d    ...      ; Read current NMI handler high byte
-    eor #&80                                                          ; 8992: 49 80       I.       ; Test if high byte = &80 (page of nmi_rx_scout)
+    eor #>(nmi_rx_scout)                                              ; 8992: 49 80       I.       ; Is the NMI handler nmi_rx_scout? (high byte)
     bne poll_nmi_idle                                                 ; 8994: d0 f2       ..       ; Not idle: spin and wait
 ; ***************************************************************************************
 ; Reset Econet flags and enter RX listen
@@ -4154,7 +4154,7 @@ init_rom_scan = record_break_and_setup_ws+2
 ; &8bb6 referenced 1 time by &8bb1
 .print_indent
     jsr print_inline                                                  ; 8bb6: 20 45 91     E.      ; Print two-space indent
-    equs "  "                                                         ; 8bb9: 20 20             
+    equs "  "                                                         ; 8bb9: 20 20                ; Inline text, printed by print_inline
     ldy #9                                                            ; 8bbb: a0 09       ..       ; Y=9: max command name length
     lda cmd_table_fs,x                                                ; 8bbd: bd f0 a3    ...      ; Load first byte of command name
 ; &8bc0 referenced 1 time by &8bc8
@@ -4195,7 +4195,7 @@ init_rom_scan = record_break_and_setup_ws+2
     txa                                                               ; 8bf6: 8a          .        ; Save table pointer
     pha                                                               ; 8bf7: 48          H        ; Push it
     jsr print_inline                                                  ; 8bf8: 20 45 91     E.      ; Print opening parenthesis
-    equs "("                                                          ; 8bfb: 28          (     
+    equs "("                                                          ; 8bfb: 28          (        ; Inline text, printed by print_inline
     ldy #0                                                            ; 8bfc: a0 00       ..       ; Y=0: shared command counter
     ldx #&d3                                                          ; 8bfe: a2 d3       ..       ; X=&D3: shared command table start
 ; &8c00 referenced 1 time by &8c22
@@ -4454,7 +4454,7 @@ version_string = version_string_cr+1
     lda #osbyte_issue_service_request                                 ; 8d0a: a9 8f       ..       ; OSBYTE &8F: issue service request
     jmp osbyte                                                        ; 8d0c: 4c f4 ff    L..      ; Issue paged ROM service call, Reason X
     equs "i .boot"                                                    ; 8d0f: 69 20 2e... i ....
-    equb &0d                                                          ; 8d16: 0d          .     
+    equb &0d                                                          ; 8d16: 0d          .        ; CR terminator
 ; ***************************************************************************************
 ; Easter egg: match *HELP keyword to author credits
 ;
@@ -4496,9 +4496,9 @@ version_string = version_string_cr+1
 .credits_string
     equs "The authors of ANFS are;"                                   ; 8d39: 54 68 65... The...
     equb &0d                                                          ; 8d51: 0d          .        ; CR
-    equs "B Cockburn"                                                 ; 8d52: 42 20 43... B C...
+    equs "B Cockburn"                                                 ; 8d52: 42 20 43... B C...   ; Credits text
     equb &0d                                                          ; 8d5c: 0d          .        ; CR
-    equs "J Du"                                                       ; 8d5d: 4a 20 44... J D...
+    equs "J Du"                                                       ; 8d5d: 4a 20 44... J D...   ; Credits text
 ; &8d61 used as index base 1 time by &b01b
 .ps_template_base
     equs "nn"                                                         ; 8d61: 6e 6e       nn    
@@ -5121,7 +5121,7 @@ ws_init_data = error_bad_station+2
 .error_net_checksum
     lda #&aa                                                          ; 8fe4: a9 aa       ..       ; Error number &AA
     jsr error_bad_inline                                              ; 8fe6: 20 b8 96     ..      ; Raise 'net checksum' error
-    equs "net sum", &00                                               ; 8fe9: 6e 65 74... net...
+    equs "net sum", &00                                               ; 8fe9: 6e 65 74... net...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Print Econet station number and clock status
 ;
@@ -5133,7 +5133,7 @@ ws_init_data = error_bad_station+2
 ; &8ff1 referenced 2 times by &8cb6, &8ce3
 .print_station_id
     jsr print_inline                                                  ; 8ff1: 20 45 91     E.      ; Print 'Econet Station ' prefix
-    equs "Econet Station "                                            ; 8ff4: 45 63 6f... Eco...
+    equs "Econet Station "                                            ; 8ff4: 45 63 6f... Eco...   ; Inline text, printed by print_inline
     ldy #1                                                            ; 9003: a0 01       ..       ; Y=1: station number offset in RX block
     lda (net_rx_ptr),y                                                ; 9005: b1 9c       ..       ; Load station ID from receive block
     jsr print_num_no_leading                                          ; 9007: 20 85 af     ..      ; Print station number as decimal
@@ -5141,7 +5141,7 @@ ws_init_data = error_bad_station+2
     bit econet_control23_or_status2                                   ; 900c: 2c a1 fe    ,..      ; Check ADLC status register 2
     beq done_print_newline                                            ; 900f: f0 0d       ..       ; Clock present: skip warning
     jsr print_inline                                                  ; 9011: 20 45 91     E.      ; Print ' No Clock' via inline
-    equs " No Clock"                                                  ; 9014: 20 4e 6f...  No...
+    equs " No Clock"                                                  ; 9014: 20 4e 6f...  No...   ; Inline text, printed by print_inline
     nop                                                               ; 901d: ea          .        ; NOP (string terminator)
 ; &901e referenced 1 time by &900f
 .done_print_newline
@@ -5446,7 +5446,7 @@ ws_init_data = error_bad_station+2
 .err_bad_hex
     lda #&f1                                                          ; 9208: a9 f1       ..       ; Error code &F1
     jsr error_bad_inline                                              ; 920a: 20 b8 96     ..      ; Generate 'Bad hex' error
-    equs "hex", &00                                                   ; 920d: 68 65 78... hex...
+    equs "hex", &00                                                   ; 920d: 68 65 78... hex...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Raise a number-out-of-range error
 ;
@@ -5460,22 +5460,22 @@ ws_init_data = error_bad_station+2
 .err_bad_station_num
     lda #&d0                                                          ; 9215: a9 d0       ..       ; Error code &D0
     jsr error_bad_inline                                              ; 9217: 20 b8 96     ..      ; Generate 'Bad station number' error
-    equs "station number", &00                                        ; 921a: 73 74 61... sta...
+    equs "station number", &00                                        ; 921a: 73 74 61... sta...   ; Error text, appended to 'Bad '
 ; &9229 referenced 2 times by &91bb, &91fd
 .error_bad_number
     lda #&f0                                                          ; 9229: a9 f0       ..       ; Error code &F0
     jsr error_bad_inline                                              ; 922b: 20 b8 96     ..      ; Generate 'Bad number' error
-    equs "number", &00                                                ; 922e: 6e 75 6d... num...
+    equs "number", &00                                                ; 922e: 6e 75 6d... num...   ; Error text, appended to 'Bad '
 ; &9235 referenced 2 times by &91e0, &9213
 .error_bad_param
     lda #&94                                                          ; 9235: a9 94       ..       ; Error code &94
     jsr error_bad_inline                                              ; 9237: 20 b8 96     ..      ; Generate 'Bad parameter' error
-    equs "parameter", &00                                             ; 923a: 70 61 72... par...
+    equs "parameter", &00                                             ; 923a: 70 61 72... par...   ; Error text, appended to 'Bad '
 ; &9244 referenced 1 time by &9205
 .error_bad_net_num
     lda #&d1                                                          ; 9244: a9 d1       ..       ; Error code &D1
     jsr error_bad_inline                                              ; 9246: 20 b8 96     ..      ; Generate 'Bad network number' error
-    equs "network number", &00                                        ; 9249: 6e 65 74... net...
+    equs "network number", &00                                        ; 9249: 6e 65 74... net...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Test for digit, '&', or '.' separator
 ;
@@ -5746,7 +5746,7 @@ ws_init_data = error_bad_station+2
 .error_bad_filename
     lda #&cc                                                          ; 92fa: a9 cc       ..       ; Error number &CC
     jsr error_bad_inline                                              ; 92fc: 20 b8 96     ..      ; Raise 'Bad file name' error
-    equs "file name", &00                                             ; 92ff: 66 69 6c... fil...
+    equs "file name", &00                                             ; 92ff: 66 69 6c... fil...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Reject '&' as filename character
 ;
@@ -5871,7 +5871,7 @@ ws_init_data = error_bad_station+2
     beq rts_copy_cmd_name                                             ; 937d: f0 c9       ..       ; Balanced: return OK
     lda brk_ptr                                                       ; 937f: a5 fd       ..       ; Unbalanced: use BRK ptr for error
     jsr error_bad_inline                                              ; 9381: 20 b8 96     ..      ; Raise 'Bad string' error
-    equs "string", &00                                                ; 9384: 73 74 72... str...
+    equs "string", &00                                                ; 9384: 73 74 72... str...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; *Rename command handler
 ;
@@ -5898,7 +5898,7 @@ ws_init_data = error_bad_station+2
 .error_bad_rename
     lda #&b0                                                          ; 93a2: a9 b0       ..       ; Error number &B0
     jsr error_bad_inline                                              ; 93a4: 20 b8 96     ..      ; Raise 'Bad rename' error
-    equs "rename", &00                                                ; 93a7: 72 65 6e... ren...
+    equs "rename", &00                                                ; 93a7: 72 65 6e... ren...   ; Error text, appended to 'Bad '
 ; &93ae referenced 1 time by &93a0
 .store_rename_char
     sta fs_cmd_data,x                                                 ; 93ae: 9d 05 0f    ...      ; Store character in TX buffer
@@ -5982,7 +5982,7 @@ ws_init_data = error_bad_station+2
     beq dir_found_send                                                ; 942b: f0 0f       ..       ; Yes: proceed to dir change
     lda #&d6                                                          ; 942d: a9 d6       ..       ; Error number &D6
     jsr error_inline_log                                              ; 942f: 20 d1 96     ..      ; Raise 'Not found' error
-    equs "Not found", &00                                             ; 9432: 4e 6f 74... Not...
+    equs "Not found", &00                                             ; 9432: 4e 6f 74... Not...   ; Error message text (error_inline_log)
 ; &943c referenced 1 time by &942b
 .dir_found_send
     lda fs_csd_handle                                                 ; 943c: ad 03 0e    ...      ; Load current FS station byte
@@ -6255,7 +6255,7 @@ ws_init_data = error_bad_station+2
     ror a                                                             ; 9537: 6a          j        ; Bit 0 to carry (data lost?)
     bcc reload_reply_status                                           ; 9538: 90 0d       ..       ; No data lost: skip message
     jsr print_inline                                                  ; 953a: 20 45 91     E.      ; Print 'Data Lost' + CR
-    equs "Data Lost", &0d                                             ; 953d: 44 61 74... Dat...
+    equs "Data Lost", &0d                                             ; 953d: 44 61 74... Dat...   ; Inline text, printed by print_inline
 ; &9547 referenced 1 time by &9538
 .reload_reply_status
     ldx fs_last_error                                                 ; 9547: ae 09 0e    ...      ; Reload reply status code
@@ -6338,7 +6338,7 @@ ws_init_data = error_bad_station+2
     jsr commit_state_byte                                             ; 95ae: 20 dd ac     ..      ; Commit state change
     lda #0                                                            ; 95b1: a9 00       ..       ; Error code 0
     jsr error_inline_log                                              ; 95b3: 20 d1 96     ..      ; Generate 'Remoted' error
-    equs "Remoted", &00                                               ; 95b6: 52 65 6d... Rem...
+    equs "Remoted", &00                                               ; 95b6: 52 65 6d... Rem...   ; Error message text (error_inline_log)
 .lang_4_remote_validated
     ldy #0                                                            ; 95be: a0 00       ..       ; Offset 0: remote state byte
     lda (net_rx_ptr),y                                                ; 95c0: b1 9c       ..       ; Load remote state
@@ -6829,29 +6829,29 @@ bad_prefix = bad_str_anchor+1
     equb &00                                                          ; 97c5: 00          .        ; Null terminator
 .msg_net_error
     equb &a1                                                          ; 97c6: a1          .        ; Error &A1: Net error
-    equs "Net error"                                                  ; 97c7: 4e 65 74... Net...
+    equs "Net error"                                                  ; 97c7: 4e 65 74... Net...   ; Error message text
     equb &00                                                          ; 97d0: 00          .        ; Null terminator
 .msg_station
     equb &a2                                                          ; 97d1: a2          .        ; Error &A2: Station
-    equs "Station"                                                    ; 97d2: 53 74 61... Sta...
+    equs "Station"                                                    ; 97d2: 53 74 61... Sta...   ; Error message text
     equb &00                                                          ; 97d9: 00          .        ; Null terminator
 .msg_no_clock
     equb &a3                                                          ; 97da: a3          .        ; Error &A3: No clock
     equb &4e                                                          ; 97db: 4e          N     
-    equs "o clock"                                                    ; 97dc: 6f 20 63... o c...
+    equs "o clock"                                                    ; 97dc: 6f 20 63... o c...   ; Error message text
     equb &00                                                          ; 97e3: 00          .        ; Null terminator
 .msg_escape
     equb &11                                                          ; 97e4: 11          .        ; Error &11: Escape
-    equs "Escape"                                                     ; 97e5: 45 73 63... Esc...
+    equs "Escape"                                                     ; 97e5: 45 73 63... Esc...   ; Error message text
     equb &00                                                          ; 97eb: 00          .        ; Null terminator
 .msg_bad_option
     equb &cb                                                          ; 97ec: cb          .        ; Error &CB: Bad option
-    equs "Bad option"                                                 ; 97ed: 42 61 64... Bad...
+    equs "Bad option"                                                 ; 97ed: 42 61 64... Bad...   ; Error message text
     equb &00                                                          ; 97f7: 00          .        ; Null terminator
 .msg_no_reply
     equb &a5                                                          ; 97f8: a5          .        ; Error &A5: No reply from station
     equb &4e                                                          ; 97f9: 4e          N     
-    equs "o reply from station"                                       ; 97fa: 6f 20 72... o r...
+    equs "o reply from station"                                       ; 97fa: 6f 20 72... o r...   ; Error message text
     equb &00                                                          ; 980e: 00          .        ; Null terminator
 .msg_not_listening
     equs " not listening"                                             ; 980f: 20 6e 6f...  no...   ; Suffix: " not listening"
@@ -8666,7 +8666,7 @@ bad_prefix = bad_str_anchor+1
 .error_syntax
     lda #&dc                                                          ; a127: a9 dc       ..       ; Error code &DC
     jsr error_inline                                                  ; a129: 20 d4 96     ..      ; Generate 'Syntax' error
-    equs "Syntax", &00                                                ; a12c: 53 79 6e... Syn...
+    equs "Syntax", &00                                                ; a12c: 53 79 6e... Syn...   ; Error message text (error_inline)
 ; &a133 referenced 2 times by &a123, &a125
 .dispatch_fs_cmd
     lda #0                                                            ; a133: a9 00       ..       ; A=0: clear service state
@@ -8898,7 +8898,7 @@ bad_prefix = bad_str_anchor+1
 .error_bad_command
     lda #&fe                                                          ; a25d: a9 fe       ..       ; Error code &FE
     jsr error_bad_inline                                              ; a25f: 20 b8 96     ..      ; Generate 'Bad command' error
-    equs "command", &00                                               ; a262: 63 6f 6d... com...
+    equs "command", &00                                               ; a262: 63 6f 6d... com...   ; Error text, appended to 'Bad '
 ; &a26a referenced 1 time by &a1e7
 .check_exec_addr
     ldx #3                                                            ; a26a: a2 03       ..       ; X=3: check 4 execution bytes
@@ -8910,7 +8910,7 @@ bad_prefix = bad_str_anchor+1
     bne loop_check_exec_bytes                                         ; a272: d0 f8       ..       ; Loop until all checked
     lda #&93                                                          ; a274: a9 93       ..       ; Error code &93
     jsr error_inline_log                                              ; a276: 20 d1 96     ..      ; Generate 'No!' error
-    equs "No!", &00                                                   ; a279: 4e 6f 21... No!...
+    equs "No!", &00                                                   ; a279: 4e 6f 21... No!...   ; Error message text (error_inline_log)
 ; &a27d referenced 1 time by &a203
 .alloc_run_channel
     lda fs_cmd_data                                                   ; a27d: ad 05 0f    ...      ; Load open mode result
@@ -9143,7 +9143,7 @@ bad_prefix = bad_str_anchor+1
 .boot_load_cmd
     rts                                                               ; a3ce: 60          `        ; CTRL pressed: cancel boot, return
     equs "L.!BOOT"                                                    ; a3cf: 4c 2e 21... L.!...
-    equb &0d                                                          ; a3d6: 0d          .     
+    equb &0d                                                          ; a3d6: 0d          .        ; CR terminator
 .boot_exec_cmd
     equs "E.!BOOT"                                                    ; a3d7: 45 2e 21... E.!...
     equb &0d                                                          ; a3de: 0d          .     
@@ -10936,12 +10936,12 @@ bridge_ws_init_data = compare_bridge_status+1
 .err_printer_busy
     lda #&a6                                                          ; abfe: a9 a6       ..       ; A=&A6: printer busy error number
     jsr error_inline_log                                              ; ac00: 20 d1 96     ..      ; Generate 'Printer busy' error
-    equs "Printer busy", &00                                          ; ac03: 50 72 69... Pri...
+    equs "Printer busy", &00                                          ; ac03: 50 72 69... Pri...   ; Error message text (error_inline_log)
 ; &ac10 referenced 1 time by &abfc
 .error_printer_jammed
     lda #&a7                                                          ; ac10: a9 a7       ..       ; A=&A7: printer jammed error number
     jsr error_inline_log                                              ; ac12: 20 d1 96     ..      ; Generate 'Printer jammed' error
-    equs "Printer jammed", &00                                        ; ac15: 50 72 69... Pri...
+    equs "Printer jammed", &00                                        ; ac15: 50 72 69... Pri...   ; Error message text (error_inline_log)
 ; ***************************************************************************************
 ; Send Econet disconnect reply packet
 ;
@@ -11309,20 +11309,20 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     ldx #3                                                            ; adbb: a2 03       ..       ; X=3: offset to directory title
     jsr print_10_chars                                                ; adbd: 20 82 ae     ..      ; Print directory title (10 chars)
     jsr print_inline                                                  ; adc0: 20 45 91     E.      ; Print '('
-    equs "("                                                          ; adc3: 28          (     
+    equs "("                                                          ; adc3: 28          (        ; Inline text, printed by print_inline
     lda fs_reply_stn                                                  ; adc4: ad 13 0f    ...      ; Load FS object-type code from hazel_txcb_objtype (file/dir/etc)
     jsr print_decimal_3dig                                            ; adc7: 20 88 af     ..      ; Print a 3-digit decimal (no spool)
     jsr print_inline                                                  ; adca: 20 45 91     E.      ; Print ') ' to close the type-code field
-    equs ")     "                                                     ; adcd: 29 20 20... )  ...
+    equs ")     "                                                     ; adcd: 29 20 20... )  ...   ; Inline text, printed by print_inline
     ldy fs_access_level                                               ; add3: ac 12 0f    ...      ; Get owner/public flag
     bne print_public_label                                            ; add6: d0 0b       ..       ; Non-zero: public access
     jsr print_inline                                                  ; add8: 20 45 91     E.      ; Print 'Owner' + CR
-    equs "Owner", &0d                                                 ; addb: 4f 77 6e... Own...
+    equs "Owner", &0d                                                 ; addb: 4f 77 6e... Own...   ; Inline text, printed by print_inline
     bne send_dir_info_req                                             ; ade1: d0 0a       ..       ; Skip public; ALWAYS branch
 ; &ade3 referenced 1 time by &add6
 .print_public_label
     jsr print_inline                                                  ; ade3: 20 45 91     E.      ; Print 'Public' + CR
-    equs "Public", &0d                                                ; ade6: 50 75 62... Pub...
+    equs "Public", &0d                                                ; ade6: 50 75 62... Pub...   ; Inline text, printed by print_inline
 ; &aded referenced 1 time by &ade1
 .send_dir_info_req
     lda fs_lib_flags                                                  ; aded: ad 71 10    .q.      ; Get flags
@@ -11334,12 +11334,12 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     ldy #&10                                                          ; adfa: a0 10       ..       ; Y=&10: print 16 chars
     jsr print_chars_from_buf                                          ; adfc: 20 84 ae     ..      ; Print file entry
     jsr print_inline                                                  ; adff: 20 45 91     E.      ; Print ' Option '
-    equs "    Option "                                                ; ae02: 20 20 20...    ...
+    equs "    Option "                                                ; ae02: 20 20 20...    ...   ; Inline text, printed by print_inline
     lda fs_boot_option                                                ; ae0d: ad 05 0e    ...      ; Get option byte
     tax                                                               ; ae10: aa          .        ; Transfer to X for table lookup
     jsr print_hex_byte                                                ; ae11: 20 2f 91     /.      ; Print option as hex
     jsr print_inline                                                  ; ae14: 20 45 91     E.      ; Print ' ('
-    equs " ("                                                         ; ae17: 20 28        (    
+    equs " ("                                                         ; ae17: 20 28        (       ; Inline text, printed by print_inline
     ldy option_str_offset_data,x                                      ; ae19: bc fb ae    ...      ; Y=string offset for boot option X
 ; &ae1c referenced 1 time by &ae25
 .loop_print_option_str
@@ -11351,11 +11351,11 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; &ae27 referenced 1 time by &ae1f
 .print_dir_header
     jsr print_inline                                                  ; ae27: 20 45 91     E.      ; Print ')\rDir. ' header for the directory listing
-    equs ")", &0d, "Dir. "                                            ; ae2a: 29 0d 44... ).D...
+    equs ")", &0d, "Dir. "                                            ; ae2a: 29 0d 44... ).D...   ; Inline text, printed by print_inline
     ldx #&11                                                          ; ae31: a2 11       ..       ; Offset &11: directory name
     jsr print_10_chars                                                ; ae33: 20 82 ae     ..      ; Print directory name (10 chars)
     jsr print_inline                                                  ; ae36: 20 45 91     E.      ; Print ' Lib. '
-    equs "     Lib. "                                                 ; ae39: 20 20 20...    ...
+    equs "     Lib. "                                                 ; ae39: 20 20 20...    ...   ; Inline text, printed by print_inline
     ldx #&1b                                                          ; ae43: a2 1b       ..       ; Offset &1B: library name
     jsr print_10_chars                                                ; ae45: 20 82 ae     ..      ; Print library name (10 chars)
     jsr osnewl                                                        ; ae48: 20 e7 ff     ..      ; Print newline
@@ -11623,7 +11623,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     sta fs_spool_handle                                               ; af4f: 85 ba       ..       ; Store updated counter
     beq print_col_newline                                             ; af51: f0 07       ..       ; Zero: row full, print newline
     jsr print_inline                                                  ; af53: 20 45 91     E.      ; Print ' ' column separator
-    equs "  "                                                         ; af56: 20 20             
+    equs "  "                                                         ; af56: 20 20                ; Inline text, printed by print_inline
     bne next_col_entry                                                ; af58: d0 05       ..       ; Skip newline; ALWAYS branch
 ; &af5a referenced 2 times by &af49, &af51
 .print_col_newline
@@ -11952,13 +11952,13 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     lda (net_rx_ptr),y                                                ; b09e: b1 9c       ..       ; Get stored station number
     bne print_ps_now                                                  ; b0a0: d0 0c       ..       ; Non-zero: server changed
     jsr print_inline                                                  ; b0a2: 20 45 91     E.      ; Print 'still '
-    equs "still "                                                     ; b0a5: 73 74 69... sti...
+    equs "still "                                                     ; b0a5: 73 74 69... sti...   ; Inline text, printed by print_inline
     clv                                                               ; b0ab: b8          .        ; Clear V
     bvc done_ps_status_msg                                            ; b0ac: 50 08       P.       ; Always taken (V clear)
 ; &b0ae referenced 1 time by &b0a0
 .print_ps_now
     jsr print_inline                                                  ; b0ae: 20 45 91     E.      ; Print 'now '
-    equs "now "                                                       ; b0b1: 6e 6f 77... now...
+    equs "now "                                                       ; b0b1: 6e 6f 77... now...   ; Inline text, printed by print_inline
     nop                                                               ; b0b5: ea          .        ; Padding
 ; &b0b6 referenced 1 time by &b0ac
 .done_ps_status_msg
@@ -11981,7 +11981,7 @@ store_ps_station = done_ps_status_msg+2
 ; &b0c5 referenced 1 time by &a09b
 .print_file_server_is
     jsr print_inline                                                  ; b0c5: 20 45 91     E.      ; Print 'File'
-    equs "File"                                                       ; b0c8: 46 69 6c... Fil...
+    equs "File"                                                       ; b0c8: 46 69 6c... Fil...   ; Inline text, printed by print_inline
     clv                                                               ; b0cc: b8          .        ; Clear V
     bvc print_server_is_suffix                                        ; b0cd: 50 0b       P.       ; Always taken (V was just cleared); skip the 'Printer' prologue and reach the shared ' server is ' suffix
 ; ***************************************************************************************
@@ -11991,12 +11991,12 @@ store_ps_station = done_ps_status_msg+2
 ; &b0cf referenced 2 times by &b099, &b240
 .print_printer_server_is
     jsr print_inline                                                  ; b0cf: 20 45 91     E.      ; Print 'Printer'
-    equs "Printer"                                                    ; b0d2: 50 72 69... Pri...
+    equs "Printer"                                                    ; b0d2: 50 72 69... Pri...   ; Inline text, printed by print_inline
     nop                                                               ; b0d9: ea          .        ; Padding
 ; &b0da referenced 1 time by &b0cd
 .print_server_is_suffix
     jsr print_inline                                                  ; b0da: 20 45 91     E.      ; Print ' server is '
-    equs " server is "                                                ; b0dd: 20 73 65...  se...
+    equs " server is "                                                ; b0dd: 20 73 65...  se...   ; Inline text, printed by print_inline
     nop                                                               ; b0e8: ea          .        ; Padding
     rts                                                               ; b0e9: 60          `        ; Return
 ; ***************************************************************************************
@@ -12183,7 +12183,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 .skip_if_local_net
     bvs print_station_only                                            ; b1a8: 70 07       p.       ; V set: skip padding spaces
     jsr print_inline                                                  ; b1aa: 20 45 91     E.      ; Print 4 spaces (padding)
-    equs "    "                                                       ; b1ad: 20 20 20...    ...
+    equs "    "                                                       ; b1ad: 20 20 20...    ...   ; Inline text, printed by print_inline
 ; &b1b1 referenced 1 time by &b1a8
 .print_station_only
     lda fs_work_5                                                     ; b1b1: a5 b5       ..       ; Get station number
@@ -12292,7 +12292,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     bit bit_test_ff                                                   ; b246: 2c 91 94    ,..      ; Set V and N flags
     jsr print_station_addr                                            ; b249: 20 98 b1     ..      ; Print station address
     jsr print_inline                                                  ; b24c: 20 45 91     E.      ; Print ' "'
-    equs " ", &22                                                     ; b24f: 20 22        "    
+    equs " ", &22                                                     ; b24f: 20 22        "       ; Inline text, printed by print_inline
     ldy #&18                                                          ; b251: a0 18       ..       ; Y=&18: name field offset in RX buffer
 ; &b253 referenced 1 time by &b25f
 .loop_print_poll_name
@@ -12329,12 +12329,12 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     clv                                                               ; b280: b8          .        ; Clear V flag
     jsr print_station_addr                                            ; b281: 20 98 b1     ..      ; Print station address (V=0)
     jsr print_inline                                                  ; b284: 20 45 91     E.      ; Print ' is '
-    equs " is "                                                       ; b287: 20 69 73...  is...
+    equs " is "                                                       ; b287: 20 69 73...  is...   ; Inline text, printed by print_inline
     ldx #0                                                            ; b28b: a2 00       ..       ; X=0 for indirect indexed access
     lda (work_ae,x)                                                   ; b28d: a1 ae       ..       ; Read printer status byte
     bne check_poll_jammed                                             ; b28f: d0 0b       ..       ; Non-zero: not ready
     jsr print_inline                                                  ; b291: 20 45 91     E.      ; Print 'ready'
-    equs "ready"                                                      ; b294: 72 65 61... rea...
+    equs "ready"                                                      ; b294: 72 65 61... rea...   ; Inline text, printed by print_inline
     clv                                                               ; b299: b8          .        ; Clear V
     bvc done_poll_status_line                                         ; b29a: 50 38       P8       ; Always taken (V clear)
 ; &b29c referenced 1 time by &b28f
@@ -12344,7 +12344,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b2a0 referenced 1 time by &b2ae
 .print_poll_jammed
     jsr print_inline                                                  ; b2a0: 20 45 91     E.      ; Print 'jammed'
-    equs "jammed"                                                     ; b2a3: 6a 61 6d... jam...
+    equs "jammed"                                                     ; b2a3: 6a 61 6d... jam...   ; Inline text, printed by print_inline
     clv                                                               ; b2a9: b8          .        ; Clear V
     bvc done_poll_status_line                                         ; b2aa: 50 28       P(       ; Always taken (V clear)
 ; &b2ac referenced 1 time by &b29e
@@ -12352,13 +12352,13 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     cmp #1                                                            ; b2ac: c9 01       ..       ; Status = 1?
     bne print_poll_jammed                                             ; b2ae: d0 f0       ..       ; Not 1 or 2: default to jammed
     jsr print_inline                                                  ; b2b0: 20 45 91     E.      ; Print 'busy'
-    equs "busy"                                                       ; b2b3: 62 75 73... bus...
+    equs "busy"                                                       ; b2b3: 62 75 73... bus...   ; Inline text, printed by print_inline
     inc work_ae                                                       ; b2b7: e6 ae       ..       ; Advance past status byte
     lda (work_ae,x)                                                   ; b2b9: a1 ae       ..       ; Read client station number
     sta fs_work_5                                                     ; b2bb: 85 b5       ..       ; Store station low
     beq done_poll_status_line                                         ; b2bd: f0 15       ..       ; Zero: no client info, skip
     jsr print_inline                                                  ; b2bf: 20 45 91     E.      ; Print ' with station '
-    equs " with "                                                     ; b2c2: 20 77 69...  wi...
+    equs " with "                                                     ; b2c2: 20 77 69...  wi...   ; Inline text, printed by print_inline
     inc work_ae                                                       ; b2c8: e6 ae       ..       ; Advance pointer to network byte
     lda (work_ae,x)                                                   ; b2ca: a1 ae       ..       ; Load client network number
     sta fs_work_6                                                     ; b2cc: 85 b6       ..       ; Store network number
@@ -12571,7 +12571,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     cpx #&0c                                                          ; b3c0: e0 0c       ..       ; Copied all 11 filename characters?
     bne loop_copy_wipe_name                                           ; b3c2: d0 f1       ..       ; No: continue copying
     jsr print_inline                                                  ; b3c4: 20 45 91     E.      ; Print '(Y/N/?) ' prompt
-    equs "(?/"                                                        ; b3c7: 28 3f 2f    (?/   
+    equs "(?/"                                                        ; b3c7: 28 3f 2f    (?/      ; Inline text, printed by print_inline
     nop                                                               ; b3ca: ea          .        ; Inline string terminator (NOP)
     jsr prompt_yn                                                     ; b3cb: 20 31 b4     1.      ; Read user response character
     cmp #'?'                                                          ; b3ce: c9 3f       .?       ; User pressed '?'?
@@ -12587,7 +12587,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     cpx #&3e                                                          ; b3e0: e0 3e       .>       ; Printed all &3C info bytes?
     bne loop_print_wipe_info                                          ; b3e2: d0 f5       ..       ; No: continue printing
     jsr print_inline                                                  ; b3e4: 20 45 91     E.      ; Print ' (Y/N) ' prompt (no '?')
-    equs " ("                                                         ; b3e7: 20 28        (    
+    equs " ("                                                         ; b3e7: 20 28        (       ; Inline text, printed by print_inline
     nop                                                               ; b3e9: ea          .        ; Padding (string terminator)
     jsr prompt_yn                                                     ; b3ea: 20 31 b4     1.      ; Read user response (Y/N only)
 ; &b3ed referenced 1 time by &b3d0
@@ -12648,7 +12648,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b431 referenced 2 times by &b3cb, &b3ea
 .prompt_yn
     jsr print_inline                                                  ; b431: 20 45 91     E.      ; Print 'Y/N) ' prompt
-    equs "Y/N) "                                                      ; b434: 59 2f 4e... Y/N...
+    equs "Y/N) "                                                      ; b434: 59 2f 4e... Y/N...   ; Inline text, printed by print_inline
 ; ***************************************************************************************
 ; Flush keyboard buffer and read one character
 ;
@@ -12746,10 +12746,10 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b487 used as index base 2 times by &b4cd, &b4e1
 net_channel_err_string = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b485: 20 d1 96     ..      ; Generate 'Net channel' error
-    equs "Net channel", &00                                           ; b488: 4e 65 74... Net...
+    equs "Net channel", &00                                           ; b488: 4e 65 74... Net...   ; Error message text (error_inline_log)
     jsr false_ref_6f6e                                                ; b494: 20 6e 6f     no      ; Error string continuation (unreachable)
     equs "t on this file server"                                      ; b497: 74 20 6f... t o...
-    equb &00                                                          ; b4ac: 00          .     
+    equb &00                                                          ; b4ac: 00          .        ; String terminator
 ; ***************************************************************************************
 ; Look up channel by character code
 ;
@@ -12822,7 +12822,7 @@ net_channel_err_string = err_net_chan_not_found+2
     beq rts_dir_check                                                 ; b4f7: f0 0f       ..       ; Not a directory: return OK
     lda #&a8                                                          ; b4f9: a9 a8       ..       ; Error code &A8
     jsr error_inline_log                                              ; b4fb: 20 d1 96     ..      ; Generate 'Is a dir.' error
-    equs "Is a dir.", &00                                             ; b4fe: 49 73 20... Is ...
+    equs "Is a dir.", &00                                             ; b4fe: 49 73 20... Is ...   ; Error message text (error_inline_log)
 ; &b508 referenced 1 time by &b4f7
 .rts_dir_check
     rts                                                               ; b508: 60          `        ; Return
@@ -12881,7 +12881,7 @@ net_channel_err_string = err_net_chan_not_found+2
     bne return_alloc_success                                          ; b543: d0 12       ..       ; Success: slot allocated
     lda #&c0                                                          ; b545: a9 c0       ..       ; Error code &C0
     jsr error_inline_log                                              ; b547: 20 d1 96     ..      ; Generate 'No more FCBs' error
-    equs "No more FCBs", &00                                          ; b54a: 4e 6f 20... No ...
+    equs "No more FCBs", &00                                          ; b54a: 4e 6f 20... No ...   ; Error message text (error_inline_log)
 ; &b557 referenced 1 time by &b543
 .return_alloc_success
     pla                                                               ; b557: 68          h        ; Restore argument
@@ -13371,7 +13371,7 @@ net_channel_err_string = err_net_chan_not_found+2
     beq done_read_fcb_byte                                            ; b7db: f0 10       ..       ; Not write-only: proceed with read
     lda #&d4                                                          ; b7dd: a9 d4       ..       ; Error code &D4
     jsr error_inline_log                                              ; b7df: 20 d1 96     ..      ; Generate 'Write only' error
-    equs "Write only", &00                                            ; b7e2: 57 72 69... Wri...
+    equs "Write only", &00                                            ; b7e2: 57 72 69... Wri...   ; Error message text (error_inline_log)
 ; &b7ed referenced 1 time by &b7db
 .done_read_fcb_byte
     clv                                                               ; b7ed: b8          .        ; Clear V (first-pass matching)
@@ -13399,7 +13399,7 @@ net_channel_err_string = err_net_chan_not_found+2
 .error_end_of_file
     lda #&df                                                          ; b817: a9 df       ..       ; Error code &DF
     jsr error_inline_log                                              ; b819: 20 d1 96     ..      ; Generate 'End of file' error
-    equs "End of file", &00                                           ; b81c: 45 6e 64... End...
+    equs "End of file", &00                                           ; b81c: 45 6e 64... End...   ; Error message text (error_inline_log)
 ; &b828 referenced 2 times by &b7f1, &b7f9
 .done_load_from_buf
     lda fcb_count_lo,y                                                ; b828: b9 00 10    ...      ; Load current byte count (= offset)
@@ -13436,7 +13436,7 @@ net_channel_err_string = err_net_chan_not_found+2
     bmi done_test_write_flag                                          ; b85f: 30 19       0.       ; Bit 7 set: channel open, proceed
     lda #&c1                                                          ; b861: a9 c1       ..       ; Error &C1: Not open for update
     jsr error_inline_log                                              ; b863: 20 d1 96     ..      ; Raise error with inline string
-    equs "Not open for update", &00                                   ; b866: 4e 6f 74... Not...
+    equs "Not open for update", &00                                   ; b866: 4e 6f 74... Not...   ; Error message text (error_inline_log)
 ; &b87a referenced 1 time by &b85f
 .done_test_write_flag
     and #&20                                                          ; b87a: 29 20       )        ; Test write flag (bit 5)
@@ -13798,7 +13798,7 @@ net_channel_err_string = err_net_chan_not_found+2
     jsr osbyte                                                        ; ba0c: 20 f4 ff     ..      ; Clear escape condition and perform escape effects
     lda #&11                                                          ; ba0f: a9 11       ..       ; Error number &11
     jsr error_inline                                                  ; ba11: 20 d4 96     ..      ; Generate 'Escape' BRK error
-    equs "Escape", &00                                                ; ba14: 45 73 63... Esc...
+    equs "Escape", &00                                                ; ba14: 45 73 63... Esc...   ; Error message text (error_inline)
 ; ***************************************************************************************
 ; *Dump command handler
 ;
@@ -13888,7 +13888,7 @@ net_channel_err_string = err_net_chan_not_found+2
     bne loop_inc_dump_addr                                            ; ba83: d0 f3       ..       ; No: continue propagation
     plp                                                               ; ba85: 28          (        ; Discard final carry
     jsr print_inline                                                  ; ba86: 20 45 91     E.      ; Print address/data separator
-    equs " : "                                                        ; ba89: 20 3a 20     :    
+    equs " : "                                                        ; ba89: 20 3a 20     :       ; Inline text, printed by print_inline
     ldy #0                                                            ; ba8c: a0 00       ..       ; Start from first data byte
     ldx osword_flag                                                   ; ba8e: a6 aa       ..       ; X = bytes read (counter for display)
 ; &ba90 referenced 1 time by &ba9b
@@ -13905,7 +13905,7 @@ net_channel_err_string = err_net_chan_not_found+2
     tya                                                               ; ba9d: 98          .        ; Save column position
     pha                                                               ; ba9e: 48          H        ; Preserve Y across print
     jsr print_inline                                                  ; ba9f: 20 45 91     E.      ; Print 3-space padding
-    equs "   "                                                        ; baa2: 20 20 20          
+    equs "   "                                                        ; baa2: 20 20 20             ; Inline text, printed by print_inline
     nop                                                               ; baa5: ea          .        ; Inline string terminator (NOP)
     pla                                                               ; baa6: 68          h        ; Restore column position
     tay                                                               ; baa7: a8          .        ; Back to Y
@@ -13914,7 +13914,7 @@ net_channel_err_string = err_net_chan_not_found+2
 .done_print_separator
     dex                                                               ; baab: ca          .        ; Adjust X for advance_x_by_8
     jsr print_inline                                                  ; baac: 20 45 91     E.      ; Print hex/ASCII separator
-    equs ": "                                                         ; baaf: 3a 20       :     
+    equs ": "                                                         ; baaf: 3a 20       :        ; Inline text, printed by print_inline
     ldy #0                                                            ; bab1: a0 00       ..       ; Y=0: start ASCII section from byte 0
     jsr advance_x_by_8                                                ; bab3: 20 86 bc     ..      ; Advance X to ASCII display column
 ; &bab6 referenced 1 time by &bacd
@@ -14124,7 +14124,7 @@ osasci_offset = print_char_and_pla+2
     jsr close_ws_file                                                 ; bba2: 20 3d bc     =.      ; Close file before error
     lda #&b7                                                          ; bba5: a9 b7       ..       ; Error number &B7
     jsr error_inline                                                  ; bba7: 20 d4 96     ..      ; Generate 'Outside file' error
-    equs "Outside file", &00                                          ; bbaa: 4f 75 74... Out...
+    equs "Outside file", &00                                          ; bbaa: 4f 75 74... Out...   ; Error message text (error_inline)
 ; &bbb7 referenced 1 time by &bbbf
 .loop_copy_osword_data
 .loop_copy_start_addr
@@ -14191,7 +14191,7 @@ osasci_offset = print_char_and_pla+2
     jsr close_ws_file                                                 ; bc0f: 20 3d bc     =.      ; Invalid: close file before error
     lda #&fc                                                          ; bc12: a9 fc       ..       ; Error number &FC
     jsr error_bad_inline                                              ; bc14: 20 b8 96     ..      ; Generate 'Bad address' error
-    equs "address", &00                                               ; bc17: 61 64 64... add...
+    equs "address", &00                                               ; bc17: 61 64 64... add...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; Add the 4-byte address at (work_ae) to the workspace value
 ;
@@ -14254,7 +14254,7 @@ osasci_offset = print_char_and_pla+2
     bne restore_text_ptr                                              ; bc59: d0 0f       ..       ; Non-zero: file opened successfully
     lda #&d6                                                          ; bc5b: a9 d6       ..       ; Error &D6
     jsr error_inline                                                  ; bc5d: 20 d4 96     ..      ; Raise 'Not found' error
-    equs "Not found", &00                                             ; bc60: 4e 6f 74... Not...
+    equs "Not found", &00                                             ; bc60: 4e 6f 74... Not...   ; Error message text (error_inline)
 ; &bc6a referenced 1 time by &bc59
 .restore_text_ptr
     pla                                                               ; bc6a: 68          h        ; Restore text pointer high from stack

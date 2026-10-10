@@ -2078,7 +2078,7 @@ d.subroutine(
     title="Issue 'vectors claimed' service and optionally auto-boot",
     description="""Issues service &0F (vectors claimed) via OSBYTE &8F, then
 service &0A. If l00a8 is zero (soft break — RXCBs already
-initialised), sets up the command string "I .BOOT" at &828E
+initialised), sets up the command string "I .BOOT" at &8292
 and jumps to the FSCV 3 unrecognised-command handler (which
 matches against the command table at &8C4B). The "I." prefix
 triggers the catch-all entry which forwards the command to
@@ -2107,19 +2107,17 @@ the handler address table.""",
 
 
 d.comment(0x828D, "Y=&82: ROM page high byte", align=Align.INLINE)
-d.string(0x828E, 8)
+d.comment(0x828F, "Execute command string at (X, Y)", align=Align.INLINE)
+d.string(0x8292, 6)
 d.comment(
-    0x828E,
+    0x8292,
     """Synthetic auto-boot command string. "I " does not match any
 entry in NFS's local command table — "I." requires a dot, and
 "I AM" requires 'A' after the space — so fscv_3_star_cmd
 forwards the entire string to the fileserver, which executes
 the .BOOT file.""",
 )
-
-
-d.byte(0x8296, 2)
-d.comment(0x8296, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
+d.comment(0x8292, "Auto-boot command 'I .BOOT', continued at &8298", align=Align.INLINE)
 d.subroutine(
     0x8298,
     "fs_vector_addrs",
@@ -2136,7 +2134,7 @@ bank number without reading). The last entry (FSCV) has no
 padding byte.""",
 )
 d.byte(0x8298, 2)
-d.comment(0x8298, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
+d.comment(0x8298, "'T', CR: auto-boot string tail / vector table header", align=Align.INLINE)
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV", "GBPBV", "FINDV", "FSCV"]):
     addr = 0x829A + i * 2
     d.word(addr)
@@ -9324,10 +9322,8 @@ d.comment(0x9F5A, "Not initialised: skip to RX listen", align=Align.INLINE)
 d.label(0x9F5C, "poll_nmi_idle")
 
 d.comment(0x9F5C, "Spin until NMI handler = &96BF (nmi_rx_scout)", align=Align.INLINE)
-d.comment(0x9F5F, "Expected: &BF (nmi_rx_scout low)", align=Align.INLINE)
 d.comment(0x9F61, "Not idle: spin and wait", align=Align.INLINE)
 d.comment(0x9F63, "Read current NMI handler high byte", align=Align.INLINE)
-d.comment(0x9F66, "Expected: &96 (nmi_rx_scout high)", align=Align.INLINE)
 d.comment(0x9F68, "Not idle: spin and wait", align=Align.INLINE)
 
 
@@ -9536,6 +9532,12 @@ d.expr(0x9E00, lo(sym("discard_reset_listen")))
 d.expr(0x9E02, hi(sym("discard_reset_listen")))
 d.expr(0x9E56, lo(sym("nmi_final_ack")))
 d.expr(0x9E58, hi(sym("nmi_final_ack")))
+
+# NMI vector compared against a handler address.
+d.comment(0x9F5F, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INLINE)
+d.expr(0x9F60, lo(sym("nmi_rx_scout")))
+d.comment(0x9F66, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
+d.expr(0x9F67, hi(sym("nmi_rx_scout")))
 
 ir = d.disassemble()
 output = str(
