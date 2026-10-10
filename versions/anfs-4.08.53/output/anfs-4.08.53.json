@@ -3708,6 +3708,7 @@
           "service_handler_lo"
         ]
       },
+      "comment_inline": "Service-call entry: jump to service_handler",
       "xref_summaries": [
         "&8003 used as index base 1 time by &04f5[2]",
         "&8004 used as index base 1 time by &04f8[2]"
@@ -10835,6 +10836,7 @@
         240,
         233
       ],
+      "comment_inline": "Index reached end: restore X and finish",
       "type": "code",
       "mnemonic": "beq",
       "operand": "scout_copy_done",
@@ -11947,6 +11949,7 @@
         208,
         18
       ],
+      "comment_inline": "Always taken (A=&88): set the reply flag",
       "type": "code",
       "mnemonic": "bne",
       "operand": "set_tx_reply_flag",
@@ -12314,6 +12317,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance buffer index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -13183,6 +13187,7 @@
         240,
         8
       ],
+      "comment_inline": "Zero: transfer done, exit",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_done_exit",
@@ -13392,6 +13397,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance to destination network byte",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -14413,6 +14419,7 @@
         240,
         4
       ],
+      "comment_inline": "Zero: report line jammed",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_line_jammed",
@@ -14456,6 +14463,7 @@
         208,
         14
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_tx_error",
@@ -15301,6 +15309,7 @@
         208,
         2
       ],
+      "comment_inline": "Non-zero: store control byte and add",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_ctrl_store_and_add",
@@ -15708,6 +15717,7 @@
         176,
         21
       ],
+      "comment_inline": "C set: control byte out of range, exit",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "tx_ctrl_exit",
@@ -16185,6 +16195,7 @@
         208,
         7
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_store_error",
@@ -19417,6 +19428,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Next byte (descending)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -23982,6 +23994,7 @@
         48,
         50
       ],
+      "comment_inline": "Always taken (counter wrapped): restore ROMSEL and return",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "restore_romsel_rts",
@@ -24028,6 +24041,7 @@
         0,
         1
       ],
+      "comment_inline": "Y = ROM number for OSRDSC",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "error_block",
@@ -24041,6 +24055,7 @@
         185,
         255
       ],
+      "comment_inline": "Tail-call OSRDSC",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osrdsc",
@@ -24457,6 +24472,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -24478,6 +24494,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -25655,6 +25672,7 @@
         240,
         2
       ],
+      "comment_inline": "Zero args: print the command table",
       "type": "code",
       "mnemonic": "beq",
       "operand": "print_cmd_table",
@@ -25805,6 +25823,7 @@
         80,
         3
       ],
+      "comment_inline": "Always taken (V clear)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "print_cmd_table_loop",
@@ -25821,6 +25840,7 @@
       "labels": [
         "print_table_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&8b9d referenced 1 time by &8b8d"
       ],
@@ -26002,6 +26022,7 @@
       "labels": [
         "loop_print_name"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8bb5 referenced 1 time by &8bbd"
       ],
@@ -26093,6 +26114,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -26316,6 +26338,7 @@
       "labels": [
         "print_syntax_char"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8be5 referenced 1 time by &8bdd"
       ],
@@ -26522,6 +26545,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -26572,6 +26596,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -26717,6 +26742,7 @@
       "labels": [
         "done_entry_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&8c1b referenced 1 time by &8bd9"
       ],
@@ -26913,6 +26939,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -26952,6 +26979,7 @@
       "labels": [
         "loop_indent_spaces"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8c3a referenced 1 time by &8c3e"
       ],
@@ -27567,6 +27595,7 @@
         240,
         209
       ],
+      "comment_inline": "Loop back for the next character",
       "type": "code",
       "mnemonic": "beq",
       "operand": "svc_return_unclaimed",
@@ -27856,6 +27885,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -27928,6 +27958,7 @@
       "labels": [
         "write_key_state"
       ],
+      "comment_inline": "Copy A to Y",
       "xref_summaries": [
         "&8ccf referenced 1 time by &8cc9"
       ],
@@ -28018,6 +28049,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -28179,6 +28211,7 @@
         208,
         5
       ],
+      "comment_inline": "Always taken (X=&0A)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "issue_svc_osbyte",
@@ -28513,6 +28546,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -29322,6 +29356,7 @@
         238,
         255
       ],
+      "comment_inline": "Print byte no-spool",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oswrch",
@@ -29410,6 +29445,7 @@
         224,
         255
       ],
+      "comment_inline": "Read a character (password entry, no echo)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osrdch",
@@ -29422,6 +29458,7 @@
         201,
         21
       ],
+      "comment_inline": "Ctrl-U (&15): line-delete?",
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&15"
@@ -29615,6 +29652,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline no-spool",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -29723,6 +29761,7 @@
         240,
         16
       ],
+      "comment_inline": "Branch to send the command",
       "type": "code",
       "mnemonic": "beq",
       "operand": "send_cmd_and_dispatch",
@@ -29944,6 +29983,7 @@
         208,
         22
       ],
+      "comment_inline": "Always taken (Y=&17)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "svc_dispatch",
@@ -30037,6 +30077,7 @@
         208,
         6
       ],
+      "comment_inline": "Always taken (Y=&13)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "svc_dispatch",
@@ -30691,6 +30732,7 @@
         240,
         245
       ],
+      "comment_inline": "Zero: tail-call OSBYTE",
       "type": "code",
       "mnemonic": "beq",
       "operand": "jmp_osbyte",
@@ -31458,6 +31500,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -31503,6 +31546,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -32633,6 +32677,7 @@
         16,
         3
       ],
+      "comment_inline": "Positive: store the workspace byte",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "store_ws_byte",
@@ -33235,6 +33280,7 @@
       "labels": [
         "done_print_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&900a referenced 1 time by &8ffb"
       ],
@@ -34462,6 +34508,7 @@
         227,
         255
       ],
+      "comment_inline": "Tail-call OSASCI",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osasci",
@@ -38416,6 +38463,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -39972,6 +40020,7 @@
       "bytes": [
         232
       ],
+      "comment_inline": "X=2",
       "type": "code",
       "mnemonic": "inx"
     },
@@ -40660,6 +40709,7 @@
         176,
         26
       ],
+      "comment_inline": "C set: copy TXCB with carry set",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "txcb_copy_carry_set",
@@ -40697,6 +40747,7 @@
         80,
         22
       ],
+      "comment_inline": "V clear: copy TXCB with carry clear",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "txcb_copy_carry_clr",
@@ -41159,6 +41210,7 @@
         80,
         6
       ],
+      "comment_inline": "Always taken: V was clear when we entered (BVS at &97A4 didn't fire)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "done_vset_station",
@@ -42530,6 +42582,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -43107,6 +43160,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Y=0: indirect index for net_tx_ptr poll",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -43752,6 +43806,7 @@
         80,
         5
       ],
+      "comment_inline": "Always taken: use the standard masked-error path",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "mask_error_class",
@@ -44142,6 +44197,7 @@
         208,
         2
       ],
+      "comment_inline": "Always taken (Y is non-zero); jump to load_suffix_offset",
       "type": "code",
       "mnemonic": "bne",
       "operand": "load_suffix_offset",
@@ -44730,6 +44786,7 @@
         240,
         12
       ],
+      "comment_inline": "Branch to write the error number and string",
       "type": "code",
       "mnemonic": "beq",
       "operand": "write_error_num_and_str",
@@ -62195,6 +62252,7 @@
         231,
         255
       ],
+      "comment_inline": "Tail-call OSNEWL",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osnewl",
@@ -63135,6 +63193,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -64494,6 +64553,7 @@
         176,
         227
       ],
+      "comment_inline": "Always taken (C set)",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "return_with_result",
@@ -65454,6 +65514,7 @@
         208,
         231
       ],
+      "comment_inline": "No match: retry via the library directory",
       "type": "code",
       "mnemonic": "bne",
       "operand": "retry_with_library",
@@ -66721,6 +66782,7 @@
         208,
         96
       ],
+      "comment_inline": "Match: store station flags and restore",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_stn_flags_restore",
@@ -67025,6 +67087,7 @@
         208,
         53
       ],
+      "comment_inline": "Match: store station flags and restore",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_stn_flags_restore",
@@ -67775,6 +67838,7 @@
         162,
         129
       ],
+      "comment_inline": "X = CTRL key scan code (negative-X INKEY form for OSBYTE &79)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#(255 - inkey_key_ctrl) EOR 128",
@@ -67799,6 +67863,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -72292,6 +72357,7 @@
         208,
         7
       ],
+      "comment_inline": "Always taken (A=&3F)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "osword_11_done",
@@ -75633,6 +75699,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -75826,6 +75893,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -76841,6 +76909,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -77264,6 +77333,7 @@
       "bytes": [
         152
       ],
+      "comment_inline": "Copy Y to A",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -78738,6 +78808,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -78746,6 +78817,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -78910,6 +78982,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -79067,6 +79140,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -80929,6 +81003,7 @@
       "bytes": [
         232
       ],
+      "comment_inline": "State 3: X=3 (different abort code)",
       "type": "code",
       "mnemonic": "inx"
     },
@@ -83565,6 +83640,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -84165,6 +84241,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Y=3",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -85346,6 +85423,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Step Y",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -86859,6 +86937,7 @@
         208,
         15
       ],
+      "comment_inline": "Branch when the *CDIR size is complete",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_cdir_size",
@@ -87439,6 +87518,7 @@
         176,
         36
       ],
+      "comment_inline": "C set: set the library flag",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "cat_set_lib_flag",
@@ -87477,6 +87557,7 @@
         176,
         4
       ],
+      "comment_inline": "Always taken (C set)",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "ex_set_lib_flag",
@@ -87613,6 +87694,7 @@
         208,
         22
       ],
+      "comment_inline": "Branch to set up the *EX request",
       "type": "code",
       "mnemonic": "bne",
       "operand": "setup_ex_request",
@@ -88447,6 +88529,7 @@
         227,
         255
       ],
+      "comment_inline": "Print char (no spool)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -88603,6 +88686,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -89017,6 +89101,7 @@
         227,
         255
       ],
+      "comment_inline": "Print via OSASCI, bypassing the *SPOOL file",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -89073,6 +89158,7 @@
       "labels": [
         "jmp_osnewl"
       ],
+      "comment_inline": "Tail-call print_newline_no_spool",
       "xref_summaries": [
         "&ae7d referenced 1 time by &ae5a"
       ],
@@ -89878,6 +89964,7 @@
         208,
         188
       ],
+      "comment_inline": "Always taken (A has bit 6 set)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "strip_token_prefix",
@@ -90631,6 +90718,7 @@
       "labels": [
         "print_entry_char"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&af3c referenced 1 time by &af25"
       ],
@@ -91239,6 +91327,7 @@
         227,
         255
       ],
+      "comment_inline": "Print the digit",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -91503,6 +91592,7 @@
         208,
         243
       ],
+      "comment_inline": "Loop to the next character",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_advance_char",
@@ -92611,6 +92701,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -92941,6 +93032,7 @@
         208,
         214
       ],
+      "comment_inline": "Loop to pop the next PS slot",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_pop_ps_slot",
@@ -93052,6 +93144,7 @@
         80,
         8
       ],
+      "comment_inline": "Always taken (V clear)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "done_ps_status_msg",
@@ -93184,6 +93277,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -93274,6 +93368,7 @@
         80,
         11
       ],
+      "comment_inline": "Always taken (V was just cleared); skip the 'Printer' prologue and reach the shared ' server is ' suffix",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "print_server_is_suffix",
@@ -93461,6 +93556,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Y=3: workspace offset of PS network byte",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -94146,6 +94242,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Y=&0A: inner counter",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -94154,6 +94251,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "X=&0A: middle counter",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -94859,6 +94957,7 @@
         227,
         255
       ],
+      "comment_inline": "Print the dot",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -95392,6 +95491,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -95502,6 +95602,7 @@
         208,
         49
       ],
+      "comment_inline": "Always taken (A=&78)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "done_poll_name_parse",
@@ -96066,6 +96167,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character of PS name",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -96467,6 +96569,7 @@
         80,
         64
       ],
+      "comment_inline": "Always taken (V clear)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "done_poll_status_line",
@@ -96563,6 +96666,7 @@
         80,
         48
       ],
+      "comment_inline": "Always taken (V clear)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "done_poll_status_line",
@@ -96794,6 +96898,7 @@
       "labels": [
         "done_poll_status_line"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&b2b8 referenced 3 times by &b276, &b286, &b299"
       ],
@@ -96878,6 +96983,7 @@
         208,
         128
       ],
+      "comment_inline": "Always taken (A=&3F): next slot",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_pop_poll_slot",
@@ -97321,6 +97427,7 @@
         208,
         32
       ],
+      "comment_inline": "Always taken (A=&FF)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_prot_mask",
@@ -97805,6 +97912,7 @@
         144,
         238
       ],
+      "comment_inline": "Always taken (C clear): match the next keyword",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "loop_match_unprot_attr",
@@ -107939,6 +108047,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -107974,6 +108083,7 @@
         80,
         3
       ],
+      "comment_inline": "Always taken (V clear)",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "open_and_read_file",
@@ -108029,6 +108139,7 @@
         164,
         168
       ],
+      "comment_inline": "Y = file handle (saved in ws_page)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "ws_page",
@@ -108078,6 +108189,7 @@
       "labels": [
         "loop_read_print_byte"
       ],
+      "comment_inline": "Read a byte from the file (OSBGET)",
       "xref_summaries": [
         "&b995 referenced 3 times by &b9b5, &b9d5, &b9e8"
       ],
@@ -108144,6 +108256,7 @@
         231,
         255
       ],
+      "comment_inline": "Tail-call OSNEWL",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osnewl",
@@ -108290,6 +108403,7 @@
       "labels": [
         "loop_write_char"
       ],
+      "comment_inline": "Write character",
       "xref_summaries": [
         "&b9b2 referenced 1 time by &b9c3"
       ],
@@ -108522,6 +108636,7 @@
       "labels": [
         "done_write_newline"
       ],
+      "comment_inline": "Print newline",
       "xref_summaries": [
         "&b9d2 referenced 2 times by &b9dd, &b9e2"
       ],
@@ -108791,6 +108906,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -109086,6 +109202,7 @@
       "labels": [
         "loop_read_dump_byte"
       ],
+      "comment_inline": "Y = file handle",
       "xref_summaries": [
         "&ba25 referenced 1 time by &ba34"
       ],
@@ -109108,6 +109225,7 @@
         215,
         255
       ],
+      "comment_inline": "Read one byte via OSBGET (C set on EOF)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbget",
@@ -110789,6 +110907,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy returned handle into Y (also sets Z if zero)",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -112059,6 +112178,7 @@
         164,
         168
       ],
+      "comment_inline": "Y = file handle saved in ws_page",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "ws_page",
@@ -112071,6 +112191,7 @@
         162,
         170
       ],
+      "comment_inline": "X=&AA: zero-page address for OSARGS result",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&aa"
@@ -112416,6 +112537,7 @@
         162,
         170
       ],
+      "comment_inline": "X=&AA: zero-page source for the OSARGS write-back",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&aa"
@@ -112426,6 +112548,7 @@
         164,
         168
       ],
+      "comment_inline": "Y = file handle",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "ws_page",
@@ -113821,6 +113944,7 @@
       "labels": [
         "tube_poll_r1_wrch"
       ],
+      "comment_inline": "Write a byte to the file (OSBPUT)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbput",
@@ -113866,6 +113990,7 @@
         168
       ],
       "binary_addr": 48320,
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -113877,6 +114002,7 @@
         255
       ],
       "binary_addr": 48321,
+      "comment_inline": "Read a byte from the file (OSBGET)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbget",
@@ -113909,6 +114035,7 @@
       "labels": [
         "tube_osrdch"
       ],
+      "comment_inline": "Read a character (OSRDCH)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osrdch",
@@ -114058,6 +114185,7 @@
         255
       ],
       "binary_addr": 48348,
+      "comment_inline": "Open or close the file (OSFIND)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osfind",
@@ -115024,6 +115152,7 @@
         213
       ],
       "binary_addr": 48479,
+      "comment_inline": "Always taken (X=0 after the loop): back to the main loop",
       "type": "code",
       "mnemonic": "beq",
       "operand": "mj",
@@ -115146,6 +115275,7 @@
         255
       ],
       "binary_addr": 48496,
+      "comment_inline": "Multi-byte file transfer (OSGBPB)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osgbpb",
@@ -117302,6 +117432,7 @@
         238,
         255
       ],
+      "comment_inline": "Write character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oswrch",
@@ -118073,6 +118204,7 @@
         255
       ],
       "binary_addr": 48871,
+      "comment_inline": "Write character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oswrch",
@@ -119551,6 +119683,7 @@
         138
       ],
       "binary_addr": 49045,
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
