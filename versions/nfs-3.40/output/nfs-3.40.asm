@@ -4657,11 +4657,13 @@ cmd_roff_str = copyright_string+3
 ; FS command match table (COMTAB)
 ;
 ; Each entry is the command letters (bit 7 clear) followed by the handler address minus
-; 1, high byte first. Every handler lies in the ROM at &8000 or above, so the high byte
-; has bit 7 set and also ends the letters. The dispatcher pushes both bytes and returns
-; through them (PHA/PHA/RTS), which adds the 1 back. Matching ignores case (AND &DF) and
-; accepts a '.' abbreviation. An entry with no letters ends the table and catches
-; everything else.
+; 1, stored high byte first: the reverse of the 6502's usual order. That order lets the
+; address end the name. Every handler lies in the ROM at &8000 or above, so its high byte
+; always has bit 7 set, and the matcher stops at the first byte with bit 7 set; the names
+; need no terminator of their own. The dispatcher then pushes the high byte and the low
+; byte and returns through them (PHA/PHA/RTS), which adds the 1 back. Matching ignores
+; case (AND &DF) and accepts a '.' abbreviation. An entry with no letters ends the table
+; and catches everything else.
 ;
 ; Entries, in matching order:
 ;
@@ -4674,13 +4676,13 @@ cmd_roff_str = copyright_string+3
 ; &8c05 used as index base 2 times by &8be2, &8bef
 .fs_cmd_match_table
     equs "I."                                                         ; 8c05: 49 2e       I.       ; "I.": dispatch to forward_star_cmd
-    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c07: 80 c0       ..       ; forward_star_cmd - 1, high byte first
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c07: 80 c0       ..       ; forward_star_cmd - 1, high byte first; bit 7 ends the name
     equs "I AM"                                                       ; 8c09: 49 20 41... I A...   ; "I AM": dispatch to i_am_handler
-    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8c0d: 80 81       ..       ; i_am_handler - 1, high byte first
+    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8c0d: 80 81       ..       ; i_am_handler - 1, high byte first; bit 7 ends the name
     equs "EX"                                                         ; 8c0f: 45 58       EX       ; "EX": dispatch to ex_handler
-    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8c11: 8c 1a       ..       ; ex_handler - 1, high byte first
+    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8c11: 8c 1a       ..       ; ex_handler - 1, high byte first; bit 7 ends the name
     equs "BYE", &0d                                                   ; 8c13: 42 59 45... BYE...   ; "BYE" + CR: dispatch to bye_handler
-    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8c17: 83 bb       ..       ; bye_handler - 1, high byte first
+    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8c17: 83 bb       ..       ; bye_handler - 1, high byte first; bit 7 ends the name
     equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c19: 80 c0       ..       ; Anything else: forward_star_cmd - 1, high byte first
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)

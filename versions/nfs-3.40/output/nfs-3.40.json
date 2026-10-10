@@ -2476,7 +2476,7 @@
       "addr": 35845,
       "name": "fs_cmd_match_table",
       "title": "FS command match table (COMTAB)",
-      "description": "Each entry is the command letters (bit 7 clear) followed by the\nhandler address minus 1, high byte first. Every handler lies in\nthe ROM at &8000 or above, so the high byte has bit 7 set and\nalso ends the letters. The dispatcher pushes both bytes and\nreturns through them (PHA/PHA/RTS), which adds the 1 back.\nMatching ignores case (AND &DF) and accepts a '.' abbreviation.\nAn entry with no letters ends the table and catches everything\nelse.\n\nEntries, in matching order:\n\n* `I.`: [`forward_star_cmd`](label:forward_star_cmd), placed first so that the abbreviation `*I.` is passed on to the file server instead of matching `*I AM`\n* `I AM`: [`i_am_handler`](label:i_am_handler), log on, with an optional station number before the user id\n* `EX`: [`ex_handler`](label:ex_handler), extended catalogue\n* `BYE` + CR: [`bye_handler`](label:bye_handler), log off\n* anything else: [`forward_star_cmd`](label:forward_star_cmd), passing the whole command to the file server",
+      "description": "Each entry is the command letters (bit 7 clear) followed by the\nhandler address minus 1, stored high byte first: the reverse of the\n6502's usual order. That order lets the address end the name. Every\nhandler lies in the ROM at &8000 or above, so its high byte always\nhas bit 7 set, and the matcher stops at the first byte with bit 7\nset; the names need no terminator of their own. The dispatcher then\npushes the high byte and the low byte and returns through them\n(PHA/PHA/RTS), which adds the 1 back.\nMatching ignores case (AND &DF) and accepts a '.' abbreviation.\nAn entry with no letters ends the table and catches everything\nelse.\n\nEntries, in matching order:\n\n* `I.`: [`forward_star_cmd`](label:forward_star_cmd), placed first so that the abbreviation `*I.` is passed on to the file server instead of matching `*I AM`\n* `I AM`: [`i_am_handler`](label:i_am_handler), log on, with an optional station number before the user id\n* `EX`: [`ex_handler`](label:ex_handler), extended catalogue\n* `BYE` + CR: [`bye_handler`](label:bye_handler), log off\n* anything else: [`forward_star_cmd`](label:forward_star_cmd), passing the whole command to the file server",
       "align": "before_label"
     },
     {
@@ -26874,7 +26874,7 @@
         128,
         192
       ],
-      "comment_inline": "forward_star_cmd - 1, high byte first",
+      "comment_inline": "forward_star_cmd - 1, high byte first; bit 7 ends the name",
       "type": "byte",
       "values": [
         128,
@@ -26933,7 +26933,7 @@
         128,
         129
       ],
-      "comment_inline": "i_am_handler - 1, high byte first",
+      "comment_inline": "i_am_handler - 1, high byte first; bit 7 ends the name",
       "type": "byte",
       "values": [
         128,
@@ -26990,7 +26990,7 @@
         140,
         26
       ],
-      "comment_inline": "ex_handler - 1, high byte first",
+      "comment_inline": "ex_handler - 1, high byte first; bit 7 ends the name",
       "type": "byte",
       "values": [
         140,
@@ -27049,7 +27049,7 @@
         131,
         187
       ],
-      "comment_inline": "bye_handler - 1, high byte first",
+      "comment_inline": "bye_handler - 1, high byte first; bit 7 ends the name",
       "type": "byte",
       "values": [
         131,

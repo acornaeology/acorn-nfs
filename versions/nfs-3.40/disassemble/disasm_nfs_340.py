@@ -9112,10 +9112,13 @@ d.banner(
     0x8C05,
     title="FS command match table (COMTAB)",
     description="""Each entry is the command letters (bit 7 clear) followed by the
-handler address minus 1, high byte first. Every handler lies in
-the ROM at &8000 or above, so the high byte has bit 7 set and
-also ends the letters. The dispatcher pushes both bytes and
-returns through them (PHA/PHA/RTS), which adds the 1 back.
+handler address minus 1, stored high byte first: the reverse of the
+6502's usual order. That order lets the address end the name. Every
+handler lies in the ROM at &8000 or above, so its high byte always
+has bit 7 set, and the matcher stops at the first byte with bit 7
+set; the names need no terminator of their own. The dispatcher then
+pushes the high byte and the low byte and returns through them
+(PHA/PHA/RTS), which adds the 1 back.
 Matching ignores case (AND &DF) and accepts a '.' abbreviation.
 An entry with no letters ends the table and catches everything
 else.
@@ -9134,25 +9137,25 @@ d.string(0x8C05, 2)
 d.byte(0x8C07, 2)
 d.expr(0x8C07, hi(sym("forward_star_cmd") - 1))
 d.expr(0x8C08, lo(sym("forward_star_cmd") - 1))
-d.comment(0x8C07, "forward_star_cmd - 1, high byte first", align=Align.INLINE)
+d.comment(0x8C07, "forward_star_cmd - 1, high byte first; bit 7 ends the name", align=Align.INLINE)
 d.comment(0x8C05, '"I.": dispatch to forward_star_cmd', align=Align.INLINE)
 d.string(0x8C09, 4)
 d.byte(0x8C0D, 2)
 d.expr(0x8C0D, hi(sym("i_am_handler") - 1))
 d.expr(0x8C0E, lo(sym("i_am_handler") - 1))
-d.comment(0x8C0D, "i_am_handler - 1, high byte first", align=Align.INLINE)
+d.comment(0x8C0D, "i_am_handler - 1, high byte first; bit 7 ends the name", align=Align.INLINE)
 d.comment(0x8C09, '"I AM": dispatch to i_am_handler', align=Align.INLINE)
 d.string(0x8C0F, 2)
 d.byte(0x8C11, 2)
 d.expr(0x8C11, hi(sym("ex_handler") - 1))
 d.expr(0x8C12, lo(sym("ex_handler") - 1))
-d.comment(0x8C11, "ex_handler - 1, high byte first", align=Align.INLINE)
+d.comment(0x8C11, "ex_handler - 1, high byte first; bit 7 ends the name", align=Align.INLINE)
 d.comment(0x8C0F, '"EX": dispatch to ex_handler', align=Align.INLINE)
 d.string(0x8C13, 4)
 d.byte(0x8C17, 2)
 d.expr(0x8C17, hi(sym("bye_handler") - 1))
 d.expr(0x8C18, lo(sym("bye_handler") - 1))
-d.comment(0x8C17, "bye_handler - 1, high byte first", align=Align.INLINE)
+d.comment(0x8C17, "bye_handler - 1, high byte first; bit 7 ends the name", align=Align.INLINE)
 d.comment(0x8C13, '"BYE" + CR: dispatch to bye_handler', align=Align.INLINE)
 d.byte(0x8C19, 2)
 d.expr(0x8C19, hi(sym("forward_star_cmd") - 1))
