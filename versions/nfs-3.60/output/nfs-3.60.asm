@@ -4738,40 +4738,38 @@ error_table_base = bgetv_shared_jsr+1
 ; &8c45 referenced 1 time by &8c2b
 .dispatch_cmd
     pha                                                               ; 8c45: 48          H        ; Push handler address high byte
-    lda cmd_match_data,x                                              ; 8c46: bd 4c 8c    .L.      ; Load handler address low byte
+    lda fs_cmd_match_table + 1,x                                      ; 8c46: bd 4c 8c    .L.      ; Load handler address low byte
     pha                                                               ; 8c49: 48          H        ; Push handler address low byte
     rts                                                               ; 8c4a: 60          `        ; Dispatch via RTS (addr-1 on stack)
 ; ***************************************************************************************
 ; FS command match table (COMTAB)
 ;
-; Format: command letters (bit 7 clear), then dispatch address as two big-endian bytes:
-; high|(bit 7 set), low. The bit 7 set on the high byte marks the end of the command
-; string. The PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching is
-; case-insensitive (AND &DF) and supports '.' abbreviation.
+; Each entry is the command letters (bit 7 clear) followed by the handler address minus
+; 1, high byte first. Every handler lies in the ROM at &8000 or above, so the high byte
+; has bit 7 set and also ends the letters. The dispatcher pushes both bytes and returns
+; through them (PHA/PHA/RTS), which adds the 1 back. Matching ignores case (AND &DF) and
+; accepts a '.' abbreviation. An entry with no letters ends the table and catches
+; everything else.
 ;
-; Entries: "I."     → &80C1 (forward_star_cmd) — placed first as a fudge to catch *I.
-; abbreviation before matching *I AM "I AM"   → &8082 (i_am_handler: parse station.net,
-; logon) "EX"     → &8C61 (ex_handler: embedded in table tail) "BYE"\r  → &83C0
-; (bye_handler: logoff) <catch-all> → &80C1 (forward anything else to FS)
+; Entries, in matching order:
+;
+; - I.: forward_star_cmd, placed first so that the abbreviation *I. is passed on to the
+;   file server instead of matching *I AM
+; - I AM: i_am_handler, log on, with an optional station number before the user id
+; - EX: ex_handler, extended catalogue
+; - BYE + CR: bye_handler, log off
+; - anything else: forward_star_cmd, passing the whole command to the file server
 ; &8c4b used as index base 2 times by &8c28, &8c35
 .fs_cmd_match_table
-; &8c4c used as index base 1 time by &8c46
-cmd_match_data = fs_cmd_match_table+1
-    eor #'.'                                                          ; 8c4b: 49 2e       I.       ; Match last char against '.' for *I. abbreviation
-    equb &80                                                          ; 8c4d: 80          .        ; I. handler hi → &80C1 (forward_star_cmd)
-    equb &c0                                                          ; 8c4e: c0          .        ; I. handler lo
-    equs "I AM"                                                       ; 8c4f: 49 20 41... I A...   ; "I AM" command string
-    equb &80                                                          ; 8c53: 80          .        ; I AM handler hi → &8082 (i_am_handler)
-    equb &81                                                          ; 8c54: 81          .        ; I AM handler lo
-    equs "EX"                                                         ; 8c55: 45 58       EX       ; "EX" command string
-    equb &8c                                                          ; 8c57: 8c          .        ; EX handler hi → &8C61 (ex_handler)
-    equb &60                                                          ; 8c58: 60          `        ; EX handler lo
-    equs "BYE"                                                        ; 8c59: 42 59 45    BYE      ; "BYE" command string
-    equb &0d                                                          ; 8c5c: 0d          .        ; CR terminator for BYE
-    equb &83                                                          ; 8c5d: 83          .        ; BYE handler hi → &83C0 (bye_handler)
-    equb &bf                                                          ; 8c5e: bf          .        ; BYE handler lo
-    equb &80                                                          ; 8c5f: 80          .        ; Catch-all hi → &80C1 (forward_star_cmd)
-    equb &c0                                                          ; 8c60: c0          .        ; Catch-all lo
+    equs "I."                                                         ; 8c4b: 49 2e       I.       ; "I.": dispatch to forward_star_cmd
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c4d: 80 c0       ..    
+    equs "I AM"                                                       ; 8c4f: 49 20 41... I A...   ; "I AM": dispatch to i_am_handler
+    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8c53: 80 81       ..    
+    equs "EX"                                                         ; 8c55: 45 58       EX       ; "EX": dispatch to ex_handler
+    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8c57: 8c 60       .`    
+    equs "BYE", &0d                                                   ; 8c59: 42 59 45... BYE...   ; "BYE" + CR: dispatch to bye_handler
+    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8c5d: 83 bf       ..    
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c5f: 80 c0       ..       ; Anything else: dispatch to forward_star_cmd
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
 ;
@@ -9100,7 +9098,6 @@ save pydis_start, pydis_end
 ;     close_opt_return:                         1
 ;     close_single_handle:                      1
 ;     close_spool_exec:                         1
-;     cmd_match_data:                           1
 ;     compare_addr_byte:                        1
 ;     copro_ack_nmi_check:                      1
 ;     copy_addr_loop:                           1
@@ -9513,11 +9510,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7553 bytes (92%)
-;     Data                     = 639 bytes (8%)
+;     Code                     = 7551 bytes (92%)
+;     Data                     = 641 bytes (8%)
 ;
-;     Number of instructions   = 3664
-;     Number of data bytes     = 359 bytes
+;     Number of instructions   = 3663
+;     Number of data bytes     = 358 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 228 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 231 bytes
+;     Number of strings        = 37

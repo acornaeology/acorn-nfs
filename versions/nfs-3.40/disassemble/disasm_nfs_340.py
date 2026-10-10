@@ -1946,6 +1946,7 @@ d.subroutine(
 )
 
 d.comment(0x8204, "Print ROM identification string", align=Align.INLINE)
+d.comment(0x8207, "Inline text, printed by print_inline", align=Align.INLINE)
 d.label(0x8211, "return_service")
 
 d.comment(0x8211, "Load workspace page for printing", align=Align.INLINE)
@@ -4715,25 +4716,6 @@ d.comment(0x8BFF, "Push handler address high byte", align=Align.INLINE)
 d.comment(0x8C00, "Load handler address low byte", align=Align.INLINE)
 d.comment(0x8C03, "Push handler address low byte", align=Align.INLINE)
 d.comment(0x8C04, "Dispatch via RTS (addr-1 on stack)", align=Align.INLINE)
-d.subroutine(
-    0x8C05,
-    "fs_cmd_match_table",
-    title="FS command match table (COMTAB)",
-    description="""Format: command letters (bit 7 clear), then dispatch address
-as two bytes: high|(bit 7 set), low. The PHA/PHA/RTS trick
-adds 1 to the stored (address-1). Matching is case-insensitive
-(AND &DF) and supports '.' abbreviation (standard Acorn pattern).
-
-Entries:
-  "I."     → &80C1 (forward_star_cmd) — placed first as a fudge
-             to catch *I. abbreviation before matching *I AM
-  "I AM"   → &8082 (i_am_handler: parse station.net, logon)
-  "EX"     → &8C1B (ex_handler: embedded in table tail)
-  "BYE"\\r  → &83BC (bye_handler: logoff)
-  <catch-all> → &80C1 (forward anything else to FS)""",
-)
-d.comment(0x8C05, "Match last char against '.' for *I. abbreviation", align=Align.INLINE)
-d.label(0x8C06, "fs_cmd_dispatch_hi")
 
 d.entry(0x8C1B)
 
@@ -9196,6 +9178,53 @@ d.comment(0x96BA, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INL
 d.expr(0x96BB, lo(sym("nmi_rx_scout")))
 d.comment(0x96C1, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
 d.expr(0x96C2, hi(sym("nmi_rx_scout")))
+
+d.banner(
+    0x8C05,
+    title="FS command match table (COMTAB)",
+    description="""Each entry is the command letters (bit 7 clear) followed by the
+handler address minus 1, high byte first. Every handler lies in
+the ROM at &8000 or above, so the high byte has bit 7 set and
+also ends the letters. The dispatcher pushes both bytes and
+returns through them (PHA/PHA/RTS), which adds the 1 back.
+Matching ignores case (AND &DF) and accepts a '.' abbreviation.
+An entry with no letters ends the table and catches everything
+else.
+
+Entries, in matching order:
+
+* `I.`: [`forward_star_cmd`](label:forward_star_cmd), placed first so that the abbreviation `*I.` is passed on to the file server instead of matching `*I AM`
+* `I AM`: [`i_am_handler`](label:i_am_handler), log on, with an optional station number before the user id
+* `EX`: [`ex_handler`](label:ex_handler), extended catalogue
+* `BYE` + CR: [`bye_handler`](label:bye_handler), log off
+* anything else: [`forward_star_cmd`](label:forward_star_cmd), passing the whole command to the file server""",
+)
+d.label(0x8C05, "fs_cmd_match_table")
+d.expr(0x8C01, sym("fs_cmd_match_table") + 1)
+d.string(0x8C05, 2)
+d.byte(0x8C07, 2)
+d.expr(0x8C07, hi(sym("forward_star_cmd") - 1))
+d.expr(0x8C08, lo(sym("forward_star_cmd") - 1))
+d.comment(0x8C05, '"I.": dispatch to forward_star_cmd', align=Align.INLINE)
+d.string(0x8C09, 4)
+d.byte(0x8C0D, 2)
+d.expr(0x8C0D, hi(sym("i_am_handler") - 1))
+d.expr(0x8C0E, lo(sym("i_am_handler") - 1))
+d.comment(0x8C09, '"I AM": dispatch to i_am_handler', align=Align.INLINE)
+d.string(0x8C0F, 2)
+d.byte(0x8C11, 2)
+d.expr(0x8C11, hi(sym("ex_handler") - 1))
+d.expr(0x8C12, lo(sym("ex_handler") - 1))
+d.comment(0x8C0F, '"EX": dispatch to ex_handler', align=Align.INLINE)
+d.string(0x8C13, 4)
+d.byte(0x8C17, 2)
+d.expr(0x8C17, hi(sym("bye_handler") - 1))
+d.expr(0x8C18, lo(sym("bye_handler") - 1))
+d.comment(0x8C13, '"BYE" + CR: dispatch to bye_handler', align=Align.INLINE)
+d.byte(0x8C19, 2)
+d.expr(0x8C19, hi(sym("forward_star_cmd") - 1))
+d.expr(0x8C1A, lo(sym("forward_star_cmd") - 1))
+d.comment(0x8C19, "Anything else: dispatch to forward_star_cmd", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

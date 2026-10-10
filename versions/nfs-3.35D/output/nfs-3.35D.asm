@@ -1975,7 +1975,7 @@ cmd_roff_str = copyright_string+3
 ; Prints the ROM identification string using print_inline.
 .svc_9_help
     jsr print_inline                                                  ; 81f7: 20 e2 85     ..      ; Print inline ROM identification string
-    equb &0d, "NFS 3.35d", &0d                                        ; 81fa: 0d 4e 46... .NF...
+    equb &0d, "NFS 3.35d", &0d                                        ; 81fa: 0d 4e 46... .NF...   ; Inline text, printed by print_inline
 ; &8205 referenced 2 times by &81bd, &821a
 .restore_y_return
     ldy nfs_temp                                                      ; 8205: a4 a8       ..       ; Reload saved character counter
@@ -4564,32 +4564,38 @@ cmd_roff_str = copyright_string+3
 ; &8bdc referenced 1 time by &8bc2
 .dispatch_cmd
     pha                                                               ; 8bdc: 48          H        ; Push handler address high byte
-    lda cmd_table_entry_1,x                                           ; 8bdd: bd e3 8b    ...      ; Load handler address low byte
+    lda fs_cmd_match_table + 1,x                                      ; 8bdd: bd e3 8b    ...      ; Load handler address low byte
     pha                                                               ; 8be0: 48          H        ; Push handler address low byte
     rts                                                               ; 8be1: 60          `        ; Dispatch via RTS (addr-1 on stack)
 ; ***************************************************************************************
 ; FS command match table (COMTAB)
 ;
-; Format: command letters (bit 7 clear), then dispatch address as two bytes: high|(bit 7
-; set), low. The PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching is
-; case-insensitive (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
+; Each entry is the command letters (bit 7 clear) followed by the handler address minus
+; 1, high byte first. Every handler lies in the ROM at &8000 or above, so the high byte
+; has bit 7 set and also ends the letters. The dispatcher pushes both bytes and returns
+; through them (PHA/PHA/RTS), which adds the 1 back. Matching ignores case (AND &DF) and
+; accepts a '.' abbreviation. An entry with no letters ends the table and catches
+; everything else.
 ;
-; Entries: "I."     → &80B4 (forward_star_cmd) — placed first as a fudge to catch *I.
-; abbreviation before matching *I AM "I AM"   → &807E (i_am_handler: parse station.net,
-; logon) "EX"     → &8BF8 (ex_handler: extended catalogue) "BYE"\r  → &838D (bye_handler:
-; logoff) <catch-all> → &80B4 (forward anything else to FS)
+; Entries, in matching order:
+;
+; - I.: forward_star_cmd, placed first so that the abbreviation *I. is passed on to the
+;   file server instead of matching *I AM
+; - I AM: i_am_handler, log on, with an optional station number before the user id
+; - EX: ex_handler, extended catalogue
+; - BYE + CR: bye_handler, log off
+; - anything else: forward_star_cmd, passing the whole command to the file server
 ; &8be2 used as index base 2 times by &8bbf, &8bcc
 .fs_cmd_match_table
-; &8be3 used as index base 1 time by &8bdd
-cmd_table_entry_1 = fs_cmd_match_table+1
-    eor #'.'                                                          ; 8be2: 49 2e       I.       ; Match last char against '.' for *I. abbreviation
-    equb &80, &b3                                                     ; 8be4: 80 b3       ..    
-    equs "I AM"                                                       ; 8be6: 49 20 41... I A...
-    equb &80                                                          ; 8bea: 80          .     
-    equs "}EX"                                                        ; 8beb: 7d 45 58    }EX   
-    equb &8b, &f7                                                     ; 8bee: 8b f7       ..    
-    equs "BYE"                                                        ; 8bf0: 42 59 45    BYE   
-    equb &0d, &83, &8c, &80, &b3                                      ; 8bf3: 0d 83 8c... ......
+    equs "I."                                                         ; 8be2: 49 2e       I.       ; "I.": dispatch to forward_star_cmd
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8be4: 80 b3       ..    
+    equs "I AM"                                                       ; 8be6: 49 20 41... I A...   ; "I AM": dispatch to i_am_handler
+    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8bea: 80 7d       .}    
+    equs "EX"                                                         ; 8bec: 45 58       EX       ; "EX": dispatch to ex_handler
+    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8bee: 8b f7       ..    
+    equs "BYE", &0d                                                   ; 8bf0: 42 59 45... BYE...   ; "BYE" + CR: dispatch to bye_handler
+    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8bf4: 83 8c       ..    
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8bf6: 80 b3       ..       ; Anything else: dispatch to forward_star_cmd
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
 ;
@@ -8903,7 +8909,6 @@ save pydis_start, pydis_end
 ;     close_opt_return:                         1
 ;     close_single_handle:                      1
 ;     close_spool_exec:                         1
-;     cmd_table_entry_1:                        1
 ;     compare_addr_byte:                        1
 ;     context_ptr_2_hi:                         1
 ;     copy_addr_loop:                           1
@@ -9313,11 +9318,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7585 bytes (93%)
-;     Data                     = 607 bytes (7%)
+;     Code                     = 7583 bytes (93%)
+;     Data                     = 609 bytes (7%)
 ;
-;     Number of instructions   = 3662
+;     Number of instructions   = 3661
 ;     Number of data bytes     = 357 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 222 bytes
-;     Number of strings        = 35
+;     Number of string bytes   = 224 bytes
+;     Number of strings        = 36

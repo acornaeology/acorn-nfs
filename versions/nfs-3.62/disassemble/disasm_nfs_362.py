@@ -4864,56 +4864,7 @@ d.comment(0x8C49, "Push handler address low byte", align=Align.INLINE)
 d.comment(0x8C4A, "Dispatch via RTS (addr-1 on stack)", align=Align.INLINE)
 
 
-d.subroutine(
-    0x8C4B,
-    "fs_cmd_match_table",
-    title="FS command match table (COMTAB)",
-    description="""Format: command letters (bit 7 clear), then dispatch address
-as two big-endian bytes: high|(bit 7 set), low. The bit 7 set
-on the high byte marks the end of the command string. The
-PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching
-is case-insensitive (AND &DF) and supports '.' abbreviation.
 
-Entries:
-  "I."     → &80C1 (forward_star_cmd) — placed first as a fudge
-             to catch *I. abbreviation before matching *I AM
-  "I AM"   → &8082 (i_am_handler: parse station.net, logon)
-  "EX"     → &9FB5 (ex_trampoline: checks next char, dispatches
-             to ex_handler or forward_star_cmd for *EXEC etc.)
-  "BYE"\\r  → &83C0 (bye_handler: logoff)
-  <catch-all> → &80C1 (forward anything else to FS)""",
-)
-d.comment(0x8C4B, "Match last char against '.' for *I. abbreviation", align=Align.INLINE)
-d.label(0x8C4C, "cmd_match_data")
-
-d.byte(0x8C4D)
-d.comment(0x8C4D, "I. handler hi → &80C1 (forward_star_cmd)", align=Align.INLINE)
-d.byte(0x8C4E)
-d.comment(0x8C4E, "I. handler lo", align=Align.INLINE)
-d.string(0x8C4F, 4)
-d.comment(0x8C4F, '"I AM" command string', align=Align.INLINE)
-d.byte(0x8C53)
-d.comment(0x8C53, "I AM handler hi → &8082 (i_am_handler)", align=Align.INLINE)
-d.byte(0x8C54)
-d.comment(0x8C54, "I AM handler lo", align=Align.INLINE)
-d.string(0x8C55, 2)
-d.comment(0x8C55, '"EX" command string', align=Align.INLINE)
-d.byte(0x8C57)
-d.comment(0x8C57, "EX handler hi → &9FB5 (ex_trampoline)", align=Align.INLINE)
-d.byte(0x8C58)
-d.comment(0x8C58, "EX handler lo", align=Align.INLINE)
-d.string(0x8C59, 3)
-d.comment(0x8C59, '"BYE" command string', align=Align.INLINE)
-d.byte(0x8C5C)
-d.comment(0x8C5C, "CR terminator for BYE", align=Align.INLINE)
-d.byte(0x8C5D)
-d.comment(0x8C5D, "BYE handler hi → &83C0 (bye_handler)", align=Align.INLINE)
-d.byte(0x8C5E)
-d.comment(0x8C5E, "BYE handler lo", align=Align.INLINE)
-d.byte(0x8C5F)
-d.comment(0x8C5F, "Catch-all hi → &80C1 (forward_star_cmd)", align=Align.INLINE)
-d.byte(0x8C60)
-d.comment(0x8C60, "Catch-all lo", align=Align.INLINE)
 d.comment(0x8C61, "X=1: force one entry per line for *EX", align=Align.INLINE)
 d.entry(0x8C61)
 
@@ -9538,6 +9489,53 @@ d.comment(0x9F5F, "Is the NMI handler nmi_rx_scout? (low byte)", align=Align.INL
 d.expr(0x9F60, lo(sym("nmi_rx_scout")))
 d.comment(0x9F66, "Is the NMI handler nmi_rx_scout? (high byte)", align=Align.INLINE)
 d.expr(0x9F67, hi(sym("nmi_rx_scout")))
+
+d.banner(
+    0x8C4B,
+    title="FS command match table (COMTAB)",
+    description="""Each entry is the command letters (bit 7 clear) followed by the
+handler address minus 1, high byte first. Every handler lies in
+the ROM at &8000 or above, so the high byte has bit 7 set and
+also ends the letters. The dispatcher pushes both bytes and
+returns through them (PHA/PHA/RTS), which adds the 1 back.
+Matching ignores case (AND &DF) and accepts a '.' abbreviation.
+An entry with no letters ends the table and catches everything
+else.
+
+Entries, in matching order:
+
+* `I.`: [`forward_star_cmd`](label:forward_star_cmd), placed first so that the abbreviation `*I.` is passed on to the file server instead of matching `*I AM`
+* `I AM`: [`i_am_handler`](label:i_am_handler), log on, with an optional station number before the user id
+* `EX`: [`ex_exec_trampoline`](label:ex_exec_trampoline), which rejects longer words such as `*EXEC` before running the extended catalogue
+* `BYE` + CR: [`bye_handler`](label:bye_handler), log off
+* anything else: [`forward_star_cmd`](label:forward_star_cmd), passing the whole command to the file server""",
+)
+d.label(0x8C4B, "fs_cmd_match_table")
+d.expr(0x8C47, sym("fs_cmd_match_table") + 1)
+d.string(0x8C4B, 2)
+d.byte(0x8C4D, 2)
+d.expr(0x8C4D, hi(sym("forward_star_cmd") - 1))
+d.expr(0x8C4E, lo(sym("forward_star_cmd") - 1))
+d.comment(0x8C4B, '"I.": dispatch to forward_star_cmd', align=Align.INLINE)
+d.string(0x8C4F, 4)
+d.byte(0x8C53, 2)
+d.expr(0x8C53, hi(sym("i_am_handler") - 1))
+d.expr(0x8C54, lo(sym("i_am_handler") - 1))
+d.comment(0x8C4F, '"I AM": dispatch to i_am_handler', align=Align.INLINE)
+d.string(0x8C55, 2)
+d.byte(0x8C57, 2)
+d.expr(0x8C57, hi(sym("ex_exec_trampoline") - 1))
+d.expr(0x8C58, lo(sym("ex_exec_trampoline") - 1))
+d.comment(0x8C55, '"EX": dispatch to ex_exec_trampoline', align=Align.INLINE)
+d.string(0x8C59, 4)
+d.byte(0x8C5D, 2)
+d.expr(0x8C5D, hi(sym("bye_handler") - 1))
+d.expr(0x8C5E, lo(sym("bye_handler") - 1))
+d.comment(0x8C59, '"BYE" + CR: dispatch to bye_handler', align=Align.INLINE)
+d.byte(0x8C5F, 2)
+d.expr(0x8C5F, hi(sym("forward_star_cmd") - 1))
+d.expr(0x8C60, lo(sym("forward_star_cmd") - 1))
+d.comment(0x8C5F, "Anything else: dispatch to forward_star_cmd", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

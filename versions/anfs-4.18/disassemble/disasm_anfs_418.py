@@ -1551,7 +1551,6 @@ d.index_base(0x10D9, "fcb_ctx_save", group="ram_workspace")
 
 d.index_base(0x10F3, "filename_buf", group="ram_workspace")
 
-d.label(0x6F6E, "false_ref_6f6e")
 d.index_base(0x8001, "rom_header_byte1")
 
 d.label(0x8002, "rom_header_byte2")
@@ -10412,6 +10411,7 @@ d.comment(0xA3F5, "No syntax", align=Align.INLINE)
 for addr, target_label in _cmd_entries:
     d.word(addr)
     d.expr(addr, sym(target_label) - 1)
+    d.comment(addr, "Handler address - 1 (PHA/PHA/RTS)", align=Align.INLINE)
 d.comment(0xA3F8, "*Dump", align=Align.INLINE)
 d.comment(0xA3FF, "*Net (select NFS)", align=Align.INLINE)
 d.comment(0xA402, "No syntax", align=Align.INLINE)
@@ -14492,7 +14492,8 @@ d.comment(0xB485, "Generate 'Net channel' error", align=Align.INLINE)
 d.comment(0xB488, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xB487, "net_channel_err_string")
 
-d.comment(0xB494, "Error string continuation (unreachable)", align=Align.INLINE)
+d.string(0xB494, 24)
+d.comment(0xB494, "Second error text: ' not on this file server'", align=Align.INLINE)
 d.comment(0xB4AC, "String terminator", align=Align.INLINE)
 d.label(0xB4AD, "lookup_chan_by_char")
 
@@ -15795,6 +15796,7 @@ output.""",
 d.comment(0xBADD, "Load display address low byte", align=Align.INLINE)
 d.comment(0xBADF, "Save as starting column number", align=Align.INLINE)
 d.comment(0xBAE0, "Print header label with leading CR", align=Align.INLINE)
+d.comment(0xBAE3, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0xBAEF, "X=&0F: 16 column numbers to print", align=Align.INLINE)
 d.comment(0xBAF1, "Restore starting column number", align=Align.INLINE)
 d.comment(0xBAF2, "Print as two hex digits", align=Align.INLINE)

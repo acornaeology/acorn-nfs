@@ -3300,7 +3300,6 @@
     "quote_mode": 4312,
     "fcb_ctx_save": 4313,
     "filename_buf": 4339,
-    "false_ref_6f6e": 28526,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -68428,7 +68427,7 @@
         126,
         185
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47486
@@ -68478,7 +68477,7 @@
         5,
         186
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47621
@@ -68527,7 +68526,7 @@
         13,
         139
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35597
@@ -68579,7 +68578,7 @@
         158,
         177
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45470
@@ -68630,7 +68629,7 @@
         135,
         185
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47495
@@ -68680,7 +68679,7 @@
         239,
         178
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45807
@@ -68727,7 +68726,7 @@
         205,
         175
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45005
@@ -68777,7 +68776,7 @@
         203,
         138
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35531
@@ -68827,7 +68826,7 @@
         132,
         185
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47492
@@ -68879,7 +68878,7 @@
         32,
         179
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45856
@@ -68945,7 +68944,7 @@
         209,
         146
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37585
@@ -68994,7 +68993,7 @@
         137,
         148
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38025
@@ -69044,7 +69043,7 @@
         253,
         172
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44285
@@ -69096,7 +69095,7 @@
         209,
         146
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37585
@@ -69145,7 +69144,7 @@
         200,
         147
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37832
@@ -69192,7 +69191,7 @@
         88,
         173
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44376
@@ -69242,7 +69241,7 @@
         61,
         163
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         41789
@@ -69289,7 +69288,7 @@
         98,
         160
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         41058
@@ -69339,7 +69338,7 @@
         209,
         146
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37585
@@ -69401,7 +69400,7 @@
         109,
         141
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36205
@@ -69451,7 +69450,7 @@
         76,
         173
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44364
@@ -69500,7 +69499,7 @@
         82,
         173
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44370
@@ -69549,7 +69548,7 @@
         209,
         146
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37585
@@ -69599,7 +69598,7 @@
         176,
         141
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36272
@@ -69651,7 +69650,7 @@
         69,
         175
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44869
@@ -69703,7 +69702,7 @@
         118,
         147
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37750
@@ -69753,7 +69752,7 @@
         60,
         179
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45884
@@ -69829,7 +69828,7 @@
         138,
         139
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35722
@@ -69880,7 +69879,7 @@
         134,
         139
       ],
-      "comment_inline": "Dispatch addr-1",
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35718
@@ -100288,18 +100287,7 @@
       "bytes": [
         32,
         110,
-        111
-      ],
-      "comment_inline": "Error string continuation (unreachable)",
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "false_ref_6f6e",
-      "target": 28526,
-      "target_label": "false_ref_6f6e"
-    },
-    {
-      "addr": 46215,
-      "bytes": [
+        111,
         116,
         32,
         111,
@@ -100322,8 +100310,9 @@
         101,
         114
       ],
+      "comment_inline": "Second error text: ' not on this file server'",
       "type": "string",
-      "string": "t on this file server"
+      "string": " not on this file server"
     },
     {
       "addr": 46236,
@@ -110682,6 +110671,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ".Address  : "
     },

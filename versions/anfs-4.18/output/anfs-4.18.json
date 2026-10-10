@@ -3454,7 +3454,6 @@
     "quote_mode": 4312,
     "fcb_ctx_save": 4313,
     "filename_buf": 4339,
-    "false_ref_6f6e": 28526,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -68751,6 +68750,7 @@
         147,
         185
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47507
@@ -68799,6 +68799,7 @@
         26,
         186
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47642
@@ -68847,6 +68848,7 @@
         25,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35609
@@ -68898,6 +68900,7 @@
         194,
         177
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45506
@@ -68948,6 +68951,7 @@
         156,
         185
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47516
@@ -68997,6 +69001,7 @@
         11,
         179
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45835
@@ -69043,6 +69048,7 @@
         237,
         175
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45037
@@ -69092,6 +69098,7 @@
         211,
         138
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35539
@@ -69141,6 +69148,7 @@
         153,
         185
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         47513
@@ -69192,6 +69200,7 @@
         60,
         179
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45884
@@ -69257,6 +69266,7 @@
         229,
         146
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37605
@@ -69305,6 +69315,7 @@
         157,
         148
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         38045
@@ -69354,6 +69365,7 @@
         15,
         173
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44303
@@ -69405,6 +69417,7 @@
         229,
         146
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37605
@@ -69453,6 +69466,7 @@
         220,
         147
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37852
@@ -69499,6 +69513,7 @@
         106,
         173
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44394
@@ -69548,6 +69563,7 @@
         85,
         163
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         41813
@@ -69594,6 +69610,7 @@
         122,
         160
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         41082
@@ -69643,6 +69660,7 @@
         229,
         146
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37605
@@ -69704,6 +69722,7 @@
         120,
         141
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36216
@@ -69753,6 +69772,7 @@
         94,
         173
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44382
@@ -69801,6 +69821,7 @@
         100,
         173
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44388
@@ -69849,6 +69870,7 @@
         229,
         146
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37605
@@ -69898,6 +69920,7 @@
         187,
         141
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         36283
@@ -69948,6 +69971,7 @@
         101,
         175
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         44901
@@ -70009,6 +70033,7 @@
         138,
         147
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         37770
@@ -70057,6 +70082,7 @@
         88,
         179
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         45912
@@ -70131,6 +70157,7 @@
         149,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35733
@@ -70181,6 +70208,7 @@
         145,
         139
       ],
+      "comment_inline": "Handler address - 1 (PHA/PHA/RTS)",
       "type": "word",
       "values": [
         35729
@@ -100587,18 +100615,7 @@
       "bytes": [
         32,
         110,
-        111
-      ],
-      "comment_inline": "Error string continuation (unreachable)",
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "false_ref_6f6e",
-      "target": 28526,
-      "target_label": "false_ref_6f6e"
-    },
-    {
-      "addr": 46231,
-      "bytes": [
+        111,
         116,
         32,
         111,
@@ -100621,8 +100638,9 @@
         101,
         114
       ],
+      "comment_inline": "Second error text: ' not on this file server'",
       "type": "string",
-      "string": "t on this file server"
+      "string": " not on this file server"
     },
     {
       "addr": 46252,
@@ -111100,6 +111118,7 @@
         58,
         32
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ".Address  : "
     },

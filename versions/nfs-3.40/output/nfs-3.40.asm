@@ -2005,7 +2005,7 @@ cmd_roff_str = copyright_string+3
 ; Prints the ROM identification string using print_inline.
 .svc_9_help
     jsr print_inline                                                  ; 8204: 20 05 86     ..      ; Print ROM identification string
-    equb &0d, "NFS 3.40", &0d                                         ; 8207: 0d 4e 46... .NF...
+    equb &0d, "NFS 3.40", &0d                                         ; 8207: 0d 4e 46... .NF...   ; Inline text, printed by print_inline
 ; &8211 referenced 2 times by &81eb, &8226
 .return_service
     ldy ws_page                                                       ; 8211: a4 a8       ..       ; Load workspace page for printing
@@ -4607,30 +4607,38 @@ cmd_roff_str = copyright_string+3
 ; &8bff referenced 1 time by &8be5
 .dispatch_cmd
     pha                                                               ; 8bff: 48          H        ; Push handler address high byte
-    lda fs_cmd_dispatch_hi,x                                          ; 8c00: bd 06 8c    ...      ; Load handler address low byte
+    lda fs_cmd_match_table + 1,x                                      ; 8c00: bd 06 8c    ...      ; Load handler address low byte
     pha                                                               ; 8c03: 48          H        ; Push handler address low byte
     rts                                                               ; 8c04: 60          `        ; Dispatch via RTS (addr-1 on stack)
 ; ***************************************************************************************
 ; FS command match table (COMTAB)
 ;
-; Format: command letters (bit 7 clear), then dispatch address as two bytes: high|(bit 7
-; set), low. The PHA/PHA/RTS trick adds 1 to the stored (address-1). Matching is
-; case-insensitive (AND &DF) and supports '.' abbreviation (standard Acorn pattern).
+; Each entry is the command letters (bit 7 clear) followed by the handler address minus
+; 1, high byte first. Every handler lies in the ROM at &8000 or above, so the high byte
+; has bit 7 set and also ends the letters. The dispatcher pushes both bytes and returns
+; through them (PHA/PHA/RTS), which adds the 1 back. Matching ignores case (AND &DF) and
+; accepts a '.' abbreviation. An entry with no letters ends the table and catches
+; everything else.
 ;
-; Entries: "I."     → &80C1 (forward_star_cmd) — placed first as a fudge to catch *I.
-; abbreviation before matching *I AM "I AM"   → &8082 (i_am_handler: parse station.net,
-; logon) "EX"     → &8C1B (ex_handler: embedded in table tail) "BYE"\r  → &83BC
-; (bye_handler: logoff) <catch-all> → &80C1 (forward anything else to FS)
+; Entries, in matching order:
+;
+; - I.: forward_star_cmd, placed first so that the abbreviation *I. is passed on to the
+;   file server instead of matching *I AM
+; - I AM: i_am_handler, log on, with an optional station number before the user id
+; - EX: ex_handler, extended catalogue
+; - BYE + CR: bye_handler, log off
+; - anything else: forward_star_cmd, passing the whole command to the file server
 ; &8c05 used as index base 2 times by &8be2, &8bef
 .fs_cmd_match_table
-; &8c06 used as index base 1 time by &8c00
-fs_cmd_dispatch_hi = fs_cmd_match_table+1
-    eor #'.'                                                          ; 8c05: 49 2e       I.       ; Match last char against '.' for *I. abbreviation
-    equb &80, &c0                                                     ; 8c07: 80 c0       ..    
-    equs "I AM"                                                       ; 8c09: 49 20 41... I A...
-    equb &80, &81, &45, &58, &8c, &1a                                 ; 8c0d: 80 81 45... ..E...
-    equs "BYE"                                                        ; 8c13: 42 59 45    BYE   
-    equb &0d, &83, &bb, &80, &c0                                      ; 8c16: 0d 83 bb... ......
+    equs "I."                                                         ; 8c05: 49 2e       I.       ; "I.": dispatch to forward_star_cmd
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c07: 80 c0       ..    
+    equs "I AM"                                                       ; 8c09: 49 20 41... I A...   ; "I AM": dispatch to i_am_handler
+    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8c0d: 80 81       ..    
+    equs "EX"                                                         ; 8c0f: 45 58       EX       ; "EX": dispatch to ex_handler
+    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8c11: 8c 1a       ..    
+    equs "BYE", &0d                                                   ; 8c13: 42 59 45... BYE...   ; "BYE" + CR: dispatch to bye_handler
+    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8c17: 83 bb       ..    
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8c19: 80 c0       ..       ; Anything else: dispatch to forward_star_cmd
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
 ;
@@ -8937,7 +8945,6 @@ save pydis_start, pydis_end
 ;     fs2al1:                                   1
 ;     fs_addr_check:                            1
 ;     fs_boot_data:                             1
-;     fs_cmd_dispatch_hi:                       1
 ;     fs_cmd_ptr:                               1
 ;     fs_cmd_type:                              1
 ;     fs_context_base:                          1
@@ -9273,11 +9280,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7517 bytes (92%)
-;     Data                     = 675 bytes (8%)
+;     Code                     = 7515 bytes (92%)
+;     Data                     = 677 bytes (8%)
 ;
-;     Number of instructions   = 3626
-;     Number of data bytes     = 380 bytes
+;     Number of instructions   = 3625
+;     Number of data bytes     = 377 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 243 bytes
-;     Number of strings        = 34
+;     Number of string bytes   = 248 bytes
+;     Number of strings        = 36

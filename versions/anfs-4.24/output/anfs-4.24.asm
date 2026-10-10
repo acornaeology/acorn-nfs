@@ -62,8 +62,6 @@ tube_data_ptr_hi            = &13
 tube_claim_flag             = &14
 tube_claimed_id             = &15
 ; &15 used as index base 1 time by &ada8
-tx_buffer_scratch           = &20
-; &20 used as index base 1 time by &b85a
 parse_separator_flag        = &26
 ; &26 referenced 1 time by &a4ae
 zp_0063                     = &63  ; (false ref from inline string data)
@@ -434,8 +432,6 @@ ws_template_source          = &2048
 separator_parse_dispatch    = &2322
 ; &2322 referenced 1 time by &a4ab
 ws_precomputed_value        = &688b
-false_ref_6f6e              = &6f6e
-; &6f6e referenced 1 time by &b857
 hazel_fs_station            = &c000  ; Filing-system state block (&C000–&C00A). Eleven bytes of currently-selected-FS context kept in HAZEL: station / network of the FS, saved prefix station, multi-purpose CSD/library/boot-type slots, FS flags, messages flag, pending-state, error code, last-error, and *OPT addend. The first two bytes (hazel_fs_station, hazel_fs_network) are the FS address used for every TX scout.
 ; &c000 referenced 5 times by &8dda, &8f7f, &a3ac, &b8f1, &b958; also used as index base 1 time by &9756
 hazel_fs_network            = &c001  ; FS network number (sub-byte of the &C000 FS context block).
@@ -14539,7 +14535,7 @@ ps_print_template = write_ps_slot_hi_link+1
 ; &b625 referenced 1 time by &b61b
 .done_poll_name_print
     jsr print_inline                                                  ; b625: 20 6a 92     j.      ; Print '"' + CR
-    equb &22, " "                                                     ; b628: 22 20       "     
+    equb &22, " "                                                     ; b628: 22 20       "        ; Inline text, printed by print_inline
     nop                                                               ; b62a: ea          .        ; Bit-7 terminator from preceding stringhi
 ; &b62b referenced 1 time by &b60f
 .poll_load_server
@@ -15018,9 +15014,7 @@ ps_print_template = write_ps_slot_hi_link+1
 net_chan_err_strings = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b848: 20 be 99     ..      ; Generate 'Net channel' error
     equs "Net channel", &00                                           ; b84b: 4e 65 74... Net...   ; Error message text (error_inline_log)
-    jsr false_ref_6f6e                                                ; b857: 20 6e 6f     no      ; Error string continuation (unreachable)
-    stz tx_buffer_scratch,x                                           ; b85a: 74 20       t        ; Clear tx_buffer_scratch+X scratch
-    equs "on this file server"                                        ; b85c: 6f 6e 20... on ...
+    equs " not on this file server"                                   ; b857: 20 6e 6f...  no...   ; Second error text: ' not on this file server'
     equb &00                                                          ; b86f: 00          .        ; String terminator
 ; ***************************************************************************************
 ; Look up channel by character code
@@ -17391,7 +17385,6 @@ save pydis_start, pydis_end
 ;     ex_print_col_sep:              1
 ;     ex_set_lib_flag:               1
 ;     extract_digit_value:           1
-;     false_ref_6f6e:                1
 ;     fcb_workspace_idx_base:        1
 ;     fdc_1770_command_or_status:    1
 ;     fdc_1770_data:                 1
@@ -17997,7 +17990,6 @@ save pydis_start, pydis_end
 ;     tube_claimed_id:               1
 ;     tube_overflow_restore:         1
 ;     tube_write_setup:              1
-;     tx_buffer_scratch:             1
 ;     tx_check_tdra_ready:           1
 ;     tx_ctrl_exit:                  1
 ;     tx_ctrl_range_check:           1
@@ -18068,11 +18060,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14479 bytes (88%)
-;     Data                     = 1905 bytes (12%)
+;     Code                     = 14474 bytes (88%)
+;     Data                     = 1910 bytes (12%)
 ;
-;     Number of instructions   = 7137
+;     Number of instructions   = 7135
 ;     Number of data bytes     = 538 bytes
 ;     Number of data words     = 88 bytes
-;     Number of string bytes   = 1279 bytes
+;     Number of string bytes   = 1284 bytes
 ;     Number of strings        = 148

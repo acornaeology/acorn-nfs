@@ -1205,7 +1205,6 @@ d.label(0x2322, "separator_parse_dispatch")
 
 d.label(0x688B, "ws_precomputed_value")
 
-d.label(0x6F6E, "false_ref_6f6e")
 
 d.label(0x8001, "rom_header_byte1")
 
@@ -16718,6 +16717,7 @@ d.comment(0xB623, "No: continue printing name", align=Align.INLINE)
 d.label(0xB625, "done_poll_name_print")
 
 d.comment(0xB625, "Print '\"' + CR", align=Align.INLINE)
+d.comment(0xB628, "Inline text, printed by print_inline", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB624, "Bit-7 terminator from preceding stringhi", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB625, "Pop saved slot index", align=Align.INLINE)
 # UNMAPPED: d.label(0xB625, "loop_pollps_next_slot")
@@ -17217,8 +17217,8 @@ d.label(0xB848, "err_net_chan_not_found")
 d.comment(0xB848, "Generate 'Net channel' error", align=Align.INLINE)
 d.comment(0xB84B, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xB84A, "net_chan_err_strings")
-d.comment(0xB857, "Error string continuation (unreachable)", align=Align.INLINE)
-d.comment(0xB85A, "Clear tx_buffer_scratch+X scratch", align=Align.INLINE)
+d.string(0xB857, 24)
+d.comment(0xB857, "Second error text: ' not on this file server'", align=Align.INLINE)
 d.comment(0xB86F, "String terminator", align=Align.INLINE)
 d.label(0xB870, "lookup_chan_by_char")
 

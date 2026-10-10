@@ -5104,7 +5104,6 @@
     "ws_template_source": 8264,
     "separator_parse_dispatch": 8994,
     "ws_precomputed_value": 26763,
-    "false_ref_6f6e": 28526,
     "hazel_fs_station": 49152,
     "hazel_fs_network": 49153,
     "hazel_fs_saved_station": 49154,
@@ -110510,31 +110509,9 @@
       "bytes": [
         32,
         110,
-        111
-      ],
-      "comment_inline": "Error string continuation (unreachable)",
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "false_ref_6f6e",
-      "target": 28526,
-      "target_label": "false_ref_6f6e"
-    },
-    {
-      "addr": 47153,
-      "bytes": [
+        111,
         116,
-        32
-      ],
-      "comment_inline": "Clear tx_buffer_scratch+X scratch",
-      "type": "code",
-      "mnemonic": "stz",
-      "operand": "tx_buffer_scratch,x",
-      "target": 32,
-      "target_label": "tx_buffer_scratch"
-    },
-    {
-      "addr": 47155,
-      "bytes": [
+        32,
         111,
         110,
         32,
@@ -110555,8 +110532,9 @@
         101,
         114
       ],
+      "comment_inline": "Second error text: ' not on this file server'",
       "type": "string",
-      "string": "on this file server"
+      "string": " not on this file server"
     },
     {
       "addr": 47174,

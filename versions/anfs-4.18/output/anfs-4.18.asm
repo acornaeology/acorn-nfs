@@ -508,8 +508,6 @@ fcb_ctx_save                           = &10d9
 ; &10d9 used as index base 2 times by &b66f, &b723
 filename_buf                           = &10f3
 ; &10f3 used as index base 3 times by &9ba2, &9baa, &9bb8
-false_ref_6f6e                         = &6f6e
-; &6f6e referenced 1 time by &b494
 reloc_p6_src                           = &bd94
 ; &bd94 used as index base 1 time by &beaa
 station_id_disable_net_nmis            = &fe18
@@ -9176,99 +9174,99 @@ bad_prefix = bad_str_anchor+1
 .cmd_table_fs_hi
     equs "ose"                                                        ; a3f2: 6f 73 65    ose      ; *Close cont (dispatch hi base)
     equb &80                                                          ; a3f5: 80          .        ; No syntax
-    equw cmd_close - 1                                                ; a3f6: 93 b9       ..    
+    equw cmd_close - 1                                                ; a3f6: 93 b9       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Dump"                                                       ; a3f8: 44 75 6d... Dum...   ; *Dump
     equb &c4                                                          ; a3fc: c4          .     
-    equw cmd_dump - 1                                                 ; a3fd: 1a ba       ..    
+    equw cmd_dump - 1                                                 ; a3fd: 1a ba       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Net"                                                        ; a3ff: 4e 65 74    Net      ; *Net (select NFS)
     equb &80                                                          ; a402: 80          .        ; No syntax
-    equw cmd_net_fs - 1                                               ; a403: 19 8b       ..    
+    equw cmd_net_fs - 1                                               ; a403: 19 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Pollps"                                                     ; a405: 50 6f 6c... Pol...   ; *Pollps
     equb &88                                                          ; a40b: 88          .        ; Syn 8: (<stn. id.>|<ps type>)
-    equw cmd_pollps - 1                                               ; a40c: c2 b1       ..    
+    equw cmd_pollps - 1                                               ; a40c: c2 b1       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Print"                                                      ; a40e: 50 72 69... Pri...   ; *Print
     equb &cc                                                          ; a413: cc          .        ; V no arg; syn 12: <filename>
-    equw cmd_print - 1                                                ; a414: 9c b9       ..    
+    equw cmd_print - 1                                                ; a414: 9c b9       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Prot"                                                       ; a416: 50 72 6f... Pro...   ; *Prot
     equb &8e                                                          ; a41a: 8e          .        ; Syn 14: (protection-type keywords)
-    equw cmd_prot - 1                                                 ; a41b: 0b b3       ..    
+    equw cmd_prot - 1                                                 ; a41b: 0b b3       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "PS"                                                         ; a41d: 50 53       PS       ; *PS; syn 8: (<stn. id.>|<ps type>)
     equb &88                                                          ; a41f: 88          .     
-    equw cmd_ps - 1                                                   ; a420: ed af       ..    
+    equw cmd_ps - 1                                                   ; a420: ed af       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Roff"                                                       ; a422: 52 6f 66... Rof...   ; *Roff
     equb &80                                                          ; a426: 80          .        ; No syntax
-    equw cmd_roff - 1                                                 ; a427: d3 8a       ..    
+    equw cmd_roff - 1                                                 ; a427: d3 8a       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Type"                                                       ; a429: 54 79 70... Typ...   ; *Type
     equb &cc                                                          ; a42d: cc          .        ; V no arg; syn 12: <filename>
-    equw cmd_type - 1                                                 ; a42e: 99 b9       ..    
+    equw cmd_type - 1                                                 ; a42e: 99 b9       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Unprot"                                                     ; a430: 55 6e 70... Unp...   ; *Unprot
     equb &8e                                                          ; a436: 8e          .        ; Syn 14: (protection-type keywords)
-    equw cmd_unprot - 1                                               ; a437: 3c b3       <.    
+    equw cmd_unprot - 1                                               ; a437: 3c b3       <.       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a439: 80          .        ; End of utility sub-table
 .cmd_table_nfs
     equs "Access"                                                     ; a43a: 41 63 63... Acc...   ; *Access
     equb &c9                                                          ; a440: c9          .        ; V no arg; syn 9: <obj> (L)(W)(R)...
-    equw cmd_fs_operation - 1                                         ; a441: e5 92       ..    
+    equw cmd_fs_operation - 1                                         ; a441: e5 92       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Bye"                                                        ; a443: 42 79 65    Bye      ; *Bye
     equb &80                                                          ; a446: 80          .        ; No syntax
-    equw cmd_bye - 1                                                  ; a447: 9d 94       ..    
+    equw cmd_bye - 1                                                  ; a447: 9d 94       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Cdir"                                                       ; a449: 43 64 69... Cdi...   ; *Cdir
     equb &c6                                                          ; a44d: c6          .        ; V no arg; syn 6: <dir> (<number>)
-    equw cmd_cdir - 1                                                 ; a44e: 0f ad       ..    
+    equw cmd_cdir - 1                                                 ; a44e: 0f ad       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Delete"                                                     ; a450: 44 65 6c... Del...   ; *Delete
     equb &c3                                                          ; a456: c3          .        ; V no arg; syn 3: <object>
-    equw cmd_fs_operation - 1                                         ; a457: e5 92       ..    
+    equw cmd_fs_operation - 1                                         ; a457: e5 92       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Dir"                                                        ; a459: 44 69 72    Dir      ; *Dir
     equb &81                                                          ; a45c: 81          .        ; Syn 1: (<dir>)
-    equw cmd_dir - 1                                                  ; a45d: dc 93       ..    
+    equw cmd_dir - 1                                                  ; a45d: dc 93       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Ex"                                                         ; a45f: 45 78       Ex       ; *Ex; syn 1: (<dir>)
     equb &81                                                          ; a461: 81          .     
-    equw cmd_ex - 1                                                   ; a462: 6a ad       j.    
+    equw cmd_ex - 1                                                   ; a462: 6a ad       j.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Flip"                                                       ; a464: 46 6c 69... Fli...   ; *Flip
     equb &80                                                          ; a468: 80          .        ; No syntax
-    equw cmd_flip - 1                                                 ; a469: 55 a3       U.    
+    equw cmd_flip - 1                                                 ; a469: 55 a3       U.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "FS"                                                         ; a46b: 46 53       FS       ; *FS; syn 11: (<stn. id.>)
     equb &8b                                                          ; a46d: 8b          .     
-    equw cmd_fs - 1                                                   ; a46e: 7a a0       z.    
+    equw cmd_fs - 1                                                   ; a46e: 7a a0       z.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Info"                                                       ; a470: 49 6e 66... Inf...   ; *Info
     equb &c3                                                          ; a474: c3          .        ; V no arg; syn 3: <object>
-    equw cmd_fs_operation - 1                                         ; a475: e5 92       ..    
+    equw cmd_fs_operation - 1                                         ; a475: e5 92       ..       ; Handler address - 1 (PHA/PHA/RTS)
 ; &a477 used as index base 1 time by &8daf
 .cmd_table_nfs_iam
     equs "I am"                                                       ; a477: 49 20 61... I a...   ; *I am
     equb &c2                                                          ; a47b: c2          .        ; V no arg; syn 2: (<stn>) <user>...
-    equw cmd_iam - 1                                                  ; a47c: 78 8d       x.    
+    equw cmd_iam - 1                                                  ; a47c: 78 8d       x.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lcat"                                                       ; a47e: 4c 63 61... Lca...   ; *Lcat
     equb &81                                                          ; a482: 81          .        ; Syn 1: (<dir>)
-    equw cmd_lcat - 1                                                 ; a483: 5e ad       ^.    
+    equw cmd_lcat - 1                                                 ; a483: 5e ad       ^.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lex"                                                        ; a485: 4c 65 78    Lex      ; *Lex
     equb &81                                                          ; a488: 81          .        ; Syn 1: (<dir>)
-    equw cmd_lex - 1                                                  ; a489: 64 ad       d.    
+    equw cmd_lex - 1                                                  ; a489: 64 ad       d.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Lib"                                                        ; a48b: 4c 69 62    Lib      ; *Lib
     equb &c5                                                          ; a48e: c5          .        ; V no arg; syn 5: <dir>
-    equw cmd_fs_operation - 1                                         ; a48f: e5 92       ..    
+    equw cmd_fs_operation - 1                                         ; a48f: e5 92       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Pass"                                                       ; a491: 50 61 73... Pas...   ; *Pass
     equb &c7                                                          ; a495: c7          .        ; V no arg; syn 7: <pass> ...
-    equw cmd_pass - 1                                                 ; a496: bb 8d       ..    
+    equw cmd_pass - 1                                                 ; a496: bb 8d       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Remove"                                                     ; a498: 52 65 6d... Rem...   ; *Remove
     equb &c3                                                          ; a49e: c3          .     
-    equw cmd_remove - 1                                               ; a49f: 65 af       e.    
+    equw cmd_remove - 1                                               ; a49f: 65 af       e.       ; Handler address - 1 (PHA/PHA/RTS)
     equb &52                                                          ; a4a1: 52          R        ; *Rename
     equs "ename"                                                      ; a4a2: 65 6e 61... ena...   ; V no arg; syn 3: <object>
     equb &ca                                                          ; a4a7: ca          .        ; V no arg; syn 10: <file> <new file>
-    equw cmd_rename - 1                                               ; a4a8: 8a 93       ..    
+    equw cmd_rename - 1                                               ; a4a8: 8a 93       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Wipe"                                                       ; a4aa: 57 69 70... Wip...   ; *Wipe
     equb &81                                                          ; a4ae: 81          .     
-    equw cmd_wipe - 1                                                 ; a4af: 58 b3       X.    
+    equw cmd_wipe - 1                                                 ; a4af: 58 b3       X.       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a4b1: 80          .        ; End of NFS sub-table
 .cmd_table_help
     equb &14, &8e                                                     ; a4b2: 14 8e       ..    
     equs "Net"                                                        ; a4b4: 4e 65 74    Net      ; *Net (local)
     equb &80                                                          ; a4b7: 80          .        ; No syntax
-    equw help_net - 1                                                 ; a4b8: 95 8b       ..    
+    equw help_net - 1                                                 ; a4b8: 95 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Utils"                                                      ; a4ba: 55 74 69... Uti...   ; *Utils
     equb &80                                                          ; a4bf: 80          .        ; No syntax
-    equw help_utils - 1                                               ; a4c0: 91 8b       ..    
+    equw help_utils - 1                                               ; a4c0: 91 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a4c2: 80          .        ; End of help topic sub-table
 ; *Prot/*Unprot protection-type keyword table. The names are protection types (Halt, Peek, Poke, Jsr, Proc, Utils), not *Access file attributes. Each entry: ASCII name + flag byte (&80+) + OR mask + AND mask. *Prot ORs the lo byte, *Unprot ANDs the hi byte, to set/clear individual protection bits. Also listed by *HELP Prot/*HELP Unprot via the shared commands handler (syntax index 14). Bits: 0=Peek 1=Poke 2=JSR 3=Proc 4=Utils 5=Halt
 .cmd_table_copro
@@ -12747,8 +12745,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 net_channel_err_string = err_net_chan_not_found+2
     jsr error_inline_log                                              ; b485: 20 d1 96     ..      ; Generate 'Net channel' error
     equs "Net channel", &00                                           ; b488: 4e 65 74... Net...   ; Error message text (error_inline_log)
-    jsr false_ref_6f6e                                                ; b494: 20 6e 6f     no      ; Error string continuation (unreachable)
-    equs "t on this file server"                                      ; b497: 74 20 6f... t o...
+    equs " not on this file server"                                   ; b494: 20 6e 6f...  no...   ; Second error text: ' not on this file server'
     equb &00                                                          ; b4ac: 00          .        ; String terminator
 ; ***************************************************************************************
 ; Look up channel by character code
@@ -13956,7 +13953,7 @@ net_channel_err_string = err_net_chan_not_found+2
     lda (work_ae),y                                                   ; badd: b1 ae       ..       ; Load display address low byte
     pha                                                               ; badf: 48          H        ; Save as starting column number
     jsr print_inline                                                  ; bae0: 20 45 91     E.      ; Print header label with leading CR
-    equb &0d, "Address  : "                                           ; bae3: 0d 41 64... .Ad...
+    equb &0d, "Address  : "                                           ; bae3: 0d 41 64... .Ad...   ; Inline text, printed by print_inline
     ldx #&0f                                                          ; baef: a2 0f       ..       ; X=&0F: 16 column numbers to print
     pla                                                               ; baf1: 68          h        ; Restore starting column number
 ; &baf2 referenced 1 time by &bafb
@@ -15154,7 +15151,6 @@ save pydis_start, pydis_end
 ;     ex_print_col_sep:                         1
 ;     ex_set_lib_flag:                          1
 ;     extract_digit_value:                      1
-;     false_ref_6f6e:                           1
 ;     fcb_net_num:                              1
 ;     fcb_workspace_idx_base:                   1
 ;     fcb_xfer_count_lo:                        1
@@ -15845,11 +15841,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14616 bytes (89%)
-;     Data                     = 1768 bytes (11%)
+;     Code                     = 14613 bytes (89%)
+;     Data                     = 1771 bytes (11%)
 ;
-;     Number of instructions   = 7169
+;     Number of instructions   = 7168
 ;     Number of data bytes     = 535 bytes
 ;     Number of data words     = 112 bytes
-;     Number of string bytes   = 1121 bytes
+;     Number of string bytes   = 1124 bytes
 ;     Number of strings        = 143

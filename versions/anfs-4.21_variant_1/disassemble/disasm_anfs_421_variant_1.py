@@ -1203,7 +1203,6 @@ d.label(0x2322, "separator_parse_dispatch")
 
 d.label(0x688B, "ws_precomputed_value")
 
-d.label(0x6F6E, "false_ref_6f6e")
 
 d.label(0x8001, "rom_header_byte1")
 
@@ -17401,8 +17400,8 @@ d.label(0xB81F, "err_net_chan_not_found")
 d.comment(0xB81F, "Generate 'Net channel' error", align=Align.INLINE)
 d.comment(0xB822, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0xB821, "net_chan_err_strings")
-d.comment(0xB82E, "Error string continuation (unreachable)", align=Align.INLINE)
-d.comment(0xB831, "Clear tx_buffer_scratch+X scratch", align=Align.INLINE)
+d.string(0xB82E, 24)
+d.comment(0xB82E, "Second error text: ' not on this file server'", align=Align.INLINE)
 d.comment(0xB846, "String terminator", align=Align.INLINE)
 d.label(0xB847, "lookup_chan_by_char")
 

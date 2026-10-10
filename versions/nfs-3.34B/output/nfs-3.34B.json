@@ -1344,13 +1344,6 @@
       "description": "CLI parser originally by Sophie Wilson (co-designer of ARM). Matches command text against the table\nat &8BD7 using case-insensitive comparison with abbreviation\nsupport \u2014 commands can be shortened with '.' (e.g. \"I.\" for\n\"INFO\"). The \"I.\" entry is a special fudge placed first in the\ntable: since \"I.\" could match multiple commands, it jumps to\nforward_star_cmd to let the fileserver resolve the ambiguity.\n\nThe matching loop compares input characters against table\nentries. On mismatch, it skips to the next entry. On match\nof all table characters, or when '.' abbreviation is found,\nit dispatches via PHA/PHA/RTS to the entry's handler address.\n\nAfter matching, adjusts fs_crc_lo/fs_crc_hi to point past\nthe matched command text."
     },
     {
-      "addr": 35799,
-      "name": "fs_cmd_match_table",
-      "title": "FS command match table (COMTAB)",
-      "description": "Format: command letters (bit 7 clear), then dispatch address\nas two bytes: high|(bit 7 set), low. The PHA/PHA/RTS trick\nadds 1 to the stored (address-1). Matching is case-insensitive\n(AND &DF) and supports '.' abbreviation (standard Acorn pattern).\n\nEntries:\n  \"I.\"     \u2192 &8079 (forward_star_cmd) \u2014 placed first as a fudge\n             to catch *I. abbreviation before matching *I AM\n  \"I AM\"   \u2192 &8D07 (i_am_handler: parse station.net, logon)\n  \"EX \"    \u2192 &8BF3 (ex_handler: extended catalogue)\n  \"EX\"\\r   \u2192 &8BF3 (same, exact match at end of line)\n  \"BYE\"\\r  \u2192 &834A (bye_handler: logoff)\n  <catch-all> \u2192 &8079 (forward anything else to FS)",
-      "fall_through": true
-    },
-    {
       "addr": 35827,
       "name": "ex_handler",
       "title": "*EX handler (extended catalogue)",
@@ -2380,6 +2373,13 @@
       "name": "error_msg_table",
       "title": "Econet error message table (ERRTAB, 8 entries)",
       "description": "Each entry is an error-number byte followed by a NUL-terminated\nmessage string, ready to drop straight into a MOS `BRK` error\nblock at `&0100`.\n\n| Error | Message        |\n|-------|----------------|\n| `&A0` | Line Jammed    |\n| `&A1` | Net Error      |\n| `&A2` | Not listening  |\n| `&A3` | No Clock       |\n| `&A4` | Bad Txcb       |\n| `&11` | Escape         |\n| `&CB` | Bad Option     |\n| `&A5` | No reply       |\n\nConsumed via a two-step lookup driven by\n[`nlistn`](label:nlistn) / [`nlisne`](label:nlisne): the TXCB\nstatus byte is masked with `AND #&07` to give a 3-bit slot,\nwhich selects a `Y` offset from\n[`error_offsets`](label:error_offsets); the entry at\n`error_msg_table + Y` is then copied byte-by-byte to `&0101+`\nby [`copy_error_message`](label:copy_error_message) until the trailing NUL\nterminates the copy and the assembled `BRK` block at `&0100`\nis executed.",
+      "align": "before_label"
+    },
+    {
+      "addr": 35799,
+      "name": "fs_cmd_match_table",
+      "title": "FS command match table (COMTAB)",
+      "description": "Each entry is the command letters (bit 7 clear) followed by the\nhandler address minus 1, high byte first. Every handler lies in\nthe ROM at &8000 or above, so the high byte has bit 7 set and\nalso ends the letters. The dispatcher pushes both bytes and\nreturns through them (PHA/PHA/RTS), which adds the 1 back.\nMatching ignores case (AND &DF) and accepts a '.' abbreviation.\nAn entry with no letters ends the table and catches everything\nelse.\n\nEntries, in matching order:\n\n* `I.`: [`forward_star_cmd`](label:forward_star_cmd), placed first so that the abbreviation `*I.` is passed on to the file server instead of matching `*I AM`\n* `I AM`: [`i_am_handler`](label:i_am_handler), log on, with an optional station number before the user id\n* `EX` + space: [`ex_handler`](label:ex_handler), extended catalogue\n* `EX` + CR: [`ex_handler`](label:ex_handler), the same, for `*EX` alone on the line\n* `BYE` + CR: [`bye_handler`](label:bye_handler), log off\n* anything else: [`forward_star_cmd`](label:forward_star_cmd), passing the whole command to the file server",
       "align": "before_label"
     },
     {
@@ -8058,6 +8058,7 @@
         66,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ".NFS 3.34B."
     },
@@ -26160,9 +26161,21 @@
       "comment_inline": "Load handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "cmd_table_entry_1,x",
-      "target": 35800,
-      "target_label": "cmd_table_entry_1"
+      "operand": "fs_cmd_match_table + 1,x",
+      "expr": {
+        "text": "fs_cmd_match_table + 1",
+        "tree": {
+          "op": "add",
+          "left": {
+            "sym": "fs_cmd_match_table"
+          },
+          "right": {
+            "int": 1,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 35800
     },
     {
       "addr": 35773,
@@ -26339,15 +26352,9 @@
       "labels": [
         "fs_cmd_match_table"
       ],
-      "sub_labels": {
-        "35800": [
-          "cmd_table_entry_1"
-        ]
-      },
-      "comment_inline": "XOR with '.' (abbreviation check)",
+      "comment_inline": "\"I.\": dispatch to forward_star_cmd",
       "xref_summaries": [
-        "&8bd7 used as index base 2 times by &8b9c, &8ba9",
-        "&8bd8 used as index base 1 time by &8bba"
+        "&8bd7 used as index base 2 times by &8b9c, &8ba9"
       ],
       "references": [
         {
@@ -26359,32 +26366,66 @@
           "kind": "indexed"
         }
       ],
-      "type": "code",
-      "mnemonic": "eor",
-      "operand": "#'.'",
-      "format_hint": "char"
+      "type": "string",
+      "string": "I."
     },
     {
       "addr": 35801,
       "bytes": [
-        128
+        128,
+        120
       ],
       "type": "byte",
       "values": [
-        128
+        128,
+        120
+      ],
+      "expressions": [
+        {
+          "text": ">(forward_star_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "forward_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(forward_star_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "forward_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
-      "addr": 35802,
+      "addr": 35803,
       "bytes": [
-        120,
         73,
         32,
         65,
         77
       ],
+      "comment_inline": "\"I AM\": dispatch to i_am_handler",
       "type": "string",
-      "string": "xI AM"
+      "string": "I AM"
     },
     {
       "addr": 35807,
@@ -26396,6 +26437,40 @@
       "values": [
         141,
         6
+      ],
+      "expressions": [
+        {
+          "text": ">(i_am_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "i_am_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(i_am_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "i_am_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -26405,6 +26480,7 @@
         88,
         32
       ],
+      "comment_inline": "\"EX \": dispatch to ex_handler",
       "type": "string",
       "string": "EX "
     },
@@ -26412,22 +26488,103 @@
       "addr": 35812,
       "bytes": [
         139,
-        242,
+        242
+      ],
+      "type": "byte",
+      "values": [
+        139,
+        242
+      ],
+      "expressions": [
+        {
+          "text": ">(ex_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(ex_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35814,
+      "bytes": [
         69,
         88,
-        13,
+        13
+      ],
+      "comment_inline": "\"EX\" + CR: dispatch to ex_handler",
+      "type": "string",
+      "string": "EX."
+    },
+    {
+      "addr": 35817,
+      "bytes": [
         139,
         242
       ],
       "type": "byte",
       "values": [
         139,
-        242,
-        69,
-        88,
-        13,
-        139,
         242
+      ],
+      "expressions": [
+        {
+          "text": ">(ex_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(ex_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "ex_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -26435,27 +26592,104 @@
       "bytes": [
         66,
         89,
-        69
+        69,
+        13
       ],
+      "comment_inline": "\"BYE\" + CR: dispatch to bye_handler",
       "type": "string",
-      "string": "BYE"
+      "string": "BYE."
     },
     {
-      "addr": 35822,
+      "addr": 35823,
       "bytes": [
-        13,
         131,
-        73,
-        128,
-        120
+        73
       ],
       "type": "byte",
       "values": [
-        13,
         131,
-        73,
+        73
+      ],
+      "expressions": [
+        {
+          "text": ">(bye_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "bye_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(bye_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "bye_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 35825,
+      "bytes": [
         128,
         120
+      ],
+      "comment_inline": "Anything else: dispatch to forward_star_cmd",
+      "type": "byte",
+      "values": [
+        128,
+        120
+      ],
+      "expressions": [
+        {
+          "text": ">(forward_star_cmd - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "forward_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        },
+        {
+          "text": "<(forward_star_cmd - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "sym": "forward_star_cmd"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
