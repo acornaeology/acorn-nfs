@@ -176,7 +176,7 @@ beebasm -i versions/anfs-4.26/output/anfs-4.26.asm -o anfs-4.26.rom
 
 - [dasmos](https://acornaeology.github.io/dasmos/) — programmable 6502 disassembler with a byte-faithful round-trip oracle
 - [py8dis](https://github.com/ZornsLemma/py8dis) by [SteveF](https://github.com/ZornsLemma), the original disassembler whose design inspired dasmos
-- [beebasm](https://github.com/stardot/beebasm) by Rich Mayfield and contributors
+- [beebasm](https://github.com/stardot/beebasm) by Rich Talbot-Watkins and contributors
 - [The BBC Micro ROM Library](https://tobylobster.github.io/rom_library/) by tobylobster
 
 ## License
