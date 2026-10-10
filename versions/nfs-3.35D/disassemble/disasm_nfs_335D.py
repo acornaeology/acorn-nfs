@@ -6387,12 +6387,12 @@ d.label(0x9663, "trampoline_adlc_init")
 d.entry(0x9663)
 
 d.comment(0x9663, "Trampoline: forward to adlc_init", align=Align.INLINE)
-d.label(0x9666, "svc_12_nmi_release")
+d.label(0x9666, "svc_12_nmi_claim")
 
-d.comment(0x9666, "Trampoline: forward to NMI release", align=Align.INLINE)
-d.label(0x9669, "svc_11_nmi_claim")
+d.comment(0x9666, "Svc &0C NMI claim: save Econet state", align=Align.INLINE)
+d.label(0x9669, "svc_11_nmi_release")
 
-d.comment(0x9669, "Trampoline: forward to NMI claim", align=Align.INLINE)
+d.comment(0x9669, "Svc &0B NMI release: reclaim NMIs", align=Align.INLINE)
 d.label(0x966C, "svc_5_unknown_irq")
 d.comment(0x966C, "Trampoline: forward to IRQ handler", align=Align.INLINE)
 

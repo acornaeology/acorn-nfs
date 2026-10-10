@@ -3373,14 +3373,14 @@
       ],
       "expressions": [
         {
-          "text": "<(svc_11_nmi_claim - 1)",
+          "text": "<(svc_11_nmi_release - 1)",
           "tree": {
             "op": "lowbyte",
             "operand": {
               "op": "sub",
               "left": {
                 "ref": 38505,
-                "name": "svc_11_nmi_claim"
+                "name": "svc_11_nmi_release"
               },
               "right": {
                 "int": 1,
@@ -3403,14 +3403,14 @@
       ],
       "expressions": [
         {
-          "text": "<(svc_12_nmi_release - 1)",
+          "text": "<(svc_12_nmi_claim - 1)",
           "tree": {
             "op": "lowbyte",
             "operand": {
               "op": "sub",
               "left": {
                 "ref": 38502,
-                "name": "svc_12_nmi_release"
+                "name": "svc_12_nmi_claim"
               },
               "right": {
                 "int": 1,
@@ -4468,14 +4468,14 @@
       ],
       "expressions": [
         {
-          "text": ">(svc_11_nmi_claim - 1)",
+          "text": ">(svc_11_nmi_release - 1)",
           "tree": {
             "op": "highbyte",
             "operand": {
               "op": "sub",
               "left": {
                 "ref": 38505,
-                "name": "svc_11_nmi_claim"
+                "name": "svc_11_nmi_release"
               },
               "right": {
                 "int": 1,
@@ -4498,14 +4498,14 @@
       ],
       "expressions": [
         {
-          "text": ">(svc_12_nmi_release - 1)",
+          "text": ">(svc_12_nmi_claim - 1)",
           "tree": {
             "op": "highbyte",
             "operand": {
               "op": "sub",
               "left": {
                 "ref": 38502,
-                "name": "svc_12_nmi_release"
+                "name": "svc_12_nmi_claim"
               },
               "right": {
                 "int": 1,
@@ -46179,9 +46179,9 @@
         150
       ],
       "labels": [
-        "svc_12_nmi_release"
+        "svc_12_nmi_claim"
       ],
-      "comment_inline": "Trampoline: forward to NMI release",
+      "comment_inline": "Svc &0C NMI claim: save Econet state",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "save_econet_state",
@@ -46196,9 +46196,9 @@
         150
       ],
       "labels": [
-        "svc_11_nmi_claim"
+        "svc_11_nmi_release"
       ],
-      "comment_inline": "Trampoline: forward to NMI claim",
+      "comment_inline": "Svc &0B NMI release: reclaim NMIs",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "restore_econet_state",

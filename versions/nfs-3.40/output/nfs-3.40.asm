@@ -1424,8 +1424,8 @@ cmd_roff_str = copyright_string+3
     equb <(svc_8_osword - 1)                                          ; 802d: 7e          ~        ; lo - Svc 8: unrecognised OSWORD
     equb <(svc_9_help - 1)                                            ; 802e: 03          .        ; lo - Svc 9: *HELP
     equb <(return_1 - 1)                                              ; 802f: f5          .        ; lo - Svc 10: static workspace (no-op)
-    equb <(svc_11_nmi_claim - 1)                                      ; 8030: 68          h        ; lo - Svc 11: NMI release (reclaim NMIs)
-    equb <(svc_12_nmi_release - 1)                                    ; 8031: 65          e        ; lo - Svc 12: NMI claim (save NMI state)
+    equb <(svc_11_nmi_release - 1)                                    ; 8030: 68          h        ; lo - Svc 11: NMI release (reclaim NMIs)
+    equb <(svc_12_nmi_claim - 1)                                      ; 8031: 65          e        ; lo - Svc 12: NMI claim (save NMI state)
     equb <(svc_13_select_nfs - 1)                                     ; 8032: ec          .        ; lo - Svc 13: select NFS (intercepted before dispatch)
     equb <(lang_0_insert_remote_key - 1)                              ; 8033: e7          .        ; lo - Lang 0: no language / Tube
     equb <(lang_1_remote_boot - 1)                                    ; 8034: 99          .        ; lo - Lang 1: normal startup
@@ -1464,8 +1464,8 @@ cmd_roff_str = copyright_string+3
     equb >(svc_8_osword - 1)                                          ; 8052: 8e          .        ; hi - Svc 8: unrecognised OSWORD
     equb >(svc_9_help - 1)                                            ; 8053: 82          .        ; hi - Svc 9: *HELP
     equb >(return_1 - 1)                                              ; 8054: 80          .        ; hi - Svc 10: static workspace (no-op)
-    equb >(svc_11_nmi_claim - 1)                                      ; 8055: 96          .        ; hi - Svc 11: NMI release (reclaim NMIs)
-    equb >(svc_12_nmi_release - 1)                                    ; 8056: 96          .        ; hi - Svc 12: NMI claim (save NMI state)
+    equb >(svc_11_nmi_release - 1)                                    ; 8055: 96          .        ; hi - Svc 11: NMI release (reclaim NMIs)
+    equb >(svc_12_nmi_claim - 1)                                      ; 8056: 96          .        ; hi - Svc 12: NMI claim (save NMI state)
     equb >(svc_13_select_nfs - 1)                                     ; 8057: 81          .        ; hi - Svc 13: select NFS (intercepted before dispatch)
     equb >(lang_0_insert_remote_key - 1)                              ; 8058: 84          .        ; hi - Lang 0: no language / Tube
     equb >(lang_1_remote_boot - 1)                                    ; 8059: 84          .        ; hi - Lang 1: normal startup
@@ -6128,10 +6128,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &9663 referenced 1 time by &8319
 .trampoline_adlc_init
     jmp adlc_init                                                     ; 9663: 4c 6f 96    Lo.      ; Trampoline: forward to adlc_init
-.svc_12_nmi_release
-    jmp poll_nmi_ready                                                ; 9666: 4c b2 96    L..      ; Trampoline: forward to NMI release
-.svc_11_nmi_claim
-    jmp init_nmi_workspace                                            ; 9669: 4c 8d 96    L..      ; Trampoline: forward to NMI claim
+.svc_12_nmi_claim
+    jmp poll_nmi_ready                                                ; 9666: 4c b2 96    L..      ; Svc &0C NMI claim: save Econet state
+.svc_11_nmi_release
+    jmp init_nmi_workspace                                            ; 9669: 4c 8d 96    L..      ; Svc &0B NMI release: reclaim NMIs
 .svc_5_unknown_irq
     jmp check_sr_irq                                                  ; 966c: 4c 35 9b    L5.      ; Trampoline: forward to IRQ handler
 ; ***************************************************************************************
