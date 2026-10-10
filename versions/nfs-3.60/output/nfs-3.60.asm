@@ -2003,7 +2003,7 @@ cmd_roff_str = copyright_string+3
 ;     Y: workspace page number (from ws_page)
 .svc_9_help
     jsr print_inline                                                  ; 8208: 20 5c 86     \.      ; Print ROM identification string
-    equb &0d, "NFS 3.60", &0d                                         ; 820b: 0d 4e 46... .NF...   ; Notify current FS of shutdown
+    equb &0d, "NFS 3.60", &0d                                         ; 820b: 0d 4e 46... .NF...   ; Inline text, printed by print_inline
 ; ***************************************************************************************
 ; Restore Y and return (service not claimed)
 ;
@@ -2069,7 +2069,7 @@ cmd_roff_str = copyright_string+3
 ; &825f referenced 1 time by &8250
 .skip_no_clock_msg
     jsr print_inline                                                  ; 825f: 20 5c 86     \.      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8262: 0d 0d       ..       ; 7 FS vectors to install
+    equb &0d, &0d                                                     ; 8262: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
@@ -4877,7 +4877,7 @@ error_table_base = bgetv_shared_jsr+1
 ; &8cb0 referenced 1 time by &8ca3
 .print_public
     jsr print_inline                                                  ; 8cb0: 20 5c 86     \.      ; Print 'Public' + CR
-    equs "Public", &0d                                                ; 8cb3: 50 75 62... Pub...   ; Print ' Option '
+    equs "Public", &0d                                                ; 8cb3: 50 75 62... Pub...   ; Inline text, printed by print_inline
 ; &8cba referenced 1 time by &8cae
 .print_user_env
     ldy #&15                                                          ; 8cba: a0 15       ..       ; Y=&15: FS function code (read user environment)
@@ -4886,7 +4886,7 @@ error_table_base = bgetv_shared_jsr+1
     ldy #&10                                                          ; 8cc0: a0 10       ..       ; Y=&10: print 16 characters
     jsr print_reply_counted                                           ; 8cc2: 20 49 8d     I.      ; Print disc/CSD name from reply
     jsr print_inline                                                  ; 8cc5: 20 5c 86     \.      ; Print ' Option '
-    equs "    Option "                                                ; 8cc8: 20 20 20...    ...   ; Print ' ('
+    equs "    Option "                                                ; 8cc8: 20 20 20...    ...   ; Inline text, printed by print_inline
     lda fs_boot_option                                                ; 8cd3: ad 05 0e    ...      ; Load boot option from workspace
     tax                                                               ; 8cd6: aa          .        ; X = boot option for name table lookup
     jsr print_hex                                                     ; 8cd7: 20 9d 9f     ..      ; Print boot option as hex digit
@@ -4907,7 +4907,7 @@ error_table_base = bgetv_shared_jsr+1
     ldx #&11                                                          ; 8cf7: a2 11       ..       ; X=&11: directory name offset in reply
     jsr print_reply_bytes                                             ; 8cf9: 20 47 8d     G.      ; Print current directory name
     jsr print_inline                                                  ; 8cfc: 20 5c 86     \.      ; Print ' Lib. '
-    equs "     Lib. "                                                 ; 8cff: 20 20 20...    ...   ; Store entry start offset for request
+    equs "     Lib. "                                                 ; 8cff: 20 20 20...    ...   ; Inline text, printed by print_inline
     ldx #&1b                                                          ; 8d09: a2 1b       ..       ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8d0b: 20 47 8d     G.      ; Print library name
     jsr osnewl                                                        ; 8d0e: 20 e7 ff     ..      ; Print two CRs (blank line)
@@ -5128,7 +5128,7 @@ error_table_base = bgetv_shared_jsr+1
     sta fs_crflag                                                     ; 8da7: 85 b9       ..       ; Update column counter
     beq print_cr                                                      ; 8da9: f0 07       ..       ; Column 0: start new line
     jsr print_inline                                                  ; 8dab: 20 5c 86     \.      ; Print 2-space column separator
-    equs "  "                                                         ; 8dae: 20 20                ; Print hundreds digit
+    equs "  "                                                         ; 8dae: 20 20                ; Inline text, printed by print_inline
     bne next_dir_entry                                                ; 8db0: d0 05       ..       ; ALWAYS branch to next byte
 ; &8db2 referenced 2 times by &8da1, &8da9
 .print_cr
@@ -5550,7 +5550,7 @@ error_table_base = bgetv_shared_jsr+1
     rts                                                               ; 8efe: 60          `        ; Return
 ; &8eff used as index base 1 time by &8f13
 .osword_12_offsets
-    equb &ff, &01                                                     ; 8eff: ff 01       ..       ; Store args start offset to (&F0)+2
+    equb &ff, &01                                                     ; 8eff: ff 01       ..       ; Offset &FF for sub-functions 0-1, &01 for 2-3
 ; ***************************************************************************************
 ; OSWORD &12 handler: dispatch sub-functions 0-9
 ;
@@ -8370,7 +8370,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
     lda tx_flags                                                      ; 9dfa: ad 4a 0d    .J.      ; Check tx_flags for next action
     bpl data_tx_error                                                 ; 9dfd: 10 07       ..       ; Bit7 clear: error, install saved handler
     lda #<(discard_reset_listen)                                      ; 9dff: a9 db       ..       ; Install discard_reset_listen at &99DB
-    ldy #>(discard_reset_listen)                                      ; 9e01: a0 99       ..       ; High byte of &99DB handler
+    ldy #>(discard_reset_listen)                                      ; 9e01: a0 99       ..       ; Y = discard_reset_listen, high byte
     jmp set_nmi_vector                                                ; 9e03: 4c 0e 0d    L..      ; Set NMI vector and return
 ; &9e06 referenced 1 time by &9dfd
 .data_tx_error

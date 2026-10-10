@@ -8903,7 +8903,7 @@ d.comment(0x9E2A, "Write CR2 to close frame", align=Align.INLINE)
 d.comment(0x9E2D, "Check tx_flags for next action", align=Align.INLINE)
 d.comment(0x9E30, "Bit7 clear: error, install saved handler", align=Align.INLINE)
 d.comment(0x9E32, "Install discard_reset_listen at &99DB", align=Align.INLINE)
-d.comment(0x9E34, "High byte of &99DB handler", align=Align.INLINE)
+d.comment(0x9E34, "Y = discard_reset_listen, high byte", align=Align.INLINE)
 d.comment(0x9E36, "Set NMI vector and return", align=Align.INLINE)
 d.label(0x9E39, "data_tx_error")
 

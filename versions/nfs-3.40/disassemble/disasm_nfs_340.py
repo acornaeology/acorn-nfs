@@ -5430,9 +5430,8 @@ d.comment(0x8E97, "X = sub-function code for table lookup", align=Align.INLINE)
 d.comment(0x8E98, "Load handler address high byte from table", align=Align.INLINE)
 d.comment(0x8E9B, "Push high byte for RTS dispatch", align=Align.INLINE)
 d.comment(0x8E9C, "Load handler address low byte from table", align=Align.INLINE)
-d.label(0x8E9F, "fs_osword_tbl_lo")
 
-d.comment(0x8E9F, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
+d.comment(0x8E9F, "Push handler address low byte", align=Align.INLINE)
 d.comment(0x8EA0, "Y=2: save 3 bytes (&AA-&AC)", align=Align.INLINE)
 d.label(0x8EA2, "save1")
 
@@ -5448,9 +5447,9 @@ d.label(0x8EAF, "return_7")
 d.comment(0x8EAF, "RTS dispatches to pushed handler address", align=Align.INLINE)
 for i in range(5):
     d.rts_code_ptr(0x8EB0 + i, 0x8EB5 + i)
-d.index_base(0x8EB0, "osword_handler_lo")
+d.index_base(0x8EB0, "fs_osword_tbl_lo")
+d.comment(0x8EB0, "Dispatch table: low bytes for OSWORD &0F-&13 handlers", align=Align.INLINE)
 
-d.label(0x8EB3, "copyl3")
 
 d.index_base(0x8EB5, "fs_osword_tbl_hi")
 
@@ -8588,7 +8587,7 @@ d.comment(0x9E5E, "Write CR2 to close frame", align=Align.INLINE)
 d.comment(0x9E61, "Check tx_flags for next action", align=Align.INLINE)
 d.comment(0x9E64, "Bit7 clear: error, install saved handler", align=Align.INLINE)
 d.comment(0x9E66, "Install discard_reset_listen at &99DB", align=Align.INLINE)
-d.comment(0x9E68, "High byte of &99DB handler", align=Align.INLINE)
+d.comment(0x9E68, "Y = discard_reset_listen, high byte", align=Align.INLINE)
 d.comment(0x9E6A, "Set NMI vector and return", align=Align.INLINE)
 d.label(0x9E6D, "data_tx_error")
 d.subroutine(

@@ -1946,7 +1946,6 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
 ; = &0D. Jumps to the POKE data-receive path at port_match_found. POKE (&82) only writes
 ; memory and replies, so it is serviced inline in the receive path -- not deferred like
 ; the execute-class operations &83-&87.
-.svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84b1: a9 2e       ..       ; Port workspace offset = &2E
     sta port_ws_offset                                                ; 84b3: 85 a6       ..       ; Store as port_ws_offset
@@ -2476,9 +2475,9 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda tx_port                                                       ; 8662: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 8665: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8667: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
-    lda tx_flags_table,y                                              ; 866a: b9 77 88    .w.      ; Look up tx_flags from table
+    lda tx_flags_table - &81,y                                        ; 866a: b9 77 88    .w.      ; Look up tx_flags from table
     sta net_frame_flags                                               ; 866d: 8d 3e 0d    .>.      ; Store operation flags
-    lda tx_length_table,y                                             ; 8670: b9 6f 88    .o.      ; Look up tx_length from table
+    lda tx_length_table - &81,y                                       ; 8670: b9 6f 88    .o.      ; Look up tx_length from table
     sta rx_ctrl                                                       ; 8673: 8d 3f 0d    .?.      ; Store expected transfer length
     lda #&86                                                          ; 8676: a9 86       ..       ; A=&86: high byte of tx_ctrl_* dispatch target
     pha                                                               ; 8678: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
@@ -3001,8 +3000,6 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     inc port_buf_len_hi                                               ; 886a: e6 a3       ..       ; Carry into second byte
     bne check_tube_irq_loop                                           ; 886c: d0 08       ..       ; No further carry
 .tube_tx_inc_byte3
-; &886f used as index base 1 time by &8670
-tx_length_table = tube_tx_inc_byte3+1
     inc open_port_buf                                                 ; 886e: e6 a4       ..       ; Carry into third byte
     bne check_tube_irq_loop                                           ; 8870: d0 04       ..       ; No further carry
 .tube_tx_inc_byte4
@@ -3010,8 +3007,6 @@ tx_length_table = tube_tx_inc_byte3+1
     beq data_tx_last                                                  ; 8874: f0 b5       ..       ; Counter wrapped to zero: last data
 ; &8876 referenced 3 times by &8868, &886c, &8870
 .check_tube_irq_loop
-; &8877 used as index base 1 time by &866a
-tx_flags_table = check_tube_irq_loop+1
     bit econet_control1_or_status1                                    ; 8876: 2c a0 fe    ,..      ; Test SR1 IRQ for tight loop
     bmi tube_tx_fifo_write                                            ; 8879: 30 cd       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 887b: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
@@ -3153,14 +3148,14 @@ tx_flags_table = check_tube_irq_loop+1
 ; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
 ; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
 ; &0A. Indexed by the immediate-op control byte.
-.tx_length_values
+.tx_length_table
     equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 88f0: 0e 0e 0a... ......
 ; ***************************************************************************************
 ; Immediate-op TX flags table
 ;
 ; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
 ; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
-.tx_flags_values
+.tx_flags_table
     equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 88f8: 81 00 00... ......
 ; ***************************************************************************************
 ; Calculate transfer size and reclaim Tube buffer
@@ -5497,9 +5492,8 @@ ps_template_base = load_transfer_params+1
 .syn_object
     equs "<object>"                                                   ; 912d: 3c 6f 62... <ob...   ; Syn 3: *Delete, *FS, *Remove
     equb &00                                                          ; 9135: 00          .        ; String terminator
-    equs "<filename> (<off"                                           ; 9136: 3c 66 69... <fi...
-    equs "set"                                                        ; 9146: 73 65 74    set      ; Store as string pointer low
-    equb &3e, &20, &0d                                                ; 9149: 3e 20 0d    > .      ; Store as string pointer high
+    equs "<filename> (<offset> "                                      ; 9136: 3c 66 69... <fi...   ; Syn 4: *Dump
+    equb &0d                                                          ; 914b: 0d          .     
     equs "(<address>))"                                               ; 914c: 28 3c 61... (<a...   ; Syn 4 continued: address clause
     equb &00                                                          ; 9158: 00          .        ; Null terminator
 .syn_dir
@@ -6476,7 +6470,7 @@ ps_template_base = load_transfer_params+1
     beq rts_copy_cmd_name                                             ; 94b7: f0 c9       ..       ; Balanced: return OK
     lda brk_ptr                                                       ; 94b9: a5 fd       ..       ; Unbalanced: use BRK ptr for error
     jsr error_bad_inline                                              ; 94bb: 20 a7 99     ..      ; Raise 'Bad string' error
-    equs "string", &00                                                ; 94be: 73 74 72... str...   ; Store to TXCB
+    equs "string", &00                                                ; 94be: 73 74 72... str...   ; Error text, appended to 'Bad '
 ; ***************************************************************************************
 ; *Rename command handler
 ;
@@ -10668,7 +10662,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     jmp boot_cmd_oscli                                                ; a5d4: 4c 64 a7    Ld.      ; Execute via boot/OSCLI path
 ; &a5d7 used as index base 1 time by &a565
 .library_dir_prefix
-    equs "Library."                                                   ; a5d7: 4c 69 62... Lib...   ; Continue shift
+    equs "Library."                                                   ; a5d7: 4c 69 62... Lib...   ; Library directory prefix
 ; &a5df referenced 1 time by &a5b3
 .library_path_string
     jsr copy_arg_to_buf_x0                                            ; a5df: 20 9f b2     ..      ; Copy parsed arg to TX buffer with X=0
@@ -18156,11 +18150,9 @@ save pydis_start, pydis_end
 ;     tx_error:                      1
 ;     tx_fifo_not_ready:             1
 ;     tx_fifo_write:                 1
-;     tx_flags_table:                1
 ;     tx_imm_idx_base:               1
 ;     tx_imm_op_setup:               1
 ;     tx_last_data:                  1
-;     tx_length_table:               1
 ;     tx_line_jammed:                1
 ;     tx_no_clock_error:             1
 ;     tx_prepare:                    1
@@ -18216,7 +18208,7 @@ save pydis_start, pydis_end
 ;     Data                     = 1970 bytes (12%)
 ;
 ;     Number of instructions   = 7103
-;     Number of data bytes     = 602 bytes
+;     Number of data bytes     = 600 bytes
 ;     Number of data words     = 88 bytes
-;     Number of string bytes   = 1280 bytes
-;     Number of strings        = 152
+;     Number of string bytes   = 1282 bytes
+;     Number of strings        = 151

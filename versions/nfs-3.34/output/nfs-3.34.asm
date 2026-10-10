@@ -2745,8 +2745,8 @@ cmd_roff_str = copyright_string+3
     bcc tx_error_classify                                             ; 8499: 90 05       ..       ; Flag cleared: load handle mask
 ; &849b referenced 1 time by &8492
 .tx_flow_control
-    lda fs_spool0                                                     ; 849b: a5 cf       ..       ; Branch if flow control set
-    jsr set_fs_flag                                                   ; 849d: 20 e4 85     ..      ; Error code: TX failed
+    lda fs_spool0                                                     ; 849b: a5 cf       ..       ; Load handle bitmask for flow control
+    jsr set_fs_flag                                                   ; 849d: 20 e4 85     ..      ; Set EOF hint flag for this handle
 ; &84a0 referenced 1 time by &8499
 .tx_error_classify
     lda fs_handle_mask                                                ; 84a0: ad de 0f    ...      ; Shift error bits right

@@ -784,12 +784,12 @@ rom_header_byte2 = rom_header_byte1+1
 ; ***************************************************************************************
 ; Service-5 PHA/PHA/RTS dispatch tail
 ;
-; Builds an RTS-target on the stack from the svc5_dispatch_lo low-byte table and a hard-
-; coded high byte of &85, then falls through into the shared svc_5_unknown_irq RTS to
-; land on the matching svc5_dispatch_lo+Y page-&85 handler.
+; Pushes a hard-coded high byte of &85 and the low byte read from tx_done_dispatch_lo -
+; &83,Y, then falls through into the shared svc_5_unknown_irq RTS, which enters the
+; page-&85 handler for operation type Y.
 ;
 ; On Entry:
-;     Y: svc5_dispatch_lo offset (post-&83 base bias)
+;     Y: operation type (&83 and above)
 ; &804a referenced 1 time by &803d
 .dispatch_svc5
     lda #&85                                                          ; 804a: a9 85       ..       ; Push return addr high (&85)
@@ -1864,9 +1864,9 @@ rom_header_byte2 = rom_header_byte1+1
 ; call is unsafe there -- so they are not run inline. They are completed later from
 ; normal IRQ context: setup_sr_tx records the operation in tx_op_type and sets the Master
 ; 128 ACCCON IRR latch (bit 7 at &FE34), which raises an IRQ that the ROM picks up as
-; service call &05 (svc5_irq_check) and dispatches via the svc5_dispatch_lo table. PEEK,
-; POKE and machine-type (&81 / &82 / &88) only touch memory and reply immediately, so
-; they run here.
+; service call &05 (svc5_irq_check) and dispatches via the tx_done_dispatch_lo table.
+; PEEK, POKE and machine-type (&81 / &82 / &88) only touch memory and reply immediately,
+; so they run here.
 ;
 ; Builds the reply by storing data length, station / network, and control byte into the
 ; RX buffer header.
@@ -1951,7 +1951,6 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
 ; = &0D. Jumps to the POKE data-receive path at port_match_found. POKE (&82) only writes
 ; memory and replies, so it is serviced inline in the receive path -- not deferred like
 ; the execute-class operations &83-&87.
-.svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84bc: a9 2e       ..       ; Port workspace offset = &2E
     sta port_ws_offset                                                ; 84be: 85 a6       ..       ; Store as port_ws_offset
@@ -2293,15 +2292,11 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     sta escapable                                                     ; 85b5: 85 97       ..       ; Store as escapable mode
     ldy #7                                                            ; 85b7: a0 07       ..       ; Y=7: scout-bytes counter
     lda (port_ws_offset),y                                            ; 85b9: b1 a6       ..       ; Read RXCB[7] (buffer addr high byte)
-; &85bb used as index base 1 time by &8741
-.tx_length_table
     cmp #&ff                                                          ; 85bb: c9 ff       ..       ; Compare to &FF
     bne check_tx_in_progress                                          ; 85bd: d0 15       ..       ; Not &FF: normal buffer, skip Tube check
     dey                                                               ; 85bf: 88          .        ; Next byte (descending)
     lda (port_ws_offset),y                                            ; 85c0: b1 a6       ..       ; Read RXCB[6] (buffer addr byte 2)
 .tx_calc_tube_check
-; &85c3 used as index base 1 time by &873b
-tx_flags_table = tx_calc_tube_check+1
     cmp #&fe                                                          ; 85c2: c9 fe       ..       ; Check if addr byte 2 >= &FE (Tube range)
     bcc check_tx_in_progress                                          ; 85c4: 90 0e       ..       ; C clear: no Tube, plain transfer path
     bne shadow_enable_flag                                            ; 85c6: d0 0a       ..       ; Z clear (other state set): use fallback path
@@ -2394,14 +2389,14 @@ tx_flags_table = tx_calc_tube_check+1
 ; Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88
 ; machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type
 ; &0A. Indexed by the immediate-op control byte.
-.tx_length_values
+.tx_length_table
     equb &0e, &0e, &0a, &0a, &0a, &06, &06, &0a                       ; 863c: 0e 0e 0a... ......
 ; ***************************************************************************************
 ; Immediate-op TX flags table
 ;
 ; TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation
 ; -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.
-.tx_flags_values
+.tx_flags_table
     equb &81, &00, &00, &00, &00, &01, &01, &81                       ; 8644: 81 00 00... ......
 ; ***************************************************************************************
 ; Seed TX scout from the TX control block and dispatch on type
@@ -2619,9 +2614,9 @@ tx_flags_table = tx_calc_tube_check+1
     lda tx_port                                                       ; 8733: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 8736: d0 3a       .:       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8738: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
-    lda tx_flags_table,y                                              ; 873b: b9 c3 85    ...      ; Look up tx_flags from table
+    lda tx_flags_table - &81,y                                        ; 873b: b9 c3 85    ...      ; Look up tx_flags from table
     sta net_frame_flags                                               ; 873e: 8d 3e 0d    .>.      ; Store operation flags
-    lda tx_length_table,y                                             ; 8741: b9 bb 85    ...      ; Look up tx_length from table
+    lda tx_length_table - &81,y                                       ; 8741: b9 bb 85    ...      ; Look up tx_length from table
     sta rx_ctrl                                                       ; 8744: 8d 3f 0d    .?.      ; Store expected transfer length
     lda #>(tx_ctrl_peek - 1)                                          ; 8747: a9 87       ..       ; All handlers lie in page &87: high byte
     pha                                                               ; 8749: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
@@ -18135,11 +18130,9 @@ save pydis_start, pydis_end
 ;     tx_error:                      1
 ;     tx_fifo_not_ready:             1
 ;     tx_fifo_write:                 1
-;     tx_flags_table:                1
 ;     tx_imm_idx_base:               1
 ;     tx_imm_op_setup:               1
 ;     tx_last_data:                  1
-;     tx_length_table:               1
 ;     tx_line_jammed:                1
 ;     tx_no_clock_error:             1
 ;     tx_prepare:                    1

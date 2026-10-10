@@ -305,9 +305,9 @@
       "addr": 32842,
       "name": "dispatch_svc5",
       "title": "Service-5 PHA/PHA/RTS dispatch tail",
-      "description": "Builds an `RTS`-target on the stack from the\n[`svc5_dispatch_lo`](label:svc5_dispatch_lo) low-byte table and a hard-\ncoded high byte of `&85`, then falls through into the shared\n[`svc_5_unknown_irq`](label:svc_5_unknown_irq) `RTS` to land on the matching\n[`svc5_dispatch_lo`](label:svc5_dispatch_lo)+`Y` page-`&85` handler.",
+      "description": "Pushes a hard-coded high byte of `&85` and the low byte read from\n[`tx_done_dispatch_lo`](label:tx_done_dispatch_lo) `- &83,Y`, then falls\nthrough into the shared [`svc_5_unknown_irq`](label:svc_5_unknown_irq)\n`RTS`, which enters the page-`&85` handler for operation type `Y`.",
       "on_entry": {
-        "y": "svc5_dispatch_lo offset (post-&83 base bias)"
+        "y": "operation type (&83 and above)"
       },
       "fall_through": true
     },
@@ -536,7 +536,7 @@
       "addr": 33894,
       "name": "immediate_op",
       "title": "Immediate operation handler (port = 0)",
-      "description": "Checks the control byte at [`scout_ctrl`](label:scout_ctrl) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](label:prot_status) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](label:prot_status) to determine whether this\nstation accepts the operation. If accepted, dispatches via\nthe immediate-op dispatch table (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](label:setup_sr_tx) records the\noperation in [`tx_op_type`](label:tx_op_type) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](label:svc5_irq_check)) and dispatches via the\n[`svc5_dispatch_lo`](label:svc5_dispatch_lo) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
+      "description": "Checks the control byte at [`scout_ctrl`](label:scout_ctrl) for\nimmediate-operation codes:\n\n| Range | Op | Treatment |\n|---|---|---|\n| `< &81` or `> &88` | \u2013 | out of range; discarded |\n| `&81`..`&86` | PEEK / POKE / JSR / UserProc / OSProc / HALT | gated by the [`prot_status`](label:prot_status) protection mask |\n| `&87`..`&88` | CONTINUE / machine-type | bypass the mask check |\n\nFor `&81`..`&86`, converts the code to a 0-based index and tests\nagainst the per-station protection mask\n[`prot_status`](label:prot_status) to determine whether this\nstation accepts the operation. If accepted, dispatches via\nthe immediate-op dispatch table (PHA/PHA/RTS).\n\nThe execute-class operations (`&83` JSR, `&84` UserProc, `&85`\nOSProc, `&86` HALT, `&87` CONTINUE) cannot run inside the NMI\nreceive handler -- a JSR into user code or an OS call is unsafe\nthere -- so they are not run inline. They are completed later\nfrom normal IRQ context: [`setup_sr_tx`](label:setup_sr_tx) records the\noperation in [`tx_op_type`](label:tx_op_type) and sets the Master 128\nACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the\nROM picks up as service call `&05`\n([`svc5_irq_check`](label:svc5_irq_check)) and dispatches via the\n[`tx_done_dispatch_lo`](label:tx_done_dispatch_lo) table. PEEK, POKE and\nmachine-type (`&81` / `&82` / `&88`) only touch memory and reply\nimmediately, so they run here.\n\nBuilds the reply by storing data length, station / network, and\ncontrol byte into the RX buffer header."
     },
     {
       "addr": 34069,
@@ -4724,14 +4724,14 @@
     },
     {
       "addr": 34364,
-      "name": "tx_length_values",
+      "name": "tx_length_table",
       "title": "Immediate-op TX control-frame length table",
       "description": "Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.",
       "align": "before_label"
     },
     {
       "addr": 34372,
-      "name": "tx_flags_values",
+      "name": "tx_flags_table",
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
       "align": "before_label"
@@ -15804,7 +15804,6 @@
         46
       ],
       "labels": [
-        "svc5_dispatch_lo",
         "rx_imm_poke"
       ],
       "comment_inline": "Port workspace offset = &2E",
@@ -17812,19 +17811,7 @@
         201,
         255
       ],
-      "labels": [
-        "tx_length_table"
-      ],
       "comment_inline": "Compare to &FF",
-      "xref_summaries": [
-        "&85bb used as index base 1 time by &8741"
-      ],
-      "references": [
-        {
-          "addr": 34625,
-          "kind": "indexed"
-        }
-      ],
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&ff"
@@ -17873,15 +17860,7 @@
       "labels": [
         "tx_calc_tube_check"
       ],
-      "sub_labels": {
-        "34243": [
-          "tx_flags_table"
-        ]
-      },
       "comment_inline": "Check if addr byte 2 >= &FE (Tube range)",
-      "xref_summaries": [
-        "&85c3 used as index base 1 time by &873b"
-      ],
       "type": "code",
       "mnemonic": "cmp",
       "operand": "#&fe"
@@ -18743,7 +18722,7 @@
         10
       ],
       "labels": [
-        "tx_length_values"
+        "tx_length_table"
       ],
       "type": "byte",
       "values": [
@@ -18770,7 +18749,7 @@
         129
       ],
       "labels": [
-        "tx_flags_values"
+        "tx_flags_table"
       ],
       "type": "byte",
       "values": [
@@ -20422,9 +20401,21 @@
       "comment_inline": "Look up tx_flags from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_flags_table,y",
-      "target": 34243,
-      "target_label": "tx_flags_table"
+      "operand": "tx_flags_table - &81,y",
+      "expr": {
+        "text": "tx_flags_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_flags_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 34243
     },
     {
       "addr": 34622,
@@ -20450,9 +20441,21 @@
       "comment_inline": "Look up tx_length from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_length_table,y",
-      "target": 34235,
-      "target_label": "tx_length_table"
+      "operand": "tx_length_table - &81,y",
+      "expr": {
+        "text": "tx_length_table - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_length_table"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 34235
     },
     {
       "addr": 34628,

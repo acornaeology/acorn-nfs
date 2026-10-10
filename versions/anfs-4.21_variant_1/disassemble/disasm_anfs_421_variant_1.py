@@ -2675,7 +2675,6 @@ d.comment(0x84AC, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.label(0x84AE, "jmp_send_data_rx_ack")
 
 d.comment(0x84AE, "Enter common data-receive path", align=Align.INLINE)
-d.label(0x84B1, "svc5_dispatch_lo")
 
 d.subroutine(
     0x84B1,
@@ -3970,7 +3969,6 @@ d.comment(0x886C, "No further carry", align=Align.INLINE)
 d.label(0x886E, "tube_tx_inc_byte3")
 
 d.comment(0x886E, "Carry into third byte", align=Align.INLINE)
-d.label(0x886F, "tx_length_table")
 
 d.comment(0x8870, "No further carry", align=Align.INLINE)
 d.label(0x8872, "tube_tx_inc_byte4")
@@ -3980,7 +3978,6 @@ d.comment(0x8874, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x8876, "check_tube_irq_loop")
 
 d.comment(0x8876, "Test SR1 IRQ for tight loop", align=Align.INLINE)
-d.label(0x8877, "tx_flags_table")
 
 d.comment(0x8879, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x887B, "No IRQ: return, wait for next NMI", align=Align.INLINE)
@@ -6656,8 +6653,7 @@ d.label(0x912D, "syn_object")
 
 d.comment(0x912D, "Syn 3: *Delete, *FS, *Remove", align=Align.INLINE)
 d.comment(0x9135, "String terminator", align=Align.INLINE)
-d.comment(0x9146, "Store as string pointer low", align=Align.INLINE)
-d.comment(0x9149, "Store as string pointer high", align=Align.INLINE)
+d.comment(0x9136, "Syn 4: *Dump", align=Align.INLINE)
 d.comment(0x914C, "Syn 4 continued: address clause", align=Align.INLINE)
 d.comment(0x9158, "Null terminator", align=Align.INLINE)
 d.label(0x9159, "syn_dir")
@@ -7765,7 +7761,7 @@ d.comment(0x94B4, "Check quote balance flag", align=Align.INLINE)
 d.comment(0x94B7, "Balanced: return OK", align=Align.INLINE)
 d.comment(0x94B9, "Unbalanced: use BRK ptr for error", align=Align.INLINE)
 d.comment(0x94BB, "Raise 'Bad string' error", align=Align.INLINE)
-d.comment(0x94BE, "Store to TXCB", align=Align.INLINE)
+d.comment(0x94BE, "Error text, appended to 'Bad '", align=Align.INLINE)
 d.entry(0x94C5)
 d.label(0x94C5, "cmd_rename")
 
@@ -12424,7 +12420,7 @@ d.comment(0xA5D2, "Y=3: skip past 3-byte FS header", align=Align.INLINE)
 d.comment(0xA5D4, "Execute via boot/OSCLI path", align=Align.INLINE)
 d.index_base(0xA5D7, "library_dir_prefix")
 
-d.comment(0xA5D7, "Continue shift", align=Align.INLINE)
+d.comment(0xA5D7, "Library directory prefix", align=Align.INLINE)
 d.label(0xA5DF, "library_path_string")
 
 d.comment(0xA5DF, "Copy parsed arg to TX buffer with X=0", align=Align.INLINE)
@@ -19765,11 +19761,11 @@ d.char_literal(0xBFB5)
 
 d.banner(0x88F0, title="Immediate-op TX control-frame length table",
          description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
-d.label(0x88F0, "tx_length_values")
+d.label(0x88F0, "tx_length_table")
 d.byte(0x88F0, 8)
 d.banner(0x88F8, title="Immediate-op TX flags table",
          description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
-d.label(0x88F8, "tx_flags_values")
+d.label(0x88F8, "tx_flags_table")
 d.byte(0x88F8, 8)
 
 # NMI handler addresses loaded as LDA #lo / LDY #hi pairs.
@@ -20166,6 +20162,9 @@ d.expr(0x875B, lo(sym("nmi_reply_cont")))
 d.comment(0x875A, 'A = nmi_reply_cont, low byte (same page)', align=Align.INLINE)
 d.expr(0x88B1, lo(sym("nmi_final_ack_validate")))
 d.comment(0x88B0, 'A = nmi_final_ack_validate, low byte (same page)', align=Align.INLINE)
+
+d.expr(0x866B, sym("tx_flags_table") - 0x81)
+d.expr(0x8671, sym("tx_length_table") - 0x81)
 
 ir = d.disassemble()
 output = str(

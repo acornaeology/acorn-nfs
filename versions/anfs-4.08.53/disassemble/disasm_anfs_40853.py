@@ -1615,7 +1615,7 @@ d.subroutine(
 dispatch table range, saves the current protection mask
 (prot_status -> prot_status_save), sets protection bits
 2-4, then dispatches through the PHA/RTS trampoline using
-the table at set_rx_buf_len_hi. If Y >= &86, skips the
+the table at tx_done_dispatch_lo. If Y >= &86, skips the
 protection setup and dispatches directly.
 
 Setting bits 2-4 of prot_status disables the JSR, user-
@@ -2684,7 +2684,6 @@ d.comment(0x849F, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.label(0x84A1, "jmp_send_data_rx_ack")
 
 d.comment(0x84A1, "Enter common data-receive path", align=Align.INLINE)
-d.label(0x84A2, "svc5_dispatch_lo")
 
 d.subroutine(
     0x84A4,
@@ -2848,9 +2847,8 @@ d.comment(
     """TX done dispatch table (lo bytes)
 
 Low bytes of PHA/PHA/RTS dispatch targets for TX
-operation types &83-&87. Read by the dispatch at
-&8064 via LDA set_rx_buf_len_hi,Y (base &84B1
-+ Y). High byte is always &85, so targets are
+operation types &83-&87. Read by dispatch_svc5 as
+tx_done_dispatch_lo - &83,Y. High byte is always &85, so targets are
 &85xx+1. Entries for Y < &83 read from preceding
 code bytes and are not valid operation types.""",
 )
@@ -16644,6 +16642,8 @@ d.expr(0x8763, lo(sym("nmi_reply_validate")))
 d.comment(0x8762, 'A = nmi_reply_validate, low byte (same page)', align=Align.INLINE)
 d.expr(0x8899, lo(sym("nmi_final_ack_validate")))
 d.comment(0x8898, 'A = nmi_final_ack_validate, low byte (same page)', align=Align.INLINE)
+
+d.expr(0x8065, sym("tx_done_dispatch_lo") - 0x83)
 
 ir = d.disassemble()
 output = str(

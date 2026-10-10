@@ -5348,9 +5348,8 @@ cmd_roff_str = copyright_string+3
     tax                                                               ; 8e97: aa          .        ; X = sub-function code for table lookup
     lda fs_osword_tbl_hi,x                                            ; 8e98: bd b5 8e    ...      ; Load handler address high byte from table
     pha                                                               ; 8e9b: 48          H        ; Push high byte for RTS dispatch
-    lda osword_handler_lo,x                                           ; 8e9c: bd b0 8e    ...      ; Load handler address low byte from table
-.fs_osword_tbl_lo
-    pha                                                               ; 8e9f: 48          H        ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
+    lda fs_osword_tbl_lo,x                                            ; 8e9c: bd b0 8e    ...      ; Load handler address low byte from table
+    pha                                                               ; 8e9f: 48          H        ; Push handler address low byte
     ldy #2                                                            ; 8ea0: a0 02       ..       ; Y=2: save 3 bytes (&AA-&AC)
 ; &8ea2 referenced 1 time by &8ea8
 .save1
@@ -5365,11 +5364,10 @@ cmd_roff_str = copyright_string+3
 .return_7
     rts                                                               ; 8eaf: 60          `        ; RTS dispatches to pushed handler address
 ; &8eb0 used as index base 1 time by &8e9c
-.osword_handler_lo
-    equb <(osword_0f_handler - 1)                                     ; 8eb0: b9          .     
+.fs_osword_tbl_lo
+    equb <(osword_0f_handler - 1)                                     ; 8eb0: b9          .        ; Dispatch table: low bytes for OSWORD &0F-&13 handlers
     equb <(osword_10_handler - 1)                                     ; 8eb1: 73          s     
     equb <(osword_11_handler - 1)                                     ; 8eb2: d3          .     
-.copyl3
     equb <(rs - 1)                                                    ; 8eb3: f8          .     
     equb <(econet_tx_rx - 1)                                          ; 8eb4: e7          .     
 ; &8eb5 used as index base 1 time by &8e98
@@ -8235,7 +8233,7 @@ tx_done_handler_hi = tx_nmi_setup+1
     lda tx_flags                                                      ; 9e61: ad 4a 0d    .J.      ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 9e64: 10 12       ..       ; Bit7 clear: error, install saved handler
     lda #<(discard_reset_listen)                                      ; 9e66: a9 2e       ..       ; Install discard_reset_listen at &99DB
-    ldy #>(discard_reset_listen)                                      ; 9e68: a0 9a       ..       ; High byte of &99DB handler
+    ldy #>(discard_reset_listen)                                      ; 9e68: a0 9a       ..       ; Y = discard_reset_listen, high byte
     jmp set_nmi_vector                                                ; 9e6a: 4c 0e 0d    L..      ; Set NMI vector and return
 ; ***************************************************************************************
 ; Handle the end of a data transmission
@@ -9058,6 +9056,7 @@ save pydis_start, pydis_end
 ;     fs_load_upper:                            1
 ;     fs_osword_dispatch:                       1
 ;     fs_osword_tbl_hi:                         1
+;     fs_osword_tbl_lo:                         1
 ;     fs_reply_data:                            1
 ;     fs_reply_stn:                             1
 ;     fs_vector_addrs:                          1
@@ -9164,7 +9163,6 @@ save pydis_start, pydis_end
 ;     osgbpb_info:                              1
 ;     osrdsc_ptr_hi:                            1
 ;     osword_12_offsets:                        1
-;     osword_handler_lo:                        1
 ;     osword_tbl_hi:                            1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1

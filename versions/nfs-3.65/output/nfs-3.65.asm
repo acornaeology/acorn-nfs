@@ -8419,7 +8419,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
     lda tx_flags                                                      ; 9e2d: ad 4a 0d    .J.      ; Check tx_flags for next action
     bpl data_tx_error                                                 ; 9e30: 10 07       ..       ; Bit7 clear: error, install saved handler
     lda #<(discard_reset_listen)                                      ; 9e32: a9 fd       ..       ; Install discard_reset_listen at &99DB
-    ldy #>(discard_reset_listen)                                      ; 9e34: a0 99       ..       ; High byte of &99DB handler
+    ldy #>(discard_reset_listen)                                      ; 9e34: a0 99       ..       ; Y = discard_reset_listen, high byte
     jmp set_nmi_vector                                                ; 9e36: 4c 0e 0d    L..      ; Set NMI vector and return
 ; &9e39 referenced 1 time by &9e30
 .data_tx_error

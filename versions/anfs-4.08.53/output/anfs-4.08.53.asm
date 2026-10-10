@@ -1532,8 +1532,8 @@ service_handler_lo = service_entry+1
 ;
 ; Validates the TX operation type in Y against the dispatch table range, saves the
 ; current protection mask (prot_status -> prot_status_save), sets protection bits 2-4,
-; then dispatches through the PHA/RTS trampoline using the table at set_rx_buf_len_hi. If
-; Y >= &86, skips the protection setup and dispatches directly.
+; then dispatches through the PHA/RTS trampoline using the table at tx_done_dispatch_lo.
+; If Y >= &86, skips the protection setup and dispatches directly.
 ;
 ; Setting bits 2-4 of prot_status disables the JSR, user- procedure and OS-procedure
 ; immediate operations: while this deferred remote call runs it cannot itself trigger
@@ -1555,7 +1555,7 @@ service_handler_lo = service_entry+1
 .dispatch_svc5
     lda #&85                                                          ; 8061: a9 85       ..       ; Push return addr high (&85)
     pha                                                               ; 8063: 48          H        ; High byte on stack for RTS
-    lda set_rx_buf_len_hi,y                                           ; 8064: b9 b1 84    ...      ; Load dispatch target low byte
+    lda tx_done_dispatch_lo - &83,y                                   ; 8064: b9 b1 84    ...      ; Load dispatch target low byte
     pha                                                               ; 8067: 48          H        ; Low byte on stack for RTS
 .svc_5_unknown_irq
     rts                                                               ; 8068: 60          `        ; RTS = dispatch to PHA'd address
@@ -2452,7 +2452,6 @@ service_handler_lo = service_entry+1
     dey                                                               ; 849e: 88          .        ; Next byte (descending)
     bpl copy_addr_loop                                                ; 849f: 10 f7       ..       ; Loop until all 4 bytes copied
 .jmp_send_data_rx_ack
-svc5_dispatch_lo = jmp_send_data_rx_ack+1
     jmp send_data_rx_ack                                              ; 84a1: 4c c1 81    L..      ; Enter common data-receive path
 ; ***************************************************************************************
 ; RX immediate: POKE setup
@@ -2476,7 +2475,6 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; is serviced inline here — not deferred like the execute- class operations &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 84af: a9 01       ..       ; Buffer length hi = 1
-; &84b1 used as index base 1 time by &8064
 .set_rx_buf_len_hi
     sta port_buf_len_hi                                               ; 84b1: 85 a3       ..       ; Set buffer length hi
     lda #&fc                                                          ; 84b3: a9 fc       ..       ; Buffer length lo = &FC
@@ -2579,9 +2577,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
     rts                                                               ; 8533: 60          `        ; Return
 ; TX done dispatch table (lo bytes)
 ;
-; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types &83-&87. Read by the dispatch at &8064 via LDA set_rx_buf_len_hi,Y (base &84B1
-;
-; - Y). High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes and are not valid operation types.
+; Low bytes of PHA/PHA/RTS dispatch targets for TX operation types &83-&87. Read by dispatch_svc5 as tx_done_dispatch_lo - &83,Y. High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from preceding code bytes and are not valid operation types.
 .tx_done_dispatch_lo
     equb <(tx_done_jsr - 1)                                           ; 8534: 38          8        ; Y=&83: lo &38 -> tx_done_jsr (&8539)
     equb <(tx_done_econet_event - 1)                                  ; 8535: 41          A        ; Y=&84: lo &41 -> tx_done_econet_event
@@ -15586,7 +15582,6 @@ save pydis_start, pydis_end
 ;     set_jsr_protection:                       1
 ;     set_lib_slot_flags:                       1
 ;     set_port_and_ctrl:                        1
-;     set_rx_buf_len_hi:                        1
 ;     set_text_and_xfer_ptr:                    1
 ;     set_timeout:                              1
 ;     set_tube_addr:                            1

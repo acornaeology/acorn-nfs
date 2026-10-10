@@ -506,7 +506,7 @@
       "addr": 32850,
       "name": "set_jsr_protection",
       "title": "Set JSR protection and dispatch via table",
-      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current protection mask\n(prot_status -> prot_status_save), sets protection bits\n2-4, then dispatches through the PHA/RTS trampoline using\nthe table at set_rx_buf_len_hi. If Y >= &86, skips the\nprotection setup and dispatches directly.\n\nSetting bits 2-4 of prot_status disables the JSR, user-\nprocedure and OS-procedure immediate operations: while\nthis deferred remote call runs it cannot itself trigger\nanother remote execute (re-entrancy protection). The\nsaved mask is restored once the call completes. HALT,\nCONTINUE and machine-type (>= &86) run no caller code, so\nthey need no such guard.",
+      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current protection mask\n(prot_status -> prot_status_save), sets protection bits\n2-4, then dispatches through the PHA/RTS trampoline using\nthe table at tx_done_dispatch_lo. If Y >= &86, skips the\nprotection setup and dispatches directly.\n\nSetting bits 2-4 of prot_status disables the JSR, user-\nprocedure and OS-procedure immediate operations: while\nthis deferred remote call runs it cannot itself trigger\nanother remote execute (re-entrancy protection). The\nsaved mask is restored once the call completes. HALT,\nCONTINUE and machine-type (>= &86) run no caller code, so\nthey need no such guard.",
       "on_entry": {
         "y": "TX operation type (dispatch index)"
       }
@@ -4609,7 +4609,20 @@
       "comment_inline": "Load dispatch target low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "set_rx_buf_len_hi,y",
+      "operand": "tx_done_dispatch_lo - &83,y",
+      "expr": {
+        "text": "tx_done_dispatch_lo - &83",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_done_dispatch_lo"
+          },
+          "right": {
+            "int": 131,
+            "radix": "auto"
+          }
+        }
+      },
       "target": 33969,
       "target_label": "set_rx_buf_len_hi"
     },
@@ -12145,11 +12158,6 @@
       "labels": [
         "jmp_send_data_rx_ack"
       ],
-      "sub_labels": {
-        "33954": [
-          "svc5_dispatch_lo"
-        ]
-      },
       "comment_inline": "Enter common data-receive path",
       "type": "code",
       "mnemonic": "jmp",
@@ -12246,15 +12254,6 @@
         "set_rx_buf_len_hi"
       ],
       "comment_inline": "Set buffer length hi",
-      "xref_summaries": [
-        "&84b1 used as index base 1 time by &8064"
-      ],
-      "references": [
-        {
-          "addr": 32868,
-          "kind": "indexed"
-        }
-      ],
       "type": "code",
       "mnemonic": "sta",
       "operand": "port_buf_len_hi",
@@ -13118,7 +13117,7 @@
         "tx_done_dispatch_lo"
       ],
       "comments_before_label": [
-        "TX done dispatch table (lo bytes)\n\nLow bytes of PHA/PHA/RTS dispatch targets for TX\noperation types &83-&87. Read by the dispatch at\n&8064 via LDA set_rx_buf_len_hi,Y (base &84B1\n+ Y). High byte is always &85, so targets are\n&85xx+1. Entries for Y < &83 read from preceding\ncode bytes and are not valid operation types."
+        "TX done dispatch table (lo bytes)\n\nLow bytes of PHA/PHA/RTS dispatch targets for TX\noperation types &83-&87. Read by dispatch_svc5 as\ntx_done_dispatch_lo - &83,Y. High byte is always &85, so targets are\n&85xx+1. Entries for Y < &83 read from preceding\ncode bytes and are not valid operation types."
       ],
       "comment_inline": "Y=&83: lo &38 -> tx_done_jsr (&8539)",
       "type": "byte",

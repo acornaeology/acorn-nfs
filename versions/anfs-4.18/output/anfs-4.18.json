@@ -516,7 +516,7 @@
       "addr": 32861,
       "name": "set_jsr_protection",
       "title": "Set JSR protection and dispatch via table",
-      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current protection mask\n(prot_status -> prot_status_save), sets protection bits\n2-4, then dispatches through the PHA/RTS trampoline using\nthe table at set_rx_buf_len_hi. If Y >= &86, skips the\nprotection setup and dispatches directly.\n\nSetting bits 2-4 of prot_status disables the JSR, user-\nprocedure and OS-procedure immediate operations: while\nthis deferred remote call runs it cannot itself trigger\nanother remote execute (re-entrancy protection). The\nsaved mask is restored once the call completes. HALT,\nCONTINUE and machine-type (>= &86) run no caller code, so\nthey need no such guard.",
+      "description": "Validates the TX operation type in Y against the\ndispatch table range, saves the current protection mask\n(prot_status -> prot_status_save), sets protection bits\n2-4, then dispatches through the PHA/RTS trampoline using\nthe table at tx_done_dispatch_lo. If Y >= &86, skips the\nprotection setup and dispatches directly.\n\nSetting bits 2-4 of prot_status disables the JSR, user-\nprocedure and OS-procedure immediate operations: while\nthis deferred remote call runs it cannot itself trigger\nanother remote execute (re-entrancy protection). The\nsaved mask is restored once the call completes. HALT,\nCONTINUE and machine-type (>= &86) run no caller code, so\nthey need no such guard.",
       "on_entry": {
         "y": "TX operation type (dispatch index)"
       }
@@ -703,7 +703,7 @@
       "addr": 34110,
       "name": "tx_done_dispatch_lo",
       "title": "TX-done dispatch table (lo bytes, 5 entries)",
-      "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done\noperation types &83-&87. Read by the dispatch at\n[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,\nwhich resolves to `set_rx_buf_len_hi + Y` \u2013 an aliased read\ninto this table since [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi?hex)\nsits 0x83 bytes before the first entry.\n\nHigh byte is always &85, so targets are &85xx+1. Entries for\nY < &83 read from preceding code bytes and are not valid\noperation types."
+      "description": "Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done\noperation types &83-&87. Read by `dispatch_svc5` as `tx_done_dispatch_lo - &83,Y`,\nwith Y the operation type.\n\nHigh byte is always &85, so targets are &85xx+1. Entries for\nY < &83 read from preceding code bytes and are not valid\noperation types."
     },
     {
       "addr": 34115,
@@ -4837,7 +4837,20 @@
       "comment_inline": "Load dispatch target low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "set_rx_buf_len_hi,y",
+      "operand": "tx_done_dispatch_lo - &83,y",
+      "expr": {
+        "text": "tx_done_dispatch_lo - &83",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "tx_done_dispatch_lo"
+          },
+          "right": {
+            "int": 131,
+            "radix": "auto"
+          }
+        }
+      },
       "target": 33979,
       "target_label": "set_rx_buf_len_hi"
     },
@@ -10970,19 +10983,7 @@
         62,
         13
       ],
-      "labels": [
-        "imm_op_jump_table"
-      ],
       "comment_inline": "Test tx_flags for Tube transfer",
-      "xref_summaries": [
-        "&8407 used as index base 1 time by &8478"
-      ],
-      "references": [
-        {
-          "addr": 33912,
-          "kind": "indexed"
-        }
-      ],
       "type": "code",
       "mnemonic": "bit",
       "operand": "net_frame_flags",
@@ -11818,9 +11819,21 @@
       "comment_inline": "Load handler low byte from jump table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "imm_op_jump_table,y",
-      "target": 33799,
-      "target_label": "imm_op_jump_table"
+      "operand": "imm_op_dispatch_lo - &81,y",
+      "expr": {
+        "text": "imm_op_dispatch_lo - &81",
+        "tree": {
+          "op": "sub",
+          "left": {
+            "sym": "imm_op_dispatch_lo"
+          },
+          "right": {
+            "int": 129,
+            "radix": "auto"
+          }
+        }
+      },
+      "target": 33799
     },
     {
       "addr": 33915,
@@ -12374,7 +12387,6 @@
         46
       ],
       "labels": [
-        "svc5_dispatch_lo",
         "rx_imm_poke"
       ],
       "comment_inline": "Port workspace offset = &3D",
@@ -12457,15 +12469,6 @@
         "set_rx_buf_len_hi"
       ],
       "comment_inline": "Set buffer length hi",
-      "xref_summaries": [
-        "&84bb used as index base 1 time by &806f"
-      ],
-      "references": [
-        {
-          "addr": 32879,
-          "kind": "indexed"
-        }
-      ],
       "type": "code",
       "mnemonic": "sta",
       "operand": "port_buf_len_hi",

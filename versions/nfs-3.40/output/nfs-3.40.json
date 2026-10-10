@@ -31459,19 +31459,16 @@
       "comment_inline": "Load handler address low byte from table",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "osword_handler_lo,x",
+      "operand": "fs_osword_tbl_lo,x",
       "target": 36528,
-      "target_label": "osword_handler_lo"
+      "target_label": "fs_osword_tbl_lo"
     },
     {
       "addr": 36511,
       "bytes": [
         72
       ],
-      "labels": [
-        "fs_osword_tbl_lo"
-      ],
-      "comment_inline": "Dispatch table: low bytes for OSWORD &0F-&13 handlers",
+      "comment_inline": "Push handler address low byte",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -31630,8 +31627,9 @@
         185
       ],
       "labels": [
-        "osword_handler_lo"
+        "fs_osword_tbl_lo"
       ],
+      "comment_inline": "Dispatch table: low bytes for OSWORD &0F-&13 handlers",
       "xref_summaries": [
         "&8eb0 used as index base 1 time by &8e9c"
       ],
@@ -31727,9 +31725,6 @@
       "addr": 36531,
       "bytes": [
         248
-      ],
-      "labels": [
-        "copyl3"
       ],
       "type": "byte",
       "values": [
@@ -61720,7 +61715,7 @@
         160,
         154
       ],
-      "comment_inline": "High byte of &99DB handler",
+      "comment_inline": "Y = discard_reset_listen, high byte",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#>(discard_reset_listen)",

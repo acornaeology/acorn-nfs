@@ -8,7 +8,7 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "fantasm>=0.18.0",
+    "fantasm>=1.2.0",
     "dasmos>=4.1.0",
 ]
 

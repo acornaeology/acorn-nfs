@@ -1561,8 +1561,8 @@ service_handler_lo = service_entry+1
 ;
 ; Validates the TX operation type in Y against the dispatch table range, saves the
 ; current protection mask (prot_status -> prot_status_save), sets protection bits 2-4,
-; then dispatches through the PHA/RTS trampoline using the table at set_rx_buf_len_hi. If
-; Y >= &86, skips the protection setup and dispatches directly.
+; then dispatches through the PHA/RTS trampoline using the table at tx_done_dispatch_lo.
+; If Y >= &86, skips the protection setup and dispatches directly.
 ;
 ; Setting bits 2-4 of prot_status disables the JSR, user- procedure and OS-procedure
 ; immediate operations: while this deferred remote call runs it cannot itself trigger
@@ -1584,7 +1584,7 @@ service_handler_lo = service_entry+1
 .dispatch_svc5
     lda #&85                                                          ; 806c: a9 85       ..       ; Push return addr high (&85)
     pha                                                               ; 806e: 48          H        ; High byte on stack for RTS
-    lda set_rx_buf_len_hi,y                                           ; 806f: b9 bb 84    ...      ; Load dispatch target low byte
+    lda tx_done_dispatch_lo - &83,y                                   ; 806f: b9 bb 84    ...      ; Load dispatch target low byte
     pha                                                               ; 8072: 48          H        ; Low byte on stack for RTS
 .svc_5_unknown_irq
     rts                                                               ; 8073: 60          `        ; RTS = dispatch to PHA'd address
@@ -2310,8 +2310,6 @@ service_handler_lo = service_entry+1
 .discard_reset_listen
     lda #2                                                            ; 8402: a9 02       ..       ; Tube flag bit 1 AND tx_flags bit 1
     and tube_present                                                  ; 8404: 2d 63 0d    -c.      ; Check if Tube transfer active
-; &8407 used as index base 1 time by &8478
-.imm_op_jump_table
     bit net_frame_flags                                               ; 8407: 2c 3e 0d    ,>.      ; Test tx_flags for Tube transfer
     beq rts_discard_reset                                             ; 840a: f0 03       ..       ; No Tube transfer active -- skip release
     jsr release_tube                                                  ; 840c: 20 49 84     I.      ; Release Tube claim before discarding
@@ -2433,7 +2431,7 @@ service_handler_lo = service_entry+1
     ldy scout_ctrl                                                    ; 8472: ac 30 0d    .0.      ; Reload ctrl byte for dispatch table
     lda #&84                                                          ; 8475: a9 84       ..       ; Hi byte: all handlers are in page &84
     pha                                                               ; 8477: 48          H        ; Push hi byte for PHA/PHA/RTS dispatch
-    lda imm_op_jump_table,y                                           ; 8478: b9 07 84    ...      ; Load handler low byte from jump table
+    lda imm_op_dispatch_lo - &81,y                                    ; 8478: b9 07 84    ...      ; Load handler low byte from jump table
     pha                                                               ; 847b: 48          H        ; Push handler low byte
     rts                                                               ; 847c: 60          `        ; RTS dispatches to handler
 ; &847d referenced 1 time by &8429
@@ -2489,7 +2487,6 @@ service_handler_lo = service_entry+1
 ; rx_buf_offset=&0D, then jumps to the common data-receive path at c81af. POKE (&82) only
 ; writes memory and replies, so it is serviced inline in the receive path — not deferred
 ; like the execute-class operations &83-&87.
-.svc5_dispatch_lo
 .rx_imm_poke
     lda #&2e                                                          ; 84ae: a9 2e       ..       ; Port workspace offset = &3D
     sta port_ws_offset                                                ; 84b0: 85 a6       ..       ; Store workspace offset lo
@@ -2505,7 +2502,6 @@ service_handler_lo = service_entry+1
 ; is serviced inline here — not deferred like the execute- class operations &83-&87.
 .rx_imm_machine_type
     lda #1                                                            ; 84b9: a9 01       ..       ; Buffer length hi = 1
-; &84bb used as index base 1 time by &806f
 .set_rx_buf_len_hi
     sta port_buf_len_hi                                               ; 84bb: 85 a3       ..       ; Set buffer length hi
     lda #&fc                                                          ; 84bd: a9 fc       ..       ; Buffer length lo = &FC
@@ -2610,9 +2606,7 @@ service_handler_lo = service_entry+1
 ; TX-done dispatch table (lo bytes, 5 entries)
 ;
 ; Low bytes of PHA/PHA/RTS dispatch targets for TX-done operation types &83-&87. Read by
-; the dispatch at &8064 (&8064) via LDA set_rx_buf_len_hi,Y, which resolves to
-; set_rx_buf_len_hi + Y – an aliased read into this table since set_rx_buf_len_hi (&84BB)
-; sits 0x83 bytes before the first entry.
+; dispatch_svc5 as tx_done_dispatch_lo - &83,Y, with Y the operation type.
 ;
 ; High byte is always &85, so targets are &85xx+1. Entries for Y < &83 read from
 ; preceding code bytes and are not valid operation types.
@@ -15384,7 +15378,6 @@ save pydis_start, pydis_end
 ;     help_print_nfs_cmds:                      1
 ;     imm_op_build_reply:                       1
 ;     imm_op_discard:                           1
-;     imm_op_jump_table:                        1
 ;     imm_param_base:                           1
 ;     immediate_op:                             1
 ;     inactive_retry:                           1
@@ -15833,7 +15826,6 @@ save pydis_start, pydis_end
 ;     set_jsr_protection:                       1
 ;     set_lib_slot_flags:                       1
 ;     set_port_and_ctrl:                        1
-;     set_rx_buf_len_hi:                        1
 ;     set_text_and_xfer_ptr:                    1
 ;     set_timeout:                              1
 ;     set_tube_addr:                            1

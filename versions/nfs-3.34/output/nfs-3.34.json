@@ -13566,7 +13566,7 @@
       "labels": [
         "tx_flow_control"
       ],
-      "comment_inline": "Branch if flow control set",
+      "comment_inline": "Load handle bitmask for flow control",
       "xref_summaries": [
         "&849b referenced 1 time by &8492"
       ],
@@ -13589,7 +13589,7 @@
         228,
         133
       ],
-      "comment_inline": "Error code: TX failed",
+      "comment_inline": "Set EOF hint flag for this handle",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "set_fs_flag",

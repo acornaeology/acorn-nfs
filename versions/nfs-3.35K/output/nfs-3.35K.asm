@@ -8295,7 +8295,7 @@ tx_nmi_lo_operand = tx_nmi_setup+1
     lda tx_flags                                                      ; 9e91: ad 4a 0d    .J.      ; Check tx_flags for next action
     bpl install_saved_handler                                         ; 9e94: 10 14       ..       ; Bit7 clear: error, install saved handler
     lda #<(discard_reset_listen)                                      ; 9e96: a9 4a       .J       ; Install discard_reset_listen at &9A4A
-    ldy #>(discard_reset_listen)                                      ; 9e98: a0 9a       ..       ; High byte of &99DB handler
+    ldy #>(discard_reset_listen)                                      ; 9e98: a0 9a       ..       ; Y = discard_reset_listen, high byte
     jmp set_nmi_vector                                                ; 9e9a: 4c 0e 0d    L..      ; Set NMI vector and return
 ; ***************************************************************************************
 ; Handle the end of a data transmission

@@ -2685,8 +2685,8 @@ d.comment(0x8496, "C=0: no escape, test for retry", align=Align.INLINE)
 
 d.comment(0x8499, "Flag cleared: load handle mask", align=Align.INLINE)
 d.label(0x849B, "tx_flow_control")
-d.comment(0x849B, "Branch if flow control set", align=Align.INLINE)
-d.comment(0x849D, "Error code: TX failed", align=Align.INLINE)
+d.comment(0x849B, "Load handle bitmask for flow control", align=Align.INLINE)
+d.comment(0x849D, "Set EOF hint flag for this handle", align=Align.INLINE)
 
 d.label(0x84A0, "tx_error_classify")
 d.comment(0x84A0, "Shift error bits right", align=Align.INLINE)

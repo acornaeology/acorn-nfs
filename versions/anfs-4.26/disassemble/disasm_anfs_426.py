@@ -1276,12 +1276,11 @@ d.subroutine(
     0x804A,
     "dispatch_svc5",
     title="Service-5 PHA/PHA/RTS dispatch tail",
-    description="""Builds an `RTS`-target on the stack from the
-[`svc5_dispatch_lo`](label:svc5_dispatch_lo) low-byte table and a hard-
-coded high byte of `&85`, then falls through into the shared
-[`svc_5_unknown_irq`](label:svc_5_unknown_irq) `RTS` to land on the matching
-[`svc5_dispatch_lo`](label:svc5_dispatch_lo)+`Y` page-`&85` handler.""",
-    on_entry={"y": "svc5_dispatch_lo offset (post-&83 base bias)"},
+    description="""Pushes a hard-coded high byte of `&85` and the low byte read from
+[`tx_done_dispatch_lo`](label:tx_done_dispatch_lo) `- &83,Y`, then falls
+through into the shared [`svc_5_unknown_irq`](label:svc_5_unknown_irq)
+`RTS`, which enters the page-`&85` handler for operation type `Y`.""",
+    on_entry={"y": "operation type (&83 and above)"},
 )
 
 
@@ -2551,7 +2550,7 @@ operation in [`tx_op_type`](label:tx_op_type) and sets the Master 128
 ACCCON IRR latch (bit 7 at `&FE34`), which raises an IRQ that the
 ROM picks up as service call `&05`
 ([`svc5_irq_check`](label:svc5_irq_check)) and dispatches via the
-[`svc5_dispatch_lo`](label:svc5_dispatch_lo) table. PEEK, POKE and
+[`tx_done_dispatch_lo`](label:tx_done_dispatch_lo) table. PEEK, POKE and
 machine-type (`&81` / `&82` / `&88`) only touch memory and reply
 immediately, so they run here.
 
@@ -2675,7 +2674,6 @@ d.comment(0x84B7, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.label(0x84B9, "jmp_send_data_rx_ack")
 
 d.comment(0x84B9, "Enter common data-receive path", align=Align.INLINE)
-d.label(0x84BC, "svc5_dispatch_lo")
 
 d.subroutine(
     0x84BC,
@@ -3814,7 +3812,6 @@ d.comment(0x893D, "No further carry", align=Align.INLINE)
 d.label(0x893F, "tube_tx_inc_byte3")
 
 d.comment(0x893F, "Carry into third byte", align=Align.INLINE)
-d.label(0x85BB, "tx_length_table")
 
 d.comment(0x8941, "No further carry", align=Align.INLINE)
 d.label(0x8943, "tube_tx_inc_byte4")
@@ -3824,7 +3821,6 @@ d.comment(0x8945, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x8947, "check_tube_irq_loop")
 
 d.comment(0x8947, "Test SR1 IRQ for tight loop", align=Align.INLINE)
-d.label(0x85C3, "tx_flags_table")
 
 d.comment(0x894A, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x894C, "No IRQ: return, wait for next NMI", align=Align.INLINE)
@@ -19658,11 +19654,11 @@ d.label(0xBFFD, "fs_num_check")
 
 d.banner(0x863C, title="Immediate-op TX control-frame length table",
          description="Length of the TX control frame per immediate-op control byte (&81 PEEK .. &88 machine-type): PEEK/POKE &0E, JSR/UserProc/OSProc &0A, HALT/CONTINUE &06, machine-type &0A. Indexed by the immediate-op control byte.")
-d.label(0x863C, "tx_length_values")
+d.label(0x863C, "tx_length_table")
 d.byte(0x863C, 8)
 d.banner(0x8644, title="Immediate-op TX flags table",
          description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
-d.label(0x8644, "tx_flags_values")
+d.label(0x8644, "tx_flags_table")
 d.byte(0x8644, 8)
 
 # NMI handler addresses loaded as LDA #lo / LDY #hi pairs.
@@ -20096,6 +20092,9 @@ d.expr(0x8305, lo(sym("nmi_post_ack_dispatch")))
 d.expr(0x8307, hi(sym("nmi_post_ack_dispatch")))
 d.comment(0x8304, 'A = nmi_post_ack_dispatch, low byte', align=Align.INLINE)
 d.comment(0x8306, 'Y = nmi_post_ack_dispatch, high byte', align=Align.INLINE)
+
+d.expr(0x873C, sym("tx_flags_table") - 0x81)
+d.expr(0x8742, sym("tx_length_table") - 0x81)
 
 ir = d.disassemble()
 output = str(

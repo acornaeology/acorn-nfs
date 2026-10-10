@@ -8850,7 +8850,7 @@
         48,
         13
       ],
-      "comment_inline": "Notify current FS of shutdown",
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": ".NFS 3.60."
     },
@@ -9270,7 +9270,7 @@
         13,
         13
       ],
-      "comment_inline": "7 FS vectors to install",
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -28208,7 +28208,7 @@
         99,
         13
       ],
-      "comment_inline": "Print '    Option '",
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "Public."
     },
@@ -28312,7 +28312,7 @@
         110,
         32
       ],
-      "comment_inline": "Print ' ('",
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "    Option "
     },
@@ -28560,7 +28560,7 @@
         46,
         32
       ],
-      "comment_inline": "Store entry start offset for request",
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "     Lib. "
     },
@@ -29917,7 +29917,7 @@
         32,
         32
       ],
-      "comment_inline": "Print hundreds digit",
+      "comment_inline": "Inline text, printed by print_inline",
       "type": "string",
       "string": "  "
     },
@@ -32570,7 +32570,7 @@
       "labels": [
         "osword_12_offsets"
       ],
-      "comment_inline": "Store args start offset to (&F0)+2",
+      "comment_inline": "Offset &FF for sub-functions 0-1, &01 for 2-3",
       "xref_summaries": [
         "&8eff used as index base 1 time by &8f13"
       ],
@@ -61031,7 +61031,7 @@
         160,
         153
       ],
-      "comment_inline": "High byte of &99DB handler",
+      "comment_inline": "Y = discard_reset_listen, high byte",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#>(discard_reset_listen)",

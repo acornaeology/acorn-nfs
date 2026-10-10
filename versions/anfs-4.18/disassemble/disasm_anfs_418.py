@@ -1637,7 +1637,7 @@ d.subroutine(
 dispatch table range, saves the current protection mask
 (prot_status -> prot_status_save), sets protection bits
 2-4, then dispatches through the PHA/RTS trampoline using
-the table at set_rx_buf_len_hi. If Y >= &86, skips the
+the table at tx_done_dispatch_lo. If Y >= &86, skips the
 protection setup and dispatches directly.
 
 Setting bits 2-4 of prot_status disables the JSR, user-
@@ -2497,7 +2497,6 @@ to ensure no stale Tube claims persist.""",
 
 d.comment(0x8402, "Tube flag bit 1 AND tx_flags bit 1", align=Align.INLINE)
 d.comment(0x8404, "Check if Tube transfer active", align=Align.INLINE)
-d.label(0x8407, "imm_op_jump_table")
 
 
 d.comment(0x8407, "Test tx_flags for Tube transfer", align=Align.INLINE)
@@ -2701,7 +2700,6 @@ d.comment(0x84A9, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.label(0x84AB, "jmp_send_data_rx_ack")
 
 d.comment(0x84AB, "Enter common data-receive path", align=Align.INLINE)
-d.label(0x84AE, "svc5_dispatch_lo")
 
 d.subroutine(
     0x84AE,
@@ -2863,11 +2861,8 @@ d.subroutine(
     "tx_done_dispatch_lo",
     title="TX-done dispatch table (lo bytes, 5 entries)",
     description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-done
-operation types &83-&87. Read by the dispatch at
-[`&8064`](address:8064?hex) via `LDA set_rx_buf_len_hi,Y`,
-which resolves to `set_rx_buf_len_hi + Y` – an aliased read
-into this table since [`set_rx_buf_len_hi`](label:set_rx_buf_len_hi?hex)
-sits 0x83 bytes before the first entry.
+operation types &83-&87. Read by `dispatch_svc5` as `tx_done_dispatch_lo - &83,Y`,
+with Y the operation type.
 
 High byte is always &85, so targets are &85xx+1. Entries for
 Y < &83 read from preceding code bytes and are not valid
@@ -16764,6 +16759,9 @@ d.expr(0x876D, lo(sym("nmi_reply_validate")))
 d.comment(0x876C, 'A = nmi_reply_validate, low byte (same page)', align=Align.INLINE)
 d.expr(0x88A3, lo(sym("nmi_final_ack_validate")))
 d.comment(0x88A2, 'A = nmi_final_ack_validate, low byte (same page)', align=Align.INLINE)
+
+d.expr(0x8070, sym("tx_done_dispatch_lo") - 0x83)
+d.expr(0x8479, sym("imm_op_dispatch_lo") - 0x81)
 
 ir = d.disassemble()
 output = str(
