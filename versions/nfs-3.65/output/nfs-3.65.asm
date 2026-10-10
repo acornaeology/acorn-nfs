@@ -1183,8 +1183,8 @@ tube_page6_start = tube_poll_r2_result_branch+1
     bit tube_status_register_2                                        ; 9582: 2c e2 fe    ,.. :061d[3]        ; Poll R2 status for ready
     bvc tube_osbyte_send_y                                            ; 9585: 50 fb       P. :0620[3]         ; Not ready: keep polling
     sty tube_data_register_2                                          ; 9587: 8c e3 fe    ... :0622[3]        ; Send Y result, then fall through to send X
-.tube_osbyte_short
-    bvs tube_poll_r2_result                                           ; 958a: 70 d5       p. :0625[3]         ; BVS &05FC: overlapping code — loops back to page 5 R2 poll to send X after Y
+.tube_osbyte_send_x_branch
+    bvs tube_poll_r2_result                                           ; 958a: 70 d5       p. :0625[3]         ; Always taken (V set by the R2 poll): go back to send X
 ; ***************************************************************************************
 ; Tube OSWORD handler (R2 cmd 4)
 ;
@@ -1192,7 +1192,7 @@ tube_page6_start = tube_poll_r2_result_branch+1
 ; Calls OSWORD (&FFF1), then sends the out-length result bytes from the parameter block
 ; back via R2. Returns to the main loop via tube_return_main.
 .tube_osword
-    jsr tube_read_r2                                                  ; 958c: 20 c5 06     .. :0627[3]        ; Overlapping entry: &20 = JSR c06c5 (OSWORD)
+    jsr tube_read_r2                                                  ; 958c: 20 c5 06     .. :0627[3]        ; Read OSWORD number from R2
     tay                                                               ; 958f: a8          . :062a[3]          ; Save OSWORD number in Y
 ; &062b referenced 1 time by &9593
 .tube_osword_read
@@ -2049,8 +2049,8 @@ cmd_roff_str = copyright_string+3
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
-; Copies 14 bytes from fs_vector_addrs+2 (= &8288) into FILEV–FSCV at &0212, setting all
-; 7 filing-system vectors to the extended-vector dispatch addresses . Calls
+; Copies 14 bytes from fs_vector_addrs into FILEV–FSCV at &0212, setting all 7
+; filing-system vectors to the extended-vector dispatch addresses . Calls
 ; setup_rom_ptrs_netv to install the ROM pointer-table entries with the actual NFS
 ; handler addresses.
 ;
@@ -2061,7 +2061,7 @@ cmd_roff_str = copyright_string+3
     ldy #&0d                                                          ; 8252: a0 0d       ..       ; Copy 14 bytes: FS vector addresses to FILEV-FSCV
 ; &8254 referenced 1 time by &825b
 .copy_fs_vectors
-    lda fs_dispatch_addrs,y                                           ; 8254: b9 88 82    ...      ; Load extended vector dispatch address
+    lda fs_vector_addrs,y                                             ; 8254: b9 88 82    ...      ; Load extended vector dispatch address
     sta filev,y                                                       ; 8257: 99 12 02    ...      ; Write to FILEV-FSCV vector table
     dey                                                               ; 825a: 88          .        ; Next byte (descending)
     bpl copy_fs_vectors                                               ; 825b: 10 f7       ..       ; Loop until all 14 bytes copied
@@ -2087,7 +2087,7 @@ cmd_roff_str = copyright_string+3
     jsr osbyte                                                        ; 8272: 20 f4 ff     ..      ; Issue service &0A  Issue paged ROM service call, Reason X
     ldx ws_page                                                       ; 8275: a6 a8       ..       ; Non-zero after hard reset: skip auto-boot
     bne return_3                                                      ; 8277: d0 37       .7       ; Non-zero: skip auto-boot
-    ldx #&80                                                          ; 8279: a2 80       ..       ; X = lo byte of auto-boot string at &8292
+    ldx #<(auto_boot_cmd)                                             ; 8279: a2 80       ..       ; X = low byte of the auto-boot command
 ; ***************************************************************************************
 ; Run FSCV command from ROM
 ;
@@ -2097,9 +2097,11 @@ cmd_roff_str = copyright_string+3
 ; the handler address table.
 ; &827b used as index base 2 times by &8327, &832d
 .run_fscv_cmd
-    ldy #&82                                                          ; 827b: a0 82       ..       ; Y=&82: ROM page high byte
+    ldy #>(auto_boot_cmd)                                             ; 827b: a0 82       ..       ; Y = page of the auto-boot command
     jmp fscv_3_star_cmd                                               ; 827d: 4c 09 8c    L..      ; Execute command string at (X, Y)
-    equs "I .BOO"                                                     ; 8280: 49 20 2e... I ....
+.auto_boot_cmd
+    equs "I .BOOT"                                                    ; 8280: 49 20 2e... I ....   ; "I .BOOT": auto-boot command
+    equb &0d                                                          ; 8287: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -2112,10 +2114,8 @@ cmd_roff_str = copyright_string+3
 ; Bytes 14–33: handler address pairs read by store_rom_ptr_pair. Each entry has addr_lo,
 ; addr_hi, then a padding byte that is not read at runtime (store_rom_ptr_pair writes the
 ; current ROM bank number without reading). The last entry (FSCV) has no padding byte.
-.fs_vector_addrs
-    equb &54, &0d                                                     ; 8286: 54 0d       T.       ; Auto-boot string tail / vector table header
 ; &8288 used as index base 1 time by &8254
-.fs_dispatch_addrs
+.fs_vector_addrs
     equw &ff1b                                                        ; 8288: 1b ff       ..       ; FILEV dispatch (&FF1B)
     equw &ff1e                                                        ; 828a: 1e ff       ..       ; ARGSV dispatch (&FF1E)
     equw &ff21                                                        ; 828c: 21 ff       !.       ; BGETV dispatch (&FF21)
@@ -9196,7 +9196,6 @@ save pydis_start, pydis_end
 ;     fs_cmd_type:                              1
 ;     fs_context_base:                          1
 ;     fs_context_hi:                            1
-;     fs_dispatch_addrs:                        1
 ;     fs_error_buf:                             1
 ;     fs_file_attrs:                            1
 ;     fs_file_len:                              1
@@ -9207,6 +9206,7 @@ save pydis_start, pydis_end
 ;     fs_osword_tbl_hi:                         1
 ;     fs_reply_data:                            1
 ;     fs_reply_stn:                             1
+;     fs_vector_addrs:                          1
 ;     fs_wait_cleanup:                          1
 ;     fs_work_16:                               1
 ;     fscv:                                     1
@@ -9534,7 +9534,7 @@ save pydis_start, pydis_end
 ;     Data                     = 643 bytes (8%)
 ;
 ;     Number of instructions   = 3653
-;     Number of data bytes     = 366 bytes
+;     Number of data bytes     = 365 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 225 bytes
+;     Number of string bytes   = 226 bytes
 ;     Number of strings        = 37

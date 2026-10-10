@@ -4415,8 +4415,8 @@ version_string = version_string_cr+1
     lda fs_lib_flags                                                  ; 8ced: ad 71 10    .q.      ; Load boot flags
     ora #4                                                            ; 8cf0: 09 04       ..       ; Set bit 2 (auto-boot in progress)
     sta fs_lib_flags                                                  ; 8cf2: 8d 71 10    .q.      ; Store updated boot flags
-    ldx #&0f                                                          ; 8cf5: a2 0f       ..       ; X=&0F: boot filename address low
-    ldy #&8d                                                          ; 8cf7: a0 8d       ..       ; Y=&8D: boot filename address high
+    ldx #<(auto_boot_cmd)                                             ; 8cf5: a2 0f       ..       ; X = low byte of the auto-boot command
+    ldy #>(auto_boot_cmd)                                             ; 8cf7: a0 8d       ..       ; Y = page of the auto-boot command
     jmp fscv_3_star_cmd                                               ; 8cf9: 4c 14 a1    L..      ; Execute boot file
 ; ***************************************************************************************
 ; Notify OS of filing system selection
@@ -4449,8 +4449,9 @@ version_string = version_string_cr+1
 .issue_svc_osbyte
     lda #osbyte_issue_service_request                                 ; 8d0a: a9 8f       ..       ; OSBYTE &8F: issue service request
     jmp osbyte                                                        ; 8d0c: 4c f4 ff    L..      ; Issue paged ROM service call, Reason X
-    equs "i .boot"                                                    ; 8d0f: 69 20 2e... i ....
-    equb &0d                                                          ; 8d16: 0d          .        ; CR terminator
+.auto_boot_cmd
+    equs "i .boot"                                                    ; 8d0f: 69 20 2e... i ....   ; "i .boot": auto-boot command
+    equb &0d                                                          ; 8d16: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; Easter egg: match *HELP keyword to author credits
 ;

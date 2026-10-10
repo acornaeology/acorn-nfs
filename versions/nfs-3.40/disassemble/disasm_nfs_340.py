@@ -895,7 +895,7 @@ d.comment(0x05FC, "Poll R2 status for result send", align=Align.INLINE)
 for addr in [
     0x0537,
     0x0596,
-    0x0626,
+    0x0625,
     0x0607,
     0x0627,
     0x0668,
@@ -946,10 +946,10 @@ d.comment(0x061D, "Poll R2 status for ready", align=Align.INLINE)
 d.comment(0x0620, "Not ready: keep polling", align=Align.INLINE)
 
 d.comment(0x0622, "Send Y result, then fall through to send X", align=Align.INLINE)
-d.label(0x0626, "tube_osbyte_short")
+d.comment(0x0625, "Always taken (V set by the R2 poll): go back to send X", align=Align.INLINE)
+d.label(0x0625, "tube_osbyte_send_x_branch")
 
-d.entry(0x0626)
-d.comment(0x0626, "Send X result via R2 (data overlap with &70=BVS)", align=Align.INLINE)
+d.entry(0x0625)
 d.entry(0x0627)
 d.subroutine(
     0x0627,
@@ -963,7 +963,7 @@ to the main loop via `tube_return_main`.""",
 
 
 d.label(0x0627, "tube_osword")
-d.comment(0x0628, "Read OSWORD number from R2", align=Align.INLINE)
+d.comment(0x0627, "Read OSWORD number from R2", align=Align.INLINE)
 d.comment(0x062A, "Save OSWORD number in Y", align=Align.INLINE)
 d.label(0x062B, "tube_osword_read")
 
@@ -2067,7 +2067,6 @@ d.entry(0x8280)
 d.comment(0x8280, "Issue service &0A", align=Align.INLINE)
 d.comment(0x8283, "Non-zero after hard reset: skip auto-boot", align=Align.INLINE)
 d.comment(0x8285, "Non-zero: skip auto-boot", align=Align.INLINE)
-d.comment(0x8287, "X = lo byte of auto-boot string at &828E", align=Align.INLINE)
 d.subroutine(
     0x8289,
     "run_fscv_cmd",
@@ -2080,9 +2079,7 @@ the handler address table.""",
 )
 
 
-d.comment(0x8289, "Y=&82: ROM page high byte", align=Align.INLINE)
 d.comment(0x828B, "Execute command string at (X, Y)", align=Align.INLINE)
-d.string(0x828E, 8)
 d.comment(
     0x828E,
     """Synthetic auto-boot command string. "I " does not match any
@@ -9302,6 +9299,16 @@ d.byte(0x82BF)
 d.byte(0x82C0)
 d.comment(0x82BF, "NETV handler low byte", align=Align.INLINE)
 d.comment(0x82C0, "NETV handler high byte", align=Align.INLINE)
+
+d.comment(0x8287, 'X = low byte of the auto-boot command', align=Align.INLINE)
+d.expr(0x8288, lo(sym("auto_boot_cmd")))
+d.comment(0x8289, 'Y = page of the auto-boot command', align=Align.INLINE)
+d.expr(0x828A, hi(sym("auto_boot_cmd")))
+d.label(0x828E, "auto_boot_cmd")
+d.string(0x828E, 7)
+d.byte(0x8295)
+d.comment(0x828E, '"I .BOOT": auto-boot command', align=Align.INLINE)
+d.comment(0x8295, 'CR ends the command', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

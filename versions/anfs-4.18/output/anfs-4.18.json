@@ -28506,10 +28506,19 @@
         162,
         15
       ],
-      "comment_inline": "X=&0F: boot filename address low",
+      "comment_inline": "X = low byte of the auto-boot command",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&0f"
+      "operand": "#<(auto_boot_cmd)",
+      "expr": {
+        "text": "<(auto_boot_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 36087,
@@ -28517,10 +28526,19 @@
         160,
         141
       ],
-      "comment_inline": "Y=&8D: boot filename address high",
+      "comment_inline": "Y = page of the auto-boot command",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&8d"
+      "operand": "#>(auto_boot_cmd)",
+      "expr": {
+        "text": ">(auto_boot_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 36089,
@@ -28700,6 +28718,10 @@
         111,
         116
       ],
+      "labels": [
+        "auto_boot_cmd"
+      ],
+      "comment_inline": "\"i .boot\": auto-boot command",
       "type": "string",
       "string": "i .boot"
     },
@@ -28708,7 +28730,7 @@
       "bytes": [
         13
       ],
-      "comment_inline": "CR terminator",
+      "comment_inline": "CR ends the command",
       "type": "byte",
       "values": [
         13

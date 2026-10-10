@@ -1886,7 +1886,6 @@ d.comment(0x8235, "X=&0A: service &0A", align=Align.INLINE)
 d.comment(0x8237, "Issue service &0A", align=Align.INLINE)
 d.comment(0x823A, "Non-zero after hard reset: skip auto-boot", align=Align.INLINE)
 d.comment(0x823C, "Non-zero: skip auto-boot", align=Align.INLINE)
-d.comment(0x823E, "X = lo byte of auto-boot string at &8245", align=Align.INLINE)
 d.subroutine(
     0x8240,
     "run_fscv_cmd",
@@ -1897,9 +1896,7 @@ caller with the low byte of the string address. Also used as a
 data base address by store_rom_ptr_pair for Y-indexed access to
 the handler address table.""",
 )
-d.comment(0x8240, "Y=&82: ROM page high byte", align=Align.INLINE)
 d.comment(0x8242, "Execute command string at (X, Y)", align=Align.INLINE)
-d.string(0x8245, 8)
 d.comment(
     0x8245,
     """Synthetic auto-boot command string. "I " does not match any
@@ -9273,6 +9270,16 @@ d.byte(0x8276)
 d.byte(0x8277)
 d.comment(0x8276, "NETV handler low byte", align=Align.INLINE)
 d.comment(0x8277, "NETV handler high byte", align=Align.INLINE)
+
+d.comment(0x823E, 'X = low byte of the auto-boot command', align=Align.INLINE)
+d.expr(0x823F, lo(sym("auto_boot_cmd")))
+d.comment(0x8240, 'Y = page of the auto-boot command', align=Align.INLINE)
+d.expr(0x8241, hi(sym("auto_boot_cmd")))
+d.label(0x8245, "auto_boot_cmd")
+d.string(0x8245, 7)
+d.byte(0x824C)
+d.comment(0x8245, '"I .BOOT": auto-boot command', align=Align.INLINE)
+d.comment(0x824C, 'CR ends the command', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

@@ -8729,10 +8729,19 @@
         162,
         69
       ],
-      "comment_inline": "X = lo byte of auto-boot string at &8245",
+      "comment_inline": "X = low byte of the auto-boot command",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&45"
+      "operand": "#<(auto_boot_cmd)",
+      "expr": {
+        "text": "<(auto_boot_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33344,
@@ -8743,7 +8752,7 @@
       "labels": [
         "run_fscv_cmd"
       ],
-      "comment_inline": "Y=&82: ROM page high byte",
+      "comment_inline": "Y = page of the auto-boot command",
       "xref_summaries": [
         "&8240 used as index base 2 times by &82e5, &82eb"
       ],
@@ -8759,7 +8768,16 @@
       ],
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(auto_boot_cmd)",
+      "expr": {
+        "text": ">(auto_boot_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33346,
@@ -8784,14 +8802,28 @@
         66,
         79,
         79,
-        84,
-        13
+        84
+      ],
+      "labels": [
+        "auto_boot_cmd"
       ],
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
+      "comment_inline": "\"I .BOOT\": auto-boot command",
       "type": "string",
-      "string": "I .BOOT."
+      "string": "I .BOOT"
+    },
+    {
+      "addr": 33356,
+      "bytes": [
+        13
+      ],
+      "comment_inline": "CR ends the command",
+      "type": "byte",
+      "values": [
+        13
+      ]
     },
     {
       "addr": 33357,

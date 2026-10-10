@@ -4302,8 +4302,8 @@ os_spool_flag_table = nmi_return_inton+1
     bne rts_setup_ws_ptr                                              ; 8d11: d0 d8       ..       ; Non-zero: already initialised, return
     lda #4                                                            ; 8d13: a9 04       ..       ; A=4: library-selected flag bit
     tsb hazel_fs_lib_flags                                            ; 8d15: 0c 71 c2    .q.      ; Set the library-selected flag
-    ldx #&3e                                                          ; 8d18: a2 3e       .>       ; X=&3E: boot filename address low
-    ldy #&8d                                                          ; 8d1a: a0 8d       ..       ; Y=&8D: boot filename address high
+    ldx #<(auto_boot_cmd)                                             ; 8d18: a2 3e       .>       ; X = low byte of the auto-boot command
+    ldy #>(auto_boot_cmd)                                             ; 8d1a: a0 8d       ..       ; Y = page of the auto-boot command
     jmp oscli                                                         ; 8d1c: 4c f7 ff    L..      ; Execute boot file
 ; ***************************************************************************************
 ; Notify OS of filing-system selection
@@ -4375,8 +4375,9 @@ os_spool_flag_table = nmi_return_inton+1
 ; &8d3d referenced 2 times by &8d35, &8d39
 .return_1
     rts                                                               ; 8d3d: 60          `        ; Return
-    equs "i .Boot"                                                    ; 8d3e: 69 20 2e... i ....
-    equb &0d                                                          ; 8d45: 0d          .        ; CR terminator
+.auto_boot_cmd
+    equs "i .Boot"                                                    ; 8d3e: 69 20 2e... i ....   ; "i .Boot": auto-boot command
+    equb &0d                                                          ; 8d45: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; Easter egg: match *HELP keyword to author credits
 ;

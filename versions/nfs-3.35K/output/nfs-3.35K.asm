@@ -2047,7 +2047,7 @@ cmd_roff_str = copyright_string+3
     jsr osbyte                                                        ; 826a: 20 f4 ff     ..      ; Issue service &0A  Issue paged ROM service call, Reason X
     ldx nfs_temp                                                      ; 826d: a6 cd       ..       ; Non-zero after hard reset: skip auto-boot
     bne return_3                                                      ; 826f: d0 37       .7       ; Non-zero: skip auto-boot
-    ldx #&78                                                          ; 8271: a2 78       .x       ; X = lo byte of auto-boot string at &8292
+    ldx #<(auto_boot_cmd)                                             ; 8271: a2 78       .x       ; X = low byte of the auto-boot command
 ; ***************************************************************************************
 ; Run FSCV command from ROM
 ;
@@ -2057,10 +2057,12 @@ cmd_roff_str = copyright_string+3
 ; the handler address table.
 ; &8273 used as index base 2 times by &831f, &8325
 .run_fscv_cmd
-    ldy #&82                                                          ; 8273: a0 82       ..       ; Y=&82: ROM page high byte
+    ldy #>(auto_boot_cmd)                                             ; 8273: a0 82       ..       ; Y = page of the auto-boot command
     jmp fscv_3_star_cmd                                               ; 8275: 4c b6 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 8278: 49 20 2e... I ....
+.auto_boot_cmd
+    equs "I .BOOT"                                                    ; 8278: 49 20 2e... I ....   ; "I .BOOT": auto-boot command
+    equb &0d                                                          ; 827f: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -9321,7 +9323,7 @@ save pydis_start, pydis_end
 ;     Data                     = 612 bytes (7%)
 ;
 ;     Number of instructions   = 3656
-;     Number of data bytes     = 358 bytes
+;     Number of data bytes     = 359 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 226 bytes
+;     Number of string bytes   = 225 bytes
 ;     Number of strings        = 37

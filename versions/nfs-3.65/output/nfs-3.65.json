@@ -599,7 +599,7 @@
       "addr": 33362,
       "name": "init_fs_vectors",
       "title": "Initialise filing system vectors",
-      "description": "Copies 14 bytes from [`fs_vector_addrs`](label:fs_vector_addrs)+`2` (= `&8288`)\ninto `FILEV`\u2013`FSCV` at `&0212`, setting all 7 filing-system vectors to\nthe extended-vector dispatch addresses . Calls\n`setup_rom_ptrs_netv` to install the ROM pointer-table entries with\nthe actual NFS handler addresses.\n\nAlso reached directly from [`svc_13_select_nfs`](label:svc_13_select_nfs),\nbypassing the station display. Falls through to\n[`issue_vectors_claimed`](label:issue_vectors_claimed).",
+      "description": "Copies 14 bytes from [`fs_vector_addrs`](label:fs_vector_addrs)\ninto `FILEV`\u2013`FSCV` at `&0212`, setting all 7 filing-system vectors to\nthe extended-vector dispatch addresses . Calls\n`setup_rom_ptrs_netv` to install the ROM pointer-table entries with\nthe actual NFS handler addresses.\n\nAlso reached directly from [`svc_13_select_nfs`](label:svc_13_select_nfs),\nbypassing the station display. Falls through to\n[`issue_vectors_claimed`](label:issue_vectors_claimed).",
       "fall_through": true
     },
     {
@@ -614,12 +614,6 @@
       "name": "run_fscv_cmd",
       "title": "Run FSCV command from ROM",
       "description": "Sets Y to the ROM page high byte (&82) and jumps to fscv_3_star_cmd\nto execute the command string at (X, Y). X is pre-loaded by the\ncaller with the low byte of the string address. Also used as a\ndata base address by store_rom_ptr_pair for Y-indexed access to\nthe handler address table."
-    },
-    {
-      "addr": 33414,
-      "name": "fs_vector_addrs",
-      "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Two contiguous tables:\n\n**Bytes 0\u201313**: extended-vector dispatch addresses, copied to\n`FILEV`\u2013`FSCV` at `&0212` by [`init_fs_vectors`](label:init_fs_vectors). Each\n2-byte pair is a dispatch address that the MOS uses\nto look up the handler in the ROM pointer table.\n\n**Bytes 14\u201333**: handler address pairs read by `store_rom_ptr_pair`.\nEach entry has `addr_lo`, `addr_hi`, then a padding byte that is not\nread at runtime (`store_rom_ptr_pair` writes the current ROM bank\nnumber without reading). The last entry (FSCV) has no padding byte."
     },
     {
       "addr": 33450,
@@ -2508,6 +2502,13 @@
       "name": "error_offsets",
       "title": "Error-message offset table (9 entries)",
       "description": "Each byte is a Y offset into [`error_msg_table`](label:error_msg_table).\nEntry 0 (Y=0, \"Line Jammed\") doubles as the\ncopyright string null terminator.\nIndexed by TXCB status (AND #7), or hardcoded 8.",
+      "align": "before_label"
+    },
+    {
+      "addr": 33416,
+      "name": "fs_vector_addrs",
+      "title": "FS vector dispatch and handler addresses (34 bytes)",
+      "description": "Two contiguous tables:\n\n**Bytes 0\u201313**: extended-vector dispatch addresses, copied to\n`FILEV`\u2013`FSCV` at `&0212` by [`init_fs_vectors`](label:init_fs_vectors). Each\n2-byte pair is a dispatch address that the MOS uses\nto look up the handler in the ROM pointer table.\n\n**Bytes 14\u201333**: handler address pairs read by `store_rom_ptr_pair`.\nEach entry has `addr_lo`, `addr_hi`, then a padding byte that is not\nread at runtime (`store_rom_ptr_pair` writes the current ROM bank\nnumber without reading). The last entry (FSCV) has no padding byte.",
       "align": "before_label"
     },
     {
@@ -9102,9 +9103,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "fs_dispatch_addrs,y",
+      "operand": "fs_vector_addrs,y",
       "target": 33416,
-      "target_label": "fs_dispatch_addrs"
+      "target_label": "fs_vector_addrs"
     },
     {
       "addr": 33367,
@@ -9316,10 +9317,19 @@
         162,
         128
       ],
-      "comment_inline": "X = lo byte of auto-boot string at &8292",
+      "comment_inline": "X = low byte of the auto-boot command",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&80"
+      "operand": "#<(auto_boot_cmd)",
+      "expr": {
+        "text": "<(auto_boot_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33403,
@@ -9330,10 +9340,7 @@
       "labels": [
         "run_fscv_cmd"
       ],
-      "comments_before_label": [
-        "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
-      ],
-      "comment_inline": "Y=&82: ROM page high byte",
+      "comment_inline": "Y = page of the auto-boot command",
       "xref_summaries": [
         "&827b used as index base 2 times by &8327, &832d"
       ],
@@ -9349,7 +9356,16 @@
       ],
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(auto_boot_cmd)",
+      "expr": {
+        "text": ">(auto_boot_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33405,
@@ -9373,24 +9389,24 @@
         46,
         66,
         79,
-        79
-      ],
-      "type": "string",
-      "string": "I .BOO"
-    },
-    {
-      "addr": 33414,
-      "bytes": [
-        84,
-        13
+        79,
+        84
       ],
       "labels": [
-        "fs_vector_addrs"
+        "auto_boot_cmd"
       ],
-      "comment_inline": "Auto-boot string tail / vector table header",
+      "comment_inline": "\"I .BOOT\": auto-boot command",
+      "type": "string",
+      "string": "I .BOOT"
+    },
+    {
+      "addr": 33415,
+      "bytes": [
+        13
+      ],
+      "comment_inline": "CR ends the command",
       "type": "byte",
       "values": [
-        84,
         13
       ]
     },
@@ -9401,7 +9417,7 @@
         255
       ],
       "labels": [
-        "fs_dispatch_addrs"
+        "fs_vector_addrs"
       ],
       "comment_inline": "FILEV dispatch (&FF1B)",
       "xref_summaries": [
@@ -45711,9 +45727,9 @@
       ],
       "binary_addr": 38282,
       "labels": [
-        "tube_osbyte_short"
+        "tube_osbyte_send_x_branch"
       ],
-      "comment_inline": "BVS &05FC: overlapping code \u2014 loops back to page 5 R2 poll to send X after Y",
+      "comment_inline": "Always taken (V set by the R2 poll): go back to send X",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "tube_poll_r2_result",
@@ -45731,7 +45747,7 @@
       "labels": [
         "tube_osword"
       ],
-      "comment_inline": "Overlapping entry: &20 = JSR c06c5 (OSWORD)",
+      "comment_inline": "Read OSWORD number from R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",

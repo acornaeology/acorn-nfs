@@ -9285,10 +9285,19 @@
         162,
         142
       ],
-      "comment_inline": "X = lo byte of auto-boot string at &828E",
+      "comment_inline": "X = low byte of the auto-boot command",
       "type": "code",
       "mnemonic": "ldx",
-      "operand": "#&8e"
+      "operand": "#<(auto_boot_cmd)",
+      "expr": {
+        "text": "<(auto_boot_cmd)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33417,
@@ -9299,7 +9308,7 @@
       "labels": [
         "run_fscv_cmd"
       ],
-      "comment_inline": "Y=&82: ROM page high byte",
+      "comment_inline": "Y = page of the auto-boot command",
       "xref_summaries": [
         "&8289 used as index base 2 times by &8335, &833b"
       ],
@@ -9315,7 +9324,16 @@
       ],
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&82"
+      "operand": "#>(auto_boot_cmd)",
+      "expr": {
+        "text": ">(auto_boot_cmd)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "auto_boot_cmd"
+          }
+        }
+      }
     },
     {
       "addr": 33419,
@@ -9340,14 +9358,28 @@
         66,
         79,
         79,
-        84,
-        13
+        84
+      ],
+      "labels": [
+        "auto_boot_cmd"
       ],
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
+      "comment_inline": "\"I .BOOT\": auto-boot command",
       "type": "string",
-      "string": "I .BOOT."
+      "string": "I .BOOT"
+    },
+    {
+      "addr": 33429,
+      "bytes": [
+        13
+      ],
+      "comment_inline": "CR ends the command",
+      "type": "byte",
+      "values": [
+        13
+      ]
     },
     {
       "addr": 33430,
@@ -40458,16 +40490,6 @@
         "tube_send_zero_r2"
       ],
       "comment_inline": "Send zero prefix byte via R2",
-      "xref_summaries": [
-        "&9326 used as index base 1 time by &0626[3]"
-      ],
-      "references": [
-        {
-          "addr": 1574,
-          "kind": "indexed",
-          "move_id": 3
-        }
-      ],
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
@@ -44890,11 +44912,16 @@
       ],
       "comment_inline": "Poll R2 status for result send",
       "xref_summaries": [
-        "&9552 referenced 1 time by &05ff[3]"
+        "&9552 referenced 2 times by &05ff[3], &0625[3]"
       ],
       "references": [
         {
           "addr": 1535,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1573,
           "kind": "direct",
           "move_id": 3
         }
@@ -45167,49 +45194,37 @@
     {
       "addr": 1573,
       "bytes": [
-        112
+        112,
+        213
       ],
       "binary_addr": 38267,
-      "type": "byte",
-      "values": [
-        112
-      ]
-    },
-    {
-      "addr": 1574,
-      "bytes": [
-        213,
-        32
-      ],
-      "binary_addr": 38268,
       "labels": [
-        "tube_osbyte_short"
+        "tube_osbyte_send_x_branch"
       ],
-      "sub_labels": {
-        "1575": [
-          "tube_osword"
-        ]
-      },
-      "comment_inline": "Send X result via R2 (data overlap with &70=BVS)",
+      "comment_inline": "Always taken (V set by the R2 poll): go back to send X",
       "type": "code",
-      "mnemonic": "cmp",
-      "operand": "tube_send_zero_r2,x",
-      "target": 32,
-      "target_label": "tube_send_zero_r2"
+      "mnemonic": "bvs",
+      "operand": "tube_poll_r2_result",
+      "target": 1532,
+      "target_label": "tube_poll_r2_result"
     },
     {
-      "addr": 1576,
+      "addr": 1575,
       "bytes": [
+        32,
         197,
         6
       ],
-      "binary_addr": 38270,
+      "binary_addr": 38269,
+      "labels": [
+        "tube_osword"
+      ],
       "comment_inline": "Read OSWORD number from R2",
       "type": "code",
-      "mnemonic": "cmp",
-      "operand": "zp_0006",
-      "target": 6,
-      "target_label": "zp_0006"
+      "mnemonic": "jsr",
+      "operand": "tube_read_r2",
+      "target": 1733,
+      "target_label": "tube_read_r2"
     },
     {
       "addr": 1578,
@@ -46517,7 +46532,7 @@
       ],
       "comment_inline": "Poll R2 status (bit 7 = data ready)",
       "xref_summaries": [
-        "&961b referenced 20 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &066a[3], &06c8[3]"
+        "&961b referenced 21 times by &0520[3], &0524[3], &052d[3], &0542[3], &0552[3], &055e[3], &0564[3], &056c[3], &0586[3], &05ab[3], &05bc[3], &05d3[3], &05db[3], &05f2[3], &05f6[3], &0607[3], &060b[3], &060f[3], &0627[3], &066a[3], &06c8[3]"
       ],
       "references": [
         {
@@ -46607,6 +46622,11 @@
         },
         {
           "addr": 1551,
+          "kind": "direct",
+          "move_id": 3
+        },
+        {
+          "addr": 1575,
           "kind": "direct",
           "move_id": 3
         },

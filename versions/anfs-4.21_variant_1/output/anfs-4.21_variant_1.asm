@@ -4334,8 +4334,8 @@ nmi_shim_source = reset_enter_listen+2
     lda hazel_fs_lib_flags                                            ; 8cee: ad 71 c2    .q.      ; Load boot flags
     ora #4                                                            ; 8cf1: 09 04       ..       ; Set bit 2 (auto-boot in progress)
     sta hazel_fs_lib_flags                                            ; 8cf3: 8d 71 c2    .q.      ; Store updated boot flags
-    ldx #&1c                                                          ; 8cf6: a2 1c       ..       ; X=&1C: boot filename address low
-    ldy #&8d                                                          ; 8cf8: a0 8d       ..       ; Y=&8D: boot filename address high
+    ldx #<(auto_boot_cmd)                                             ; 8cf6: a2 1c       ..       ; X = low byte of the auto-boot command
+    ldy #>(auto_boot_cmd)                                             ; 8cf8: a0 8d       ..       ; Y = page of the auto-boot command
     jmp fscv_3_star_cmd                                               ; 8cfa: 4c 2f a4    L/.      ; Execute boot file
 ; ***************************************************************************************
 ; Notify OS of filing-system selection
@@ -4407,8 +4407,9 @@ nmi_shim_source = reset_enter_listen+2
 ; &8d1b referenced 2 times by &8d13, &8d17
 .return_1
     rts                                                               ; 8d1b: 60          `        ; Return
-    equs "i .Boot"                                                    ; 8d1c: 69 20 2e... i ....
-    equb &0d                                                          ; 8d23: 0d          .        ; CR terminator
+.auto_boot_cmd
+    equs "i .Boot"                                                    ; 8d1c: 69 20 2e... i ....   ; "i .Boot": auto-boot command
+    equb &0d                                                          ; 8d23: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; Easter egg: match *HELP keyword to author credits
 ;

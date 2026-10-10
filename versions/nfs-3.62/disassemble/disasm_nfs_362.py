@@ -979,11 +979,11 @@ d.comment(0x061D, "Poll R2 status for ready", align=Align.INLINE)
 d.comment(0x0620, "Not ready: keep polling", align=Align.INLINE)
 
 d.comment(0x0622, "Send Y result, then fall through to send X", align=Align.INLINE)
-d.comment(0x0625, "BVS &05FC: overlapping code — loops back to page 5 R2 poll to send X after Y", align=Align.INLINE)
-d.label(0x0625, "tube_osbyte_short")
+d.comment(0x0625, "Always taken (V set by the R2 poll): go back to send X", align=Align.INLINE)
+d.label(0x0625, "tube_osbyte_send_x_branch")
 
 d.entry(0x0625)
-d.comment(0x0627, "Overlapping entry: &20 = JSR c06c5 (OSWORD)", align=Align.INLINE)
+d.comment(0x0627, "Read OSWORD number from R2", align=Align.INLINE)
 d.entry(0x0627)
 d.subroutine(
     0x0627,
@@ -2091,7 +2091,6 @@ d.entry(0x8284)
 d.comment(0x8284, "Issue service &0A", align=Align.INLINE)
 d.comment(0x8287, "Non-zero after hard reset: skip auto-boot", align=Align.INLINE)
 d.comment(0x8289, "Non-zero: skip auto-boot", align=Align.INLINE)
-d.comment(0x828B, "X = lo byte of auto-boot string (run_fscv_cmd+5)", align=Align.INLINE)
 
 
 d.subroutine(
@@ -2106,9 +2105,7 @@ the handler address table.""",
 )
 
 
-d.comment(0x828D, "Y=&82: ROM page high byte", align=Align.INLINE)
 d.comment(0x828F, "Execute command string at (X, Y)", align=Align.INLINE)
-d.string(0x8292, 6)
 d.comment(
     0x8292,
     """Synthetic auto-boot command string. "I " does not match any
@@ -2117,10 +2114,8 @@ entry in NFS's local command table — "I." requires a dot, and
 forwards the entire string to the fileserver, which executes
 the .BOOT file.""",
 )
-d.comment(0x8292, "Auto-boot command 'I .BOOT', continued at &8298", align=Align.INLINE)
-d.subroutine(
-    0x8298,
-    "fs_vector_addrs",
+d.banner(
+    0x829A,
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""Bytes 0-13: extended vector dispatch addresses, copied to
 FILEV-FSCV (&0212) by init_fs_vectors. Each 2-byte pair is
@@ -2133,8 +2128,6 @@ not read at runtime (store_rom_ptr_pair writes the current ROM
 bank number without reading). The last entry (FSCV) has no
 padding byte.""",
 )
-d.byte(0x8298, 2)
-d.comment(0x8298, "'T', CR: auto-boot string tail / vector table header", align=Align.INLINE)
 for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV", "GBPBV", "FINDV", "FSCV"]):
     addr = 0x829A + i * 2
     d.word(addr)
@@ -2147,7 +2140,7 @@ for i, (name, handler_addr) in enumerate(handler_names):
         d.byte(base_addr + 2, 1)
         d.comment(base_addr + 2, "(ROM bank — not read)", align=Align.INLINE)
 
-d.index_base(0x829A, "fs_dispatch_addrs")
+d.index_base(0x829A, "fs_vector_addrs")
 
 d.subroutine(
     0x82BC,
@@ -9601,6 +9594,16 @@ d.byte(0x82C3)
 d.byte(0x82C4)
 d.comment(0x82C3, "NETV handler low byte", align=Align.INLINE)
 d.comment(0x82C4, "NETV handler high byte", align=Align.INLINE)
+
+d.comment(0x828B, 'X = low byte of the auto-boot command', align=Align.INLINE)
+d.expr(0x828C, lo(sym("auto_boot_cmd")))
+d.comment(0x828D, 'Y = page of the auto-boot command', align=Align.INLINE)
+d.expr(0x828E, hi(sym("auto_boot_cmd")))
+d.label(0x8292, "auto_boot_cmd")
+d.string(0x8292, 7)
+d.byte(0x8299)
+d.comment(0x8292, '"I .BOOT": auto-boot command', align=Align.INLINE)
+d.comment(0x8299, 'CR ends the command', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

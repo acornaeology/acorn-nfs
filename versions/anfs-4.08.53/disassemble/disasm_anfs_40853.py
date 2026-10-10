@@ -4941,8 +4941,6 @@ d.comment(0x8CE0, "Non-zero: already initialised, return", align=Align.INLINE)
 d.comment(0x8CE2, "Load boot flags", align=Align.INLINE)
 d.comment(0x8CE5, "Set bit 2 (auto-boot in progress)", align=Align.INLINE)
 d.comment(0x8CE7, "Store updated boot flags", align=Align.INLINE)
-d.comment(0x8CEA, "X=4: boot filename parameter", align=Align.INLINE)
-d.comment(0x8CEC, "Y=&8D: boot filename address high", align=Align.INLINE)
 d.comment(0x8CEE, "Execute boot file", align=Align.INLINE)
 d.label(0x8CF1, "notify_new_fs")
 
@@ -4985,7 +4983,6 @@ d.comment(0x8CFD, "X=&0F: service 15 parameter", align=Align.INLINE)
 d.label(0x8CFF, "issue_svc_osbyte")
 
 d.comment(0x8CFF, "OSBYTE &8F: issue service request", align=Align.INLINE)
-d.comment(0x8D0B, "CR terminator", align=Align.INLINE)
 d.label(0x8D0C, "check_credits_easter_egg")
 
 d.subroutine(
@@ -16390,6 +16387,16 @@ d.comment(0xAEEC, 'Option 3: offset of "Exec"', align=Align.INLINE)
 d.label(0xAF42, "option_name_exec")
 d.string(0xAF42, 4)
 d.comment(0xAF42, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
+
+d.comment(0x8CEA, 'X = low byte of the auto-boot command', align=Align.INLINE)
+d.expr(0x8CEB, lo(sym("auto_boot_cmd")))
+d.comment(0x8CEC, 'Y = page of the auto-boot command', align=Align.INLINE)
+d.expr(0x8CED, hi(sym("auto_boot_cmd")))
+d.label(0x8D04, "auto_boot_cmd")
+d.string(0x8D04, 7)
+d.byte(0x8D0B)
+d.comment(0x8D04, '"i .boot": auto-boot command', align=Align.INLINE)
+d.comment(0x8D0B, 'CR ends the command', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

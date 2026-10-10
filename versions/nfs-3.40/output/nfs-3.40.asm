@@ -53,7 +53,6 @@ zp_work_2                              = &02
 zp_work_3                              = &03
 ; &03 used as index base 3 times by &8948, &8959, &898e
 zp_0006                                = &06
-; &06 referenced 1 time by &957e
 zp_temp_10                             = &10
 zp_temp_11                             = &11
 tube_data_ptr                          = &12
@@ -485,7 +484,6 @@ oscli                                  = &fff7
     jsr tube_send_r4                                                  ; 931e: 20 9e 06     .. :0018[1]        ; Send &FF error signal to Tube R4
     lda tube_data_register_2                                          ; 9321: ad e3 fe    ... :001b[1]        ; Flush any pending R2 byte
     lda #0                                                            ; 9324: a9 00       .. :001e[1]         ; A=0: send zero prefix to R2
-; &20 used as index base 1 time by &957c
 .tube_send_zero_r2
     jsr tube_send_r2                                                  ; 9326: 20 95 06     .. :0020[1]        ; Send zero prefix byte via R2
     tay                                                               ; 9329: a8          . :0023[1]          ; Y=0: start of error block at (&FD)
@@ -1136,7 +1134,7 @@ tube_jmp_target = tube_dispatch_cmd+1
     tax                                                               ; 954b: aa          . :05f5[3]          ; X = first parameter
     jsr tube_read_r2                                                  ; 954c: 20 c5 06     .. :05f6[3]        ; Read A (OSBYTE number) from R2
     jsr osbyte                                                        ; 954f: 20 f4 ff     .. :05f9[3]        ; Execute OSBYTE call
-; &05fc referenced 1 time by &9555
+; &05fc referenced 2 times by &9555, &957b
 .tube_poll_r2_result
     bit tube_status_register_2                                        ; 9552: 2c e2 fe    ,.. :05fc[3]        ; Poll R2 status for result send
 .tube_poll_r2_result_branch
@@ -1169,17 +1167,16 @@ tube_page6_start = tube_poll_r2_result_branch+1
     bit tube_status_register_2                                        ; 9573: 2c e2 fe    ,.. :061d[3]        ; Poll R2 status for ready
     bvc tube_osbyte_send_y                                            ; 9576: 50 fb       P. :0620[3]         ; Not ready: keep polling
     sty tube_data_register_2                                          ; 9578: 8c e3 fe    ... :0622[3]        ; Send Y result, then fall through to send X
-    equb &70                                                          ; 957b: 70          p :0625[3]        
-.tube_osbyte_short
+.tube_osbyte_send_x_branch
+    bvs tube_poll_r2_result                                           ; 957b: 70 d5       p. :0625[3]         ; Always taken (V set by the R2 poll): go back to send X
 ; ***************************************************************************************
 ; Tube OSWORD handler (R2 cmd 4)
 ;
 ; Reads OSWORD number A and in-length from R2, then reads the parameter block into &0128.
 ; Calls OSWORD (&FFF1), then sends the out-length result bytes from the parameter block
 ; back via R2. Returns to the main loop via tube_return_main.
-tube_osword = tube_osbyte_short+1
-    cmp tube_send_zero_r2,x                                           ; 957c: d5 20       . :0626[3]          ; Send X result via R2 (data overlap with &70=BVS)
-    cmp zp_0006                                                       ; 957e: c5 06       .. :0628[3]         ; Read OSWORD number from R2
+.tube_osword
+    jsr tube_read_r2                                                  ; 957d: 20 c5 06     .. :0627[3]        ; Read OSWORD number from R2
     tay                                                               ; 9580: a8          . :062a[3]          ; Save OSWORD number in Y
 ; &062b referenced 1 time by &9584
 .tube_osword_read
@@ -1322,7 +1319,7 @@ tube_osword = tube_osbyte_short+1
 ; Polls Tube status register 2 until data is available (bit 7 set), then loads A from
 ; Tube data register 2. Called by all Tube dispatch handlers that receive data or
 ; parameters from the co-processor.
-; &06c5 referenced 20 times by &9476, &947a, &9483, &9498, &94a8, &94b4, &94ba, &94c2, &94dc, &9501, &9512, &9529, &9531, &9548, &954c, &955d, &9561, &9565, &95c0, &961e
+; &06c5 referenced 21 times by &9476, &947a, &9483, &9498, &94a8, &94b4, &94ba, &94c2, &94dc, &9501, &9512, &9529, &9531, &9548, &954c, &955d, &9561, &9565, &957d, &95c0, &961e
 .tube_read_r2
     bit tube_status_register_2                                        ; 961b: 2c e2 fe    ,.. :06c5[3]        ; Poll R2 status (bit 7 = data ready)
     bpl tube_read_r2                                                  ; 961e: 10 fb       .. :06c8[3]         ; Not ready: keep polling
@@ -2106,7 +2103,7 @@ cmd_roff_str = copyright_string+3
     jsr osbyte                                                        ; 8280: 20 f4 ff     ..      ; Issue service &0A  Issue paged ROM service call, Reason X
     ldx ws_page                                                       ; 8283: a6 a8       ..       ; Non-zero after hard reset: skip auto-boot
     bne return_3                                                      ; 8285: d0 37       .7       ; Non-zero: skip auto-boot
-    ldx #&8e                                                          ; 8287: a2 8e       ..       ; X = lo byte of auto-boot string at &828E
+    ldx #<(auto_boot_cmd)                                             ; 8287: a2 8e       ..       ; X = low byte of the auto-boot command
 ; ***************************************************************************************
 ; Run FSCV command from ROM
 ;
@@ -2116,10 +2113,12 @@ cmd_roff_str = copyright_string+3
 ; the handler address table.
 ; &8289 used as index base 2 times by &8335, &833b
 .run_fscv_cmd
-    ldy #&82                                                          ; 8289: a0 82       ..       ; Y=&82: ROM page high byte
+    ldy #>(auto_boot_cmd)                                             ; 8289: a0 82       ..       ; Y = page of the auto-boot command
     jmp fscv_3_star_cmd                                               ; 828b: 4c d7 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I ....
+.auto_boot_cmd
+    equs "I .BOOT"                                                    ; 828e: 49 20 2e... I ....   ; "I .BOOT": auto-boot command
+    equb &0d                                                          ; 8295: 0d          .        ; CR ends the command
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -8500,8 +8499,8 @@ save pydis_start, pydis_end
 ;     tx_flags:                                26
 ;     osbyte:                                  23
 ;     set_nmi_vector:                          22
+;     tube_read_r2:                            21
 ;     port_buf_len:                            20
-;     tube_read_r2:                            20
 ;     station_id_disable_net_nmis:             17
 ;     open_port_buf_hi:                        16
 ;     rx_flags:                                16
@@ -8802,6 +8801,7 @@ save pydis_start, pydis_end
 ;     tube_init_reloc:                          2
 ;     tube_osword_pb:                           2
 ;     tube_osword_read_lp:                      2
+;     tube_poll_r2_result:                      2
 ;     tube_rdch_reply:                          2
 ;     tube_status_register_4_and_cpu_control:   2
 ;     tube_transfer_addr:                       2
@@ -9239,14 +9239,12 @@ save pydis_start, pydis_end
 ;     tube_osword_write_lp:                     1
 ;     tube_page6_start:                         1
 ;     tube_poll_r2:                             1
-;     tube_poll_r2_result:                      1
 ;     tube_post_init:                           1
 ;     tube_rdln_send_line:                      1
 ;     tube_rdln_send_loop:                      1
 ;     tube_reset_stack:                         1
 ;     tube_return_main:                         1
 ;     tube_send_release:                        1
-;     tube_send_zero_r2:                        1
 ;     tube_sendw_complete:                      1
 ;     tube_transfer:                            1
 ;     tube_transfer_setup:                      1
@@ -9290,15 +9288,14 @@ save pydis_start, pydis_end
 ;     y2fsl5:                                   1
 ;     zero_cmd_bytes:                           1
 ;     zero_exec_header:                         1
-;     zp_0006:                                  1
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7512 bytes (92%)
-;     Data                     = 680 bytes (8%)
+;     Code                     = 7513 bytes (92%)
+;     Data                     = 679 bytes (8%)
 ;
 ;     Number of instructions   = 3623
 ;     Number of data bytes     = 374 bytes
 ;     Number of data words     = 52 bytes
-;     Number of string bytes   = 254 bytes
+;     Number of string bytes   = 253 bytes
 ;     Number of strings        = 38
