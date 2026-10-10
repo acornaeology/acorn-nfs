@@ -2007,7 +2007,7 @@ cmd_roff_str = copyright_string+3
 ; &8245 referenced 1 time by &8236
 .skip_no_clock_msg
     jsr print_inline                                                  ; 8245: 20 d9 85     ..      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8248: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8248: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
@@ -4706,7 +4706,7 @@ cmd_roff_str = copyright_string+3
     ldx #&1b                                                          ; 8ca1: a2 1b       ..       ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8ca3: 20 b2 8d     ..      ; Print library name
     jsr print_inline                                                  ; 8ca6: 20 d9 85     ..      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8ca9: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8ca9: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
     sty fs_func_code                                                  ; 8cab: 8c 06 0f    ...      ; Init examine start offset to 0
     sty fs_work_4                                                     ; 8cae: 84 b4       ..       ; Save start offset in zero page for loop
     ldx fs_work_5                                                     ; 8cb0: a6 b5       ..       ; Load examine arg count for batch size
@@ -6466,7 +6466,7 @@ cmd_roff_str = copyright_string+3
     equb &c3                                                          ; 9314: c3          .        ; OSBYTE &C3: read screen start address
 
     org &965a
-    equb &e5, &e5, &e5, &e5, &e5, &e5                                 ; 965a: e5 e5 e5... ......
+    equb &e5, &e5, &e5, &e5, &e5, &e5                                 ; 965a: e5 e5 e5... ......   ; Unused padding
 ; ***************************************************************************************
 ; Trampoline: begin a transmission
 ;
@@ -8520,7 +8520,12 @@ tx_nmi_lo_operand = tx_nmi_setup+1
     pla                                                               ; 9ff5: 68          h        ; Restore A from stack
     bit video_ula_control                                             ; 9ff6: 2c 20 fe    , .      ; INTON: re-enable NMIs
     rti                                                               ; 9ff9: 40          @        ; Return from interrupt
-    equb &ad, &4a, &0d, &09, &02, &8d                                 ; 9ffa: ad 4a 0d... .J....
+; ***************************************************************************************
+; Unused ROM tail
+;
+; Six bytes after the last routine that nothing reaches. They decode as LDA &0D4A, ORA #2
+; and the opcode of an STA whose operand is cut off by the end of the ROM.
+    equb &ad, &4a, &0d, &09, &02, &8d                                 ; 9ffa: ad 4a 0d... .J....   ; Unused: LDA &0D4A / ORA #2 / STA ...
 .pydis_end
 
 save pydis_start, pydis_end

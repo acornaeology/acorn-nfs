@@ -1325,7 +1325,7 @@ tube_page6_start = tube_poll_r2_result_branch+1
     bpl tube_read_r2                                                  ; 961e: 10 fb       .. :06c8[3]         ; Not ready: keep polling
     lda tube_data_register_2                                          ; 9620: ad e3 fe    ... :06ca[3]        ; Read byte from Tube R2 data register
     rts                                                               ; 9623: 60          ` :06cd[3]          ; Return with byte in A
-    equs "Jes"                                                        ; 9624: 4a 65 73    Jes :06ce[3]      
+    equs "Jes"                                                        ; 9624: 4a 65 73    Jes :06ce[3]        ; Unused: filler at the end of the page-6 code
 ; ROM padding (&FF fill).
 .rom_padding_06d1
     equb &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff, &ff   ; 9627: ff ff ff... ...... :06d1[3]   
@@ -2063,7 +2063,7 @@ cmd_roff_str = copyright_string+3
 ; &825b referenced 1 time by &824c
 .skip_no_clock_msg
     jsr print_inline                                                  ; 825b: 20 05 86     ..      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 825e: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 825e: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
@@ -8439,7 +8439,11 @@ tx_done_handler_hi = tx_nmi_setup+1
     pla                                                               ; 9fc3: 68          h        ; Restore A from stack
     bit video_ula_control                                             ; 9fc4: 2c 20 fe    , .      ; INTON: re-enable NMIs
     rti                                                               ; 9fc7: 40          @        ; Return from interrupt
-    equs "Brian,Hugo,Jes and Roger"                                   ; 9fc8: 42 72 69... Bri...
+; ***************************************************************************************
+; Unreferenced names
+;
+; The text Brian,Hugo,Jes and Roger, placed after the last routine. No code reads it.
+    equs "Brian,Hugo,Jes and Roger"                                   ; 9fc8: 42 72 69... Bri...   ; Unreferenced text
 ; ***************************************************************************************
 ; Print byte as two hex digits
 ;

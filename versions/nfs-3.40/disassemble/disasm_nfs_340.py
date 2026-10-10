@@ -2023,6 +2023,7 @@ d.comment(0x825A, "NOP (padding after inline string)", align=Align.INLINE)
 
 d.label(0x825B, "skip_no_clock_msg")
 d.comment(0x825B, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x825E, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 d.subroutine(
     0x8260,
     "init_fs_vectors",
@@ -9309,6 +9310,15 @@ d.string(0x828E, 7)
 d.byte(0x8295)
 d.comment(0x828E, '"I .BOOT": auto-boot command', align=Align.INLINE)
 d.comment(0x8295, 'CR ends the command', align=Align.INLINE)
+
+d.comment(0x06CE, "Unused: filler at the end of the page-6 code", align=Align.INLINE)
+d.banner(
+    0x9FC8,
+    title="Unreferenced names",
+    description="""The text `Brian,Hugo,Jes and Roger`, placed after the last
+routine. No code reads it.""",
+)
+d.comment(0x9FC8, "Unreferenced text", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

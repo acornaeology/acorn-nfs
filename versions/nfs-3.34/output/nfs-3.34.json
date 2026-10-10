@@ -8467,6 +8467,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -27846,6 +27847,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },

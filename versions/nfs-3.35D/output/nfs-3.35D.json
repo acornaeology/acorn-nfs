@@ -8911,6 +8911,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -27797,6 +27798,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -47308,6 +47310,7 @@
         69
       ],
       "binary_addr": 38492,
+      "comment_inline": "Unused: filler at the end of the page-6 block",
       "type": "string",
       "string": " NE"
     },
@@ -47316,6 +47319,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Unused padding byte",
       "type": "byte",
       "values": [
         0

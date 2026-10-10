@@ -2401,6 +2401,12 @@
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
       "align": "before_label"
+    },
+    {
+      "addr": 40954,
+      "title": "Unused ROM tail",
+      "description": "Six bytes after the last routine that nothing reaches. They decode\nas `LDA &0D4A`, `ORA #2` and the opcode of an `STA` whose operand is\ncut off by the end of the ROM.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -8807,6 +8813,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -27771,6 +27778,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -47240,6 +47248,7 @@
         229,
         229
       ],
+      "comment_inline": "Unused padding",
       "type": "byte",
       "values": [
         229,
@@ -64590,6 +64599,7 @@
         2,
         141
       ],
+      "comment_inline": "Unused: LDA &0D4A / ORA #2 / STA ...",
       "type": "byte",
       "values": [
         173,

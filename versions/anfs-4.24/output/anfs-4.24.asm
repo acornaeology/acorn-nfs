@@ -62,8 +62,6 @@ tube_data_ptr_hi            = &13
 tube_claim_flag             = &14
 tube_claimed_id             = &15
 ; &15 used as index base 1 time by &ada8
-parse_separator_flag        = &26
-; &26 referenced 1 time by &a4ae
 zp_0063                     = &63  ; (false ref from inline string data)
 zp_0078                     = &78  ; (false ref from inline string data)
 escapable                   = &97  ; b7=respond to Escape flag
@@ -427,8 +425,6 @@ quote_mode                  = &10d8
 fcb_ctx_save                = &10d9
 filename_buf                = &10f3  ; Filename display buffer (12 bytes). Used by directory listing and *Info to format filenames.
 ws_template_source          = &2048
-separator_parse_dispatch    = &2322
-; &2322 referenced 1 time by &a4ab
 ws_precomputed_value        = &688b
 hazel_fs_station            = &c000  ; Filing-system state block (&C000–&C00A). Eleven bytes of currently-selected-FS context kept in HAZEL: station / network of the FS, saved prefix station, multi-purpose CSD/library/boot-type slots, FS flags, messages flag, pending-state, error code, last-error, and *OPT addend. The first two bytes (hazel_fs_station, hazel_fs_network) are the FS address used for every TX scout.
 ; &c000 referenced 5 times by &8dda, &8f7f, &a3ac, &b8f1, &b958; also used as index base 1 time by &9756
@@ -4187,15 +4183,15 @@ os_spool_flag_table = nmi_return_inton+1
     jsr match_fs_cmd                                                  ; 8c9c: 20 6f a4     o.      ; Try to match help topic in table
     bcs skip_if_no_match                                              ; 8c9f: b0 10       ..       ; No match: try next topic
     plp                                                               ; 8ca1: 28          (        ; Restore flags
-    lda #&8c                                                          ; 8ca2: a9 8c       ..       ; Push return address high (&8C)
+    lda #>(loop_dispatch_help - 1)                                    ; 8ca2: a9 8c       ..       ; Push return address high: back to loop_dispatch_help
     pha                                                               ; 8ca4: 48          H        ; Push it for RTS dispatch
-    lda #&98                                                          ; 8ca5: a9 98       ..       ; Push return address low (&74)
+    lda #<(loop_dispatch_help - 1)                                    ; 8ca5: a9 98       ..       ; Push return address low (address - 1 for RTS)
     pha                                                               ; 8ca7: 48          H        ; Push it for RTS dispatch
     lda cmd_dispatch_hi_table,x                                       ; 8ca8: bd 82 a7    ...      ; Load dispatch address high
     pha                                                               ; 8cab: 48          H        ; Push dispatch high for RTS
     lda cmd_dispatch_lo_table,x                                       ; 8cac: bd 81 a7    ...      ; Load dispatch address low
     pha                                                               ; 8caf: 48          H        ; Push dispatch low for RTS
-    rts                                                               ; 8cb0: 60          `        ; Dispatch via RTS (returns to &8CA5)
+    rts                                                               ; 8cb0: 60          `        ; Dispatch via RTS; the handler returns to loop_dispatch_help
 ; &8cb1 referenced 1 time by &8c9f
 .skip_if_no_match
     plp                                                               ; 8cb1: 28          (        ; Restore flags from before match
@@ -4783,9 +4779,6 @@ ps_template_base = load_transfer_params+1
 .osbyte_a1
     lda #osbyte_read_cmos_ram                                         ; 8eb2: a9 a1       ..       ; A=&A1: OSBYTE &A1 = read CMOS RAM
     jmp osbyte                                                        ; 8eb4: 4c f4 ff    L..      ; Read CMOS RAM/EEPROM byte (Master and B+) or Tube ID (Compact)
-; Printer server template (8 bytes)
-;
-; Default printer server configuration data, read indirectly by copy_ps_data via LDA ps_template_base,X with X=&F8..&FF (reaching ps_template_base+&F8 = &8EB7). Contains "PRINT " (6 bytes) as the default printer server name, followed by &01 and &00 as default status bytes. Absent from NFS versions; unique to ANFS.
 ; ***************************************************************************************
 ; Printer-server name template (8 bytes)
 ;
@@ -4795,7 +4788,7 @@ ps_template_base = load_transfer_params+1
 ; installed into the Printer-Server name slot during ANFS initialisation.
 .ps_template_data
     equs "PRINT "                                                     ; 8eb7: 50 52 49... PRI...   ; PS template: default name "PRINT "
-    equb &01, &00                                                     ; 8ebd: 01 00       ..    
+    equb &01, &00                                                     ; 8ebd: 01 00       ..       ; Template bytes 6-7, copied after the name
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -4862,7 +4855,14 @@ ps_template_base = load_transfer_params+1
 ; &8ee5 referenced 1 time by &8eee
 .jmp_osbyte
     jmp osbyte                                                        ; 8ee5: 4c f4 ff    L..      ; Tail-call OSBYTE
-    equb &1c, &ad                                                     ; 8ee8: 1c ad       ..    
+; ***************************************************************************************
+; NETV handler address
+;
+; Address of netv_handler, the NETV handler. The routine that installs the extended
+; vectors reads it at osbyte_a1+&36 (the NETV slot offset) and copies it, with the ROM
+; number, into the MOS extended-vector table.
+    equb <(netv_handler)                                              ; 8ee8: 1c          .        ; NETV handler low byte
+    equb >(netv_handler)                                              ; 8ee9: ad          .        ; NETV handler high byte
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=0
 ;
@@ -7613,7 +7613,7 @@ help_topic_template = dispatch_help_command+1
 ; &99a1 used as index base 1 time by &99b2
 bad_prefix_table = bad_str_anchor+1
     bne loop_copy_error_msg                                           ; 99a0: d0 f4       ..       ; Loop while X != 0
-    equs "Bad"                                                        ; 99a2: 42 61 64    Bad   
+    equs "Bad"                                                        ; 99a2: 42 61 64    Bad      ; "Bad": error prefix; the next opcode (JSR, &20) is the space
 ; ***************************************************************************************
 ; Generate 'Bad ...' BRK error from inline string
 ;
@@ -10306,26 +10306,35 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     tya                                                               ; a499: 98          .        ; Save matched-name length on stack
     pha                                                               ; a49a: 48          H        ; Push for stack-based comparison
     lda (fs_crc_lo),y                                                 ; a49b: b1 be       ..       ; Char on command line just past name
-    ldy #9                                                            ; a49d: a0 09       ..       ; Y=9: separator-table size - 1
+    ldy #9                                                            ; a49d: a0 09       ..       ; Y=9: 9 separators plus the PLA opcode after them
 ; &a49f referenced 1 time by &a4a5
 .loop_check_sep_table
     cmp sep_table_data,y                                              ; a49f: d9 ab a4    ...      ; Compare with separator
-    beq separator_char_table                                          ; a4a2: f0 10       ..       ; Match: valid command boundary
+    beq separator_matched                                             ; a4a2: f0 10       ..       ; Match: valid command boundary
     dey                                                               ; a4a4: 88          .        ; Try next separator
     bpl loop_check_sep_table                                          ; a4a5: 10 f8       ..       ; Loop through 10 separators
     pla                                                               ; a4a7: 68          h        ; Restore matched-name length
     tay                                                               ; a4a8: a8          .        ; A = matched offset, save in Y
     bne loop_skip_to_next                                             ; a4a9: d0 e9       ..       ; ALWAYS branch: try next entry
+; ***************************************************************************************
+; Command separator table
+;
+; Characters that end a command name in the star-command matcher: space, ", #, $, &, *,
+; :, @ and CR. loop_check_sep_table scans Y down from 9 to 0, so it also compares the
+; byte after the table, the opcode &68 (h) of the following PLA.
 ; &a4ab used as index base 1 time by &a49f
 .sep_table_data
-    jsr separator_parse_dispatch                                      ; a4ab: 20 22 23     "#      ; Dispatch helper (sep_table_data path)
-    bit parse_separator_flag                                          ; a4ae: 24 26       $&       ; Check separator flag (zp_0026)
-    rol a                                                             ; a4b0: 2a          *        ; Rotate result bit into carry
-    dec a                                                             ; a4b1: 3a          :        ; Decrement match counter
-    rti                                                               ; a4b2: 40          @        ; Effective unconditional jump
+    equb &20                                                          ; a4ab: 20                   ; Space
+    equb &22                                                          ; a4ac: 22          "        ; '"' double quote
+    equb &23                                                          ; a4ad: 23          #        ; '#' hash
+    equb &24                                                          ; a4ae: 24          $        ; '$' dollar
+    equb &26                                                          ; a4af: 26          &        ; '&' ampersand
+    equb &2a                                                          ; a4b0: 2a          *        ; '*' asterisk
+    equb &3a                                                          ; a4b1: 3a          :        ; ':' colon
+    equb &40                                                          ; a4b2: 40          @        ; '@' at-sign
     equb &0d                                                          ; a4b3: 0d          .        ; CR (carriage return)
 ; &a4b4 referenced 1 time by &a4a2
-.separator_char_table
+.separator_matched
     pla                                                               ; a4b4: 68          h        ; Restore matched-name length
     tay                                                               ; a4b5: a8          .        ; Y = matched-name length
 ; ***************************************************************************************
@@ -11095,8 +11104,9 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equw cmd_wipe - 1                                                 ; a80c: 1b b7       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equb &80                                                          ; a80e: 80          .        ; &80: end of sub-table 2
     equw check_urd_prefix - 1                                         ; a80f: 44 8e       D.       ; Default handler for unmatched FS commands (minus 1)
-    equs "On"                                                         ; a811: 4f 6e       On       ; 5-byte record: 'On', &80, &00, &00
-    equb &80, &00, &00                                                ; a813: 80 00 00    ...   
+    equs "On"                                                         ; a811: 4f 6e       On       ; "On": first line of the bare *HELP list (X=&91)
+    equb &80                                                          ; a813: 80          .        ; No syntax
+    equw zp_ptr_lo                                                    ; a814: 00 00       ..       ; Zero handler: topic matching starts after it (X=&96)
     equs "Net"                                                        ; a816: 4e 65 74    Net      ; *HELP NET
     equb &80                                                          ; a819: 80          .        ; no syn
     equw help_net - 1                                                 ; a81a: e9 8b       ..       ; Handler address - 1 (PHA/PHA/RTS)
@@ -14554,7 +14564,7 @@ ps_print_template = write_ps_slot_hi_link+1
     lda (nfs_workspace),y                                             ; b60d: b1 9e       ..       ; Load PS-entry flag
     beq poll_load_server                                              ; b60f: f0 1a       ..       ; Zero: slot empty, skip display
     jsr print_inline                                                  ; b611: 20 6a 92     j.      ; Print ' "'
-    equb &22                                                          ; b614: 22          "     
+    equb &22                                                          ; b614: 22          "        ; Inline text, printed by print_inline: '"'
     ldy #&18                                                          ; b615: a0 18       ..       ; Y=&18: name field offset in RX buffer
 ; &b617 referenced 1 time by &b623
 .loop_print_poll_name
@@ -17772,7 +17782,6 @@ save pydis_start, pydis_end
 ;     parse_cdir_size:               1
 ;     parse_fs_dot_dir:              1
 ;     parse_object_space_print:      1
-;     parse_separator_flag:          1
 ;     pass_send_cmd:                 1
 ;     pass_tx_success:               1
 ;     peek_retry_count:              1
@@ -17917,8 +17926,7 @@ save pydis_start, pydis_end
 ;     send_request_vset:             1
 ;     send_with_swap:                1
 ;     sep_table_data:                1
-;     separator_char_table:          1
-;     separator_parse_dispatch:      1
+;     separator_matched:             1
 ;     serialise_palette_entry:       1
 ;     service_handler:               1
 ;     set_c_and_return:              1
@@ -18091,11 +18099,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14470 bytes (88%)
-;     Data                     = 1914 bytes (12%)
+;     Code                     = 14462 bytes (88%)
+;     Data                     = 1922 bytes (12%)
 ;
-;     Number of instructions   = 7133
-;     Number of data bytes     = 545 bytes
-;     Number of data words     = 88 bytes
+;     Number of instructions   = 7128
+;     Number of data bytes     = 551 bytes
+;     Number of data words     = 90 bytes
 ;     Number of string bytes   = 1281 bytes
 ;     Number of strings        = 148

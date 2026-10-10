@@ -4284,15 +4284,15 @@ listen_jmp_hi = reset_enter_listen+2
     jsr match_fs_cmd                                                  ; 8c78: 20 28 a1     (.      ; Try to match help topic in table
     bcs skip_if_no_match                                              ; 8c7b: b0 10       ..       ; No match: try next topic
     plp                                                               ; 8c7d: 28          (        ; Restore flags
-    lda #&8c                                                          ; 8c7e: a9 8c       ..       ; Push return address high (&8C)
+    lda #>(loop_dispatch_help - 1)                                    ; 8c7e: a9 8c       ..       ; Push return address high: back to loop_dispatch_help
     pha                                                               ; 8c80: 48          H        ; Push it for RTS dispatch
-    lda #&74                                                          ; 8c81: a9 74       .t       ; Push return address low (&74)
+    lda #<(loop_dispatch_help - 1)                                    ; 8c81: a9 74       .t       ; Push return address low (address - 1 for RTS)
     pha                                                               ; 8c83: 48          H        ; Push it for RTS dispatch
     lda cmd_table_fs_hi,x                                             ; 8c84: bd da a3    ...      ; Load dispatch address high
     pha                                                               ; 8c87: 48          H        ; Push dispatch high for RTS
     lda cmd_table_fs_lo,x                                             ; 8c88: bd d9 a3    ...      ; Load dispatch address low
     pha                                                               ; 8c8b: 48          H        ; Push dispatch low for RTS
-    rts                                                               ; 8c8c: 60          `        ; Dispatch via RTS (returns to &8C75)
+    rts                                                               ; 8c8c: 60          `        ; Dispatch via RTS; the handler returns to loop_dispatch_help
 ; &8c8d referenced 1 time by &8c7b
 .skip_if_no_match
     plp                                                               ; 8c8d: 28          (        ; Restore flags from before match
@@ -4461,11 +4461,11 @@ version_string = version_string_cr+1
 .ps_template_base
     equs "ckburn"                                                     ; 8d4b: 63 6b 62... ckb...
     equb &0d                                                          ; 8d51: 0d          .        ; CR
-    equs "J Dunn"                                                     ; 8d52: 4a 20 44... J D...
+    equs "J Dunn"                                                     ; 8d52: 4a 20 44... J D...   ; Credits text
     equb &0d                                                          ; 8d58: 0d          .        ; CR
-    equs "B Robertson"                                                ; 8d59: 42 20 52... B R...
+    equs "B Robertson"                                                ; 8d59: 42 20 52... B R...   ; Credits text
     equb &0d                                                          ; 8d64: 0d          .        ; CR
-    equs "J Wills"                                                    ; 8d65: 4a 20 57... J W...
+    equs "J Wills"                                                    ; 8d65: 4a 20 57... J W...   ; Credits text
     equb &0d                                                          ; 8d6c: 0d          .        ; CR
     equb &00                                                          ; 8d6d: 00          .        ; String terminator
 ; ***************************************************************************************
@@ -4657,9 +4657,6 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; &8e42 referenced 3 times by &8e14, &8e22, &8e2f
 .dispatch_rts
     rts                                                               ; 8e42: 60          `        ; Dispatch via RTS
-; Printer server template (8 bytes)
-;
-; Default printer server configuration data, read indirectly by copy_ps_data via LDA ps_template_base,X with X=&F8..&FF (reaching ps_template_base+&F8 = &8E43). Contains "PRINT " (6 bytes) as the default printer server name, followed by &01 and &00 as default status bytes. Absent from NFS versions; unique to ANFS.
 .ps_template_data
     equs "PRINT "                                                     ; 8e43: 50 52 49... PRI...   ; PS template: default name "PRINT "
     equb &01                                                          ; 8e49: 01          .        ; PS template: status &01
@@ -4730,11 +4727,8 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; &8e71 referenced 1 time by &8e7a
 .jmp_osbyte
     jmp osbyte                                                        ; 8e71: 4c f4 ff    L..      ; Execute OSBYTE and return
-; NETV handler address
-;
-; 2-byte handler address for the NETV extended vector, read by write_vector_entry at Y=&36 from svc_dispatch_lo_offset (push_dispatch_lo+2). Points to netv_handler (&A968) which dispatches OSWORDs 0-8 to Econet handlers. Interleaved with the OSBYTE wrapper code in the data area.
 .netv_handler_addr
-    equw netv_handler                                                 ; 8e74: 68 a9       h.       ; NETV handler: netv_handler (&A968)
+    equw netv_handler                                                 ; 8e74: 68 a9       h.    
 ; ***************************************************************************************
 ; OSBYTE wrapper with X=0, Y=0
 ;
@@ -6439,7 +6433,7 @@ ws_init_data = error_bad_station+2
 ; &969e used as index base 1 time by &96af
 bad_prefix = bad_str_anchor+1
     bne loop_copy_error_msg                                           ; 969d: d0 f4       ..       ; Loop until end of message
-    equs "Bad"                                                        ; 969f: 42 61 64    Bad   
+    equs "Bad"                                                        ; 969f: 42 61 64    Bad      ; "Bad": error prefix; the next opcode (JSR, &20) is the space
 ; ***************************************************************************************
 ; Generate 'Bad ...' BRK error from inline string
 ;
@@ -6709,7 +6703,7 @@ bad_prefix = bad_str_anchor+1
 ; &97a4 used as index base 8 times by &960e, &9614, &9647, &9652, &9676, &968d, &9693, &971f
 .error_msg_table
     equb &a0                                                          ; 97a4: a0          .        ; Error &A0: Line jammed
-    equs "Line jammed"                                                ; 97a5: 4c 69 6e... Lin...
+    equs "Line jammed"                                                ; 97a5: 4c 69 6e... Lin...   ; Error message text
     equb &00                                                          ; 97b0: 00          .        ; Null terminator
 .msg_net_error
     equb &a1                                                          ; 97b1: a1          .        ; Error &A1: Net error
@@ -8595,7 +8589,7 @@ bad_prefix = bad_str_anchor+1
     tya                                                               ; a152: 98          .        ; Save Y (end of matched name)
     pha                                                               ; a153: 48          H        ; Push position
     lda (fs_crc_lo),y                                                 ; a154: b1 be       ..       ; Load char after matched portion
-    ldy #9                                                            ; a156: a0 09       ..       ; Y=9: check 10 separator chars
+    ldy #9                                                            ; a156: a0 09       ..       ; Y=9: 9 separators plus the PLA opcode after them
 ; &a158 referenced 1 time by &a15e
 .loop_check_sep_table
     cmp sep_table_data,y                                              ; a158: d9 64 a1    .d.      ; Compare with separator table
@@ -8607,7 +8601,7 @@ bad_prefix = bad_str_anchor+1
     bne loop_skip_to_next                                             ; a162: d0 e9       ..       ; Try next table entry
 ; Command separator table (9 bytes)
 ;
-; Characters that terminate a command name in the star command parser. loop_check_sep_table scans Y down from 8 to 0, comparing each input char against this table.
+; Characters that terminate a command name in the star command parser. loop_check_sep_table scans Y down from 9 to 0, so it also compares the byte after the table, the opcode &68 (h) of the following PLA.
 ; &a164 used as index base 1 time by &a158
 .sep_table_data
     equb &20                                                          ; a164: 20                   ; Space
@@ -9084,7 +9078,7 @@ bad_prefix = bad_str_anchor+1
     equb &8e                                                          ; a402: 8e          .        ; Syn 14: (protection-type keywords)
     equw cmd_prot - 1                                                 ; a403: ef b2       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "PS"                                                         ; a405: 50 53       PS       ; *PS; syn 8: (<stn. id.>|<ps type>)
-    equb &88                                                          ; a407: 88          .     
+    equb &88                                                          ; a407: 88          .        ; Syn 8: (<stn. id.>|<ps type>)
     equw cmd_ps - 1                                                   ; a408: cd af       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Roff"                                                       ; a40a: 52 6f 66... Rof...   ; *Roff
     equb &80                                                          ; a40e: 80          .        ; No syntax
@@ -9113,13 +9107,13 @@ bad_prefix = bad_str_anchor+1
     equb &81                                                          ; a444: 81          .        ; Syn 1: (<dir>)
     equw cmd_dir - 1                                                  ; a445: c8 93       ..       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Ex"                                                         ; a447: 45 78       Ex       ; *Ex; syn 1: (<dir>)
-    equb &81                                                          ; a449: 81          .     
+    equb &81                                                          ; a449: 81          .        ; Syn 1: (<dir>)
     equw cmd_ex - 1                                                   ; a44a: 58 ad       X.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Flip"                                                       ; a44c: 46 6c 69... Fli...   ; *Flip
     equb &80                                                          ; a450: 80          .        ; No syntax
     equw cmd_flip - 1                                                 ; a451: 3d a3       =.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "FS"                                                         ; a453: 46 53       FS       ; *FS; syn 11: (<stn. id.>)
-    equb &8b                                                          ; a455: 8b          .     
+    equb &8b                                                          ; a455: 8b          .        ; Syn 11: (<stn. id.>)
     equw cmd_fs - 1                                                   ; a456: 62 a0       b.       ; Handler address - 1 (PHA/PHA/RTS)
     equs "Info"                                                       ; a458: 49 6e 66... Inf...   ; *Info
     equb &c3                                                          ; a45c: c3          .        ; V no arg; syn 3: <object>
@@ -12174,7 +12168,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
 ; &b23d referenced 1 time by &b233
 .done_poll_name_print
     jsr print_inline                                                  ; b23d: 20 31 91     1.      ; Print '"' + CR
-    equb &22, &0d                                                     ; b240: 22 0d       ".    
+    equb &22, &0d                                                     ; b240: 22 0d       ".       ; Inline text, printed by print_inline: '"', CR
     nop                                                               ; b242: ea          .        ; Padding byte
 ; &b243 referenced 1 time by &b2c1
 .loop_pop_poll_slot

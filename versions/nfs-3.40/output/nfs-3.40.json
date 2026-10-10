@@ -2413,6 +2413,12 @@
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
       "align": "before_label"
+    },
+    {
+      "addr": 40904,
+      "title": "Unreferenced names",
+      "description": "The text `Brian,Hugo,Jes and Roger`, placed after the last\nroutine. No code reads it.",
+      "align": "before_label"
     }
   ],
   "external_labels": {
@@ -9023,6 +9029,7 @@
         13,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: two CRs",
       "type": "string",
       "string": ".."
     },
@@ -46694,6 +46701,7 @@
         115
       ],
       "binary_addr": 38436,
+      "comment_inline": "Unused: filler at the end of the page-6 code",
       "type": "string",
       "string": "Jes"
     },
@@ -63878,6 +63886,7 @@
         101,
         114
       ],
+      "comment_inline": "Unreferenced text",
       "type": "string",
       "string": "Brian,Hugo,Jes and Roger"
     },

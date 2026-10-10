@@ -209,7 +209,6 @@ d.index_base(0x0015, "tube_claimed_id", length=1, group="zero_page")
 
 d.index_base(0x0020, "tx_buffer_scratch", length=1, group="zero_page")
 
-d.label(0x0026, "parse_separator_flag", length=1, group="zero_page", access="rw")
 
 d.label(0x0063, "zp_0063", description="(false ref from inline string data)", length=1, group="zero_page", access="rw")
 
@@ -1200,7 +1199,6 @@ d.label(
 
 d.label(0x2048, "ws_template_source")
 
-d.label(0x2322, "separator_parse_dispatch")
 
 
 d.label(0x688B, "ws_precomputed_value")
@@ -5178,15 +5176,12 @@ d.comment(0x8C9C, "X=&96: help command table start", align=Align.INLINE)
 d.comment(0x8C9E, "Try to match help topic in table", align=Align.INLINE)
 d.comment(0x8CA1, "No match: try next topic", align=Align.INLINE)
 d.comment(0x8CA3, "Restore flags", align=Align.INLINE)
-d.comment(0x8CA4, "Push return address high (&8C)", align=Align.INLINE)
 d.comment(0x8CA6, "Push it for RTS dispatch", align=Align.INLINE)
-d.comment(0x8CA7, "Push return address low (&74)", align=Align.INLINE)
 d.comment(0x8CA9, "Push it for RTS dispatch", align=Align.INLINE)
 d.comment(0x8CAA, "Load dispatch address high", align=Align.INLINE)
 d.comment(0x8CAD, "Push dispatch high for RTS", align=Align.INLINE)
 d.comment(0x8CAE, "Load dispatch address low", align=Align.INLINE)
 d.comment(0x8CB1, "Push dispatch low for RTS", align=Align.INLINE)
-d.comment(0x8CB2, "Dispatch via RTS (returns to &8CA7)", align=Align.INLINE)
 d.label(0x8CB3, "skip_if_no_match")
 
 d.comment(0x8CB3, "Restore flags from before match", align=Align.INLINE)
@@ -5871,18 +5866,6 @@ doubles as table data.""",
 )
 
 
-d.comment(
-    0x8EB9,
-    """Printer server template (8 bytes)
-
-Default printer server configuration data, read
-indirectly by copy_ps_data via LDA ps_template_base,X
-with X=&F8..&FF (reaching ps_template_base+&F8 =
-&8EB9). Contains "PRINT " (6 bytes) as the default
-printer server name, followed by &01 and &00 as
-default status bytes. Absent from NFS versions;
-unique to ANFS.""",
-)
 d.comment(0x8EB9, 'PS template: default name "PRINT "', align=Align.INLINE)
 d.label(0x8EB9, "ps_template_data")
 d.banner(
@@ -5896,9 +5879,8 @@ indexed access lands on the bytes here. Default contents installed
 into the Printer-Server name slot during ANFS initialisation.""",
 )
 
-d.subroutine(
+d.banner(
     0x8EC1,
-    "fs_vector_table",
     title="FS vector dispatch and handler addresses (34 bytes)",
     description="""Bytes 0-13: extended vector dispatch addresses, copied to
 FILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is
@@ -5911,6 +5893,7 @@ not read at runtime (write_vector_entry writes the current ROM
 bank number instead). The last entry (FSCV) has no padding
 byte.""",
 )
+d.label(0x8EC1, "fs_vector_table")
 
 d.comment(0x8EE3, "X=0 then fall through into osbyte_yff", align=Align.INLINE)
 d.subroutine(
@@ -12025,7 +12008,7 @@ d.label(0xA49B, "check_separator")
 d.comment(0xA49B, "Save matched-name length on stack", align=Align.INLINE)
 d.comment(0xA49C, "Push for stack-based comparison", align=Align.INLINE)
 d.comment(0xA49D, "Char on command line just past name", align=Align.INLINE)
-d.comment(0xA49F, "Y=9: separator-table size - 1", align=Align.INLINE)
+d.comment(0xA49F, "Y=9: 9 separators plus the PLA opcode after them", align=Align.INLINE)
 d.label(0xA4A1, "loop_check_sep_table")
 
 d.comment(0xA4A1, "Compare with separator", align=Align.INLINE)
@@ -12037,11 +12020,7 @@ d.comment(0xA4AA, "A = matched offset, save in Y", align=Align.INLINE)
 d.comment(0xA4AB, "ALWAYS branch: try next entry", align=Align.INLINE)
 d.label(0xA4AD, "sep_table_data")
 
-d.comment(0xA4AD, "Dispatch helper (sep_table_data path)", align=Align.INLINE)
-d.comment(0xA4B0, "Check separator flag (zp_0026)", align=Align.INLINE)
-d.comment(0xA4B4, "Effective unconditional jump", align=Align.INLINE)
-d.comment(0xA4B5, "CR (carriage return)", align=Align.INLINE)
-d.label(0xA4B6, "separator_char_table")
+d.label(0xA4B6, "separator_matched")
 
 d.comment(0xA4B6, "Restore matched-name length", align=Align.INLINE)
 d.comment(0xA4B7, "Y = matched-name length", align=Align.INLINE)
@@ -19670,6 +19649,7 @@ d.comment(0xB0A3, "Store at (nfs_workspace)+Y", align=Align.INLINE)
 d.comment(0xB406, "Load PS server address", align=Align.INLINE)
 d.comment(0xB4B1, "Print station number and newline", align=Align.INLINE)
 d.comment(0xB613, "Print ' \"'", align=Align.INLINE)
+d.comment(0xB616, "Inline text, printed by print_inline: '\"'", align=Align.INLINE)
 d.comment(0xB62C, "Bit-7 terminator from preceding stringhi", align=Align.INLINE)
 d.comment(0xB62D, "Load this PS server's address for display", align=Align.INLINE)
 d.comment(0xB630, "Set V (always) via always_set_v_byte", align=Align.INLINE)
@@ -19949,8 +19929,6 @@ d.comment(0x99BE, "Branch to write the error number and string", align=Align.INL
 d.comment(0x9EA1, "Advance index", align=Align.INLINE)
 d.comment(0xA44E, "Advance index", align=Align.INLINE)
 d.comment(0xA480, "XOR against the stored command character", align=Align.INLINE)
-d.comment(0xA4B2, "Rotate result bit into carry", align=Align.INLINE)
-d.comment(0xA4B3, "Decrement match counter", align=Align.INLINE)
 d.comment(0xA505, "Branch to load the *RUN mask", align=Align.INLINE)
 d.comment(0xA561, "Rotate mask bit into carry", align=Align.INLINE)
 d.comment(0xA5A3, "No match: retry via the library directory", align=Align.INLINE)
@@ -20416,8 +20394,11 @@ d.word(0xA811)
 d.expr(0xA811, sym("check_urd_prefix") - 1)
 d.comment(0xA811, "Default handler for unmatched FS commands (minus 1)", align=Align.INLINE)
 d.string(0xA813, 2)
-d.byte(0xA815, 3)
-d.comment(0xA813, "5-byte record: 'On', &80, &00, &00", align=Align.INLINE)
+d.byte(0xA815)
+d.word(0xA816)
+d.comment(0xA813, '"On": first line of the bare *HELP list (X=&91)', align=Align.INLINE)
+d.comment(0xA815, "No syntax", align=Align.INLINE)
+d.comment(0xA816, "Zero handler: topic matching starts after it (X=&96)", align=Align.INLINE)
 
 d.subroutine(
     0x855F,
@@ -20541,6 +20522,59 @@ d.string(0x8D40, 7)
 d.byte(0x8D47)
 d.comment(0x8D40, '"i .Boot": auto-boot command', align=Align.INLINE)
 d.comment(0x8D47, 'CR ends the command', align=Align.INLINE)
+
+d.banner(
+    0x8EEA,
+    title="NETV handler address",
+    description="""Address of [`netv_handler`](label:netv_handler), the NETV handler. The routine that
+installs the extended vectors reads it at
+[`osbyte_a1`](label:osbyte_a1)+&36 (the NETV slot offset) and copies it,
+with the ROM number, into the MOS extended-vector table.""",
+)
+d.byte(0x8EEA)
+d.byte(0x8EEB)
+d.expr(0x8EEA, lo(sym("netv_handler")))
+d.expr(0x8EEB, hi(sym("netv_handler")))
+d.comment(0x8EEA, 'NETV handler low byte', align=Align.INLINE)
+d.comment(0x8EEB, 'NETV handler high byte', align=Align.INLINE)
+d.comment(0x8EBF, 'Template bytes 6-7, copied after the name', align=Align.INLINE)
+d.comment(0x99A4, '"Bad": error prefix; the next opcode (JSR, &20) is the space', align=Align.INLINE)
+
+d.banner(
+    0xA4AD,
+    title="Command separator table",
+    description="""Characters that end a command name in the star-command matcher:
+space, `"`, `#`, `$`, `&`, `*`, `:`, `@` and CR.
+[`loop_check_sep_table`](label:loop_check_sep_table) scans Y down from
+9 to 0, so it also compares the byte after the table, the opcode &68
+(`h`) of the following PLA.""",
+)
+d.byte(0xA4AD)
+d.comment(0xA4AD, 'Space', align=Align.INLINE)
+d.byte(0xA4AE)
+d.comment(0xA4AE, '\'"\' double quote', align=Align.INLINE)
+d.byte(0xA4AF)
+d.comment(0xA4AF, "'#' hash", align=Align.INLINE)
+d.byte(0xA4B0)
+d.comment(0xA4B0, "'$' dollar", align=Align.INLINE)
+d.byte(0xA4B1)
+d.comment(0xA4B1, "'&' ampersand", align=Align.INLINE)
+d.byte(0xA4B2)
+d.comment(0xA4B2, "'*' asterisk", align=Align.INLINE)
+d.byte(0xA4B3)
+d.comment(0xA4B3, "':' colon", align=Align.INLINE)
+d.byte(0xA4B4)
+d.comment(0xA4B4, "'@' at-sign", align=Align.INLINE)
+d.byte(0xA4B5)
+d.comment(0xA4B5, 'CR (carriage return)', align=Align.INLINE)
+
+d.comment(0x8CA4, 'Push return address high: back to loop_dispatch_help', align=Align.INLINE)
+d.expr(0x8CA5, hi(sym("loop_dispatch_help") - 1))
+d.comment(0x8CA7, 'Push return address low (address - 1 for RTS)', align=Align.INLINE)
+d.expr(0x8CA8, lo(sym("loop_dispatch_help") - 1))
+d.comment(0x8CB2, 'Dispatch via RTS; the handler returns to loop_dispatch_help', align=Align.INLINE)
+
+d.comment(0xA931, "Unused padding byte", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

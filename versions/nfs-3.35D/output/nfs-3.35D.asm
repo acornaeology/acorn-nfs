@@ -1316,7 +1316,7 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bvc tube_send_r1                                                  ; 9656: 50 fb       P. :06f7[4]         ; Not ready: keep polling
     sta tube_data_register_1                                          ; 9658: 8d e1 fe    ... :06f9[4]        ; Write A to Tube R1 data register
     rts                                                               ; 965b: 60          ` :06fc[4]          ; Return to caller
-    equs " NE"                                                        ; 965c: 20 4e 45     NE :06fd[4]      
+    equs " NE"                                                        ; 965c: 20 4e 45     NE :06fd[4]        ; Unused: filler at the end of the page-6 block
 
 
     ; Copy the newly assembled block of code back to it's proper place in the binary
@@ -2037,7 +2037,7 @@ cmd_roff_str = copyright_string+3
 ; &824f referenced 1 time by &8240
 .skip_no_clock_msg
     jsr print_inline                                                  ; 824f: 20 e2 85     ..      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8252: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8252: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
@@ -4716,7 +4716,7 @@ cmd_roff_str = copyright_string+3
     ldx #&1b                                                          ; 8c9f: a2 1b       ..       ; X=&1B: Lib. name offset in reply
     jsr print_reply_bytes                                             ; 8ca1: 20 ba 8d     ..      ; Print library name
     jsr print_inline                                                  ; 8ca4: 20 e2 85     ..      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8ca7: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8ca7: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
     sty fs_func_code                                                  ; 8ca9: 8c 06 0f    ...      ; Store next examine start offset
     sty fs_work_4                                                     ; 8cac: 84 b4       ..       ; Save start offset in zero page for loop
     ldx fs_work_5                                                     ; 8cae: a6 b5       ..       ; Load examine arg count for batch size
@@ -6469,7 +6469,7 @@ osword_12_handler = restore_rx_flags+2
     equb &c3                                                          ; 9319: c3          .        ; OSBYTE &C3: read screen start address
 
     org &965f
-    equb &00                                                          ; 965f: 00          .     
+    equb &00                                                          ; 965f: 00          .        ; Unused padding byte
 ; ***************************************************************************************
 ; Trampoline: begin a transmission
 ;

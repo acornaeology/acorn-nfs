@@ -1844,6 +1844,7 @@ d.comment(0x8212, "NOP (padding after inline string)", align=Align.INLINE)
 
 d.label(0x8213, "skip_no_clock_msg")
 d.comment(0x8213, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8216, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 d.subroutine(
     0x8218,
     "init_fs_vectors",
@@ -4752,6 +4753,7 @@ d.comment(0x8C99, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C9E, "X=&1B: library name offset in reply", align=Align.INLINE)
 d.comment(0x8CA0, "Print library name", align=Align.INLINE)
 d.comment(0x8CA3, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8CA6, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 
 d.comment(0x8CA8, "Y=0: initial examine start position", align=Align.INLINE)
 d.comment(0x8CAB, "Save start offset in zero page for loop", align=Align.INLINE)

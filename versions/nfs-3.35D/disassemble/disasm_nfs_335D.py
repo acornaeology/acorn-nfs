@@ -1900,6 +1900,7 @@ d.comment(0x824E, "NOP (padding after inline string)", align=Align.INLINE)
 
 d.label(0x824F, "skip_no_clock_msg")
 d.comment(0x824F, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8252, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 d.subroutine(
     0x8254,
     "init_fs_vectors",
@@ -4760,6 +4761,7 @@ d.comment(0x8C95, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8C9F, "X=&1B: Lib. name offset in reply", align=Align.INLINE)
 d.comment(0x8CA1, "Print library name", align=Align.INLINE)
 d.comment(0x8CA4, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8CA7, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 
 d.comment(0x8CA9, "Store next examine start offset", align=Align.INLINE)
 d.comment(0x8CAC, "Save start offset in zero page for loop", align=Align.INLINE)
@@ -9410,6 +9412,9 @@ d.string(0x8282, 7)
 d.byte(0x8289)
 d.comment(0x8282, '"I .BOOT": auto-boot command', align=Align.INLINE)
 d.comment(0x8289, 'CR ends the command', align=Align.INLINE)
+
+d.comment(0x06FD, "Unused: filler at the end of the page-6 block", align=Align.INLINE)
+d.comment(0x965F, "Unused padding byte", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

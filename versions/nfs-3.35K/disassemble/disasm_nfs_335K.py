@@ -1875,6 +1875,7 @@ d.comment(0x8244, "NOP (padding after inline string)", align=Align.INLINE)
 
 d.label(0x8245, "skip_no_clock_msg")
 d.comment(0x8245, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8248, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 d.subroutine(
     0x824A,
     "init_fs_vectors",
@@ -4763,6 +4764,7 @@ d.comment(0x8C97, "Inline text, printed by print_inline", align=Align.INLINE)
 d.comment(0x8CA1, "X=&1B: library name offset in reply", align=Align.INLINE)
 d.comment(0x8CA3, "Print library name", align=Align.INLINE)
 d.comment(0x8CA6, "Print two CRs (blank line)", align=Align.INLINE)
+d.comment(0x8CA9, "Inline text, printed by print_inline: two CRs", align=Align.INLINE)
 d.comment(0x8CAB, "Init examine start offset to 0", align=Align.INLINE)
 d.comment(0x8CAE, "Save start offset in zero page for loop", align=Align.INLINE)
 d.comment(0x8CB0, "Load examine arg count for batch size", align=Align.INLINE)
@@ -9410,6 +9412,16 @@ d.string(0x8278, 7)
 d.byte(0x827F)
 d.comment(0x8278, '"I .BOOT": auto-boot command', align=Align.INLINE)
 d.comment(0x827F, 'CR ends the command', align=Align.INLINE)
+
+d.comment(0x965A, "Unused padding", align=Align.INLINE)
+d.banner(
+    0x9FFA,
+    title="Unused ROM tail",
+    description="""Six bytes after the last routine that nothing reaches. They decode
+as `LDA &0D4A`, `ORA #2` and the opcode of an `STA` whose operand is
+cut off by the end of the ROM.""",
+)
+d.comment(0x9FFA, "Unused: LDA &0D4A / ORA #2 / STA ...", align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

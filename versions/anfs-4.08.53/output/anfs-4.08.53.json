@@ -1166,12 +1166,6 @@
       }
     },
     {
-      "addr": 36427,
-      "name": "fs_vector_table",
-      "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte."
-    },
-    {
       "addr": 36461,
       "name": "osbyte_x0",
       "title": "OSBYTE wrapper with X=0, Y=&FF",
@@ -3043,6 +3037,13 @@
       "name": "tx_flags_table",
       "title": "Immediate-op TX flags table",
       "description": "TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.",
+      "align": "before_label"
+    },
+    {
+      "addr": 36427,
+      "name": "fs_vector_table",
+      "title": "FS vector dispatch and handler addresses (34 bytes)",
+      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte.",
       "align": "before_label"
     },
     {
@@ -27628,10 +27629,26 @@
         169,
         140
       ],
-      "comment_inline": "Push return address high (&8C)",
+      "comment_inline": "Push return address high: back to loop_dispatch_help",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&8c"
+      "operand": "#>(loop_dispatch_help - 1)",
+      "expr": {
+        "text": ">(loop_dispatch_help - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "loop_dispatch_help"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 35968,
@@ -27648,10 +27665,26 @@
         169,
         116
       ],
-      "comment_inline": "Push return address low (&74)",
+      "comment_inline": "Push return address low (address - 1 for RTS)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&74"
+      "operand": "#<(loop_dispatch_help - 1)",
+      "expr": {
+        "text": "<(loop_dispatch_help - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "loop_dispatch_help"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 35971,
@@ -27713,7 +27746,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Dispatch via RTS (returns to &8C75)",
+      "comment_inline": "Dispatch via RTS; the handler returns to loop_dispatch_help",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -28926,6 +28959,7 @@
         110,
         110
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "J Dunn"
     },
@@ -28955,6 +28989,7 @@
         111,
         110
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "B Robertson"
     },
@@ -28980,6 +29015,7 @@
         108,
         115
       ],
+      "comment_inline": "Credits text",
       "type": "string",
       "string": "J Wills"
     },
@@ -30508,9 +30544,6 @@
       "labels": [
         "ps_template_data"
       ],
-      "comments_before_label": [
-        "Printer server template (8 bytes)\n\nDefault printer server configuration data, read\nindirectly by copy_ps_data via LDA ps_template_base,X\nwith X=&F8..&FF (reaching ps_template_base+&F8 =\n&8E43). Contains \"PRINT \" (6 bytes) as the default\nprinter server name, followed by &01 and &00 as\ndefault status bytes. Absent from NFS versions;\nunique to ANFS."
-      ],
       "comment_inline": "PS template: default name \"PRINT \"",
       "type": "string",
       "string": "PRINT "
@@ -30872,21 +30905,9 @@
       "labels": [
         "netv_handler_addr"
       ],
-      "comments_before_label": [
-        "NETV handler address\n\n2-byte handler address for the NETV extended\nvector, read by write_vector_entry at Y=&36\nfrom svc_dispatch_lo_offset (push_dispatch_lo+2).\nPoints to netv_handler (&A968) which dispatches\nOSWORDs 0-8 to Econet handlers. Interleaved with\nthe OSBYTE wrapper code in the data area."
-      ],
-      "comment_inline": "NETV handler: netv_handler (&A968)",
       "type": "word",
       "values": [
         43368
-      ],
-      "expressions": [
-        {
-          "text": "netv_handler",
-          "tree": {
-            "sym": "netv_handler"
-          }
-        }
       ]
     },
     {
@@ -44784,6 +44805,7 @@
         97,
         100
       ],
+      "comment_inline": "\"Bad\": error prefix; the next opcode (JSR, &20) is the space",
       "type": "string",
       "string": "Bad"
     },
@@ -47106,6 +47128,7 @@
         101,
         100
       ],
+      "comment_inline": "Error message text",
       "type": "string",
       "string": "Line jammed"
     },
@@ -64034,7 +64057,7 @@
         160,
         9
       ],
-      "comment_inline": "Y=9: check 10 separator chars",
+      "comment_inline": "Y=9: 9 separators plus the PLA opcode after them",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#9"
@@ -64140,7 +64163,7 @@
         "sep_table_data"
       ],
       "comments_before_label": [
-        "Command separator table (9 bytes)\n\nCharacters that terminate a command name in the\nstar command parser. loop_check_sep_table scans\nY down from 8 to 0, comparing each input char\nagainst this table."
+        "Command separator table (9 bytes)\n\nCharacters that terminate a command name in the\nstar command parser. loop_check_sep_table scans\nY down from 9 to 0, so it also compares the byte\nafter the table, the opcode &68 (h) of the\nfollowing PLA."
       ],
       "comment_inline": "Space",
       "xref_summaries": [
@@ -68829,6 +68852,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Syn 8: (<stn. id.>|<ps type>)",
       "type": "byte",
       "values": [
         136
@@ -69294,6 +69318,7 @@
       "bytes": [
         129
       ],
+      "comment_inline": "Syn 1: (<dir>)",
       "type": "byte",
       "values": [
         129
@@ -69391,6 +69416,7 @@
       "bytes": [
         139
       ],
+      "comment_inline": "Syn 11: (<stn. id.>)",
       "type": "byte",
       "values": [
         139
@@ -96613,6 +96639,7 @@
         34,
         13
       ],
+      "comment_inline": "Inline text, printed by print_inline: '\"', CR",
       "type": "string",
       "string": "\"."
     },

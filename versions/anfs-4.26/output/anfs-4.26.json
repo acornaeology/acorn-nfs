@@ -1323,12 +1323,6 @@
       }
     },
     {
-      "addr": 36545,
-      "name": "fs_vector_table",
-      "title": "FS vector dispatch and handler addresses (34 bytes)",
-      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte."
-    },
-    {
       "addr": 36579,
       "name": "osbyte_x0",
       "title": "OSBYTE wrapper with X=0, Y=&FF",
@@ -4669,6 +4663,19 @@
       "align": "before_label"
     },
     {
+      "addr": 36545,
+      "name": "fs_vector_table",
+      "title": "FS vector dispatch and handler addresses (34 bytes)",
+      "description": "Bytes 0-13: extended vector dispatch addresses, copied to\nFILEV-FSCV (&0212) by loop_set_vectors. Each 2-byte pair is\na dispatch address (&FF1B-&FF2D) that the MOS uses to look up\nthe handler in the extended vector table.\n\nBytes 14-33: handler address pairs read by write_vector_entry.\nEach entry has addr_lo, addr_hi, then a padding byte that is\nnot read at runtime (write_vector_entry writes the current ROM\nbank number instead). The last entry (FSCV) has no padding\nbyte.",
+      "align": "before_label"
+    },
+    {
+      "addr": 36586,
+      "title": "NETV handler address",
+      "description": "Address of [`netv_handler`](label:netv_handler), the NETV handler. The routine that\ninstalls the extended vectors reads it at\n[`osbyte_a1`](label:osbyte_a1)+&36 (the NETV slot offset) and copies it,\nwith the ROM number, into the MOS extended-vector table.",
+      "align": "before_label"
+    },
+    {
       "addr": 37121,
       "name": "cmd_syntax_strings",
       "title": "*HELP / *SYNTAX argument strings (8 messages)",
@@ -4715,6 +4722,13 @@
       "name": "cmos_opt_mask_table",
       "title": "CMOS &11 bit-field masks for OSARGS / *OPT 4 (8 bytes)",
       "description": "Used by the OSARGS-via-FSCV / *OPT 4 path\n([`opt_write_cmos`](label:opt_write_cmos)) to read or update bit\nfields inside CMOS RAM byte `&11` (the Econet status byte holding\nthe auto-boot type and printer/messages flags).\n\n- **Indices 0-3** are extraction masks: `AND CMOS_&11` with\n  `&01`, `&02`, `&04`, `&06` returns bit 0, bit 1, bit 2 or\n  bits 1+2 respectively.\n- **Indices 4-7** are clear masks: `AND CMOS_&11` with `&FD`,\n  `&F3`, `&CF`, `&3F` zeroes bits 1, 2-3, 4-5 or 6-7 in turn,\n  before OR-ing the new value back in.\n\nA second indexed-base trick reads the same eight bytes through\n[`cmos_attr_table`](address:A0FF) (this label - 4): for write\nsub-codes 4-7 the read-masks at indices 0-3 (1, 2, 4, 6) double\nas the bit-shift counts that left-align the new value into its\ntarget field.",
+      "align": "before_label"
+    },
+    {
+      "addr": 42157,
+      "name": "sep_table_data",
+      "title": "Command separator table",
+      "description": "Characters that end a command name in the star-command matcher:\nspace, `\"`, `#`, `$`, `&`, `*`, `:`, `@` and CR.\n[`loop_check_sep_table`](label:loop_check_sep_table) scans Y down from\n9 to 0, so it also compares the byte after the table, the opcode &68\n(`h`) of the following PLA.",
       "align": "before_label"
     },
     {
@@ -4828,7 +4842,6 @@
     "tube_claim_flag": 20,
     "tube_claimed_id": 21,
     "tx_buffer_scratch": 32,
-    "parse_separator_flag": 38,
     "zp_0063": 99,
     "zp_0078": 120,
     "escapable": 151,
@@ -5084,7 +5097,6 @@
     "fcb_ctx_save": 4313,
     "filename_buf": 4339,
     "ws_template_source": 8264,
-    "separator_parse_dispatch": 8994,
     "ws_precomputed_value": 26763,
     "hazel_fs_station": 49152,
     "hazel_fs_network": 49153,
@@ -5373,16 +5385,6 @@
       "group": "zero_page",
       "access": [
         "b"
-      ]
-    },
-    {
-      "addr": 38,
-      "name": "parse_separator_flag",
-      "length": 1,
-      "group": "zero_page",
-      "access": [
-        "r",
-        "w"
       ]
     },
     {
@@ -32190,10 +32192,26 @@
         169,
         140
       ],
-      "comment_inline": "Push return address high (&8C)",
+      "comment_inline": "Push return address high: back to loop_dispatch_help",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&8c"
+      "operand": "#>(loop_dispatch_help - 1)",
+      "expr": {
+        "text": ">(loop_dispatch_help - 1)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "loop_dispatch_help"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 36006,
@@ -32210,10 +32228,26 @@
         169,
         154
       ],
-      "comment_inline": "Push return address low (&74)",
+      "comment_inline": "Push return address low (address - 1 for RTS)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&9a"
+      "operand": "#<(loop_dispatch_help - 1)",
+      "expr": {
+        "text": "<(loop_dispatch_help - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "sym": "loop_dispatch_help"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 36009,
@@ -32275,7 +32309,7 @@
       "bytes": [
         96
       ],
-      "comment_inline": "Dispatch via RTS (returns to &8CA7)",
+      "comment_inline": "Dispatch via RTS; the handler returns to loop_dispatch_help",
       "type": "code",
       "mnemonic": "rts"
     },
@@ -35595,9 +35629,6 @@
       "labels": [
         "ps_template_data"
       ],
-      "comments_before_label": [
-        "Printer server template (8 bytes)\n\nDefault printer server configuration data, read\nindirectly by copy_ps_data via LDA ps_template_base,X\nwith X=&F8..&FF (reaching ps_template_base+&F8 =\n&8EB9). Contains \"PRINT \" (6 bytes) as the default\nprinter server name, followed by &01 and &00 as\ndefault status bytes. Absent from NFS versions;\nunique to ANFS."
-      ],
       "comment_inline": "PS template: default name \"PRINT \"",
       "type": "string",
       "string": "PRINT "
@@ -35608,6 +35639,7 @@
         1,
         0
       ],
+      "comment_inline": "Template bytes 6-7, copied after the name",
       "type": "byte",
       "values": [
         1,
@@ -36055,13 +36087,45 @@
     {
       "addr": 36586,
       "bytes": [
-        30,
-        173
+        30
       ],
+      "comment_inline": "NETV handler low byte",
       "type": "byte",
       "values": [
-        30,
+        30
+      ],
+      "expressions": [
+        {
+          "text": "<(netv_handler)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "sym": "netv_handler"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 36587,
+      "bytes": [
         173
+      ],
+      "comment_inline": "NETV handler high byte",
+      "type": "byte",
+      "values": [
+        173
+      ],
+      "expressions": [
+        {
+          "text": ">(netv_handler)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "sym": "netv_handler"
+            }
+          }
+        }
       ]
     },
     {
@@ -54211,6 +54275,7 @@
         97,
         100
       ],
+      "comment_inline": "\"Bad\": error prefix; the next opcode (JSR, &20) is the space",
       "type": "string",
       "string": "Bad"
     },
@@ -74013,7 +74078,7 @@
         160,
         9
       ],
-      "comment_inline": "Y=9: separator-table size - 1",
+      "comment_inline": "Y=9: 9 separators plus the PLA opcode after them",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#9"
@@ -74053,9 +74118,9 @@
       "comment_inline": "Match: valid command boundary",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "separator_char_table",
+      "operand": "separator_matched",
       "target": 42166,
-      "target_label": "separator_char_table"
+      "target_label": "separator_matched"
     },
     {
       "addr": 42150,
@@ -74113,14 +74178,12 @@
     {
       "addr": 42157,
       "bytes": [
-        32,
-        34,
-        35
+        32
       ],
       "labels": [
         "sep_table_data"
       ],
-      "comment_inline": "Dispatch helper (sep_table_data path)",
+      "comment_inline": "Space",
       "xref_summaries": [
         "&a4ad used as index base 1 time by &a4a1"
       ],
@@ -74130,51 +74193,87 @@
           "kind": "indexed"
         }
       ],
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "separator_parse_dispatch",
-      "target": 8994,
-      "target_label": "separator_parse_dispatch"
+      "type": "byte",
+      "values": [
+        32
+      ]
+    },
+    {
+      "addr": 42158,
+      "bytes": [
+        34
+      ],
+      "comment_inline": "'\"' double quote",
+      "type": "byte",
+      "values": [
+        34
+      ]
+    },
+    {
+      "addr": 42159,
+      "bytes": [
+        35
+      ],
+      "comment_inline": "'#' hash",
+      "type": "byte",
+      "values": [
+        35
+      ]
     },
     {
       "addr": 42160,
       "bytes": [
-        36,
+        36
+      ],
+      "comment_inline": "'$' dollar",
+      "type": "byte",
+      "values": [
+        36
+      ]
+    },
+    {
+      "addr": 42161,
+      "bytes": [
         38
       ],
-      "comment_inline": "Check separator flag (zp_0026)",
-      "type": "code",
-      "mnemonic": "bit",
-      "operand": "parse_separator_flag",
-      "target": 38,
-      "target_label": "parse_separator_flag"
+      "comment_inline": "'&' ampersand",
+      "type": "byte",
+      "values": [
+        38
+      ]
     },
     {
       "addr": 42162,
       "bytes": [
         42
       ],
-      "comment_inline": "Rotate result bit into carry",
-      "type": "code",
-      "mnemonic": "rol"
+      "comment_inline": "'*' asterisk",
+      "type": "byte",
+      "values": [
+        42
+      ]
     },
     {
       "addr": 42163,
       "bytes": [
         58
       ],
-      "comment_inline": "Decrement match counter",
-      "type": "code",
-      "mnemonic": "dec"
+      "comment_inline": "':' colon",
+      "type": "byte",
+      "values": [
+        58
+      ]
     },
     {
       "addr": 42164,
       "bytes": [
         64
       ],
-      "comment_inline": "Effective unconditional jump",
-      "type": "code",
-      "mnemonic": "rti"
+      "comment_inline": "'@' at-sign",
+      "type": "byte",
+      "values": [
+        64
+      ]
     },
     {
       "addr": 42165,
@@ -74193,7 +74292,7 @@
         104
       ],
       "labels": [
-        "separator_char_table"
+        "separator_matched"
       ],
       "comment_inline": "Restore matched-name length",
       "xref_summaries": [
@@ -80007,21 +80106,30 @@
         79,
         110
       ],
-      "comment_inline": "5-byte record: 'On', &80, &00, &00",
+      "comment_inline": "\"On\": first line of the bare *HELP list (X=&91)",
       "type": "string",
       "string": "On"
     },
     {
       "addr": 43029,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "No syntax",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43030,
+      "bytes": [
         0,
         0
       ],
-      "type": "byte",
+      "comment_inline": "Zero handler: topic matching starts after it (X=&96)",
+      "type": "word",
       "values": [
-        128,
-        0,
         0
       ]
     },
@@ -82464,6 +82572,7 @@
       "bytes": [
         0
       ],
+      "comment_inline": "Unused padding byte",
       "type": "byte",
       "values": [
         0
@@ -107195,6 +107304,7 @@
       "bytes": [
         34
       ],
+      "comment_inline": "Inline text, printed by print_inline: '\"'",
       "type": "string",
       "string": "\""
     },

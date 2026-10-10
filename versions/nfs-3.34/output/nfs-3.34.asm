@@ -1983,7 +1983,7 @@ cmd_roff_str = copyright_string+3
 ; &8212 referenced 1 time by &8203
 .skip_no_clock_msg
     jsr print_inline                                                  ; 8212: 20 3b 85     ;.      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8215: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8215: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
 ; ***************************************************************************************
 ; Initialise filing system vectors
 ;
@@ -4735,7 +4735,7 @@ cmd_roff_str = copyright_string+3
     ldx #&1b                                                          ; 8c9d: a2 1b       ..       ; X=&1B: library name offset in reply
     jsr print_reply_bytes                                             ; 8c9f: 20 4f 8d     O.      ; Print library name
     jsr print_inline                                                  ; 8ca2: 20 3b 85     ;.      ; Print two CRs (blank line)
-    equb &0d, &0d                                                     ; 8ca5: 0d 0d       ..    
+    equb &0d, &0d                                                     ; 8ca5: 0d 0d       ..       ; Inline text, printed by print_inline: two CRs
     sty fs_func_code                                                  ; 8ca7: 8c 06 0f    ...      ; Y=0: initial examine start position
     sty fs_work_4                                                     ; 8caa: 84 b4       ..       ; Save start offset in zero page for loop
     txa                                                               ; 8cac: 8a          .        ; A = reply buffer bytes consumed
