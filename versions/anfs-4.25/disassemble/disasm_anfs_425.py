@@ -5631,18 +5631,7 @@ doubles as table data.""",
 )
 
 
-d.comment(0x8EB9, 'PS template: default name "PRINT "', align=Align.INLINE)
 d.label(0x8EB9, "ps_template_data")
-d.banner(
-    0x8EB9,
-    title="Printer-server name template (8 bytes)",
-    description="""Eight bytes (`"PRINT "` then `&01 &00`) read by
-[`copy_ps_data`](label:copy_ps_data) via the indexed-base trick
-`LDA ps_template_base+X` with `X=&F8..&FF`. The base label
-`ps_template_base` resolves to `ps_template_data - &F8` so the
-indexed access lands on the bytes here. Default contents installed
-into the Printer-Server name slot during ANFS initialisation.""",
-)
 
 d.banner(
     0x8EC1,
@@ -15714,7 +15703,7 @@ d.comment(0xB44C, "Store char uppercased in buffer", align=Align.INLINE)
 d.comment(0xB44F, "Loop for more characters", align=Align.INLINE)
 d.label(0xB451, "done_ps_name_parse")
 
-d.comment(0xB451, "Copy reversed PS name to TX", align=Align.INLINE)
+d.comment(0xB451, "Build the status enquiry in the TX block", align=Align.INLINE)
 d.comment(0xB454, "Send PS status request", align=Align.INLINE)
 d.comment(0xB457, "Pop and requeue PS scan", align=Align.INLINE)
 d.comment(0xB45A, "Load PS server address", align=Align.INLINE)
@@ -15901,11 +15890,11 @@ d.label(0xB517, "reinit_ps_slot")
 
 d.comment(0xB517, "Save Y (slot table offset)", align=Align.INLINE)
 d.comment(0xB518, "Push it", align=Align.INLINE)
-d.comment(0xB519, "A=&7F: slot status 'busy/active'", align=Align.INLINE)
-d.comment(0xB51B, "Mark slot active", align=Align.INLINE)
+d.comment(0xB519, "A=&7F: receive block open for reception", align=Align.INLINE)
+d.comment(0xB51B, "Store the control byte", align=Align.INLINE)
 d.comment(0xB51D, "Step Y to control byte", align=Align.INLINE)
-d.comment(0xB51E, "A=&9E: control byte (PS-init pattern)", align=Align.INLINE)
-d.comment(0xB520, "Store control byte", align=Align.INLINE)
+d.comment(0xB51E, "A=&9E: printer-server reply port", align=Align.INLINE)
+d.comment(0xB520, "Store the port", align=Align.INLINE)
 d.comment(0xB522, "A=0: zero-fill the next two bytes", align=Align.INLINE)
 d.comment(0xB524, "Write two zeros, advance Y", align=Align.INLINE)
 d.comment(0xB527, "Read current ws_ptr_hi", align=Align.INLINE)
@@ -15979,68 +15968,20 @@ d.comment(0xB563, "Step Y again", align=Align.INLINE)
 d.comment(0xB564, "Write A at the next offset (two consecutive copies)", align=Align.INLINE)
 d.comment(0xB566, "Final INY leaves Y pointing past the second write", align=Align.INLINE)
 d.comment(0xB567, "Return", align=Align.INLINE)
-d.label(0xB568, "reverse_ps_name_to_tx")
-
-d.subroutine(
-    0xB568,
-    "reverse_ps_name_to_tx",
-    title="Reverse-copy printer server name to TX buffer",
-    description="""Copies 8 bytes from the RX buffer at offsets `&18..&1F`
-(`(net_rx_ptr)+&18..+&1F`) to the TX buffer at offsets
-`&10..&17` (`(net_rx_ptr)+&10..+&17`) in reversed byte order.
-Implementation: pushes the 8 RX bytes onto the stack, then pops
-them back to the TX area; the LIFO order achieves the reversal.""",
-    on_exit={"a, x, y": "clobbered"},
-)
+d.label(0xB568, "build_ps_enquiry")
 
 
-d.comment(0xB568, "Y=&18: source offset (start of PS name in RX buffer)", align=Align.INLINE)
+
 d.label(0xB56A, "loop_push_ps_name")
 
-d.comment(0xB56A, "Read RX byte at offset Y", align=Align.INLINE)
-d.comment(0xB56C, "Push it (the stack reverses the order)", align=Align.INLINE)
-d.comment(0xB56D, "Step source", align=Align.INLINE)
-d.comment(0xB56E, "Reached &20 (one past the 8-byte name)?", align=Align.INLINE)
-d.comment(0xB570, "No: continue pushing", align=Align.INLINE)
-d.comment(0xB572, "Y=&17: destination offset for the reversed name", align=Align.INLINE)
 d.label(0xB574, "loop_pop_ps_name")
 
-d.comment(0xB574, "Pull next pushed byte (LIFO -> reversed order)", align=Align.INLINE)
-d.comment(0xB575, "Store at destination offset Y", align=Align.INLINE)
-d.comment(0xB577, "Step destination back", align=Align.INLINE)
-d.comment(0xB578, "Reached &0F (one before the destination range)?", align=Align.INLINE)
-d.comment(0xB57A, "No: continue popping", align=Align.INLINE)
-d.comment(
-    0xB57C, "Copy net_rx_ptr_hi as the TX page (TX shares the same page as RX for this packet)", align=Align.INLINE
-)
-d.comment(0xB57E, "Set net_tx_ptr_hi", align=Align.INLINE)
-d.comment(0xB580, "TX low byte = &0C: skip past the TX header to where the reversed name lives", align=Align.INLINE)
-d.comment(0xB582, "Set net_tx_ptr lo", align=Align.INLINE)
-d.comment(0xB584, "Y=3: copy 4-byte TX header (offsets 3..0)", align=Align.INLINE)
 d.label(0xB586, "loop_copy_tx_hdr")
 
-d.comment(0xB586, "Read template byte", align=Align.INLINE)
-d.comment(0xB589, "Write to TX buffer at offset Y", align=Align.INLINE)
-d.comment(0xB58B, "Step backwards", align=Align.INLINE)
-d.comment(0xB58C, "Loop while Y >= 0", align=Align.INLINE)
-d.comment(0xB58E, "Return", align=Align.INLINE)
 d.index_base(0xB58F, "ps_tx_header_template")
-d.banner(
-    0xB58F,
-    title="Printer-server TX header template (4 bytes)",
-    description="""Four bytes copied to the head of the printer-server transmit
-buffer by [`reverse_ps_name_to_tx`](label:reverse_ps_name_to_tx): control byte
-`&80` (immediate-TX request), port `&D1` (printer block port),
-function-code stub, and reply-port byte. Filled-in destination
-fields follow from the caller's PS slot.""",
-)
 for i in range(4):
     d.byte(0xB58F + i)
 
-d.comment(0xB58F, "Control byte &80 (immediate TX)", align=Align.INLINE)
-d.comment(0xB590, "Port &9F (printer server)", align=Align.INLINE)
-d.comment(0xB591, "Station &FF (any)", align=Align.INLINE)
-d.comment(0xB592, "Network &FF (any)", align=Align.INLINE)
 d.label(0xB593, "print_station_addr")
 
 d.subroutine(
@@ -19783,7 +19724,6 @@ d.expr(0x8EEA, lo(sym("netv_handler")))
 d.expr(0x8EEB, hi(sym("netv_handler")))
 d.comment(0x8EEA, 'NETV handler low byte', align=Align.INLINE)
 d.comment(0x8EEB, 'NETV handler high byte', align=Align.INLINE)
-d.comment(0x8EBF, 'Template bytes 6-7, copied after the name', align=Align.INLINE)
 d.comment(0x99A4, '"Bad": error prefix; the next opcode (JSR, &20) is the space', align=Align.INLINE)
 
 d.banner(
@@ -20059,6 +19999,71 @@ d.comment(0x8306, 'Y = nmi_post_ack_dispatch, high byte', align=Align.INLINE)
 
 d.expr(0x873C, sym("tx_flags_table") - 0x81)
 d.expr(0x8742, sym("tx_length_table") - 0x81)
+
+d.subroutine(
+    0xB568,
+    "build_ps_enquiry",
+    title="Build a printer-server status enquiry",
+    description="""Builds a broadcast transmit control block at (`net_rx_ptr`)+&0C:
+copies the eight bytes at +&18..+&1F (the printer name, padded to
+six characters, the reason code and a reserved byte) to +&10..+&17,
+the data bytes of a broadcast control block, then points
+`net_tx_ptr` at +&0C and fills in the header from
+[`ps_tx_header_template`](label:ps_tx_header_template): control &80,
+port &9F (printer-server status), station and network &FF
+(broadcast). The copy goes through the stack, so the bytes keep
+their order.""",
+)
+d.comment(0xB568, 'Y=&18: start of the printer name', align=Align.INLINE)
+d.comment(0xB56A, 'Read the next byte', align=Align.INLINE)
+d.comment(0xB56C, 'Push it', align=Align.INLINE)
+d.comment(0xB56D, 'Step the source', align=Align.INLINE)
+d.comment(0xB56E, 'All eight bytes pushed?', align=Align.INLINE)
+d.comment(0xB570, 'No: push the next', align=Align.INLINE)
+d.comment(0xB572, 'Y=&17: last data byte of the control block', align=Align.INLINE)
+d.comment(0xB574, 'Pull the bytes, last first', align=Align.INLINE)
+d.comment(0xB575, 'Store it, filling downwards', align=Align.INLINE)
+d.comment(0xB577, 'Step the destination back', align=Align.INLINE)
+d.comment(0xB578, 'All eight bytes stored?', align=Align.INLINE)
+d.comment(0xB57A, 'No: pull the next', align=Align.INLINE)
+d.comment(0xB57C, 'The control block shares the receive buffer page', align=Align.INLINE)
+d.comment(0xB57E, 'Set net_tx_ptr high', align=Align.INLINE)
+d.comment(0xB580, 'Control block at offset &0C', align=Align.INLINE)
+d.comment(0xB582, 'Set net_tx_ptr low', align=Align.INLINE)
+d.comment(0xB584, 'Y=3: copy the 4-byte header', align=Align.INLINE)
+d.comment(0xB586, 'Read a header byte', align=Align.INLINE)
+d.comment(0xB589, 'Store it in the control block', align=Align.INLINE)
+d.comment(0xB58B, 'Previous byte', align=Align.INLINE)
+d.comment(0xB58C, 'Loop for all four', align=Align.INLINE)
+d.comment(0xB58E, 'Return', align=Align.INLINE)
+d.banner(
+    0xB58F,
+    title="Printer-server status enquiry header",
+    description="""The first four bytes of the transmit control block that
+[`build_ps_enquiry`](label:build_ps_enquiry) builds: control byte
+&80, port &9F (printer-server status enquiry) and station and
+network &FF, which make it a broadcast.""",
+)
+d.comment(0xB58F, 'Control byte &80', align=Align.INLINE)
+d.comment(0xB590, 'Port &9F: printer-server status enquiry', align=Align.INLINE)
+d.comment(0xB591, 'Station &FF: broadcast', align=Align.INLINE)
+d.comment(0xB592, 'Network &FF: broadcast', align=Align.INLINE)
+d.banner(
+    0x8EB9,
+    title="Printer-server status enquiry template",
+    description="""Default data for the printer-server status enquiry: the printer name
+`PRINT ` padded to six characters, reason code 1 (status request)
+and a reserved zero byte. [`copy_ps_data`](label:copy_ps_data)
+copies it into the receive buffer at initialisation, reading it as
+`ps_template_base,X` with X=&F8..&FF, and `*PS` / `*POLLPS`
+overwrite the name with the printer type given. The reply comes back
+on port &9E.""",
+)
+d.comment(0x8EB9, 'Printer name "PRINT ", padded to six characters', align=Align.INLINE)
+d.byte(0x8EBF)
+d.byte(0x8EC0)
+d.comment(0x8EBF, 'Reason code 1: status request', align=Align.INLINE)
+d.comment(0x8EC0, 'Reserved, zero', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

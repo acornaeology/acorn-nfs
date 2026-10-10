@@ -3964,15 +3964,6 @@
       }
     },
     {
-      "addr": 46379,
-      "name": "reverse_ps_name_to_tx",
-      "title": "Reverse-copy printer server name to TX buffer",
-      "description": "Copies 8 bytes from the RX buffer at offsets `&18..&1F`\n(`(net_rx_ptr)+&18..+&1F`) to the TX buffer at offsets\n`&10..&17` (`(net_rx_ptr)+&10..+&17`) in reversed byte order.\nImplementation: pushes the 8 RX bytes onto the stack, then pops\nthem back to the TX area; the LIFO order achieves the reversal.",
-      "on_exit": {
-        "a, x, y": "clobbered"
-      }
-    },
-    {
       "addr": 46422,
       "name": "print_station_addr",
       "title": "Print station address as decimal net.station",
@@ -4692,6 +4683,12 @@
       "on_entry": {
         "y": "the new library handle"
       }
+    },
+    {
+      "addr": 46379,
+      "name": "build_ps_enquiry",
+      "title": "Build a printer-server status enquiry",
+      "description": "Builds a broadcast transmit control block at (`net_rx_ptr`)+&0C:\ncopies the eight bytes at +&18..+&1F (the printer name, padded to\nsix characters, the reason code and a reserved byte) to +&10..+&17,\nthe data bytes of a broadcast control block, then points\n`net_tx_ptr` at +&0C and fills in the header from\n[`ps_tx_header_template`](label:ps_tx_header_template): control &80,\nport &9F (printer-server status), station and network &FF\n(broadcast). The copy goes through the stack, so the bytes keep\ntheir order."
     }
   ],
   "banners": [
@@ -4761,8 +4758,8 @@
     {
       "addr": 36511,
       "name": "ps_template_data",
-      "title": "Printer-server name template (8 bytes)",
-      "description": "Eight bytes (`\"PRINT \"` then `&01 &00`) read by\n[`copy_ps_data`](label:copy_ps_data) via the indexed-base trick\n`LDA ps_template_base+X` with `X=&F8..&FF`. The base label\n`ps_template_base` resolves to `ps_template_data - &F8` so the\nindexed access lands on the bytes here. Default contents installed\ninto the Printer-Server name slot during ANFS initialisation.",
+      "title": "Printer-server status enquiry template",
+      "description": "Default data for the printer-server status enquiry: the printer name\n`PRINT ` padded to six characters, reason code 1 (status request)\nand a reserved zero byte. [`copy_ps_data`](label:copy_ps_data)\ncopies it into the receive buffer at initialisation, reading it as\n`ps_template_base,X` with X=&F8..&FF, and `*PS` / `*POLLPS`\noverwrite the name with the printer type given. The reply comes back\non port &9E.",
       "align": "before_label"
     },
     {
@@ -4935,8 +4932,8 @@
     {
       "addr": 46418,
       "name": "ps_tx_header_template",
-      "title": "Printer-server TX header template (4 bytes)",
-      "description": "Four bytes copied to the head of the printer-server transmit\nbuffer by [`reverse_ps_name_to_tx`](label:reverse_ps_name_to_tx): control byte\n`&80` (immediate-TX request), port `&D1` (printer block port),\nfunction-code stub, and reply-port byte. Filled-in destination\nfields follow from the caller's PS slot.",
+      "title": "Printer-server status enquiry header",
+      "description": "The first four bytes of the transmit control block that\n[`build_ps_enquiry`](label:build_ps_enquiry) builds: control byte\n&80, port &9F (printer-server status enquiry) and station and\nnetwork &FF, which make it a broadcast.",
       "align": "before_label"
     },
     {
@@ -35744,20 +35741,29 @@
       "labels": [
         "ps_template_data"
       ],
-      "comment_inline": "PS template: default name \"PRINT \"",
+      "comment_inline": "Printer name \"PRINT \", padded to six characters",
       "type": "string",
       "string": "PRINT "
     },
     {
       "addr": 36517,
       "bytes": [
-        1,
-        0
+        1
       ],
-      "comment_inline": "Template bytes 6-7, copied after the name",
+      "comment_inline": "Reason code 1: status request",
       "type": "byte",
       "values": [
-        1,
+        1
+      ]
+    },
+    {
+      "addr": 36518,
+      "bytes": [
+        0
+      ],
+      "comment_inline": "Reserved, zero",
+      "type": "byte",
+      "values": [
         0
       ]
     },
@@ -103772,7 +103778,7 @@
       "labels": [
         "done_ps_name_parse"
       ],
-      "comment_inline": "Copy reversed PS name to TX",
+      "comment_inline": "Build the status enquiry in the TX block",
       "xref_summaries": [
         "&b416 referenced 3 times by &b3e8, &b3fe, &b40f"
       ],
@@ -103792,9 +103798,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "reverse_ps_name_to_tx",
+      "operand": "build_ps_enquiry",
       "target": 46379,
-      "target_label": "reverse_ps_name_to_tx"
+      "target_label": "build_ps_enquiry"
     },
     {
       "addr": 46105,
@@ -105114,7 +105120,7 @@
         169,
         127
       ],
-      "comment_inline": "A=&7F: slot status 'busy/active'",
+      "comment_inline": "A=&7F: receive block open for reception",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&7f"
@@ -105125,7 +105131,7 @@
         145,
         158
       ],
-      "comment_inline": "Mark slot active",
+      "comment_inline": "Store the control byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -105147,7 +105153,7 @@
         169,
         158
       ],
-      "comment_inline": "A=&9E: control byte (PS-init pattern)",
+      "comment_inline": "A=&9E: printer-server reply port",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&9e"
@@ -105158,7 +105164,7 @@
         145,
         158
       ],
-      "comment_inline": "Store control byte",
+      "comment_inline": "Store the port",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(nfs_workspace),y",
@@ -105704,9 +105710,9 @@
         24
       ],
       "labels": [
-        "reverse_ps_name_to_tx"
+        "build_ps_enquiry"
       ],
-      "comment_inline": "Y=&18: source offset (start of PS name in RX buffer)",
+      "comment_inline": "Y=&18: start of the printer name",
       "xref_summaries": [
         "&b52b referenced 2 times by &b416, &b588"
       ],
@@ -105733,7 +105739,7 @@
       "labels": [
         "loop_push_ps_name"
       ],
-      "comment_inline": "Read RX byte at offset Y",
+      "comment_inline": "Read the next byte",
       "xref_summaries": [
         "&b52d referenced 1 time by &b533"
       ],
@@ -105754,7 +105760,7 @@
       "bytes": [
         72
       ],
-      "comment_inline": "Push it (the stack reverses the order)",
+      "comment_inline": "Push it",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -105763,7 +105769,7 @@
       "bytes": [
         200
       ],
-      "comment_inline": "Step source",
+      "comment_inline": "Step the source",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -105773,7 +105779,7 @@
         192,
         32
       ],
-      "comment_inline": "Reached &20 (one past the 8-byte name)?",
+      "comment_inline": "All eight bytes pushed?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&20"
@@ -105784,7 +105790,7 @@
         208,
         248
       ],
-      "comment_inline": "No: continue pushing",
+      "comment_inline": "No: push the next",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_push_ps_name",
@@ -105797,7 +105803,7 @@
         160,
         23
       ],
-      "comment_inline": "Y=&17: destination offset for the reversed name",
+      "comment_inline": "Y=&17: last data byte of the control block",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&17"
@@ -105810,7 +105816,7 @@
       "labels": [
         "loop_pop_ps_name"
       ],
-      "comment_inline": "Pull next pushed byte (LIFO -> reversed order)",
+      "comment_inline": "Pull the bytes, last first",
       "xref_summaries": [
         "&b537 referenced 1 time by &b53d"
       ],
@@ -105829,7 +105835,7 @@
         145,
         156
       ],
-      "comment_inline": "Store at destination offset Y",
+      "comment_inline": "Store it, filling downwards",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(net_rx_ptr),y",
@@ -105841,7 +105847,7 @@
       "bytes": [
         136
       ],
-      "comment_inline": "Step destination back",
+      "comment_inline": "Step the destination back",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -105851,7 +105857,7 @@
         192,
         15
       ],
-      "comment_inline": "Reached &0F (one before the destination range)?",
+      "comment_inline": "All eight bytes stored?",
       "type": "code",
       "mnemonic": "cpy",
       "operand": "#&0f"
@@ -105862,7 +105868,7 @@
         208,
         248
       ],
-      "comment_inline": "No: continue popping",
+      "comment_inline": "No: pull the next",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_pop_ps_name",
@@ -105875,7 +105881,7 @@
         165,
         157
       ],
-      "comment_inline": "Copy net_rx_ptr_hi as the TX page (TX shares the same page as RX for this packet)",
+      "comment_inline": "The control block shares the receive buffer page",
       "type": "code",
       "mnemonic": "lda",
       "operand": "net_rx_ptr_hi",
@@ -105888,7 +105894,7 @@
         133,
         155
       ],
-      "comment_inline": "Set net_tx_ptr_hi",
+      "comment_inline": "Set net_tx_ptr high",
       "type": "code",
       "mnemonic": "sta",
       "operand": "net_tx_ptr_hi",
@@ -105901,7 +105907,7 @@
         169,
         12
       ],
-      "comment_inline": "TX low byte = &0C: skip past the TX header to where the reversed name lives",
+      "comment_inline": "Control block at offset &0C",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&0c"
@@ -105912,7 +105918,7 @@
         133,
         154
       ],
-      "comment_inline": "Set net_tx_ptr lo",
+      "comment_inline": "Set net_tx_ptr low",
       "type": "code",
       "mnemonic": "sta",
       "operand": "net_tx_ptr",
@@ -105925,7 +105931,7 @@
         160,
         3
       ],
-      "comment_inline": "Y=3: copy 4-byte TX header (offsets 3..0)",
+      "comment_inline": "Y=3: copy the 4-byte header",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#3"
@@ -105940,7 +105946,7 @@
       "labels": [
         "loop_copy_tx_hdr"
       ],
-      "comment_inline": "Read template byte",
+      "comment_inline": "Read a header byte",
       "xref_summaries": [
         "&b549 referenced 1 time by &b54f"
       ],
@@ -105962,7 +105968,7 @@
         145,
         154
       ],
-      "comment_inline": "Write to TX buffer at offset Y",
+      "comment_inline": "Store it in the control block",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(net_tx_ptr),y",
@@ -105974,7 +105980,7 @@
       "bytes": [
         136
       ],
-      "comment_inline": "Step backwards",
+      "comment_inline": "Previous byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -105984,7 +105990,7 @@
         16,
         248
       ],
-      "comment_inline": "Loop while Y >= 0",
+      "comment_inline": "Loop for all four",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_copy_tx_hdr",
@@ -106008,7 +106014,7 @@
       "labels": [
         "ps_tx_header_template"
       ],
-      "comment_inline": "Control byte &80 (immediate TX)",
+      "comment_inline": "Control byte &80",
       "xref_summaries": [
         "&b552 used as index base 1 time by &b549"
       ],
@@ -106028,7 +106034,7 @@
       "bytes": [
         159
       ],
-      "comment_inline": "Port &9F (printer server)",
+      "comment_inline": "Port &9F: printer-server status enquiry",
       "type": "byte",
       "values": [
         159
@@ -106039,7 +106045,7 @@
       "bytes": [
         255
       ],
-      "comment_inline": "Station &FF (any)",
+      "comment_inline": "Station &FF: broadcast",
       "type": "byte",
       "values": [
         255
@@ -106050,7 +106056,7 @@
       "bytes": [
         255
       ],
-      "comment_inline": "Network &FF (any)",
+      "comment_inline": "Network &FF: broadcast",
       "type": "byte",
       "values": [
         255
@@ -106456,9 +106462,9 @@
       "comment_inline": "Copy PS name to TX buffer",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "reverse_ps_name_to_tx",
+      "operand": "build_ps_enquiry",
       "target": 46379,
-      "target_label": "reverse_ps_name_to_tx"
+      "target_label": "build_ps_enquiry"
     },
     {
       "addr": 46475,

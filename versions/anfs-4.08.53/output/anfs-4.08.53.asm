@@ -4715,10 +4715,18 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
 ; &8e42 referenced 3 times by &8e14, &8e22, &8e2f
 .dispatch_rts
     rts                                                               ; 8e42: 60          `        ; Dispatch via RTS
+; ***************************************************************************************
+; Printer-server status enquiry template
+;
+; Default data for the printer-server status enquiry: the printer name PRINT  padded to
+; six characters, reason code 1 (status request) and a reserved zero byte. copy_ps_data
+; copies it into the receive buffer at initialisation, reading it as ps_template_base,X
+; with X=&F8..&FF, and *PS / *POLLPS overwrite the name with the printer type given. The
+; reply comes back on port &9E.
 .ps_template_data
-    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI...   ; PS template: default name "PRINT "
-    equb &01                                                          ; 8e49: 01          .        ; PS template: status &01
-    equb &00                                                          ; 8e4a: 00          .        ; PS template: terminator &00
+    equs "PRINT "                                                     ; 8e43: 50 52 49... PRI...   ; Printer name "PRINT ", padded to six characters
+    equb &01                                                          ; 8e49: 01          .        ; Reason code 1: status request
+    equb &00                                                          ; 8e4a: 00          .        ; Reserved, zero
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -11923,7 +11931,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     bne loop_read_ps_char                                             ; b036: d0 f2       ..       ; Loop for more characters
 ; &b038 referenced 3 times by &b00a, &b020, &b031
 .done_ps_name_parse
-    jsr reverse_ps_name_to_tx                                         ; b038: 20 49 b1     I.      ; Copy reversed PS name to TX
+    jsr build_ps_enquiry                                              ; b038: 20 49 b1     I.      ; Build the status enquiry in the TX block
     jsr send_net_packet                                               ; b03b: 20 2a 98     *.      ; Send PS status request
     jsr pop_requeue_ps_scan                                           ; b03e: 20 d2 b0     ..      ; Pop and requeue PS scan
     jsr load_ps_server_addr                                           ; b041: 20 c6 b0     ..      ; Load PS server address
@@ -12063,11 +12071,11 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 .reinit_ps_slot
     tya                                                               ; b0f8: 98          .        ; Y = workspace offset of slot
     pha                                                               ; b0f9: 48          H        ; Push slot offset for scan list
-    lda #&7f                                                          ; b0fa: a9 7f       ..       ; Set active status (&7F)
-    sta (nfs_workspace),y                                             ; b0fc: 91 9e       ..       ; Write status byte
+    lda #&7f                                                          ; b0fa: a9 7f       ..       ; A=&7F: receive block open for reception
+    sta (nfs_workspace),y                                             ; b0fc: 91 9e       ..       ; Store the control byte
     iny                                                               ; b0fe: c8          .        ; Next byte
-    lda #&9e                                                          ; b0ff: a9 9e       ..       ; Low byte: workspace page
-    sta (nfs_workspace),y                                             ; b101: 91 9e       ..       ; Write workspace pointer low
+    lda #&9e                                                          ; b0ff: a9 9e       ..       ; A=&9E: printer-server reply port
+    sta (nfs_workspace),y                                             ; b101: 91 9e       ..       ; Store the port
     lda #0                                                            ; b103: a9 00       ..       ; A=0
     jsr write_two_bytes_inc_y                                         ; b105: 20 41 b1     A.      ; Write two zero bytes + advance Y
     lda ws_ptr_hi                                                     ; b108: a5 ac       ..       ; Get current scan page
@@ -12139,49 +12147,56 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     iny                                                               ; b147: c8          .        ; Advance Y
     rts                                                               ; b148: 60          `        ; Return
 ; ***************************************************************************************
-; Reverse-copy printer server name to TX buffer
+; Build a printer-server status enquiry
 ;
-; Copies 8 bytes from the RX buffer (offsets &1C-&23) to the TX buffer (offsets &13-&1B)
-; in reversed byte order, pushing onto the stack then popping back.
+; Builds a broadcast transmit control block at (net_rx_ptr)+&10: copies the eight bytes
+; at +&1C..+&23 (the printer name, padded to six characters, the reason code and a
+; reserved byte) to +&14..+&1B, the data bytes of a broadcast control block, then points
+; net_tx_ptr at +&10 and fills in the header from ps_tx_header_template: control &80,
+; port &9F (printer-server status), station and network &FF (broadcast). The copy goes
+; through the stack, so the bytes keep their order.
 ; &b149 referenced 2 times by &b038, &b1a6
-.reverse_ps_name_to_tx
-    ldy #&1c                                                          ; b149: a0 1c       ..       ; Start of PS name at offset &1C
+.build_ps_enquiry
+    ldy #&1c                                                          ; b149: a0 1c       ..       ; Y=&1C: start of the printer name
 ; &b14b referenced 1 time by &b151
 .loop_push_ps_name
-    lda (net_rx_ptr),y                                                ; b14b: b1 9c       ..       ; Load byte from RX buffer
-    pha                                                               ; b14d: 48          H        ; Push to stack (for reversal)
-    iny                                                               ; b14e: c8          .        ; Next source byte
-    cpy #&24                                                          ; b14f: c0 24       .$       ; End of PS name field (&24)?
-    bne loop_push_ps_name                                             ; b151: d0 f8       ..       ; No: continue pushing
-    ldy #&1b                                                          ; b153: a0 1b       ..       ; End of TX name field at &1B
+    lda (net_rx_ptr),y                                                ; b14b: b1 9c       ..       ; Read the next byte
+    pha                                                               ; b14d: 48          H        ; Push it
+    iny                                                               ; b14e: c8          .        ; Step the source
+    cpy #&24                                                          ; b14f: c0 24       .$       ; All eight bytes pushed?
+    bne loop_push_ps_name                                             ; b151: d0 f8       ..       ; No: push the next
+    ldy #&1b                                                          ; b153: a0 1b       ..       ; Y=&1B: last data byte of the control block
 ; &b155 referenced 1 time by &b15b
 .loop_pop_ps_name
-    pla                                                               ; b155: 68          h        ; Pop byte (reversed order)
-    sta (net_rx_ptr),y                                                ; b156: 91 9c       ..       ; Store in RX buffer
-    dey                                                               ; b158: 88          .        ; Previous position
-    cpy #&13                                                          ; b159: c0 13       ..       ; Start of TX field (&13)?
-    bne loop_pop_ps_name                                              ; b15b: d0 f8       ..       ; No: continue popping
-    lda net_rx_ptr_hi                                                 ; b15d: a5 9d       ..       ; Copy RX page to TX
-    sta net_tx_ptr_hi                                                 ; b15f: 85 9b       ..       ; Set TX pointer high
-    lda #&10                                                          ; b161: a9 10       ..       ; TX offset &10
-    sta net_tx_ptr                                                    ; b163: 85 9a       ..       ; Set TX pointer low
-    ldy #3                                                            ; b165: a0 03       ..       ; Copy 4 header bytes
+    pla                                                               ; b155: 68          h        ; Pull the bytes, last first
+    sta (net_rx_ptr),y                                                ; b156: 91 9c       ..       ; Store it, filling downwards
+    dey                                                               ; b158: 88          .        ; Step the destination back
+    cpy #&13                                                          ; b159: c0 13       ..       ; All eight bytes stored?
+    bne loop_pop_ps_name                                              ; b15b: d0 f8       ..       ; No: pull the next
+    lda net_rx_ptr_hi                                                 ; b15d: a5 9d       ..       ; The control block shares the receive buffer page
+    sta net_tx_ptr_hi                                                 ; b15f: 85 9b       ..       ; Set net_tx_ptr high
+    lda #&10                                                          ; b161: a9 10       ..       ; Control block at offset &10
+    sta net_tx_ptr                                                    ; b163: 85 9a       ..       ; Set net_tx_ptr low
+    ldy #3                                                            ; b165: a0 03       ..       ; Y=3: copy the 4-byte header
 ; &b167 referenced 1 time by &b16d
 .loop_copy_tx_hdr
-    lda ps_tx_header_template,y                                       ; b167: b9 70 b1    .p.      ; Get header template byte
-    sta (net_tx_ptr),y                                                ; b16a: 91 9a       ..       ; Store in TX buffer
+    lda ps_tx_header_template,y                                       ; b167: b9 70 b1    .p.      ; Read a header byte
+    sta (net_tx_ptr),y                                                ; b16a: 91 9a       ..       ; Store it in the control block
     dey                                                               ; b16c: 88          .        ; Previous byte
-    bpl loop_copy_tx_hdr                                              ; b16d: 10 f8       ..       ; Loop until all 4 copied
+    bpl loop_copy_tx_hdr                                              ; b16d: 10 f8       ..       ; Loop for all four
     rts                                                               ; b16f: 60          `        ; Return
-; Printer server TX header template
+; ***************************************************************************************
+; Printer-server status enquiry header
 ;
-; 4-byte header copied to the TX control block by reverse_ps_name_to_tx. Sets up an immediate transmit on port &9F (PS port) to any station.
+; The first four bytes of the transmit control block that build_ps_enquiry builds:
+; control byte &80, port &9F (printer-server status enquiry) and station and network &FF,
+; which make it a broadcast.
 ; &b170 used as index base 1 time by &b167
 .ps_tx_header_template
-    equb &80                                                          ; b170: 80          .        ; Control byte &80 (immediate TX)
-    equb &9f                                                          ; b171: 9f          .        ; Port &9F (printer server)
-    equb &ff                                                          ; b172: ff          .        ; Station &FF (any)
-    equb &ff                                                          ; b173: ff          .        ; Network &FF (any)
+    equb &80                                                          ; b170: 80          .        ; Control byte &80
+    equb &9f                                                          ; b171: 9f          .        ; Port &9F: printer-server status enquiry
+    equb &ff                                                          ; b172: ff          .        ; Station &FF: broadcast
+    equb &ff                                                          ; b173: ff          .        ; Network &FF: broadcast
 ; ***************************************************************************************
 ; Print station address as decimal net.station
 ;
@@ -12239,7 +12254,7 @@ write_ps_slot_link_addr = write_ps_slot_hi_link+1
     sty ws_ptr_hi                                                     ; b19f: 84 ac       ..       ; Save command line pointer high
     jsr init_spool_drive                                              ; b1a1: 20 c0 af     ..      ; Initialise spool/print drive
     sta fs_work_4                                                     ; b1a4: 85 b4       ..       ; Save spool drive number
-    jsr reverse_ps_name_to_tx                                         ; b1a6: 20 49 b1     I.      ; Copy PS name to TX buffer
+    jsr build_ps_enquiry                                              ; b1a6: 20 49 b1     I.      ; Copy PS name to TX buffer
     jsr init_ps_slot_from_rx                                          ; b1a9: 20 c4 b2     ..      ; Init PS slot from RX data
     ldy ws_ptr_hi                                                     ; b1ac: a4 ac       ..       ; Restore command line pointer
     jsr save_ptr_to_spool_buf                                         ; b1ae: 20 b5 af     ..      ; Save pointer to spool buffer
@@ -14656,6 +14671,7 @@ save pydis_start, pydis_end
 ;     append_error_number:                      2
 ;     append_space_and_num:                     2
 ;     build_error_block:                        2
+;     build_ps_enquiry:                         2
 ;     check_adlc_flag:                          2
 ;     check_and_setup_txcb:                     2
 ;     check_chan_char:                          2
@@ -14803,7 +14819,6 @@ save pydis_start, pydis_end
 ;     return_1:                                 2
 ;     return_tube_init:                         2
 ;     return_zero_in_pb:                        2
-;     reverse_ps_name_to_tx:                    2
 ;     romsel:                                   2
 ;     rts_claim_release:                        2
 ;     rts_credits_check:                        2
