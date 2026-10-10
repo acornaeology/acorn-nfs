@@ -1196,7 +1196,7 @@
       "addr": 36293,
       "name": "fsreply_4_notify_exec",
       "title": "Send FS load-as-command and execute response",
-      "description": "Sets up an FS command with function code &05 (FCCMND: load as\ncommand) using send_fs_examine. If a Tube co-processor is\npresent (tx_in_progress != 0), transfers the response data\nto the Tube via tube_addr_claim. Otherwise jumps via the\nindirect pointer at (&0F09) to execute at the load address."
+      "description": "Sets up an FS command with function code &05 (FCCMND: load as\ncommand) using send_fs_examine. If a Tube co-processor is\npresent (tube_present != 0), transfers the response data\nto the Tube via tube_addr_claim. Otherwise jumps via the\nindirect pointer at (&0F09) to execute at the load address."
     },
     {
       "addr": 36373,
@@ -1559,13 +1559,13 @@
       "addr": 38607,
       "name": "save_econet_state",
       "title": "Save Econet state to RX control block",
-      "description": "Stores rx_status_flags, protection_mask, and tx_in_progress\nto (net_rx_ptr) at offsets 8-10. INTOFF side effect on entry."
+      "description": "Stores rx_status_flags, protection_mask, and tube_present\nto (net_rx_ptr) at offsets 8-10. INTOFF side effect on entry."
     },
     {
       "addr": 38620,
       "name": "restore_econet_state",
       "title": "Restore Econet TX state and re-enter RX listen",
-      "description": "Loads the saved tx_in_progress flag from RXCB offset 8\n(previously stored by save_econet_state) and restores it.\nThen jumps to init_nmi_workspace to re-initialise the NMI\nhandler and return to idle RX listen mode. Called from\nsave_vdu_state during VDU state restoration."
+      "description": "Loads the saved tube_present flag from RXCB offset 8\n(previously stored by save_econet_state) and restores it.\nThen jumps to init_nmi_workspace to re-initialise the NMI\nhandler and return to idle RX listen mode. Called from\nsave_vdu_state during VDU state restoration."
     },
     {
       "addr": 38630,
@@ -2144,7 +2144,7 @@
     "tx_index": 3407,
     "tx_length": 3408,
     "tx_work_51": 3409,
-    "tx_in_progress": 3410,
+    "tube_present": 3410,
     "tx_work_57": 3415,
     "exec_addr_lo": 3416,
     "exec_addr_hi": 3417,
@@ -2533,6 +2533,7 @@
       "comments_before_label": [
         "# NFS ROM 3.35K disassembly (Acorn Econet filing system)"
       ],
+      "comment_inline": "Language entry: jump to language_handler",
       "xref_summaries": [
         "&8000 referenced 1 time by &9bc7; also used as index base 1 time by &048b[2]",
         "&8001 used as index base 1 time by &0490[2]",
@@ -2570,6 +2571,7 @@
           "svc_entry_lo"
         ]
       },
+      "comment_inline": "Service-call entry: jump to service_handler",
       "xref_summaries": [
         "&8003 used as index base 1 time by &049a[2]",
         "&8004 used as index base 1 time by &049d[2]"
@@ -5438,6 +5440,7 @@
         243,
         133
       ],
+      "comment_inline": "Parse the first number (network or station)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "parse_decimal",
@@ -5462,6 +5465,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -5472,6 +5476,7 @@
         243,
         133
       ],
+      "comment_inline": "Parse the station number after the dot",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "parse_decimal",
@@ -5488,6 +5493,7 @@
       "labels": [
         "store_station_net"
       ],
+      "comment_inline": "Store station number",
       "xref_summaries": [
         "&8093 referenced 1 time by &808d"
       ],
@@ -5510,6 +5516,7 @@
         1,
         14
       ],
+      "comment_inline": "Store network number",
       "type": "code",
       "mnemonic": "stx",
       "operand": "fs_server_net",
@@ -5627,7 +5634,7 @@
       "labels": [
         "read_remote_cmd_line"
       ],
-      "comment_inline": "Check for escape condition",
+      "comment_inline": "Read a character (C set on Escape)",
       "xref_summaries": [
         "&80a7 referenced 1 time by &80af"
       ],
@@ -5649,6 +5656,7 @@
         145,
         187
       ],
+      "comment_inline": "Store the character in the command line buffer",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(fs_options),y",
@@ -5695,6 +5703,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -5732,6 +5741,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -5745,6 +5755,7 @@
       "labels": [
         "prepare_cmd_dispatch"
       ],
+      "comment_inline": "Set up command and send to FS",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -5758,6 +5769,7 @@
         3,
         15
       ],
+      "comment_inline": "Load reply function code",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "fs_cmd_csd",
@@ -5784,6 +5796,7 @@
         5,
         15
       ],
+      "comment_inline": "Load first reply byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "fs_cmd_data",
@@ -5796,6 +5809,7 @@
         160,
         22
       ],
+      "comment_inline": "Y=&16: dispatch offset for the FS reply handlers",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&16"
@@ -5806,6 +5820,7 @@
         208,
         19
       ],
+      "comment_inline": "Always taken (Y=&16)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "dispatch",
@@ -5888,6 +5903,7 @@
         208,
         6
       ],
+      "comment_inline": "Always taken (Y=&12)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "dispatch",
@@ -7077,6 +7093,7 @@
       "labels": [
         "svc_4_star_command"
       ],
+      "comment_inline": "X = offset of \"ROFF\" in the ROM header",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#cmd_roff_str - binary_version",
@@ -7176,6 +7193,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -7197,6 +7215,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -7450,6 +7469,7 @@
       "labels": [
         "match_net_cmd"
       ],
+      "comment_inline": "X = offset of \"NET\" in the ROM header",
       "xref_summaries": [
         "&81ae referenced 1 time by &817e"
       ],
@@ -8106,6 +8126,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -8154,6 +8175,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -10772,6 +10794,7 @@
         160,
         23
       ],
+      "comment_inline": "Y=&17: FS function code (log off)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&17"
@@ -11739,6 +11762,7 @@
       "bytes": [
         202
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -11912,6 +11936,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -14948,6 +14973,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -16123,6 +16149,7 @@
       "labels": [
         "tx_poll_timeout"
       ],
+      "comment_inline": "Y=&60: standard timeout parameter",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&60"
@@ -16596,6 +16623,7 @@
         240,
         203
       ],
+      "comment_inline": "ALWAYS branch",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_retry",
@@ -17632,6 +17660,7 @@
       "labels": [
         "send_data_blocks"
       ],
+      "comment_inline": "Compare current and end addresses",
       "xref_summaries": [
         "&873a referenced 2 times by &872a, &8a94"
       ],
@@ -19015,6 +19044,7 @@
         64,
         134
       ],
+      "comment_inline": "Compare current and end addresses",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "compare_addresses",
@@ -19724,6 +19754,7 @@
         162,
         1
       ],
+      "comment_inline": "X=1: one byte of command data",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#1"
@@ -19735,6 +19766,7 @@
         138,
         131
       ],
+      "comment_inline": "Send FCEOF to the file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -20120,6 +20152,7 @@
         208,
         21
       ],
+      "comment_inline": "Always taken (X=&05)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "copy_filename_to_cmd",
@@ -20557,6 +20590,7 @@
         138,
         131
       ],
+      "comment_inline": "Send open file request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -21531,6 +21565,7 @@
         208,
         244
       ],
+      "comment_inline": "Always taken (A=&05)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "restore_xy_return",
@@ -21641,6 +21676,7 @@
       "labels": [
         "return_a_zero"
       ],
+      "comment_inline": "A=0",
       "xref_summaries": [
         "&896b referenced 3 times by &897b, &8ab9, &8b56"
       ],
@@ -21668,6 +21704,7 @@
         16,
         229
       ],
+      "comment_inline": "Always taken (A=&00)",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "restore_xy_return",
@@ -21707,6 +21744,7 @@
         29,
         134
       ],
+      "comment_inline": "Convert handle to bitmask",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "handle_to_mask",
@@ -21718,6 +21756,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -21997,6 +22036,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -22007,6 +22047,7 @@
         56,
         134
       ],
+      "comment_inline": "Convert bitmask back to handle number",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "mask_to_handle",
@@ -22134,6 +22175,7 @@
         162,
         1
       ],
+      "comment_inline": "X=1: one byte of command data",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#1"
@@ -22144,6 +22186,7 @@
         160,
         7
       ],
+      "comment_inline": "Y=7: FS function code (close)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#7"
@@ -22155,6 +22198,7 @@
         138,
         131
       ],
+      "comment_inline": "Send the close request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -22410,6 +22454,7 @@
         138,
         131
       ],
+      "comment_inline": "Send OSARGS request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -24053,9 +24098,9 @@
       "comment_inline": "Check if destination is in Tube space",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 35542,
@@ -24101,6 +24146,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -24482,6 +24528,7 @@
         164,
         131
       ],
+      "comment_inline": "Prepare and send TX control block",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "build_send_fs_cmd",
@@ -24494,6 +24541,7 @@
         134,
         177
       ],
+      "comment_inline": "Store X in fs_load_addr_hi (X=0)",
       "type": "code",
       "mnemonic": "stx",
       "operand": "fs_load_addr_hi",
@@ -25116,6 +25164,7 @@
         138,
         131
       ],
+      "comment_inline": "Send TX control block",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -26048,6 +26097,7 @@
         208,
         10
       ],
+      "comment_inline": "Always taken (A=&03)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "init_cat_params",
@@ -26211,6 +26261,7 @@
         160,
         18
       ],
+      "comment_inline": "Y=&12: FS function code (examine)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&12"
@@ -26222,6 +26273,7 @@
         138,
         131
       ],
+      "comment_inline": "Send the request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -26446,6 +26498,7 @@
       "labels": [
         "cat_print_header"
       ],
+      "comment_inline": "Y=&15: FS function code (read user environment)",
       "xref_summaries": [
         "&8c52 referenced 1 time by &8c46"
       ],
@@ -26466,6 +26519,7 @@
         138,
         131
       ],
+      "comment_inline": "Send request to file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -26658,6 +26712,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -26954,6 +27009,7 @@
         160,
         3
       ],
+      "comment_inline": "Y=3: FS function code (examine)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#3"
@@ -26965,6 +27021,7 @@
         138,
         131
       ],
+      "comment_inline": "Send the examine request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -27428,6 +27485,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -27575,6 +27633,7 @@
       "labels": [
         "print_newline"
       ],
+      "comment_inline": "Tail-call OSNEWL",
       "xref_summaries": [
         "&8d23 referenced 1 time by &8cc7"
       ],
@@ -27655,6 +27714,7 @@
         208,
         2
       ],
+      "comment_inline": "ALWAYS branch",
       "type": "code",
       "mnemonic": "bne",
       "operand": "num01",
@@ -27792,6 +27852,7 @@
         208,
         112
       ],
+      "comment_inline": "Always taken (A=&20)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "print_char_always",
@@ -28230,6 +28291,7 @@
       "labels": [
         "infol2"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8d75 referenced 1 time by &8d5e"
       ],
@@ -28521,6 +28583,7 @@
       "labels": [
         "print_digit"
       ],
+      "comment_inline": "Tail-call OSASCI",
       "xref_summaries": [
         "&8d9a referenced 1 time by &8db0"
       ],
@@ -28788,6 +28851,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -29209,9 +29273,9 @@
       "comment_inline": "Check for Tube co-processor",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 36348,
@@ -31990,6 +32054,7 @@
       "labels": [
         "readc1"
       ],
+      "comment_inline": "Load handle byte (URD/CSD/LIB) at &0E01+Y",
       "xref_summaries": [
         "&8f5a referenced 2 times by &8f3d, &8f63"
       ],
@@ -32016,6 +32081,7 @@
         56,
         134
       ],
+      "comment_inline": "Convert bitmask to handle number",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "mask_to_handle",
@@ -32028,6 +32094,7 @@
         145,
         240
       ],
+      "comment_inline": "Store handle in the parameter block",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(osword_pb_ptr),y",
@@ -33231,6 +33298,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -33404,6 +33472,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -33460,6 +33529,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -33631,6 +33701,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -38298,6 +38369,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -38444,6 +38516,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -39870,6 +39943,7 @@
         255
       ],
       "binary_addr": 37697,
+      "comment_inline": "Write character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "nvwrch",
@@ -41540,6 +41614,7 @@
         138
       ],
       "binary_addr": 37905,
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -42631,6 +42706,7 @@
         255
       ],
       "binary_addr": 38025,
+      "comment_inline": "Write character (non-vectored OSWRCH)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "nvwrch",
@@ -42820,6 +42896,7 @@
         255
       ],
       "binary_addr": 38052,
+      "comment_inline": "Write a byte to the file (OSBPUT)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbput",
@@ -42877,6 +42954,7 @@
         255
       ],
       "binary_addr": 38062,
+      "comment_inline": "Read a byte from the file (OSBGET)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbget",
@@ -42919,6 +42997,7 @@
       "labels": [
         "tube_osrdch"
       ],
+      "comment_inline": "Read character (non-vectored OSRDCH)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "nvrdch",
@@ -42931,6 +43010,7 @@
         72
       ],
       "binary_addr": 38072,
+      "comment_inline": "Push A",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -43087,6 +43167,7 @@
         255
       ],
       "binary_addr": 38093,
+      "comment_inline": "Open or close the file (OSFIND)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osfind",
@@ -44272,6 +44353,7 @@
         255
       ],
       "binary_addr": 38252,
+      "comment_inline": "Multi-byte file transfer (OSGBPB)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osgbpb",
@@ -44754,6 +44836,7 @@
         211
       ],
       "binary_addr": 38325,
+      "comment_inline": "BVS &05FC: overlapping code \u2014 loops back to page 5 R2 poll to send X after Y",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "tube_osbyte_send_x",
@@ -46327,11 +46410,12 @@
         82,
         13
       ],
+      "comment_inline": "Record Tube presence",
       "type": "code",
       "mnemonic": "stx",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 38529,
@@ -46838,12 +46922,12 @@
         82,
         13
       ],
-      "comment_inline": "Load current TX status flag",
+      "comment_inline": "Load the Tube-present flag",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 38615,
@@ -46927,12 +47011,12 @@
         82,
         13
       ],
-      "comment_inline": "Restore TX status flag",
+      "comment_inline": "Restore the Tube-present flag",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 38627,
@@ -48800,6 +48884,7 @@
         240,
         192
       ],
+      "comment_inline": "Always taken (Y=0)",
       "type": "code",
       "mnemonic": "beq",
       "operand": "scout_ctrl_check",
@@ -54594,6 +54679,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -55841,6 +55927,7 @@
         240,
         8
       ],
+      "comment_inline": "Zero: transfer done, exit",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_done_exit",
@@ -56042,6 +56129,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -57077,6 +57165,7 @@
         208,
         14
       ],
+      "comment_inline": "Always taken (A=&44)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_tx_error",
@@ -58125,6 +58214,7 @@
         208,
         37
       ],
+      "comment_inline": "Always taken: store status and continue",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_status_calc_xfer",
@@ -58151,6 +58241,7 @@
         208,
         2
       ],
+      "comment_inline": "Always taken (A=&03)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_status_add4",
@@ -58641,6 +58732,7 @@
         176,
         13
       ],
+      "comment_inline": "C set: control byte out of range, exit",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "tx_ctrl_exit",
@@ -59056,6 +59148,7 @@
         208,
         7
       ],
+      "comment_inline": "Always taken (A=&42)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_store_error",
@@ -62145,6 +62238,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -62192,12 +62286,12 @@
         82,
         13
       ],
-      "comment_inline": "Tube transfer in progress?",
+      "comment_inline": "Tube present?",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "tx_in_progress",
+      "operand": "tube_present",
       "target": 3410,
-      "target_label": "tx_in_progress"
+      "target_label": "tube_present"
     },
     {
       "addr": 40824,

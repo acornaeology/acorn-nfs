@@ -4014,7 +4014,7 @@ straight to adlc_rx_listen. Otherwise spins in a
 tight loop comparing the NMI handler vector at
 &0D0C/&0D0D against the address of nmi_rx_scout
 (&80B3). When the NMI handler returns to idle, falls
-through to save_econet_state to clear the initialised
+through to reset_econet_flags to clear the initialised
 flags and re-enter RX listen mode.""",
 )
 
@@ -4031,7 +4031,7 @@ d.comment(0x8988, "Test if high byte = &80 (page of nmi_rx_scout)", align=Align.
 d.comment(0x898A, "Not idle: spin and wait", align=Align.INLINE)
 d.subroutine(
     0x898C,
-    "save_econet_state",
+    "reset_econet_flags",
     title="Reset Econet flags and enter RX listen",
     description="""Disables NMIs via two reads of &FE18 (INTOFF),
 then clears ws_0d60 (TX complete) and ws_0d62

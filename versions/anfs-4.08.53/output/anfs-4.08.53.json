@@ -900,12 +900,12 @@
       "addr": 35193,
       "name": "wait_idle_and_reset",
       "title": "Wait for idle NMI state and reset Econet",
-      "description": "Service 12 handler: NMI release. Checks ws_0d62\nto see if Econet has been initialised; if not, skips\nstraight to adlc_rx_listen. Otherwise spins in a\ntight loop comparing the NMI handler vector at\n&0D0C/&0D0D against the address of nmi_rx_scout\n(&80B3). When the NMI handler returns to idle, falls\nthrough to save_econet_state to clear the initialised\nflags and re-enter RX listen mode.",
+      "description": "Service 12 handler: NMI release. Checks ws_0d62\nto see if Econet has been initialised; if not, skips\nstraight to adlc_rx_listen. Otherwise spins in a\ntight loop comparing the NMI handler vector at\n&0D0C/&0D0D against the address of nmi_rx_scout\n(&80B3). When the NMI handler returns to idle, falls\nthrough to reset_econet_flags to clear the initialised\nflags and re-enter RX listen mode.",
       "fall_through": true
     },
     {
       "addr": 35212,
-      "name": "save_econet_state",
+      "name": "reset_econet_flags",
       "title": "Reset Econet flags and enter RX listen",
       "description": "Disables NMIs via two reads of &FE18 (INTOFF),\nthen clears ws_0d60 (TX complete) and ws_0d62\n(Econet initialised) by storing the current A value.\nSets Y=5 (service call workspace page) and jumps to\nadlc_rx_listen to configure the ADLC for passive\nlistening. Used during NMI release (service 12) to\nsafely tear down the Econet state before another\nROM can claim the NMI workspace."
     },
@@ -20494,7 +20494,7 @@
         254
       ],
       "labels": [
-        "save_econet_state"
+        "reset_econet_flags"
       ],
       "comment_inline": "INTOFF: disable NMIs",
       "type": "code",

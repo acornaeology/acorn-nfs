@@ -3307,7 +3307,7 @@ tx_flags_table = tx_calc_tube_check+1
 ; NMI handler vector at nmi_jmp_lo / nmi_jmp_hi against the address of nmi_rx_scout to
 ; wait until the in-flight NMI handler chain has unwound back to scout-listening.
 ;
-; When the NMI vector matches nmi_rx_scout again, falls through to save_econet_state to
+; When the NMI vector matches nmi_rx_scout again, falls through to reset_econet_flags to
 ; clear the initialised flags and re-enter RX-listen mode. (Service &0B 'NMI release' is
 ; handled by the separate econet_restore.)
 ;

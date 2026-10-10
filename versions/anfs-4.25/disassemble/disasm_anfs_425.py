@@ -4281,7 +4281,7 @@ loop comparing the NMI handler vector at
 NMI handler chain has unwound back to scout-listening.
 
 When the NMI vector matches `nmi_rx_scout` again, falls through
-to [`save_econet_state`](address:89B9) to clear the initialised
+to [`reset_econet_flags`](address:89B9) to clear the initialised
 flags and re-enter RX-listen mode. (Service &0B 'NMI release'
 is handled by the separate [`econet_restore`](label:econet_restore).)""",
     on_entry={"a": "13 (service call number, &0D)"},
@@ -4301,7 +4301,7 @@ d.comment(0x89E7, "Read current NMI handler high byte", align=Align.INLINE)
 d.comment(0x89EC, "Not idle: spin and wait", align=Align.INLINE)
 # UNMAPPED: d.subroutine(
 # UNMAPPED:     0x89B9,
-# UNMAPPED:     "save_econet_state",
+# UNMAPPED:     "reset_econet_flags",
 # UNMAPPED:     title="Reset Econet flags and enter RX-listen",
 # UNMAPPED:     description="""Disables NMIs via `BIT disable_net_nmis` (the Master 128 dedicated
 # UNMAPPED: INTOFF at &FE38), then clears

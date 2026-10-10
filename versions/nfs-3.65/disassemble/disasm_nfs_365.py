@@ -1168,6 +1168,8 @@ d.comment(0x06C8, "Not ready: keep polling", align=Align.INLINE)
 d.comment(0x06CA, "Read data byte from R2", align=Align.INLINE)
 d.comment(0x06CD, "Return with byte in A", align=Align.INLINE)
 d.comment(0x06CE, "&FF padding (29 bytes before trampolines)", align=Align.INLINE)
+d.comment(0x8000, "Language entry: jump to language_handler", align=Align.INLINE)
+d.comment(0x8003, "Service-call entry: jump to service_handler", align=Align.INLINE)
 
 d.index_base(0x0700, "string_buf", group="ram_workspace")
 
@@ -1231,7 +1233,6 @@ d.label(0x0D50, "tx_length")
 
 d.label(0x0D51, "tx_work_51")
 
-d.label(0x0D52, "tx_in_progress")
 
 d.label(0x0D57, "tx_work_57")
 
@@ -1502,11 +1503,15 @@ d.comment(0x8080, "Skip spaces", align=Align.INLINE)
 d.comment(0x8082, "Loop back to skip leading spaces", align=Align.INLINE)
 d.comment(0x8084, "Colon = interactive remote command prefix", align=Align.INLINE)
 d.comment(0x8086, "Char >= ':': skip number parsing", align=Align.INLINE)
+d.comment(0x8088, "Parse the first number (network or station)", align=Align.INLINE)
 d.comment(0x808B, "C=1: dot found, first number was network", align=Align.INLINE)
 d.comment(0x808D, "Store network number (n.s = network.station)", align=Align.INLINE)
+d.comment(0x8090, "Advance index", align=Align.INLINE)
+d.comment(0x8091, "Parse the station number after the dot", align=Align.INLINE)
 d.label(0x8094, "got_station_num")
 
 d.comment(0x8094, "Z=1: no station parsed (empty or non-numeric)", align=Align.INLINE)
+d.comment(0x8096, "Store station number", align=Align.INLINE)
 d.label(0x8099, "skip_stn_parse")
 
 d.comment(0x8099, "Copy command text to FS buffer", align=Align.INLINE)
@@ -1527,6 +1532,7 @@ d.comment(0x80B2, "Advance write pointer", align=Align.INLINE)
 d.comment(0x80B3, "Increment character count", align=Align.INLINE)
 d.comment(0x80B4, "Test for CR (end of line)", align=Align.INLINE)
 d.comment(0x80B6, "Not CR: continue reading input", align=Align.INLINE)
+d.comment(0x80B8, "Print newline", align=Align.INLINE)
 d.comment(0x80BB, "After OSNEWL: loop back to scan for colon", align=Align.INLINE)
 
 
@@ -1548,9 +1554,15 @@ in), returns without sending.""",
 
 
 d.comment(0x80BD, "Copy command text to FS buffer", align=Align.INLINE)
+d.comment(0x80C0, "Copy A to Y", align=Align.INLINE)
+d.comment(0x80C1, "Set up command and send to FS", align=Align.INLINE)
+d.comment(0x80C4, "Load reply function code", align=Align.INLINE)
 d.label(0x80C1, "prepare_cmd_dispatch")
 
 d.comment(0x80C7, "CSD handle zero: not logged in", align=Align.INLINE)
+d.comment(0x80C9, "Load first reply byte", align=Align.INLINE)
+d.comment(0x80CC, "Y=&17: logon dispatch offset", align=Align.INLINE)
+d.comment(0x80CE, "Always taken (Y=&17)", align=Align.INLINE)
 d.subroutine(
     0x80D0,
     "fscv_handler",
@@ -1586,6 +1598,7 @@ d.comment(0x80D5, "Function code >= 8? Return (unsupported)", align=Align.INLINE
 d.comment(0x80D7, "X = function code for dispatch", align=Align.INLINE)
 d.comment(0x80D8, "Save Y (command text ptr hi)", align=Align.INLINE)
 d.comment(0x80D9, "Y=&13: base offset for FSCV dispatch (indices 20+)", align=Align.INLINE)
+d.comment(0x80DB, "Always taken (Y=&13)", align=Align.INLINE)
 
 
 d.subroutine(
@@ -1797,6 +1810,7 @@ d.comment(0x81A0, "Restore X from MOS ROM select copy", align=Align.INLINE)
 d.label(0x81A2, "return_2")
 
 d.comment(0x81A2, "Return to MOS service handler", align=Align.INLINE)
+d.comment(0x81A3, "X = offset of \"ROFF\" in the ROM header", align=Align.INLINE)
 d.label(0x81A3, "svc_4_star_command")
 
 d.expr(0x81A4, sym("cmd_roff_str") - sym("binary_version"))
@@ -1822,7 +1836,9 @@ d.comment(0x81AA, "Y=4: offset of keyboard disable flag", align=Align.INLINE)
 d.comment(0x81AC, "Read flag from RX buffer", align=Align.INLINE)
 d.comment(0x81AE, "Zero: keyboard not disabled, skip", align=Align.INLINE)
 d.comment(0x81B0, "A=0: value to clear flag and re-enable", align=Align.INLINE)
+d.comment(0x81B2, "Copy A to X", align=Align.INLINE)
 d.comment(0x81B3, "Clear keyboard disable flag in buffer", align=Align.INLINE)
+d.comment(0x81B5, "Copy A to Y", align=Align.INLINE)
 d.comment(0x81B6, "OSBYTE &C9: Econet keyboard disable", align=Align.INLINE)
 d.comment(0x81B8, "Re-enable keyboard (X=0, Y=0)", align=Align.INLINE)
 d.comment(0x81BB, "Function &0A: remote operation complete", align=Align.INLINE)
@@ -1849,6 +1865,7 @@ d.label(0x81D5, "skpspi")
 
 d.comment(0x81D5, "Clear workspace byte", align=Align.INLINE)
 d.comment(0x81D7, "Return", align=Align.INLINE)
+d.comment(0x81D8, "X = offset of \"NET\" in the ROM header", align=Align.INLINE)
 d.label(0x81D8, "match_net_cmd")
 
 d.expr(0x81D9, sym("cmd_net_str") - sym("binary_version"))
@@ -1929,6 +1946,7 @@ auto-boot, any other key causes the auto-boot to be declined.""",
 )
 d.comment(0x820B, "Notify current FS of shutdown", align=Align.INLINE)
 d.comment(0x820E, "OSBYTE &7A: scan keyboard", align=Align.INLINE)
+d.comment(0x8213, "Copy X to A", align=Align.INLINE)
 d.comment(0x8214, "No key pressed: proceed with auto-boot", align=Align.INLINE)
 
 
@@ -1943,6 +1961,7 @@ OSBYTE &78 and falls through to print_station_info.""",
 )
 d.comment(0x8216, "XOR with &55: result=0 if key is 'N'", align=Align.INLINE)
 d.comment(0x8218, "Not 'N': return without claiming", align=Align.INLINE)
+d.comment(0x821A, "Copy A to Y", align=Align.INLINE)
 d.entry(0x821A)
 d.comment(0x821B, "OSBYTE &78: clear key-pressed state", align=Align.INLINE)
 
@@ -2391,6 +2410,7 @@ Dispatched from the command match table at &8C4B for "BYE".""",
 
 
 d.comment(0x83AE, "A=&77: OSBYTE close spool/exec", align=Align.INLINE)
+d.comment(0x83B3, "Y=&17: FS function code (log off)", align=Align.INLINE)
 d.subroutine(
     0x83B5,
     "prepare_fs_cmd",
@@ -2566,6 +2586,7 @@ d.comment(0x8428, "Y=1 (from init_tx_ctrl_block exit)", align=Align.INLINE)
 d.comment(0x8429, "X=9: BPUT function code", align=Align.INLINE)
 d.comment(0x842B, "Restore C: selects BPUT (0) vs BGET (1)", align=Align.INLINE)
 d.comment(0x842C, "C=0 (BPUT): keep X=9", align=Align.INLINE)
+d.comment(0x842E, "Step back one byte", align=Align.INLINE)
 d.label(0x842F, "store_retry_count")
 
 d.comment(0x842F, "Store function code at &0FDD", align=Align.INLINE)
@@ -2581,6 +2602,7 @@ d.comment(0x8440, "Load reply byte at offset Y", align=Align.INLINE)
 d.comment(0x8443, "Store to error buffer at &0FE0+Y", align=Align.INLINE)
 d.comment(0x8446, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x8447, "Loop until all 32 bytes copied", align=Align.INLINE)
+d.comment(0x8449, "Copy A to X", align=Align.INLINE)
 d.comment(0x844A, "A=&C6: read *EXEC file handle", align=Align.INLINE)
 d.comment(0x844F, "')': offset into \"SP.\" string at &8529", align=Align.INLINE)
 d.comment(0x8451, "Y=value of *SPOOL file handle", align=Align.INLINE)
@@ -3016,6 +3038,7 @@ Falls through to tx_poll_core.""",
 
 
 d.comment(0x85ED, "A=&FF: full retry count", align=Align.INLINE)
+d.comment(0x85EF, "Y=&60: standard timeout parameter", align=Align.INLINE)
 d.label(0x85EF, "tx_poll_timeout")
 
 d.subroutine(
@@ -3193,6 +3216,7 @@ d.label(0x8658, "print_next_char")
 
 d.comment(0x8658, "Load next byte from inline string", align=Align.INLINE)
 d.comment(0x865A, "Bit 7 set? Done — this byte is the next opcode", align=Align.INLINE)
+d.comment(0x865C, "Print character", align=Align.INLINE)
 d.comment(0x865F, "Continue printing next character", align=Align.INLINE)
 d.label(0x8662, "jump_via_addr")
 
@@ -3574,6 +3598,7 @@ d.comment(0x874B, "Store in FS command data buffer", align=Align.INLINE)
 d.comment(0x874E, "Next byte (count down)", align=Align.INLINE)
 d.comment(0x874F, "Loop for 3 bytes (X=2,1,0)", align=Align.INLINE)
 d.comment(0x8751, "ALWAYS branch", align=Align.INLINE)
+d.comment(0x8753, "Compare current and end addresses", align=Align.INLINE)
 
 
 d.subroutine(
@@ -3689,6 +3714,7 @@ d.label(0x87DD, "print_filename_char")
 d.comment(0x87DD, "Load filename character from reply", align=Align.INLINE)
 d.comment(0x87DF, "Check for control character or space", align=Align.INLINE)
 d.comment(0x87E1, "Below &21: pad with spaces to column 12", align=Align.INLINE)
+d.comment(0x87E3, "Print character", align=Align.INLINE)
 d.comment(0x87E6, "Next character in filename", align=Align.INLINE)
 d.comment(0x87E7, "Loop for more filename characters", align=Align.INLINE)
 d.label(0x87E9, "pad_filename_space")
@@ -3780,6 +3806,8 @@ d.comment(0x883C, "Y -= 4", align=Align.INLINE)
 d.label(0x883D, "sub_3_from_y")
 
 d.comment(0x883D, "Y -= 3", align=Align.INLINE)
+d.comment(0x883E, "(continued)", align=Align.INLINE)
+d.comment(0x883F, "(continued)", align=Align.INLINE)
 d.comment(0x8840, "Return to caller", align=Align.INLINE)
 
 d.entry(0x8841)
@@ -3798,12 +3826,14 @@ transfers. For SAVE, WORK+8 holds the port on which to receive
 byte-level ACKs for each data block (flow control).""",
 )
 d.comment(0x8841, "Save FS command byte on stack", align=Align.INLINE)
+d.comment(0x8842, "Compare current and end addresses", align=Align.INLINE)
 d.comment(0x8845, "Addresses equal: nothing to transfer", align=Align.INLINE)
 d.label(0x8847, "transfer_loop_top")
 
 d.comment(0x8847, "A=0: high bytes of block size", align=Align.INLINE)
 d.comment(0x8849, "Push 4-byte block size: 0, 0, hi, lo", align=Align.INLINE)
 d.comment(0x884A, "Push second zero byte", align=Align.INLINE)
+d.comment(0x884B, "Copy A to X", align=Align.INLINE)
 d.comment(0x884C, "Load block size high byte from &0F07", align=Align.INLINE)
 d.comment(0x884F, "Push block size high", align=Align.INLINE)
 d.comment(0x8850, "Load block size low byte from &0F06", align=Align.INLINE)
@@ -3883,6 +3913,8 @@ d.comment(0x88A5, "Hint clear: definitely not at EOF", align=Align.INLINE)
 d.comment(0x88A7, "Save bitmask for clear_fs_flag", align=Align.INLINE)
 d.comment(0x88A8, "Handle byte in FS command buffer", align=Align.INLINE)
 d.comment(0x88AB, "Y=&11: FS function code FCEOF", align=Align.INLINE)
+d.comment(0x88AD, "X=1: one byte of command data", align=Align.INLINE)
+d.comment(0x88AF, "Send FCEOF to the file server", align=Align.INLINE)
 d.comment(0x88B2, "Restore bitmask", align=Align.INLINE)
 d.comment(0x88B3, "FS reply: non-zero = at EOF", align=Align.INLINE)
 d.comment(0x88B6, "At EOF: skip flag clear", align=Align.INLINE)
@@ -3942,6 +3974,7 @@ d.comment(0x88E1, "Next source byte (descending)", align=Align.INLINE)
 d.comment(0x88E2, "Next dest byte", align=Align.INLINE)
 d.comment(0x88E3, "Loop for 4 bytes", align=Align.INLINE)
 d.comment(0x88E5, "X=5: data extent for filename copy", align=Align.INLINE)
+d.comment(0x88E7, "ALWAYS branch to copy and send", align=Align.INLINE)
 d.label(0x88E9, "get_file_protection")
 
 d.comment(0x88E9, "A=1: encode protection from param block", align=Align.INLINE)
@@ -3984,6 +4017,7 @@ d.label(0x891E, "cha5")
 d.comment(0x891E, "X=1: filename only, no data extent", align=Align.INLINE)
 d.comment(0x8920, "Copy filename to cmd buffer", align=Align.INLINE)
 d.comment(0x8923, "Y=&12: fn code for FCEXAM (read info)", align=Align.INLINE)
+d.comment(0x8925, "Send open file request", align=Align.INLINE)
 d.comment(0x8928, "Save object type from FS reply", align=Align.INLINE)
 d.comment(0x892B, "Clear reply byte (X=0 on success)", align=Align.INLINE)
 d.comment(0x892E, "Clear length high byte in reply", align=Align.INLINE)
@@ -4127,6 +4161,8 @@ d.comment(0x89BB, "Next byte (descending)", align=Align.INLINE)
 d.comment(0x89BC, "Loop until all bytes copied", align=Align.INLINE)
 d.comment(0x89BE, "Y=&FF after loop; fill high bytes", align=Align.INLINE)
 d.comment(0x89C0, "Set 32-bit result bytes 2-3 to &FF", align=Align.INLINE)
+d.comment(0x89C2, "A=0", align=Align.INLINE)
+d.comment(0x89C4, "Always taken (A=&00)", align=Align.INLINE)
 
 d.label(0x89C2, "return_a_zero")
 
@@ -4171,6 +4207,8 @@ byte for the byte-stream protocol.""",
 )
 d.comment(0x89C6, "Save A/X/Y and set up pointers", align=Align.INLINE)
 d.comment(0x89C9, "SEC distinguishes open (A>0) from close", align=Align.INLINE)
+d.comment(0x89CA, "Convert handle to bitmask", align=Align.INLINE)
+d.comment(0x89CD, "Copy A to X", align=Align.INLINE)
 d.comment(0x89CE, "A=0: close file(s)", align=Align.INLINE)
 d.comment(0x89D0, "Valid open modes: &40, &80, &C0 only", align=Align.INLINE)
 d.comment(0x89D2, "Invalid mode bits: return", align=Align.INLINE)
@@ -4201,6 +4239,7 @@ protocol errors.""",
 
 
 d.comment(0x89F8, "A=handle bitmask for new file", align=Align.INLINE)
+d.comment(0x89F9, "Convert bitmask back to handle number", align=Align.INLINE)
 d.comment(0x89FC, "ALWAYS branch to restore and return", align=Align.INLINE)
 d.subroutine(
     0x89FE,
@@ -4224,6 +4263,9 @@ d.comment(0x8A06, "Y=0: close all handles on server", align=Align.INLINE)
 d.label(0x8A08, "close_single_handle")
 
 d.comment(0x8A08, "Handle byte in FS command buffer", align=Align.INLINE)
+d.comment(0x8A0B, "X=1: one byte of command data", align=Align.INLINE)
+d.comment(0x8A0D, "Y=7: FS function code (close)", align=Align.INLINE)
+d.comment(0x8A0F, "Send the close request", align=Align.INLINE)
 d.comment(0x8A12, "Reply handle for flag update", align=Align.INLINE)
 d.comment(0x8A15, "Update EOF/sequence tracking bits", align=Align.INLINE)
 d.label(0x8A18, "close_opt_return")
@@ -4269,6 +4311,7 @@ d.label(0x8A31, "optl1")
 
 d.comment(0x8A31, "Boot option value in FS command", align=Align.INLINE)
 d.comment(0x8A34, "Y=&16: FS function code FCOPT", align=Align.INLINE)
+d.comment(0x8A36, "Send OSARGS request", align=Align.INLINE)
 d.comment(0x8A39, "Restore Y from saved value", align=Align.INLINE)
 d.comment(0x8A3B, "Cache boot option locally", align=Align.INLINE)
 d.label(0x8A3E, "opt_return")
@@ -4477,6 +4520,7 @@ d.comment(0x8B21, "Check if destination is in Tube space", align=Align.INLINE)
 d.comment(0x8B24, "No Tube: skip Tube address check", align=Align.INLINE)
 d.comment(0x8B26, "Compare Tube flag with addr byte 4", align=Align.INLINE)
 d.comment(0x8B28, "Mismatch: not Tube space", align=Align.INLINE)
+d.comment(0x8B2A, "Y=3", align=Align.INLINE)
 d.comment(0x8B2B, "Y=3: subtract addr byte 3 from flag", align=Align.INLINE)
 d.label(0x8B2D, "store_tube_flag")
 
@@ -4510,6 +4554,8 @@ d.comment(0x8B5E, "Store as byte count for copy loop", align=Align.INLINE)
 d.comment(0x8B60, "LSR: &0D >> 1 = 6", align=Align.INLINE)
 d.comment(0x8B61, "Store as command data byte", align=Align.INLINE)
 d.comment(0x8B64, "CLC for standard FS path", align=Align.INLINE)
+d.comment(0x8B65, "Prepare and send TX control block", align=Align.INLINE)
+d.comment(0x8B68, "Store X in fs_load_addr_hi (X=0)", align=Align.INLINE)
 d.comment(0x8B6A, "INX: X=1 after build_send_fs_cmd", align=Align.INLINE)
 d.comment(0x8B6B, "Store X as reply start offset", align=Align.INLINE)
 d.label(0x8B6D, "copy_reply_to_caller")
@@ -4571,6 +4617,7 @@ d.comment(0x8BBF, "Y=2: function code for dir read", align=Align.INLINE)
 d.comment(0x8BC1, "Store 2 as reply data start offset", align=Align.INLINE)
 d.comment(0x8BC3, "Store 2 as command data byte", align=Align.INLINE)
 d.comment(0x8BC6, "Y=3: function code for header read", align=Align.INLINE)
+d.comment(0x8BC7, "Send TX control block", align=Align.INLINE)
 d.comment(0x8BCA, "X=0 after FS command completes", align=Align.INLINE)
 d.comment(0x8BCC, "Load reply entry count", align=Align.INLINE)
 d.comment(0x8BCF, "Store at param block byte 0 (X=0)", align=Align.INLINE)
@@ -4728,6 +4775,7 @@ which gives multiple files per line).""",
 
 
 d.comment(0x8C51, "A=3: examine format code", align=Align.INLINE)
+d.comment(0x8C53, "Always taken (A=&03)", align=Align.INLINE)
 d.subroutine(
     0x8C55,
     "fscv_5_cat",
@@ -4759,6 +4807,7 @@ d.comment(0x8C55, "X=3: column count for multi-column layout", align=Align.INLIN
 d.comment(0x8C57, "CRFLAG=3: first entry will trigger newline", align=Align.INLINE)
 d.comment(0x8C59, "Y=&FF: mark as escapable", align=Align.INLINE)
 d.comment(0x8C5B, "Store escapable flag for Escape checking", align=Align.INLINE)
+d.comment(0x8C5D, "Advance index", align=Align.INLINE)
 d.comment(0x8C5E, "A=&0B: examine argument count", align=Align.INLINE)
 d.label(0x8C60, "init_cat_params")
 
@@ -4769,6 +4818,8 @@ d.comment(0x8C66, "Store format type at &0F05", align=Align.INLINE)
 d.comment(0x8C69, "Set up command parameter pointers", align=Align.INLINE)
 d.comment(0x8C6C, "X=1: copy dir name at cmd offset 1", align=Align.INLINE)
 d.comment(0x8C6E, "Copy directory name to command buffer", align=Align.INLINE)
+d.comment(0x8C71, "Y=&12: FS function code (examine)", align=Align.INLINE)
+d.comment(0x8C73, "Send the request", align=Align.INLINE)
 d.comment(0x8C76, "X=3: start printing from reply offset 3", align=Align.INLINE)
 d.comment(0x8C78, "Print directory title (10 chars)", align=Align.INLINE)
 d.comment(0x8C7B, "Print '('", align=Align.INLINE)
@@ -4786,6 +4837,8 @@ d.label(0x8C9E, "print_public")
 
 d.comment(0x8C9E, "Print 'Public' + CR", align=Align.INLINE)
 d.comment(0x8CA1, '"Public" + CR inline string data', align=Align.INLINE)
+d.comment(0x8CA8, "Y=&15: FS function code (read user environment)", align=Align.INLINE)
+d.comment(0x8CAA, "Send request to file server", align=Align.INLINE)
 d.label(0x8CA8, "print_user_env")
 
 d.comment(0x8CAD, "X=1: past command code byte", align=Align.INLINE)
@@ -4803,6 +4856,7 @@ d.label(0x8CD0, "print_option_name")
 
 d.comment(0x8CD0, "Load character from option name string", align=Align.INLINE)
 d.comment(0x8CD3, "Bit7 set: string terminated, done", align=Align.INLINE)
+d.comment(0x8CD5, "Print char (no spool)", align=Align.INLINE)
 d.comment(0x8CD8, "Next character", align=Align.INLINE)
 d.comment(0x8CD9, "Continue printing option name", align=Align.INLINE)
 d.label(0x8CDB, "done_option_name")
@@ -4828,9 +4882,12 @@ d.label(0x8D09, "cat_examine_loop")
 d.comment(0x8D0B, "Store column count in command data", align=Align.INLINE)
 d.comment(0x8D0E, "X=3: copy directory name at offset 3", align=Align.INLINE)
 d.comment(0x8D10, "Append directory name to examine command", align=Align.INLINE)
+d.comment(0x8D13, "Y=3: FS command for examine/cat", align=Align.INLINE)
+d.comment(0x8D15, "Send request to file server", align=Align.INLINE)
 d.comment(0x8D18, "X past command code byte in reply", align=Align.INLINE)
 d.comment(0x8D19, "Load entry count from reply", align=Align.INLINE)
 d.comment(0x8D1C, "Zero entries returned = end of directory", align=Align.INLINE)
+d.comment(0x8D1E, "Tail-call OSNEWL", align=Align.INLINE)
 d.label(0x8D21, "process_entries")
 
 d.comment(0x8D21, "Save entry count for batch processing", align=Align.INLINE)
@@ -4861,6 +4918,7 @@ d.comment(0x8D35, "Y=&0A: default print 10 characters", align=Align.INLINE)
 d.label(0x8D37, "print_reply_counted")
 
 d.comment(0x8D37, "Load reply byte at offset X", align=Align.INLINE)
+d.comment(0x8D3A, "Print via OSASCI, bypassing the *SPOOL file", align=Align.INLINE)
 d.comment(0x8D3D, "Next reply byte", align=Align.INLINE)
 d.comment(0x8D3E, "Decrement character count", align=Align.INLINE)
 d.comment(0x8D3F, "Loop for remaining characters", align=Align.INLINE)
@@ -5036,6 +5094,7 @@ d.comment(0x8D9E, "ALWAYS branch to next byte", align=Align.INLINE)
 d.label(0x8DA0, "print_cr")
 
 d.comment(0x8DA0, "CR = carriage return", align=Align.INLINE)
+d.comment(0x8DA2, "Print character", align=Align.INLINE)
 d.label(0x8DA2, "print_newline")
 
 d.label(0x8DA5, "next_dir_entry")
@@ -5087,6 +5146,7 @@ d.comment(0x8DC1, "Loop while A >= 0 (borrow clear)", align=Align.INLINE)
 d.comment(0x8DC3, "Undo last subtraction: A = remainder", align=Align.INLINE)
 d.comment(0x8DC5, "Y = remainder for caller", align=Align.INLINE)
 d.comment(0x8DC6, "A = X = ASCII digit character", align=Align.INLINE)
+d.comment(0x8DC7, "Tail-call OSASCI", align=Align.INLINE)
 
 
 d.label(0x8DC7, "print_digit")
@@ -5686,6 +5746,9 @@ d.comment(0x8F6C, "Y=1 (post-INY): param block byte 1", align=Align.INLINE)
 d.comment(0x8F6D, "Read last FS error code", align=Align.INLINE)
 d.comment(0x8F70, "Return error to caller's param block", align=Align.INLINE)
 d.comment(0x8F72, "Return", align=Align.INLINE)
+d.comment(0x8F73, "Load handle byte (URD/CSD/LIB) at &0E01+Y", align=Align.INLINE)
+d.comment(0x8F76, "Convert bitmask to handle number", align=Align.INLINE)
+d.comment(0x8F79, "Store handle in the parameter block", align=Align.INLINE)
 d.label(0x8F73, "readc1")
 
 d.comment(0x8F7B, "Next handle (descending)", align=Align.INLINE)
@@ -5839,6 +5902,7 @@ d.comment(0x900E, "Y=2: port byte offset in RXCB", align=Align.INLINE)
 d.comment(0x9010, "A=&90: FS reply port", align=Align.INLINE)
 d.comment(0x9012, "Mark as escapable operation", align=Align.INLINE)
 d.comment(0x9014, "Store port &90 at (&F0)+2", align=Align.INLINE)
+d.comment(0x9016, "Advance index", align=Align.INLINE)
 d.comment(0x9017, "Y=&04: advance to station address", align=Align.INLINE)
 d.label(0x9018, "copy_fs_addr")
 
@@ -5854,10 +5918,12 @@ d.comment(0x9027, "Transmit with full retry", align=Align.INLINE)
 d.comment(0x902A, "Y=&20: RX end address offset", align=Align.INLINE)
 d.comment(0x902C, "Set RX end address to max (accept any length)", align=Align.INLINE)
 d.comment(0x902E, "Store end address low byte (&FF)", align=Align.INLINE)
+d.comment(0x9030, "Advance index", align=Align.INLINE)
 d.comment(0x9031, "Store end address high byte (&FF)", align=Align.INLINE)
 d.comment(0x9033, "Y=&19: port byte in workspace RXCB", align=Align.INLINE)
 d.comment(0x9035, "A=&90: FS reply port", align=Align.INLINE)
 d.comment(0x9037, "Store port to workspace RXCB", align=Align.INLINE)
+d.comment(0x9039, "Y=&18: RX control offset", align=Align.INLINE)
 d.comment(0x903A, "A=&7F: flag byte = waiting for reply", align=Align.INLINE)
 d.comment(0x903C, "Store flag byte to workspace RXCB", align=Align.INLINE)
 d.comment(0x903E, "Jump to RX poll (BRIANX)", align=Align.INLINE)
@@ -5887,6 +5953,7 @@ d.comment(0x904A, "Advance past station addr", align=Align.INLINE)
 d.comment(0x904B, "Save Y as data index", align=Align.INLINE)
 d.comment(0x904D, "Store station addr hi at (net_rx_ptr)+&72", align=Align.INLINE)
 d.comment(0x904F, "Store to workspace", align=Align.INLINE)
+d.comment(0x9051, "Y=&71", align=Align.INLINE)
 d.comment(0x9052, "A = command code (from X)", align=Align.INLINE)
 d.comment(0x9053, "Store station addr lo at (net_rx_ptr)+&71", align=Align.INLINE)
 d.comment(0x9055, "Restore flags from earlier PHP", align=Align.INLINE)
@@ -6574,6 +6641,7 @@ d.comment(0x927C, "Transmit with full retry", align=Align.INLINE)
 d.comment(0x927F, "End address = max (unlimited data length)", align=Align.INLINE)
 d.comment(0x9281, "Y=8: end address low offset in TXCB", align=Align.INLINE)
 d.comment(0x9283, "Store &FF to end addr low", align=Align.INLINE)
+d.comment(0x9285, "Step Y", align=Align.INLINE)
 d.comment(0x9286, "Store &FF to end addr high (Y=9)", align=Align.INLINE)
 d.comment(0x9288, "Recover merged flag byte", align=Align.INLINE)
 d.comment(0x9289, "Save in X for sequence compare", align=Align.INLINE)
@@ -6588,6 +6656,7 @@ d.comment(0x9292, "A = selected port number", align=Align.INLINE)
 d.comment(0x9293, "Y=1: port byte offset in TXCB", align=Align.INLINE)
 d.comment(0x9295, "Write port to TXCB byte 1", align=Align.INLINE)
 d.comment(0x9297, "A = saved flag byte (expected sequence)", align=Align.INLINE)
+d.comment(0x9298, "Y=0", align=Align.INLINE)
 d.comment(0x9299, "Push expected sequence for retry loop", align=Align.INLINE)
 d.label(0x929A, "bsxl0")
 
@@ -6723,6 +6792,13 @@ d.index_base(0x9321, "vdu_osbyte_table")
 
 d.comment(0x9321, "OSBYTE &85: read cursor position", align=Align.INLINE)
 d.comment(0x9323, "OSBYTE &C3: read screen start address", align=Align.INLINE)
+d.comment(0x934C, "Write character", align=Align.INLINE)
+d.comment(0x93FA, "Copy X to A", align=Align.INLINE)
+d.comment(0x948C, "Write a byte to the file (OSBPUT)", align=Align.INLINE)
+d.comment(0x9496, "Read a byte from the file (OSBGET)", align=Align.INLINE)
+d.comment(0x949C, "Read a character (OSRDCH)", align=Align.INLINE)
+d.comment(0x94B1, "Open or close the file (OSFIND)", align=Align.INLINE)
+d.comment(0x9545, "Multi-byte file transfer (OSGBPB)", align=Align.INLINE)
 d.label(0x9324, "reloc_zp_src")
 
 d.label(0x9365, "reloc_p4_src")
@@ -6832,6 +6908,7 @@ d.comment(0x96A0, "OSBYTE &EA: check Tube co-processor", align=Align.INLINE)
 d.comment(0x96A2, "X=0 for OSBYTE", align=Align.INLINE)
 d.comment(0x96A4, "Clear Econet init flag before setup", align=Align.INLINE)
 d.comment(0x96A7, "Y=&FF for OSBYTE", align=Align.INLINE)
+d.comment(0x96AC, "Record Tube presence", align=Align.INLINE)
 d.comment(0x96AF, "OSBYTE &8F: issue service request", align=Align.INLINE)
 d.comment(0x96B1, "X=&0C: NMI claim service", align=Align.INLINE)
 d.comment(0x96B3, "Y=&FF: pass to adlc_init_workspace", align=Align.INLINE)
@@ -7672,6 +7749,7 @@ d.comment(0x9A44, "Counter overflow: handle end of buffer", align=Align.INLINE)
 d.comment(0x9A46, "Next scout data byte", align=Align.INLINE)
 d.comment(0x9A47, "Done all scout data?", align=Align.INLINE)
 d.comment(0x9A49, "No: continue Tube writes", align=Align.INLINE)
+d.comment(0x9A4B, "Index reached end: restore X and finish", align=Align.INLINE)
 d.label(0x9A4D, "release_tube")
 
 d.subroutine(
@@ -7883,6 +7961,7 @@ d.comment(0x9AD4, "Buffer start lo = &21", align=Align.INLINE)
 d.comment(0x9AD6, "Set port buffer lo", align=Align.INLINE)
 d.comment(0x9AD8, "Buffer hi = &7F (below screen)", align=Align.INLINE)
 d.comment(0x9ADA, "Set port buffer hi", align=Align.INLINE)
+d.comment(0x9ADC, "Always taken (A=&88): set the reply flag", align=Align.INLINE)
 d.subroutine(
     0x9ADE,
     "rx_imm_peek",
@@ -7949,6 +8028,7 @@ d.comment(0x9B10, "Store reply data length in RX buffer", align=Align.INLINE)
 d.comment(0x9B12, "Y=&80: source station slot", align=Align.INLINE)
 d.comment(0x9B14, "Load requesting station number", align=Align.INLINE)
 d.comment(0x9B17, "Store source station in reply header", align=Align.INLINE)
+d.comment(0x9B19, "Advance buffer index", align=Align.INLINE)
 d.comment(0x9B1A, "Load requesting network number", align=Align.INLINE)
 d.comment(0x9B1D, "Store source network in reply header", align=Align.INLINE)
 d.comment(0x9B1F, "Load control byte from received frame", align=Align.INLINE)
@@ -8036,6 +8116,7 @@ d.comment(0x9B79, "Enable interrupts during halt wait", align=Align.INLINE)
 d.label(0x9B7A, "halt_spin_loop")
 d.comment(0x9B7A, "Test halt flag", align=Align.INLINE)
 d.comment(0x9B7D, "Still halted: keep spinning", align=Align.INLINE)
+d.comment(0x9B7F, "Zero: transfer done, exit", align=Align.INLINE)
 d.subroutine(
     0x9B81,
     "tx_done_continue",
@@ -8075,6 +8156,7 @@ d.comment(0x9B91, "Push X", align=Align.INLINE)
 d.comment(0x9B92, "Y=2: TXCB offset for dest station", align=Align.INLINE)
 d.comment(0x9B94, "Load dest station from TX control block", align=Align.INLINE)
 d.comment(0x9B96, "Store to TX scout buffer", align=Align.INLINE)
+d.comment(0x9B99, "Advance to destination network byte", align=Align.INLINE)
 d.comment(0x9B9A, "Load dest network from TX control block", align=Align.INLINE)
 d.comment(0x9B9C, "Store to TX scout buffer", align=Align.INLINE)
 d.comment(0x9B9F, "Y=0: first byte of TX control block", align=Align.INLINE)
@@ -8218,12 +8300,14 @@ d.comment(0x9C2E, "Increment timeout counter byte 2", align=Align.INLINE)
 d.comment(0x9C31, "Not overflowed: retry INACTIVE test", align=Align.INLINE)
 d.comment(0x9C33, "Increment timeout counter byte 3", align=Align.INLINE)
 d.comment(0x9C36, "Not overflowed: retry INACTIVE test", align=Align.INLINE)
+d.comment(0x9C38, "Zero: report line jammed", align=Align.INLINE)
 d.label(0x9C3A, "tx_active_start")
 
 d.comment(0x9C3A, "TX_ACTIVE branch (A=&44 = CR1 value for TX active)")
 
 
 d.comment(0x9C3A, "CR1=&44: TIE | TX_LAST_DATA", align=Align.INLINE)
+d.comment(0x9C3C, "Branch to store TX error", align=Align.INLINE)
 d.subroutine(
     0x9C3E,
     "tx_line_jammed",
@@ -8354,6 +8438,7 @@ tx_ctrl_exit.""",
 
 
 d.comment(0x9CA2, "A=3: scout_status for PEEK op", align=Align.INLINE)
+d.comment(0x9CA4, "Non-zero: store control byte and add", align=Align.INLINE)
 d.subroutine(
     0x9CA6,
     "tx_ctrl_poke",
@@ -8409,6 +8494,7 @@ d.comment(0x9CD9, "Store to TX source/data area", align=Align.INLINE)
 d.comment(0x9CDC, "Next byte", align=Align.INLINE)
 d.comment(0x9CDD, "Done 8 bytes? (Y reaches &0C)", align=Align.INLINE)
 d.comment(0x9CDF, "No: continue copying", align=Align.INLINE)
+d.comment(0x9CE1, "C set: control byte out of range, exit", align=Align.INLINE)
 d.label(0x9CE3, "setup_unicast_xfer")
 
 d.comment(0x9CE3, "A=0: clear flags for unicast", align=Align.INLINE)
@@ -8467,6 +8553,7 @@ d.label(0x9D25, "tx_error")
 d.entry(0x9D25)
 d.comment(0x9D25, "TX error path")
 d.comment(0x9D25, "Error &42", align=Align.INLINE)
+d.comment(0x9D27, "Branch to store TX error", align=Align.INLINE)
 d.label(0x9D29, "tx_fifo_not_ready")
 
 d.comment(0x9D29, "CR2=&67: clear status, return to listen", align=Align.INLINE)
@@ -8898,6 +8985,7 @@ effect of the result area overlapping open_port_buf.""",
 )
 d.comment(0x9EFD, "Load RXCB[6] (buffer addr byte 2)", align=Align.INLINE)
 d.comment(0x9EFF, "Load workspace byte at offset Y", align=Align.INLINE)
+d.comment(0x9F01, "Advance index", align=Align.INLINE)
 d.comment(0x9F02, "AND with TX block[7] (byte 3)", align=Align.INLINE)
 d.comment(0x9F04, "Both &FF = no buffer?", align=Align.INLINE)
 d.comment(0x9F06, "Yes: fallback path", align=Align.INLINE)
@@ -9009,7 +9097,7 @@ d.subroutine(
     description="""Called via svc_12_nmi_release (&06D4). Checks if Econet has been
 initialised; if not, skips to adlc_rx_listen. If initialised,
 spins until the NMI handler is idle (pointing at nmi_rx_scout),
-then falls through to save_econet_state to clear flags and
+then falls through to reset_econet_flags to clear flags and
 re-enter RX listen mode.""",
 )
 
@@ -9031,7 +9119,7 @@ d.comment(0x9F9F, "Self-modify NMI shim at &0D1C: disable", align=Align.INLINE)
 
 d.subroutine(
     0x9FA2,
-    "save_econet_state",
+    "reset_econet_flags",
     title="Reset Econet flags and enter RX listen",
     description="""Disables NMIs via INTOFF (BIT &FE18), clears tx_clear_flag and
 econet_init_flag to zero, then falls through to adlc_rx_listen

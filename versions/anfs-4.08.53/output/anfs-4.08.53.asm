@@ -3527,7 +3527,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; Service 12 handler: NMI release. Checks ws_0d62 to see if Econet has been initialised;
 ; if not, skips straight to adlc_rx_listen. Otherwise spins in a tight loop comparing the
 ; NMI handler vector at &0D0C/&0D0D against the address of nmi_rx_scout (&80B3). When the
-; NMI handler returns to idle, falls through to save_econet_state to clear the
+; NMI handler returns to idle, falls through to reset_econet_flags to clear the
 ; initialised flags and re-enter RX listen mode.
 .wait_idle_and_reset
     bit econet_init_flag                                              ; 8979: 2c 62 0d    ,b.      ; Check if Econet has been initialised
@@ -3548,7 +3548,7 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; workspace page) and jumps to adlc_rx_listen to configure the ADLC for passive
 ; listening. Used during NMI release (service 12) to safely tear down the Econet state
 ; before another ROM can claim the NMI workspace.
-.save_econet_state
+.reset_econet_flags
     bit station_id_disable_net_nmis                                   ; 898c: 2c 18 fe    ,..      ; INTOFF: disable NMIs
     bit station_id_disable_net_nmis                                   ; 898f: 2c 18 fe    ,..      ; INTOFF again (belt-and-braces)
     sta tx_complete_flag                                              ; 8992: 8d 60 0d    .`.      ; TX not in progress

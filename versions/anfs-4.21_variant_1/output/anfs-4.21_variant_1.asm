@@ -3308,7 +3308,7 @@ tx_flags_table = check_tube_irq_loop+1
 ; NMI handler vector at nmi_jmp_lo / nmi_jmp_hi against the address of nmi_rx_scout to
 ; wait until the in-flight NMI handler chain has unwound back to scout-listening.
 ;
-; When the NMI vector matches nmi_rx_scout again, falls through to save_econet_state to
+; When the NMI vector matches nmi_rx_scout again, falls through to reset_econet_flags to
 ; clear the initialised flags and re-enter RX-listen mode. (Service &0B 'NMI release' is
 ; handled by the separate econet_restore.)
 ;
@@ -3344,7 +3344,7 @@ tx_flags_table = check_tube_irq_loop+1
 ;
 ; On Exit:
 ;     Y: 5 (service-call workspace page)
-.save_econet_state
+.reset_econet_flags
     bit disable_net_nmis                                              ; 89b9: 2c 38 fe    ,8.      ; INTOFF: disable NMIs
     bit disable_net_nmis                                              ; 89bc: 2c 38 fe    ,8.      ; INTOFF again (belt-and-braces)
     sta tx_complete_flag                                              ; 89bf: 8d 60 0d    .`.      ; TX not in progress

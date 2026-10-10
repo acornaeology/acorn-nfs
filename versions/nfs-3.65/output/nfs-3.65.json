@@ -2189,12 +2189,12 @@
       "addr": 40842,
       "name": "wait_idle_and_reset",
       "title": "Wait for idle NMI state and reset Econet",
-      "description": "Called via svc_12_nmi_release (&06D4). Checks if Econet has been\ninitialised; if not, skips to adlc_rx_listen. If initialised,\nspins until the NMI handler is idle (pointing at nmi_rx_scout),\nthen falls through to save_econet_state to clear flags and\nre-enter RX listen mode.",
+      "description": "Called via svc_12_nmi_release (&06D4). Checks if Econet has been\ninitialised; if not, skips to adlc_rx_listen. If initialised,\nspins until the NMI handler is idle (pointing at nmi_rx_scout),\nthen falls through to reset_econet_flags to clear flags and\nre-enter RX listen mode.",
       "fall_through": true
     },
     {
       "addr": 40866,
-      "name": "save_econet_state",
+      "name": "reset_econet_flags",
       "title": "Reset Econet flags and enter RX listen",
       "description": "Disables NMIs via INTOFF (BIT &FE18), clears tx_clear_flag and\neconet_init_flag to zero, then falls through to adlc_rx_listen\nwith Y=5."
     },
@@ -2432,7 +2432,6 @@
     "tx_index": 3407,
     "tx_length": 3408,
     "tx_work_51": 3409,
-    "tx_in_progress": 3410,
     "tx_work_57": 3415,
     "exec_addr_lo": 3416,
     "exec_addr_hi": 3417,
@@ -2828,6 +2827,7 @@
       "comments_before_label": [
         "# NFS ROM 3.65 disassembly (Acorn Econet filing system)"
       ],
+      "comment_inline": "Language entry: jump to language_handler",
       "xref_summaries": [
         "&8000 referenced 1 time by &9b64; also used as index base 1 time by &04e6[2]",
         "&8001 used as index base 1 time by &04eb[2]",
@@ -2865,6 +2865,7 @@
           "service_handler_lo"
         ]
       },
+      "comment_inline": "Service-call entry: jump to service_handler",
       "xref_summaries": [
         "&8003 used as index base 1 time by &04f5[2]",
         "&8004 used as index base 1 time by &04f8[2]"
@@ -5767,6 +5768,7 @@
         101,
         134
       ],
+      "comment_inline": "Parse the first number (network or station)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "parse_decimal",
@@ -5805,6 +5807,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -5815,6 +5818,7 @@
         101,
         134
       ],
+      "comment_inline": "Parse the station number after the dot",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "parse_decimal",
@@ -5853,6 +5857,7 @@
         0,
         14
       ],
+      "comment_inline": "Store station number",
       "type": "code",
       "mnemonic": "sta",
       "operand": "fs_server_stn",
@@ -6083,6 +6088,7 @@
         231,
         255
       ],
+      "comment_inline": "Print newline",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osnewl",
@@ -6124,6 +6130,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -6137,6 +6144,7 @@
       "labels": [
         "prepare_cmd_dispatch"
       ],
+      "comment_inline": "Set up command and send to FS",
       "xref_summaries": [
         "&80c1 referenced 1 time by &809d"
       ],
@@ -6159,6 +6167,7 @@
         3,
         15
       ],
+      "comment_inline": "Load reply function code",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "fs_cmd_csd",
@@ -6185,6 +6194,7 @@
         5,
         15
       ],
+      "comment_inline": "Load first reply byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "fs_cmd_data",
@@ -6197,6 +6207,7 @@
         160,
         23
       ],
+      "comment_inline": "Y=&17: logon dispatch offset",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&17"
@@ -6207,6 +6218,7 @@
         208,
         19
       ],
+      "comment_inline": "Always taken (Y=&17)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "dispatch",
@@ -6289,6 +6301,7 @@
         208,
         6
       ],
+      "comment_inline": "Always taken (Y=&13)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "dispatch",
@@ -7722,6 +7735,7 @@
       "labels": [
         "svc_4_star_command"
       ],
+      "comment_inline": "X = offset of \"ROFF\" in the ROM header",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#cmd_roff_str - binary_version",
@@ -7821,6 +7835,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -7842,6 +7857,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -8101,6 +8117,7 @@
       "labels": [
         "match_net_cmd"
       ],
+      "comment_inline": "X = offset of \"NET\" in the ROM header",
       "xref_summaries": [
         "&81d8 referenced 1 time by &81a8"
       ],
@@ -8469,6 +8486,7 @@
       "bytes": [
         138
       ],
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -8517,6 +8535,7 @@
       "bytes": [
         168
       ],
+      "comment_inline": "Copy A to Y",
       "type": "code",
       "mnemonic": "tay"
     },
@@ -11298,6 +11317,7 @@
         160,
         23
       ],
+      "comment_inline": "Y=&17: FS function code (log off)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&17"
@@ -12245,6 +12265,7 @@
       "bytes": [
         202
       ],
+      "comment_inline": "Step back one byte",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -12417,6 +12438,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -15137,6 +15159,7 @@
       "labels": [
         "tx_poll_timeout"
       ],
+      "comment_inline": "Y=&60: standard timeout parameter",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&60"
@@ -16098,6 +16121,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -18058,6 +18082,7 @@
       "labels": [
         "send_data_blocks"
       ],
+      "comment_inline": "Compare current and end addresses",
       "xref_summaries": [
         "&8753 referenced 2 times by &8743, &8ae6"
       ],
@@ -19022,6 +19047,7 @@
         227,
         255
       ],
+      "comment_inline": "Print character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -19715,6 +19741,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -19723,6 +19750,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -19767,6 +19795,7 @@
         173,
         134
       ],
+      "comment_inline": "Compare current and end addresses",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "compare_addresses",
@@ -19832,6 +19861,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -20508,6 +20538,7 @@
         162,
         1
       ],
+      "comment_inline": "X=1: one byte of command data",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#1"
@@ -20519,6 +20550,7 @@
         181,
         131
       ],
+      "comment_inline": "Send FCEOF to the file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -20904,6 +20936,7 @@
         208,
         21
       ],
+      "comment_inline": "ALWAYS branch to copy and send",
       "type": "code",
       "mnemonic": "bne",
       "operand": "copy_filename_to_cmd",
@@ -21341,6 +21374,7 @@
         181,
         131
       ],
+      "comment_inline": "Send open file request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -22476,6 +22510,7 @@
       "labels": [
         "return_a_zero"
       ],
+      "comment_inline": "A=0",
       "xref_summaries": [
         "&89c2 referenced 4 times by &89ac, &89d2, &8b07, &8ba9"
       ],
@@ -22507,6 +22542,7 @@
         16,
         221
       ],
+      "comment_inline": "Always taken (A=&00)",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "restore_xy_return",
@@ -22546,6 +22582,7 @@
         138,
         134
       ],
+      "comment_inline": "Convert handle to bitmask",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "handle_to_mask",
@@ -22557,6 +22594,7 @@
       "bytes": [
         170
       ],
+      "comment_inline": "Copy A to X",
       "type": "code",
       "mnemonic": "tax"
     },
@@ -22810,6 +22848,7 @@
         165,
         134
       ],
+      "comment_inline": "Convert bitmask back to handle number",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "mask_to_handle",
@@ -22937,6 +22976,7 @@
         162,
         1
       ],
+      "comment_inline": "X=1: one byte of command data",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#1"
@@ -22947,6 +22987,7 @@
         160,
         7
       ],
+      "comment_inline": "Y=7: FS function code (close)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#7"
@@ -22958,6 +22999,7 @@
         181,
         131
       ],
+      "comment_inline": "Send the close request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -23238,6 +23280,7 @@
         181,
         131
       ],
+      "comment_inline": "Send OSARGS request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -24902,6 +24945,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Y=3",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -25283,6 +25327,7 @@
         203,
         131
       ],
+      "comment_inline": "Prepare and send TX control block",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "build_send_fs_cmd",
@@ -25295,6 +25340,7 @@
         134,
         177
       ],
+      "comment_inline": "Store X in fs_load_addr_hi (X=0)",
       "type": "code",
       "mnemonic": "stx",
       "operand": "fs_load_addr_hi",
@@ -25962,6 +26008,7 @@
         181,
         131
       ],
+      "comment_inline": "Send TX control block",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -26945,6 +26992,7 @@
         208,
         11
       ],
+      "comment_inline": "Always taken (A=&03)",
       "type": "code",
       "mnemonic": "bne",
       "operand": "init_cat_params",
@@ -27007,6 +27055,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -27129,6 +27178,7 @@
         160,
         18
       ],
+      "comment_inline": "Y=&12: FS function code (examine)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&12"
@@ -27140,6 +27190,7 @@
         181,
         131
       ],
+      "comment_inline": "Send the request",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -27368,6 +27419,7 @@
       "labels": [
         "print_user_env"
       ],
+      "comment_inline": "Y=&15: FS function code (read user environment)",
       "xref_summaries": [
         "&8ca8 referenced 1 time by &8c9c"
       ],
@@ -27388,6 +27440,7 @@
         181,
         131
       ],
+      "comment_inline": "Send request to file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -27582,6 +27635,7 @@
         227,
         255
       ],
+      "comment_inline": "Print char (no spool)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -27874,6 +27928,7 @@
         160,
         3
       ],
+      "comment_inline": "Y=3: FS command for examine/cat",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#3"
@@ -27885,6 +27940,7 @@
         181,
         131
       ],
+      "comment_inline": "Send request to file server",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "prepare_fs_cmd",
@@ -27934,6 +27990,7 @@
         231,
         255
       ],
+      "comment_inline": "Tail-call OSNEWL",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "osnewl",
@@ -28158,6 +28215,7 @@
         227,
         255
       ],
+      "comment_inline": "Print via OSASCI, bypassing the *SPOOL file",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osasci",
@@ -28979,6 +29037,7 @@
       "labels": [
         "print_newline"
       ],
+      "comment_inline": "Print character",
       "xref_summaries": [
         "&8da2 referenced 1 time by &8d8b"
       ],
@@ -29271,6 +29330,7 @@
       "labels": [
         "print_digit"
       ],
+      "comment_inline": "Tail-call OSASCI",
       "xref_summaries": [
         "&8dc7 referenced 2 times by &8dd9, &8ddd"
       ],
@@ -32590,6 +32650,7 @@
       "labels": [
         "readc1"
       ],
+      "comment_inline": "Load handle byte (URD/CSD/LIB) at &0E01+Y",
       "xref_summaries": [
         "&8f73 referenced 2 times by &8f56, &8f7c"
       ],
@@ -32616,6 +32677,7 @@
         165,
         134
       ],
+      "comment_inline": "Convert bitmask to handle number",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "mask_to_handle",
@@ -32628,6 +32690,7 @@
         145,
         240
       ],
+      "comment_inline": "Store handle in the parameter block",
       "type": "code",
       "mnemonic": "sta",
       "operand": "(osword_pb_ptr),y",
@@ -33763,6 +33826,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -33936,6 +34000,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -33992,6 +34057,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Y=&18: RX control offset",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -34163,6 +34229,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Y=&71",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -38904,6 +38971,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Step Y",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -39050,6 +39118,7 @@
       "bytes": [
         136
       ],
+      "comment_inline": "Y=0",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -40383,6 +40452,7 @@
         255
       ],
       "binary_addr": 37708,
+      "comment_inline": "Write character",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "oswrch",
@@ -41864,6 +41934,7 @@
         138
       ],
       "binary_addr": 37882,
+      "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
     },
@@ -43096,6 +43167,7 @@
       "labels": [
         "tube_poll_r1_wrch"
       ],
+      "comment_inline": "Write a byte to the file (OSBPUT)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbput",
@@ -43153,6 +43225,7 @@
         255
       ],
       "binary_addr": 38038,
+      "comment_inline": "Read a byte from the file (OSBGET)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osbget",
@@ -43185,6 +43258,7 @@
       "labels": [
         "tube_osrdch"
       ],
+      "comment_inline": "Read a character (OSRDCH)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osrdch",
@@ -43334,6 +43408,7 @@
         255
       ],
       "binary_addr": 38065,
+      "comment_inline": "Open or close the file (OSFIND)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osfind",
@@ -44423,6 +44498,7 @@
         255
       ],
       "binary_addr": 38213,
+      "comment_inline": "Multi-byte file transfer (OSGBPB)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osgbpb",
@@ -47032,6 +47108,7 @@
         103,
         13
       ],
+      "comment_inline": "Record Tube presence",
       "type": "code",
       "mnemonic": "stx",
       "operand": "tube_flag",
@@ -53081,6 +53158,7 @@
         240,
         233
       ],
+      "comment_inline": "Index reached end: restore X and finish",
       "type": "code",
       "mnemonic": "beq",
       "operand": "scout_copy_done",
@@ -54324,6 +54402,7 @@
         208,
         18
       ],
+      "comment_inline": "Always taken (A=&88): set the reply flag",
       "type": "code",
       "mnemonic": "bne",
       "operand": "set_tx_reply_flag",
@@ -54691,6 +54770,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance buffer index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -55252,6 +55332,7 @@
         240,
         8
       ],
+      "comment_inline": "Zero: transfer done, exit",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_done_exit",
@@ -55453,6 +55534,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance to destination network byte",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -56510,6 +56592,7 @@
         240,
         4
       ],
+      "comment_inline": "Zero: report line jammed",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tx_line_jammed",
@@ -56556,6 +56639,7 @@
         208,
         14
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_tx_error",
@@ -57454,6 +57538,7 @@
         208,
         2
       ],
+      "comment_inline": "Non-zero: store control byte and add",
       "type": "code",
       "mnemonic": "bne",
       "operand": "store_status_add4",
@@ -57861,6 +57946,7 @@
         176,
         21
       ],
+      "comment_inline": "C set: control byte out of range, exit",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "tx_ctrl_exit",
@@ -58341,6 +58427,7 @@
         208,
         7
       ],
+      "comment_inline": "Branch to store TX error",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tx_store_error",
@@ -61314,6 +61401,7 @@
       "bytes": [
         200
       ],
+      "comment_inline": "Advance index",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -62401,7 +62489,7 @@
         254
       ],
       "labels": [
-        "save_econet_state"
+        "reset_econet_flags"
       ],
       "comment_inline": "INTOFF: disable NMIs",
       "type": "code",

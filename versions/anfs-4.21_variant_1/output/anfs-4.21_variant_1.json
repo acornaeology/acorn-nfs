@@ -928,7 +928,7 @@
       "addr": 35238,
       "name": "wait_idle_and_reset",
       "title": "Wait for idle NMI state and reset Econet",
-      "description": "Service-13 (`&0D`) handler -- the post-hard-reset Econet\nshutdown path. Reached via\n[`svc_dispatch`](label:svc_dispatch) slot &0D. Checks\n[`econet_init_flag`](label:econet_init_flag) to see if Econet has been\ninitialised; if not, skips straight to\n[`adlc_rx_listen`](label:adlc_rx_listen). Otherwise spins in a tight\nloop comparing the NMI handler vector at\n[`nmi_jmp_lo`](label:nmi_jmp_lo) /\n[`nmi_jmp_hi`](label:nmi_jmp_hi) against the address of\n[`nmi_rx_scout`](label:nmi_rx_scout) to wait until the in-flight\nNMI handler chain has unwound back to scout-listening.\n\nWhen the NMI vector matches `nmi_rx_scout` again, falls through\nto [`save_econet_state`](label:save_econet_state) to clear the initialised\nflags and re-enter RX-listen mode. (Service &0B 'NMI release'\nis handled by the separate [`econet_restore`](label:econet_restore).)",
+      "description": "Service-13 (`&0D`) handler -- the post-hard-reset Econet\nshutdown path. Reached via\n[`svc_dispatch`](label:svc_dispatch) slot &0D. Checks\n[`econet_init_flag`](label:econet_init_flag) to see if Econet has been\ninitialised; if not, skips straight to\n[`adlc_rx_listen`](label:adlc_rx_listen). Otherwise spins in a tight\nloop comparing the NMI handler vector at\n[`nmi_jmp_lo`](label:nmi_jmp_lo) /\n[`nmi_jmp_hi`](label:nmi_jmp_hi) against the address of\n[`nmi_rx_scout`](label:nmi_rx_scout) to wait until the in-flight\nNMI handler chain has unwound back to scout-listening.\n\nWhen the NMI vector matches `nmi_rx_scout` again, falls through\nto [`reset_econet_flags`](label:reset_econet_flags) to clear the initialised\nflags and re-enter RX-listen mode. (Service &0B 'NMI release'\nis handled by the separate [`econet_restore`](label:econet_restore).)",
       "on_entry": {
         "a": "13 (service call number, &0D)"
       },
@@ -939,7 +939,7 @@
     },
     {
       "addr": 35257,
-      "name": "save_econet_state",
+      "name": "reset_econet_flags",
       "title": "Reset Econet flags and enter RX-listen",
       "description": "Disables NMIs via `BIT disable_net_nmis` (the Master 128 dedicated\nINTOFF at &FE38), then clears\n[`tx_complete_flag`](label:tx_complete_flag) and\n[`econet_init_flag`](label:econet_init_flag) by storing the current `A`\nvalue. Sets `Y=5` (service-call workspace page) and jumps to\n[`adlc_rx_listen`](label:adlc_rx_listen) to configure the ADLC for\npassive listening.\n\nUsed during the wait-idle-and-reset path (svc &0D) to safely\ntear down the Econet state before another ROM can claim the\nNMI workspace.",
       "on_entry": {
@@ -24669,7 +24669,7 @@
         254
       ],
       "labels": [
-        "save_econet_state"
+        "reset_econet_flags"
       ],
       "comment_inline": "INTOFF: disable NMIs",
       "type": "code",
