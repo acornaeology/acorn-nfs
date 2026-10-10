@@ -19,7 +19,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "dasmos", specifier = ">=4.1.0" },
-    { name = "fantasm", specifier = ">=1.2.0" },
+    { name = "fantasm", specifier = ">=1.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -108,16 +108,16 @@ wheels = [
 
 [[package]]
 name = "fantasm"
-version = "1.2.0"
+version = "1.2.1"
 source = { registry = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/simple" }
 dependencies = [
     { name = "asyoulikeit" },
     { name = "click" },
     { name = "networkx" },
 ]
-sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/43/c3/bcebc60191622cba7d42c5edf08506b49acdcf2a1b6ec3b1cda719c3d2a0/fantasm-1.2.0.tar.gz", hash = "sha256:d24ec12d7df2293117244a68e18baf0c3a485d02c903a57323a5cea58b17184f" }
+sdist = { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/ef/da/25e6feb5c7d3a65097144ac78958f8e21209a79f173a8d907ce6b92072fa/fantasm-1.2.1.tar.gz", hash = "sha256:569a1a6a01d3fb882e8d249c9278cd35095edbc72f376af9e2a5ac441428099e" }
 wheels = [
-    { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/f9/2e/41fd179e19137912eae74bedbd08e14971f9999122b77c09519e7385a5a8/fantasm-1.2.0-py3-none-any.whl", hash = "sha256:58b61f41063c507bfc75a2b1b9173492f3444f0e31ccf7c6c872f9a5ed14e882" },
+    { url = "https://sixtynorthartifactory1.jfrog.io/artifactory/api/pypi/python-packages/packages/packages/ed/53/f5f7e376f605586a88a340f85ddc05d8479ab77834b7d5a1dfbc36fd9c28/fantasm-1.2.1-py3-none-any.whl", hash = "sha256:3ffeb8f08b8070e42c36c233f04ae0292a7e48c636698eee695541a41134db71" },
 ]
 
 [[package]]
