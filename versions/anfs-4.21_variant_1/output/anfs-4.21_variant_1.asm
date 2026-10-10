@@ -1115,8 +1115,8 @@ rom_header_byte2 = rom_header_byte1+1
     sta econet_control1_or_status1                                    ; 81a9: 8d a0 fe    ...      ; Write CR1: TX mode for ACK
     lda #&a7                                                          ; 81ac: a9 a7       ..       ; CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE
     sta econet_control23_or_status2                                   ; 81ae: 8d a1 fe    ...      ; Write CR2: enable TX with PSE
-    lda #&b8                                                          ; 81b1: a9 b8       ..       ; Install data_rx_setup at &81B8
-    ldy #&81                                                          ; 81b3: a0 81       ..       ; High byte of data_rx_setup handler
+    lda #<(data_rx_setup)                                             ; 81b1: a9 b8       ..       ; Install data_rx_setup at &81B8
+    ldy #>(data_rx_setup)                                             ; 81b3: a0 81       ..       ; High byte of data_rx_setup handler
     jmp ack_tx_write_dest                                             ; 81b5: 4c f8 82    L..      ; Send ACK with data_rx_setup as next NMI
 ; ***************************************************************************************
 ; NMI handler: switch ADLC to RX for the data frame
@@ -1989,8 +1989,8 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     lda #&a7                                                          ; 84ed: a9 a7       ..       ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 84ef: 8d a1 fe    ...      ; Write CR2 for TX setup
 .tx_nmi_setup
-    lda #&0f                                                          ; 84f2: a9 0f       ..       ; NMI handler lo byte (self-modifying)
-    ldy #&85                                                          ; 84f4: a0 85       ..       ; Y=&85: NMI handler high byte
+    lda #<(imm_op_arm_deferred)                                       ; 84f2: a9 0f       ..       ; Next NMI handler: imm_op_arm_deferred (low)
+    ldy #>(imm_op_arm_deferred)                                       ; 84f4: a0 85       ..       ; Next NMI handler: imm_op_arm_deferred (high)
     jmp ack_tx_write_dest                                             ; 84f6: 4c f8 82    L..      ; Acknowledge and write TX dest
 ; ***************************************************************************************
 ; Build immediate-operation reply header
@@ -2021,6 +2021,7 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     iny                                                               ; 8509: c8          .        ; Advance buffer index
     lda scout_src_net                                                 ; 850a: ad 2f 0d    ./.      ; Load requesting network number
     sta (net_rx_ptr),y                                                ; 850d: 91 9c       ..       ; Store source network in reply header
+.imm_op_arm_deferred
     lda scout_ctrl                                                    ; 850f: ad 30 0d    .0.      ; Load control byte from received frame
 ; ***************************************************************************************
 ; Save TX op type and raise JSR re-entrancy protection

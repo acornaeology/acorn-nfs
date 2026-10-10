@@ -1128,8 +1128,8 @@ rom_header_byte2 = rom_header_byte1+1
     sta econet_control1_or_status1                                    ; 81ac: 8d a0 fe    ...      ; Write CR1: TX mode for ACK
     lda #&a7                                                          ; 81af: a9 a7       ..       ; CR2=&A7: RTS | CLR_TX_ST | FC_TDRA | PSE
     sta econet_control23_or_status2                                   ; 81b1: 8d a1 fe    ...      ; Write CR2: enable TX with PSE
-    lda #&bb                                                          ; 81b4: a9 bb       ..       ; Install data_rx_setup at &81B8
-    ldy #&81                                                          ; 81b6: a0 81       ..       ; High byte of data_rx_setup handler
+    lda #<(data_rx_setup)                                             ; 81b4: a9 bb       ..       ; Install data_rx_setup at &81B8
+    ldy #>(data_rx_setup)                                             ; 81b6: a0 81       ..       ; High byte of data_rx_setup handler
     jmp ack_tx_write_dest                                             ; 81b8: 4c 08 83    L..      ; Send ACK with data_rx_setup as next NMI
 ; ***************************************************************************************
 ; NMI handler: switch ADLC to RX for the data frame
@@ -1982,8 +1982,8 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     lda #&a7                                                          ; 84e6: a9 a7       ..       ; CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE
     sta econet_control23_or_status2                                   ; 84e8: 8d a1 fe    ...      ; Write CR2 for TX setup
 .tx_nmi_setup
-    lda #&33                                                          ; 84eb: a9 33       .3       ; NMI handler lo byte (self-modifying)
-    ldy #&85                                                          ; 84ed: a0 85       ..       ; Y=&85: NMI handler high byte
+    lda #<(imm_op_arm_deferred)                                       ; 84eb: a9 33       .3       ; Next NMI handler: imm_op_arm_deferred (low)
+    ldy #>(imm_op_arm_deferred)                                       ; 84ed: a0 85       ..       ; Next NMI handler: imm_op_arm_deferred (high)
     jmp ack_tx_write_dest                                             ; 84ef: 4c 08 83    L..      ; Acknowledge and write TX dest
 ; ***************************************************************************************
 ; RX immediate: machine-type (MachinePeek) reply
@@ -2062,6 +2062,7 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     iny                                                               ; 852d: c8          .        ; Advance buffer index
     lda scout_src_net                                                 ; 852e: ad 2f 0d    ./.      ; Load requesting network number
     sta (net_rx_ptr),y                                                ; 8531: 91 9c       ..       ; Store source network in reply header
+.imm_op_arm_deferred
     lda scout_ctrl                                                    ; 8533: ad 30 0d    .0.      ; Load control byte from received frame
 ; ***************************************************************************************
 ; Save TX op type and raise JSR re-entrancy protection
@@ -2995,7 +2996,7 @@ tx_flags_table = tx_calc_tube_check+1
     bit net_frame_flags                                               ; 889f: 2c 3e 0d    ,>.      ; Check if immediate-op or data-transfer
     bne install_imm_data_nmi                                          ; 88a2: d0 07       ..       ; Bit 1 set: immediate op, use alt handler
     lda #<(nmi_data_tx_alt)                                           ; 88a4: a9 ba       ..       ; Install nmi_data_tx alt-entry (low)
-    ldy #&88                                                          ; 88a6: a0 88       ..       ; Y=&88: high byte of nmi_data_tx
+    ldy #>(nmi_data_tx_alt)                                           ; 88a6: a0 88       ..       ; High byte of nmi_data_tx alt-entry
     jmp set_nmi_vector                                                ; 88a8: 4c 0e 0d    L..      ; Install and return via set_nmi_vector
 ; &88ab referenced 1 time by &88a2
 .install_imm_data_nmi

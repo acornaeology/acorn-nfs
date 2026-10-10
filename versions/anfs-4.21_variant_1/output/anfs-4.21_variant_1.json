@@ -10304,7 +10304,16 @@
       "comment_inline": "Install data_rx_setup at &81B8",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&b8"
+      "operand": "#<(data_rx_setup)",
+      "expr": {
+        "text": "<(data_rx_setup)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "data_rx_setup"
+          }
+        }
+      }
     },
     {
       "addr": 33203,
@@ -10315,7 +10324,16 @@
       "comment_inline": "High byte of data_rx_setup handler",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&81"
+      "operand": "#>(data_rx_setup)",
+      "expr": {
+        "text": ">(data_rx_setup)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "data_rx_setup"
+          }
+        }
+      }
     },
     {
       "addr": 33205,
@@ -16133,10 +16151,19 @@
       "labels": [
         "tx_nmi_setup"
       ],
-      "comment_inline": "NMI handler lo byte (self-modifying)",
+      "comment_inline": "Next NMI handler: imm_op_arm_deferred (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&0f"
+      "operand": "#<(imm_op_arm_deferred)",
+      "expr": {
+        "text": "<(imm_op_arm_deferred)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "imm_op_arm_deferred"
+          }
+        }
+      }
     },
     {
       "addr": 34036,
@@ -16144,10 +16171,19 @@
         160,
         133
       ],
-      "comment_inline": "Y=&85: NMI handler high byte",
+      "comment_inline": "Next NMI handler: imm_op_arm_deferred (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&85"
+      "operand": "#>(imm_op_arm_deferred)",
+      "expr": {
+        "text": ">(imm_op_arm_deferred)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "imm_op_arm_deferred"
+          }
+        }
+      }
     },
     {
       "addr": 34038,
@@ -16312,6 +16348,9 @@
         173,
         48,
         13
+      ],
+      "labels": [
+        "imm_op_arm_deferred"
       ],
       "comment_inline": "Load control byte from received frame",
       "type": "code",

@@ -2746,8 +2746,8 @@ d.comment(0x84E6, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", align=Align.INLINE)
 d.comment(0x84E8, "Write CR2 for TX setup", align=Align.INLINE)
 d.label(0x84EB, "tx_nmi_setup")
 
-d.comment(0x84EB, "NMI handler lo byte (self-modifying)", align=Align.INLINE)
-d.comment(0x84ED, "Y=&85: NMI handler high byte", align=Align.INLINE)
+d.comment(0x84EB, "Next NMI handler: imm_op_arm_deferred (low)", align=Align.INLINE)
+d.comment(0x84ED, "Next NMI handler: imm_op_arm_deferred (high)", align=Align.INLINE)
 d.comment(0x84EF, "Acknowledge and write TX dest", align=Align.INLINE)
 # UNMAPPED: d.label(0x84F9, "imm_op_build_reply")
 
@@ -2783,6 +2783,7 @@ d.comment(0x8528, "Load requesting station number", align=Align.INLINE)
 d.comment(0x852B, "Store source station in reply header", align=Align.INLINE)
 d.comment(0x852E, "Load requesting network number", align=Align.INLINE)
 d.comment(0x8531, "Store source network in reply header", align=Align.INLINE)
+d.label(0x8533, "imm_op_arm_deferred")
 d.comment(0x8533, "Load control byte from received frame", align=Align.INLINE)
 d.label(0x8536, "setup_sr_tx")
 
@@ -3784,7 +3785,7 @@ d.comment(0x889F, "Test bit 1 of tx_flags", align=Align.INLINE)
 d.comment(0x88A1, "Check if immediate-op or data-transfer", align=Align.INLINE)
 d.comment(0x88A4, "Bit 1 set: immediate op, use alt handler", align=Align.INLINE)
 d.comment(0x88A6, "Install nmi_data_tx alt-entry (low)", align=Align.INLINE)
-d.comment(0x88A8, "Y=&88: high byte of nmi_data_tx", align=Align.INLINE)
+d.comment(0x88A8, "High byte of nmi_data_tx alt-entry", align=Align.INLINE)
 d.comment(0x88AA, "Install and return via set_nmi_vector", align=Align.INLINE)
 d.label(0x88AD, "install_imm_data_nmi")
 
@@ -20341,6 +20342,13 @@ d.banner(0x8644, title="Immediate-op TX flags table",
 d.label(0x8644, "tx_flags_values")
 d.byte(0x8644, 8)
 
+# NMI handler addresses loaded as LDA #lo / LDY #hi pairs.
+d.expr(0x81B5, lo(sym("data_rx_setup")))
+d.expr(0x81B7, hi(sym("data_rx_setup")))
+d.expr(0x84EC, lo(sym("imm_op_arm_deferred")))
+d.expr(0x84EE, hi(sym("imm_op_arm_deferred")))
+
+d.expr(0x88A9, hi(sym("nmi_data_tx_alt")))
 ir = d.disassemble()
 output = str(
     ir.render(

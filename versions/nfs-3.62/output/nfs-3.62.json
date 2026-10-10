@@ -47969,7 +47969,16 @@
       "comment_inline": "Install scout data reading loop at &970E",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&0e"
+      "operand": "#<(scout_data_loop)",
+      "expr": {
+        "text": "<(scout_data_loop)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "scout_data_loop"
+          }
+        }
+      }
     },
     {
       "addr": 38649,
@@ -47980,7 +47989,16 @@
       "comment_inline": "High byte of scout data handler",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&97"
+      "operand": "#>(scout_data_loop)",
+      "expr": {
+        "text": ">(scout_data_loop)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "scout_data_loop"
+          }
+        }
+      }
     },
     {
       "addr": 38651,
@@ -49441,7 +49459,16 @@
       "comment_inline": "Install data_rx_setup at &97DC",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&dc"
+      "operand": "#<(data_rx_setup)",
+      "expr": {
+        "text": "<(data_rx_setup)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "data_rx_setup"
+          }
+        }
+      }
     },
     {
       "addr": 38871,
@@ -49452,7 +49479,16 @@
       "comment_inline": "High byte of data_rx_setup handler",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&97"
+      "operand": "#>(data_rx_setup)",
+      "expr": {
+        "text": ">(data_rx_setup)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "data_rx_setup"
+          }
+        }
+      }
     },
     {
       "addr": 38873,
@@ -49949,7 +49985,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&a0"
+      "operand": "#<(nmi_data_rx_tube)",
+      "expr": {
+        "text": "<(nmi_data_rx_tube)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_rx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 38960,
@@ -49960,7 +50005,16 @@
       "comment_inline": "High byte of &98A0 handler",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&98"
+      "operand": "#>(nmi_data_rx_tube)",
+      "expr": {
+        "text": ">(nmi_data_rx_tube)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_rx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 38962,
@@ -51509,7 +51563,16 @@
       "comment_inline": "Install nmi_ack_tx_src at &9925",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&25"
+      "operand": "#<(nmi_ack_tx_src)",
+      "expr": {
+        "text": "<(nmi_ack_tx_src)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_ack_tx_src"
+          }
+        }
+      }
     },
     {
       "addr": 39200,
@@ -51520,7 +51583,16 @@
       "comment_inline": "High byte of nmi_ack_tx_src",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&99"
+      "operand": "#>(nmi_ack_tx_src)",
+      "expr": {
+        "text": ">(nmi_ack_tx_src)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_ack_tx_src"
+          }
+        }
+      }
     },
     {
       "addr": 39202,
@@ -52903,7 +52975,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&bf"
+      "operand": "#<(nmi_rx_scout)",
+      "expr": {
+        "text": "<(nmi_rx_scout)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 39405,
@@ -52914,7 +52995,16 @@
       "comment_inline": "High byte of nmi_rx_scout",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&96"
+      "operand": "#>(nmi_rx_scout)",
+      "expr": {
+        "text": ">(nmi_rx_scout)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_rx_scout"
+          }
+        }
+      }
     },
     {
       "addr": 39407,
@@ -54817,10 +54907,19 @@
       "labels": [
         "tx_nmi_setup"
       ],
-      "comment_inline": "NMI handler lo byte (self-modifying)",
+      "comment_inline": "Next NMI handler: imm_op_arm_deferred (low)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&fd"
+      "operand": "#<(imm_op_arm_deferred)",
+      "expr": {
+        "text": "<(imm_op_arm_deferred)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "imm_op_arm_deferred"
+          }
+        }
+      }
     },
     {
       "addr": 39650,
@@ -54828,10 +54927,19 @@
         160,
         154
       ],
-      "comment_inline": "Y=&9A: dispatch table page",
+      "comment_inline": "Next NMI handler: imm_op_arm_deferred (high)",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9a"
+      "operand": "#>(imm_op_arm_deferred)",
+      "expr": {
+        "text": ">(imm_op_arm_deferred)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "imm_op_arm_deferred"
+          }
+        }
+      }
     },
     {
       "addr": 39652,
@@ -54996,6 +55104,9 @@
         173,
         63,
         13
+      ],
+      "labels": [
+        "imm_op_arm_deferred"
       ],
       "comment_inline": "Load control byte from received frame",
       "type": "code",
@@ -58707,7 +58818,16 @@
       "comment_inline": "Install NMI handler at &9D14 (nmi_tx_complete)",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&14"
+      "operand": "#<(nmi_tx_complete)",
+      "expr": {
+        "text": "<(nmi_tx_complete)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_tx_complete"
+          }
+        }
+      }
     },
     {
       "addr": 40207,
@@ -58718,7 +58838,16 @@
       "comment_inline": "High byte of handler address",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9d"
+      "operand": "#>(nmi_tx_complete)",
+      "expr": {
+        "text": ">(nmi_tx_complete)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_tx_complete"
+          }
+        }
+      }
     },
     {
       "addr": 40209,
@@ -59521,7 +59650,16 @@
       "comment_inline": "Install nmi_scout_ack_src at &9DA3",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&a3"
+      "operand": "#<(nmi_scout_ack_src)",
+      "expr": {
+        "text": "<(nmi_scout_ack_src)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_scout_ack_src"
+          }
+        }
+      }
     },
     {
       "addr": 40350,
@@ -59532,7 +59670,16 @@
       "comment_inline": "High byte &9D of handler address",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9d"
+      "operand": "#>(nmi_scout_ack_src)",
+      "expr": {
+        "text": ">(nmi_scout_ack_src)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_scout_ack_src"
+          }
+        }
+      }
     },
     {
       "addr": 40352,
@@ -59690,7 +59837,16 @@
       "comment_inline": "Install nmi_data_tx at &9DC8",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&c8"
+      "operand": "#<(nmi_data_tx)",
+      "expr": {
+        "text": "<(nmi_data_tx)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx"
+          }
+        }
+      }
     },
     {
       "addr": 40380,
@@ -59701,7 +59857,16 @@
       "comment_inline": "High byte of handler address",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9d"
+      "operand": "#>(nmi_data_tx)",
+      "expr": {
+        "text": ">(nmi_data_tx)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_tx"
+          }
+        }
+      }
     },
     {
       "addr": 40382,
@@ -59738,7 +59903,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&0f"
+      "operand": "#<(nmi_data_tx_tube)",
+      "expr": {
+        "text": "<(nmi_data_tx_tube)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_data_tx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 40387,
@@ -59749,7 +59923,16 @@
       "comment_inline": "High byte of handler address",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9e"
+      "operand": "#>(nmi_data_tx_tube)",
+      "expr": {
+        "text": ">(nmi_data_tx_tube)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_data_tx_tube"
+          }
+        }
+      }
     },
     {
       "addr": 40389,
@@ -60167,7 +60350,16 @@
       "comment_inline": "Install discard_reset_listen at &99DB",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&db"
+      "operand": "#<(discard_reset_listen)",
+      "expr": {
+        "text": "<(discard_reset_listen)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "discard_reset_listen"
+          }
+        }
+      }
     },
     {
       "addr": 40449,
@@ -60178,7 +60370,16 @@
       "comment_inline": "High byte of &99DB handler",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&99"
+      "operand": "#>(discard_reset_listen)",
+      "expr": {
+        "text": ">(discard_reset_listen)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "discard_reset_listen"
+          }
+        }
+      }
     },
     {
       "addr": 40451,
@@ -60748,7 +60949,16 @@
       "comment_inline": "Install nmi_final_ack at &9E5C",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "#&5c"
+      "operand": "#<(nmi_final_ack)",
+      "expr": {
+        "text": "<(nmi_final_ack)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "sym": "nmi_final_ack"
+          }
+        }
+      }
     },
     {
       "addr": 40535,
@@ -60759,7 +60969,16 @@
       "comment_inline": "High byte of handler address",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "#&9e"
+      "operand": "#>(nmi_final_ack)",
+      "expr": {
+        "text": ">(nmi_final_ack)",
+        "tree": {
+          "op": "highbyte",
+          "operand": {
+            "sym": "nmi_final_ack"
+          }
+        }
+      }
     },
     {
       "addr": 40537,

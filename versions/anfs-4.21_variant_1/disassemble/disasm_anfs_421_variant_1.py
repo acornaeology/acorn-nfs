@@ -2766,8 +2766,8 @@ d.comment(0x84ED, "CR2=&A7: RTS|CLR_RX_ST|FC_TDRA|PSE", align=Align.INLINE)
 d.comment(0x84EF, "Write CR2 for TX setup", align=Align.INLINE)
 d.label(0x84F2, "tx_nmi_setup")
 
-d.comment(0x84F2, "NMI handler lo byte (self-modifying)", align=Align.INLINE)
-d.comment(0x84F4, "Y=&85: NMI handler high byte", align=Align.INLINE)
+d.comment(0x84F2, "Next NMI handler: imm_op_arm_deferred (low)", align=Align.INLINE)
+d.comment(0x84F4, "Next NMI handler: imm_op_arm_deferred (high)", align=Align.INLINE)
 d.comment(0x84F6, "Acknowledge and write TX dest", align=Align.INLINE)
 d.label(0x84F9, "imm_op_build_reply")
 
@@ -2804,6 +2804,7 @@ d.comment(0x8507, "Store source station in reply header", align=Align.INLINE)
 d.comment(0x8509, "Advance buffer index", align=Align.INLINE)
 d.comment(0x850A, "Load requesting network number", align=Align.INLINE)
 d.comment(0x850D, "Store source network in reply header", align=Align.INLINE)
+d.label(0x850F, "imm_op_arm_deferred")
 d.comment(0x850F, "Load control byte from received frame", align=Align.INLINE)
 d.label(0x8512, "setup_sr_tx")
 
@@ -19865,6 +19866,12 @@ d.banner(0x88F8, title="Immediate-op TX flags table",
          description="TX flags per immediate-op control byte. Bit 7 (&80) marks a reply-generating operation -- set for PEEK (&81) and machine-type (&88); HALT/CONTINUE &01; POKE/exec &00.")
 d.label(0x88F8, "tx_flags_values")
 d.byte(0x88F8, 8)
+
+# NMI handler addresses loaded as LDA #lo / LDY #hi pairs.
+d.expr(0x81B2, lo(sym("data_rx_setup")))
+d.expr(0x81B4, hi(sym("data_rx_setup")))
+d.expr(0x84F3, lo(sym("imm_op_arm_deferred")))
+d.expr(0x84F5, hi(sym("imm_op_arm_deferred")))
 
 ir = d.disassemble()
 output = str(
