@@ -448,7 +448,7 @@ hazel_fs_context_copy       = &c003  ; Multi-purpose sub-byte of the &C000 block
 ; &c003 referenced 4 times by &9578, &a69e, &a6b0, &aa58; also used as index base 2 times by &9798, &a2d8
 hazel_fs_prefix_stn         = &c004  ; Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type.
 ; &c004 referenced 5 times by &97a8, &a2de, &a6b4, &a6d5, &aa72
-hazel_fs_flags              = &c005
+hazel_fs_flags              = &c005  ; Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by *OPT 4,n, shown in the *CAT header and used to choose the boot action.
 ; &c005 referenced 6 times by &8fae, &a0f2, &a2a5, &a6f7, &a775, &b1da
 hazel_fs_messages_flag      = &c006
 ; &c006 referenced 3 times by &8fab, &9d26, &a0de
@@ -645,7 +645,7 @@ gsread                      = &ffc5
 ; &ffc5 referenced 4 times by &9c08, &a5fe, &b445, &b5f4
 osfind                      = &ffce
 ; &ffce referenced 4 times by &9711, &9a16, &bfa7, &bfb9
-osbget                      = &ffd7
+osbget                      = &ffd7  ; OSBGET: read a byte from an open file (handle in Y) into A; C set at end of file.
 ; &ffd7 referenced 2 times by &970a, &bd94
 osargs                      = &ffda
 ; &ffda referenced 2 times by &bef1, &bf2d
@@ -657,7 +657,7 @@ osasci                      = &ffe3
 ; &ffe3 referenced 12 times by &8c11, &8c1d, &8c3d, &8c61, &922d, &9254, &9286, &b386, &b59d, &b61f, &be1a, &be6f
 osnewl                      = &ffe7
 ; &ffe7 referenced 13 times by &8bfa, &8c43, &8c5a, &8d0a, &90fd, &967f, &9714, &9738, &a3d7, &b636, &b696, &bd5f, &be25
-oswrch                      = &ffee
+oswrch                      = &ffee  ; OSWRCH: write the character in A to the selected output streams.
 ; &ffee referenced 2 times by &9232, &972c
 osword                      = &fff1
 ; &fff1 referenced 3 times by &a3cb, &a920, &b070

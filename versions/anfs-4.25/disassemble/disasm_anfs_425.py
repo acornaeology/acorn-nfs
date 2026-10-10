@@ -413,6 +413,8 @@ d.label(0x00F0, "osword_pb_ptr", length=1, group="zero_page", access="rw")
 
 d.label(0x00F1, "osword_pb_ptr_hi", length=1, group="zero_page", access="rw")
 
+d.label(0x00F2, "os_text_ptr", length=1, group="zero_page", access="rw")
+
 d.label(0x00F3, "os_text_ptr_hi", length=1, group="zero_page", access="rw")
 
 d.label(0x00F7, "osrdsc_ptr_hi", length=1, group="zero_page", access="rw")
@@ -18962,7 +18964,14 @@ d.label(
     access="rw",
 )
 
-d.label(0xC005, "hazel_fs_flags")
+d.label(
+    0xC005,
+    "hazel_fs_flags",
+    description="Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by `*OPT 4,n`, shown in the `*CAT` header and used to choose the boot action.",
+    length=1,
+    group="hazel",
+    access="rw",
+)
 
 d.label(0xC006, "hazel_fs_messages_flag")
 
@@ -19460,6 +19469,24 @@ d.label(
     description="FSCV extended-vector dispatcher (filing-system control: OSFSC, *commands).",
     length=3,
     group="ext_vectors",
+    access="r",
+)
+
+d.label(
+    0xFFD7,
+    "osbget",
+    description="OSBGET: read a byte from an open file (handle in Y) into A; C set at end of file.",
+    length=3,
+    group="mos_entry",
+    access="r",
+)
+
+d.label(
+    0xFFEE,
+    "oswrch",
+    description="OSWRCH: write the character in A to the selected output streams.",
+    length=3,
+    group="mos_entry",
     access="r",
 )
 

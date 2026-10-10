@@ -5934,6 +5934,17 @@
       ]
     },
     {
+      "addr": 242,
+      "name": "os_text_ptr",
+      "length": 1,
+      "group": "zero_page",
+      "access": [
+        "r",
+        "w",
+        "b"
+      ]
+    },
+    {
       "addr": 243,
       "name": "os_text_ptr_hi",
       "length": 1,
@@ -6813,6 +6824,17 @@
       "description": "Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type."
     },
     {
+      "addr": 49157,
+      "name": "hazel_fs_flags",
+      "length": 1,
+      "group": "hazel",
+      "access": [
+        "r",
+        "w"
+      ],
+      "description": "Boot option of the logged-on user (0-3: Off, Load, Run, Exec). Taken from the logon reply, set by `*OPT 4,n`, shown in the `*CAT` header and used to choose the boot action."
+    },
+    {
       "addr": 49160,
       "name": "hazel_fs_error_code",
       "length": 1,
@@ -7404,6 +7426,26 @@
         "b"
       ],
       "description": "FCB-workspace indexing-base (wraps into ZP).\nUsed by `loop_save_fcb_workspace` as the base of `LDA &FFBD,X` with X=`&F7`..`&FF`; the effective address wraps to `&00B4`..`&00BC` (= `fs_work_4`+0..+8). The byte at `&FFBD` itself is never read."
+    },
+    {
+      "addr": 65495,
+      "name": "osbget",
+      "length": 3,
+      "group": "mos_entry",
+      "access": [
+        "r"
+      ],
+      "description": "OSBGET: read a byte from an open file (handle in Y) into A; C set at end of file."
+    },
+    {
+      "addr": 65518,
+      "name": "oswrch",
+      "length": 3,
+      "group": "mos_entry",
+      "access": [
+        "r"
+      ],
+      "description": "OSWRCH: write the character in A to the selected output streams."
     }
   ],
   "regions": [],

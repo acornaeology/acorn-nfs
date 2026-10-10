@@ -7,7 +7,8 @@
         "hazel": "Filing system workspace (HAZEL)",
         "mmio": "Memory-mapped I/O",
         "ext_vectors": "MOS extended-vector trampolines",
-        "idx_base": "Indexing-base addresses (wrap into ZP)"
+        "idx_base": "Indexing-base addresses (wrap into ZP)",
+        "mos_entry": "MOS API entry points"
     },
     "size": 16384,
     "md5": "306cb8ff6622dbfc79dc487ac4e407e1",
