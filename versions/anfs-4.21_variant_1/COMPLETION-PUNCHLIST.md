@@ -28,12 +28,12 @@ entry that holds the operational details.
 
 Three short stale-annotation issues, each 5-15 minutes.
 
-- [ ] **O-2** -- `svc_1_abs_workspace` at `&8EE9`: verify against live
+- [x] **O-2** -- `svc_1_abs_workspace` at `&8EE9`: verify against live
   dispatch (svc_dispatch idx 16 → &8EE9, decoded earlier in Phase E).
   Either confirm and close, or rename if mis-labelled.
-- [ ] **O-3** -- inline comment at `&8A8F` saying "Service 1" while
+- [x] **O-3** -- inline comment at `&8A8F` saying "Service 1" while
   byte is `CMP #&24`. Replace or delete.
-- [ ] **O-4** -- `dir_op_dispatch` description says `Y=&0E` but byte
+- [x] **O-4** -- `dir_op_dispatch` description says `Y=&0E` but byte
   is `&18`. Update description.
 
 ### Bucket 2 — `cmd_table_fs` symbolic conversion (Task #18)
@@ -42,15 +42,15 @@ The biggest remaining "raw bytes" data table. Four sub-tables of
 variable-length entries (name + 1-byte flag + 2-byte address-1).
 Lo halves still auto-split as printable-ASCII strings.
 
-- [ ] Parse the four sub-tables into a Python data list with
+- [x] Parse the four sub-tables into a Python data list with
   (name, flag, target_label) per entry.
-- [ ] Replace auto-classified strings/bytes with explicit `byte()`
+- [x] Replace auto-classified strings/bytes with explicit `byte()`
   declarations covering each entry's flag + address bytes.
-- [ ] `expr()` per address pair: `<(target-1)` / `>(target-1)`.
-- [ ] Inline comment per entry naming the star command and its
+- [x] `expr()` per address pair: `<(target-1)` / `>(target-1)`.
+- [x] Inline comment per entry naming the star command and its
   syntax-template index.
-- [ ] Add `entry()` for any dispatch target not yet declared.
-- [ ] Audit existing `entry()`s for correctness (Phase E found
+- [x] Add `entry()` for any dispatch target not yet declared.
+- [x] Audit existing `entry()`s for correctness (Phase E found
   one wrong: `*Net` was at `&8B23` but should have been `&8B39`;
   others may have similar issues).
 
@@ -94,7 +94,7 @@ were re-introduced.
 &928A). They're correctly classified, just lack a `comment()` line
 explaining their role.
 
-- [ ] Walk the list, add a one-line `comment(addr, "...")` per
+- [x] Walk the list, add a one-line `comment(addr, "...")` per
   string, one commit for the batch.
 
 ### Bucket 5 — O-1 dispatch trace for `nfs_init_body` (Task #21)
@@ -110,10 +110,10 @@ Five callers:
 For each, work out the (X_caller, Y_caller) ranges that can reach
 `X_final = X_caller + Y_caller + 1 = 22`.
 
-- [ ] Tabulate per-caller (X, Y) ranges.
-- [ ] Identify which caller can legitimately reach `idx 22`.
-- [ ] Document on the `nfs_init_body` description.
-- [ ] Remove O-1 from OPEN-ISSUES.md.
+- [x] Tabulate per-caller (X, Y) ranges.
+- [x] Identify which caller can legitimately reach `idx 22`.
+- [x] Document on the `nfs_init_body` description.
+- [x] Remove O-1 from OPEN-ISSUES.md.
 
 If the dispatch trace concludes the body is genuinely dead in
 this build (no valid trigger), document that finding instead.

@@ -318,6 +318,8 @@ Counts: 464 routines total. Distribution by depth: 0=226, 1=90,
 - [x] `0xA6D5` `fsreply_1_boot` - description matches body (already verified earlier)
 - [x] `0xA83B` `svc_8_osword` - description matches body's OSWORD &0E-&14 filter
 - [x] `0xA877` `extract_osword_subcode` - description matches body's nibble-split + EOR/CMP chain
+  - **Later correction (2026-10):** wrong. &A871-&A87E are the OSWORD dispatch lo/hi
+    tables, not code, and `svc_8_osword` starts at &A83C, not &A83B. Fixed in 3cc1175.
 - [x] `0xA985` `osword_12_handler` - description matches body
 - [x] `0xA9CC` `osword_13_read_station` - description matches body's PB[1..2] copy from hazel_minus_1
 - [x] `0xAAB2` `osword_13_read_prot` - description matches body
