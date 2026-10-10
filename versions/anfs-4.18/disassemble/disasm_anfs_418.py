@@ -3131,7 +3131,6 @@ of the clear, not merely an interrupt acknowledgement.""",
 
 
 d.comment(0x85FF, "INTOFF -- disable NMIs", align=Align.INLINE)
-d.label(0x8600, "intoff_disable_nmi_op")
 
 d.comment(0x8602, "INTOFF again (belt-and-braces)", align=Align.INLINE)
 d.label(0x8605, "test_line_idle")
@@ -3219,13 +3218,17 @@ d.comment(0x8662, "INTON -- NMIs now fire for TDRA (&FE20 read)", align=Align.IN
 d.comment(0x8665, "Load destination port number", align=Align.INLINE)
 d.comment(0x8668, "Port != 0: standard data transfer", align=Align.INLINE)
 d.comment(0x866A, "Port 0: load control byte for table lookup", align=Align.INLINE)
-d.comment(0x866D, "Look up tx_flags from table", align=Align.INLINE)
+d.comment(0x866D, "Look up tx_flags for this control byte", align=Align.INLINE)
+d.expr(0x866E, sym("tx_flags_table") - 0x81)
 d.comment(0x8670, "Store operation flags", align=Align.INLINE)
-d.comment(0x8673, "Look up tx_length from table", align=Align.INLINE)
+d.comment(0x8673, "Look up tx_length for this control byte", align=Align.INLINE)
+d.expr(0x8674, sym("tx_length_table") - 0x81)
 d.comment(0x8676, "Store expected transfer length", align=Align.INLINE)
-d.comment(0x8679, "Push high byte of return address (&9C)", align=Align.INLINE)
+d.comment(0x8679, "All handlers lie in page &86: high byte", align=Align.INLINE)
+d.expr(0x867A, hi(sym("tx_ctrl_peek") - 1))
 d.comment(0x867B, "Push high byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
-d.comment(0x867C, "Look up handler address low from table", align=Align.INLINE)
+d.comment(0x867C, "Look up handler address low byte", align=Align.INLINE)
+d.expr(0x867D, sym("tx_ctrl_dispatch_lo") - 0x81)
 d.comment(0x867F, "Push low byte for PHA/PHA/RTS dispatch", align=Align.INLINE)
 d.comment(0x8680, "RTS dispatches to control-byte handler", align=Align.INLINE)
 d.subroutine(
@@ -3233,11 +3236,8 @@ d.subroutine(
     "tx_ctrl_dispatch_lo",
     title="TX-ctrl dispatch table (lo bytes, 8 entries)",
     description="""Low bytes of `PHA`/`PHA`/`RTS` dispatch targets for TX-ctrl
-control-byte types &81-&88. Read by the dispatch at
-[`&867C`](address:867C?hex) via `LDA intoff_disable_nmi_op,Y`,
-which resolves to [`intoff_disable_nmi_op`](label:intoff_disable_nmi_op?hex)
-(= `intoff_test_inactive + 1`) plus Y – an aliased read into
-this table.
+control-byte types &81-&88, read via
+`LDA tx_ctrl_dispatch_lo-&81,Y`.
 
 High byte is always &86, so targets are &86xx+1. The last
 entry (Y=&88) dispatches to
@@ -3729,7 +3729,6 @@ d.comment(0x885E, "No further carry", align=Align.INLINE)
 d.label(0x8860, "tube_tx_inc_byte3")
 
 d.comment(0x8860, "Carry into third byte", align=Align.INLINE)
-d.label(0x8861, "tube_tx_inc_operand")
 
 d.comment(0x8862, "No further carry", align=Align.INLINE)
 d.label(0x8864, "tube_tx_inc_byte4")
@@ -3739,7 +3738,6 @@ d.comment(0x8866, "Counter wrapped to zero: last data", align=Align.INLINE)
 d.label(0x8868, "check_tube_irq_loop")
 
 d.comment(0x8868, "BIT SR1: test IRQ for tight loop", align=Align.INLINE)
-d.label(0x8869, "tube_tx_sr1_operand")
 
 d.comment(0x886B, "IRQ still set: write 2 more bytes", align=Align.INLINE)
 d.comment(0x886D, "No IRQ: return, wait for next NMI", align=Align.INLINE)

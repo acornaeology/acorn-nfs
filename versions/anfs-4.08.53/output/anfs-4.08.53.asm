@@ -2789,8 +2789,6 @@ svc5_dispatch_lo = jmp_send_data_rx_ack+1
 ; register or globally. The SR1 read is therefore a prerequisite of the clear, not merely
 ; an interrupt acknowledgement.
 .intoff_test_inactive
-; &85f6 used as index base 1 time by &8672
-intoff_disable_nmi_op = intoff_test_inactive+1
     bit station_id_disable_net_nmis                                   ; 85f5: 2c 18 fe    ,..      ; INTOFF -- disable NMIs
     bit station_id_disable_net_nmis                                   ; 85f8: 2c 18 fe    ,..      ; INTOFF again (belt-and-braces)
 .test_line_idle
@@ -2870,18 +2868,23 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     lda tx_port                                                       ; 865b: ad 25 0d    .%.      ; Load destination port number
     bne setup_data_xfer                                               ; 865e: d0 42       .B       ; Port != 0: standard data transfer
     ldy tx_ctrl_byte                                                  ; 8660: ac 24 0d    .$.      ; Port 0: load control byte for table lookup
-    lda tube_tx_sr1_operand,y                                         ; 8663: b9 5f 88    ._.      ; Look up tx_flags from table
+    lda tx_flags_table - &81,y                                        ; 8663: b9 5f 88    ._.      ; Look up tx_flags for this control byte
     sta net_frame_flags                                               ; 8666: 8d 3e 0d    .>.      ; Store operation flags
-    lda tube_tx_inc_operand,y                                         ; 8669: b9 57 88    .W.      ; Look up tx_length from table
+    lda tx_length_table - &81,y                                       ; 8669: b9 57 88    .W.      ; Look up tx_length for this control byte
     sta rx_ctrl                                                       ; 866c: 8d 3f 0d    .?.      ; Store expected transfer length
-    lda #&86                                                          ; 866f: a9 86       ..       ; Push high byte of return address (&9C)
+    lda #>(tx_ctrl_peek - 1)                                          ; 866f: a9 86       ..       ; All handlers lie in page &86: high byte
     pha                                                               ; 8671: 48          H        ; Push high byte for PHA/PHA/RTS dispatch
-    lda intoff_disable_nmi_op,y                                       ; 8672: b9 f6 85    ...      ; Look up handler address low from table
+    lda tx_ctrl_dispatch_lo - &81,y                                   ; 8672: b9 f6 85    ...      ; Look up handler address low byte
     pha                                                               ; 8675: 48          H        ; Push low byte for PHA/PHA/RTS dispatch
     rts                                                               ; 8676: 60          `        ; RTS dispatches to control-byte handler
-; TX ctrl dispatch table (lo bytes)
+; ***************************************************************************************
+; TX-ctrl dispatch table (lo bytes, 8 entries)
 ;
-; Low bytes of PHA/PHA/RTS dispatch targets for TX control byte types &81-&88. Read by the dispatch at &8672 via LDA intoff_disable_nmi_op,Y (base intoff_test_inactive+1). High byte is always &86, so targets are &86xx+1. Last entry dispatches to tx_ctrl_machine_type at &867F, immediately after the table.
+; Low bytes of PHA/PHA/RTS dispatch targets for TX-ctrl control-byte types &81-&88, read
+; via LDA tx_ctrl_dispatch_lo-&81,Y.
+;
+; High byte is always &86, so targets are &86xx+1. The last entry (Y=&88) dispatches to
+; tx_ctrl_machine_type, the routine that begins immediately after the table.
 .tx_ctrl_dispatch_lo
     equb <(tx_ctrl_peek - 1)                                          ; 8677: 82          .        ; Ctrl &81 PEEK: tx_ctrl_peek
     equb <(tx_ctrl_poke - 1)                                          ; 8678: 86          .        ; Ctrl &82 POKE: tx_ctrl_poke
@@ -3318,8 +3321,6 @@ intoff_disable_nmi_op = intoff_test_inactive+1
     inc port_buf_len_hi                                               ; 8852: e6 a3       ..       ; Carry into second byte
     bne check_tube_irq_loop                                           ; 8854: d0 08       ..       ; No further carry
 .tube_tx_inc_byte3
-; &8857 used as index base 1 time by &8669
-tube_tx_inc_operand = tube_tx_inc_byte3+1
     inc open_port_buf                                                 ; 8856: e6 a4       ..       ; Carry into third byte
     bne check_tube_irq_loop                                           ; 8858: d0 04       ..       ; No further carry
 .tube_tx_inc_byte4
@@ -3327,8 +3328,6 @@ tube_tx_inc_operand = tube_tx_inc_byte3+1
     beq data_tx_last                                                  ; 885c: f0 b5       ..       ; Counter wrapped to zero: last data
 ; &885e referenced 3 times by &8850, &8854, &8858
 .check_tube_irq_loop
-; &885f used as index base 1 time by &8663
-tube_tx_sr1_operand = check_tube_irq_loop+1
     bit econet_control1_or_status1                                    ; 885e: 2c a0 fe    ,..      ; BIT SR1: test IRQ for tight loop
     bmi tube_tx_fifo_write                                            ; 8861: 30 cd       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 8863: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
@@ -14901,7 +14900,6 @@ save pydis_start, pydis_end
 ;     install_reply_scout:                      1
 ;     install_saved_handler:                    1
 ;     install_tube_rx:                          1
-;     intoff_disable_nmi_op:                    1
 ;     inx4:                                     1
 ;     is_dec_digit_only:                        1
 ;     issue_svc_15:                             1
@@ -15458,8 +15456,6 @@ save pydis_start, pydis_end
 ;     tube_return_main:                         1
 ;     tube_sendw_complete:                      1
 ;     tube_transfer_setup:                      1
-;     tube_tx_inc_operand:                      1
-;     tube_tx_sr1_operand:                      1
 ;     tube_vdu_dispatch:                        1
 ;     tube_vdu_stream_end:                      1
 ;     tube_write_setup:                         1
