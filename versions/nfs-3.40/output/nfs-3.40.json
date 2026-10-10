@@ -2509,7 +2509,7 @@
     },
     {
       "addr": 40904,
-      "title": "Unreferenced names",
+      "title": "Programmers' credit",
       "description": "The text `Brian,Hugo,Jes and Roger`, placed after the last\nroutine. No code reads it.",
       "align": "before_label"
     }
@@ -64114,7 +64114,7 @@
         101,
         114
       ],
-      "comment_inline": "Unreferenced text",
+      "comment_inline": "Programmers' credit",
       "type": "string",
       "string": "Brian,Hugo,Jes and Roger"
     },

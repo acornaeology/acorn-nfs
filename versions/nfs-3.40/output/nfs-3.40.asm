@@ -8523,10 +8523,10 @@ tx_done_handler_hi = tx_nmi_setup+1
     bit video_ula_control                                             ; 9fc4: 2c 20 fe    , .      ; INTON: re-enable NMIs
     rti                                                               ; 9fc7: 40          @        ; Return from interrupt
 ; ***************************************************************************************
-; Unreferenced names
+; Programmers' credit
 ;
 ; The text Brian,Hugo,Jes and Roger, placed after the last routine. No code reads it.
-    equs "Brian,Hugo,Jes and Roger"                                   ; 9fc8: 42 72 69... Bri...   ; Unreferenced text
+    equs "Brian,Hugo,Jes and Roger"                                   ; 9fc8: 42 72 69... Bri...   ; Programmers' credit
 ; ***************************************************************************************
 ; Print byte as two hex digits
 ;

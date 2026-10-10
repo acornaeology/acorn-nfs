@@ -9302,11 +9302,11 @@ d.comment(0x8295, 'CR ends the command', align=Align.INLINE)
 d.comment(0x06CE, "Unused: filler at the end of the page-6 code", align=Align.INLINE)
 d.banner(
     0x9FC8,
-    title="Unreferenced names",
+    title="Programmers' credit",
     description="""The text `Brian,Hugo,Jes and Roger`, placed after the last
 routine. No code reads it.""",
 )
-d.comment(0x9FC8, "Unreferenced text", align=Align.INLINE)
+d.comment(0x9FC8, "Programmers' credit", align=Align.INLINE)
 
 d.subroutine(
     0x06A7,
