@@ -2963,10 +2963,10 @@
       }
     },
     {
-      "addr": 43094,
+      "addr": 43095,
       "name": "svc_8_osword",
       "title": "Service 8: unrecognised OSWORD",
-      "description": "Handles MOS service call 8 (unrecognised OSWORD).\nFilters OSWORD codes &0E-&14 by subtracting &0E (via\nCLC/SBC &0D) and rejecting values outside 0-6. For\nvalid codes, calls osword_setup_handler to push the\ndispatch address, then copies 3 bytes from the RX\nbuffer to osword_flag workspace.",
+      "description": "Handles MOS service call 8 (unrecognised OSWORD).\nFilters OSWORD codes &0E-&14 by subtracting &0E (via\nCLC/SBC &0D) and rejecting values outside 0-6. For\nvalid codes, saves the six workspace bytes at\n&AA-&AF on the stack and replaces them with copies of\nthe MOS OSWORD state at &EE-&F3 (so the parameter\nblock pointer at &F0/&F1 lands in &AC/&AD), then calls\n[`osword_setup_handler`](label:osword_setup_handler) to\ndispatch to the handler. On return, restores the six\nsaved workspace bytes.",
       "on_entry": {
         "a": "OSWORD number (from osbyte_a_copy)",
         "y": "parameter passed by service-call dispatch"
@@ -2976,10 +2976,21 @@
       "addr": 43135,
       "name": "osword_setup_handler",
       "title": "Push OSWORD handler address for RTS dispatch",
-      "description": "Indexes the OSWORD dispatch table by X to\npush a handler address (hi then lo) onto the\nstack. Copies 3 bytes from the osword_flag\nworkspace into the RX buffer, loads PB byte 0\n(the OSWORD sub-code), and clears svc_state.\nThe subsequent RTS dispatches to the pushed\nhandler address.",
+      "description": "Indexes the OSWORD dispatch table by X and pushes the\nhandler address (hi then lo) onto the stack. Loads\nthe first parameter-block byte (the OSWORD sub-code)\ninto A and clears svc_state. The RTS then dispatches\nto the pushed handler address.",
       "on_entry": {
-        "x": "OSWORD handler index (0-6)"
+        "x": "OSWORD handler index (0-6)",
+        "y": "0 (from the save loop)"
+      },
+      "on_exit": {
+        "a": "PB[0], the OSWORD sub-code",
+        "y": "0"
       }
+    },
+    {
+      "addr": 43148,
+      "name": "osword_dispatch_lo_table",
+      "title": "OSWORD dispatch table (7 entries, split lo/hi)",
+      "description": "`PHA`/`PHA`/`RTS` dispatch used by `svc_8_osword`.\nMaps OSWORD codes &0E-&14 to handler routines (lo bytes at\n&A88C-&A892, hi bytes at [`osword_dispatch_hi_table`](label:osword_dispatch_hi_table))."
     },
     {
       "addr": 43314,
@@ -25172,13 +25183,13 @@
       ],
       "expressions": [
         {
-          "text": "<(svc_8_osword_disp - 1)",
+          "text": "<(svc_8_osword - 1)",
           "tree": {
             "op": "lowbyte",
             "operand": {
               "op": "sub",
               "left": {
-                "sym": "svc_8_osword_disp"
+                "sym": "svc_8_osword"
               },
               "right": {
                 "int": 1,
@@ -26645,13 +26656,13 @@
       ],
       "expressions": [
         {
-          "text": ">(svc_8_osword_disp - 1)",
+          "text": ">(svc_8_osword - 1)",
           "tree": {
             "op": "highbyte",
             "operand": {
               "op": "sub",
               "left": {
-                "sym": "svc_8_osword_disp"
+                "sym": "svc_8_osword"
               },
               "right": {
                 "int": 1,
@@ -79665,23 +79676,25 @@
     {
       "addr": 43094,
       "bytes": [
-        128,
+        128
+      ],
+      "comment_inline": "&80: end of command table",
+      "type": "byte",
+      "values": [
+        128
+      ]
+    },
+    {
+      "addr": 43095,
+      "bytes": [
         24
       ],
       "labels": [
         "svc_8_osword"
       ],
-      "sub_labels": {
-        "43095": [
-          "svc_8_osword_disp"
-        ]
-      },
-      "comment_inline": "BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame CLC so SBC subtracts value+1",
+      "comment_inline": "CLC so SBC subtracts value+1",
       "type": "code",
-      "mnemonic": "bra",
-      "operand": "osword_store_svc_state",
-      "target": 43120,
-      "target_label": "osword_store_svc_state"
+      "mnemonic": "clc"
     },
     {
       "addr": 43096,
@@ -79689,12 +79702,12 @@
         165,
         239
       ],
-      "comment_inline": "OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)",
-      "type": "byte",
-      "values": [
-        165,
-        239
-      ]
+      "comment_inline": "A = OSWORD number",
+      "type": "code",
+      "mnemonic": "lda",
+      "operand": "osbyte_a_copy",
+      "target": 239,
+      "target_label": "osbyte_a_copy"
     },
     {
       "addr": 43098,
@@ -79703,11 +79716,9 @@
         13
       ],
       "comment_inline": "A = OSWORD - &0E (CLC+SBC = -&0E)",
-      "type": "byte",
-      "values": [
-        233,
-        13
-      ]
+      "type": "code",
+      "mnemonic": "sbc",
+      "operand": "#&0d"
     },
     {
       "addr": 43100,
@@ -79716,11 +79727,11 @@
         45
       ],
       "comment_inline": "Below &0E: not ours, return",
-      "type": "byte",
-      "values": [
-        48,
-        45
-      ]
+      "type": "code",
+      "mnemonic": "bmi",
+      "operand": "rts_osword_setup",
+      "target": 43147,
+      "target_label": "rts_osword_setup"
     },
     {
       "addr": 43102,
@@ -79729,11 +79740,9 @@
         7
       ],
       "comment_inline": "Index >= 7? (OSWORD > &14)",
-      "type": "byte",
-      "values": [
-        201,
-        7
-      ]
+      "type": "code",
+      "mnemonic": "cmp",
+      "operand": "#7"
     },
     {
       "addr": 43104,
@@ -79742,11 +79751,11 @@
         41
       ],
       "comment_inline": "Above &14: not ours, return",
-      "type": "byte",
-      "values": [
-        176,
-        41
-      ]
+      "type": "code",
+      "mnemonic": "bcs",
+      "operand": "rts_osword_setup",
+      "target": 43147,
+      "target_label": "rts_osword_setup"
     },
     {
       "addr": 43106,
@@ -79754,10 +79763,8 @@
         170
       ],
       "comment_inline": "X=OSWORD handler index (0-6)",
-      "type": "byte",
-      "values": [
-        170
-      ]
+      "type": "code",
+      "mnemonic": "tax"
     },
     {
       "addr": 43107,
@@ -79766,11 +79773,9 @@
         6
       ],
       "comment_inline": "Y=6: save 6 workspace bytes",
-      "type": "byte",
-      "values": [
-        160,
-        6
-      ]
+      "type": "code",
+      "mnemonic": "ldy",
+      "operand": "#6"
     },
     {
       "addr": 43109,
@@ -79782,7 +79787,7 @@
       "labels": [
         "loop_save_osword_ws"
       ],
-      "comment_inline": "Read svc_state[Y] (frame slot)",
+      "comment_inline": "Load current workspace byte",
       "xref_summaries": [
         "&a865 referenced 1 time by &a870"
       ],
@@ -79814,7 +79819,7 @@
         237,
         0
       ],
-      "comment_inline": "Load OSWORD parameter byte",
+      "comment_inline": "Load MOS OSWORD state byte",
       "type": "code",
       "mnemonic": "lda",
       "operand": "tx_imm_idx_base,y",
@@ -79828,7 +79833,7 @@
         169,
         0
       ],
-      "comment_inline": "Copy parameter to workspace",
+      "comment_inline": "Copy into workspace",
       "type": "code",
       "mnemonic": "sta",
       "operand": "svc_state,y",
@@ -79840,7 +79845,7 @@
       "bytes": [
         136
       ],
-      "comment_inline": "Next slot",
+      "comment_inline": "Next byte down",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -79850,19 +79855,7 @@
         208,
         243
       ],
-      "labels": [
-        "osword_store_svc_state"
-      ],
-      "comment_inline": "Loop until Y wraps",
-      "xref_summaries": [
-        "&a870 referenced 1 time by &a856"
-      ],
-      "references": [
-        {
-          "addr": 43094,
-          "kind": "direct"
-        }
-      ],
+      "comment_inline": "Loop for all 6 bytes",
       "type": "code",
       "mnemonic": "bne",
       "operand": "loop_save_osword_ws",
@@ -79876,7 +79869,7 @@
         127,
         168
       ],
-      "comment_inline": "Set up dispatch and save state",
+      "comment_inline": "Dispatch to the OSWORD handler",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "osword_setup_handler",
@@ -79922,7 +79915,7 @@
         176,
         255
       ],
-      "comment_inline": "Store to osword_flag workspace",
+      "comment_inline": "Store back to &AA-&AF",
       "type": "code",
       "mnemonic": "sta",
       "operand": "nmi_buf_idx_base,y",
@@ -79970,7 +79963,7 @@
       "labels": [
         "osword_setup_handler"
       ],
-      "comment_inline": "X = OSWORD index (0-6)",
+      "comment_inline": "Load handler address high byte",
       "xref_summaries": [
         "&a87f referenced 1 time by &a872"
       ],
@@ -79982,16 +79975,16 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "osword_subcode_dispatch,x",
+      "operand": "osword_dispatch_hi_table,x",
       "target": 43155,
-      "target_label": "osword_subcode_dispatch"
+      "target_label": "osword_dispatch_hi_table"
     },
     {
       "addr": 43138,
       "bytes": [
         72
       ],
-      "comment_inline": "Push for stack frame manipulation",
+      "comment_inline": "Push high byte for RTS dispatch",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -80005,16 +79998,16 @@
       "comment_inline": "Load handler address low byte",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "osword_pb_ready,x",
+      "operand": "osword_dispatch_lo_table,x",
       "target": 43148,
-      "target_label": "osword_pb_ready"
+      "target_label": "osword_dispatch_lo_table"
     },
     {
       "addr": 43142,
       "bytes": [
         72
       ],
-      "comment_inline": "Push again",
+      "comment_inline": "Push low byte for RTS dispatch",
       "type": "code",
       "mnemonic": "pha"
     },
@@ -80024,7 +80017,7 @@
         177,
         172
       ],
-      "comment_inline": "Copy 3 bytes (Y=2,1,0)",
+      "comment_inline": "A = PB[0]: OSWORD sub-code",
       "type": "code",
       "mnemonic": "lda",
       "operand": "(ws_ptr_hi),y",
@@ -80037,7 +80030,7 @@
         132,
         169
       ],
-      "comment_inline": "Load from osword_flag workspace",
+      "comment_inline": "Y=0 from copy loop above: clear svc_state",
       "type": "code",
       "mnemonic": "sty",
       "operand": "svc_state",
@@ -80053,23 +80046,48 @@
         "rts_osword_setup"
       ],
       "comment_inline": "RTS dispatches to pushed handler",
+      "xref_summaries": [
+        "&a88b referenced 2 times by &a85c, &a860"
+      ],
+      "references": [
+        {
+          "addr": 43100,
+          "kind": "direct"
+        },
+        {
+          "addr": 43104,
+          "kind": "direct"
+        }
+      ],
       "type": "code",
-      "mnemonic": "rts"
+      "mnemonic": "rts",
+      "expr": {
+        "text": "<(osword_0e_dispatch - 1)",
+        "tree": {
+          "op": "lowbyte",
+          "operand": {
+            "op": "sub",
+            "left": {
+              "ref": 43162,
+              "name": "osword_0e_dispatch"
+            },
+            "right": {
+              "int": 1,
+              "radix": "auto"
+            }
+          }
+        }
+      }
     },
     {
       "addr": 43148,
       "bytes": [
-        153,
-        138,
-        49,
-        78,
-        166,
-        187,
-        104
+        153
       ],
       "labels": [
-        "osword_pb_ready"
+        "osword_dispatch_lo_table"
       ],
+      "comment_inline": "lo-&0E: read clock",
       "xref_summaries": [
         "&a88c used as index base 1 time by &a883"
       ],
@@ -80081,28 +80099,217 @@
       ],
       "type": "byte",
       "values": [
-        153,
-        138,
-        49,
-        78,
-        166,
-        187,
+        153
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_0e_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43162,
+                "name": "osword_0e_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43149,
+      "bytes": [
+        138
+      ],
+      "comment_inline": "lo-&0F: (unimplemented)",
+      "type": "byte",
+      "values": [
+        138
+      ],
+      "expressions": [
+        {
+          "text": "<(rts_osword_setup - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43147,
+                "name": "rts_osword_setup"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43150,
+      "bytes": [
+        49
+      ],
+      "comment_inline": "lo-&10: transmit",
+      "type": "byte",
+      "values": [
+        49
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_10_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43314,
+                "name": "osword_10_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43151,
+      "bytes": [
+        78
+      ],
+      "comment_inline": "lo-&11: receive",
+      "type": "byte",
+      "values": [
+        78
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_11_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43343,
+                "name": "osword_11_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43152,
+      "bytes": [
+        166
+      ],
+      "comment_inline": "lo-&12: read station info",
+      "type": "byte",
+      "values": [
+        166
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_12_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43431,
+                "name": "osword_12_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43153,
+      "bytes": [
+        187
+      ],
+      "comment_inline": "lo-&13: misc operations",
+      "type": "byte",
+      "values": [
+        187
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_13_dispatch - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43452,
+                "name": "osword_13_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43154,
+      "bytes": [
         104
+      ],
+      "comment_inline": "lo-&14: bridge/net config",
+      "type": "byte",
+      "values": [
+        104
+      ],
+      "expressions": [
+        {
+          "text": "<(osword_14_handler - 1)",
+          "tree": {
+            "op": "lowbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 44137,
+                "name": "osword_14_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
       "addr": 43155,
       "bytes": [
-        168,
-        168,
-        169,
-        169,
-        169,
-        169
+        168
       ],
       "labels": [
-        "osword_subcode_dispatch"
+        "osword_dispatch_hi_table"
       ],
+      "comment_inline": "hi-&0E: read clock",
       "xref_summaries": [
         "&a893 used as index base 1 time by &a87f"
       ],
@@ -80114,12 +80321,176 @@
       ],
       "type": "byte",
       "values": [
-        168,
-        168,
-        169,
-        169,
-        169,
+        168
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_0e_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43162,
+                "name": "osword_0e_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43156,
+      "bytes": [
+        168
+      ],
+      "comment_inline": "hi-&0F: (unimplemented)",
+      "type": "byte",
+      "values": [
+        168
+      ],
+      "expressions": [
+        {
+          "text": ">(rts_osword_setup - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43147,
+                "name": "rts_osword_setup"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43157,
+      "bytes": [
         169
+      ],
+      "comment_inline": "hi-&10: transmit",
+      "type": "byte",
+      "values": [
+        169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_10_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43314,
+                "name": "osword_10_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43158,
+      "bytes": [
+        169
+      ],
+      "comment_inline": "hi-&11: receive",
+      "type": "byte",
+      "values": [
+        169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_11_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43343,
+                "name": "osword_11_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43159,
+      "bytes": [
+        169
+      ],
+      "comment_inline": "hi-&12: read station info",
+      "type": "byte",
+      "values": [
+        169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_12_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43431,
+                "name": "osword_12_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "addr": 43160,
+      "bytes": [
+        169
+      ],
+      "comment_inline": "hi-&13: misc operations",
+      "type": "byte",
+      "values": [
+        169
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_13_dispatch - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 43452,
+                "name": "osword_13_dispatch"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {
@@ -80127,10 +80498,29 @@
       "bytes": [
         172
       ],
-      "comment_inline": "Load template source pointer",
+      "comment_inline": "hi-&14: bridge/net config",
       "type": "byte",
       "values": [
         172
+      ],
+      "expressions": [
+        {
+          "text": ">(osword_14_handler - 1)",
+          "tree": {
+            "op": "highbyte",
+            "operand": {
+              "op": "sub",
+              "left": {
+                "ref": 44137,
+                "name": "osword_14_handler"
+              },
+              "right": {
+                "int": 1,
+                "radix": "auto"
+              }
+            }
+          }
+        }
       ]
     },
     {

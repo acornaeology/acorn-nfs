@@ -107,7 +107,7 @@ rx_buf_offset               = &a7  ; Receive buffer offset
 ws_page                     = &a8  ; Multi-purpose workspace page
 ; &a8 referenced 16 times by &8af9, &8afc, &8b05, &8c69, &8c79, &8c89, &8d0f, &8d46, &8f52, &8fc5, &8fd0, &bd90, &bee9, &bf27, &bfa1, &bfbb
 svc_state                   = &a9  ; Multi-purpose service state
-; &a9 referenced 12 times by &8ad0, &8ad4, &8b07, &8b0a, &8b39, &8b71, &8d0d, &8ef9, &a2c1, &a301, &a464, &a887; also used as index base 2 times by &a863, &a86a
+; &a9 referenced 13 times by &8ad0, &8ad4, &8b07, &8b0a, &8b39, &8b71, &8d0d, &8ef9, &a2c1, &a301, &a464, &a887, &a8ad; also used as index base 2 times by &a863, &a86a
 osword_flag                 = &aa  ; OSWORD param byte
 ; &aa referenced 29 times by &a941, &a951, &a965, &a97c, &a986, &a996, &a9ae, &aa98, &aaa6, &aaa8, &aab7, &ace1, &acee, &acf0, &b04f, &b058, &b07e, &b081, &b088, &b092, &b0b6, &b0b8, &b4f0, &b543, &bd8e, &bd97, &bd99, &bda3, &bde4; also used as index base 5 times by &bef4, &bf1d, &bf8a, &bf8d, &bf99
 ws_ptr_lo                   = &ab  ; Workspace indirect pointer (lo)
@@ -175,7 +175,7 @@ vdu_status                  = &d0  ; VDU status register (OSBYTE &75)
 tx_imm_idx_base             = &ed
 ; &ed used as index base 1 time by &a867
 osbyte_a_copy               = &ef
-; &ef referenced 3 times by &8ef0, &ad3d, &ae0b
+; &ef referenced 4 times by &8ef0, &a856, &ad3d, &ae0b
 osword_pb_ptr               = &f0
 ; &f0 referenced 9 times by &8b83, &8bdb, &a3fb, &a426, &a431, &a9f4, &aa04, &ae01, &ae7b
 osword_pb_ptr_hi            = &f1
@@ -3388,7 +3388,7 @@ os_spool_flag_table = nmi_return_inton+1
     equb <(svc5_irq_check - 1)                                        ; 8a29: 29          )        ; &06: svc &05: IRQ check
     equb <(dispatch_rts - 1)                                          ; 8a2a: 87          .        ; &07: no-op (RTS only)
     equb <(svc_7_osbyte - 1)                                          ; 8a2b: ef          .        ; &08: svc &07: unrecognised OSBYTE
-    equb <(svc_8_osword_disp - 1)                                     ; 8a2c: 54          T        ; &09: svc &08: OSWORD dispatch
+    equb <(svc_8_osword - 1)                                          ; 8a2c: 54          T        ; &09: svc &08: OSWORD dispatch
     equb <(svc_9_help - 1)                                            ; 8a2d: 75          u        ; &0A: svc &09: *HELP
     equb <(dispatch_rts - 1)                                          ; 8a2e: 87          .        ; &0B: no-op (RTS only)
     equb <(econet_restore - 1)                                        ; 8a2f: 6d          m        ; &0C: svc &0B: NMI release
@@ -3447,7 +3447,7 @@ os_spool_flag_table = nmi_return_inton+1
     equb >(svc5_irq_check - 1)                                        ; 8a5c: 80          .        ; &06: svc &05: IRQ check
     equb >(dispatch_rts - 1)                                          ; 8a5d: 8e          .        ; &07: no-op (RTS only)
     equb >(svc_7_osbyte - 1)                                          ; 8a5e: 8e          .        ; &08: svc &07: unrecognised OSBYTE
-    equb >(svc_8_osword_disp - 1)                                     ; 8a5f: a8          .        ; &09: svc &08: OSWORD dispatch
+    equb >(svc_8_osword - 1)                                          ; 8a5f: a8          .        ; &09: svc &08: OSWORD dispatch
     equb >(svc_9_help - 1)                                            ; 8a60: 8c          .        ; &0A: svc &09: *HELP
     equb >(dispatch_rts - 1)                                          ; 8a61: 8e          .        ; &0B: no-op (RTS only)
     equb >(econet_restore - 1)                                        ; 8a62: 80          .        ; &0C: svc &0B: NMI release
@@ -3789,7 +3789,7 @@ os_spool_flag_table = nmi_return_inton+1
 ;
 ; On Entry:
 ;     X, Y: OSWORD parameter block pointer (preserved across the cmd_net_fs call when selection happens)
-; &8b73 referenced 7 times by &8ea7, &96b2, &a9ec, &a9fa, &aae2, &aaf0, &ac6c
+; &8b73 referenced 8 times by &8ea7, &96b2, &a899, &a9ec, &a9fa, &aae2, &aaf0, &ac6c
 .ensure_fs_selected
     bit fs_flags                                                      ; 8b73: 2c 6c 0d    ,l.      ; Test fs_flags bit 7 (ANFS active)
     bmi rts_save_text_ptr                                             ; 8b76: 30 d0       0.       ; Already active: tail-RTS via shared exit
@@ -11021,91 +11021,127 @@ cmd_dispatch_hi_table = cmd_table_fs+2
     equs "Space"                                                      ; a84c: 53 70 61... Spa...   ; caller &9641
     equb &80                                                          ; a851: 80          .        ; no syn
     equw &9640                                                        ; a852: 40 96       @.       ; Space dispatch target (&9640)
+    equb &80                                                          ; a854: 80          .        ; &80: end of command table
 ; ***************************************************************************************
 ; Service 8: unrecognised OSWORD
 ;
 ; Handles MOS service call 8 (unrecognised OSWORD). Filters OSWORD codes &0E-&14 by
 ; subtracting &0E (via CLC/SBC &0D) and rejecting values outside 0-6. For valid codes,
-; calls osword_setup_handler to push the dispatch address, then copies 3 bytes from the
-; RX buffer to osword_flag workspace.
+; saves the six workspace bytes at &AA-&AF on the stack and replaces them with copies of
+; the MOS OSWORD state at &EE-&F3 (so the parameter block pointer at &F0/&F1 lands in
+; &AC/&AD), then calls osword_setup_handler to dispatch to the handler. On return,
+; restores the six saved workspace bytes.
 ;
 ; On Entry:
 ;     A: OSWORD number (from osbyte_a_copy)
 ;     Y: parameter passed by service-call dispatch
 .svc_8_osword
-svc_8_osword_disp = svc_8_osword+1
-    bra osword_store_svc_state                                        ; a854: 80 18       ..       ; BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame  CLC so SBC subtracts value+1
-    equb &a5, &ef                                                     ; a856: a5 ef       ..       ; OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)
-    equb &e9, &0d                                                     ; a858: e9 0d       ..       ; A = OSWORD - &0E (CLC+SBC = -&0E)
-    equb &30, &2d                                                     ; a85a: 30 2d       0-       ; Below &0E: not ours, return
-    equb &c9, &07                                                     ; a85c: c9 07       ..       ; Index >= 7? (OSWORD > &14)
-    equb &b0, &29                                                     ; a85e: b0 29       .)       ; Above &14: not ours, return
-    equb &aa                                                          ; a860: aa          .        ; X=OSWORD handler index (0-6)
-    equb &a0, &06                                                     ; a861: a0 06       ..       ; Y=6: save 6 workspace bytes
+    clc                                                               ; a855: 18          .        ; CLC so SBC subtracts value+1
+    lda osbyte_a_copy                                                 ; a856: a5 ef       ..       ; A = OSWORD number
+    sbc #&0d                                                          ; a858: e9 0d       ..       ; A = OSWORD - &0E (CLC+SBC = -&0E)
+    bmi rts_osword_setup                                              ; a85a: 30 2d       0-       ; Below &0E: not ours, return
+    cmp #7                                                            ; a85c: c9 07       ..       ; Index >= 7? (OSWORD > &14)
+    bcs rts_osword_setup                                              ; a85e: b0 29       .)       ; Above &14: not ours, return
+    tax                                                               ; a860: aa          .        ; X=OSWORD handler index (0-6)
+    ldy #6                                                            ; a861: a0 06       ..       ; Y=6: save 6 workspace bytes
 ; &a863 referenced 1 time by &a86e
 .loop_save_osword_ws
-    lda svc_state,y                                                   ; a863: b9 a9 00    ...      ; Read svc_state[Y] (frame slot)
+    lda svc_state,y                                                   ; a863: b9 a9 00    ...      ; Load current workspace byte
     pha                                                               ; a866: 48          H        ; Save on stack
-    lda tx_imm_idx_base,y                                             ; a867: b9 ed 00    ...      ; Load OSWORD parameter byte
-    sta svc_state,y                                                   ; a86a: 99 a9 00    ...      ; Copy parameter to workspace
-    dey                                                               ; a86d: 88          .        ; Next slot
-; &a86e referenced 1 time by &a854
-.osword_store_svc_state
-    bne loop_save_osword_ws                                           ; a86e: d0 f3       ..       ; Loop until Y wraps
-    jsr osword_setup_handler                                          ; a870: 20 7d a8     }.      ; Set up dispatch and save state
-    equb &a0                                                          ; a873: a0          .        ; Y=&FA: restore 6 workspace bytes
-.osword_0e_handler
-    plx                                                               ; a874: fa          .     
+    lda tx_imm_idx_base,y                                             ; a867: b9 ed 00    ...      ; Load MOS OSWORD state byte
+    sta svc_state,y                                                   ; a86a: 99 a9 00    ...      ; Copy into workspace
+    dey                                                               ; a86d: 88          .        ; Next byte down
+    bne loop_save_osword_ws                                           ; a86e: d0 f3       ..       ; Loop for all 6 bytes
+    jsr osword_setup_handler                                          ; a870: 20 7d a8     }.      ; Dispatch to the OSWORD handler
+    ldy #&fa                                                          ; a873: a0 fa       ..       ; Y=&FA: restore 6 workspace bytes
 ; &a875 referenced 1 time by &a87a
 .loop_restore_osword_ws
     pla                                                               ; a875: 68          h        ; Restore saved workspace byte
-    sta nmi_buf_idx_base,y                                            ; a876: 99 b0 ff    ...      ; Store to osword_flag workspace
+    sta nmi_buf_idx_base,y                                            ; a876: 99 b0 ff    ...      ; Store back to &AA-&AF
     iny                                                               ; a879: c8          .        ; Next byte
     bne loop_restore_osword_ws                                        ; a87a: d0 f9       ..       ; Loop until all 6 restored
     rts                                                               ; a87c: 60          `        ; Return from svc_8_osword
 ; ***************************************************************************************
 ; Push OSWORD handler address for RTS dispatch
 ;
-; Indexes the OSWORD dispatch table by X to push a handler address (hi then lo) onto the
-; stack. Copies 3 bytes from the osword_flag workspace into the RX buffer, loads PB byte
-; 0 (the OSWORD sub-code), and clears svc_state. The subsequent RTS dispatches to the
-; pushed handler address.
+; Indexes the OSWORD dispatch table by X and pushes the handler address (hi then lo) onto
+; the stack. Loads the first parameter-block byte (the OSWORD sub-code) into A and clears
+; svc_state. The RTS then dispatches to the pushed handler address.
 ;
 ; On Entry:
 ;     X: OSWORD handler index (0-6)
+;     Y: 0 (from the save loop)
+;
+; On Exit:
+;     A: PB[0], the OSWORD sub-code
+;     Y: 0
 ; &a87d referenced 1 time by &a870
 .osword_setup_handler
-    lda osword_subcode_dispatch,x                                     ; a87d: bd 91 a8    ...      ; X = OSWORD index (0-6)
-    pha                                                               ; a880: 48          H        ; Push for stack frame manipulation
-    lda osword_pb_ready,x                                             ; a881: bd 8a a8    ...      ; Load handler address low byte
-    pha                                                               ; a884: 48          H        ; Push again
-    lda (ws_ptr_hi),y                                                 ; a885: b1 ac       ..       ; Copy 3 bytes (Y=2,1,0)
-    sty svc_state                                                     ; a887: 84 a9       ..       ; Load from osword_flag workspace
+    lda osword_dispatch_hi_table,x                                    ; a87d: bd 91 a8    ...      ; Load handler address high byte
+    pha                                                               ; a880: 48          H        ; Push high byte for RTS dispatch
+    lda osword_dispatch_lo_table,x                                    ; a881: bd 8a a8    ...      ; Load handler address low byte
+    pha                                                               ; a884: 48          H        ; Push low byte for RTS dispatch
+    lda (ws_ptr_hi),y                                                 ; a885: b1 ac       ..       ; A = PB[0]: OSWORD sub-code
+    sty svc_state                                                     ; a887: 84 a9       ..       ; Y=0 from copy loop above: clear svc_state
+; &a889 referenced 2 times by &a85a, &a85e
 .rts_osword_setup
     rts                                                               ; a889: 60          `        ; RTS dispatches to pushed handler
+; ***************************************************************************************
+; OSWORD dispatch table (7 entries, split lo/hi)
+;
+; PHA/PHA/RTS dispatch used by svc_8_osword. Maps OSWORD codes &0E-&14 to handler
+; routines (lo bytes at &A88A-&A890, hi bytes at osword_dispatch_hi_table).
 ; &a88a used as index base 1 time by &a881
-.osword_pb_ready
-    equb &97, &88, &2f, &4c, &a4, &b9, &66                            ; a88a: 97 88 2f... ../...
+.osword_dispatch_lo_table
+    equb <(osword_0e_handler - 1)                                     ; a88a: 97          .        ; lo-&0E: read clock
+    equb <(rts_osword_setup - 1)                                      ; a88b: 88          .        ; lo-&0F: (unimplemented)
+    equb <(osword_10_handler - 1)                                     ; a88c: 2f          /        ; lo-&10: transmit
+    equb <(osword_11_handler - 1)                                     ; a88d: 4c          L        ; lo-&11: receive
+    equb <(osword_12_handler - 1)                                     ; a88e: a4          .        ; lo-&12: read station info
+    equb <(osword_13_dispatch - 1)                                    ; a88f: b9          .        ; lo-&13: misc operations
+    equb <(osword_14_handler - 1)                                     ; a890: 66          f        ; lo-&14: bridge/net config
 ; &a891 used as index base 1 time by &a87d
-.osword_subcode_dispatch
-    equb &a8, &a8, &a9, &a9, &a9, &a9                                 ; a891: a8 a8 a9... ......
-    equb &ac                                                          ; a897: ac          .        ; Load template source pointer
-    equs "H s"                                                        ; a898: 48 20 73    H s   
-    equb &8b, &68, &3a, &f0, &10, &c9, &03, &f0, &0c, &1a             ; a89b: 8b 68 3a... .h:...
-    equb &f0, &60                                                     ; a8a5: f0 60       .`       ; Equal: take save_txcb_and_convert path
-    equb &c9, &03                                                     ; a8a7: c9 03       ..       ; Restore A (OSWORD sub-code)
-    equb &f0, &5c                                                     ; a8a9: f0 5c       .\       ; Equal: take save_txcb_done path
-    equb &a9, &08                                                     ; a8ab: a9 08       ..       ; Other sub-codes: set state = 8
-    equb &85, &a9                                                     ; a8ad: 85 a9       ..       ; Store service state
+.osword_dispatch_hi_table
+    equb >(osword_0e_handler - 1)                                     ; a891: a8          .        ; hi-&0E: read clock
+    equb >(rts_osword_setup - 1)                                      ; a892: a8          .        ; hi-&0F: (unimplemented)
+    equb >(osword_10_handler - 1)                                     ; a893: a9          .        ; hi-&10: transmit
+    equb >(osword_11_handler - 1)                                     ; a894: a9          .        ; hi-&11: receive
+    equb >(osword_12_handler - 1)                                     ; a895: a9          .        ; hi-&12: read station info
+    equb >(osword_13_dispatch - 1)                                    ; a896: a9          .        ; hi-&13: misc operations
+    equb >(osword_14_handler - 1)                                     ; a897: ac          .        ; hi-&14: bridge/net config
+; ***************************************************************************************
+; OSWORD &0E: dispatch on the sub-code
+;
+; Reached through the OSWORD dispatch table with the sub-code (PB[0]) in A. Makes sure
+; ANFS is the active filing system, then sends sub-codes 1 and 4 to save_txcb_and_convert
+; and sub-codes 0 and 3 to save_txcb_done. Any other sub-code sets svc_state to 8 and
+; returns.
+;
+; On Entry:
+;     A: OSWORD &0E sub-code (PB[0])
+.osword_0e_handler
+    pha                                                               ; a898: 48          H        ; Save the sub-code
+    jsr ensure_fs_selected                                            ; a899: 20 73 8b     s.      ; Select ANFS if it is not already active
+    pla                                                               ; a89c: 68          h        ; Recover the sub-code
+    dec a                                                             ; a89d: 3a          :        ; A = sub-code - 1
+    beq save_txcb_and_convert                                         ; a89e: f0 10       ..       ; Sub-code 1: convert the clock fields to BCD
+    cmp #3                                                            ; a8a0: c9 03       ..       ; Sub-code 4?
+    beq save_txcb_and_convert                                         ; a8a2: f0 0c       ..       ; Yes: convert the clock fields to BCD
+    inc a                                                             ; a8a4: 1a          .        ; A = sub-code again
+    beq save_txcb_done                                                ; a8a5: f0 60       .`       ; Sub-code 0: build the reply and read the clock
+    cmp #3                                                            ; a8a7: c9 03       ..       ; Sub-code 3?
+    beq save_txcb_done                                                ; a8a9: f0 5c       .\       ; Yes: build the reply and read the clock
+    lda #8                                                            ; a8ab: a9 08       ..       ; Other sub-codes: set state = 8
+    sta svc_state                                                     ; a8ad: 85 a9       ..       ; Store service state
 .rts_osword_0e
-    equb &60                                                          ; a8af: 60          `        ; Return
+    rts                                                               ; a8af: 60          `        ; Return
 ; ***************************************************************************************
 ; OSWORD &0E: convert the clock/date fields to BCD
 ;
 ; Saves the TX control block, then reads the clock and date fields from the HAZEL TXCB
 ; workspace and converts each to packed BCD via bin_to_bcd for the OSWORD &0E
 ; real-time-clock reply.
-; &a8b0 referenced 1 time by &a907
+; &a8b0 referenced 3 times by &a89e, &a8a2, &a907
 .save_txcb_and_convert
     ldx #0                                                            ; a8b0: a2 00       ..       ; X=0: start of TX control block
     ldy #&10                                                          ; a8b2: a0 10       ..       ; Y=&10: length of TXCB to save
@@ -11153,6 +11189,7 @@ svc_8_osword_disp = svc_8_osword+1
 ;
 ; Builds the BCD reply via save_txcb_and_convert, copies it into the OSWORD parameter
 ; block, and reads the CMOS real-time clock via OSWORD &0E.
+; &a907 referenced 2 times by &a8a5, &a8a9
 .save_txcb_done
     jsr save_txcb_and_convert                                         ; a907: 20 b0 a8     ..      ; Convert TXCB date/time bytes to BCD
     ldy #7                                                            ; a90a: a0 07       ..       ; Y=7: copy 8 bytes (Y=7 down to 0)
@@ -16563,12 +16600,12 @@ save pydis_start, pydis_end
 ;     fs_last_byte_flag:            15
 ;     mask_owner_access:            15
 ;     nmi_tx_block:                 15
+;     svc_state:                    15
 ;     hazel_cur_fcb_index:          14
 ;     hazel_fcb_state_byte:         14
 ;     need_release_tube:            14
 ;     open_port_buf:                14
 ;     port_buf_len_hi:              14
-;     svc_state:                    14
 ;     hazel_txcb_count:             13
 ;     net_tx_ptr_hi:                13
 ;     osnewl:                       13
@@ -16604,12 +16641,12 @@ save pydis_start, pydis_end
 ;     txcb_end:                      9
 ;     ws_0d6a:                       9
 ;     addr_work:                     8
+;     ensure_fs_selected:            8
 ;     error_msg_table:               8
 ;     hazel_txcb_result:             8
 ;     tube_addr_data_dispatch:       8
 ;     tx_complete_flag:              8
 ;     alloc_fcb_slot:                7
-;     ensure_fs_selected:            7
 ;     finalise_and_return:           7
 ;     fs_load_addr_hi:               7
 ;     hazel_fcb_offset_save:         7
@@ -16701,6 +16738,7 @@ save pydis_start, pydis_end
 ;     loop_scan_fcb_down:            4
 ;     net_poll_status:               4
 ;     nmi_tx_block_hi:               4
+;     osbyte_a_copy:                 4
 ;     osfind:                        4
 ;     parse_access_prefix:           4
 ;     poll_entry_done:               4
@@ -16767,7 +16805,6 @@ save pydis_start, pydis_end
 ;     nmi_jmp_hi:                    3
 ;     nmi_jmp_lo:                    3
 ;     osbyte_a2:                     3
-;     osbyte_a_copy:                 3
 ;     osbyte_x0:                     3
 ;     oscli:                         3
 ;     osword:                        3
@@ -16790,6 +16827,7 @@ save pydis_start, pydis_end
 ;     rx_complete_update_rxcb:       3
 ;     rx_remote_addr:                3
 ;     save_text_ptr:                 3
+;     save_txcb_and_convert:         3
 ;     send_cmd_and_dispatch:         3
 ;     send_disconnect_reply:         3
 ;     store_rx_result:               3
@@ -16981,6 +17019,7 @@ save pydis_start, pydis_end
 ;     rts_help_wrap:                 2
 ;     rts_inc_fcb_count:             2
 ;     rts_match_rx_code:             2
+;     rts_osword_setup:              2
 ;     rts_save_text_ptr:             2
 ;     rts_svc_21_claim_abs_ws:       2
 ;     rx_extra_byte:                 2
@@ -16988,6 +17027,7 @@ save pydis_start, pydis_end
 ;     save_fcb_context:              2
 ;     save_net_tx_cb_vset:           2
 ;     save_ptr_to_spool_buf:         2
+;     save_txcb_done:                2
 ;     scout_complete:                2
 ;     scout_done_restore_x:          2
 ;     select_fs_via_cmd_net_fs:      2
@@ -17603,10 +17643,9 @@ save pydis_start, pydis_end
 ;     osword_13_read_ctx_3:          1
 ;     osword_13_write_ctx_3:         1
 ;     osword_claim_codes:            1
-;     osword_pb_ready:               1
+;     osword_dispatch_hi_table:      1
+;     osword_dispatch_lo_table:      1
 ;     osword_setup_handler:          1
-;     osword_store_svc_state:        1
-;     osword_subcode_dispatch:       1
 ;     page_boundary_restore:         1
 ;     parse_cdir_size:               1
 ;     parse_fs_dot_dir:              1
@@ -17729,7 +17768,6 @@ save pydis_start, pydis_end
 ;     save_ps_cmd_ptr:               1
 ;     save_regs_print_no_spool:      1
 ;     save_tube_state:               1
-;     save_txcb_and_convert:         1
 ;     scan_channel_store_reply:      1
 ;     scan_fcb_entry:                1
 ;     scan_fcb_flags:                1
@@ -17936,11 +17974,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 16384 bytes
-;     Code                     = 14439 bytes (88%)
-;     Data                     = 1945 bytes (12%)
+;     Code                     = 14476 bytes (88%)
+;     Data                     = 1908 bytes (12%)
 ;
-;     Number of instructions   = 7113
-;     Number of data bytes     = 576 bytes
+;     Number of instructions   = 7134
+;     Number of data bytes     = 542 bytes
 ;     Number of data words     = 86 bytes
-;     Number of string bytes   = 1283 bytes
-;     Number of strings        = 149
+;     Number of string bytes   = 1280 bytes
+;     Number of strings        = 148

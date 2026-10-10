@@ -29,6 +29,16 @@ _netv_dispatch_entries = [
     (0x0008, "osword_8_handler", "NETV reason 8: OSWORD &08"),
 ]
 
+_osword_handler_descs = [
+    "OSWORD &0E: read clock",
+    "OSWORD &0F: (unimplemented)",
+    "OSWORD &10: transmit",
+    "OSWORD &11: receive",
+    "OSWORD &12: read station info",
+    "OSWORD &13: misc operations",
+    "OSWORD &14: bridge/net config",
+]
+
 _osword_13_entries = [
     (0x0000, "osword_13_read_station", "read FS station"),
     (0x0001, "osword_13_set_station", "set FS station"),
@@ -59,7 +69,7 @@ _svc_dispatch_entries = [
     (0x0006, 0x802A, "svc5_irq_check", "svc &05: IRQ check"),
     (0x0007, 0x8E8A, "dispatch_rts", "no-op (RTS only)"),
     (0x0008, 0x8EF2, "svc_7_osbyte", "svc &07: unrecognised OSBYTE"),
-    (0x0009, 0xA857, "svc_8_osword_disp", "svc &08: OSWORD dispatch"),
+    (0x0009, 0xA857, "svc_8_osword", "svc &08: OSWORD dispatch"),
     (0x000A, 0x8C78, "svc_9_help", "svc &09: *HELP"),
     (0x000B, 0x8E8A, "dispatch_rts", "no-op (RTS only)"),
     (0x000C, 0x806E, "econet_restore", "svc &0B: NMI release"),
@@ -12839,131 +12849,89 @@ d.label(0xA827, "cmd_table_syntax_help")
 d.byte(0xA843)
 d.comment(0xA843, "Sub-tables 4/5 separator", align=Align.INLINE)
 
-d.comment(0xA856, "BRA osword_store_svc_state -- skip past 22-byte caller-cleanup frame", align=Align.INLINE)
-d.entry(0xA856)
+d.byte(0xA856)
+d.comment(0xA856, "&80: end of command table", align=Align.INLINE)
 
 
 d.subroutine(
-    0xA856,
+    0xA857,
     "svc_8_osword",
     title="Service 8: unrecognised OSWORD",
     description="""Handles MOS service call 8 (unrecognised OSWORD).
 Filters OSWORD codes &0E-&14 by subtracting &0E (via
 CLC/SBC &0D) and rejecting values outside 0-6. For
-valid codes, calls osword_setup_handler to push the
-dispatch address, then copies 3 bytes from the RX
-buffer to osword_flag workspace.""",
+valid codes, saves the six workspace bytes at
+&AA-&AF on the stack and replaces them with copies of
+the MOS OSWORD state at &EE-&F3 (so the parameter
+block pointer at &F0/&F1 lands in &AC/&AD), then calls
+[`osword_setup_handler`](label:osword_setup_handler) to
+dispatch to the handler. On return, restores the six
+saved workspace bytes.""",
     on_entry={"a": "OSWORD number (from osbyte_a_copy)", "y": "parameter passed by service-call dispatch"},
 )
 
-
-d.label(0xA857, "svc_8_osword_disp")
-
 d.comment(0xA857, "CLC so SBC subtracts value+1", align=Align.INLINE)
-d.comment(0xA858, "OSWORD setup state (13 bytes -- constants and offsets used by svc_8_osword)", align=Align.INLINE)
+d.comment(0xA858, "A = OSWORD number", align=Align.INLINE)
 d.comment(0xA85A, "A = OSWORD - &0E (CLC+SBC = -&0E)", align=Align.INLINE)
 d.comment(0xA85C, "Below &0E: not ours, return", align=Align.INLINE)
 d.comment(0xA85E, "Index >= 7? (OSWORD > &14)", align=Align.INLINE)
 d.comment(0xA860, "Above &14: not ours, return", align=Align.INLINE)
 d.comment(0xA862, "X=OSWORD handler index (0-6)", align=Align.INLINE)
 d.comment(0xA863, "Y=6: save 6 workspace bytes", align=Align.INLINE)
-d.comment(0xA865, "Read svc_state[Y] (frame slot)", align=Align.INLINE)
 d.label(0xA865, "loop_save_osword_ws")
-
+d.comment(0xA865, "Load current workspace byte", align=Align.INLINE)
 d.comment(0xA868, "Save on stack", align=Align.INLINE)
-d.comment(0xA869, "Load OSWORD parameter byte", align=Align.INLINE)
-d.comment(0xA86C, "Copy parameter to workspace", align=Align.INLINE)
-d.comment(0xA86F, "Next slot", align=Align.INLINE)
-d.comment(0xA870, "Loop until Y wraps", align=Align.INLINE)
-d.label(0xA870, "osword_store_svc_state")
-
-d.comment(0xA872, "Set up dispatch and save state", align=Align.INLINE)
+d.comment(0xA869, "Load MOS OSWORD state byte", align=Align.INLINE)
+d.comment(0xA86C, "Copy into workspace", align=Align.INLINE)
+d.comment(0xA86F, "Next byte down", align=Align.INLINE)
+d.comment(0xA870, "Loop for all 6 bytes", align=Align.INLINE)
+d.comment(0xA872, "Dispatch to the OSWORD handler", align=Align.INLINE)
 d.comment(0xA875, "Y=&FA: restore 6 workspace bytes", align=Align.INLINE)
 d.label(0xA877, "loop_restore_osword_ws")
-
-
 d.comment(0xA877, "Restore saved workspace byte", align=Align.INLINE)
-d.comment(0xA878, "Store to osword_flag workspace", align=Align.INLINE)
+d.comment(0xA878, "Store back to &AA-&AF", align=Align.INLINE)
 d.comment(0xA87B, "Next byte", align=Align.INLINE)
 d.comment(0xA87C, "Loop until all 6 restored", align=Align.INLINE)
 d.comment(0xA87E, "Return from svc_8_osword", align=Align.INLINE)
-d.label(0xA87F, "osword_setup_handler")
 
 d.subroutine(
     0xA87F,
     "osword_setup_handler",
     title="Push OSWORD handler address for RTS dispatch",
-    description="""Indexes the OSWORD dispatch table by X to
-push a handler address (hi then lo) onto the
-stack. Copies 3 bytes from the osword_flag
-workspace into the RX buffer, loads PB byte 0
-(the OSWORD sub-code), and clears svc_state.
-The subsequent RTS dispatches to the pushed
-handler address.""",
-    on_entry={"x": "OSWORD handler index (0-6)"},
+    description="""Indexes the OSWORD dispatch table by X and pushes the
+handler address (hi then lo) onto the stack. Loads
+the first parameter-block byte (the OSWORD sub-code)
+into A and clears svc_state. The RTS then dispatches
+to the pushed handler address.""",
+    on_entry={"x": "OSWORD handler index (0-6)", "y": "0 (from the save loop)"},
+    on_exit={"a": "PB[0], the OSWORD sub-code", "y": "0"},
 )
 
-
-d.comment(0xA87F, "X = OSWORD index (0-6)", align=Align.INLINE)
-d.comment(0xA882, "Push for stack frame manipulation", align=Align.INLINE)
+d.comment(0xA87F, "Load handler address high byte", align=Align.INLINE)
+d.comment(0xA882, "Push high byte for RTS dispatch", align=Align.INLINE)
 d.comment(0xA883, "Load handler address low byte", align=Align.INLINE)
-d.comment(0xA886, "Push again", align=Align.INLINE)
-d.comment(0xA887, "Copy 3 bytes (Y=2,1,0)", align=Align.INLINE)
-d.comment(0xA889, "Load from osword_flag workspace", align=Align.INLINE)
+d.comment(0xA886, "Push low byte for RTS dispatch", align=Align.INLINE)
+d.comment(0xA887, "A = PB[0]: OSWORD sub-code", align=Align.INLINE)
+d.comment(0xA889, "Y=0 from copy loop above: clear svc_state", align=Align.INLINE)
 d.label(0xA88B, "rts_osword_setup")
-
 d.comment(0xA88B, "RTS dispatches to pushed handler", align=Align.INLINE)
-# UNMAPPED: d.comment(
-# UNMAPPED:     0xA871,
-# UNMAPPED:     "PB-ready / parameter table (3 bytes) read by osword_setup_handler at &A868 via LDA osword_pb_ready,X",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
-# UNMAPPED: d.index_base(0xA871, "osword_pb_ready")
 
-# UNMAPPED: d.label(0xA874, "osword_0e_handler")
+d.subroutine(
+    0xA88C,
+    "osword_dispatch_lo_table",
+    title="OSWORD dispatch table (7 entries, split lo/hi)",
+    description="""`PHA`/`PHA`/`RTS` dispatch used by `svc_8_osword`.
+Maps OSWORD codes &0E-&14 to handler routines (lo bytes at
+&A88C-&A892, hi bytes at [`osword_dispatch_hi_table`](label:osword_dispatch_hi_table)).""",
+)
 
-# UNMAPPED: d.comment(
-# UNMAPPED:     0xA874,
-# UNMAPPED:     "BIT $abs -- 3-byte skip-trick that jumps over the extract_osword_subcode prologue when called via &A874",
-# UNMAPPED:     align=Align.INLINE,
-# UNMAPPED: )
-# UNMAPPED: d.entry(0xA874)
-# UNMAPPED: d.comment(0xA877, "Shift ws_page right -- splits parameter byte into upper / lower nibbles", align=Align.INLINE)
-# UNMAPPED: d.subroutine(
-# UNMAPPED:     0xA877,
-# UNMAPPED:     "extract_osword_subcode",
-# UNMAPPED:     title="Decode OSWORD &0E parameter byte and branch to handler",
-# UNMAPPED:     description="""Right-shifts `ws_page` (PB[0]) into `A`, transfers it to `Y` for
-# UNMAPPED: the dispatcher, then runs an EOR/CMP chain against
-# UNMAPPED: `ws_precomputed_value` to classify the requested sub-code:
-# UNMAPPED: 
-# UNMAPPED: | Test          | Path                              |
-# UNMAPPED: | ------------- | --------------------------------- |
-# UNMAPPED: | `CMP #4` =    | `save_txcb_and_convert` (clock)   |
-# UNMAPPED: | `CMP #3` =    | `save_txcb_done` (write back)     |
-# UNMAPPED: | anything else | set `svc_state = 8` and `RTS`     |
-# UNMAPPED: 
-# UNMAPPED: The two `LDA #&A9` filler bytes preceding the EOR are a 4-byte
-# UNMAPPED: BIT-trick skip used when the alternate entry [`osword_0e_handler`
-# UNMAPPED: ](address:A874) is taken via the `BIT $abs` at `&A874`. Reached
-# UNMAPPED: only via the OSWORD `&0E` (CMOS clock read) handler chain.""",
-# UNMAPPED: )
+for i in range(7):
+    d.rts_code_ptr(0xA88C + i, 0xA893 + i)
+for i, desc in enumerate(_osword_handler_descs):
+    d.comment(0xA88C + i, f"lo-&{0x0E + i:02X}: {desc.split(': ', 1)[1]}", align=Align.INLINE)
+    d.comment(0xA893 + i, f"hi-&{0x0E + i:02X}: {desc.split(': ', 1)[1]}", align=Align.INLINE)
 
-# UNMAPPED: d.label(0xA878, "osword_subcode_dispatch")
-
-# UNMAPPED: d.comment(0xA879, "A = sub-code", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA87A, "LDA #&A9 -- 2-byte BIT-trick filler (skipped when entered at &A87E)", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA87C, "LDA #&A9 -- 2-byte BIT-trick filler", align=Align.INLINE)
-d.comment(0xA899, "Load template source pointer", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA884, "Compare with &04", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA8A7, "Equal: take save_txcb_and_convert path", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA8A9, "Restore A (OSWORD sub-code)", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA8AB, "Equal: take save_txcb_done path", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA8AD, "Other sub-codes: set state = 8", align=Align.INLINE)
-# UNMAPPED: d.comment(0xA8AF, "Store service state", align=Align.INLINE)
-# UNMAPPED: d.label(0xA8B1, "rts_osword_0e")
-
-# UNMAPPED: d.comment(0xA8B1, "Return", align=Align.INLINE)
+d.index_base(0xA893, "osword_dispatch_hi_table")
 # UNMAPPED: d.label(0xA8B2, "save_txcb_and_convert")
 
 # UNMAPPED: d.comment(0xA8B2, "X=0: start of TX control block", align=Align.INLINE)
@@ -20121,8 +20089,6 @@ d.label(0xABE7, "bridge_err_table")
 d.label(0xB53A, "ps_print_template")
 d.index_base(0x8A20, "os_spool_flag_table")
 d.label(0x0D1C, "net_poll_status")
-d.index_base(0xA88C, "osword_pb_ready")
-d.label(0xA893, "osword_subcode_dispatch")
 # Anchors for the two bases inside instruction operand bytes.
 d.label(0x85C2, "tx_calc_tube_check")
 d.label(0x8492, "tube_overflow_restore_acccon")
