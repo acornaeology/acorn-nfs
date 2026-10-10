@@ -8706,7 +8706,6 @@
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
       "type": "string",
       "string": "I .BOOT."
     },
@@ -27291,7 +27290,6 @@
         101,
         99
       ],
-      "comment_inline": "Data bytes: boot_cmd_strings 'ec'",
       "type": "string",
       "string": "Exec"
     },

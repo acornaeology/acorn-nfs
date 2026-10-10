@@ -1933,7 +1933,7 @@ cmd_roff_str = copyright_string+3
     ldy #&82                                                          ; 8240: a0 82       ..       ; Y=&82: ROM page high byte
     jmp fscv_3_star_cmd                                               ; 8242: 4c 92 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 8245: 49 20 2e... I ....   ; Auto-boot string tail / NETV handler data
+    equs "I .BOOT", &0d                                               ; 8245: 49 20 2e... I ....
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -2939,7 +2939,7 @@ cmd_roff_str = copyright_string+3
     jsr print_decimal_digit                                           ; 85b2: 20 bc 85     ..      ; Print hundreds digit
     lda #&0a                                                          ; 85b5: a9 0a       ..       ; A=10: tens divisor
     jsr print_decimal_digit                                           ; 85b7: 20 bc 85     ..      ; Print tens digit
-    lda #1                                                            ; 85ba: a9 01       ..       ; Convert to ASCII and print
+    lda #1                                                            ; 85ba: a9 01       ..       ; A=1: units divisor; fall into print_decimal_digit
 ; ***************************************************************************************
 ; Print one decimal digit by repeated subtraction
 ;
@@ -4752,25 +4752,25 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; response data to the Tube via tube_addr_claim. Otherwise jumps via the indirect pointer
 ; at (&0F09) to execute at the load address.
 .fsreply_4_notify_exec
-    ldx #&0e                                                          ; 8d84: a2 0e       ..       ; X=&0E: OSWORD &10 parameter block size
-    stx fs_block_offset                                               ; 8d86: 86 bc       ..       ; Y=0: param block offset
-    lda #&10                                                          ; 8d88: a9 10       ..       ; A=&10: OSWORD &10 (open RXCB)
-    sta fs_options                                                    ; 8d8a: 85 bb       ..       ; Issue OSWORD &10 to open RXCB
-    ldx #&4a                                                          ; 8d8c: a2 4a       .J       ; X=&4A: parameter block offset
-    ldy #5                                                            ; 8d8e: a0 05       ..       ; Y=5: command code offset
-    jsr send_fs_examine                                               ; 8d90: 20 d0 86     ..      ; Send FS examine command
-    lda tx_in_progress                                                ; 8d93: ad 52 0d    .R.      ; Y=&70: FS workspace offset
-    beq net_handle_validate                                           ; 8d96: f0 14       ..       ; No Tube: skip transfer setup
-    adc fs_load_upper                                                 ; 8d98: 6d 0b 0f    m..      ; Add file load address upper byte
-    adc fs_addr_check                                                 ; 8d9b: 6d 0c 0f    m..      ; Add address check byte
-    bcs net_handle_validate                                           ; 8d9e: b0 0c       ..       ; Store final byte
-    jsr tube_claim_loop                                               ; 8da0: 20 8a 8b     ..      ; X=&16: OSBYTE param
-    ldx #9                                                            ; 8da3: a2 09       ..       ; X=9: Tube claim parameter
-    ldy #&0f                                                          ; 8da5: a0 0f       ..       ; Y=&0F: Tube claim parameter
-    lda #4                                                            ; 8da7: a9 04       ..       ; Save original value on stack
-    jmp tube_addr_claim                                               ; 8da9: 4c 06 04    L..      ; Claim Tube for address transfer
+    ldx #&0e                                                          ; 8d84: a2 0e       ..       ; X=&0E: FS command buffer offset
+    stx fs_block_offset                                               ; 8d86: 86 bc       ..       ; Store block offset for FS command
+    lda #&10                                                          ; 8d88: a9 10       ..       ; A=&10: 16 bytes of command data
+    sta fs_options                                                    ; 8d8a: 85 bb       ..       ; Store options byte
+    ldx #&4a                                                          ; 8d8c: a2 4a       .J       ; X=&4A: TXCB size for load command
+    ldy #5                                                            ; 8d8e: a0 05       ..       ; Y=5: FCCMND (load as command)
+    jsr send_fs_examine                                               ; 8d90: 20 d0 86     ..      ; Send FS examine/load command
+    lda tx_in_progress                                                ; 8d93: ad 52 0d    .R.      ; Check for Tube co-processor
+    beq exec_at_load_addr                                             ; 8d96: f0 14       ..       ; No Tube: execute locally
+    adc fs_load_upper                                                 ; 8d98: 6d 0b 0f    m..      ; Check load address upper bytes
+    adc fs_addr_check                                                 ; 8d9b: 6d 0c 0f    m..      ; Continue address range check
+    bcs exec_at_load_addr                                             ; 8d9e: b0 0c       ..       ; Carry set: not Tube space, exec locally
+    jsr tube_claim_loop                                               ; 8da0: 20 8a 8b     ..      ; Claim Tube transfer channel
+    ldx #9                                                            ; 8da3: a2 09       ..       ; X=&09: address block at &0F09 (low)
+    ldy #&0f                                                          ; 8da5: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
+    lda #4                                                            ; 8da7: a9 04       ..       ; A=4: Tube reason 4, start execution
+    jmp tube_addr_claim                                               ; 8da9: 4c 06 04    L..      ; Start execution in the co-processor
 ; &8dac referenced 2 times by &8d96, &8d9e
-.net_handle_validate
+.exec_at_load_addr
     jmp (fs_load_vector)                                              ; 8dac: 6c 09 0f    l..      ; Execute via indirect load vector
 ; ***************************************************************************************
 ; *NET1: read file handle from received packet
@@ -8331,6 +8331,7 @@ save pydis_start, pydis_end
 ;     econet_tx_retry:                          2
 ;     escape_flag:                              2
 ;     exec_addr_hi:                             2
+;     exec_at_load_addr:                        2
 ;     fallback_calc_transfer:                   2
 ;     find_cr_terminator:                       2
 ;     flush_output_block:                       2
@@ -8356,7 +8357,6 @@ save pydis_start, pydis_end
 ;     language_entry:                           2
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
-;     net_handle_validate:                      2
 ;     nlisne:                                   2
 ;     nmi_jmp_hi:                               2
 ;     nmi_jmp_lo:                               2

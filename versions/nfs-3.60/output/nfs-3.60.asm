@@ -2071,7 +2071,7 @@ cmd_roff_str = copyright_string+3
 .run_fscv_cmd
     equb &a0                                                          ; 828d: a0          .        ; Y=&82: ROM page high byte
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equb &82, "L", &1b, &8c, "I .B"                                   ; 828e: 82 4c 1b... .L....   ; Execute command string at (X, Y)
+    equb &82, "L", &1b, &8c, "I .B"                                   ; 828e: 82 4c 1b... .L....
     equb &4f, &4f                                                     ; 8296: 4f 4f       OO       ; Auto-boot string tail / NETV handler data
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
@@ -2089,10 +2089,10 @@ cmd_roff_str = copyright_string+3
 .fs_dispatch_addrs
     equw &ff1b                                                        ; 829a: 1b ff       ..       ; FILEV dispatch (&FF1B)
     equw &ff1e                                                        ; 829c: 1e ff       ..       ; ARGSV dispatch (&FF1E)
-    equw &ff21                                                        ; 829e: 21 ff       !.       ; BGETV dispatch (&FF21)  BGETV dispatch hi
+    equw &ff21                                                        ; 829e: 21 ff       !.       ; BGETV dispatch (&FF21)
     equw &ff24                                                        ; 82a0: 24 ff       $.       ; BPUTV dispatch (&FF24)
-    equw &ff27                                                        ; 82a2: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch hi
-    equw &ff2a                                                        ; 82a4: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch hi
+    equw &ff27                                                        ; 82a2: 27 ff       '.       ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 82a4: 2a ff       *.       ; FINDV dispatch (&FF2A)
     equw &ff2d                                                        ; 82a6: 2d ff       -.       ; FSCV dispatch (&FF2D)
     equw filev_handler                                                ; 82a8: 0c 87       ..       ; FILEV handler (&870C)
     equb &4a                                                          ; 82aa: 4a          J        ; (ROM bank — not read)
@@ -2106,7 +2106,7 @@ cmd_roff_str = copyright_string+3
     equb &41                                                          ; 82b6: 41          A        ; (ROM bank — not read)
     equw findv_handler                                                ; 82b7: d8 89       ..       ; FINDV handler (&89D8)
     equb &52                                                          ; 82b9: 52          R        ; (ROM bank — not read)
-    equw fscv_handler                                                 ; 82ba: d4 80       ..       ; FSCV handler (&80D4)  FSCV handler hi
+    equw fscv_handler                                                 ; 82ba: d4 80       ..       ; FSCV handler (&80D4)
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
 ;
@@ -5026,10 +5026,10 @@ cmd_match_data = fs_cmd_match_table+1
     adc fs_addr_check                                                 ; 8e18: 6d 0c 0f    m..      ; Continue address range check
     bcs exec_local                                                    ; 8e1b: b0 0c       ..       ; Carry set: not Tube space, exec locally
     jsr tube_claim_loop                                               ; 8e1d: 20 13 8c     ..      ; Claim Tube transfer channel
-    ldx #9                                                            ; 8e20: a2 09       ..       ; X=9: source offset in FS reply
-    ldy #&0f                                                          ; 8e22: a0 0f       ..       ; Y=&0F: page &0F (FS command buffer)
-    lda #4                                                            ; 8e24: a9 04       ..       ; A=4: Tube transfer type 4 (256-byte)
-    jmp tube_addr_claim                                               ; 8e26: 4c 06 04    L..      ; Transfer data to Tube co-processor
+    ldx #9                                                            ; 8e20: a2 09       ..       ; X=&09: address block at &0F09 (low)
+    ldy #&0f                                                          ; 8e22: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
+    lda #4                                                            ; 8e24: a9 04       ..       ; A=4: Tube reason 4, start execution
+    jmp tube_addr_claim                                               ; 8e26: 4c 06 04    L..      ; Start execution in the co-processor
 ; &8e29 referenced 2 times by &8e13, &8e1b
 .exec_local
     rol a                                                             ; 8e29: 2a          *        ; ROL: restore A (undo ADC carry)
@@ -7347,7 +7347,7 @@ cmd_match_data = fs_cmd_match_table+1
 .enter_data_rx_path
 ; &9a9d used as index base 1 time by &9675
 svc5_dispatch_lo = enter_data_rx_path+1
-    jmp send_data_rx_ack                                              ; 9a9c: 4c cb 97    L..      ; Enter common data-receive path  Immediate op dispatch lo bytes
+    jmp send_data_rx_ack                                              ; 9a9c: 4c cb 97    L..      ; Enter common data-receive path
 ; ***************************************************************************************
 ; RX immediate: POKE setup
 ;

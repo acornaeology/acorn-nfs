@@ -8824,7 +8824,6 @@
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
       "type": "string",
       "string": "I .BOOT."
     },
@@ -27381,7 +27380,6 @@
         101,
         99
       ],
-      "comment_inline": "Data bytes: boot_cmd_strings 'ec'",
       "type": "string",
       "string": "Exec"
     },
@@ -32627,7 +32625,6 @@
         162,
         11
       ],
-      "comment_inline": "Enable interrupts before transmit",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&0b"
@@ -32664,7 +32661,6 @@
         240,
         3
       ],
-      "comment_inline": "Dest station = broadcast (accept reply from any station)",
       "type": "code",
       "mnemonic": "beq",
       "operand": "openl6",
@@ -33045,7 +33041,6 @@
         227,
         143
       ],
-      "comment_inline": "Receive data blocks until command byte = &00 or &0D",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "store_16bit_at_y",
@@ -36448,7 +36443,6 @@
         192,
         144
       ],
-      "comment_inline": "Load template byte from ctrl_block_template[X]",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "setup_tx_and_send",

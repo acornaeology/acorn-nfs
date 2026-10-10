@@ -1934,7 +1934,7 @@ cmd_roff_str = copyright_string+3
     ldy #&82                                                          ; 8241: a0 82       ..       ; Y=&82: ROM page high byte
     jmp fscv_3_star_cmd                                               ; 8243: 4c 93 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 8246: 49 20 2e... I ....   ; Auto-boot string tail / NETV handler data
+    equs "I .BOOT", &0d                                               ; 8246: 49 20 2e... I ....
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -2936,12 +2936,12 @@ cmd_roff_str = copyright_string+3
 ;     Y: 0 (remainder after last division)
 ; &85b0 referenced 2 times by &81fc, &8c28
 .print_decimal
-    tay                                                               ; 85b0: a8          .        ; Y=dividend, A=100: hundreds digit
-    lda #&64                                                          ; 85b1: a9 64       .d       ; Print hundreds digit
-    jsr print_decimal_digit                                           ; 85b3: 20 bd 85     ..      ; A=10: tens divisor
-    lda #&0a                                                          ; 85b6: a9 0a       ..       ; Print tens digit
-    jsr print_decimal_digit                                           ; 85b8: 20 bd 85     ..      ; Transfer remainder to A
-    lda #1                                                            ; 85bb: a9 01       ..       ; Convert to ASCII and print
+    tay                                                               ; 85b0: a8          .        ; Y = value to print
+    lda #&64                                                          ; 85b1: a9 64       .d       ; A=100: hundreds divisor
+    jsr print_decimal_digit                                           ; 85b3: 20 bd 85     ..      ; Print hundreds digit
+    lda #&0a                                                          ; 85b6: a9 0a       ..       ; A=10: tens divisor
+    jsr print_decimal_digit                                           ; 85b8: 20 bd 85     ..      ; Print tens digit
+    lda #1                                                            ; 85bb: a9 01       ..       ; A=1: units divisor; fall into print_decimal_digit
 ; ***************************************************************************************
 ; Print one decimal digit by repeated subtraction
 ;
@@ -4755,25 +4755,25 @@ cmd_table_entry_1 = fs_cmd_match_table+1
 ; response data to the Tube via tube_addr_claim. Otherwise jumps via the indirect pointer
 ; at (&0F09) to execute at the load address.
 .fsreply_4_notify_exec
-    ldx #&0e                                                          ; 8d85: a2 0e       ..       ; X=&0E: OSWORD &10 parameter block size
-    stx fs_block_offset                                               ; 8d87: 86 bc       ..       ; Y=0: param block offset
-    lda #&10                                                          ; 8d89: a9 10       ..       ; A=&10: OSWORD &10 (open RXCB)
-    sta fs_options                                                    ; 8d8b: 85 bb       ..       ; Issue OSWORD &10 to open RXCB
-    ldx #&4a                                                          ; 8d8d: a2 4a       .J       ; Load RXCB number from result
-    ldy #5                                                            ; 8d8f: a0 05       ..       ; Zero: no free RXCB, skip
-    jsr send_fs_examine                                               ; 8d91: 20 d1 86     ..      ; Store RXCB number in exec context
-    lda tx_in_progress                                                ; 8d94: ad 52 0d    .R.      ; Y=&70: FS workspace offset  Load reply byte from workspace
-    beq net_handle_validate                                           ; 8d97: f0 14       ..       ; Store to exec param area
-    adc fs_load_upper                                                 ; 8d99: 6d 0b 0f    m..      ; Advance to next param byte  Compare against boundary
-    adc fs_addr_check                                                 ; 8d9c: 6d 0c 0f    m..      ; Loop for all exec parameters
-    bcs net_handle_validate                                           ; 8d9f: b0 0c       ..       ; Store final byte
-    jsr tube_claim_loop                                               ; 8da1: 20 8b 8b     ..      ; X=&16: OSBYTE param  A=&C7: OSBYTE read/write flag
-    ldx #9                                                            ; 8da4: a2 09       ..       ; Enable exec notification via OSBYTE
-    ldy #&0f                                                          ; 8da6: a0 0f       ..       ; Y=&0F: workspace offset for params
-    lda #4                                                            ; 8da8: a9 04       ..       ; A=4: Tube claim type (multi-byte transfer)
-    jmp tube_addr_claim                                               ; 8daa: 4c 06 04    L..      ; Claim Tube for address transfer
+    ldx #&0e                                                          ; 8d85: a2 0e       ..       ; X=&0E: FS command buffer offset
+    stx fs_block_offset                                               ; 8d87: 86 bc       ..       ; Store block offset for FS command
+    lda #&10                                                          ; 8d89: a9 10       ..       ; A=&10: 16 bytes of command data
+    sta fs_options                                                    ; 8d8b: 85 bb       ..       ; Store options byte
+    ldx #&4a                                                          ; 8d8d: a2 4a       .J       ; X=&4A: TXCB size for load command
+    ldy #5                                                            ; 8d8f: a0 05       ..       ; Y=5: FCCMND (load as command)
+    jsr send_fs_examine                                               ; 8d91: 20 d1 86     ..      ; Send FS examine/load command
+    lda tx_in_progress                                                ; 8d94: ad 52 0d    .R.      ; Check for Tube co-processor
+    beq exec_at_load_addr                                             ; 8d97: f0 14       ..       ; No Tube: execute locally
+    adc fs_load_upper                                                 ; 8d99: 6d 0b 0f    m..      ; Check load address upper bytes
+    adc fs_addr_check                                                 ; 8d9c: 6d 0c 0f    m..      ; Continue address range check
+    bcs exec_at_load_addr                                             ; 8d9f: b0 0c       ..       ; Carry set: not Tube space, exec locally
+    jsr tube_claim_loop                                               ; 8da1: 20 8b 8b     ..      ; Claim Tube transfer channel
+    ldx #9                                                            ; 8da4: a2 09       ..       ; X=&09: address block at &0F09 (low)
+    ldy #&0f                                                          ; 8da6: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
+    lda #4                                                            ; 8da8: a9 04       ..       ; A=4: Tube reason 4, start execution
+    jmp tube_addr_claim                                               ; 8daa: 4c 06 04    L..      ; Start execution in the co-processor
 ; &8dad referenced 2 times by &8d97, &8d9f
-.net_handle_validate
+.exec_at_load_addr
     jmp (fs_load_vector)                                              ; 8dad: 6c 09 0f    l..      ; Execute at load address
 ; ***************************************************************************************
 ; *NET1: read file handle from received packet
@@ -8336,6 +8336,7 @@ save pydis_start, pydis_end
 ;     econet_tx_retry:                          2
 ;     escape_flag:                              2
 ;     exec_addr_hi:                             2
+;     exec_at_load_addr:                        2
 ;     fallback_calc_transfer:                   2
 ;     find_cr_terminator:                       2
 ;     flush_output_block:                       2
@@ -8361,7 +8362,6 @@ save pydis_start, pydis_end
 ;     language_entry:                           2
 ;     mask_to_handle:                           2
 ;     match_rom_string:                         2
-;     net_handle_validate:                      2
 ;     nlisne:                                   2
 ;     nmi_jmp_hi:                               2
 ;     nmi_jmp_lo:                               2

@@ -389,8 +389,6 @@ fs_error_buf                           = &0fe0
 ; &0fe0 used as index base 1 time by &844e
 tube_code_page6_rom                    = &9556
 ; &9556 used as index base 1 time by &8167
-parse_station_num                      = &f086
-; &f086 referenced 1 time by &8096
 station_id_disable_net_nmis            = &fe18
 ; &fe18 referenced 17 times by &810a, &810f, &8312, &966f, &96a5, &96c5, &96c8, &96fc, &982b, &997b, &9c3a, &9c3d, &9d5e, &9d9d, &9e0a, &9ed0, &9fa8
 video_ula_control                      = &fe20
@@ -1547,14 +1545,12 @@ cmd_roff_str = copyright_string+3
     bcc got_station_num                                               ; 808f: 90 07       ..       ; C=1: dot found, first number was network
     sta fs_server_net                                                 ; 8091: 8d 01 0e    ...      ; Store network number (n.s = network.station)
     iny                                                               ; 8094: c8          .     
-    equb &20                                                          ; 8095: 20                
-.parse_server_station
+    jsr parse_decimal                                                 ; 8095: 20 20 86      .   
 ; &8098 referenced 1 time by &808f
-got_station_num = parse_server_station+2
-    jsr parse_station_num                                             ; 8096: 20 86 f0     ..      ; Z=1: no station parsed (empty or non-numeric)
-    equb &03                                                          ; 8099: 03          .     
+.got_station_num
+    beq skip_stn_parse                                                ; 8098: f0 03       ..       ; Z=1: no station parsed (empty or non-numeric)
     sta fs_server_stn                                                 ; 809a: 8d 00 0e    ...   
-; &809d referenced 1 time by &808a
+; &809d referenced 2 times by &808a, &8098
 .skip_stn_parse
     jsr infol2                                                        ; 809d: 20 75 8d     u.      ; Copy command text to FS buffer
 ; &80a0 referenced 2 times by &80a8, &80bf
@@ -2061,7 +2057,7 @@ got_station_num = parse_server_station+2
     ldy #&82                                                          ; 8289: a0 82       ..       ; Y=&82: ROM page high byte
     jmp fscv_3_star_cmd                                               ; 828b: 4c d7 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I ....   ; Auto-boot string tail / NETV handler data
+    equs "I .BOOT", &0d                                               ; 828e: 49 20 2e... I ....
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -2076,10 +2072,10 @@ got_station_num = parse_server_station+2
 .fs_vector_addrs
     equw &ff1b                                                        ; 8296: 1b ff       ..       ; FILEV dispatch (&FF1B)
     equw &ff1e                                                        ; 8298: 1e ff       ..       ; ARGSV dispatch (&FF1E)
-    equw &ff21                                                        ; 829a: 21 ff       !.       ; BGETV dispatch (&FF21)  BGETV dispatch hi
+    equw &ff21                                                        ; 829a: 21 ff       !.       ; BGETV dispatch (&FF21)
     equw &ff24                                                        ; 829c: 24 ff       $.       ; BPUTV dispatch (&FF24)
-    equw &ff27                                                        ; 829e: 27 ff       '.       ; GBPBV dispatch (&FF27)  GBPBV dispatch hi
-    equw &ff2a                                                        ; 82a0: 2a ff       *.       ; FINDV dispatch (&FF2A)  FINDV dispatch hi
+    equw &ff27                                                        ; 829e: 27 ff       '.       ; GBPBV dispatch (&FF27)
+    equw &ff2a                                                        ; 82a0: 2a ff       *.       ; FINDV dispatch (&FF2A)
     equw &ff2d                                                        ; 82a2: 2d ff       -.       ; FSCV dispatch (&FF2D)
     equw filev_handler                                                ; 82a4: 05 87       ..       ; FILEV handler (&8705)
     equb &4a                                                          ; 82a6: 4a          J        ; (ROM bank — not read)
@@ -2093,7 +2089,7 @@ got_station_num = parse_server_station+2
     equb &41                                                          ; 82b2: 41          A        ; (ROM bank — not read)
     equw findv_handler                                                ; 82b3: 94 89       ..       ; FINDV handler (&8994)
     equb &52                                                          ; 82b5: 52          R        ; (ROM bank — not read)
-    equw fscv_handler                                                 ; 82b6: d4 80       ..       ; FSCV handler (&80D4)  FSCV handler hi
+    equw fscv_handler                                                 ; 82b6: d4 80       ..       ; FSCV handler (&80D4)
 ; ***************************************************************************************
 ; Service 1: claim absolute workspace
 ;
@@ -2975,7 +2971,7 @@ got_station_num = parse_server_station+2
 ;     A: parsed value (accumulated in &B2)
 ;     X: preserved
 ;     Y: offset past last digit parsed
-; &8620 referenced 1 time by &808c
+; &8620 referenced 2 times by &808c, &8095
 .parse_decimal
     lda #0                                                            ; 8620: a9 00       ..       ; Zero accumulator
     sta fs_load_addr_2                                                ; 8622: 85 b2       ..       ; Initialise accumulator to zero
@@ -4895,10 +4891,10 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     adc fs_addr_check                                                 ; 8e0b: 6d 0c 0f    m..      ; Continue address range check
     bcs exec_at_load_addr                                             ; 8e0e: b0 0c       ..       ; Carry set: not Tube space, exec locally
     jsr tube_claim_loop                                               ; 8e10: 20 cf 8b     ..      ; Claim Tube transfer channel
-    ldx #9                                                            ; 8e13: a2 09       ..       ; X=9: source offset in FS reply
-    ldy #&0f                                                          ; 8e15: a0 0f       ..       ; Y=&0F: page &0F (FS command buffer)
-    lda #4                                                            ; 8e17: a9 04       ..       ; A=4: Tube transfer type 4 (256-byte)
-    jmp tube_addr_claim                                               ; 8e19: 4c 06 04    L..      ; Transfer data to Tube co-processor
+    ldx #9                                                            ; 8e13: a2 09       ..       ; X=&09: address block at &0F09 (low)
+    ldy #&0f                                                          ; 8e15: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
+    lda #4                                                            ; 8e17: a9 04       ..       ; A=4: Tube reason 4, start execution
+    jmp tube_addr_claim                                               ; 8e19: 4c 06 04    L..      ; Start execution in the co-processor
 ; &8e1c referenced 2 times by &8e06, &8e0e
 .exec_at_load_addr
     jmp (fs_load_vector)                                              ; 8e1c: 6c 09 0f    l..      ; Execute at load address via indirect JMP
@@ -8423,6 +8419,7 @@ save pydis_start, pydis_end
 ;     osfind:                                   2
 ;     osrdch:                                   2
 ;     osword_pb_ptr_hi:                         2
+;     parse_decimal:                            2
 ;     parse_filename_gs:                        2
 ;     poll_tube_ready:                          2
 ;     prepare_cmd_clv:                          2
@@ -8465,6 +8462,7 @@ save pydis_start, pydis_end
 ;     skip_nmi_release:                         2
 ;     skip_space_next:                          2
 ;     skip_spaces:                              2
+;     skip_stn_parse:                           2
 ;     stack_page_2:                             2
 ;     stack_page_3:                             2
 ;     store_handle_return:                      2
@@ -8767,10 +8765,8 @@ save pydis_start, pydis_end
 ;     osword_tbl_hi:                            1
 ;     osword_tbl_lo:                            1
 ;     osword_trampoline:                        1
-;     parse_decimal:                            1
 ;     parse_decimal_rts:                        1
 ;     parse_filename_gs_y:                      1
-;     parse_station_num:                        1
 ;     poll_nmi_ready:                           1
 ;     poll_r2_osword_result:                    1
 ;     poll_r4_copro_ack:                        1
@@ -8883,7 +8879,6 @@ save pydis_start, pydis_end
 ;     skip_param_read:                          1
 ;     skip_param_write:                         1
 ;     skip_set_attrib_bit:                      1
-;     skip_stn_parse:                           1
 ;     skip_tube_update:                         1
 ;     stack_page_4:                             1
 ;     start_data_tx:                            1
@@ -8985,11 +8980,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7515 bytes (92%)
-;     Data                     = 677 bytes (8%)
+;     Code                     = 7517 bytes (92%)
+;     Data                     = 675 bytes (8%)
 ;
-;     Number of instructions   = 3625
-;     Number of data bytes     = 382 bytes
+;     Number of instructions   = 3626
+;     Number of data bytes     = 380 bytes
 ;     Number of data words     = 52 bytes
 ;     Number of string bytes   = 243 bytes
 ;     Number of strings        = 34

@@ -9216,7 +9216,6 @@
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
-      "comment_inline": "Execute command string at (X, Y)",
       "type": "string",
       "string": ".L..I .B"
     },
@@ -9291,7 +9290,7 @@
         33,
         255
       ],
-      "comment_inline": "BGETV dispatch (&FF21) BGETV dispatch hi",
+      "comment_inline": "BGETV dispatch (&FF21)",
       "type": "word",
       "values": [
         65313
@@ -9315,7 +9314,7 @@
         39,
         255
       ],
-      "comment_inline": "GBPBV dispatch (&FF27) GBPBV dispatch hi",
+      "comment_inline": "GBPBV dispatch (&FF27)",
       "type": "word",
       "values": [
         65319
@@ -9327,7 +9326,7 @@
         42,
         255
       ],
-      "comment_inline": "FINDV dispatch (&FF2A) FINDV dispatch hi",
+      "comment_inline": "FINDV dispatch (&FF2A)",
       "type": "word",
       "values": [
         65322
@@ -9489,7 +9488,7 @@
         212,
         128
       ],
-      "comment_inline": "FSCV handler (&80D4) FSCV handler hi",
+      "comment_inline": "FSCV handler (&80D4)",
       "type": "word",
       "values": [
         32980
@@ -29841,7 +29840,7 @@
         162,
         9
       ],
-      "comment_inline": "X=9: source offset in FS reply",
+      "comment_inline": "X=&09: address block at &0F09 (low)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#9"
@@ -29852,7 +29851,7 @@
         160,
         15
       ],
-      "comment_inline": "Y=&0F: page &0F (FS command buffer)",
+      "comment_inline": "Y=&0F: address block at &0F09 (high)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0f"
@@ -29863,7 +29862,7 @@
         169,
         4
       ],
-      "comment_inline": "A=4: Tube transfer type 4 (256-byte)",
+      "comment_inline": "A=4: Tube reason 4, start execution",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -29875,7 +29874,7 @@
         6,
         4
       ],
-      "comment_inline": "Transfer data to Tube co-processor",
+      "comment_inline": "Start execution in the co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",
@@ -54058,7 +54057,7 @@
           "svc5_dispatch_lo"
         ]
       },
-      "comment_inline": "Enter common data-receive path Immediate op dispatch lo bytes",
+      "comment_inline": "Enter common data-receive path",
       "xref_summaries": [
         "&9a9d used as index base 1 time by &9675"
       ],

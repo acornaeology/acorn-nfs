@@ -13863,7 +13863,6 @@
       "bytes": [
         136
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -13872,7 +13871,6 @@
       "bytes": [
         136
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -13881,7 +13879,6 @@
       "bytes": [
         136
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -19791,7 +19788,6 @@
       "bytes": [
         200
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -19800,7 +19796,6 @@
       "bytes": [
         200
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -33411,7 +33406,6 @@
         110,
         32
       ],
-      "comment_inline": "Print 'Econet Station ' via inline",
       "type": "string",
       "string": "Econet Station "
     },
@@ -50358,7 +50352,6 @@
       "bytes": [
         202
       ],
-      "comment_inline": "Decrement counter",
       "type": "code",
       "mnemonic": "dex"
     },
@@ -51835,7 +51828,6 @@
       "bytes": [
         200
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -51844,7 +51836,6 @@
       "bytes": [
         200
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "iny"
     },
@@ -88797,7 +88788,6 @@
         46,
         32
       ],
-      "comment_inline": "Print '     Lib. '",
       "type": "string",
       "string": "     Lib. "
     },
@@ -93487,7 +93477,6 @@
           "store_ps_station"
         ]
       },
-      "comment_inline": "Workspace offset 2",
       "xref_summaries": [
         "&b0b6 referenced 1 time by &b0ac"
       ],

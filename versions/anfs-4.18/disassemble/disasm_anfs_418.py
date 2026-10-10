@@ -2997,9 +2997,6 @@ d.label(0x85B8, "calc_peek_poke_size")
 
 d.comment(0x85B8, "Load TXCB[Y] (end addr byte)", align=Align.INLINE)
 d.comment(0x85BA, "Y -= 4: back to start addr offset", align=Align.INLINE)
-d.comment(0x85BB, "(continued)", align=Align.INLINE)
-d.comment(0x85BC, "(continued)", align=Align.INLINE)
-d.comment(0x85BD, "(continued)", align=Align.INLINE)
 d.comment(0x85BE, "Restore borrow from stack", align=Align.INLINE)
 d.comment(0x85BF, "end - start = transfer size byte", align=Align.INLINE)
 d.comment(0x85C1, "Store result to tx_data_start", align=Align.INLINE)
@@ -3891,8 +3888,6 @@ d.label(0x8912, "calc_transfer_size")
 
 d.comment(0x8912, "Load RXCB[Y] (current ptr byte)", align=Align.INLINE)
 d.comment(0x8914, "Y += 4: advance to RXCB[Y+4]", align=Align.INLINE)
-d.comment(0x8915, "(continued)", align=Align.INLINE)
-d.comment(0x8916, "(continued)", align=Align.INLINE)
 d.comment(0x8917, "(continued)", align=Align.INLINE)
 d.comment(0x8918, "Restore borrow from previous byte", align=Align.INLINE)
 d.comment(0x8919, "Subtract RXCB[Y+4] (start ptr byte)", align=Align.INLINE)
@@ -5695,7 +5690,6 @@ Called by print_version_header and svc_3_auto_boot.""",
 
 
 d.comment(0x8FF1, "Print 'Econet Station ' prefix", align=Align.INLINE)
-d.comment(0x8FF6, "Print 'Econet Station ' via inline", align=Align.INLINE)
 d.comment(0x9003, "Y=1: station number offset in RX block", align=Align.INLINE)
 d.comment(0x9005, "Load station ID from receive block", align=Align.INLINE)
 d.comment(0x9007, "Print station number as decimal", align=Align.INLINE)
@@ -8106,7 +8100,6 @@ d.comment(0x99A3, "Load TXCB end pointer byte", align=Align.INLINE)
 d.comment(0x99A5, "Store in TXCB start pointer", align=Align.INLINE)
 d.comment(0x99A7, "Load new end address from fs_work", align=Align.INLINE)
 d.comment(0x99A9, "Store in TXCB end pointer", align=Align.INLINE)
-d.comment(0x99AB, "Decrement counter", align=Align.INLINE)
 d.comment(0x99AC, "Loop for all 4 bytes", align=Align.INLINE)
 d.comment(0x99AE, "A=&7F: control byte for data transfer", align=Align.INLINE)
 d.comment(0x99B0, "Set TXCB control byte", align=Align.INLINE)
@@ -8306,8 +8299,6 @@ in the FS options or workspace structure.""",
 
 d.comment(0x9A7F, "Y += 4", align=Align.INLINE)
 d.comment(0x9A80, "(continued)", align=Align.INLINE)
-d.comment(0x9A81, "(continued)", align=Align.INLINE)
-d.comment(0x9A82, "(continued)", align=Align.INLINE)
 d.label(0x9A83, "rts_advance_y")
 
 d.comment(0x9A83, "Return", align=Align.INLINE)
@@ -12660,7 +12651,6 @@ d.label(0xAE27, "print_dir_header")
 d.comment(0xAE31, "Offset &11: directory name", align=Align.INLINE)
 d.comment(0xAE33, "Print directory name (10 chars)", align=Align.INLINE)
 d.comment(0xAE36, "Print '     Lib. '", align=Align.INLINE)
-d.comment(0xAE3A, "Print '     Lib. '", align=Align.INLINE)
 d.comment(0xAE43, "Offset &1B: library name", align=Align.INLINE)
 d.comment(0xAE45, "Print library name (10 chars)", align=Align.INLINE)
 d.comment(0xAE4B, "Restore flags", align=Align.INLINE)
@@ -13365,7 +13355,6 @@ d.label(0xB0B6, "done_ps_status_msg")
 
 d.label(0xB0B8, "store_ps_station")
 
-d.comment(0xB0B8, "Workspace offset 2", align=Align.INLINE)
 d.label(0xB0B9, "store_ps_station_addr")
 
 

@@ -2665,7 +2665,6 @@ d.label(0x84A1, "jmp_send_data_rx_ack")
 d.comment(0x84A1, "Enter common data-receive path", align=Align.INLINE)
 d.label(0x84A2, "svc5_dispatch_lo")
 
-d.comment(0x84A2, "Svc 5 dispatch table low bytes", align=Align.INLINE)
 d.subroutine(
     0x84A4,
     "rx_imm_poke",

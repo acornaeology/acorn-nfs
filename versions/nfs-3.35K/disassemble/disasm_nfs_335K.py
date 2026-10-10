@@ -1834,7 +1834,6 @@ the .BOOT file.""",
 )
 
 
-d.comment(0x827E, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
 d.index_base(0x8280, "fs_vector_addrs")
 
 d.subroutine(
@@ -4598,7 +4597,6 @@ d.comment(0x8CF6, "Opt 2 (Run): !BOOT", align=Align.INLINE)
 d.byte(0x8CF7, 1)
 d.comment(0x8CF7, "Opt 3 (Exec): E.!BOOT", align=Align.INLINE)
 d.string(0x8CF8, 4)
-d.comment(0x8CFA, "Data bytes: boot_cmd_strings 'ec'", align=Align.INLINE)
 d.subroutine(
     0x8CFC,
     "print_file_info",

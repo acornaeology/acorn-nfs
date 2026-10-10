@@ -11758,7 +11758,7 @@
           "svc5_dispatch_lo"
         ]
       },
-      "comment_inline": "Enter common data-receive path Svc 5 dispatch table low bytes",
+      "comment_inline": "Enter common data-receive path",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "send_data_rx_ack",

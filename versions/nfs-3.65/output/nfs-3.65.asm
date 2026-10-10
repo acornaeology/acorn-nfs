@@ -3726,8 +3726,8 @@ error_table_base = bgetv_shared_jsr+1
 ; &883d referenced 2 times by &88d7, &8acb
 .sub_3_from_y
     dey                                                               ; 883d: 88          .        ; Y -= 3
-    dey                                                               ; 883e: 88          .        ; (continued)
-    dey                                                               ; 883f: 88          .        ; (continued)
+    dey                                                               ; 883e: 88          .     
+    dey                                                               ; 883f: 88          .     
     rts                                                               ; 8840: 60          `        ; Return to caller
 ; ***************************************************************************************
 ; Multi-block file data transfer
@@ -5064,10 +5064,10 @@ cmd_match_data = fs_cmd_match_table+1
     adc fs_addr_check                                                 ; 8e1b: 6d 0c 0f    m..      ; Continue address range check
     bcs exec_local                                                    ; 8e1e: b0 0c       ..       ; Carry set: not Tube space, exec locally
     jsr tube_claim_loop                                               ; 8e20: 20 01 8c     ..      ; Claim Tube transfer channel
-    ldx #9                                                            ; 8e23: a2 09       ..       ; X=9: source offset in FS reply
-    ldy #&0f                                                          ; 8e25: a0 0f       ..       ; Y=&0F: page &0F (FS command buffer)
-    lda #4                                                            ; 8e27: a9 04       ..       ; A=4: Tube transfer type 4 (256-byte)
-    jmp tube_addr_claim                                               ; 8e29: 4c 06 04    L..      ; Transfer data to Tube co-processor
+    ldx #9                                                            ; 8e23: a2 09       ..       ; X=&09: address block at &0F09 (low)
+    ldy #&0f                                                          ; 8e25: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
+    lda #4                                                            ; 8e27: a9 04       ..       ; A=4: Tube reason 4, start execution
+    jmp tube_addr_claim                                               ; 8e29: 4c 06 04    L..      ; Start execution in the co-processor
 ; &8e2c referenced 2 times by &8e16, &8e1e
 .exec_local
     rol a                                                             ; 8e2c: 2a          *        ; ROL: restore A (undo ADC carry)
@@ -7389,7 +7389,7 @@ cmd_match_data = fs_cmd_match_table+1
 .enter_data_rx_path
 ; &9abf used as index base 1 time by &9695
 svc5_dispatch_lo = enter_data_rx_path+1
-    jmp send_data_rx_ack                                              ; 9abe: 4c eb 97    L..      ; Enter common data-receive path  Svc 5 dispatch table low bytes
+    jmp send_data_rx_ack                                              ; 9abe: 4c eb 97    L..      ; Enter common data-receive path
 ; ***************************************************************************************
 ; RX immediate: POKE setup
 ;
@@ -7511,7 +7511,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
     pha                                                               ; 9b49: 48          H        ; Push hi byte on stack
     lda #&88                                                          ; 9b4a: a9 88       ..       ; Push lo of (tx_done_exit-1)
     pha                                                               ; 9b4c: 48          H        ; Push lo byte on stack
-    jmp (exec_addr_lo)                                                ; 9b4d: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit  ORA opcode (dead code / data overlap)
+    jmp (exec_addr_lo)                                                ; 9b4d: 6c 58 0d    lX.      ; Call remote JSR; RTS to tx_done_exit
 ; ***************************************************************************************
 ; TX done: UserProc event
 ;
@@ -7688,7 +7688,7 @@ svc5_dispatch_lo = enter_data_rx_path+1
 ; register or globally. The SR1 read is therefore a prerequisite of the clear, not merely
 ; an interrupt acknowledgement.
 .intoff_test_inactive
-    bit station_id_disable_net_nmis                                   ; 9c06: 2c 18 fe    ,..      ; INTOFF -- disable NMIs  INTOFF again (belt-and-braces)
+    bit station_id_disable_net_nmis                                   ; 9c06: 2c 18 fe    ,..      ; INTOFF -- disable NMIs
     lda #4                                                            ; 9c09: a9 04       ..       ; A=4: INACTIVE mask for SR2 bit 2
 .test_line_idle
     bit econet_control23_or_status2                                   ; 9c0b: 2c a1 fe    ,..      ; BIT SR2: Z = &04 AND SR2 -- tests INACTIVE

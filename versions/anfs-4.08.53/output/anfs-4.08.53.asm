@@ -2408,7 +2408,7 @@ service_handler_lo = service_entry+1
     bpl copy_addr_loop                                                ; 849f: 10 f7       ..       ; Loop until all 4 bytes copied
 .jmp_send_data_rx_ack
 svc5_dispatch_lo = jmp_send_data_rx_ack+1
-    jmp send_data_rx_ack                                              ; 84a1: 4c c1 81    L..      ; Enter common data-receive path  Svc 5 dispatch table low bytes
+    jmp send_data_rx_ack                                              ; 84a1: 4c c1 81    L..      ; Enter common data-receive path
 ; ***************************************************************************************
 ; RX immediate: POKE setup
 ;

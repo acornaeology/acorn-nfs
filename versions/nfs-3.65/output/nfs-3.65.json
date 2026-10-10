@@ -19715,7 +19715,6 @@
       "bytes": [
         136
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -19724,7 +19723,6 @@
       "bytes": [
         136
       ],
-      "comment_inline": "(continued)",
       "type": "code",
       "mnemonic": "dey"
     },
@@ -29850,7 +29848,7 @@
         162,
         9
       ],
-      "comment_inline": "X=9: source offset in FS reply",
+      "comment_inline": "X=&09: address block at &0F09 (low)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#9"
@@ -29861,7 +29859,7 @@
         160,
         15
       ],
-      "comment_inline": "Y=&0F: page &0F (FS command buffer)",
+      "comment_inline": "Y=&0F: address block at &0F09 (high)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0f"
@@ -29872,7 +29870,7 @@
         169,
         4
       ],
-      "comment_inline": "A=4: Tube transfer type 4 (256-byte)",
+      "comment_inline": "A=4: Tube reason 4, start execution",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -29884,7 +29882,7 @@
         6,
         4
       ],
-      "comment_inline": "Transfer data to Tube co-processor",
+      "comment_inline": "Start execution in the co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",
@@ -54146,7 +54144,7 @@
           "svc5_dispatch_lo"
         ]
       },
-      "comment_inline": "Enter common data-receive path Svc 5 dispatch table low bytes",
+      "comment_inline": "Enter common data-receive path",
       "xref_summaries": [
         "&9abf used as index base 1 time by &9695"
       ],
@@ -54978,7 +54976,7 @@
         88,
         13
       ],
-      "comment_inline": "Call remote JSR; RTS to tx_done_exit ORA opcode (dead code / data overlap)",
+      "comment_inline": "Call remote JSR; RTS to tx_done_exit",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "(exec_addr_lo)",
@@ -56228,7 +56226,7 @@
       "labels": [
         "intoff_test_inactive"
       ],
-      "comment_inline": "INTOFF -- disable NMIs INTOFF again (belt-and-braces)",
+      "comment_inline": "INTOFF -- disable NMIs",
       "type": "code",
       "mnemonic": "bit",
       "operand": "station_id_disable_net_nmis",

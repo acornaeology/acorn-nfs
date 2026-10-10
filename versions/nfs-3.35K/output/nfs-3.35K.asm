@@ -1965,7 +1965,7 @@ cmd_roff_str = copyright_string+3
     ldy #&82                                                          ; 8273: a0 82       ..       ; Y=&82: ROM page high byte
     jmp fscv_3_star_cmd                                               ; 8275: 4c b6 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 8278: 49 20 2e... I ....   ; Auto-boot string tail / NETV handler data
+    equs "I .BOOT", &0d                                               ; 8278: 49 20 2e... I ....
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -4546,7 +4546,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     equb &e4                                                          ; 8cf5: e4          .        ; Opt 1 (Load): L.!BOOT
     equb &e6                                                          ; 8cf6: e6          .        ; Opt 2 (Run): !BOOT
     equb &ec                                                          ; 8cf7: ec          .        ; Opt 3 (Exec): E.!BOOT
-    equs "Exec"                                                       ; 8cf8: 45 78 65... Exe...   ; Data bytes: boot_cmd_strings 'ec'
+    equs "Exec"                                                       ; 8cf8: 45 78 65... Exe...
 ; ***************************************************************************************
 ; Print file catalogue line
 ;

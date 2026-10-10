@@ -2070,7 +2070,6 @@ the .BOOT file.""",
 )
 
 
-d.comment(0x828F, "Execute command string at (X, Y)", align=Align.INLINE)
 d.byte(0x8296, 2)
 d.comment(0x8296, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
 d.subroutine(
@@ -2104,10 +2103,6 @@ for i, (name, handler_addr) in enumerate(handler_names):
 
 d.index_base(0x829A, "fs_dispatch_addrs")
 
-d.comment(0x829F, "BGETV dispatch hi", align=Align.INLINE)
-d.comment(0x82A3, "GBPBV dispatch hi", align=Align.INLINE)
-d.comment(0x82A5, "FINDV dispatch hi", align=Align.INLINE)
-d.comment(0x82BB, "FSCV handler hi", align=Align.INLINE)
 d.subroutine(
     0x82BC,
     "svc_1_abs_workspace",
@@ -5167,10 +5162,10 @@ d.comment(0x8E15, "Check load address upper bytes", align=Align.INLINE)
 d.comment(0x8E18, "Continue address range check", align=Align.INLINE)
 d.comment(0x8E1B, "Carry set: not Tube space, exec locally", align=Align.INLINE)
 d.comment(0x8E1D, "Claim Tube transfer channel", align=Align.INLINE)
-d.comment(0x8E20, "X=9: source offset in FS reply", align=Align.INLINE)
-d.comment(0x8E22, "Y=&0F: page &0F (FS command buffer)", align=Align.INLINE)
-d.comment(0x8E24, "A=4: Tube transfer type 4 (256-byte)", align=Align.INLINE)
-d.comment(0x8E26, "Transfer data to Tube co-processor", align=Align.INLINE)
+d.comment(0x8E20, "X=&09: address block at &0F09 (low)", align=Align.INLINE)
+d.comment(0x8E22, "Y=&0F: address block at &0F09 (high)", align=Align.INLINE)
+d.comment(0x8E24, "A=4: Tube reason 4, start execution", align=Align.INLINE)
+d.comment(0x8E26, "Start execution in the co-processor", align=Align.INLINE)
 d.label(0x8E29, "exec_local")
 
 d.comment(0x8E29, "ROL: restore A (undo ADC carry)", align=Align.INLINE)
@@ -7819,7 +7814,6 @@ d.comment(0x9A9A, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.comment(0x9A9C, "Enter common data-receive path", align=Align.INLINE)
 d.label(0x9A9D, "svc5_dispatch_lo")
 
-d.comment(0x9A9D, "Immediate op dispatch lo bytes", align=Align.INLINE)
 d.subroutine(
     0x9A9F,
     "rx_imm_poke",

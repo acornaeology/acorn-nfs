@@ -1450,6 +1450,7 @@ d.comment(0x808A, "Char >= ':': skip number parsing", align=Align.INLINE)
 d.comment(0x808F, "C=1: dot found, first number was network", align=Align.INLINE)
 d.comment(0x8091, "Store network number (n.s = network.station)", align=Align.INLINE)
 
+d.entry(0x8095)
 d.label(0x8098, "got_station_num")
 d.comment(0x8098, "Z=1: no station parsed (empty or non-numeric)", align=Align.INLINE)
 
@@ -2027,7 +2028,6 @@ the .BOOT file.""",
 )
 
 
-d.comment(0x8294, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
 d.subroutine(
     0x8296,
     "fs_vector_addrs",
@@ -2047,10 +2047,6 @@ for i, name in enumerate(["FILEV", "ARGSV", "BGETV", "BPUTV", "GBPBV", "FINDV", 
     addr = 0x8296 + i * 2
     d.word(addr)
     d.comment(addr, f"{name} dispatch (&FF{0x1B + i * 3:02X})", align=Align.INLINE)
-d.comment(0x829B, "BGETV dispatch hi", align=Align.INLINE)
-d.comment(0x829F, "GBPBV dispatch hi", align=Align.INLINE)
-d.comment(0x82A1, "FINDV dispatch hi", align=Align.INLINE)
-d.comment(0x82B7, "FSCV handler hi", align=Align.INLINE)
 for i, (name, handler_addr) in enumerate(handler_names):
     base_addr = 0x82A4 + i * 3
     d.word(base_addr)
@@ -4979,10 +4975,10 @@ d.comment(0x8E08, "Check load address upper bytes", align=Align.INLINE)
 d.comment(0x8E0B, "Continue address range check", align=Align.INLINE)
 d.comment(0x8E0E, "Carry set: not Tube space, exec locally", align=Align.INLINE)
 d.comment(0x8E10, "Claim Tube transfer channel", align=Align.INLINE)
-d.comment(0x8E13, "X=9: source offset in FS reply", align=Align.INLINE)
-d.comment(0x8E15, "Y=&0F: page &0F (FS command buffer)", align=Align.INLINE)
-d.comment(0x8E17, "A=4: Tube transfer type 4 (256-byte)", align=Align.INLINE)
-d.comment(0x8E19, "Transfer data to Tube co-processor", align=Align.INLINE)
+d.comment(0x8E13, "X=&09: address block at &0F09 (low)", align=Align.INLINE)
+d.comment(0x8E15, "Y=&0F: address block at &0F09 (high)", align=Align.INLINE)
+d.comment(0x8E17, "A=4: Tube reason 4, start execution", align=Align.INLINE)
+d.comment(0x8E19, "Start execution in the co-processor", align=Align.INLINE)
 d.comment(0x8E1C, "Execute at load address via indirect JMP", align=Align.INLINE)
 d.label(0x8E1C, "exec_at_load_addr")
 
@@ -8662,8 +8658,6 @@ d.label(0x0E11, "context_ptr_2_hi")
 
 # Semantic names for ROM-source tables and code points (NFS context).
 d.index_base(0x9556, "tube_code_page6_rom")
-d.label(0xF086, "parse_station_num")
-d.label(0x8096, "parse_server_station")
 
 
 

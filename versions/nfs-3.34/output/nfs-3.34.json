@@ -8349,7 +8349,6 @@
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
       "type": "string",
       "string": "I .BOOT."
     },
@@ -14882,7 +14881,7 @@
         169,
         1
       ],
-      "comment_inline": "Convert to ASCII and print",
+      "comment_inline": "A=1: units divisor; fall into print_decimal_digit",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#1"
@@ -28449,7 +28448,7 @@
       "labels": [
         "fsreply_4_notify_exec"
       ],
-      "comment_inline": "X=&0E: OSWORD &10 parameter block size",
+      "comment_inline": "X=&0E: FS command buffer offset",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&0e"
@@ -28460,7 +28459,7 @@
         134,
         188
       ],
-      "comment_inline": "Y=0: param block offset",
+      "comment_inline": "Store block offset for FS command",
       "type": "code",
       "mnemonic": "stx",
       "operand": "fs_block_offset",
@@ -28473,7 +28472,7 @@
         169,
         16
       ],
-      "comment_inline": "A=&10: OSWORD &10 (open RXCB)",
+      "comment_inline": "A=&10: 16 bytes of command data",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#&10"
@@ -28484,7 +28483,7 @@
         133,
         187
       ],
-      "comment_inline": "Issue OSWORD &10 to open RXCB",
+      "comment_inline": "Store options byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "fs_options",
@@ -28497,7 +28496,7 @@
         162,
         74
       ],
-      "comment_inline": "X=&4A: parameter block offset",
+      "comment_inline": "X=&4A: TXCB size for load command",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#&4a"
@@ -28508,7 +28507,7 @@
         160,
         5
       ],
-      "comment_inline": "Y=5: command code offset",
+      "comment_inline": "Y=5: FCCMND (load as command)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#5"
@@ -28520,7 +28519,7 @@
         208,
         134
       ],
-      "comment_inline": "Send FS examine command",
+      "comment_inline": "Send FS examine/load command",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "send_fs_examine",
@@ -28534,7 +28533,7 @@
         82,
         13
       ],
-      "comment_inline": "Y=&70: FS workspace offset",
+      "comment_inline": "Check for Tube co-processor",
       "type": "code",
       "mnemonic": "lda",
       "operand": "tx_in_progress",
@@ -28547,12 +28546,12 @@
         240,
         20
       ],
-      "comment_inline": "No Tube: skip transfer setup",
+      "comment_inline": "No Tube: execute locally",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "net_handle_validate",
+      "operand": "exec_at_load_addr",
       "target": 36268,
-      "target_label": "net_handle_validate"
+      "target_label": "exec_at_load_addr"
     },
     {
       "addr": 36248,
@@ -28561,7 +28560,7 @@
         11,
         15
       ],
-      "comment_inline": "Add file load address upper byte",
+      "comment_inline": "Check load address upper bytes",
       "type": "code",
       "mnemonic": "adc",
       "operand": "fs_load_upper",
@@ -28575,7 +28574,7 @@
         12,
         15
       ],
-      "comment_inline": "Add address check byte",
+      "comment_inline": "Continue address range check",
       "type": "code",
       "mnemonic": "adc",
       "operand": "fs_addr_check",
@@ -28588,12 +28587,12 @@
         176,
         12
       ],
-      "comment_inline": "Store final byte",
+      "comment_inline": "Carry set: not Tube space, exec locally",
       "type": "code",
       "mnemonic": "bcs",
-      "operand": "net_handle_validate",
+      "operand": "exec_at_load_addr",
       "target": 36268,
-      "target_label": "net_handle_validate"
+      "target_label": "exec_at_load_addr"
     },
     {
       "addr": 36256,
@@ -28602,7 +28601,7 @@
         138,
         139
       ],
-      "comment_inline": "X=&16: OSBYTE param",
+      "comment_inline": "Claim Tube transfer channel",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_claim_loop",
@@ -28615,7 +28614,7 @@
         162,
         9
       ],
-      "comment_inline": "X=9: Tube claim parameter",
+      "comment_inline": "X=&09: address block at &0F09 (low)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#9"
@@ -28626,7 +28625,7 @@
         160,
         15
       ],
-      "comment_inline": "Y=&0F: Tube claim parameter",
+      "comment_inline": "Y=&0F: address block at &0F09 (high)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0f"
@@ -28637,7 +28636,7 @@
         169,
         4
       ],
-      "comment_inline": "Save original value on stack",
+      "comment_inline": "A=4: Tube reason 4, start execution",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -28649,7 +28648,7 @@
         6,
         4
       ],
-      "comment_inline": "Claim Tube for address transfer",
+      "comment_inline": "Start execution in the co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",
@@ -28664,7 +28663,7 @@
         15
       ],
       "labels": [
-        "net_handle_validate"
+        "exec_at_load_addr"
       ],
       "comment_inline": "Execute via indirect load vector",
       "xref_summaries": [

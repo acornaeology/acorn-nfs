@@ -3780,8 +3780,6 @@ d.comment(0x883C, "Y -= 4", align=Align.INLINE)
 d.label(0x883D, "sub_3_from_y")
 
 d.comment(0x883D, "Y -= 3", align=Align.INLINE)
-d.comment(0x883E, "(continued)", align=Align.INLINE)
-d.comment(0x883F, "(continued)", align=Align.INLINE)
 d.comment(0x8840, "Return to caller", align=Align.INLINE)
 
 d.entry(0x8841)
@@ -5185,10 +5183,10 @@ d.comment(0x8E18, "Check load address upper bytes", align=Align.INLINE)
 d.comment(0x8E1B, "Continue address range check", align=Align.INLINE)
 d.comment(0x8E1E, "Carry set: not Tube space, exec locally", align=Align.INLINE)
 d.comment(0x8E20, "Claim Tube transfer channel", align=Align.INLINE)
-d.comment(0x8E23, "X=9: source offset in FS reply", align=Align.INLINE)
-d.comment(0x8E25, "Y=&0F: page &0F (FS command buffer)", align=Align.INLINE)
-d.comment(0x8E27, "A=4: Tube transfer type 4 (256-byte)", align=Align.INLINE)
-d.comment(0x8E29, "Transfer data to Tube co-processor", align=Align.INLINE)
+d.comment(0x8E23, "X=&09: address block at &0F09 (low)", align=Align.INLINE)
+d.comment(0x8E25, "Y=&0F: address block at &0F09 (high)", align=Align.INLINE)
+d.comment(0x8E27, "A=4: Tube reason 4, start execution", align=Align.INLINE)
+d.comment(0x8E29, "Start execution in the co-processor", align=Align.INLINE)
 d.label(0x8E2C, "exec_local")
 
 d.comment(0x8E2C, "ROL: restore A (undo ADC carry)", align=Align.INLINE)
@@ -7842,7 +7840,6 @@ d.comment(0x9ABC, "Loop until all 4 bytes copied", align=Align.INLINE)
 d.comment(0x9ABE, "Enter common data-receive path", align=Align.INLINE)
 d.label(0x9ABF, "svc5_dispatch_lo")
 
-d.comment(0x9ABF, "Svc 5 dispatch table low bytes", align=Align.INLINE)
 d.subroutine(
     0x9AC1,
     "rx_imm_poke",
@@ -7990,7 +7987,6 @@ d.comment(0x9B49, "Push hi byte on stack", align=Align.INLINE)
 d.comment(0x9B4A, "Push lo of (tx_done_exit-1)", align=Align.INLINE)
 d.comment(0x9B4C, "Push lo byte on stack", align=Align.INLINE)
 d.comment(0x9B4D, "Call remote JSR; RTS to tx_done_exit", align=Align.INLINE)
-d.comment(0x9B4F, "ORA opcode (dead code / data overlap)", align=Align.INLINE)
 d.subroutine(
     0x9B50,
     "tx_done_user_proc",
@@ -8199,7 +8195,6 @@ acknowledgement.""",
 
 
 d.comment(0x9C06, "INTOFF -- disable NMIs", align=Align.INLINE)
-d.comment(0x9C08, "INTOFF again (belt-and-braces)", align=Align.INLINE)
 d.comment(0x9C09, "A=4: INACTIVE mask for SR2 bit 2", align=Align.INLINE)
 d.comment(0x9C0B, "BIT SR2: Z = &04 AND SR2 -- tests INACTIVE", align=Align.INLINE)
 d.label(0x9C0B, "test_line_idle")

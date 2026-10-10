@@ -1995,7 +1995,7 @@ cmd_roff_str = copyright_string+3
     ldy #&82                                                          ; 827d: a0 82       ..       ; Y=&82: ROM page high byte
     jmp fscv_3_star_cmd                                               ; 827f: 4c b4 8b    L..      ; Execute command string at (X, Y)
 ; Synthetic auto-boot command string. "I " does not match any entry in NFS's local command table — "I." requires a dot, and "I AM" requires 'A' after the space — so fscv_3_star_cmd forwards the entire string to the fileserver, which executes the .BOOT file.
-    equs "I .BOOT", &0d                                               ; 8282: 49 20 2e... I ....   ; Auto-boot string tail / NETV handler data
+    equs "I .BOOT", &0d                                               ; 8282: 49 20 2e... I ....
 ; ***************************************************************************************
 ; FS vector dispatch and handler addresses (34 bytes)
 ;
@@ -4572,7 +4572,7 @@ cmd_table_entry_1 = fs_cmd_match_table+1
     equb &e2                                                          ; 8cf3: e2          .        ; Opt 1 (Load): L.!BOOT
     equb &e4                                                          ; 8cf4: e4          .        ; Opt 2 (Run): !BOOT
     equb &ea                                                          ; 8cf5: ea          .        ; Opt 3 (Exec): E.!BOOT
-    equs "Exec"                                                       ; 8cf6: 45 78 65... Exe...   ; Data bytes: boot_cmd_strings 'ec'
+    equs "Exec"                                                       ; 8cf6: 45 78 65... Exe...
 ; ***************************************************************************************
 ; Print file catalogue line
 ;
@@ -5319,10 +5319,10 @@ osword_12_handler = restore_rx_flags+2
     sty ws_ptr_lo                                                     ; 8f9e: 84 ab       ..       ; Set &AB = workspace ptr low byte
     lda #&c0                                                          ; 8fa0: a9 c0       ..       ; &C0: test mask for flag byte
     ldy #1                                                            ; 8fa2: a0 01       ..       ; Y=1: flag byte offset in RXCB
-    ldx #&0b                                                          ; 8fa4: a2 0b       ..       ; Enable interrupts before transmit
+    ldx #&0b                                                          ; 8fa4: a2 0b       ..    
     cpy osword_flag                                                   ; 8fa6: c4 aa       ..       ; Compare Y(1) with saved byte (open/read)
     adc (ws_ptr_lo),y                                                 ; 8fa8: 71 ab       q.       ; ADC flag: test if slot is in use
-    beq openl6                                                        ; 8faa: f0 03       ..       ; Dest station = broadcast (accept reply from any station)
+    beq openl6                                                        ; 8faa: f0 03       ..    
     bmi openl7                                                        ; 8fac: 30 0e       0.       ; Negative: slot has received data
 ; &8fae referenced 1 time by &8fbe
 .copy_rxcb_to_param
@@ -5374,7 +5374,7 @@ osword_12_handler = restore_rx_flags+2
     ldy #&1c                                                          ; 8fd2: a0 1c       ..       ; Y=&1C: RXCB template offset
     lda osword_pb_ptr                                                 ; 8fd4: a5 f0       ..       ; A = base address low byte
     adc #1                                                            ; 8fd6: 69 01       i.       ; A = base + 1 (skip length byte)
-    jsr store_16bit_at_y                                              ; 8fd8: 20 e3 8f     ..      ; Receive data blocks until command byte = &00 or &0D
+    jsr store_16bit_at_y                                              ; 8fd8: 20 e3 8f     ..   
     ldy #1                                                            ; 8fdb: a0 01       ..       ; Read data length from (&F0)+1
     lda (osword_pb_ptr),y                                             ; 8fdd: b1 f0       ..       ; A = data length byte
     ldy #&20                                                          ; 8fdf: a0 20       .        ; Workspace offset &20 = RX data end
@@ -5772,7 +5772,7 @@ osword_12_handler = restore_rx_flags+2
     lda #&e9                                                          ; 9162: a9 e9       ..       ; Tag as RWORD (port &E9)
     sta (nfs_workspace),y                                             ; 9164: 91 9e       ..       ; Store port tag at ws+&14
     lda #1                                                            ; 9166: a9 01       ..       ; A=1: single-byte TX
-    jsr setup_tx_and_send                                             ; 9168: 20 c0 90     ..      ; Load template byte from ctrl_block_template[X]
+    jsr setup_tx_and_send                                             ; 9168: 20 c0 90     ..   
     stx nfs_workspace                                                 ; 916b: 86 9e       ..       ; Restore workspace ptr
 ; ***************************************************************************************
 ; Alternate entry into control block setup

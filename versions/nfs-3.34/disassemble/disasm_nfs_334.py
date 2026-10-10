@@ -1793,7 +1793,6 @@ the .BOOT file.""",
 )
 
 
-d.comment(0x824B, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
 d.index_base(0x824D, "fs_vector_addrs")
 
 d.subroutine(
@@ -2892,7 +2891,7 @@ d.comment(0x85B0, "A=100: hundreds divisor", align=Align.INLINE)
 d.comment(0x85B2, "Print hundreds digit", align=Align.INLINE)
 d.comment(0x85B5, "A=10: tens divisor", align=Align.INLINE)
 d.comment(0x85B7, "Print tens digit", align=Align.INLINE)
-d.comment(0x85BA, "Convert to ASCII and print", align=Align.INLINE)
+d.comment(0x85BA, "A=1: units divisor; fall into print_decimal_digit", align=Align.INLINE)
 d.subroutine(
     0x85BC,
     "print_decimal_digit",
@@ -4748,25 +4747,25 @@ indirect pointer at (&0F09) to execute at the load address.""",
 )
 
 
-d.comment(0x8D84, "X=&0E: OSWORD &10 parameter block size", align=Align.INLINE)
-d.comment(0x8D86, "Y=0: param block offset", align=Align.INLINE)
-d.comment(0x8D88, "A=&10: OSWORD &10 (open RXCB)", align=Align.INLINE)
-d.comment(0x8D8A, "Issue OSWORD &10 to open RXCB", align=Align.INLINE)
-d.comment(0x8D8C, "X=&4A: parameter block offset", align=Align.INLINE)
-d.comment(0x8D8E, "Y=5: command code offset", align=Align.INLINE)
-d.comment(0x8D90, "Send FS examine command", align=Align.INLINE)
-d.comment(0x8D93, "Y=&70: FS workspace offset", align=Align.INLINE)
-d.comment(0x8D96, "No Tube: skip transfer setup", align=Align.INLINE)
-d.comment(0x8D98, "Add file load address upper byte", align=Align.INLINE)
-d.comment(0x8D9B, "Add address check byte", align=Align.INLINE)
-d.comment(0x8D9E, "Store final byte", align=Align.INLINE)
-d.comment(0x8DA0, "X=&16: OSBYTE param", align=Align.INLINE)
-d.comment(0x8DA3, "X=9: Tube claim parameter", align=Align.INLINE)
-d.comment(0x8DA5, "Y=&0F: Tube claim parameter", align=Align.INLINE)
-d.comment(0x8DA7, "Save original value on stack", align=Align.INLINE)
+d.comment(0x8D84, "X=&0E: FS command buffer offset", align=Align.INLINE)
+d.comment(0x8D86, "Store block offset for FS command", align=Align.INLINE)
+d.comment(0x8D88, "A=&10: 16 bytes of command data", align=Align.INLINE)
+d.comment(0x8D8A, "Store options byte", align=Align.INLINE)
+d.comment(0x8D8C, "X=&4A: TXCB size for load command", align=Align.INLINE)
+d.comment(0x8D8E, "Y=5: FCCMND (load as command)", align=Align.INLINE)
+d.comment(0x8D90, "Send FS examine/load command", align=Align.INLINE)
+d.comment(0x8D93, "Check for Tube co-processor", align=Align.INLINE)
+d.comment(0x8D96, "No Tube: execute locally", align=Align.INLINE)
+d.comment(0x8D98, "Check load address upper bytes", align=Align.INLINE)
+d.comment(0x8D9B, "Continue address range check", align=Align.INLINE)
+d.comment(0x8D9E, "Carry set: not Tube space, exec locally", align=Align.INLINE)
+d.comment(0x8DA0, "Claim Tube transfer channel", align=Align.INLINE)
+d.comment(0x8DA3, "X=&09: address block at &0F09 (low)", align=Align.INLINE)
+d.comment(0x8DA5, "Y=&0F: address block at &0F09 (high)", align=Align.INLINE)
+d.comment(0x8DA7, "A=4: Tube reason 4, start execution", align=Align.INLINE)
 
-d.comment(0x8DA9, "Claim Tube for address transfer", align=Align.INLINE)
-d.label(0x8DAC, "net_handle_validate")
+d.comment(0x8DA9, "Start execution in the co-processor", align=Align.INLINE)
+d.label(0x8DAC, "exec_at_load_addr")
 d.comment(0x8DAC, "Execute via indirect load vector", align=Align.INLINE)
 
 d.subroutine(

@@ -2258,7 +2258,6 @@
     "fs_handle_mask": 4062,
     "fs_error_flags": 4063,
     "fs_error_buf": 4064,
-    "parse_station_num": 61574,
     "scsi_data": 64576,
     "scsi_status": 64577,
     "scsi_select": 64578,
@@ -5593,47 +5592,40 @@
     {
       "addr": 32917,
       "bytes": [
-        32
+        32,
+        32,
+        134
       ],
-      "type": "byte",
-      "values": [
-        32
-      ]
+      "type": "code",
+      "mnemonic": "jsr",
+      "operand": "parse_decimal",
+      "target": 34336,
+      "target_label": "parse_decimal"
     },
     {
-      "addr": 32918,
+      "addr": 32920,
       "bytes": [
-        32,
-        134,
-        240
+        240,
+        3
       ],
       "labels": [
-        "parse_server_station"
+        "got_station_num"
       ],
-      "sub_labels": {
-        "32920": [
-          "got_station_num"
-        ]
-      },
       "comment_inline": "Z=1: no station parsed (empty or non-numeric)",
       "xref_summaries": [
         "&8098 referenced 1 time by &808f"
       ],
-      "type": "code",
-      "mnemonic": "jsr",
-      "operand": "parse_station_num",
-      "target": 61574,
-      "target_label": "parse_station_num"
-    },
-    {
-      "addr": 32921,
-      "bytes": [
-        3
+      "references": [
+        {
+          "addr": 32911,
+          "kind": "direct"
+        }
       ],
-      "type": "byte",
-      "values": [
-        3
-      ]
+      "type": "code",
+      "mnemonic": "beq",
+      "operand": "skip_stn_parse",
+      "target": 32925,
+      "target_label": "skip_stn_parse"
     },
     {
       "addr": 32922,
@@ -5660,11 +5652,15 @@
       ],
       "comment_inline": "Copy command text to FS buffer",
       "xref_summaries": [
-        "&809d referenced 1 time by &808a"
+        "&809d referenced 2 times by &808a, &8098"
       ],
       "references": [
         {
           "addr": 32906,
+          "kind": "direct"
+        },
+        {
+          "addr": 32920,
           "kind": "direct"
         }
       ],
@@ -8967,7 +8963,6 @@
       "comments_before_label": [
         "Synthetic auto-boot command string. \"I \" does not match any\nentry in NFS's local command table \u2014 \"I.\" requires a dot, and\n\"I AM\" requires 'A' after the space \u2014 so fscv_3_star_cmd\nforwards the entire string to the fileserver, which executes\nthe .BOOT file."
       ],
-      "comment_inline": "Auto-boot string tail / NETV handler data",
       "type": "string",
       "string": "I .BOOT."
     },
@@ -9013,7 +9008,7 @@
         33,
         255
       ],
-      "comment_inline": "BGETV dispatch (&FF21) BGETV dispatch hi",
+      "comment_inline": "BGETV dispatch (&FF21)",
       "type": "word",
       "values": [
         65313
@@ -9037,7 +9032,7 @@
         39,
         255
       ],
-      "comment_inline": "GBPBV dispatch (&FF27) GBPBV dispatch hi",
+      "comment_inline": "GBPBV dispatch (&FF27)",
       "type": "word",
       "values": [
         65319
@@ -9049,7 +9044,7 @@
         42,
         255
       ],
-      "comment_inline": "FINDV dispatch (&FF2A) FINDV dispatch hi",
+      "comment_inline": "FINDV dispatch (&FF2A)",
       "type": "word",
       "values": [
         65322
@@ -9211,7 +9206,7 @@
         212,
         128
       ],
-      "comment_inline": "FSCV handler (&80D4) FSCV handler hi",
+      "comment_inline": "FSCV handler (&80D4)",
       "type": "word",
       "values": [
         32980
@@ -15313,11 +15308,15 @@
       ],
       "comment_inline": "Zero accumulator",
       "xref_summaries": [
-        "&8620 referenced 1 time by &808c"
+        "&8620 referenced 2 times by &808c, &8095"
       ],
       "references": [
         {
           "addr": 32908,
+          "kind": "direct"
+        },
+        {
+          "addr": 32917,
           "kind": "direct"
         }
       ],
@@ -29385,7 +29384,7 @@
         162,
         9
       ],
-      "comment_inline": "X=9: source offset in FS reply",
+      "comment_inline": "X=&09: address block at &0F09 (low)",
       "type": "code",
       "mnemonic": "ldx",
       "operand": "#9"
@@ -29396,7 +29395,7 @@
         160,
         15
       ],
-      "comment_inline": "Y=&0F: page &0F (FS command buffer)",
+      "comment_inline": "Y=&0F: address block at &0F09 (high)",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "#&0f"
@@ -29407,7 +29406,7 @@
         169,
         4
       ],
-      "comment_inline": "A=4: Tube transfer type 4 (256-byte)",
+      "comment_inline": "A=4: Tube reason 4, start execution",
       "type": "code",
       "mnemonic": "lda",
       "operand": "#4"
@@ -29419,7 +29418,7 @@
         6,
         4
       ],
-      "comment_inline": "Transfer data to Tube co-processor",
+      "comment_inline": "Start execution in the co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",

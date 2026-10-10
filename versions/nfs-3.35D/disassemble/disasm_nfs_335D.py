@@ -1858,7 +1858,6 @@ the .BOOT file.""",
 )
 
 
-d.comment(0x8288, "Auto-boot string tail / NETV handler data", align=Align.INLINE)
 d.index_base(0x828A, "fs_vector_addrs")
 
 d.subroutine(
@@ -4605,7 +4604,6 @@ d.comment(0x8CF4, "Opt 2 (Run): !BOOT", align=Align.INLINE)
 d.byte(0x8CF5, 1)
 d.comment(0x8CF5, "Opt 3 (Exec): E.!BOOT", align=Align.INLINE)
 d.string(0x8CF6, 4)
-d.comment(0x8CF8, "Data bytes: boot_cmd_strings 'ec'", align=Align.INLINE)
 d.subroutine(
     0x8CFA,
     "print_file_info",
@@ -5421,10 +5419,8 @@ d.comment(0x8F9D, "Y = offset-1: points to flag byte", align=Align.INLINE)
 d.comment(0x8F9E, "Set &AB = workspace ptr low byte", align=Align.INLINE)
 d.comment(0x8FA0, "&C0: test mask for flag byte", align=Align.INLINE)
 d.comment(0x8FA2, "Y=1: flag byte offset in RXCB", align=Align.INLINE)
-d.comment(0x8FA4, "Enable interrupts before transmit", align=Align.INLINE)
 d.comment(0x8FA6, "Compare Y(1) with saved byte (open/read)", align=Align.INLINE)
 d.comment(0x8FA8, "ADC flag: test if slot is in use", align=Align.INLINE)
-d.comment(0x8FAA, "Dest station = broadcast (accept reply from any station)", align=Align.INLINE)
 d.comment(0x8FAC, "Negative: slot has received data", align=Align.INLINE)
 
 d.label(0x8FAE, "copy_rxcb_to_param")
@@ -5480,7 +5476,6 @@ and adds it to &F0 to compute the end address at offset &2C.""",
 d.comment(0x8FD2, "Y=&1C: RXCB template offset", align=Align.INLINE)
 d.comment(0x8FD4, "A = base address low byte", align=Align.INLINE)
 d.comment(0x8FD6, "A = base + 1 (skip length byte)", align=Align.INLINE)
-d.comment(0x8FD8, "Receive data blocks until command byte = &00 or &0D", align=Align.INLINE)
 d.comment(0x8FDB, "Read data length from (&F0)+1", align=Align.INLINE)
 d.comment(0x8FDD, "A = data length byte", align=Align.INLINE)
 d.comment(0x8FDF, "Workspace offset &20 = RX data end", align=Align.INLINE)
@@ -5912,7 +5907,6 @@ d.comment(0x9160, "Y=&14: command type offset", align=Align.INLINE)
 d.comment(0x9162, "Tag as RWORD (port &E9)", align=Align.INLINE)
 d.comment(0x9164, "Store port tag at ws+&14", align=Align.INLINE)
 d.comment(0x9166, "A=1: single-byte TX", align=Align.INLINE)
-d.comment(0x9168, "Load template byte from ctrl_block_template[X]", align=Align.INLINE)
 
 
 d.comment(0x916B, "Restore workspace ptr", align=Align.INLINE)

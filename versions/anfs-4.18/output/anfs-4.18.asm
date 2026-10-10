@@ -2688,9 +2688,9 @@ service_handler_lo = service_entry+1
 .calc_peek_poke_size
     lda (nmi_tx_block),y                                              ; 85b8: b1 a0       ..       ; Load TXCB[Y] (end addr byte)
     dey                                                               ; 85ba: 88          .        ; Y -= 4: back to start addr offset
-    dey                                                               ; 85bb: 88          .        ; (continued)
-    dey                                                               ; 85bc: 88          .        ; (continued)
-    dey                                                               ; 85bd: 88          .        ; (continued)
+    dey                                                               ; 85bb: 88          .     
+    dey                                                               ; 85bc: 88          .     
+    dey                                                               ; 85bd: 88          .     
     plp                                                               ; 85be: 28          (        ; Restore borrow from stack
     sbc (nmi_tx_block),y                                              ; 85bf: f1 a0       ..       ; end - start = transfer size byte
     sta tx_data_start,y                                               ; 85c1: 99 26 0d    .&.      ; Store result to tx_data_start
@@ -3469,8 +3469,8 @@ service_handler_lo = service_entry+1
 .calc_transfer_size
     lda (port_ws_offset),y                                            ; 8912: b1 a6       ..       ; Load RXCB[Y] (current ptr byte)
     iny                                                               ; 8914: c8          .        ; Y += 4: advance to RXCB[Y+4]
-    iny                                                               ; 8915: c8          .        ; (continued)
-    iny                                                               ; 8916: c8          .        ; (continued)
+    iny                                                               ; 8915: c8          .     
+    iny                                                               ; 8916: c8          .     
     iny                                                               ; 8917: c8          .        ; (continued)
     plp                                                               ; 8918: 28          (        ; Restore borrow from previous byte
     sbc (port_ws_offset),y                                            ; 8919: f1 a6       ..       ; Subtract RXCB[Y+4] (start ptr byte)
@@ -5105,7 +5105,7 @@ ws_init_data = error_bad_station+2
 ; &8ff1 referenced 2 times by &8cb6, &8ce3
 .print_station_id
     jsr print_inline                                                  ; 8ff1: 20 45 91     E.      ; Print 'Econet Station ' prefix
-    equs "Econet Station "                                            ; 8ff4: 45 63 6f... Eco...   ; Print 'Econet Station ' via inline
+    equs "Econet Station "                                            ; 8ff4: 45 63 6f... Eco...
     ldy #1                                                            ; 9003: a0 01       ..       ; Y=1: station number offset in RX block
     lda (net_rx_ptr),y                                                ; 9005: b1 9c       ..       ; Load station ID from receive block
     jsr print_num_no_leading                                          ; 9007: 20 85 af     ..      ; Print station number as decimal
@@ -7173,7 +7173,7 @@ bad_prefix = bad_str_anchor+1
     sta txcb_start,x                                                  ; 99a5: 95 c4       ..       ; Store in TXCB start pointer
     lda fs_work_4,x                                                   ; 99a7: b5 b4       ..       ; Load new end address from fs_work
     sta txcb_end,x                                                    ; 99a9: 95 c8       ..       ; Store in TXCB end pointer
-    dex                                                               ; 99ab: ca          .        ; Decrement counter
+    dex                                                               ; 99ab: ca          .     
     bpl loop_copy_start_end                                           ; 99ac: 10 f5       ..       ; Loop for all 4 bytes
     lda #&7f                                                          ; 99ae: a9 7f       ..       ; A=&7F: control byte for data transfer
     sta txcb_ctrl                                                     ; 99b0: 85 c0       ..       ; Set TXCB control byte
@@ -7352,8 +7352,8 @@ bad_prefix = bad_str_anchor+1
 .advance_y_by_4
     iny                                                               ; 9a7f: c8          .        ; Y += 4
     iny                                                               ; 9a80: c8          .        ; (continued)
-    iny                                                               ; 9a81: c8          .        ; (continued)
-    iny                                                               ; 9a82: c8          .        ; (continued)
+    iny                                                               ; 9a81: c8          .     
+    iny                                                               ; 9a82: c8          .     
 ; &9a83 referenced 1 time by &9a3c
 .rts_advance_y
     rts                                                               ; 9a83: 60          `        ; Return
@@ -11293,7 +11293,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
     ldx #&11                                                          ; ae31: a2 11       ..       ; Offset &11: directory name
     jsr print_10_chars                                                ; ae33: 20 82 ae     ..      ; Print directory name (10 chars)
     jsr print_inline                                                  ; ae36: 20 45 91     E.      ; Print ' Lib. '
-    equs "     Lib. "                                                 ; ae39: 20 20 20...    ...   ; Print ' Lib. '
+    equs "     Lib. "                                                 ; ae39: 20 20 20...    ...
     ldx #&1b                                                          ; ae43: a2 1b       ..       ; Offset &1B: library name
     jsr print_10_chars                                                ; ae45: 20 82 ae     ..      ; Print library name (10 chars)
     jsr osnewl                                                        ; ae48: 20 e7 ff     ..   
@@ -11901,7 +11901,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; &b0b6 referenced 1 time by &b0ac
 .done_ps_status_msg
 store_ps_station = done_ps_status_msg+2
-    jsr print_fs_info_newline                                         ; b0b6: 20 9e a0     ..      ; Workspace offset 2
+    jsr print_fs_info_newline                                         ; b0b6: 20 9e a0     ..   
 ; &b0b9 referenced 1 time by &b014
 .store_ps_station_addr
     ldy #2                                                            ; b0b9: a0 02       ..       ; Y=2: workspace offset for station
