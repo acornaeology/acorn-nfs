@@ -757,6 +757,13 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
 ; &0472 referenced 1 time by &93a5
 .return_tube_xfer
     rts                                                               ; 93be: 60          ` :0472[2]          ; Return from Tube data setup
+; ***************************************************************************************
+; Tube host BEGIN entry
+;
+; Enables interrupts, saves P and A, and sets the transfer pointer to start sending the
+; current language ROM from &8000. If the ROM header has a relocation address (bit 5 of
+; the ROM type), it skips the copyright string and uses that address instead. Reached by
+; a JMP from the page-0 entry.
 ; &0473 referenced 1 time by &934c
 .tube_begin
     cli                                                               ; 93bf: 58          X :0473[2]          ; BEGIN: enable interrupts for Tube host code
@@ -1297,6 +1304,12 @@ tube_dispatch_ptr_lo = tube_dispatch_cmd+1
     bvc tube_send_r4                                                  ; 9628: 50 fb       P. :06dc[4]         ; Not ready: keep polling
     sta tube_data_register_4                                          ; 962a: 8d e7 fe    ... :06de[4]        ; Write A to Tube R4 data register
     rts                                                               ; 962d: 60          ` :06e1[4]          ; Return to caller
+; ***************************************************************************************
+; Forward an escape to the co-processor
+;
+; Copies the MOS escape flag (bit 7 of &FF) into the top of A with SEC/ROR and, when an
+; escape is pending, sends it through tube_send_r1. Otherwise falls into
+; tube_event_handler. Reached by a JMP from the Tube escape vector code.
 ; &06e2 referenced 1 time by &934f
 .tube_escape_check
     lda escape_flag                                                   ; 962e: a5 ff       .. :06e2[4]         ; Check OS escape flag at &FF
@@ -1923,6 +1936,11 @@ cmd_roff_str = copyright_string+3
 .svc_9_help
     jsr print_inline                                                  ; 81bc: 20 3b 85     ;.      ; Print inline ROM identification string
     equb &0d, "NFS 3.34", &0d                                         ; 81bf: 0d 4e 46... .NF...   ; Inline text, printed by print_inline
+; ***************************************************************************************
+; Restore Y and return (service not claimed)
+;
+; Reloads Y from nfs_temp and returns, leaving the service call unclaimed. Shared exit
+; for the service handlers that branch here.
 ; &81c9 referenced 2 times by &8182, &81de
 .restore_y_return
     ldy nfs_temp                                                      ; 81c9: a4 cd       ..       ; Reload character counter
@@ -5046,6 +5064,11 @@ cmd_roff_str = copyright_string+3
     ldy #&0f                                                          ; 8da5: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
     lda #4                                                            ; 8da7: a9 04       ..       ; A=4: Tube reason 4, start execution
     jmp tube_addr_claim                                               ; 8da9: 4c 06 04    L..      ; Start execution in the co-processor
+; ***************************************************************************************
+; Jump through the load vector
+;
+; Shared tail that jumps indirectly through fs_load_vector, entering the loaded code at
+; its execution address.
 ; &8dac referenced 2 times by &8d96, &8d9e
 .exec_at_load_addr
     jmp (fs_load_vector)                                              ; 8dac: 6c 09 0f    l..      ; Execute via indirect load vector
@@ -5925,6 +5948,13 @@ cmd_roff_str = copyright_string+3
 ; &9102 referenced 1 time by &9148
 .rchex
     jmp clear_jsr_protection                                          ; 9102: 4c d6 92    L..      ; Load language ROM number
+; ***************************************************************************************
+; Start a remote boot
+;
+; Sets the remote-boot bits in the RX control byte, copies the remote execution address
+; from the RX buffer into the NFS workspace, resets the OSBYTE &CE/&CF masks, sets up the
+; control block and disables the keyboard with OSBYTE &C9. Falls into
+; lang_3_execute_at_0100 to run the downloaded code.
 ; &9105 referenced 2 times by &9100, &913e
 .remot1
     ora #9                                                            ; 9105: 09 09       ..       ; OR with 9: set remote boot bits
@@ -7012,6 +7042,13 @@ cmd_roff_str = copyright_string+3
 ; &9930 referenced 3 times by &9910, &9942, &994e
 .data_rx_tube_error
     jmp rx_error                                                      ; 9930: 4c 8a 98    L..      ; Unexpected end: return from NMI
+; ***************************************************************************************
+; Finish a data frame received over the Tube
+;
+; Tube path after the last data byte: disables ADLC interrupts, then checks SR2. No
+; frame-valid bit is an error; frame valid with no further data goes to ack_tx. If one
+; more byte is waiting and a buffer was set up, it is saved in rx_extra_byte and bit 5 of
+; tx_flags records it.
 ; &9933 referenced 2 times by &98fa, &9926
 .data_rx_tube_complete
     lda #0                                                            ; 9933: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -7091,6 +7128,11 @@ cmd_roff_str = copyright_string+3
 ; &99b5 referenced 1 time by &99a5
 .start_data_tx
     jmp data_tx_begin                                                 ; 99b5: 4c 3b 9e    L;.      ; Jump to start data TX phase
+; ***************************************************************************************
+; TDRA error exit
+;
+; Shared exit for transmit-data-register-available failures: jumps to the receive error
+; handler.
 ; &99b8 referenced 2 times by &9980, &9998
 .tdra_error
     jmp rx_error                                                      ; 99b8: 4c 8a 98    L..      ; TDRA error: jump to error handler
@@ -7229,6 +7271,12 @@ cmd_roff_str = copyright_string+3
     lda #<(nmi_rx_scout)                                              ; 9a43: a9 f6       ..       ; Install nmi_rx_scout (&96F6) as NMI handler
     ldy #>(nmi_rx_scout)                                              ; 9a45: a0 96       ..       ; High byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 9a47: 4c 0e 0d    L..      ; Set NMI vector and return
+; ***************************************************************************************
+; Copy scout fields into the RX control block
+;
+; Broadcast path: copies the eight scout bytes (source station, network, control byte,
+; port and so on) from the scout buffer into offsets 4-&0B of the port workspace, then
+; jumps on to finish the reception.
 ; &9a4a referenced 1 time by &97f8
 .copy_scout_fields
     ldy #4                                                            ; 9a4a: a0 04       ..       ; Y=4: start at RX CB offset 4
@@ -7307,6 +7355,11 @@ cmd_roff_str = copyright_string+3
     lda imm_op_dispatch_lo - &81,y                                    ; 9a87: b9 0e 9a    ...      ; Load handler low byte from jump table
     pha                                                               ; 9a8a: 48          H        ; Push handler low byte
     rts                                                               ; 9a8b: 60          `        ; RTS dispatches to handler
+; ***************************************************************************************
+; Reject an out-of-range immediate operation
+;
+; Shared exit for immediate-operation control bytes outside the handled range: jumps to
+; the receive error handler to discard the frame.
 ; &9a8c referenced 2 times by &9a5e, &9a62
 .imm_op_out_of_range
     jmp rx_error                                                      ; 9a8c: 4c 8a 98    L..      ; Jump to discard handler
@@ -8414,6 +8467,12 @@ rx_ctrl_operand = check_imm_op_ctrl+1
     pla                                                               ; 9fa4: 68          h        ; Restore X
     tax                                                               ; 9fa5: aa          .        ; Restore X from stack
     rts                                                               ; 9fa6: 60          `        ; Return with C = transfer status
+; ***************************************************************************************
+; Calculate the transfer size from the RX control block
+;
+; Works out the number of bytes transferred from the RX control block: the start address
+; (offsets 8-9) subtracted from the current pointer (offsets 4-5), leaving the size in
+; port_buf_len/port_buf_len_hi. Returns with C=1.
 ; &9fa7 referenced 2 times by &9f64, &9f69
 .fallback_calc_transfer
     ldy #4                                                            ; 9fa7: a0 04       ..       ; Y=4: RXCB current pointer offset

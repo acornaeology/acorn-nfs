@@ -305,8 +305,7 @@
       "binary_addr": 37755,
       "name": "tube_post_init",
       "title": "Clear the Tube address claim",
-      "description": "Sets `tube_claim_flag` to &80, meaning no address is currently\nclaimed. Run once after the Tube host code is copied into place,\nand reached from `tube_addr_claim` to release a claim.",
-      "fall_through": true
+      "description": "Sets `tube_claim_flag` to &80, meaning no address is currently\nclaimed. Run once after the Tube host code is copied into place,\nand reached from `tube_addr_claim` to release a claim."
     },
     {
       "addr": 1220,
@@ -437,8 +436,7 @@
       "binary_addr": 38388,
       "name": "tube_send_r4",
       "title": "Send byte to Tube data register R4",
-      "description": "Polls Tube status register 4 until bit 6 is set, then writes\n`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R4 is\nthe command / control channel used for address claims (ADRR), data\ntransfer setup (SENDW), and release commands. Called by 7 sites,\nprimarily during [`tube_send_release`](label:tube_send_release) and\n[`tube_transfer_setup`](label:tube_transfer_setup) sequences.",
-      "fall_through": true
+      "description": "Polls Tube status register 4 until bit 6 is set, then writes\n`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R4 is\nthe command / control channel used for address claims (ADRR), data\ntransfer setup (SENDW), and release commands. Called by 7 sites,\nprimarily during [`tube_send_release`](label:tube_send_release) and\n[`tube_transfer_setup`](label:tube_transfer_setup) sequences."
     },
     {
       "addr": 1724,
@@ -566,7 +564,8 @@
       "addr": 33284,
       "name": "svc_9_help",
       "title": "Service 9: *HELP",
-      "description": "Prints the ROM identification string using print_inline."
+      "description": "Prints the ROM identification string using print_inline.",
+      "fall_through": true
     },
     {
       "addr": 33300,
@@ -676,8 +675,7 @@
       "addr": 33630,
       "name": "match_rom_string",
       "title": "Match command text against ROM string table",
-      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces.",
-      "fall_through": true
+      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces."
     },
     {
       "addr": 33658,
@@ -831,8 +829,7 @@
       "addr": 33946,
       "name": "lang_1_remote_boot",
       "title": "Remote boot/execute handler",
-      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns.",
-      "fall_through": true
+      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns."
     },
     {
       "addr": 33992,
@@ -1892,8 +1889,7 @@
       "addr": 38541,
       "name": "init_nmi_workspace",
       "title": "Initialise NMI workspace (skip service request)",
-      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\nnmi_code_base, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs.",
-      "fall_through": true
+      "description": "Sub-entry of adlc_init_workspace that skips the OSBYTE &8F\nservice request. Copies 32 bytes of NMI shim from ROM to\nnmi_code_base, patches the ROM bank number, sets init flags, reads\nstation ID, and re-enables NMIs."
     },
     {
       "addr": 38600,
@@ -1997,8 +1993,7 @@
       "addr": 39190,
       "name": "data_rx_tube_error",
       "title": "Abandon a bad Tube data frame",
-      "description": "Jumps to the NMI error path. Reached when a frame received\nstraight to the Tube ends without a valid frame end.",
-      "fall_through": true
+      "description": "Jumps to the NMI error path. Reached when a frame received\nstraight to the Tube ends without a valid frame end."
     },
     {
       "addr": 39236,
@@ -2023,8 +2018,7 @@
       "addr": 39332,
       "name": "advance_rx_buffer_ptr",
       "title": "Advance RX buffer pointer after transfer",
-      "description": "Adds the transfer count to the RXCB buffer pointer (4-byte\naddition). If a Tube transfer is active, re-claims the Tube\naddress and sends the extra RX byte via R3, incrementing the\nTube pointer by 1.",
-      "fall_through": true
+      "description": "Adds the transfer count to the RXCB buffer pointer (4-byte\naddition). If a Tube transfer is active, re-claims the Tube\naddress and sends the extra RX byte via R3, incrementing the\nTube pointer by 1."
     },
     {
       "addr": 39470,
@@ -2321,6 +2315,105 @@
       "name": "print_hex_nibble",
       "title": "Print single hex nibble",
       "description": "Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')\nand prints via OSASCI. Returns with carry set."
+    },
+    {
+      "addr": 1703,
+      "binary_addr": 38397,
+      "name": "tube_escape_check",
+      "title": "Forward an escape to the co-processor",
+      "description": "Copies the MOS escape flag (bit 7 of &FF) into the top of A with\nSEC/ROR and, when an escape is pending, sends it through\n[`tube_send_r1`](label:tube_send_r1). Otherwise falls into\n[`tube_event_handler`](label:tube_event_handler). Reached by a JMP\nfrom the Tube escape vector code.",
+      "fall_through": true
+    },
+    {
+      "addr": 39495,
+      "name": "copy_scout_fields",
+      "title": "Copy scout fields into the RX control block",
+      "description": "Broadcast path: copies the eight scout bytes (source station,\nnetwork, control byte, port and so on) from the scout buffer into\noffsets 4-&0B of the port workspace, then jumps on to finish the\nreception."
+    },
+    {
+      "addr": 1149,
+      "binary_addr": 37850,
+      "name": "tube_begin",
+      "title": "Tube host BEGIN entry",
+      "description": "Enables interrupts, then acts on the break type: C=1 (hard break)\nclaims address &FF, a non-zero A goes to `check_break_type`, and\notherwise the call is just acknowledged through `tube_reply_ack`.",
+      "fall_through": true
+    },
+    {
+      "addr": 38578,
+      "name": "poll_nmi_ready",
+      "title": "Wait for the NMI handler to return to idle",
+      "description": "If Econet initialisation has finished, goes straight to RX listen.\nOtherwise polls the NMI vector until it points at `nmi_rx_scout`,\nthen disables NMIs, clears the TX and initialisation flags, and re-\nenters RX listen through `adlc_rx_listen`.",
+      "fall_through": true
+    },
+    {
+      "addr": 33297,
+      "name": "return_service",
+      "title": "Restore Y and return (service not claimed)",
+      "description": "Reloads Y from `ws_page` and returns, leaving the service call\nunclaimed."
+    },
+    {
+      "addr": 33657,
+      "name": "skip_space_next",
+      "title": "Skip spaces in the command line",
+      "description": "Steps past a space and falls into\n[`skip_spaces`](label:skip_spaces), which skips further spaces at\n(`os_text_ptr`),Y and returns with Z set if the next character is\nCR.",
+      "fall_through": true
+    },
+    {
+      "addr": 33955,
+      "name": "remot1",
+      "title": "Start a remote boot",
+      "description": "Sets the remote-boot bits in the RX control byte, copies the remote\nexecution address from the RX buffer into the NFS workspace, resets\nthe OSBYTE &CE/&CF masks, sets up the control block and disables the\nkeyboard with OSBYTE &C9. Falls into\n[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the\ndownloaded code.",
+      "fall_through": true
+    },
+    {
+      "addr": 36380,
+      "name": "exec_at_load_addr",
+      "title": "Jump through the load vector",
+      "description": "Shared tail that jumps indirectly through `fs_load_vector`, entering\nthe loaded code at its execution address."
+    },
+    {
+      "addr": 36712,
+      "name": "readc1",
+      "title": "Copy the handles into the parameter block",
+      "description": "Loop that converts the URD, CSD and library handle bitmasks into\nhandle numbers with `mask_to_handle` and stores them in the OSWORD\nparameter block, from offset 3 down to 1."
+    },
+    {
+      "addr": 39193,
+      "name": "data_rx_tube_complete",
+      "title": "Finish a data frame received over the Tube",
+      "description": "Tube path after the last data byte: disables ADLC interrupts, then\nchecks SR2. No frame-valid bit is an error; frame valid with no\nfurther data goes to [`ack_tx`](label:ack_tx). If one more byte is\nwaiting and a buffer was set up, it is saved in `rx_extra_byte` and\nbit 5 of `tx_flags` records it.",
+      "fall_through": true
+    },
+    {
+      "addr": 39329,
+      "name": "dispatch_nmi_error",
+      "title": "Jump to the NMI error handler",
+      "description": "Shared exit that jumps to `nmi_error_dispatch`."
+    },
+    {
+      "addr": 39415,
+      "name": "rx_complete_update_rxcb",
+      "title": "Update the RX control block after a frame",
+      "description": "Advances the buffer pointer and, when the transfer is complete,\nstores the final buffer address in the RX control block. Then,\nunless the port is 0 (an immediate operation), records the source\nnetwork, station and port in the control block.",
+      "fall_through": true
+    },
+    {
+      "addr": 39542,
+      "name": "imm_op_dispatch",
+      "title": "Dispatch an immediate operation",
+      "description": "Reloads the control byte and pushes the handler address from the\nimmediate-operation jump table, then dispatches to it with RTS."
+    },
+    {
+      "addr": 39554,
+      "name": "imm_op_out_of_range",
+      "title": "Reject an out-of-range immediate operation",
+      "description": "Shared exit for immediate-operation control bytes outside the\nhandled range: jumps to the receive error handler to discard the\nframe."
+    },
+    {
+      "addr": 40836,
+      "name": "fallback_calc_transfer",
+      "title": "Calculate the transfer size from the RX control block",
+      "description": "Works out the number of bytes transferred from the RX control block:\nthe start address (offsets 8-9) subtracted from the current pointer\n(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.\nReturns with C=1."
     }
   ],
   "banners": [

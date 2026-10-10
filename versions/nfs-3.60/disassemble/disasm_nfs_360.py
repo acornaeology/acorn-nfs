@@ -9584,6 +9584,107 @@ d.byte(0x8299)
 d.comment(0x8292, '"I .BOOT": auto-boot command', align=Align.INLINE)
 d.comment(0x8299, 'CR ends the command', align=Align.INLINE)
 
+d.subroutine(
+    0x06A7,
+    "tube_escape_check",
+    title='Forward an escape to the co-processor',
+    description="""Copies the MOS escape flag (bit 7 of &FF) into the top of A with
+SEC/ROR and, when an escape is pending, sends it through
+[`tube_send_r1`](label:tube_send_r1). Otherwise falls into
+[`tube_event_handler`](label:tube_event_handler). Reached by a JMP
+from the Tube escape vector code.""",
+)
+d.subroutine(
+    0x8215,
+    "restore_ws_return",
+    title='Restore Y and return (service not claimed)',
+    description="""Reloads Y from `ws_page` and returns, leaving the service call
+unclaimed.""",
+)
+d.subroutine(
+    0x837D,
+    "skip_space_next",
+    title='Skip spaces in the command line',
+    description="""Steps past a space and falls into
+[`skip_spaces`](label:skip_spaces), which skips further spaces at
+(`os_text_ptr`),Y and returns with Z set if the next character is
+CR.""",
+)
+d.subroutine(
+    0x84B8,
+    "remot1",
+    title='Start a remote boot',
+    description="""Sets the remote-boot bits in the RX control byte, copies the remote
+execution address from the RX buffer into the NFS workspace, resets
+the OSBYTE &CE/&CF masks, sets up the control block and disables the
+keyboard with OSBYTE &C9. Falls into
+[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the
+downloaded code.""",
+)
+d.subroutine(
+    0x8E29,
+    "exec_local",
+    title='Execute a loaded file locally',
+    description="""Undoes the earlier ADC with ROL, restoring A, and falls into the
+indirect jump through the load vector.""",
+)
+d.subroutine(
+    0x8F70,
+    "readc1",
+    title='Copy the handles into the parameter block',
+    description="""Loop that converts the URD, CSD and library handle bitmasks into
+handle numbers with `mask_to_handle` and stores them in the OSWORD
+parameter block, from offset 3 down to 1.""",
+)
+d.subroutine(
+    0x97AE,
+    "try_nfs_port_list",
+    title='Try the NFS workspace port list',
+    description="""When the paged port list has no match: if NFS-workspace reception is
+enabled (bit 6 of the receive flags), scans the port list in the NFS
+workspace; otherwise discards the frame.""",
+)
+d.subroutine(
+    0x98C3,
+    "data_rx_tube_complete",
+    title='Finish a data frame received over the Tube',
+    description="""Tube path after the last data byte: disables ADLC interrupts, then
+checks SR2. No frame-valid bit is an error; frame valid with no
+further data goes to [`ack_tx`](label:ack_tx). If one more byte is
+waiting and a buffer was set up, it is saved in `rx_extra_byte` and
+bit 5 of `tx_flags` records it.""",
+)
+d.subroutine(
+    0x994B,
+    "dispatch_nmi_error",
+    title='Jump to the NMI error handler',
+    description="""Shared exit that jumps to `nmi_error_dispatch`.""",
+)
+d.subroutine(
+    0x9A19,
+    "copy_scout_via_tube",
+    title='Copy scout bytes to the co-processor',
+    description="""Tube path: sends each scout byte through Tube register 3, advancing
+the buffer counters, until all scout bytes have been sent or the
+buffer ends.""",
+)
+d.subroutine(
+    0x9E48,
+    "tx_tdra_error",
+    title='Handle a TX data-register error',
+    description="""If bit 7 of `tx_flags` is clear the result is 'not listening';
+otherwise the frame is discarded and the ADLC returns to listening.""",
+)
+d.subroutine(
+    0x9F19,
+    "fallback_calc_transfer",
+    title='Calculate the transfer size from the RX control block',
+    description="""Works out the number of bytes transferred from the RX control block:
+the start address (offsets 8-9) subtracted from the current pointer
+(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.
+Returns with C=1.""",
+)
+
 ir = d.disassemble()
 output = str(
     ir.render(

@@ -441,8 +441,7 @@
       "binary_addr": 38403,
       "name": "tube_send_r4",
       "title": "Send byte to Tube data register R4",
-      "description": "Polls Tube status register 4 until bit 6 is set, then writes\n`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R4 is\nthe command / control channel used for address claims (ADRR), data\ntransfer setup (SENDW), and release commands. Called by 7 sites,\nprimarily during [`tube_release_claim`](label:tube_release_claim) and\n[`tube_transfer_setup`](label:tube_transfer_setup) sequences.",
-      "fall_through": true
+      "description": "Polls Tube status register 4 until bit 6 is set, then writes\n`A` to the data register. Uses a tight `BIT`/`BVC` polling loop. R4 is\nthe command / control channel used for address claims (ADRR), data\ntransfer setup (SENDW), and release commands. Called by 7 sites,\nprimarily during [`tube_release_claim`](label:tube_release_claim) and\n[`tube_transfer_setup`](label:tube_transfer_setup) sequences."
     },
     {
       "addr": 1724,
@@ -566,7 +565,8 @@
       "description": "Prints the ROM identification string using print_inline.",
       "on_exit": {
         "y": "workspace page number (from ws_page)"
-      }
+      },
+      "fall_through": true
     },
     {
       "addr": 33286,
@@ -670,8 +670,7 @@
       "addr": 33616,
       "name": "match_rom_string",
       "title": "Match command text against ROM string table",
-      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces.",
-      "fall_through": true
+      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces."
     },
     {
       "addr": 33644,
@@ -854,8 +853,7 @@
       "addr": 33949,
       "name": "lang_1_remote_boot",
       "title": "Remote boot/execute handler",
-      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns.",
-      "fall_through": true
+      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns."
     },
     {
       "addr": 33995,
@@ -2111,8 +2109,7 @@
       "addr": 39065,
       "name": "data_rx_complete",
       "title": "Data frame completion",
-      "description": "Reached when SR2 non-zero during data RX (FV detected).\nSame pattern as scout completion (&9758): disables PSE (CR2=&84,\nCR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\nIf extra data available and buffer space remains, stores it.\nProceeds to send the final ACK via &9910.",
-      "fall_through": true
+      "description": "Reached when SR2 non-zero during data RX (FV detected).\nSame pattern as scout completion (&9758): disables PSE (CR2=&84,\nCR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\nIf extra data available and buffer space remains, stores it.\nProceeds to send the final ACK via &9910."
     },
     {
       "addr": 39184,
@@ -2170,8 +2167,7 @@
       "addr": 39444,
       "name": "copy_scout_to_buffer",
       "title": "Copy scout data to port buffer",
-      "description": "Copies scout data bytes (offsets 4-11) from the RX scout\nbuffer into the open port buffer, handling both direct memory\nand Tube R3 write paths.",
-      "fall_through": true
+      "description": "Copies scout data bytes (offsets 4-11) from the RX scout\nbuffer into the open port buffer, handling both direct memory\nand Tube R3 write paths."
     },
     {
       "addr": 39501,
@@ -2466,6 +2462,84 @@
       "name": "rom_set_nmi_vector",
       "title": "ROM copy of set_nmi_vector + nmi_rti",
       "description": "A version of the NMI vector-setting subroutine and RTI sequence\nthat lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the\none normally used at runtime; this ROM copy is used during early\ninitialisation before the RAM workspace has been set up, and as\nthe source for the initial copy to RAM."
+    },
+    {
+      "addr": 1703,
+      "binary_addr": 38412,
+      "name": "tube_escape_check",
+      "title": "Forward an escape to the co-processor",
+      "description": "Copies the MOS escape flag (bit 7 of &FF) into the top of A with\nSEC/ROR and, when an escape is pending, sends it through\n[`tube_send_r1`](label:tube_send_r1). Otherwise falls into\n[`tube_event_handler`](label:tube_event_handler). Reached by a JMP\nfrom the Tube escape vector code.",
+      "fall_through": true
+    },
+    {
+      "addr": 33283,
+      "name": "restore_ws_return",
+      "title": "Restore Y and return (service not claimed)",
+      "description": "Reloads Y from `ws_page` and returns, leaving the service call\nunclaimed."
+    },
+    {
+      "addr": 33643,
+      "name": "skip_space_next",
+      "title": "Skip spaces in the command line",
+      "description": "Steps past a space and falls into\n[`skip_spaces`](label:skip_spaces), which skips further spaces at\n(`os_text_ptr`),Y and returns with Z set if the next character is\nCR.",
+      "fall_through": true
+    },
+    {
+      "addr": 33958,
+      "name": "remot1",
+      "title": "Start a remote boot",
+      "description": "Sets the remote-boot bits in the RX control byte, copies the remote\nexecution address from the RX buffer into the NFS workspace, resets\nthe OSBYTE &CE/&CF masks, sets up the control block and disables the\nkeyboard with OSBYTE &C9. Falls into\n[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the\ndownloaded code.",
+      "fall_through": true
+    },
+    {
+      "addr": 36396,
+      "name": "exec_local",
+      "title": "Execute a loaded file locally",
+      "description": "Undoes the earlier ADC with ROL, restoring A, and falls into the\nindirect jump through the load vector."
+    },
+    {
+      "addr": 36723,
+      "name": "readc1",
+      "title": "Copy the handles into the parameter block",
+      "description": "Loop that converts the URD, CSD and library handle bitmasks into\nhandle numbers with `mask_to_handle` and stores them in the OSWORD\nparameter block, from offset 3 down to 1."
+    },
+    {
+      "addr": 38862,
+      "name": "try_nfs_port_list",
+      "title": "Try the NFS workspace port list",
+      "description": "When the paged port list has no match: if NFS-workspace reception is\nenabled (bit 6 of the receive flags), scans the port list in the NFS\nworkspace; otherwise discards the frame."
+    },
+    {
+      "addr": 39141,
+      "name": "data_rx_tube_complete",
+      "title": "Finish a data frame received over the Tube",
+      "description": "Tube path after the last data byte: disables ADLC interrupts, then\nchecks SR2. No frame-valid bit is an error; frame valid with no\nfurther data goes to [`ack_tx`](label:ack_tx). If one more byte is\nwaiting and a buffer was set up, it is saved in `rx_extra_byte` and\nbit 5 of `tx_flags` records it.",
+      "fall_through": true
+    },
+    {
+      "addr": 39277,
+      "name": "dispatch_nmi_error",
+      "title": "Jump to the NMI error handler",
+      "description": "Shared exit that jumps to `nmi_error_dispatch`."
+    },
+    {
+      "addr": 39483,
+      "name": "copy_scout_via_tube",
+      "title": "Copy scout bytes to the co-processor",
+      "description": "Tube path: sends each scout byte through Tube register 3, advancing\nthe buffer counters, until all scout bytes have been sent or the\nbuffer ends.",
+      "fall_through": true
+    },
+    {
+      "addr": 40571,
+      "name": "tx_tdra_error",
+      "title": "Handle a TX data-register error",
+      "description": "If bit 7 of `tx_flags` is clear the result is 'not listening';\notherwise the frame is discarded and the ADLC returns to listening."
+    },
+    {
+      "addr": 40780,
+      "name": "fallback_calc_transfer",
+      "title": "Calculate the transfer size from the RX control block",
+      "description": "Works out the number of bytes transferred from the RX control block:\nthe start address (offsets 8-9) subtracted from the current pointer\n(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.\nReturns with C=1."
     }
   ],
   "banners": [

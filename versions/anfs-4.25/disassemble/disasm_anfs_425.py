@@ -20433,6 +20433,126 @@ d.comment(0x8CA7, 'Push return address low (address - 1 for RTS)', align=Align.I
 d.expr(0x8CA8, lo(sym("loop_dispatch_help") - 1))
 d.comment(0x8CB2, 'Dispatch via RTS; the handler returns to loop_dispatch_help', align=Align.INLINE)
 
+d.subroutine(
+    0x818D,
+    "try_nfs_port_list",
+    title='Try the NFS workspace port list',
+    description="""When the paged port list has no match: if NFS-workspace reception is
+enabled (bit 6 of the receive flags), scans the port list in the NFS
+workspace; otherwise discards the frame.""",
+)
+d.subroutine(
+    0x8267,
+    "frame_complete_restore",
+    title='Restore ACCCON and finish the RX frame',
+    description="""Restores the caller's ACCCON from the stack and falls into
+`data_rx_complete`.""",
+)
+d.subroutine(
+    0x82C4,
+    "data_rx_tube_complete",
+    title='Finish a data frame received over the Tube',
+    description="""Tube path after the last data byte: disables ADLC interrupts, then
+checks SR2. No frame-valid bit is an error; frame valid with no
+further data goes to [`ack_tx`](label:ack_tx). If one more byte is
+waiting and a buffer was set up, it is saved in `rx_extra_byte` and
+bit 5 of `tx_flags` records it.""",
+)
+d.subroutine(
+    0x834C,
+    "dispatch_nmi_error",
+    title='Jump to the NMI error handler',
+    description="""Shared exit that jumps to `nmi_error_dispatch`.""",
+)
+d.subroutine(
+    0x8618,
+    "fallback_calc_transfer",
+    title='Calculate the transfer size from the RX control block',
+    description="""Works out the number of bytes transferred from the RX control block:
+the start address (offsets 8-9) subtracted from the current pointer
+(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.
+Returns with C=1.""",
+)
+d.subroutine(
+    0x88F8,
+    "frame_end_restore",
+    title='Restore ACCCON and close the TX frame',
+    description="""Restores the caller's ACCCON from the stack and falls into
+`data_tx_last`.""",
+)
+d.subroutine(
+    0x9348,
+    "handle_dot_sep",
+    title='Handle the dot in a station number',
+    description="""A second dot raises 'Bad number' and a network number of 255 raises
+'Bad network number'; otherwise records that the dot was seen and
+returns.""",
+)
+d.subroutine(
+    0x9376,
+    "error_bad_number",
+    title="Raise 'Bad number'",
+    description="""Error &F0, raised through `error_bad_inline`.""",
+)
+d.subroutine(
+    0x9382,
+    "error_bad_param",
+    title="Raise 'Bad parameter'",
+    description="""Error &94, raised through `error_bad_inline`.""",
+)
+d.subroutine(
+    0x9831,
+    "build_error_block",
+    title='Build an error block from an FS reply',
+    description="""Raises the reply's error code to at least &A8, then copies the reply
+up to its CR into the error block at &0100.""",
+)
+d.subroutine(
+    0x9859,
+    "init_remote_session",
+    title='Start a remote session',
+    description="""Sets the remote-active bits in the RX control byte, copies the
+remote station address from the RX buffer into the NFS workspace,
+and sets up remote keyboard scanning and the workspace copy before
+the session starts.""",
+)
+d.subroutine(
+    0x9D83,
+    "discard_handle_match",
+    title='Drop the stacked value and return',
+    description="""Discards the value on the stack, restores Y from `fs_block_offset`
+and returns.""",
+)
+d.subroutine(
+    0xA464,
+    "dispatch_fs_cmd",
+    title='Dispatch a star command',
+    description="""Clears `svc_state`, then pushes the handler address (minus 1) from
+the command table entry at X and dispatches to it with RTS. When
+nothing matched, X is on the sub-table's end byte and the word after
+it, the default handler, is used.""",
+)
+d.subroutine(
+    0xA649,
+    "dispatch_via_vector",
+    title='Enter loaded code at its execution address',
+    description="""Sets A=1 and jumps indirectly through the stored execution address.""",
+)
+d.subroutine(
+    0xB53F,
+    "done_ps_slot_scan",
+    title='Finish the printer-server slot scan',
+    description="""Restores the printer-server slot flags and the saved return address,
+then waits in a three-level delay loop before carrying on.""",
+)
+d.subroutine(
+    0xBBF4,
+    "done_load_from_buf",
+    title='Read a byte from an FCB buffer',
+    description="""Uses the FCB's byte count as the offset into its data buffer,
+increments the count, and sets up the buffer pointer for the read.""",
+)
+
 ir = d.disassemble()
 output = str(
     ir.render(

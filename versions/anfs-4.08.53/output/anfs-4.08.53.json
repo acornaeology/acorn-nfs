@@ -466,8 +466,7 @@
       },
       "on_exit": {
         "a": "preserved (value written)"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 1724,
@@ -584,8 +583,7 @@
       "addr": 33389,
       "name": "data_rx_complete",
       "title": "Data frame completion",
-      "description": "Reached when SR2 non-zero during data RX (FV detected).\nSame pattern as scout completion (&812C): disables PSE (CR2=&84,\nCR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\nIf extra data available and buffer space remains, stores it.\nProceeds to send the final ACK via &82E4.",
-      "fall_through": true
+      "description": "Reached when SR2 non-zero during data RX (FV detected).\nSame pattern as scout completion (&812C): disables PSE (CR2=&84,\nCR1=&00), then tests FV and RDA. If FV+RDA, reads the last byte.\nIf extra data available and buffer space remains, stores it.\nProceeds to send the final ACK via &82E4."
     },
     {
       "addr": 33508,
@@ -640,8 +638,7 @@
       "addr": 33798,
       "name": "copy_scout_to_buffer",
       "title": "Copy scout data to port buffer",
-      "description": "Copies scout data bytes (offsets 4-11) from the\nRX scout buffer at &0D3D into the open port buffer.\nChecks bit 1 of net_frame_flags (tx_flags) to select the\nwrite path: direct memory store via (open_port_buf),Y\nfor normal transfers, or Tube data register 3 write\nfor Tube transfers. Calls advance_buffer_ptr after\neach byte. Falls through to release_tube on\ncompletion. Handles page overflow (Y wrap) by\nbranching to scout_page_overflow.",
-      "fall_through": true
+      "description": "Copies scout data bytes (offsets 4-11) from the\nRX scout buffer at &0D3D into the open port buffer.\nChecks bit 1 of net_frame_flags (tx_flags) to select the\nwrite path: direct memory store via (open_port_buf),Y\nfor normal transfers, or Tube data register 3 write\nfor Tube transfers. Calls advance_buffer_ptr after\neach byte. Falls through to release_tube on\ncompletion. Handles page overflow (Y wrap) by\nbranching to scout_page_overflow."
     },
     {
       "addr": 33855,
@@ -1002,8 +999,7 @@
       "addr": 35598,
       "name": "cmd_net_fs",
       "title": "Select Econet network filing system",
-      "description": "Computes a checksum over the first &77 bytes of\nthe workspace page and verifies against the stored\nvalue; raises an error on mismatch. On success,\nnotifies the OS via FSCV reason 6, copies the FS\ncontext block from the receive block to &0DFA,\ninstalls 7 filing system vectors (FILEV etc.)\nfrom fs_vector_table, initialises the ADLC and\nextended vectors, sets up the channel table, and\ncopies the workspace page to &1000 as a shadow.\nSets bit 7 of &0D6C to mark the FS as selected,\nthen issues service call 15.",
-      "fall_through": true
+      "description": "Computes a checksum over the first &77 bytes of\nthe workspace page and verifies against the stored\nvalue; raises an error on mismatch. On success,\nnotifies the OS via FSCV reason 6, copies the FS\ncontext block from the receive block to &0DFA,\ninstalls 7 filing system vectors (FILEV etc.)\nfrom fs_vector_table, initialises the ADLC and\nextended vectors, sets up the channel table, and\ncopies the workspace page to &1000 as a shadow.\nSets bit 7 of &0D6C to mark the FS as selected,\nthen issues service call 15."
     },
     {
       "addr": 35719,
@@ -1139,8 +1135,7 @@
       "description": "Parses a station number from the command line via\ninit_bridge_poll and compares it with the expected\nstation at &0E01 using EOR. If the parsed value\nmatches (EOR result is zero), clears &0E01. Called\nby cmd_iam when processing a file server address\nin the logon command.",
       "on_exit": {
         "a": "0 if matched, non-zero if different"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 36397,
@@ -1608,8 +1603,7 @@
       "description": "Tests bit 7 of &0D6C (FS selected flag). If\nclear, returns immediately. If set, stores A\ninto &0E09 as the last error code. This guards\nagainst writing error state when no filing system\nis active. Called internally by the error\nclassification chain and by error_inline_log.",
       "on_entry": {
         "a": "error code to store"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 38562,
@@ -1964,13 +1958,15 @@
       "addr": 41212,
       "name": "fscv_3_star_cmd",
       "title": "FSCV 3: unrecognised * command",
-      "description": "Sets the text and transfer pointers, clears the spool handle,\nthen matches the command against the FS command table and dispatches\nit; unmatched commands are passed on to the file server."
+      "description": "Sets the text and transfer pointers, clears the spool handle,\nthen matches the command against the FS command table and dispatches\nit; unmatched commands are passed on to the file server.",
+      "fall_through": true
     },
     {
       "addr": 41256,
       "name": "match_fs_cmd",
       "title": "Match command name against FS command table",
-      "description": "Case-insensitive compare of the command line\nagainst table entries with bit-7-terminated\nnames. Returns with the matched entry address\non success."
+      "description": "Case-insensitive compare of the command line\nagainst table entries with bit-7-terminated\nnames. Returns with the matched entry address\non success.",
+      "fall_through": true
     },
     {
       "addr": 41704,
@@ -2828,8 +2824,7 @@
       "addr": 46889,
       "name": "restore_catalog_entry",
       "title": "Restore saved catalog entry to TX buffer",
-      "description": "Copies 13 bytes from the context buffer at &10D9\nback to the TX buffer at &0F00. Falls through to\nfind_matching_fcb.",
-      "fall_through": true
+      "description": "Copies 13 bytes from the context buffer at &10D9\nback to the TX buffer at &0F00. Falls through to\nfind_matching_fcb."
     },
     {
       "addr": 46904,
@@ -2857,7 +2852,8 @@
       "description": "Saves fs_options, fs_block_offset, and X/Y on the\nstack, then scans FCB slots &0F down to 0. Calls\nstart_wipe_pass for each active entry matching the\nfilter attribute in Y (0=match all). Restores all\nsaved context on completion. Also contains the\nOSBGET/OSBPUT inline logic for reading and writing\nbytes through file channels.",
       "on_entry": {
         "y": "filter attribute (0=process all)"
-      }
+      },
+      "fall_through": true
     },
     {
       "addr": 47392,
@@ -2903,8 +2899,7 @@
       "description": "Sets V flag (distinguishing from *Type which clears V),\nthen opens the file for reading. Loops reading bytes\nvia OSBGET, checking for escape between each. In type\nmode (V clear), normalises CR/LF pairs to single\nnewlines by tracking the previous character. In print\nmode (V set), outputs all bytes raw via OSWRCH. Closes\nthe file and prints a final newline on EOF.",
       "on_entry": {
         "y": "command line offset in text pointer"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 47594,
@@ -2994,6 +2989,205 @@
         "a": "service call number",
         "y": "service parameter"
       }
+    },
+    {
+      "addr": 41692,
+      "name": "fsreply_3_set_csd",
+      "title": "Record the file-server station",
+      "description": "Dispatch target for FS reply 3, also reached by a JMP after\nselecting the file system. Calls `find_station_bit3` to find or\nallocate the station-table slot for the current file server, then\nreturns through `return_with_last_flag`."
+    },
+    {
+      "addr": 36362,
+      "name": "pass_send_cmd",
+      "title": "Send a command to the file server",
+      "description": "Builds the FS command packet from the command line, sends it, and\ndispatches on the reply function code, if any.",
+      "fall_through": true
+    },
+    {
+      "addr": 1703,
+      "binary_addr": 48695,
+      "name": "tube_escape_check",
+      "title": "Forward an escape to the co-processor",
+      "description": "Copies the MOS escape flag (bit 7 of &FF) into the top of A with\nSEC/ROR and, when an escape is pending, sends it through\n[`tube_send_r1`](label:tube_send_r1). Otherwise falls into\n[`tube_event_handler`](label:tube_event_handler). Reached by a JMP\nfrom the Tube escape vector code.",
+      "fall_through": true
+    },
+    {
+      "addr": 38443,
+      "name": "fixup_reply_status_a",
+      "title": "Map reply status 'A' to 'B'",
+      "description": "Loads the first reply byte and changes status &41 ('A') to &42 ('B')\nbefore taking the standard masked-error path.",
+      "fall_through": true
+    },
+    {
+      "addr": 36093,
+      "name": "issue_svc_15",
+      "title": "Issue service call 15",
+      "description": "Sets X=&0F and issues the paged-ROM service call with OSBYTE &8F."
+    },
+    {
+      "addr": 35714,
+      "name": "help_print_nfs_cmds",
+      "title": "Print the NFS command list for *HELP",
+      "description": "Prints the help for the NFS command sub-table, then falls into the\nutility-command help.",
+      "fall_through": true
+    },
+    {
+      "addr": 35876,
+      "name": "done_print_table",
+      "title": "Restore state after printing a command table",
+      "description": "Restores P and Y from the stack and returns."
+    },
+    {
+      "addr": 40118,
+      "name": "close_all_fcbs",
+      "title": "Close all matching FCBs",
+      "description": "Processes every matching file control block, then returns through\n`return_with_last_flag`."
+    },
+    {
+      "addr": 40136,
+      "name": "osfind_close_or_open",
+      "title": "Handle an OSFIND close or pointer read",
+      "description": "Splits on the OSFIND reason: 2 or more opens a file; 0 closes all\nfiles (returning 5); 1 copies the reply data into the parameter\nblock."
+    },
+    {
+      "addr": 41554,
+      "name": "check_exec_addr",
+      "title": "Check the execution address before *RUN",
+      "description": "Increments the four execution-address bytes; if any is non-zero the\nfile can be run and execution continues at `setup_oscli_arg`. An\nall-&FF address raises 'No!'.",
+      "fall_through": true
+    },
+    {
+      "addr": 41573,
+      "name": "alloc_run_channel",
+      "title": "Allocate a channel for a run file",
+      "description": "Allocates an FCB slot for the opened file, clears its status,\nrecords the handle, and runs the file through the boot/OSCLI path."
+    },
+    {
+      "addr": 46901,
+      "name": "loop_save_before_match",
+      "title": "Save the FCB context and rescan",
+      "description": "Saves the current FCB context, then scans the 16 FCB slots for one\nwhose attributes match the current channel, loading the target\nstation from the channel tables when the scan runs off the end.",
+      "fall_through": true
+    },
+    {
+      "addr": 33188,
+      "name": "try_nfs_port_list",
+      "title": "Try the NFS workspace port list",
+      "description": "When the paged port list has no match: if NFS-workspace reception is\nenabled (bit 6 of the receive flags), scans the port list in the NFS\nworkspace; otherwise discards the frame."
+    },
+    {
+      "addr": 33465,
+      "name": "data_rx_tube_complete",
+      "title": "Finish a data frame received over the Tube",
+      "description": "Tube path after the last data byte: disables ADLC interrupts, then\nchecks SR2. No frame-valid bit is an error; frame valid with no\nfurther data goes to [`ack_tx`](label:ack_tx). If one more byte is\nwaiting and a buffer was set up, it is saved in `rx_extra_byte` and\nbit 5 of `tx_flags` records it.",
+      "fall_through": true
+    },
+    {
+      "addr": 33601,
+      "name": "dispatch_nmi_error",
+      "title": "Jump to the NMI error handler",
+      "description": "Shared exit that jumps to `nmi_error_dispatch`."
+    },
+    {
+      "addr": 33837,
+      "name": "copy_scout_via_tube",
+      "title": "Copy scout bytes to the co-processor",
+      "description": "Tube path: sends each scout byte through Tube register 3, advancing\nthe buffer counters, until all scout bytes have been sent or the\nbuffer ends.",
+      "fall_through": true
+    },
+    {
+      "addr": 35131,
+      "name": "fallback_calc_transfer",
+      "title": "Calculate the transfer size from the RX control block",
+      "description": "Works out the number of bytes transferred from the RX control block:\nthe start address (offsets 8-9) subtracted from the current pointer\n(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.\nReturns with C=1."
+    },
+    {
+      "addr": 37351,
+      "name": "handle_dot_sep",
+      "title": "Handle the dot in a station number",
+      "description": "A second dot raises 'Bad number' and a network number of 255 raises\n'Bad network number'; otherwise records that the dot was seen and\nreturns."
+    },
+    {
+      "addr": 37397,
+      "name": "error_bad_number",
+      "title": "Raise 'Bad number'",
+      "description": "Error &F0, raised through `error_bad_inline`.",
+      "fall_through": true
+    },
+    {
+      "addr": 37409,
+      "name": "error_bad_param",
+      "title": "Raise 'Bad parameter'",
+      "description": "Error &94, raised through `error_bad_inline`.",
+      "fall_through": true
+    },
+    {
+      "addr": 37800,
+      "name": "skip_rename_spaces",
+      "title": "Skip spaces before the second *Rename name",
+      "description": "Skips spaces, then parses the access prefix of the second filename;\nif it selects a different file system from the first, raises the\nrename error."
+    },
+    {
+      "addr": 38203,
+      "name": "build_error_block",
+      "title": "Build an error block from an FS reply",
+      "description": "Raises the reply's error code to at least &A8, then copies the reply\nup to its CR into the error block at &0100."
+    },
+    {
+      "addr": 38259,
+      "name": "init_remote_session",
+      "title": "Start a remote session",
+      "description": "Sets the remote-active bits in the RX control byte, copies the\nremote station address from the RX buffer into the NFS workspace,\nand sets up remote keyboard scanning and the workspace copy before\nthe session starts."
+    },
+    {
+      "addr": 39556,
+      "name": "discard_handle_match",
+      "title": "Drop the stacked value and return",
+      "description": "Discards the value on the stack, restores Y from `fs_block_offset`\nand returns."
+    },
+    {
+      "addr": 41243,
+      "name": "dispatch_fs_cmd",
+      "title": "Dispatch a star command",
+      "description": "Clears `svc_state`, then pushes the handler address (minus 1) from\nthe command table entry at X and dispatches to it with RTS. When\nnothing matched, X is on the sub-table's end byte and the word after\nit, the default handler, is used."
+    },
+    {
+      "addr": 41687,
+      "name": "dispatch_via_vector",
+      "title": "Enter loaded code at its execution address",
+      "description": "Sets A=1 and jumps indirectly through the stored execution address."
+    },
+    {
+      "addr": 41931,
+      "name": "load_boot_type",
+      "title": "Run the boot command for the boot option",
+      "description": "Does nothing for boot option 0; otherwise falls into\n[`boot_cmd_oscli`](label:boot_cmd_oscli) to pass the option's\ncommand to OSCLI."
+    },
+    {
+      "addr": 45344,
+      "name": "done_ps_slot_scan",
+      "title": "Finish the printer-server slot scan",
+      "description": "Restores the printer-server slot flags and the saved return address,\nthen waits in a three-level delay loop before carrying on."
+    },
+    {
+      "addr": 47146,
+      "name": "done_load_from_buf",
+      "title": "Read a byte from an FCB buffer",
+      "description": "Uses the FCB's byte count as the offset into its data buffer,\nincrements the count, and sets up the buffer pointer for the read."
+    },
+    {
+      "addr": 47544,
+      "name": "done_handle_line_end",
+      "title": "Output a CR or LF",
+      "description": "If output is not being translated, writes the CR or LF unchanged;\notherwise checks the previous character so that CR-LF and LF-CR\npairs are handled.",
+      "fall_through": true
+    },
+    {
+      "addr": 1024,
+      "binary_addr": 48896,
+      "name": "tube_page4_vectors",
+      "title": "Tube host entry vectors",
+      "description": "Start of the code copied to page 4. &0400 jumps to\n[`tube_begin`](label:tube_begin) (BEGIN) and &0403 to\n[`tube_escape_check`](label:tube_escape_check). The copy loop uses this\naddress as its destination base."
     }
   ],
   "banners": [

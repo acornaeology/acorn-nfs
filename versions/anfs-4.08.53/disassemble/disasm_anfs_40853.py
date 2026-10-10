@@ -16387,6 +16387,244 @@ d.comment(0x8C81, 'Push return address low (address - 1 for RTS)', align=Align.I
 d.expr(0x8C82, lo(sym("loop_dispatch_help") - 1))
 d.comment(0x8C8C, 'Dispatch via RTS; the handler returns to loop_dispatch_help', align=Align.INLINE)
 
+d.subroutine(
+    0xA2DC,
+    "fsreply_3_set_csd",
+    title='Record the file-server station',
+    description="""Dispatch target for FS reply 3, also reached by a JMP after
+selecting the file system. Calls `find_station_bit3` to find or
+allocate the station-table slot for the current file server, then
+returns through `return_with_last_flag`.""",
+)
+d.subroutine(
+    0x8E0A,
+    "pass_send_cmd",
+    title='Send a command to the file server',
+    description="""Builds the FS command packet from the command line, sends it, and
+dispatches on the reply function code, if any.""",
+)
+d.subroutine(
+    0x06A7,
+    "tube_escape_check",
+    title='Forward an escape to the co-processor',
+    description="""Copies the MOS escape flag (bit 7 of &FF) into the top of A with
+SEC/ROR and, when an escape is pending, sends it through
+[`tube_send_r1`](label:tube_send_r1). Otherwise falls into
+[`tube_event_handler`](label:tube_event_handler). Reached by a JMP
+from the Tube escape vector code.""",
+)
+d.subroutine(
+    0x962B,
+    "fixup_reply_status_a",
+    title="Map reply status 'A' to 'B'",
+    description="""Loads the first reply byte and changes status &41 ('A') to &42 ('B')
+before taking the standard masked-error path.""",
+)
+d.subroutine(
+    0x8CFD,
+    "issue_svc_15",
+    title='Issue service call 15',
+    description="""Sets X=&0F and issues the paged-ROM service call with OSBYTE &8F.""",
+)
+d.subroutine(
+    0x8B82,
+    "help_print_nfs_cmds",
+    title='Print the NFS command list for *HELP',
+    description="""Prints the help for the NFS command sub-table, then falls into the
+utility-command help.""",
+)
+d.subroutine(
+    0x8C24,
+    "done_print_table",
+    title='Restore state after printing a command table',
+    description="""Restores P and Y from the stack and returns.""",
+)
+d.subroutine(
+    0x9CB6,
+    "close_all_fcbs",
+    title='Close all matching FCBs',
+    description="""Processes every matching file control block, then returns through
+`return_with_last_flag`.""",
+)
+d.subroutine(
+    0x9CC8,
+    "osfind_close_or_open",
+    title='Handle an OSFIND close or pointer read',
+    description="""Splits on the OSFIND reason: 2 or more opens a file; 0 closes all
+files (returning 5); 1 copies the reply data into the parameter
+block.""",
+)
+d.subroutine(
+    0xA252,
+    "check_exec_addr",
+    title='Check the execution address before *RUN',
+    description="""Increments the four execution-address bytes; if any is non-zero the
+file can be run and execution continues at `setup_oscli_arg`. An
+all-&FF address raises 'No!'.""",
+)
+d.subroutine(
+    0xA265,
+    "alloc_run_channel",
+    title='Allocate a channel for a run file',
+    description="""Allocates an FCB slot for the opened file, clears its status,
+records the handle, and runs the file through the boot/OSCLI path.""",
+)
+d.subroutine(
+    0xB735,
+    "loop_save_before_match",
+    title='Save the FCB context and rescan',
+    description="""Saves the current FCB context, then scans the 16 FCB slots for one
+whose attributes match the current channel, loading the target
+station from the channel tables when the scan runs off the end.""",
+)
+d.subroutine(
+    0x81A4,
+    "try_nfs_port_list",
+    title='Try the NFS workspace port list',
+    description="""When the paged port list has no match: if NFS-workspace reception is
+enabled (bit 6 of the receive flags), scans the port list in the NFS
+workspace; otherwise discards the frame.""",
+)
+d.subroutine(
+    0x82B9,
+    "data_rx_tube_complete",
+    title='Finish a data frame received over the Tube',
+    description="""Tube path after the last data byte: disables ADLC interrupts, then
+checks SR2. No frame-valid bit is an error; frame valid with no
+further data goes to [`ack_tx`](label:ack_tx). If one more byte is
+waiting and a buffer was set up, it is saved in `rx_extra_byte` and
+bit 5 of `tx_flags` records it.""",
+)
+d.subroutine(
+    0x8341,
+    "dispatch_nmi_error",
+    title='Jump to the NMI error handler',
+    description="""Shared exit that jumps to `nmi_error_dispatch`.""",
+)
+d.subroutine(
+    0x842D,
+    "copy_scout_via_tube",
+    title='Copy scout bytes to the co-processor',
+    description="""Tube path: sends each scout byte through Tube register 3, advancing
+the buffer counters, until all scout bytes have been sent or the
+buffer ends.""",
+)
+d.subroutine(
+    0x893B,
+    "fallback_calc_transfer",
+    title='Calculate the transfer size from the RX control block',
+    description="""Works out the number of bytes transferred from the RX control block:
+the start address (offsets 8-9) subtracted from the current pointer
+(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.
+Returns with C=1.""",
+)
+d.subroutine(
+    0x91E7,
+    "handle_dot_sep",
+    title='Handle the dot in a station number',
+    description="""A second dot raises 'Bad number' and a network number of 255 raises
+'Bad network number'; otherwise records that the dot was seen and
+returns.""",
+)
+d.subroutine(
+    0x9215,
+    "error_bad_number",
+    title="Raise 'Bad number'",
+    description="""Error &F0, raised through `error_bad_inline`.""",
+)
+d.subroutine(
+    0x9221,
+    "error_bad_param",
+    title="Raise 'Bad parameter'",
+    description="""Error &94, raised through `error_bad_inline`.""",
+)
+d.subroutine(
+    0x93A8,
+    "skip_rename_spaces",
+    title='Skip spaces before the second *Rename name',
+    description="""Skips spaces, then parses the access prefix of the second filename;
+if it selects a different file system from the first, raises the
+rename error.""",
+)
+d.subroutine(
+    0x953B,
+    "build_error_block",
+    title='Build an error block from an FS reply',
+    description="""Raises the reply's error code to at least &A8, then copies the reply
+up to its CR into the error block at &0100.""",
+)
+d.subroutine(
+    0x9573,
+    "init_remote_session",
+    title='Start a remote session',
+    description="""Sets the remote-active bits in the RX control byte, copies the
+remote station address from the RX buffer into the NFS workspace,
+and sets up remote keyboard scanning and the workspace copy before
+the session starts.""",
+)
+d.subroutine(
+    0x9A84,
+    "discard_handle_match",
+    title='Drop the stacked value and return',
+    description="""Discards the value on the stack, restores Y from `fs_block_offset`
+and returns.""",
+)
+d.subroutine(
+    0xA11B,
+    "dispatch_fs_cmd",
+    title='Dispatch a star command',
+    description="""Clears `svc_state`, then pushes the handler address (minus 1) from
+the command table entry at X and dispatches to it with RTS. When
+nothing matched, X is on the sub-table's end byte and the word after
+it, the default handler, is used.""",
+)
+d.subroutine(
+    0xA2D7,
+    "dispatch_via_vector",
+    title='Enter loaded code at its execution address',
+    description="""Sets A=1 and jumps indirectly through the stored execution address.""",
+)
+d.subroutine(
+    0xA3CB,
+    "load_boot_type",
+    title='Run the boot command for the boot option',
+    description="""Does nothing for boot option 0; otherwise falls into
+[`boot_cmd_oscli`](label:boot_cmd_oscli) to pass the option's
+command to OSCLI.""",
+)
+d.subroutine(
+    0xB120,
+    "done_ps_slot_scan",
+    title='Finish the printer-server slot scan',
+    description="""Restores the printer-server slot flags and the saved return address,
+then waits in a three-level delay loop before carrying on.""",
+)
+d.subroutine(
+    0xB82A,
+    "done_load_from_buf",
+    title='Read a byte from an FCB buffer',
+    description="""Uses the FCB's byte count as the offset into its data buffer,
+increments the count, and sets up the buffer pointer for the read.""",
+)
+d.subroutine(
+    0xB9B8,
+    "done_handle_line_end",
+    title='Output a CR or LF',
+    description="""If output is not being translated, writes the CR or LF unchanged;
+otherwise checks the previous character so that CR-LF and LF-CR
+pairs are handled.""",
+)
+
+d.subroutine(
+    0x0400,
+    "tube_page4_vectors",
+    title="Tube host entry vectors",
+    description="""Start of the code copied to page 4. &0400 jumps to
+[`tube_begin`](label:tube_begin) (BEGIN) and &0403 to
+[`tube_escape_check`](label:tube_escape_check). The copy loop uses this
+address as its destination base.""",
+)
+
 ir = d.disassemble()
 output = str(
     ir.render(

@@ -1297,6 +1297,12 @@ tube_page6_start = tube_poll_r2_result_branch+1
     bvc tube_send_r4                                                  ; 9603: 50 fb       P. :06a1[3]         ; Not ready: keep polling
     sta tube_data_register_4                                          ; 9605: 8d e7 fe    ... :06a3[3]        ; Write A to Tube R4 data register
     rts                                                               ; 9608: 60          ` :06a6[3]          ; Return to caller
+; ***************************************************************************************
+; Forward an escape to the co-processor
+;
+; Copies the MOS escape flag (bit 7 of &FF) into the top of A with SEC/ROR and, when an
+; escape is pending, sends it through tube_send_r1. Otherwise falls into
+; tube_event_handler. Reached by a JMP from the Tube escape vector code.
 ; &06a7 referenced 1 time by &9365
 .tube_escape_check
     lda escape_flag                                                   ; 9609: a5 ff       .. :06a7[3]         ; Check OS escape flag at &FF
@@ -1998,6 +2004,10 @@ cmd_roff_str = copyright_string+3
 .svc_9_help
     jsr print_inline                                                  ; 8208: 20 5c 86     \.      ; Print ROM identification string
     equb &0d, "NFS 3.60", &0d                                         ; 820b: 0d 4e 46... .NF...   ; Notify current FS of shutdown
+; ***************************************************************************************
+; Restore Y and return (service not claimed)
+;
+; Reloads Y from ws_page and returns, leaving the service call unclaimed.
 ; &8215 referenced 2 times by &81ef, &822a
 .restore_ws_return
     ldy ws_page                                                       ; 8215: a4 a8       ..       ; Restore Y (workspace page number)
@@ -2336,6 +2346,11 @@ cmd_roff_str = copyright_string+3
     lda binary_version,x                                              ; 8377: bd 08 80    ...      ; Load ROM string byte at match point
     beq skip_spaces                                                   ; 837a: f0 02       ..       ; Zero = end of ROM string = full match
     rts                                                               ; 837c: 60          `        ; Non-zero = partial/no match; Z=0
+; ***************************************************************************************
+; Skip spaces in the command line
+;
+; Steps past a space and falls into skip_spaces, which skips further spaces at
+; (os_text_ptr),Y and returns with Z set if the next character is CR.
 ; &837d referenced 2 times by &8368, &8382
 .skip_space_next
     iny                                                               ; 837d: c8          .        ; Skip this space
@@ -2768,6 +2783,13 @@ cmd_roff_str = copyright_string+3
 ; &84b5 referenced 1 time by &84fb
 .rchex
     jmp clear_jsr_protection                                          ; 84b5: 4c f0 92    L..      ; Already remoted: clear and return
+; ***************************************************************************************
+; Start a remote boot
+;
+; Sets the remote-boot bits in the RX control byte, copies the remote execution address
+; from the RX buffer into the NFS workspace, resets the OSBYTE &CE/&CF masks, sets up the
+; control block and disables the keyboard with OSBYTE &C9. Falls into
+; lang_3_execute_at_0100 to run the downloaded code.
 ; &84b8 referenced 2 times by &84b3, &84f1
 .remot1
     ora #9                                                            ; 84b8: 09 09       ..       ; Set remote status: bits 0+3 (ORA #9)
@@ -5221,6 +5243,11 @@ error_table_base = bgetv_shared_jsr+1
     ldy #&0f                                                          ; 8e22: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
     lda #4                                                            ; 8e24: a9 04       ..       ; A=4: Tube reason 4, start execution
     jmp tube_addr_claim                                               ; 8e26: 4c 06 04    L..      ; Start execution in the co-processor
+; ***************************************************************************************
+; Execute a loaded file locally
+;
+; Undoes the earlier ADC with ROL, restoring A, and falls into the indirect jump through
+; the load vector.
 ; &8e29 referenced 2 times by &8e13, &8e1b
 .exec_local
     rol a                                                             ; 8e29: 2a          *        ; ROL: restore A (undo ADC carry)
@@ -5660,6 +5687,11 @@ error_table_base = bgetv_shared_jsr+1
     lda fs_last_error                                                 ; 8f6a: ad 09 0e    ...      ; Read last FS error code
     sta (osword_pb_ptr),y                                             ; 8f6d: 91 f0       ..       ; Return error to caller's param block
     rts                                                               ; 8f6f: 60          `        ; Return
+; ***************************************************************************************
+; Copy the handles into the parameter block
+;
+; Loop that converts the URD, CSD and library handle bitmasks into handle numbers with
+; mask_to_handle and stores them in the OSWORD parameter block, from offset 3 down to 1.
 ; &8f70 referenced 2 times by &8f53, &8f79
 .readc1
     lda fs_server_net,y                                               ; 8f70: b9 01 0e    ...      ; Load handle byte (URD/CSD/LIB) at &0E01+Y
@@ -6956,6 +6988,12 @@ error_table_base = bgetv_shared_jsr+1
 ; &97ab referenced 2 times by &977c, &97b1
 .discard_no_match
     jmp nmi_error_dispatch                                            ; 97ab: 4c 35 98    L5.      ; No match found -- discard frame
+; ***************************************************************************************
+; Try the NFS workspace port list
+;
+; When the paged port list has no match: if NFS-workspace reception is enabled (bit 6 of
+; the receive flags), scans the port list in the NFS workspace; otherwise discards the
+; frame.
 ; &97ae referenced 2 times by &976e, &97a0
 .try_nfs_port_list
     bit rx_flags                                                      ; 97ae: 2c 64 0d    ,d.      ; Try NFS workspace if paged list exhausted
@@ -7161,6 +7199,13 @@ error_table_base = bgetv_shared_jsr+1
     bne rx_tube_data                                                  ; 98be: d0 e3       ..       ; More data available: continue loop
 .data_rx_tube_error
     jmp nmi_rti                                                       ; 98c0: 4c 14 0d    L..      ; Unexpected end: return from NMI
+; ***************************************************************************************
+; Finish a data frame received over the Tube
+;
+; Tube path after the last data byte: disables ADLC interrupts, then checks SR2. No
+; frame-valid bit is an error; frame valid with no further data goes to ack_tx. If one
+; more byte is waiting and a buffer was set up, it is saved in rx_extra_byte and bit 5 of
+; tx_flags records it.
 ; &98c3 referenced 2 times by &98a3, &98b9
 .data_rx_tube_complete
     lda #0                                                            ; 98c3: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -7249,6 +7294,10 @@ error_table_base = bgetv_shared_jsr+1
 ; &9948 referenced 1 time by &9938
 .start_data_tx
     jmp data_tx_begin                                                 ; 9948: 4c b3 9d    L..      ; Jump to start data TX phase
+; ***************************************************************************************
+; Jump to the NMI error handler
+;
+; Shared exit that jumps to nmi_error_dispatch.
 ; &994b referenced 2 times by &9913, &992b
 .dispatch_nmi_error
     jmp nmi_error_dispatch                                            ; 994b: 4c 35 98    L5.      ; Jump to error handler
@@ -7437,6 +7486,11 @@ error_table_base = bgetv_shared_jsr+1
     pla                                                               ; 9a14: 68          h        ; Restore X from stack
     tax                                                               ; 9a15: aa          .        ; Transfer to X register
     jmp rx_complete_update_rxcb                                       ; 9a16: 4c a4 99    L..      ; Jump to completion handler
+; ***************************************************************************************
+; Copy scout bytes to the co-processor
+;
+; Tube path: sends each scout byte through Tube register 3, advancing the buffer
+; counters, until all scout bytes have been sent or the buffer ends.
 ; &9a19 referenced 2 times by &99fb, &9a27
 .copy_scout_via_tube
     lda rx_src_stn,x                                                  ; 9a19: bd 3d 0d    .=.      ; Tube path: load scout data byte
@@ -8359,6 +8413,11 @@ svc5_dispatch_lo = enter_data_rx_path+1
     bit econet_control1_or_status1                                    ; 9e40: 2c a0 fe    ,..      ; BIT SR1: test IRQ for tight loop
     bmi tube_tx_fifo_write                                            ; 9e43: 30 cd       0.       ; IRQ still set: write 2 more bytes
     jmp nmi_rti                                                       ; 9e45: 4c 14 0d    L..      ; No IRQ: return, wait for next NMI
+; ***************************************************************************************
+; Handle a TX data-register error
+;
+; If bit 7 of tx_flags is clear the result is 'not listening'; otherwise the frame is
+; discarded and the ADLC returns to listening.
 ; &9e48 referenced 2 times by &9dcd, &9e12
 .tx_tdra_error
     lda tx_flags                                                      ; 9e48: ad 4a 0d    .J.      ; TX error: check flags for path
@@ -8539,6 +8598,12 @@ svc5_dispatch_lo = enter_data_rx_path+1
     pla                                                               ; 9f16: 68          h        ; Restore X
     tax                                                               ; 9f17: aa          .        ; Restore X from stack
     rts                                                               ; 9f18: 60          `        ; Return with C = transfer status
+; ***************************************************************************************
+; Calculate the transfer size from the RX control block
+;
+; Works out the number of bytes transferred from the RX control block: the start address
+; (offsets 8-9) subtracted from the current pointer (offsets 4-5), leaving the size in
+; port_buf_len/port_buf_len_hi. Returns with C=1.
 ; &9f19 referenced 2 times by &9ed3, &9ed8
 .fallback_calc_transfer
     ldy #4                                                            ; 9f19: a0 04       ..       ; Y=4: RXCB current pointer offset

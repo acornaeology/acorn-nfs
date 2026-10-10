@@ -991,6 +991,12 @@ tube_osbyte_reply_block = tube_poll_r2_result_branch+1
     bvc tube_send_r4                                                  ; be35: 50 fb       P. :06a1[1]         ; Not ready: keep polling
     sta tube_data_register_4                                          ; be37: 8d e7 fe    ... :06a3[1]        ; Write A to Tube R4 data register
     rts                                                               ; be3a: 60          ` :06a6[1]          ; Return to caller
+; ***************************************************************************************
+; Forward an escape to the co-processor
+;
+; Copies the MOS escape flag (bit 7 of &FF) into the top of A with SEC/ROR and, when an
+; escape is pending, sends it through tube_send_r1. Otherwise falls into
+; tube_event_handler. Reached by a JMP from the Tube escape vector code.
 ; &06a7 referenced 1 time by &bf07
 .tube_escape_check
     lda escape_flag                                                   ; be3b: a5 ff       .. :06a7[1]         ; Check OS escape flag at &FF
@@ -1120,6 +1126,11 @@ tube_cmd_lo = tube_dispatch_cmd+1
 ; &56 referenced 2 times by &bfbe, &bffb
 .tube_xfer_addr_3
     equb &00                                                          ; bf03: 00          . :0056[2]          ; Tube transfer address byte 3
+; ***************************************************************************************
+; Tube host entry vectors
+;
+; Start of the code copied to page 4. &0400 jumps to tube_begin (BEGIN) and &0403 to
+; tube_escape_check. The copy loop uses this address as its destination base.
     jmp tube_begin                                                    ; bf04: 4c 84 04    L.. :0057[2]        ; JMP to BEGIN startup entry
 
 
@@ -1141,6 +1152,11 @@ tube_cmd_lo = tube_dispatch_cmd+1
 
 ; Move 3: &bf04 to &0400 for length 252
     org &0400
+; ***************************************************************************************
+; Tube host entry vectors
+;
+; Start of the code copied to page 4. &0400 jumps to tube_begin (BEGIN) and &0403 to
+; tube_escape_check. The copy loop uses this address as its destination base.
 ; &0400 used as index base 1 time by &bea1
 .tube_page4_vectors
     jmp tube_begin                                                    ; bf04: 4c 84 04    L.. :0400[3]        ; JMP to BEGIN startup entry
@@ -1803,6 +1819,12 @@ service_handler_lo = service_entry+1
 ; &81ac referenced 2 times by &817b, &81b2
 .discard_no_match
     jmp nmi_error_dispatch                                            ; 81ac: 4c 36 82    L6.      ; No match found -- discard frame
+; ***************************************************************************************
+; Try the NFS workspace port list
+;
+; When the paged port list has no match: if NFS-workspace reception is enabled (bit 6 of
+; the receive flags), scans the port list in the NFS workspace; otherwise discards the
+; frame.
 ; &81af referenced 2 times by &816d, &81a1
 .try_nfs_port_list
     bit econet_flags                                                  ; 81af: 2c 61 0d    ,a.      ; Try NFS workspace if paged list exhausted
@@ -2010,6 +2032,13 @@ service_handler_lo = service_entry+1
     bne rx_tube_data                                                  ; 82bf: d0 e3       ..       ; More data available: continue loop
 .data_rx_tube_error
     jmp nmi_rti                                                       ; 82c1: 4c 14 0d    L..      ; Unexpected end: return from NMI
+; ***************************************************************************************
+; Finish a data frame received over the Tube
+;
+; Tube path after the last data byte: disables ADLC interrupts, then checks SR2. No
+; frame-valid bit is an error; frame valid with no further data goes to ack_tx. If one
+; more byte is waiting and a buffer was set up, it is saved in rx_extra_byte and bit 5 of
+; tx_flags records it.
 ; &82c4 referenced 2 times by &82a4, &82ba
 .data_rx_tube_complete
     lda #0                                                            ; 82c4: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -2101,6 +2130,10 @@ service_handler_lo = service_entry+1
 ; &8349 referenced 1 time by &8339
 .start_data_tx
     jmp data_tx_begin                                                 ; 8349: 4c d1 87    L..      ; Jump to start data TX phase
+; ***************************************************************************************
+; Jump to the NMI error handler
+;
+; Shared exit that jumps to nmi_error_dispatch.
 ; &834c referenced 2 times by &8314, &832c
 .dispatch_nmi_error
     jmp nmi_error_dispatch                                            ; 834c: 4c 36 82    L6.      ; Jump to error handler
@@ -2324,6 +2357,11 @@ service_handler_lo = service_entry+1
     pla                                                               ; 8432: 68          h        ; Restore X from stack
     tax                                                               ; 8433: aa          .        ; Transfer to X register
     jmp rx_complete_update_rxcb                                       ; 8434: 4c a5 83    L..      ; Jump to completion handler
+; ***************************************************************************************
+; Copy scout bytes to the co-processor
+;
+; Tube path: sends each scout byte through Tube register 3, advancing the buffer
+; counters, until all scout bytes have been sent or the buffer ends.
 ; &8437 referenced 2 times by &8419, &8445
 .copy_scout_via_tube
     lda scout_buf,x                                                   ; 8437: bd 2e 0d    ...      ; Tube path: load scout data byte
@@ -3520,6 +3558,12 @@ service_handler_lo = service_entry+1
     pla                                                               ; 8942: 68          h        ; Restore X
     tax                                                               ; 8943: aa          .        ; Restore X from stack
     rts                                                               ; 8944: 60          `        ; Return with C = transfer status
+; ***************************************************************************************
+; Calculate the transfer size from the RX control block
+;
+; Works out the number of bytes transferred from the RX control block: the start address
+; (offsets 8-9) subtracted from the current pointer (offsets 4-5), leaving the size in
+; port_buf_len/port_buf_len_hi. Returns with C=1.
 ; &8945 referenced 2 times by &88ff, &8904
 .fallback_calc_transfer
     ldy #4                                                            ; 8945: a0 04       ..       ; Y=4: RXCB current pointer offset
@@ -4079,6 +4123,11 @@ init_rom_scan = record_break_and_setup_ws+2
     ora fs_flags                                                      ; 8b84: 0d 6c 0d    .l.      ; Set bit 7 of FS flags
     sta fs_flags                                                      ; 8b87: 8d 6c 0d    .l.      ; Store updated flags
     jmp issue_svc_15                                                  ; 8b8a: 4c 08 8d    L..      ; Issue service 15 (FS initialised)
+; ***************************************************************************************
+; Print the NFS command list for *HELP
+;
+; Prints the help for the NFS command sub-table, then falls into the utility-command
+; help.
 ; &8b8d referenced 1 time by &8c7a
 .help_print_nfs_cmds
     ldx #&4a                                                          ; 8b8d: a2 4a       .J       ; X=&4A: NFS command table offset
@@ -4231,6 +4280,10 @@ init_rom_scan = record_break_and_setup_ws+2
     inx                                                               ; 8c2a: e8          .        ; (continued)
     inx                                                               ; 8c2b: e8          .        ; (continued)
     jmp loop_next_entry                                               ; 8c2c: 4c ae 8b    L..      ; Loop for next command
+; ***************************************************************************************
+; Restore state after printing a command table
+;
+; Restores P and Y from the stack and returns.
 ; &8c2f referenced 1 time by &8bb3
 .done_print_table
     plp                                                               ; 8c2f: 28          (        ; Restore processor status
@@ -4442,6 +4495,10 @@ version_string = version_string_cr+1
 ; &8d05 referenced 1 time by &8cfe
 .call_fscv
     jmp (fscv)                                                        ; 8d05: 6c 1e 02    l..      ; Dispatch via FSCV
+; ***************************************************************************************
+; Issue service call 15
+;
+; Sets X=&0F and issues the paged-ROM service call with OSBYTE &8F.
 ; &8d08 referenced 1 time by &8b8a
 .issue_svc_15
     ldx #&0f                                                          ; 8d08: a2 0f       ..       ; X=&0F: service 15 parameter
@@ -4628,6 +4685,11 @@ version_string = version_string_cr+1
 ; &8e14 referenced 1 time by &8e0f
 .rts_station_match
     rts                                                               ; 8e14: 60          `        ; Return
+; ***************************************************************************************
+; Default handler for unmatched FS commands
+;
+; Dispatched when no star command matches. A leading '&' (the user root directory prefix)
+; routes the command through *RUN; anything else is sent to the file server.
 ; &8e15 referenced 1 time by &9462
 .check_urd_prefix
     ldy #0                                                            ; 8e15: a0 00       ..       ; Y=0: first character offset
@@ -5419,6 +5481,11 @@ ws_init_data = error_bad_station+2
 .return_parsed
     sec                                                               ; 91f9: 38          8        ; C=1: number was parsed
     rts                                                               ; 91fa: 60          `        ; Return (result in fs_load_addr_2)
+; ***************************************************************************************
+; Handle the dot in a station number
+;
+; A second dot raises 'Bad number' and a network number of 255 raises 'Bad network
+; number'; otherwise records that the dot was seen and returns.
 ; &91fb referenced 2 times by &9182, &91b2
 .handle_dot_sep
     lda fs_work_4                                                     ; 91fb: a5 b4       ..       ; Check if dot already seen
@@ -5452,11 +5519,19 @@ ws_init_data = error_bad_station+2
     lda #&d0                                                          ; 9215: a9 d0       ..       ; Error code &D0
     jsr error_bad_inline                                              ; 9217: 20 b8 96     ..      ; Generate 'Bad station number' error
     equs "station number", &00                                        ; 921a: 73 74 61... sta...   ; Error text, appended to 'Bad '
+; ***************************************************************************************
+; Raise 'Bad number'
+;
+; Error &F0, raised through error_bad_inline.
 ; &9229 referenced 2 times by &91bb, &91fd
 .error_bad_number
     lda #&f0                                                          ; 9229: a9 f0       ..       ; Error code &F0
     jsr error_bad_inline                                              ; 922b: 20 b8 96     ..      ; Generate 'Bad number' error
     equs "number", &00                                                ; 922e: 6e 75 6d... num...   ; Error text, appended to 'Bad '
+; ***************************************************************************************
+; Raise 'Bad parameter'
+;
+; Error &94, raised through error_bad_inline.
 ; &9235 referenced 2 times by &91e0, &9213
 .error_bad_param
     lda #&94                                                          ; 9235: a9 94       ..       ; Error code &94
@@ -5898,6 +5973,11 @@ ws_init_data = error_bad_station+2
     beq skip_rename_spaces                                            ; 93b4: f0 06       ..       ; Yes: first name complete
     jsr strip_token_prefix                                            ; 93b6: 20 b7 ae     ..      ; Strip BASIC token prefix byte
     jmp loop_copy_rename                                              ; 93b9: 4c 9b 93    L..      ; Continue copying first filename
+; ***************************************************************************************
+; Skip spaces before the second *Rename name
+;
+; Skips spaces, then parses the access prefix of the second filename; if it selects a
+; different file system from the first, raises the rename error.
 ; &93bc referenced 2 times by &93b4, &93c4
 .skip_rename_spaces
     jsr strip_token_prefix                                            ; 93bc: 20 b7 ae     ..      ; Strip token from next char
@@ -6256,6 +6336,11 @@ ws_init_data = error_bad_station+2
     pla                                                               ; 954e: 68          h        ; (second byte)
     pla                                                               ; 954f: 68          h        ; (third byte)
     rts                                                               ; 9550: 60          `        ; Return to pending operation caller
+; ***************************************************************************************
+; Build an error block from an FS reply
+;
+; Raises the reply's error code to at least &A8, then copies the reply up to its CR into
+; the error block at &0100.
 ; &9551 referenced 2 times by &9519, &954b
 .build_error_block
     ldy #1                                                            ; 9551: a0 01       ..       ; Y=1: error code offset in reply
@@ -6304,6 +6389,12 @@ ws_init_data = error_bad_station+2
 ; &9586 referenced 1 time by &95cc
 .done_commit_state
     jmp commit_state_byte                                             ; 9586: 4c dd ac    L..      ; Non-zero: commit state and return
+; ***************************************************************************************
+; Start a remote session
+;
+; Sets the remote-active bits in the RX control byte, copies the remote station address
+; from the RX buffer into the NFS workspace, and sets up remote keyboard scanning and the
+; workspace copy before the session starts.
 ; &9589 referenced 2 times by &9584, &95c2
 .init_remote_session
     ora #9                                                            ; 9589: 09 09       ..       ; Set bits 0,3: remote active flags
@@ -7452,6 +7543,10 @@ bad_prefix = bad_str_anchor+1
     dey                                                               ; 9a93: 88          .        ; (continued)
     dey                                                               ; 9a94: 88          .        ; (continued)
     rts                                                               ; 9a95: 60          `        ; Return
+; ***************************************************************************************
+; Drop the stacked value and return
+;
+; Discards the value on the stack, restores Y from fs_block_offset and returns.
 ; &9a96 referenced 2 times by &9a9e, &9ae4
 .discard_handle_match
     pla                                                               ; 9a96: 68          h        ; Discard stacked value
@@ -7819,6 +7914,11 @@ bad_prefix = bad_str_anchor+1
     lda zp_work_2,y                                                   ; 9cbb: b9 02 00    ...      ; Load zero page work byte
     sta fcb_station_or_count_hi,x                                     ; 9cbe: 9d 20 10    . .      ; Store back to FCB l1020
     jmp return_with_last_flag                                         ; 9cc1: 4c c7 9c    L..      ; Return with last flag
+; ***************************************************************************************
+; Close all matching FCBs
+;
+; Processes every matching file control block, then returns through
+; return_with_last_flag.
 ; &9cc4 referenced 1 time by &9bcd
 .close_all_fcbs
     jsr process_all_fcbs                                              ; 9cc4: 20 99 b7     ..      ; Process all matching FCBs first
@@ -7834,6 +7934,11 @@ bad_prefix = bad_str_anchor+1
     ldx fs_options                                                    ; 9cd0: a6 bb       ..       ; Restore X from FS options pointer
     ldy fs_block_offset                                               ; 9cd2: a4 bc       ..       ; Restore Y from block offset
     rts                                                               ; 9cd4: 60          `        ; Return to caller
+; ***************************************************************************************
+; Handle an OSFIND close or pointer read
+;
+; Splits on the OSFIND reason: 2 or more opens a file; 0 closes all files (returning 5);
+; 1 copies the reply data into the parameter block.
 ; &9cd5 referenced 1 time by &9c00
 .osfind_close_or_open
     cmp #2                                                            ; 9cd5: c9 02       ..       ; Compare with 2 (open for output)
@@ -8658,6 +8763,12 @@ bad_prefix = bad_str_anchor+1
     lda #&dc                                                          ; a127: a9 dc       ..       ; Error code &DC
     jsr error_inline                                                  ; a129: 20 d4 96     ..      ; Generate 'Syntax' error
     equs "Syntax", &00                                                ; a12c: 53 79 6e... Syn...   ; Error message text (error_inline)
+; ***************************************************************************************
+; Dispatch a star command
+;
+; Clears svc_state, then pushes the handler address (minus 1) from the command table
+; entry at X and dispatches to it with RTS. When nothing matched, X is on the sub-table's
+; end byte and the word after it, the default handler, is used.
 ; &a133 referenced 2 times by &a123, &a125
 .dispatch_fs_cmd
     lda #0                                                            ; a133: a9 00       ..       ; A=0: clear service state
@@ -8890,6 +9001,11 @@ bad_prefix = bad_str_anchor+1
     lda #&fe                                                          ; a25d: a9 fe       ..       ; Error code &FE
     jsr error_bad_inline                                              ; a25f: 20 b8 96     ..      ; Generate 'Bad command' error
     equs "command", &00                                               ; a262: 63 6f 6d... com...   ; Error text, appended to 'Bad '
+; ***************************************************************************************
+; Check the execution address before *RUN
+;
+; Increments the four execution-address bytes; if any is non-zero the file can be run and
+; execution continues at setup_oscli_arg. An all-&FF address raises 'No!'.
 ; &a26a referenced 1 time by &a1e7
 .check_exec_addr
     ldx #3                                                            ; a26a: a2 03       ..       ; X=3: check 4 execution bytes
@@ -8902,6 +9018,11 @@ bad_prefix = bad_str_anchor+1
     lda #&93                                                          ; a274: a9 93       ..       ; Error code &93
     jsr error_inline_log                                              ; a276: 20 d1 96     ..      ; Generate 'No!' error
     equs "No!", &00                                                   ; a279: 4e 6f 21... No!...   ; Error message text (error_inline_log)
+; ***************************************************************************************
+; Allocate a channel for a run file
+;
+; Allocates an FCB slot for the opened file, clears its status, records the handle, and
+; runs the file through the boot/OSCLI path.
 ; &a27d referenced 1 time by &a203
 .alloc_run_channel
     lda fs_cmd_data                                                   ; a27d: ad 05 0f    ...      ; Load open mode result
@@ -8960,10 +9081,20 @@ bad_prefix = bad_str_anchor+1
     ldy #&0f                                                          ; a2e8: a0 0f       ..       ; Y=&0F: parameter offset
     lda #4                                                            ; a2ea: a9 04       ..       ; A=4: tube transfer type
     jmp tube_addr_data_dispatch                                       ; a2ec: 4c 06 04    L..      ; Dispatch tube address/data
+; ***************************************************************************************
+; Enter loaded code at its execution address
+;
+; Sets A=1 and jumps indirectly through the stored execution address.
 ; &a2ef referenced 2 times by &a2d7, &a2e1
 .dispatch_via_vector
     lda #1                                                            ; a2ef: a9 01       ..       ; A=1
     jmp (fs_load_vector)                                              ; a2f1: 6c 09 0f    l..      ; Dispatch via indirect vector
+; ***************************************************************************************
+; Record the file-server station
+;
+; Dispatch target for FS reply 3, also reached by a JMP after selecting the file system.
+; Calls find_station_bit3 to find or allocate the station-table slot for the current file
+; server, then returns through return_with_last_flag.
 ; &a2f4 referenced 1 time by &945f
 .fsreply_3_set_csd
     jsr find_station_bit3                                             ; a2f4: 20 2b a3     +.      ; Find station with bit 3 set
@@ -9165,6 +9296,11 @@ bad_prefix = bad_str_anchor+1
     equb <(boot_cmd_load)                                             ; a3e0: cf          .        ; Option 1 (Load): boot_cmd_load
     equb <(boot_cmd_run)                                              ; a3e1: d1          .        ; Option 2 (Run): boot_cmd_run
     equb <(boot_cmd_exec)                                             ; a3e2: d7          .        ; Option 3 (Exec): boot_cmd_exec
+; ***************************************************************************************
+; Run the boot command for the boot option
+;
+; Does nothing for boot option 0; otherwise falls into boot_cmd_oscli to pass the
+; option's command to OSCLI.
 ; &a3e3 referenced 2 times by &a3c2, &a3cc
 .load_boot_type
     ldy fs_boot_option                                                ; a3e3: ac 05 0e    ...      ; Load boot type
@@ -12092,6 +12228,11 @@ store_ps_station = done_ps_status_msg+2
 write_ps_slot_link_addr = write_ps_slot_hi_link+1
     jsr write_ps_slot_byte_ff                                         ; b13e: 20 5e b1     ^.      ; Write another page + &FF bytes
     jmp skip_next_ps_slot                                             ; b141: 4c 18 b1    L..      ; Continue scanning slots
+; ***************************************************************************************
+; Finish the printer-server slot scan
+;
+; Restores the printer-server slot flags and the saved return address, then waits in a
+; three-level delay loop before carrying on.
 ; &b144 referenced 2 times by &b10b, &b112
 .done_ps_slot_scan
     asl econet_flags                                                  ; b144: 0e 61 0d    .a.      ; Shift PS slot flags back
@@ -13247,6 +13388,12 @@ net_channel_err_string = err_net_chan_not_found+2
     dey                                                               ; b729: 88          .        ; Next byte down
     bpl loop_restore_tx_buf                                           ; b72a: 10 f7       ..       ; Loop for all bytes
     rts                                                               ; b72c: 60          `        ; Return
+; ***************************************************************************************
+; Save the FCB context and rescan
+;
+; Saves the current FCB context, then scans the 16 FCB slots for one whose attributes
+; match the current channel, loading the target station from the channel tables when the
+; scan runs off the end.
 ; &b72d referenced 1 time by &b74c
 .loop_save_before_match
     jsr save_fcb_context                                              ; b72d: 20 6a b6     j.      ; Save current context first
@@ -13419,6 +13566,11 @@ net_channel_err_string = err_net_chan_not_found+2
     lda #&df                                                          ; b817: a9 df       ..       ; Error code &DF
     jsr error_inline_log                                              ; b819: 20 d1 96     ..      ; Generate 'End of file' error
     equs "End of file", &00                                           ; b81c: 45 6e 64... End...   ; Error message text (error_inline_log)
+; ***************************************************************************************
+; Read a byte from an FCB buffer
+;
+; Uses the FCB's byte count as the offset into its data buffer, increments the count, and
+; sets up the buffer pointer for the read.
 ; &b828 referenced 2 times by &b7f1, &b7f9
 .done_load_from_buf
     lda fcb_count_lo,y                                                ; b828: b9 00 10    ...      ; Load current byte count (= offset)
@@ -13760,6 +13912,11 @@ net_channel_err_string = err_net_chan_not_found+2
 .loop_write_char
     jsr oswrch                                                        ; b9c7: 20 ee ff     ..      ; Write character
     jmp loop_read_print_byte                                          ; b9ca: 4c aa b9    L..      ; Loop for next byte
+; ***************************************************************************************
+; Output a CR or LF
+;
+; If output is not being translated, writes the CR or LF unchanged; otherwise checks the
+; previous character so that CR-LF and LF-CR pairs are handled.
 ; &b9cd referenced 2 times by &b9bf, &b9c3
 .done_handle_line_end
     pha                                                               ; b9cd: 48          H        ; Save the CR or LF character

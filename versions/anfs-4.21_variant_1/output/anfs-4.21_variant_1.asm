@@ -1051,6 +1051,12 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8187 referenced 2 times by &8156, &818d
 .discard_no_match
     jmp nmi_error_dispatch                                            ; 8187: 4c 15 82    L..      ; No match found -- discard frame
+; ***************************************************************************************
+; Try the NFS workspace port list
+;
+; When the paged port list has no match: if NFS-workspace reception is enabled (bit 6 of
+; the receive flags), scans the port list in the NFS workspace; otherwise discards the
+; frame.
 ; &818a referenced 2 times by &8148, &817c
 .try_nfs_port_list
     bit econet_flags                                                  ; 818a: 2c 61 0d    ,a.      ; Try NFS workspace if paged list exhausted
@@ -1289,6 +1295,10 @@ rom_header_byte2 = rom_header_byte1+1
     lda econet_control23_or_status2                                   ; 825c: ad a1 fe    ...      ; Re-poll ADLC SR2 for next byte pair
     bne data_rx_loop                                                  ; 825f: d0 c7       ..       ; More data: loop back to data_rx_loop
     jmp nmi_rti                                                       ; 8261: 4c 14 0d    L..      ; No more data: return from NMI
+; ***************************************************************************************
+; Restore ACCCON and finish the RX frame
+;
+; Restores the caller's ACCCON from the stack and falls into data_rx_complete.
 ; &8264 referenced 2 times by &8246, &8256
 .frame_complete_restore
     pla                                                               ; 8264: 68          h        ; Pull saved ACCCON (frame-complete path)
@@ -1349,6 +1359,13 @@ rom_header_byte2 = rom_header_byte1+1
     bne rx_tube_data                                                  ; 82af: d0 e3       ..       ; More data available: continue loop
 .data_rx_tube_error
     jmp nmi_rti                                                       ; 82b1: 4c 14 0d    L..      ; Unexpected end: return from NMI
+; ***************************************************************************************
+; Finish a data frame received over the Tube
+;
+; Tube path after the last data byte: disables ADLC interrupts, then checks SR2. No
+; frame-valid bit is an error; frame valid with no further data goes to ack_tx. If one
+; more byte is waiting and a buffer was set up, it is saved in rx_extra_byte and bit 5 of
+; tx_flags records it.
 ; &82b4 referenced 2 times by &8294, &82aa
 .data_rx_tube_complete
     lda #0                                                            ; 82b4: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -1468,6 +1485,10 @@ rom_header_byte2 = rom_header_byte1+1
 ; &8339 referenced 1 time by &8329
 .start_data_tx
     jmp data_tx_begin                                                 ; 8339: 4c ce 87    L..      ; Jump to start data TX phase
+; ***************************************************************************************
+; Jump to the NMI error handler
+;
+; Shared exit that jumps to nmi_error_dispatch.
 ; &833c referenced 2 times by &8304, &831c
 .dispatch_nmi_error
     jmp nmi_error_dispatch                                            ; 833c: 4c 15 82    L..      ; Jump to error handler
@@ -2925,6 +2946,10 @@ imm_op_handler_lo_table = save_acccon_for_shadow_ram+1
     bit econet_control1_or_status1                                    ; 881f: 2c a0 fe    ,..      ; Test ADLC SR1 IRQ flag for next byte pair
     bmi data_tx_check_fifo                                            ; 8822: 30 ce       0.       ; IRQ still set: more bytes to send
     jmp nmi_rti                                                       ; 8824: 4c 14 0d    L..      ; IRQ cleared: return from NMI
+; ***************************************************************************************
+; Restore ACCCON and close the TX frame
+;
+; Restores the caller's ACCCON from the stack and falls into data_tx_last.
 ; &8827 referenced 2 times by &8807, &8817
 .frame_end_restore
     pla                                                               ; 8827: 68          h        ; Pull saved ACCCON (frame-end path)
@@ -3224,6 +3249,12 @@ tx_flags_table = check_tube_irq_loop+1
     pla                                                               ; 8965: 68          h        ; Restore X
     tax                                                               ; 8966: aa          .        ; Restore X from stack
     rts                                                               ; 8967: 60          `        ; Return with C = transfer status
+; ***************************************************************************************
+; Calculate the transfer size from the RX control block
+;
+; Works out the number of bytes transferred from the RX control block: the start address
+; (offsets 8-9) subtracted from the current pointer (offsets 4-5), leaving the size in
+; port_buf_len/port_buf_len_hi. Returns with C=1.
 ; &8968 referenced 2 times by &8922, &8927
 .fallback_calc_transfer
     ldy #4                                                            ; 8968: a0 04       ..       ; Y=4: RXCB current pointer offset
@@ -5908,6 +5939,11 @@ ps_template_base = load_transfer_params+1
 .return_parsed
     sec                                                               ; 933b: 38          8        ; All checks passed: C=1 marks 'parsed successfully'
     rts                                                               ; 933c: 60          `        ; Return
+; ***************************************************************************************
+; Handle the dot in a station number
+;
+; A second dot raises 'Bad number' and a network number of 255 raises 'Bad network
+; number'; otherwise records that the dot was seen and returns.
 ; &933d referenced 2 times by &92c4, &92f4
 .handle_dot_sep
     lda fs_work_4                                                     ; 933d: a5 b4       ..       ; Dot already seen?
@@ -5943,11 +5979,19 @@ ps_template_base = load_transfer_params+1
     lda #&d0                                                          ; 9357: a9 d0       ..       ; A=&D0: 'Bad station' error code
     jsr error_bad_inline                                              ; 9359: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
     equs "station number", &00                                        ; 935c: 73 74 61... sta...   ; Error text, appended to 'Bad '
+; ***************************************************************************************
+; Raise 'Bad number'
+;
+; Error &F0, raised through error_bad_inline.
 ; &936b referenced 2 times by &92fd, &933f
 .error_bad_number
     lda #&f0                                                          ; 936b: a9 f0       ..       ; A=&F0: 'Bad number' error code
     jsr error_bad_inline                                              ; 936d: 20 a7 99     ..      ; Raise via error_bad_inline (never returns)
     equs "number", &00                                                ; 9370: 6e 75 6d... num...   ; Error text, appended to 'Bad '
+; ***************************************************************************************
+; Raise 'Bad parameter'
+;
+; Error &94, raised through error_bad_inline.
 ; &9377 referenced 2 times by &9322, &9355
 .error_bad_param
     lda #&94                                                          ; 9377: a9 94       ..       ; A=&94: 'Bad parameter' error code
@@ -7268,6 +7312,11 @@ help_topic_template = dispatch_help_command+1
     pla                                                               ; 982e: 68          h        ; Unwind stacked byte
     pla                                                               ; 982f: 68          h        ; Unwind stacked byte
     rts                                                               ; 9830: 60          `        ; Return -- caller dispatched on a non-error reply
+; ***************************************************************************************
+; Build an error block from an FS reply
+;
+; Raises the reply's error code to at least &A8, then copies the reply up to its CR into
+; the error block at &0100.
 ; &9831 referenced 2 times by &97f6, &982b
 .build_error_block
     ldy #1                                                            ; 9831: a0 01       ..       ; Y=1: skip past the leading TXCB control byte
@@ -7303,6 +7352,12 @@ help_topic_template = dispatch_help_command+1
 ; &9856 referenced 1 time by &98ad
 .done_commit_state
     jmp commit_state_byte                                             ; 9856: 4c 5f b0    L_.      ; Non-zero: commit state and continue
+; ***************************************************************************************
+; Start a remote session
+;
+; Sets the remote-active bits in the RX control byte, copies the remote station address
+; from the RX buffer into the NFS workspace, and sets up remote keyboard scanning and the
+; workspace copy before the session starts.
 ; &9859 referenced 2 times by &9854, &98a3
 .init_remote_session
     ora #9                                                            ; 9859: 09 09       ..       ; Mark session as 'remote boot'
@@ -8708,6 +8763,10 @@ bad_prefix_table = bad_str_anchor+1
     dey                                                               ; 9d80: 88          .        ; (continued)
     dey                                                               ; 9d81: 88          .        ; (continued)
     rts                                                               ; 9d82: 60          `        ; Return
+; ***************************************************************************************
+; Drop the stacked value and return
+;
+; Discards the value on the stack, restores Y from fs_block_offset and returns.
 ; &9d83 referenced 2 times by &9d8b, &9dd1
 .discard_handle_match
     pla                                                               ; 9d83: 68          h        ; Discard stacked value
@@ -10257,6 +10316,12 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     lda #&dc                                                          ; a442: a9 dc       ..       ; Error code &DC
     jsr error_inline                                                  ; a444: 20 c3 99     ..      ; Raise 'Syntax' error
     equs "Syntax", &00                                                ; a447: 53 79 6e... Syn...   ; Error message text (error_inline)
+; ***************************************************************************************
+; Dispatch a star command
+;
+; Clears svc_state, then pushes the handler address (minus 1) from the command table
+; entry at X and dispatches to it with RTS. When nothing matched, X is on the sub-table's
+; end byte and the word after it, the default handler, is used.
 ; &a44e referenced 2 times by &a43e, &a440
 .dispatch_fs_cmd
     lda #0                                                            ; a44e: a9 00       ..       ; A=0: clear svc_state
@@ -10649,6 +10714,10 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     ldy #&c1                                                          ; a62c: a0 c1       ..       ; Y=&C1: high byte of TX buffer pointer
     lda #4                                                            ; a62e: a9 04       ..       ; A=4: option byte for *RUN
     jmp tube_addr_data_dispatch                                       ; a630: 4c 06 04    L..      ; Relocated execute path
+; ***************************************************************************************
+; Enter loaded code at its execution address
+;
+; Sets A=1 and jumps indirectly through the stored execution address.
 ; &a633 referenced 2 times by &a61b, &a625
 .dispatch_via_vector
     lda #1                                                            ; a633: a9 01       ..       ; A=1: dispatch flag
@@ -14346,6 +14415,11 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ps_print_template = write_ps_slot_hi_link+1
     jsr write_ps_slot_byte_ff                                         ; b4fc: 20 1c b5     ..      ; Write another buffer page + two &FF sentinels
     jmp skip_next_ps_slot                                             ; b4ff: 4c d6 b4    L..      ; Continue scanning slots
+; ***************************************************************************************
+; Finish the printer-server slot scan
+;
+; Restores the printer-server slot flags and the saved return address, then waits in a
+; three-level delay loop before carrying on.
 ; &b502 referenced 2 times by &b4c9, &b4d0
 .done_ps_slot_scan
     asl econet_flags                                                  ; b502: 0e 61 0d    .a.      ; Restore bit 0 of econet_flags via ASL (recovers from the LSR at &B4C1)
@@ -15776,6 +15850,11 @@ net_chan_err_strings = err_net_chan_not_found+2
     lda #&df                                                          ; bbb1: a9 df       ..       ; Error code &DF
     jsr error_inline_log                                              ; bbb3: 20 c0 99     ..      ; Generate 'End of file' error
     equs "End of file", &00                                           ; bbb6: 45 6e 64... End...   ; Error message text (error_inline_log)
+; ***************************************************************************************
+; Read a byte from an FCB buffer
+;
+; Uses the FCB's byte count as the offset into its data buffer, increments the count, and
+; sets up the buffer pointer for the read.
 ; &bbc2 referenced 2 times by &bb8b, &bb93
 .done_load_from_buf
     lda hazel_fcb_addr_lo,y                                           ; bbc2: b9 00 c2    ...      ; Load current byte count (= offset)

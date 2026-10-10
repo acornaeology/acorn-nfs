@@ -309,8 +309,7 @@
       "binary_addr": 37747,
       "name": "tube_post_init",
       "title": "Clear the Tube address claim",
-      "description": "Sets `tube_claim_flag` to &80, meaning no address is currently\nclaimed. Run once after the Tube host code is copied into place,\nand reached from `tube_addr_claim` to release a claim.",
-      "fall_through": true
+      "description": "Sets `tube_claim_flag` to &80, meaning no address is currently\nclaimed. Run once after the Tube host code is copied into place,\nand reached from `tube_addr_claim` to release a claim."
     },
     {
       "addr": 1146,
@@ -385,8 +384,7 @@
       "description": "Polls Tube status register 4 until bit 6 is set, then writes A to\nthe data register. R4 carries address claims, transfer set-up and\nrelease commands.",
       "on_entry": {
         "a": "byte to send"
-      },
-      "fall_through": true
+      }
     },
     {
       "addr": 1780,
@@ -530,7 +528,8 @@
       "addr": 33271,
       "name": "svc_9_help",
       "title": "Service 9: *HELP",
-      "description": "Prints the ROM identification string using print_inline."
+      "description": "Prints the ROM identification string using print_inline.",
+      "fall_through": true
     },
     {
       "addr": 33288,
@@ -770,8 +769,7 @@
       "addr": 33911,
       "name": "lang_1_remote_boot",
       "title": "Remote boot/execute handler",
-      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns.",
-      "fall_through": true
+      "description": "Checks byte 4 of the RX control block (remote status flag).\nIf zero (not currently remoted), falls through to remot1 to\nset up a new remote session. If non-zero (already remoted),\njumps to clear_jsr_protection and returns."
     },
     {
       "addr": 33957,
@@ -1984,8 +1982,7 @@
       "addr": 39226,
       "name": "data_rx_tube_error",
       "title": "Abandon a bad Tube data frame",
-      "description": "Jumps to the NMI error path. Reached when a frame received\nstraight to the Tube ends without a valid frame end.",
-      "fall_through": true
+      "description": "Jumps to the NMI error path. Reached when a frame received\nstraight to the Tube ends without a valid frame end."
     },
     {
       "addr": 39272,
@@ -2313,6 +2310,78 @@
       "name": "rom_set_nmi_vector",
       "title": "ROM copy of set_nmi_vector + nmi_rti",
       "description": "A version of the NMI vector-setting subroutine and RTI sequence\nthat lives in ROM. The RAM workspace copy at &0D0E/&0D14 is the\none normally used at runtime; this ROM copy is used during early\ninitialisation before the RAM workspace has been set up, and as\nthe source for the initial copy to RAM."
+    },
+    {
+      "addr": 1759,
+      "binary_addr": 38462,
+      "name": "tube_escape_check",
+      "title": "Forward an escape to the co-processor",
+      "description": "Copies the MOS escape flag (bit 7 of &FF) into the top of A with\nSEC/ROR and, when an escape is pending, sends it through\n[`tube_send_r1`](label:tube_send_r1). Otherwise falls into\n[`tube_event_handler`](label:tube_event_handler). Reached by a JMP\nfrom the Tube escape vector code.",
+      "fall_through": true
+    },
+    {
+      "addr": 39520,
+      "name": "copy_scout_fields",
+      "title": "Copy scout fields into the RX control block",
+      "description": "Broadcast path: copies the eight scout bytes (source station,\nnetwork, control byte, port and so on) from the scout buffer into\noffsets 4-&0B of the port workspace, then jumps on to finish the\nreception."
+    },
+    {
+      "addr": 1139,
+      "binary_addr": 37842,
+      "name": "tube_begin",
+      "title": "Tube host BEGIN entry",
+      "description": "Enables interrupts, saves P and A, and sets the transfer pointer to\nstart sending the current language ROM from &8000. If the ROM header\nhas a relocation address (bit 5 of the ROM type), it skips the\ncopyright string and uses that address instead. Reached by a JMP\nfrom the page-0 entry.",
+      "fall_through": true
+    },
+    {
+      "addr": 33285,
+      "name": "restore_y_return",
+      "title": "Restore Y and return (service not claimed)",
+      "description": "Reloads Y from `nfs_temp` and returns, leaving the service call\nunclaimed. Shared exit for the service handlers that branch here."
+    },
+    {
+      "addr": 33920,
+      "name": "remot1",
+      "title": "Start a remote boot",
+      "description": "Sets the remote-boot bits in the RX control byte, copies the remote\nexecution address from the RX buffer into the NFS workspace, resets\nthe OSBYTE &CE/&CF masks, sets up the control block and disables the\nkeyboard with OSBYTE &C9. Falls into\n[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the\ndownloaded code.",
+      "fall_through": true
+    },
+    {
+      "addr": 36378,
+      "name": "exec_at_load_addr",
+      "title": "Jump through the load vector",
+      "description": "Shared tail that jumps indirectly through `fs_load_vector`, entering\nthe loaded code at its execution address."
+    },
+    {
+      "addr": 36706,
+      "name": "readc1",
+      "title": "Copy the handles into the parameter block",
+      "description": "Loop that converts the URD, CSD and library handle bitmasks into\nhandle numbers with `mask_to_handle` and stores them in the OSWORD\nparameter block, from offset 3 down to 1."
+    },
+    {
+      "addr": 39229,
+      "name": "data_rx_tube_complete",
+      "title": "Finish a data frame received over the Tube",
+      "description": "Tube path after the last data byte: disables ADLC interrupts, then\nchecks SR2. No frame-valid bit is an error; frame valid with no\nfurther data goes to [`ack_tx`](label:ack_tx). If one more byte is\nwaiting and a buffer was set up, it is saved in `rx_extra_byte` and\nbit 5 of `tx_flags` records it.",
+      "fall_through": true
+    },
+    {
+      "addr": 39362,
+      "name": "tdra_error",
+      "title": "TDRA error exit",
+      "description": "Shared exit for transmit-data-register-available failures: jumps to\nthe receive error handler."
+    },
+    {
+      "addr": 39586,
+      "name": "imm_op_out_of_range",
+      "title": "Reject an out-of-range immediate operation",
+      "description": "Shared exit for immediate-operation control bytes outside the\nhandled range: jumps to the receive error handler to discard the\nframe."
+    },
+    {
+      "addr": 40886,
+      "name": "fallback_calc_transfer",
+      "title": "Calculate the transfer size from the RX control block",
+      "description": "Works out the number of bytes transferred from the RX control block:\nthe start address (offsets 8-9) subtracted from the current pointer\n(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.\nReturns with C=1."
     }
   ],
   "banners": [

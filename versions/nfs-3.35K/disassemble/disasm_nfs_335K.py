@@ -9423,6 +9423,103 @@ cut off by the end of the ROM.""",
 )
 d.comment(0x9FFA, "Unused: LDA &0D4A / ORA #2 / STA ...", align=Align.INLINE)
 
+d.subroutine(
+    0x06E2,
+    "tube_escape_check",
+    title='Forward an escape to the co-processor',
+    description="""Copies the MOS escape flag (bit 7 of &FF) into the top of A with
+SEC/ROR and, when an escape is pending, sends it through
+[`tube_send_r1`](label:tube_send_r1). Otherwise falls into
+[`tube_event_handler`](label:tube_event_handler). Reached by a JMP
+from the Tube escape vector code.""",
+)
+d.subroutine(
+    0x9A60,
+    "copy_scout_fields",
+    title='Copy scout fields into the RX control block',
+    description="""Broadcast path: copies the eight scout bytes (source station,
+network, control byte, port and so on) from the scout buffer into
+offsets 4-&0B of the port workspace, then jumps on to finish the
+reception.""",
+)
+d.subroutine(
+    0x0473,
+    "tube_begin",
+    title='Tube host BEGIN entry',
+    description="""Enables interrupts, saves P and A, and sets the transfer pointer to
+start sending the current language ROM from &8000. If the ROM header
+has a relocation address (bit 5 of the ROM type), it skips the
+copyright string and uses that address instead. Reached by a JMP
+from the page-0 entry.""",
+)
+d.subroutine(
+    0x81FB,
+    "restore_y_return",
+    title='Restore Y and return (service not claimed)',
+    description="""Reloads Y from `nfs_temp` and returns, leaving the service call
+unclaimed. Shared exit for the service handlers that branch here.""",
+)
+d.subroutine(
+    0x8473,
+    "remot1",
+    title='Start a remote boot',
+    description="""Sets the remote-boot bits in the RX control byte, copies the remote
+execution address from the RX buffer into the NFS workspace, resets
+the OSBYTE &CE/&CF masks, sets up the control block and disables the
+keyboard with OSBYTE &C9. Falls into
+[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the
+downloaded code.""",
+)
+d.subroutine(
+    0x8E12,
+    "exec_at_load_addr",
+    title='Jump through the load vector',
+    description="""Shared tail that jumps indirectly through `fs_load_vector`, entering
+the loaded code at its execution address.""",
+)
+d.subroutine(
+    0x8F5A,
+    "readc1",
+    title='Copy the handles into the parameter block',
+    description="""Loop that converts the URD, CSD and library handle bitmasks into
+handle numbers with `mask_to_handle` and stores them in the OSWORD
+parameter block, from offset 3 down to 1.""",
+)
+d.subroutine(
+    0x993D,
+    "data_rx_tube_complete",
+    title='Finish a data frame received over the Tube',
+    description="""Tube path after the last data byte: disables ADLC interrupts, then
+checks SR2. No frame-valid bit is an error; frame valid with no
+further data goes to [`ack_tx`](label:ack_tx). If one more byte is
+waiting and a buffer was set up, it is saved in `rx_extra_byte` and
+bit 5 of `tx_flags` records it.""",
+)
+d.subroutine(
+    0x99C2,
+    "tdra_error",
+    title='TDRA error exit',
+    description="""Shared exit for transmit-data-register-available failures: jumps to
+the receive error handler.""",
+)
+d.subroutine(
+    0x9AA2,
+    "imm_op_out_of_range",
+    title='Reject an out-of-range immediate operation',
+    description="""Shared exit for immediate-operation control bytes outside the
+handled range: jumps to the receive error handler to discard the
+frame.""",
+)
+d.subroutine(
+    0x9FB6,
+    "fallback_calc_transfer",
+    title='Calculate the transfer size from the RX control block',
+    description="""Works out the number of bytes transferred from the RX control block:
+the start address (offsets 8-9) subtracted from the current pointer
+(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.
+Returns with C=1.""",
+)
+
 ir = d.disassemble()
 output = str(
     ir.render(

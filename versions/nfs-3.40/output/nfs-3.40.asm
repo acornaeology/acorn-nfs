@@ -748,6 +748,12 @@ tube_jmp_target = tube_dispatch_cmd+1
     plp                                                               ; 93d8: 28          ( :047b[2]          ; Restore interrupt state
 .return_tube_xfer
     rts                                                               ; 93d9: 60          ` :047c[2]          ; Return from transfer setup
+; ***************************************************************************************
+; Tube host BEGIN entry
+;
+; Enables interrupts, then acts on the break type: C=1 (hard break) claims address &FF, a
+; non-zero A goes to check_break_type, and otherwise the call is just acknowledged
+; through tube_reply_ack.
 ; &047d referenced 1 time by &935d
 .tube_begin
     cli                                                               ; 93da: 58          X :047d[2]          ; BEGIN: enable interrupts for Tube host code
@@ -1284,6 +1290,12 @@ tube_page6_start = tube_poll_r2_result_branch+1
     bvc tube_send_r4                                                  ; 95f7: 50 fb       P. :06a1[3]         ; Not ready: keep polling
     sta tube_data_register_4                                          ; 95f9: 8d e7 fe    ... :06a3[3]        ; Write A to Tube R4 data register
     rts                                                               ; 95fc: 60          ` :06a6[3]          ; Return to caller
+; ***************************************************************************************
+; Forward an escape to the co-processor
+;
+; Copies the MOS escape flag (bit 7 of &FF) into the top of A with SEC/ROR and, when an
+; escape is pending, sends it through tube_send_r1. Otherwise falls into
+; tube_event_handler. Reached by a JMP from the Tube escape vector code.
 ; &06a7 referenced 1 time by &9360
 .tube_escape_check
     lda escape_flag                                                   ; 95fd: a5 ff       .. :06a7[3]         ; Check OS escape flag at &FF
@@ -2002,6 +2014,10 @@ cmd_roff_str = copyright_string+3
 .svc_9_help
     jsr print_inline                                                  ; 8204: 20 05 86     ..      ; Print ROM identification string
     equb &0d, "NFS 3.40", &0d                                         ; 8207: 0d 4e 46... .NF...   ; Inline text, printed by print_inline
+; ***************************************************************************************
+; Restore Y and return (service not claimed)
+;
+; Reloads Y from ws_page and returns, leaving the service call unclaimed.
 ; &8211 referenced 2 times by &81eb, &8226
 .return_service
     ldy ws_page                                                       ; 8211: a4 a8       ..       ; Load workspace page for printing
@@ -2340,6 +2356,11 @@ cmd_roff_str = copyright_string+3
     lda binary_version,x                                              ; 8373: bd 08 80    ...      ; Load ROM string byte at match point
     beq skip_spaces                                                   ; 8376: f0 02       ..       ; Zero = end of ROM string = full match
     rts                                                               ; 8378: 60          `        ; Non-zero = partial/no match; Z=0
+; ***************************************************************************************
+; Skip spaces in the command line
+;
+; Steps past a space and falls into skip_spaces, which skips further spaces at
+; (os_text_ptr),Y and returns with Z set if the next character is CR.
 ; &8379 referenced 2 times by &8364, &837e
 .skip_space_next
     iny                                                               ; 8379: c8          .        ; Skip this space
@@ -2737,6 +2758,13 @@ cmd_roff_str = copyright_string+3
 ; &84a0 referenced 1 time by &84e6
 .rchex
     jmp clear_jsr_protection                                          ; 84a0: 4c eb 92    L..      ; Already remoted: clear and return
+; ***************************************************************************************
+; Start a remote boot
+;
+; Sets the remote-boot bits in the RX control byte, copies the remote execution address
+; from the RX buffer into the NFS workspace, resets the OSBYTE &CE/&CF masks, sets up the
+; control block and disables the keyboard with OSBYTE &C9. Falls into
+; lang_3_execute_at_0100 to run the downloaded code.
 ; &84a3 referenced 2 times by &849e, &84dc
 .remot1
     ora #9                                                            ; 84a3: 09 09       ..       ; Set remote status: bits 0+3 (ORA #9)
@@ -5123,6 +5151,11 @@ cmd_roff_str = copyright_string+3
     ldy #&0f                                                          ; 8e15: a0 0f       ..       ; Y=&0F: address block at &0F09 (high)
     lda #4                                                            ; 8e17: a9 04       ..       ; A=4: Tube reason 4, start execution
     jmp tube_addr_claim                                               ; 8e19: 4c 06 04    L..      ; Start execution in the co-processor
+; ***************************************************************************************
+; Jump through the load vector
+;
+; Shared tail that jumps indirectly through fs_load_vector, entering the loaded code at
+; its execution address.
 ; &8e1c referenced 2 times by &8e06, &8e0e
 .exec_at_load_addr
     jmp (fs_load_vector)                                              ; 8e1c: 6c 09 0f    l..      ; Execute at load address via indirect JMP
@@ -5510,6 +5543,11 @@ cmd_roff_str = copyright_string+3
     lda fs_last_error                                                 ; 8f62: ad 09 0e    ...      ; Read last FS error code
     sta (osword_pb_ptr),y                                             ; 8f65: 91 f0       ..       ; Return error to caller's param block
     rts                                                               ; 8f67: 60          `        ; Return
+; ***************************************************************************************
+; Copy the handles into the parameter block
+;
+; Loop that converts the URD, CSD and library handle bitmasks into handle numbers with
+; mask_to_handle and stores them in the OSWORD parameter block, from offset 3 down to 1.
 ; &8f68 referenced 2 times by &8f4b, &8f71
 .readc1
     lda fs_server_net,y                                               ; 8f68: b9 01 0e    ...      ; Load handle byte (URD/CSD/LIB) at &0E01+Y
@@ -6518,6 +6556,12 @@ cmd_roff_str = copyright_string+3
     sty tx_src_net                                                    ; 96ab: 8c 23 0d    .#.      ; Y=0 after copy loop: net = local
     bit video_ula_control                                             ; 96ae: 2c 20 fe    , .      ; BIT VULA: enable NMIs via latch
     rts                                                               ; 96b1: 60          `        ; Return from NMI workspace init
+; ***************************************************************************************
+; Wait for the NMI handler to return to idle
+;
+; If Econet initialisation has finished, goes straight to RX listen. Otherwise polls the
+; NMI vector until it points at nmi_rx_scout, then disables NMIs, clears the TX and
+; initialisation flags, and re- enters RX listen through adlc_rx_listen.
 ; &96b2 referenced 1 time by &9666
 .poll_nmi_ready
     bit econet_init_flag                                              ; 96b2: 2c 66 0d    ,f.      ; Test Econet init complete flag
@@ -7011,6 +7055,13 @@ cmd_roff_str = copyright_string+3
 ; &9916 referenced 3 times by &98f6, &9928, &9934
 .data_rx_tube_error
     jmp nmi_error_dispatch                                            ; 9916: 4c 72 98    Lr.      ; Unexpected end: return from NMI
+; ***************************************************************************************
+; Finish a data frame received over the Tube
+;
+; Tube path after the last data byte: disables ADLC interrupts, then checks SR2. No
+; frame-valid bit is an error; frame valid with no further data goes to ack_tx. If one
+; more byte is waiting and a buffer was set up, it is saved in rx_extra_byte and bit 5 of
+; tx_flags records it.
 ; &9919 referenced 2 times by &98e0, &990c
 .data_rx_tube_complete
     lda #0                                                            ; 9919: a9 00       ..       ; CR1=&00: disable all interrupts
@@ -7099,6 +7150,10 @@ cmd_roff_str = copyright_string+3
 ; &999e referenced 1 time by &998e
 .start_data_tx
     jmp data_tx_begin                                                 ; 999e: 4c 1a 9e    L..      ; Jump to start data TX phase
+; ***************************************************************************************
+; Jump to the NMI error handler
+;
+; Shared exit that jumps to nmi_error_dispatch.
 ; &99a1 referenced 2 times by &9969, &9981
 .dispatch_nmi_error
     jmp nmi_error_dispatch                                            ; 99a1: 4c 72 98    Lr.      ; Jump to error handler
@@ -7160,6 +7215,12 @@ cmd_roff_str = copyright_string+3
     cpy #&82                                                          ; 99f0: c0 82       ..       ; Ctrl = &82 (POKE)?
     beq rx_complete_update_rxcb                                       ; 99f2: f0 03       ..       ; Yes: POKE also needs data transfer
     jmp imm_op_build_reply                                            ; 99f4: 4c fc 9a    L..      ; Other port-0 ops: immediate dispatch
+; ***************************************************************************************
+; Update the RX control block after a frame
+;
+; Advances the buffer pointer and, when the transfer is complete, stores the final buffer
+; address in the RX control block. Then, unless the port is 0 (an immediate operation),
+; records the source network, station and port in the control block.
 ; &99f7 referenced 2 times by &99eb, &99f2
 .rx_complete_update_rxcb
     jsr advance_rx_buffer_ptr                                         ; 99f7: 20 a4 99     ..      ; Update buffer pointer and check for Tube
@@ -7232,6 +7293,12 @@ cmd_roff_str = copyright_string+3
     lda #<(nmi_rx_scout)                                              ; 9a40: a9 f2       ..       ; Install nmi_rx_scout (&96F2) as NMI handler
     ldy #>(nmi_rx_scout)                                              ; 9a42: a0 96       ..       ; High byte of nmi_rx_scout
     jmp set_nmi_vector                                                ; 9a44: 4c 0e 0d    L..      ; Set NMI vector and return
+; ***************************************************************************************
+; Copy scout fields into the RX control block
+;
+; Broadcast path: copies the eight scout bytes (source station, network, control byte,
+; port and so on) from the scout buffer into offsets 4-&0B of the port workspace, then
+; jumps on to finish the reception.
 ; &9a47 referenced 1 time by &97f4
 .copy_scout_fields
     ldy #4                                                            ; 9a47: a0 04       ..       ; Y=4: start at RX CB offset 4
@@ -7294,6 +7361,11 @@ cmd_roff_str = copyright_string+3
     bpl rotate_prot_mask                                              ; 9a6f: 10 fc       ..       ; Loop until bit aligned
     bcc imm_op_dispatch                                               ; 9a71: 90 03       ..       ; Carry clear: operation permitted
     jmp imm_op_discard                                                ; 9a73: 4c 32 9b    L2.      ; Operation blocked by LSTAT mask
+; ***************************************************************************************
+; Dispatch an immediate operation
+;
+; Reloads the control byte and pushes the handler address from the immediate-operation
+; jump table, then dispatches to it with RTS.
 ; &9a76 referenced 2 times by &9a63, &9a71
 .imm_op_dispatch
     ldy rx_ctrl                                                       ; 9a76: ac 3f 0d    .?.      ; Reload ctrl byte for dispatch table
@@ -7302,6 +7374,11 @@ cmd_roff_str = copyright_string+3
     lda imm_op_dispatch_lo - &81,y                                    ; 9a7d: b9 04 9a    ...      ; Load handler low byte from jump table
     pha                                                               ; 9a80: 48          H        ; Push handler address low
     rts                                                               ; 9a81: 60          `        ; RTS dispatches to handler
+; ***************************************************************************************
+; Reject an out-of-range immediate operation
+;
+; Shared exit for immediate-operation control bytes outside the handled range: jumps to
+; the receive error handler to discard the frame.
 ; &9a82 referenced 2 times by &9a5b, &9a5f
 .imm_op_out_of_range
     jmp nmi_error_dispatch                                            ; 9a82: 4c 72 98    Lr.      ; Jump to discard handler
@@ -8381,6 +8458,12 @@ tx_done_handler_hi = tx_nmi_setup+1
     pla                                                               ; 9f81: 68          h        ; Restore X
     tax                                                               ; 9f82: aa          .        ; Restore X from stack
     rts                                                               ; 9f83: 60          `        ; Return with C = transfer status
+; ***************************************************************************************
+; Calculate the transfer size from the RX control block
+;
+; Works out the number of bytes transferred from the RX control block: the start address
+; (offsets 8-9) subtracted from the current pointer (offsets 4-5), leaving the size in
+; port_buf_len/port_buf_len_hi. Returns with C=1.
 ; &9f84 referenced 2 times by &9f41, &9f46
 .fallback_calc_transfer
     ldy #4                                                            ; 9f84: a0 04       ..       ; Y=4: RXCB current pointer offset

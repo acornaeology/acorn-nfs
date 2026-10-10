@@ -9320,6 +9320,134 @@ routine. No code reads it.""",
 )
 d.comment(0x9FC8, "Unreferenced text", align=Align.INLINE)
 
+d.subroutine(
+    0x06A7,
+    "tube_escape_check",
+    title='Forward an escape to the co-processor',
+    description="""Copies the MOS escape flag (bit 7 of &FF) into the top of A with
+SEC/ROR and, when an escape is pending, sends it through
+[`tube_send_r1`](label:tube_send_r1). Otherwise falls into
+[`tube_event_handler`](label:tube_event_handler). Reached by a JMP
+from the Tube escape vector code.""",
+)
+d.subroutine(
+    0x9A47,
+    "copy_scout_fields",
+    title='Copy scout fields into the RX control block',
+    description="""Broadcast path: copies the eight scout bytes (source station,
+network, control byte, port and so on) from the scout buffer into
+offsets 4-&0B of the port workspace, then jumps on to finish the
+reception.""",
+)
+d.subroutine(
+    0x047D,
+    "tube_begin",
+    title='Tube host BEGIN entry',
+    description="""Enables interrupts, then acts on the break type: C=1 (hard break)
+claims address &FF, a non-zero A goes to `check_break_type`, and
+otherwise the call is just acknowledged through `tube_reply_ack`.""",
+)
+d.subroutine(
+    0x96B2,
+    "poll_nmi_ready",
+    title='Wait for the NMI handler to return to idle',
+    description="""If Econet initialisation has finished, goes straight to RX listen.
+Otherwise polls the NMI vector until it points at `nmi_rx_scout`,
+then disables NMIs, clears the TX and initialisation flags, and re-
+enters RX listen through `adlc_rx_listen`.""",
+)
+d.subroutine(
+    0x8211,
+    "return_service",
+    title='Restore Y and return (service not claimed)',
+    description="""Reloads Y from `ws_page` and returns, leaving the service call
+unclaimed.""",
+)
+d.subroutine(
+    0x8379,
+    "skip_space_next",
+    title='Skip spaces in the command line',
+    description="""Steps past a space and falls into
+[`skip_spaces`](label:skip_spaces), which skips further spaces at
+(`os_text_ptr`),Y and returns with Z set if the next character is
+CR.""",
+)
+d.subroutine(
+    0x84A3,
+    "remot1",
+    title='Start a remote boot',
+    description="""Sets the remote-boot bits in the RX control byte, copies the remote
+execution address from the RX buffer into the NFS workspace, resets
+the OSBYTE &CE/&CF masks, sets up the control block and disables the
+keyboard with OSBYTE &C9. Falls into
+[`lang_3_execute_at_0100`](label:lang_3_execute_at_0100) to run the
+downloaded code.""",
+)
+d.subroutine(
+    0x8E1C,
+    "exec_at_load_addr",
+    title='Jump through the load vector',
+    description="""Shared tail that jumps indirectly through `fs_load_vector`, entering
+the loaded code at its execution address.""",
+)
+d.subroutine(
+    0x8F68,
+    "readc1",
+    title='Copy the handles into the parameter block',
+    description="""Loop that converts the URD, CSD and library handle bitmasks into
+handle numbers with `mask_to_handle` and stores them in the OSWORD
+parameter block, from offset 3 down to 1.""",
+)
+d.subroutine(
+    0x9919,
+    "data_rx_tube_complete",
+    title='Finish a data frame received over the Tube',
+    description="""Tube path after the last data byte: disables ADLC interrupts, then
+checks SR2. No frame-valid bit is an error; frame valid with no
+further data goes to [`ack_tx`](label:ack_tx). If one more byte is
+waiting and a buffer was set up, it is saved in `rx_extra_byte` and
+bit 5 of `tx_flags` records it.""",
+)
+d.subroutine(
+    0x99A1,
+    "dispatch_nmi_error",
+    title='Jump to the NMI error handler',
+    description="""Shared exit that jumps to `nmi_error_dispatch`.""",
+)
+d.subroutine(
+    0x99F7,
+    "rx_complete_update_rxcb",
+    title='Update the RX control block after a frame',
+    description="""Advances the buffer pointer and, when the transfer is complete,
+stores the final buffer address in the RX control block. Then,
+unless the port is 0 (an immediate operation), records the source
+network, station and port in the control block.""",
+)
+d.subroutine(
+    0x9A76,
+    "imm_op_dispatch",
+    title='Dispatch an immediate operation',
+    description="""Reloads the control byte and pushes the handler address from the
+immediate-operation jump table, then dispatches to it with RTS.""",
+)
+d.subroutine(
+    0x9A82,
+    "imm_op_out_of_range",
+    title='Reject an out-of-range immediate operation',
+    description="""Shared exit for immediate-operation control bytes outside the
+handled range: jumps to the receive error handler to discard the
+frame.""",
+)
+d.subroutine(
+    0x9F84,
+    "fallback_calc_transfer",
+    title='Calculate the transfer size from the RX control block',
+    description="""Works out the number of bytes transferred from the RX control block:
+the start address (offsets 8-9) subtracted from the current pointer
+(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.
+Returns with C=1.""",
+)
+
 ir = d.disassemble()
 output = str(
     ir.render(

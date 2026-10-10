@@ -352,8 +352,7 @@
       "addr": 33044,
       "name": "scout_complete",
       "title": "Scout completion handler",
-      "description": "Processes a completed scout frame. Writes `CR1=&00` and `CR2=&84`\nto disable `PSE` and suppress `FV`, then tests `SR2` for `FV`\n(frame valid). If `FV` is set with `RDA`, reads the remaining\nscout data bytes in pairs into the buffer at `&0D3D`.\n\nMatches the port byte (`&0D40`) against open receive control\nblocks to find a listener:\n\n- **On match** \u2013 calculates the transfer size via\n  [`tx_calc_transfer`](label:tx_calc_transfer), sets up the data RX\n  handler chain, and sends a scout ACK.\n- **On no match or error** \u2013 discards the frame via\n  [`scout_error`](label:scout_error).",
-      "fall_through": true
+      "description": "Processes a completed scout frame. Writes `CR1=&00` and `CR2=&84`\nto disable `PSE` and suppress `FV`, then tests `SR2` for `FV`\n(frame valid). If `FV` is set with `RDA`, reads the remaining\nscout data bytes in pairs into the buffer at `&0D3D`.\n\nMatches the port byte (`&0D40`) against open receive control\nblocks to find a listener:\n\n- **On match** \u2013 calculates the transfer size via\n  [`tx_calc_transfer`](label:tx_calc_transfer), sets up the data RX\n  handler chain, and sends a scout ACK.\n- **On no match or error** \u2013 discards the frame via\n  [`scout_error`](label:scout_error)."
     },
     {
       "addr": 33176,
@@ -419,8 +418,7 @@
       "addr": 33318,
       "name": "nmi_data_rx_bulk",
       "title": "Data frame bulk read loop",
-      "description": "Reads data payload bytes from the RX FIFO and stores them into\nthe open port buffer at `(open_port_buf),Y`. Reads bytes in pairs\n(like the scout data loop), checking SR2 between each pair.\n\n- SR2 non-zero (FV or other) \u2192 completion via\n  [`data_rx_complete`](label:data_rx_complete).\n- SR2 = 0 \u2192 RTI, wait for next NMI to continue.",
-      "fall_through": true
+      "description": "Reads data payload bytes from the RX FIFO and stores them into\nthe open port buffer at `(open_port_buf),Y`. Reads bytes in pairs\n(like the scout data loop), checking SR2 between each pair.\n\n- SR2 non-zero (FV or other) \u2192 completion via\n  [`data_rx_complete`](label:data_rx_complete).\n- SR2 = 0 \u2192 RTI, wait for next NMI to continue."
     },
     {
       "addr": 33387,
@@ -432,8 +430,7 @@
       "addr": 33441,
       "name": "nmi_data_rx_tube",
       "title": "NMI handler: data-frame RX into Tube buffer",
-      "description": "NMI continuation entry for the Tube data-RX path. Polls SR2 for\nRDA, reads the next data byte from the ADLC RX FIFO, and writes it\nto the Tube data register, advancing the Tube transfer pointer\neach iteration. Tests for end-of-frame via FV and either continues\nthe tight inner loop or returns via `RTI`. Reached only via the\nNMI vector after `install_tube_rx` configures the handler.",
-      "fall_through": true
+      "description": "NMI continuation entry for the Tube data-RX path. Polls SR2 for\nRDA, reads the next data byte from the ADLC RX FIFO, and writes it\nto the Tube data register, advancing the Tube transfer pointer\neach iteration. Tests for end-of-frame via FV and either continues\nthe tight inner loop or returns via `RTI`. Reached only via the\nNMI vector after `install_tube_rx` configures the handler."
     },
     {
       "addr": 33519,
@@ -2056,8 +2053,7 @@
       "addr": 38990,
       "name": "lang_1_remote_boot",
       "title": "Language reply 1: remote-boot init / continue",
-      "description": "Reads the reply byte at `(net_rx_ptr),0`. If zero, branches to\n[`init_remote_session`](label:init_remote_session) to (re)initialise the\nremote session. Otherwise falls through to `done_commit_state`\nwhich finalises the boot state byte for the active session.",
-      "fall_through": true
+      "description": "Reads the reply byte at `(net_rx_ptr),0`. If zero, branches to\n[`init_remote_session`](label:init_remote_session) to (re)initialise the\nremote session. Otherwise falls through to `done_commit_state`\nwhich finalises the boot state byte for the active session."
     },
     {
       "addr": 39036,
@@ -2815,7 +2811,8 @@
       "addr": 42068,
       "name": "cmd_fs_reentry",
       "title": "FS-command re-entry guard (BVC dispatch_fs_cmd)",
-      "description": "Single-instruction prologue: BVC dispatch_fs_cmd. Reached as the\nfall-through target after a *RUN failure -- if V is clear (the\nre-entry path is permitted) it branches into dispatch_fs_cmd to\nre-attempt the command; otherwise falls through to error_syntax to\nraise 'Syntax'. Single caller (the FS dispatch table at &8C4E)."
+      "description": "Single-instruction prologue: BVC dispatch_fs_cmd. Reached as the\nfall-through target after a *RUN failure -- if V is clear (the\nre-entry path is permitted) it branches into dispatch_fs_cmd to\nre-attempt the command; otherwise falls through to error_syntax to\nraise 'Syntax'. Single caller (the FS dispatch table at &8C4E).",
+      "fall_through": true
     },
     {
       "addr": 42095,
@@ -4268,7 +4265,8 @@
       "on_exit": {
         "a": "byte read (when C=0)",
         "c": "0 = byte returned, 1 = EOF / error"
-      }
+      },
+      "fall_through": true
     },
     {
       "addr": 48151,
@@ -4590,6 +4588,108 @@
       "name": "tx_done_dispatch_lo",
       "title": "TX done dispatch lo-byte table (5 entries)",
       "description": "Low bytes of PHA/PHA/RTS dispatch targets for TX operation types\n`&83`-`&87`, read by [`dispatch_svc5`](label:dispatch_svc5) via\n`LDA tx_done_dispatch_lo-&83,Y`. The dispatcher pushes `&85` as the\nhigh byte, so targets are `&85xx+1`."
+    },
+    {
+      "addr": 33165,
+      "name": "try_nfs_port_list",
+      "title": "Try the NFS workspace port list",
+      "description": "When the paged port list has no match: if NFS-workspace reception is\nenabled (bit 6 of the receive flags), scans the port list in the NFS\nworkspace; otherwise discards the frame.",
+      "fall_through": true
+    },
+    {
+      "addr": 33383,
+      "name": "frame_complete_restore",
+      "title": "Restore ACCCON and finish the RX frame",
+      "description": "Restores the caller's ACCCON from the stack and falls into\n`data_rx_complete`.",
+      "fall_through": true
+    },
+    {
+      "addr": 33476,
+      "name": "data_rx_tube_complete",
+      "title": "Finish a data frame received over the Tube",
+      "description": "Tube path after the last data byte: disables ADLC interrupts, then\nchecks SR2. No frame-valid bit is an error; frame valid with no\nfurther data goes to [`ack_tx`](label:ack_tx). If one more byte is\nwaiting and a buffer was set up, it is saved in `rx_extra_byte` and\nbit 5 of `tx_flags` records it.",
+      "fall_through": true
+    },
+    {
+      "addr": 33612,
+      "name": "dispatch_nmi_error",
+      "title": "Jump to the NMI error handler",
+      "description": "Shared exit that jumps to `nmi_error_dispatch`."
+    },
+    {
+      "addr": 34326,
+      "name": "fallback_calc_transfer",
+      "title": "Calculate the transfer size from the RX control block",
+      "description": "Works out the number of bytes transferred from the RX control block:\nthe start address (offsets 8-9) subtracted from the current pointer\n(offsets 4-5), leaving the size in `port_buf_len`/`port_buf_len_hi`.\nReturns with C=1."
+    },
+    {
+      "addr": 35062,
+      "name": "frame_end_restore",
+      "title": "Restore ACCCON and close the TX frame",
+      "description": "Restores the caller's ACCCON from the stack and falls into\n`data_tx_last`."
+    },
+    {
+      "addr": 37702,
+      "name": "handle_dot_sep",
+      "title": "Handle the dot in a station number",
+      "description": "A second dot raises 'Bad number' and a network number of 255 raises\n'Bad network number'; otherwise records that the dot was seen and\nreturns."
+    },
+    {
+      "addr": 37748,
+      "name": "error_bad_number",
+      "title": "Raise 'Bad number'",
+      "description": "Error &F0, raised through `error_bad_inline`.",
+      "fall_through": true
+    },
+    {
+      "addr": 37760,
+      "name": "error_bad_param",
+      "title": "Raise 'Bad parameter'",
+      "description": "Error &94, raised through `error_bad_inline`.",
+      "fall_through": true
+    },
+    {
+      "addr": 38959,
+      "name": "build_error_block",
+      "title": "Build an error block from an FS reply",
+      "description": "Raises the reply's error code to at least &A8, then copies the reply\nup to its CR into the error block at &0100."
+    },
+    {
+      "addr": 38999,
+      "name": "init_remote_session",
+      "title": "Start a remote session",
+      "description": "Sets the remote-active bits in the RX control byte, copies the\nremote station address from the RX buffer into the NFS workspace,\nand sets up remote keyboard scanning and the workspace copy before\nthe session starts.",
+      "fall_through": true
+    },
+    {
+      "addr": 40321,
+      "name": "discard_handle_match",
+      "title": "Drop the stacked value and return",
+      "description": "Discards the value on the stack, restores Y from `fs_block_offset`\nand returns."
+    },
+    {
+      "addr": 42082,
+      "name": "dispatch_fs_cmd",
+      "title": "Dispatch a star command",
+      "description": "Clears `svc_state`, then pushes the handler address (minus 1) from\nthe command table entry at X and dispatches to it with RTS. When\nnothing matched, X is on the sub-table's end byte and the word after\nit, the default handler, is used."
+    },
+    {
+      "addr": 42567,
+      "name": "dispatch_via_vector",
+      "title": "Enter loaded code at its execution address",
+      "description": "Sets A=1 and jumps indirectly through the stored execution address."
+    },
+    {
+      "addr": 46397,
+      "name": "done_ps_slot_scan",
+      "title": "Finish the printer-server slot scan",
+      "description": "Restores the printer-server slot flags and the saved return address,\nthen waits in a three-level delay loop before carrying on."
+    },
+    {
+      "addr": 48114,
+      "name": "done_load_from_buf",
+      "title": "Read a byte from an FCB buffer",
+      "description": "Uses the FCB's byte count as the offset into its data buffer,\nincrements the count, and sets up the buffer pointer for the read."
     }
   ],
   "banners": [
