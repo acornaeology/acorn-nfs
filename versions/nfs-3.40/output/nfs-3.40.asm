@@ -1749,6 +1749,13 @@ got_station_num = parse_server_station+2
     beq tube_chars_done                                               ; 8138: f0 43       .C       ; Zero byte: Tube transfer complete
     jsr oswrch                                                        ; 813a: 20 ee ff     ..      ; Send Tube char to screen via OSWRCH
     jmp poll_tube_ready                                               ; 813d: 4c 30 81    L0.      ; Loop for next Tube byte
+; ***************************************************************************************
+; NFS initialisation (service &FF: full reset)
+;
+; Points EVNTV at &06AD and BRKV at &0016, writes &8E to the Tube control register
+; (&FEE0), copies three pages of Tube host code from ROM to &0400-&06FF, calls
+; tube_post_init in the copied code, then copies 97 bytes of NMI workspace initialiser
+; from ROM to &0016-&0076. Falls through to the service &12 check with A=0.
 ; &8140 referenced 1 time by &8123
 .init_vectors_and_copy
     lda #&ad                                                          ; 8140: a9 ad       ..       ; EVNTV low = &AD (event handler address)
@@ -1844,6 +1851,19 @@ got_station_num = parse_server_station+2
     nop                                                               ; 81ae: ea          .        ; NOP padding
     nop                                                               ; 81af: ea          .        ; NOP padding
     nop                                                               ; 81b0: ea          .        ; NOP padding
+; ***************************************************************************************
+; Service 4: unrecognised * command
+;
+; Matches the command text against ROM string table entries. Both entries reuse bytes
+; from the ROM header to save space:
+;
+; X=8: matches "ROFF" at copyright_string+3 — the suffix of "(C)ROFF" → *ROFF (Remote
+; Off, end remote session) — jumps to resume_after_remote
+;
+; X=1: matches "NET" at &8009 — the ROM title string → *NET (select NFS) — falls through
+; to select_nfs
+;
+; If neither matches, returns with the service call unclaimed.
 .svc_4_star_command
     ldx #cmd_roff_str - binary_version                                ; 81b1: a2 0c       ..    
     jsr match_rom_string                                              ; 81b3: 20 5e 83     ^.      ; Try matching *ROFF command
@@ -2216,6 +2236,13 @@ got_station_num = parse_server_station+2
     bne fsdiel                                                        ; 8357: d0 f6       ..       ; Loop for offsets &1D..&15
     lda #osbyte_close_spool_exec                                      ; 8359: a9 77       .w       ; A=&77: OSBYTE close spool/exec
     jmp osbyte                                                        ; 835b: 4c f4 ff    L..      ; Close any SPOOLed or EXECed files
+; ***************************************************************************************
+; Match command text against ROM string table
+;
+; Compares characters from (os_text_ptr)+Y against bytes starting at binary_version+X
+; (&8008+X). Input is uppercased via AND &DF. Returns with Z=1 if the ROM string's NUL
+; terminator was reached (match), or Z=0 if a mismatch was found. On match, Y points past
+; the matched text; on return, skips trailing spaces.
 ; &835e referenced 2 times by &81b3, &81e8
 .match_rom_string
     ldy ws_page                                                       ; 835e: a4 a8       ..       ; Y = saved text pointer offset
@@ -4436,6 +4463,12 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     equb &80, &81, &45, &58, &8c, &1a                                 ; 8c0d: 80 81 45... ..E...
     equs "BYE"                                                        ; 8c13: 42 59 45    BYE   
     equb &0d, &83, &bb, &80, &c0                                      ; 8c16: 0d 83 bb... ......
+; ***************************************************************************************
+; *EX handler (extended catalogue)
+;
+; Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at init_cat_params, bypassing
+; fscv_5_cat's default column setup. &B7=1 gives one entry per line with full details (vs
+; &B7=3 for *CAT which gives multiple files per line).
 .ex_handler
     ldx #1                                                            ; 8c1b: a2 01       ..       ; X=1: *EX single-entry examine
     lda #3                                                            ; 8c1d: a9 03       ..       ; A=3: column count for *EX mode
@@ -4560,6 +4593,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
     adc fs_work_4                                                     ; 8cf6: 65 b4       e.       ; Advance start offset by entry count
     tay                                                               ; 8cf8: a8          .        ; Y = new entry start offset
     bne fetch_dir_batch                                               ; 8cf9: d0 cd       ..       ; More entries: fetch next batch
+; ***************************************************************************************
+; Print reply buffer bytes
+;
+; Prints Y characters from the FS reply buffer (&0F05+X) to the screen via OSASCI. X =
+; starting offset, Y = count. Used by fscv_5_cat to display directory and library names.
 ; &8cfb referenced 3 times by &8c41, &8cb0, &8cc2
 .print_reply_bytes
     ldy #&0a                                                          ; 8cfb: a0 0a       ..       ; Y=&0A: default print 10 characters
@@ -4970,6 +5008,11 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 .return_6
 .return_calc_handle
     rts                                                               ; 8e58: 60          `        ; Return after calculation
+; ***************************************************************************************
+; *NET1: read file handle from received packet
+;
+; Reads a file handle byte from offset &6F in the RX buffer (net_rx_ptr), stores it in
+; &F0, then returns.
 ; *NET1: read file handle from received packet. Reads a byte from offset &6F of the RX buffer (net_rx_ptr) and falls through to net_2_read_handle_entry's common path.
 .net_1_read_handle
     ldy #&6f                                                          ; 8e59: a0 6f       .o       ; Y=&6F: RX buffer handle offset
@@ -5666,6 +5709,19 @@ fs_cmd_dispatch_hi = fs_cmd_match_table+1
 ; &912f referenced 2 times by &90fa, &9111
 .return_nbyte
     rts                                                               ; 912f: 60          `        ; Return to OSBYTE dispatcher
+; ***************************************************************************************
+; Search remote OSBYTE table for match (NCALLP)
+;
+; Searches remote_osbyte_table for OSBYTE code A. X indexes the last entry to check
+; (table is scanned X..0). Returns Z=1 if found. Called twice by remote_cmd_dispatch:
+;
+; X=7  -> first 8 entries (NCTBPL: execute on both machines) X=14 -> all 15 entries
+; (NCTBMI: execute on terminal only)
+;
+; The last 7 entries (&0B, &0C, &0F, &79, &7A, &E3, &E4) are terminal-only because they
+; affect the local keyboard, buffers, or function keys.
+;
+; On entry: A = OSBYTE code, X = table size - 1 On exit:  Z=1 if match found, Z=0 if not
 ; &9130 referenced 3 times by &90e8, &90f1, &9136
 .match_osbyte_code
     cmp remote_osbyte_table,x                                         ; 9130: dd 39 91    .9.      ; Compare OSBYTE code with table entry

@@ -545,8 +545,7 @@
       "addr": 34069,
       "name": "imm_op_dispatch_lo",
       "title": "Immediate-op dispatch lo-byte table (8 entries)",
-      "description": "Eight low-byte entries at `&8515`-`&851C` indexed by the\nimmediate-op control byte (`&81`-`&88`) via\n`LDA imm_op_handler_lo_table,Y` at the dispatch site (the table's\nnominal base [`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)\nso the entry for control byte N sits at that base plus N). Each byte\nis the low byte of `(handler-1)` so the PHA/PHA/RTS dispatch (constant\nhigh byte `&84`) lands on the handler in page `&84xx`. Per-entry\ninline comments identify each control byte's handler.",
-      "fall_through": true
+      "description": "Eight low-byte entries at `&8515`-`&851C` indexed by the\nimmediate-op control byte (`&81`-`&88`) via\n`LDA imm_op_handler_lo_table,Y` at the dispatch site (the table's\nnominal base [`imm_op_handler_lo_table`](label:imm_op_handler_lo_table)\nso the entry for control byte N sits at that base plus N). Each byte\nis the low byte of `(handler-1)` so the PHA/PHA/RTS dispatch (constant\nhigh byte `&84`) lands on the handler in page `&84xx`. Per-entry\ninline comments identify each control byte's handler."
     },
     {
       "addr": 33950,
@@ -4524,6 +4523,13 @@
       "name": "nmi_return_inton",
       "title": "NMI exit: re-enable NMIs and return",
       "description": "Two-instruction NMI tail: `BIT enable_net_nmis` (INTON, guaranteeing a fresh /NMI edge if the ADLC IRQ is still asserted) then `RTI`."
+    },
+    {
+      "addr": 34077,
+      "name": "imm_op_build_reply",
+      "title": "Build immediate-operation reply header",
+      "description": "Writes the reply-frame header for a port-0 immediate operation\ninto the RX buffer at offsets `&7F..&81`:\n\n| RX offset | Source | Meaning |\n|---|---|---|\n| `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |\n| `&80` | [`scout_buf`](label:scout_buf) | requesting station |\n| `&81` | [`scout_src_net`](label:scout_src_net) | requesting network |\n\nThen loads the control byte from\n[`scout_ctrl`](label:scout_ctrl) into `A` and falls through into\n[`setup_sr_tx`](label:setup_sr_tx), which records `A` as\n[`tx_op_type`](label:tx_op_type) and (for execute-class ops) arms the\ndeferred dispatch by setting the Master 128 ACCCON IRR latch so the\noperation completes from normal IRQ context. Reached via the\nimmediate-op dispatch path.",
+      "fall_through": true
     },
     {
       "addr": 34034,

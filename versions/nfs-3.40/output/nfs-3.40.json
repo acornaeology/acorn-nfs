@@ -475,7 +475,13 @@
       "addr": 33015,
       "name": "service_handler",
       "title": "Service-call handler",
-      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nBegins with 9 `NOP`s for bus settling, then probes for Econet\nhardware on the first call by reading the station-ID register\ntwice and comparing the two reads (a stable value indicates\nADLC presence; mismatched or zero reads indicate bus noise from\nabsent hardware). Sets bit 7 of the per-ROM workspace as a\ndisable flag when no ADLC is found. For services `<&80`, the\nflag causes an early return (disabling this ROM). Services\n`>=&80` (`&FE`, `&FF`) are always handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`dispatch`](label:dispatch).",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nBegins with 9 `NOP`s for bus settling, then probes for Econet\nhardware on the first call by reading the station-ID register\ntwice and comparing the two reads (a stable value indicates\nADLC presence; mismatched or zero reads indicate bus noise from\nabsent hardware). Sets bit 7 of the per-ROM workspace as a\ndisable flag when no ADLC is found. For services `<&80`, the\nflag causes an early return (disabling this ROM). Services\n`>=&80` (`&FE`, `&FF`) are always handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`dispatch`](label:dispatch)."
+    },
+    {
+      "addr": 33088,
+      "name": "init_vectors_and_copy",
+      "title": "NFS initialisation (service &FF: full reset)",
+      "description": "Points EVNTV at &06AD and BRKV at &0016, writes &8E to the\nTube control register (&FEE0), copies three pages of Tube host\ncode from ROM to &0400-&06FF, calls\n[`tube_post_init`](label:tube_post_init) in the copied code, then\ncopies 97 bytes of NMI workspace initialiser from ROM to\n&0016-&0076. Falls through to the service &12 check with A=0.",
       "fall_through": true
     },
     {
@@ -483,6 +489,13 @@
       "name": "svc_star_command",
       "title": "Service 4: unrecognised * command",
       "description": "The first 7 bytes (&81A5-&81AB) are the service handler epilogue:\nPLA/STA restores &A9, TXA/LDX retrieves romsel_copy, then RTS.\nThis is the return path reached after any dispatched service\nhandler completes.\n\nThe service 4 handler itself is dispatched via the table to\n&81B1 (after 5 NOPs of padding). It makes two match_rom_string\ncalls against the ROM header, reusing header bytes as command\nstrings:\n\n- `X=&0C`: matches `\"ROFF\"` at [`cmd_roff_str`](label:cmd_roff_str) \u2014 the\n  suffix of the copyright string `\"(C)ROFF\"` \u2192 `*ROFF` (Remote Off,\n  end remote session). Falls through to\n  [`net_4_resume_remote`](label:net_4_resume_remote).\n- `X=5`: matches `\"NET\"` at [`cmd_net_str`](label:cmd_net_str) \u2014 the ROM\n  title suffix \u2192 `*NET` (select NFS). Falls through to\n  [`svc_13_select_nfs`](label:svc_13_select_nfs).\n\nIf neither matches, returns with the service call unclaimed.",
+      "fall_through": true
+    },
+    {
+      "addr": 33201,
+      "name": "svc_4_star_command",
+      "title": "Service 4: unrecognised * command",
+      "description": "Matches the command text against ROM string table entries.\nBoth entries reuse bytes from the ROM header to save space:\n\n  X=8: matches \"ROFF\" at copyright_string+3 \u2014 the suffix\n       of \"(C)ROFF\" \u2192 *ROFF (Remote Off,\n       end remote session) \u2014 jumps to resume_after_remote\n\n  X=1: matches \"NET\" at &8009 \u2014 the ROM title string\n       \u2192 *NET (select NFS) \u2014 falls through to select_nfs\n\nIf neither matches, returns with the service call\nunclaimed.",
       "fall_through": true
     },
     {
@@ -594,6 +607,12 @@
       "name": "fscv_6_shutdown",
       "title": "FSCV 6: Filing system shutdown / save state (FSDIE)",
       "description": "Called when another filing system (e.g. DFS) is selected. Saves\nthe current NFS context (FSLOCN station number, URD/CSD/LIB\nhandles, OPT byte, etc.) from page &0E into the dynamic workspace\nbackup area. This allows the state to be restored when *NET is\nre-issued later, without losing the login session. Finally calls\nOSBYTE &77 (close SPOOL/EXEC files) to release the\nEconet network printer on FS switch."
+    },
+    {
+      "addr": 33630,
+      "name": "match_rom_string",
+      "title": "Match command text against ROM string table",
+      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces."
     },
     {
       "addr": 33667,
@@ -1147,10 +1166,24 @@
       "fall_through": true
     },
     {
+      "addr": 35867,
+      "name": "ex_handler",
+      "title": "*EX handler (extended catalogue)",
+      "description": "Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at\n[`init_cat_params`](label:init_cat_params), bypassing fscv_5_cat's default column setup. &B7=1\ngives one entry per line with full details (vs &B7=3 for *CAT\nwhich gives multiple files per line).",
+      "fall_through": true
+    },
+    {
       "addr": 35873,
       "name": "fscv_5_cat",
       "title": "*CAT handler (directory catalogue)",
-      "description": "Sets column width &B6=&14 (20 columns, four files per 80-column\nline) and &B7=&03. The catalogue protocol is multi-step: first\nsends FCUSER (&15: read user environment) to get CSD, disc, and\nlibrary names, then sends FCREAD (&12: examine) repeatedly to\nfetch entries in batches until zero are returned (end of dir).\nThe receive buffer abuts the examine request buffer and ends at\nRXBUFE, allowing seamless data handling across request cycles.\n\nThe command code byte in the fileserver reply indicates FS type:\nzero means an old-format FS (client must format data locally),\nnon-zero means new-format (server returns pre-formatted strings).\nThis enables backward compatibility with older Acorn fileservers.\n\nDisplay format:\n  - Station number in parentheses\n  - \"Owner\" or \"Public\" access level\n  - Boot option with name (Off/Load/Run/Exec)\n  - Current directory and library paths\n  - Directory entries: CRFLAG (&CF) cycles 0-3 for multi-column\n    layout; at count 0 a newline is printed, others get spaces.\n    *EX sets CRFLAG=&FF to force one entry per line."
+      "description": "Sets column width &B6=&14 (20 columns, four files per 80-column\nline) and &B7=&03. The catalogue protocol is multi-step: first\nsends FCUSER (&15: read user environment) to get CSD, disc, and\nlibrary names, then sends FCREAD (&12: examine) repeatedly to\nfetch entries in batches until zero are returned (end of dir).\nThe receive buffer abuts the examine request buffer and ends at\nRXBUFE, allowing seamless data handling across request cycles.\n\nThe command code byte in the fileserver reply indicates FS type:\nzero means an old-format FS (client must format data locally),\nnon-zero means new-format (server returns pre-formatted strings).\nThis enables backward compatibility with older Acorn fileservers.\n\nDisplay format:\n  - Station number in parentheses\n  - \"Owner\" or \"Public\" access level\n  - Boot option with name (Off/Load/Run/Exec)\n  - Current directory and library paths\n  - Directory entries: CRFLAG (&CF) cycles 0-3 for multi-column\n    layout; at count 0 a newline is printed, others get spaces.\n    *EX sets CRFLAG=&FF to force one entry per line.",
+      "fall_through": true
+    },
+    {
+      "addr": 36091,
+      "name": "print_reply_bytes",
+      "title": "Print reply buffer bytes",
+      "description": "Prints Y characters from the FS reply buffer (&0F05+X) to\nthe screen via OSASCI. X = starting offset, Y = count.\nUsed by fscv_5_cat to display directory and library names."
     },
     {
       "addr": 36111,
@@ -1306,7 +1339,13 @@
         "a": "handle*12 or 0 if invalid",
         "y": "workspace offset or 0 if invalid",
         "c": "clear if valid, set if invalid"
-      },
+      }
+    },
+    {
+      "addr": 36441,
+      "name": "net_1_read_handle",
+      "title": "*NET1: read file handle from received packet",
+      "description": "Reads a file handle byte from offset &6F in the RX buffer\n(net_rx_ptr), stores it in &F0, then returns.",
       "fall_through": true
     },
     {
@@ -1451,7 +1490,13 @@
       "addr": 37086,
       "name": "remote_cmd_dispatch",
       "title": "Fn 7: remote OSBYTE handler (NBYTE)",
-      "description": "Full RPC mechanism for OSBYTE calls across the network. When a\nmachine is remoted, OSBYTE/OSWORD calls that affect terminal-side\nhardware (keyboard scanning, flash rates, etc.) must be indirected\nacross the net. OSBYTE calls are classified into three categories:\n  Y>0 (NCTBPL table): executed on BOTH machines (flash rates etc.)\n  Y<0 (NCTBMI table): executed on terminal only, result sent back\n  Y=0: not recognised, passed through unhandled\nResults returned via stack manipulation: the saved processor status\nbyte at &0106 has V-flag (bit 6) forced on to tell the MOS the\ncall was claimed (preventing dispatch to other ROMs), and the I-bit\n(bit 2) forced on to disable interrupts during register restoration,\npreventing race conditions. The carry flag in the saved P is also\nmanipulated via ROR/ASL to zero it, signaling success to the caller.\nOSBYTE &81 (INKEY) gets special handling as it must read the\nterminal's keyboard.",
+      "description": "Full RPC mechanism for OSBYTE calls across the network. When a\nmachine is remoted, OSBYTE/OSWORD calls that affect terminal-side\nhardware (keyboard scanning, flash rates, etc.) must be indirected\nacross the net. OSBYTE calls are classified into three categories:\n  Y>0 (NCTBPL table): executed on BOTH machines (flash rates etc.)\n  Y<0 (NCTBMI table): executed on terminal only, result sent back\n  Y=0: not recognised, passed through unhandled\nResults returned via stack manipulation: the saved processor status\nbyte at &0106 has V-flag (bit 6) forced on to tell the MOS the\ncall was claimed (preventing dispatch to other ROMs), and the I-bit\n(bit 2) forced on to disable interrupts during register restoration,\npreventing race conditions. The carry flag in the saved P is also\nmanipulated via ROR/ASL to zero it, signaling success to the caller.\nOSBYTE &81 (INKEY) gets special handling as it must read the\nterminal's keyboard."
+    },
+    {
+      "addr": 37168,
+      "name": "match_osbyte_code",
+      "title": "Search remote OSBYTE table for match (NCALLP)",
+      "description": "Searches remote_osbyte_table for OSBYTE code A. X indexes the\nlast entry to check (table is scanned X..0). Returns Z=1 if\nfound. Called twice by remote_cmd_dispatch:\n\n  X=7  -> first 8 entries (NCTBPL: execute on both machines)\n  X=14 -> all 15 entries (NCTBMI: execute on terminal only)\n\nThe last 7 entries (&0B, &0C, &0F, &79, &7A, &E3, &E4) are terminal-only\nbecause they affect the local keyboard, buffers, or function keys.\n\nOn entry: A = OSBYTE code, X = table size - 1\nOn exit:  Z=1 if match found, Z=0 if not",
       "fall_through": true
     },
     {

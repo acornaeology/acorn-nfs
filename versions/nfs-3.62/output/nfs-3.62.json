@@ -498,7 +498,13 @@
       "addr": 33015,
       "name": "service_handler",
       "title": "Service-call handler",
-      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nBegins with 9 `NOP`s for bus settling, then on service 1\n(workspace claim) probes ADLC status registers `SR1` (`&FEA0`)\nand `SR2` (`&FEA1`) to detect whether Econet hardware is\npresent. Non-zero reads indicate bus noise from absent\nhardware; sets bit 7 of the per-ROM workspace as a disable\nflag. For services `<&80`, the flag causes an early return\n(disabling this ROM). Services `>=&80` (`&FE`, `&FF`) are\nalways handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`do_svc_dispatch`](label:do_svc_dispatch).",
+      "description": "Entry point for MOS service-call dispatch \u2014 the `JMP` target\nfrom [`service_entry`](label:service_entry).\n\nBegins with 9 `NOP`s for bus settling, then on service 1\n(workspace claim) probes ADLC status registers `SR1` (`&FEA0`)\nand `SR2` (`&FEA1`) to detect whether Econet hardware is\npresent. Non-zero reads indicate bus noise from absent\nhardware; sets bit 7 of the per-ROM workspace as a disable\nflag. For services `<&80`, the flag causes an early return\n(disabling this ROM). Services `>=&80` (`&FE`, `&FF`) are\nalways handled regardless.\n\nIntercepts three service calls before normal dispatch:\n\n| Svc           | Action |\n|---------------|--------|\n| `&FE`         | Tube init \u2014 explode character definitions |\n| `&FF`         | Full init \u2014 vector setup, copy code to RAM, select NFS |\n| `&12` (`Y=5`) | Select NFS as active filing system |\n\nAll other service calls `<&0D` dispatch via\n[`do_svc_dispatch`](label:do_svc_dispatch)."
+    },
+    {
+      "addr": 33092,
+      "name": "init_vectors_and_copy",
+      "title": "NFS initialisation (service &FF: full reset)",
+      "description": "Points EVNTV at &06AD and BRKV at &0016, writes &8E to the\nTube control register (&FEE0), copies three pages of Tube host\ncode from ROM to &0400-&06FF, calls\n[`tube_post_init`](label:tube_post_init) in the copied code, then\ncopies 97 bytes of NMI workspace initialiser from ROM to\n&0016-&0076. Falls through to the service &12 check with A=0.",
       "fall_through": true
     },
     {
@@ -619,7 +625,13 @@
       "addr": 33617,
       "name": "fscv_6_shutdown",
       "title": "FSCV 6: Filing system shutdown / save state (FSDIE)",
-      "description": "Called when another filing system (e.g. DFS) is selected. Saves\nthe current NFS context (FSLOCN station number, URD/CSD/LIB\nhandles, OPT byte, etc.) from page &0E into the dynamic workspace\nbackup area. This allows the state to be restored when *NET is\nre-issued later, without losing the login session. Finally calls\nOSBYTE &77 (close SPOOL/EXEC files) to release the\nEconet network printer on FS switch.",
+      "description": "Called when another filing system (e.g. DFS) is selected. Saves\nthe current NFS context (FSLOCN station number, URD/CSD/LIB\nhandles, OPT byte, etc.) from page &0E into the dynamic workspace\nbackup area. This allows the state to be restored when *NET is\nre-issued later, without losing the login session. Finally calls\nOSBYTE &77 (close SPOOL/EXEC files) to release the\nEconet network printer on FS switch."
+    },
+    {
+      "addr": 33634,
+      "name": "match_rom_string",
+      "title": "Match command text against ROM string table",
+      "description": "Compares characters from (os_text_ptr)+Y against bytes starting\nat binary_version+X (&8008+X). Input is uppercased via AND &DF.\nReturns with Z=1 if the ROM string's NUL terminator was reached\n(match), or Z=0 if a mismatch was found. On match, Y points\npast the matched text; on return, skips trailing spaces.",
       "fall_through": true
     },
     {
@@ -1277,10 +1289,24 @@
       "fall_through": true
     },
     {
+      "addr": 35937,
+      "name": "ex_handler",
+      "title": "*EX handler (extended catalogue)",
+      "description": "Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at\n[`init_cat_params`](label:init_cat_params), bypassing fscv_5_cat's default column setup. &B7=1\ngives one entry per line with full details (vs &B7=3 for *CAT\nwhich gives multiple files per line).",
+      "fall_through": true
+    },
+    {
       "addr": 35943,
       "name": "fscv_5_cat",
       "title": "*CAT handler (directory catalogue)",
-      "description": "Initialises &B5=&0B (examine arg count) and &B7=&03 (column\ncount). The catalogue protocol is multi-step: first sends\nFCREAD (&12: examine) to get the directory header, then sends\nFCUSER (&15: read user environment) to get CSD, disc, and\nlibrary names, then sends FC &03 (examine entries) repeatedly\nto fetch entries in batches until zero are returned (end of dir).\nThe receive buffer abuts the examine request buffer and ends at\nRXBUFE, allowing seamless data handling across request cycles.\n\nThe command code byte in the fileserver reply indicates FS type:\nzero means an old-format FS (client must format data locally),\nnon-zero means new-format (server returns pre-formatted strings).\nThis enables backward compatibility with older Acorn fileservers.\n\nDisplay format:\n  - Station number in parentheses\n  - \"Owner\" or \"Public\" access level\n  - Boot option with name (Off/Load/Run/Exec)\n  - Current directory and library paths\n  - Directory entries: CRFLAG (&B9) cycles 0-3 for multi-column\n    layout; at count 0 a newline is printed, others get spaces.\n    *EX sets CRFLAG=&FF to force one entry per line."
+      "description": "Initialises &B5=&0B (examine arg count) and &B7=&03 (column\ncount). The catalogue protocol is multi-step: first sends\nFCREAD (&12: examine) to get the directory header, then sends\nFCUSER (&15: read user environment) to get CSD, disc, and\nlibrary names, then sends FC &03 (examine entries) repeatedly\nto fetch entries in batches until zero are returned (end of dir).\nThe receive buffer abuts the examine request buffer and ends at\nRXBUFE, allowing seamless data handling across request cycles.\n\nThe command code byte in the fileserver reply indicates FS type:\nzero means an old-format FS (client must format data locally),\nnon-zero means new-format (server returns pre-formatted strings).\nThis enables backward compatibility with older Acorn fileservers.\n\nDisplay format:\n  - Station number in parentheses\n  - \"Owner\" or \"Public\" access level\n  - Boot option with name (Off/Load/Run/Exec)\n  - Current directory and library paths\n  - Directory entries: CRFLAG (&B9) cycles 0-3 for multi-column\n    layout; at count 0 a newline is printed, others get spaces.\n    *EX sets CRFLAG=&FF to force one entry per line.",
+      "fall_through": true
+    },
+    {
+      "addr": 36167,
+      "name": "print_reply_bytes",
+      "title": "Print reply buffer bytes",
+      "description": "Prints Y characters from the FS reply buffer (&0F05+X) to\nthe screen via OSASCI. X = starting offset, Y = count.\nUsed by fscv_5_cat to display directory and library names."
     },
     {
       "addr": 36187,
@@ -1439,7 +1465,13 @@
         "a": "handle*12 or 0 if invalid",
         "y": "workspace offset or 0 if invalid",
         "c": "clear if valid, set if invalid"
-      },
+      }
+    },
+    {
+      "addr": 36455,
+      "name": "net_1_read_handle",
+      "title": "*NET1: read file handle from received packet",
+      "description": "Reads a file handle byte from offset &6F in the RX buffer\n(net_rx_ptr), stores it in &F0, then returns.",
       "fall_through": true
     },
     {

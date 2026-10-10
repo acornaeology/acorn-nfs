@@ -1550,6 +1550,23 @@ d.label(0x816C, "return_2")
 
 d.comment(0x816C, "Return (not our command)", align=Align.INLINE)
 d.label(0x8179, "svc_4_star_command")
+d.subroutine(
+    0x8179,
+    "svc_4_star_command",
+    title="Service 4: unrecognised * command",
+    description="""Matches the command text against ROM string table entries.
+Both entries reuse bytes from the ROM header to save space:
+
+  X=8: matches "ROFF" at copyright_string+3 — the suffix
+       of "(C)ROFF" → *ROFF (Remote Off,
+       end remote session) — jumps to resume_after_remote
+
+  X=1: matches "NET" at &8009 — the ROM title string
+       → *NET (select NFS) — falls through to select_nfs
+
+If neither matches, returns with the service call
+unclaimed.""",
+)
 
 d.expr(0x817A, sym("cmd_roff_str") - sym("binary_version"))
 d.comment(0x817B, "Try matching *ROFF command", align=Align.INLINE)

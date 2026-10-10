@@ -2035,6 +2035,22 @@ imm_op_handler_lo_table = tube_overflow_restore_acccon+2
     equb <(rx_imm_halt_cont - 1)                                      ; 851a: e0          .        ; ctrl &86: HALT
     equb <(rx_imm_halt_cont - 1)                                      ; 851b: e0          .        ; ctrl &87: CONTINUE
     equb <(rx_imm_machine_type - 1)                                   ; 851c: f1          .        ; ctrl &88: machine-type
+; ***************************************************************************************
+; Build immediate-operation reply header
+;
+; Writes the reply-frame header for a port-0 immediate operation into the RX buffer at
+; offsets &7F..&81:
+;
+; | RX offset | Source             | Meaning                                       |
+; |-----------|--------------------|-----------------------------------------------|
+; | &7F       | port_buf_len + &80 | reply data length (raw count + header offset) |
+; | &80       | scout_buf          | requesting station                            |
+; | &81       | scout_src_net      | requesting network                            |
+;
+; Then loads the control byte from scout_ctrl into A and falls through into setup_sr_tx,
+; which records A as tx_op_type and (for execute-class ops) arms the deferred dispatch by
+; setting the Master 128 ACCCON IRR latch so the operation completes from normal IRQ
+; context. Reached via the immediate-op dispatch path.
 ; &851d referenced 1 time by &83a4
 .imm_op_build_reply
     lda port_buf_len                                                  ; 851d: a5 a2       ..       ; Get buffer position for reply header

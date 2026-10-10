@@ -19697,6 +19697,27 @@ d.label(0xB4AF, "ps_print_info_newline")
 d.label(0xBFE6, "skip_fn_space_cont")
 d.label(0x86DB, "set_line_jammed")
 d.label(0x851D, "imm_op_build_reply")
+d.subroutine(
+    0x851D,
+    "imm_op_build_reply",
+    title="Build immediate-operation reply header",
+    description="""Writes the reply-frame header for a port-0 immediate operation
+into the RX buffer at offsets `&7F..&81`:
+
+| RX offset | Source | Meaning |
+|---|---|---|
+| `&7F` | `port_buf_len + &80` | reply data length (raw count + header offset) |
+| `&80` | [`scout_buf`](label:scout_buf) | requesting station |
+| `&81` | [`scout_src_net`](label:scout_src_net) | requesting network |
+
+Then loads the control byte from
+[`scout_ctrl`](label:scout_ctrl) into `A` and falls through into
+[`setup_sr_tx`](label:setup_sr_tx), which records `A` as
+[`tx_op_type`](label:tx_op_type) and (for execute-class ops) arms the
+deferred dispatch by setting the Master 128 ACCCON IRR latch so the
+operation completes from normal IRQ context. Reached via the
+immediate-op dispatch path.""",
+)
 d.label(0x9FAB, "argsv_clamp_zero")
 d.label(0x9FAF, "argsv_send_request")
 d.label(0x9FB6, "argsv_store_result")

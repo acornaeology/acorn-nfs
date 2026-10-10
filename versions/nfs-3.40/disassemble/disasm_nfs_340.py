@@ -1655,6 +1655,17 @@ d.comment(0x8138, "Zero byte: Tube transfer complete", align=Align.INLINE)
 d.comment(0x813A, "Send Tube char to screen via OSWRCH", align=Align.INLINE)
 d.comment(0x813D, "Loop for next Tube byte", align=Align.INLINE)
 d.label(0x8140, "init_vectors_and_copy")
+d.subroutine(
+    0x8140,
+    "init_vectors_and_copy",
+    title="NFS initialisation (service &FF: full reset)",
+    description="""Points EVNTV at &06AD and BRKV at &0016, writes &8E to the
+Tube control register (&FEE0), copies three pages of Tube host
+code from ROM to &0400-&06FF, calls
+[`tube_post_init`](label:tube_post_init) in the copied code, then
+copies 97 bytes of NMI workspace initialiser from ROM to
+&0016-&0076. Falls through to the service &12 check with A=0.""",
+)
 
 
 d.comment(0x8140, "EVNTV low = &AD (event handler address)", align=Align.INLINE)
@@ -1762,6 +1773,23 @@ d.comment(0x81AE, "NOP padding", align=Align.INLINE)
 d.comment(0x81AF, "NOP padding", align=Align.INLINE)
 d.comment(0x81B0, "NOP padding", align=Align.INLINE)
 d.label(0x81B1, "svc_4_star_command")
+d.subroutine(
+    0x81B1,
+    "svc_4_star_command",
+    title="Service 4: unrecognised * command",
+    description="""Matches the command text against ROM string table entries.
+Both entries reuse bytes from the ROM header to save space:
+
+  X=8: matches "ROFF" at copyright_string+3 — the suffix
+       of "(C)ROFF" → *ROFF (Remote Off,
+       end remote session) — jumps to resume_after_remote
+
+  X=1: matches "NET" at &8009 — the ROM title string
+       → *NET (select NFS) — falls through to select_nfs
+
+If neither matches, returns with the service call
+unclaimed.""",
+)
 
 d.expr(0x81B2, sym("cmd_roff_str") - sym("binary_version"))
 d.comment(0x81B3, "Try matching *ROFF command", align=Align.INLINE)
@@ -2183,6 +2211,16 @@ d.comment(0x8359, "A=&77: OSBYTE close spool/exec", align=Align.INLINE)
 
 
 d.label(0x835E, "match_rom_string")
+d.subroutine(
+    0x835E,
+    "match_rom_string",
+    title="Match command text against ROM string table",
+    description="""Compares characters from (os_text_ptr)+Y against bytes starting
+at binary_version+X (&8008+X). Input is uppercased via AND &DF.
+Returns with Z=1 if the ROM string's NUL terminator was reached
+(match), or Z=0 if a mismatch was found. On match, Y points
+past the matched text; on return, skips trailing spaces.""",
+)
 d.comment(0x835E, "Y = saved text pointer offset", align=Align.INLINE)
 d.comment(0x8360, "Load next input character", align=Align.INLINE)
 d.label(0x8360, "match_cmd_chars")
@@ -4491,6 +4529,15 @@ d.label(0x8C06, "fs_cmd_dispatch_hi")
 d.entry(0x8C1B)
 
 d.label(0x8C1B, "ex_handler")
+d.subroutine(
+    0x8C1B,
+    "ex_handler",
+    title="*EX handler (extended catalogue)",
+    description="""Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at
+[`init_cat_params`](label:init_cat_params), bypassing fscv_5_cat's default column setup. &B7=1
+gives one entry per line with full details (vs &B7=3 for *CAT
+which gives multiple files per line).""",
+)
 
 
 d.comment(0x8C1B, "X=1: *EX single-entry examine", align=Align.INLINE)
@@ -4609,6 +4656,14 @@ d.comment(0x8CF6, "Advance start offset by entry count", align=Align.INLINE)
 d.comment(0x8CF8, "Y = new entry start offset", align=Align.INLINE)
 d.comment(0x8CF9, "More entries: fetch next batch", align=Align.INLINE)
 d.label(0x8CFB, "print_reply_bytes")
+d.subroutine(
+    0x8CFB,
+    "print_reply_bytes",
+    title="Print reply buffer bytes",
+    description="""Prints Y characters from the FS reply buffer (&0F05+X) to
+the screen via OSASCI. X = starting offset, Y = count.
+Used by fscv_5_cat to display directory and library names.""",
+)
 
 d.comment(0x8CFB, "Y=&0A: default print 10 characters", align=Align.INLINE)
 d.label(0x8CFD, "print_reply_counted")
@@ -5055,6 +5110,13 @@ d.entry(0x8E59)
 d.entry(0x8E59)
 
 d.label(0x8E59, "net_1_read_handle")
+d.subroutine(
+    0x8E59,
+    "net_1_read_handle",
+    title="*NET1: read file handle from received packet",
+    description="""Reads a file handle byte from offset &6F in the RX buffer
+(net_rx_ptr), stores it in &F0, then returns.""",
+)
 d.comment(
     0x8E59,
     """*NET1: read file handle from received packet.
@@ -5799,6 +5861,23 @@ d.label(0x912F, "return_nbyte")
 
 d.comment(0x912F, "Return to OSBYTE dispatcher", align=Align.INLINE)
 d.label(0x9130, "match_osbyte_code")
+d.subroutine(
+    0x9130,
+    "match_osbyte_code",
+    title="Search remote OSBYTE table for match (NCALLP)",
+    description="""Searches remote_osbyte_table for OSBYTE code A. X indexes the
+last entry to check (table is scanned X..0). Returns Z=1 if
+found. Called twice by remote_cmd_dispatch:
+
+  X=7  -> first 8 entries (NCTBPL: execute on both machines)
+  X=14 -> all 15 entries (NCTBMI: execute on terminal only)
+
+The last 7 entries (&0B, &0C, &0F, &79, &7A, &E3, &E4) are terminal-only
+because they affect the local keyboard, buffers, or function keys.
+
+On entry: A = OSBYTE code, X = table size - 1
+On exit:  Z=1 if match found, Z=0 if not""",
+)
 
 d.comment(0x9130, "Compare OSBYTE code with table entry", align=Align.INLINE)
 d.comment(0x9133, "Match found: return with Z=1", align=Align.INLINE)

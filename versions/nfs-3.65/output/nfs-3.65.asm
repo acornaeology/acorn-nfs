@@ -1768,6 +1768,13 @@ cmd_roff_str = copyright_string+3
     beq tube_chars_done                                               ; 812f: f0 43       .C       ; Zero byte: Tube transfer complete
     jsr oswrch                                                        ; 8131: 20 ee ff     ..      ; Send Tube char to screen via OSWRCH
     jmp poll_tube_ready                                               ; 8134: 4c 27 81    L'.      ; Loop for next Tube byte
+; ***************************************************************************************
+; NFS initialisation (service &FF: full reset)
+;
+; Points EVNTV at &06AD and BRKV at &0016, writes &8E to the Tube control register
+; (&FEE0), copies three pages of Tube host code from ROM to &0400-&06FF, calls
+; tube_post_init in the copied code, then copies 97 bytes of NMI workspace initialiser
+; from ROM to &0016-&0076. Falls through to the service &12 check with A=0.
 ; &8137 referenced 1 time by &811a
 .init_vectors_and_copy
     lda #&ad                                                          ; 8137: a9 ad       ..       ; EVNTV low = &AD (event handler address)
@@ -2231,6 +2238,13 @@ cmd_roff_str = copyright_string+3
     bne fsdiel                                                        ; 8349: d0 f6       ..       ; Loop for offsets &1D..&15
     lda #osbyte_close_spool_exec                                      ; 834b: a9 77       .w       ; A=&77: OSBYTE close spool/exec
     jmp osbyte                                                        ; 834d: 4c f4 ff    L..      ; Close any SPOOLed or EXECed files
+; ***************************************************************************************
+; Match command text against ROM string table
+;
+; Compares characters from (os_text_ptr)+Y against bytes starting at binary_version+X
+; (&8008+X). Input is uppercased via AND &DF. Returns with Z=1 if the ROM string's NUL
+; terminator was reached (match), or Z=0 if a mismatch was found. On match, Y points past
+; the matched text; on return, skips trailing spaces.
 ; &8350 referenced 2 times by &81a5, &81da
 .match_rom_string
     ldy ws_page                                                       ; 8350: a4 a8       ..       ; Y = saved text pointer offset
@@ -4622,6 +4636,12 @@ cmd_match_data = fs_cmd_match_table+1
     equb &ad                                                          ; 8c4c: ad          .        ; BYE handler lo
     equb &80                                                          ; 8c4d: 80          .        ; Catch-all hi → &80BD (forward_star_cmd)
     equb &bc                                                          ; 8c4e: bc          .        ; Catch-all lo
+; ***************************************************************************************
+; *EX handler (extended catalogue)
+;
+; Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at init_cat_params, bypassing
+; fscv_5_cat's default column setup. &B7=1 gives one entry per line with full details (vs
+; &B7=3 for *CAT which gives multiple files per line).
 .ex_handler
     ldx #1                                                            ; 8c4f: a2 01       ..       ; X=1: force one entry per line for *EX
     lda #3                                                            ; 8c51: a9 03       ..       ; A=3: examine format code
@@ -4750,6 +4770,11 @@ cmd_match_data = fs_cmd_match_table+1
     adc fs_work_4                                                     ; 8d30: 65 b4       e.       ; Advance start offset by entry count
     tay                                                               ; 8d32: a8          .        ; Y = new entry start offset
     bne fetch_dir_batch                                               ; 8d33: d0 ca       ..       ; More entries: fetch next batch
+; ***************************************************************************************
+; Print reply buffer bytes
+;
+; Prints Y characters from the FS reply buffer (&0F05+X) to the screen via OSASCI. X =
+; starting offset, Y = count. Used by fscv_5_cat to display directory and library names.
 ; &8d35 referenced 3 times by &8c78, &8ce7, &8cf9
 .print_reply_bytes
     ldy #&0a                                                          ; 8d35: a0 0a       ..       ; Y=&0A: default print 10 characters
@@ -4974,6 +4999,19 @@ cmd_match_data = fs_cmd_match_table+1
     jsr print_hex_nibble                                              ; 8dcf: 20 d5 8d     ..      ; Print high nibble as hex digit
     pla                                                               ; 8dd2: 68          h        ; Recover original byte
     and #&0f                                                          ; 8dd3: 29 0f       ).       ; Mask to low nibble
+; ***************************************************************************************
+; Print single hex nibble
+;
+; Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F') and prints via OSASCI.
+; Returns with carry set.
+;
+; On Entry:
+;     A: low nibble (bits 0-3) to print
+;
+; On Exit:
+;     A: ASCII character printed
+;     X: corrupted (by OSASCI)
+;     C: set
 ; &8dd5 referenced 1 time by &8dcf
 .print_hex_nibble
     ora #'0'                                                          ; 8dd5: 09 30       .0       ; Convert nibble to ASCII: &00-&09 -> '0'-'9'
@@ -5147,6 +5185,11 @@ cmd_match_data = fs_cmd_match_table+1
 .return_6
 .return_calc_handle
     rts                                                               ; 8e69: 60          `        ; Return after calculation
+; ***************************************************************************************
+; *NET1: read file handle from received packet
+;
+; Reads a file handle byte from offset &6F in the RX buffer (net_rx_ptr), stores it in
+; &F0, then returns.
 ; *NET1: read file handle from received packet. Reads a byte from offset &6F of the RX buffer (net_rx_ptr) and falls through to net_2_read_handle_entry's common path.
 .net_1_read_handle
     ldy #&6f                                                          ; 8e6a: a0 6f       .o       ; Y=&6F: RX buffer handle offset

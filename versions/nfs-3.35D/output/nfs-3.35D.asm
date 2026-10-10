@@ -1751,6 +1751,19 @@ cmd_roff_str = copyright_string+3
 ; Unreferenced data block; no reader located and absent from DNFS 3.60+. Purpose undetermined.
 .unused_data_8177
     equb &1c, &05, &0e, &e7, &04, &10, &16, &00, &02, &e5, &06, &20   ; 8177: 1c 05 0e... ......
+; ***************************************************************************************
+; Service 4: unrecognised * command
+;
+; Matches the command text against ROM string table entries. Both entries reuse bytes
+; from the ROM header to save space:
+;
+; X=8: matches "ROFF" at copyright_string+3 — the suffix of "(C)ROFF" → *ROFF (Remote
+; Off, end remote session) — jumps to resume_after_remote
+;
+; X=1: matches "NET" at &8009 — the ROM title string → *NET (select NFS) — falls through
+; to select_nfs
+;
+; If neither matches, returns with the service call unclaimed.
 .svc_4_star_command
     ldx #cmd_roff_str - binary_version                                ; 8183: a2 08       ..    
     jsr match_rom_string                                              ; 8185: 20 d6 81     ..      ; Try matching *ROFF command

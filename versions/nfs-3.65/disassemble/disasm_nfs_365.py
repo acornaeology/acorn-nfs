@@ -1703,6 +1703,17 @@ d.comment(0x8131, "Send Tube char to screen via OSWRCH", align=Align.INLINE)
 d.comment(0x8134, "Loop for next Tube byte", align=Align.INLINE)
 d.comment(0x8137, "EVNTV low = &AD (event handler address)", align=Align.INLINE)
 d.label(0x8137, "init_vectors_and_copy")
+d.subroutine(
+    0x8137,
+    "init_vectors_and_copy",
+    title="NFS initialisation (service &FF: full reset)",
+    description="""Points EVNTV at &06AD and BRKV at &0016, writes &8E to the
+Tube control register (&FEE0), copies three pages of Tube host
+code from ROM to &0400-&06FF, calls
+[`tube_post_init`](label:tube_post_init) in the copied code, then
+copies 97 bytes of NMI workspace initialiser from ROM to
+&0016-&0076. Falls through to the service &12 check with A=0.""",
+)
 
 
 d.comment(0x8139, "Set [`EVNTV`](address:0220) low byte", align=Align.INLINE)
@@ -2219,6 +2230,16 @@ d.comment(0x8347, "Offsets &15-&1D: server, handles, OPT, etc.", align=Align.INL
 d.comment(0x8349, "Loop for offsets &1D..&15", align=Align.INLINE)
 d.comment(0x834B, "A=&77: OSBYTE close spool/exec", align=Align.INLINE)
 d.label(0x8350, "match_rom_string")
+d.subroutine(
+    0x8350,
+    "match_rom_string",
+    title="Match command text against ROM string table",
+    description="""Compares characters from (os_text_ptr)+Y against bytes starting
+at binary_version+X (&8008+X). Input is uppercased via AND &DF.
+Returns with Z=1 if the ROM string's NUL terminator was reached
+(match), or Z=0 if a mismatch was found. On match, Y points
+past the matched text; on return, skips trailing spaces.""",
+)
 d.comment(0x8350, "Y = saved text pointer offset", align=Align.INLINE)
 d.label(0x8352, "match_cmd_chars")
 
@@ -4697,6 +4718,15 @@ d.comment(0x8C4F, "X=1: force one entry per line for *EX", align=Align.INLINE)
 d.entry(0x8C4F)
 
 d.label(0x8C4F, "ex_handler")
+d.subroutine(
+    0x8C4F,
+    "ex_handler",
+    title="*EX handler (extended catalogue)",
+    description="""Sets &B7=&01 and &B5=&03, then branches into fscv_5_cat at
+[`init_cat_params`](label:init_cat_params), bypassing fscv_5_cat's default column setup. &B7=1
+gives one entry per line with full details (vs &B7=3 for *CAT
+which gives multiple files per line).""",
+)
 
 
 d.comment(0x8C51, "A=3: examine format code", align=Align.INLINE)
@@ -4820,6 +4850,14 @@ d.comment(0x8D30, "Advance start offset by entry count", align=Align.INLINE)
 d.comment(0x8D32, "Y = new entry start offset", align=Align.INLINE)
 d.comment(0x8D33, "More entries: fetch next batch", align=Align.INLINE)
 d.label(0x8D35, "print_reply_bytes")
+d.subroutine(
+    0x8D35,
+    "print_reply_bytes",
+    title="Print reply buffer bytes",
+    description="""Prints Y characters from the FS reply buffer (&0F05+X) to
+the screen via OSASCI. X = starting offset, Y = count.
+Used by fscv_5_cat to display directory and library names.""",
+)
 
 d.comment(0x8D35, "Y=&0A: default print 10 characters", align=Align.INLINE)
 d.label(0x8D37, "print_reply_counted")
@@ -5077,6 +5115,15 @@ d.comment(0x8DCF, "Print high nibble as hex digit", align=Align.INLINE)
 d.comment(0x8DD2, "Recover original byte", align=Align.INLINE)
 d.comment(0x8DD3, "Mask to low nibble", align=Align.INLINE)
 d.label(0x8DD5, "print_hex_nibble")
+d.subroutine(
+    0x8DD5,
+    "print_hex_nibble",
+    title="Print single hex nibble",
+    description="""Converts the low nibble of A to ASCII hex ('0'-'9' or 'A'-'F')
+and prints via OSASCI. Returns with carry set.""",
+    on_entry={"a": "low nibble (bits 0-3) to print"},
+    on_exit={"a": "ASCII character printed", "x": "corrupted (by OSASCI)", "c": "set"},
+)
 
 d.comment(0x8DD5, "Convert nibble to ASCII: &00-&09 -> '0'-'9'", align=Align.INLINE)
 d.comment(0x8DD7, "Digit or letter? &3A = ':'", align=Align.INLINE)
@@ -5283,6 +5330,13 @@ d.entry(0x8E6A)
 d.entry(0x8E6A)
 
 d.label(0x8E6A, "net_1_read_handle")
+d.subroutine(
+    0x8E6A,
+    "net_1_read_handle",
+    title="*NET1: read file handle from received packet",
+    description="""Reads a file handle byte from offset &6F in the RX buffer
+(net_rx_ptr), stores it in &F0, then returns.""",
+)
 d.comment(
     0x8E6A,
     """*NET1: read file handle from received packet.

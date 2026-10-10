@@ -402,7 +402,13 @@
       "addr": 33138,
       "name": "svc_dispatch_epilogue",
       "title": "Service dispatch epilogue",
-      "description": "Common return path for all dispatched service handlers.\nRestores rom_svc_num from the stack (pushed by dispatch_service),\ntransfers X (ROM number) to A, then returns via RTS.",
+      "description": "Common return path for all dispatched service handlers.\nRestores rom_svc_num from the stack (pushed by dispatch_service),\ntransfers X (ROM number) to A, then returns via RTS."
+    },
+    {
+      "addr": 33155,
+      "name": "svc_4_star_command",
+      "title": "Service 4: unrecognised * command",
+      "description": "Matches the command text against ROM string table entries.\nBoth entries reuse bytes from the ROM header to save space:\n\n  X=8: matches \"ROFF\" at copyright_string+3 \u2014 the suffix\n       of \"(C)ROFF\" \u2192 *ROFF (Remote Off,\n       end remote session) \u2014 jumps to resume_after_remote\n\n  X=1: matches \"NET\" at &8009 \u2014 the ROM title string\n       \u2192 *NET (select NFS) \u2014 falls through to select_nfs\n\nIf neither matches, returns with the service call\nunclaimed.",
       "fall_through": true
     },
     {
