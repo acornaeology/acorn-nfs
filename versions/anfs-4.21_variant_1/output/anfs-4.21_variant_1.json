@@ -1491,7 +1491,7 @@
       "addr": 36664,
       "name": "nfs_init_body",
       "title": "ANFS initialisation body",
-      "description": "Reached only via PHA/PHA/RTS dispatch (table index 22 in the\nsvc_dispatch table at `&89ED` / `&8A20`). Carries out the bring-up\nsequence after page allocation:\n\n- Clears `ws_page` / `tx_complete_flag` and the receive-block\n  remote-op flag.\n- On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4\n  set, calls [`setup_ws_ptr`](label:setup_ws_ptr) and zeroes the FS\n  workspace page in a 256-byte loop.\n- Calls [`copy_ps_data_y1c`](label:copy_ps_data_y1c) to install the printer-\n  server template.\n- Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into\n  the workspace identity block at `nfs_workspace+{0..3}`.\n- Reads CMOS byte `&11` (Econet station): if zero, prints\n  `Station number in CMOS RAM invalid. Using 1 instead!` and\n  defaults to station 1.\n- Stores station ID into the receive block.\n- Calls `cmd_net_fs` to select ANFS as the active filing system,\n  then [`init_adlc_and_vectors`](label:init_adlc_and_vectors) to install NETV /\n  FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`\n  for protection setup.\n\nReturns via `RTS` at `&903B`.\n\nReached via Master 128 service call `&27` (= 39 decimal),\ndocumented in the *Advanced Reference Manual for the BBC Master*:\n\n> Reset has occurred. Call made after hard reset. Mainly for\n> Econet Filing system so that it can claim NMIs. This call is\n> now required since the MOS no longer offers workspace on a\n> soft BREAK. A Sideways ROM should therefore re-initialise\n> itself.\n\nThe full set of Master 128 service calls ANFS handles, dispatched\nvia the CMP/SBC normalisation chain in\n[`service_handler`](label:service_handler):\n\n| dec   | hex        | handler                   | purpose                |\n| ----- | ---------- | ------------------------- | ---------------------- |\n| 0..12 | `&00..&0C` | (svc-1..12 handlers)      | service-1 .. service-12 |\n| 18    | `&12`      | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select              |\n| 24    | `&18`      | [`match_on_suffix`](label:match_on_suffix)         | Interactive HELP       |\n| 33    | `&21`      | [`svc_21_claim_abs_ws`](label:svc_21_claim_abs_ws)           | claim absolute ws (Hazel)        |\n| 34    | `&22`      | [`svc_22_claim_private_ws`](label:svc_22_claim_private_ws)         | claim private ws (Hazel)       |\n| 35    | `&23`      | [`svc_23_record_abs_top`](label:svc_23_record_abs_top)     | record top of absolute ws       |\n| 36    | `&24`      | [`svc_24_claim_private_page`](label:svc_24_claim_private_page)            | reserve 1 private ws page |\n| 37    | `&25`      | [`svc_25_return_fs_info`](label:svc_25_return_fs_info)     | FS name + info reply   |\n| 38    | `&26`      | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | close all files        |\n| 39    | `&27`      | [`nfs_init_body`](label:nfs_init_body) (this)    | reset re-init          |\n| 40    | `&28`      | [`print_fs_ps_help`](label:print_fs_ps_help)        | *CONFIGURE option      |\n| 41    | `&29`      | [`svc_29_status`](label:svc_29_status)           | *STATUS option         |\n\nEverything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)\nfalls through to\n[`dispatch_svc_state_check`](label:dispatch_svc_state_check) with `A := 0` and\ndispatches to idx 1 = `dispatch_rts` (no-op) \u2013 deliberately\nignoring svc `&15` (100 Hz poll), svc `&2A` (language ROM\nstartup), etc."
+      "description": "Reached only via PHA/PHA/RTS dispatch (table index 22 in the\nsvc_dispatch table at `&89ED` / `&8A20`). Carries out the bring-up\nsequence after page allocation:\n\n- Clears `ws_page` / `tx_complete_flag` and the receive-block\n  remote-op flag.\n- On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4\n  set, calls [`setup_ws_ptr`](label:setup_ws_ptr) and zeroes the FS\n  workspace page in a 256-byte loop.\n- Calls [`copy_ps_data_y18`](label:copy_ps_data_y18) to install the printer-\n  server template.\n- Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into\n  the workspace identity block at `nfs_workspace+{0..3}`.\n- Reads CMOS byte `&11` (Econet station): if zero, prints\n  `Station number in CMOS RAM invalid. Using 1 instead!` and\n  defaults to station 1.\n- Stores station ID into the receive block.\n- Calls `cmd_net_fs` to select ANFS as the active filing system,\n  then [`init_adlc_and_vectors`](label:init_adlc_and_vectors) to install NETV /\n  FSCV / etc., `handle_spool_ctrl_byte` and `init_bridge_poll`\n  for protection setup.\n\nReturns via `RTS` at `&903B`.\n\nReached via Master 128 service call `&27` (= 39 decimal),\ndocumented in the *Advanced Reference Manual for the BBC Master*:\n\n> Reset has occurred. Call made after hard reset. Mainly for\n> Econet Filing system so that it can claim NMIs. This call is\n> now required since the MOS no longer offers workspace on a\n> soft BREAK. A Sideways ROM should therefore re-initialise\n> itself.\n\nThe full set of Master 128 service calls ANFS handles, dispatched\nvia the CMP/SBC normalisation chain in\n[`service_handler`](label:service_handler):\n\n| dec   | hex        | handler                   | purpose                |\n| ----- | ---------- | ------------------------- | ---------------------- |\n| 0..12 | `&00..&0C` | (svc-1..12 handlers)      | service-1 .. service-12 |\n| 18    | `&12`      | [`svc_18_fs_select`](label:svc_18_fs_select)        | FS select              |\n| 24    | `&18`      | [`match_on_suffix`](label:match_on_suffix)         | Interactive HELP       |\n| 33    | `&21`      | [`svc_21_claim_abs_ws`](label:svc_21_claim_abs_ws)           | claim absolute ws (Hazel)        |\n| 34    | `&22`      | [`svc_22_claim_private_ws`](label:svc_22_claim_private_ws)         | claim private ws (Hazel)       |\n| 35    | `&23`      | [`svc_23_record_abs_top`](label:svc_23_record_abs_top)     | record top of absolute ws       |\n| 36    | `&24`      | [`svc_24_claim_private_page`](label:svc_24_claim_private_page)            | reserve 1 private ws page |\n| 37    | `&25`      | [`svc_25_return_fs_info`](label:svc_25_return_fs_info)     | FS name + info reply   |\n| 38    | `&26`      | [`svc_26_close_all_files`](label:svc_26_close_all_files)  | close all files        |\n| 39    | `&27`      | [`nfs_init_body`](label:nfs_init_body) (this)    | reset re-init          |\n| 40    | `&28`      | [`print_fs_ps_help`](label:print_fs_ps_help)        | *CONFIGURE option      |\n| 41    | `&29`      | [`svc_29_status`](label:svc_29_status)           | *STATUS option         |\n\nEverything else (svc `&0D..&11`, `&13..&17`, `&19..&20`, `&2A+`)\nfalls through to\n[`dispatch_svc_state_check`](label:dispatch_svc_state_check) with `A := 0` and\ndispatches to idx 1 = `dispatch_rts` (no-op) \u2013 deliberately\nignoring svc `&15` (100 Hz poll), svc `&2A` (language ROM\nstartup), etc."
     },
     {
       "addr": 36924,
@@ -3896,7 +3896,7 @@
     },
     {
       "addr": 46037,
-      "name": "copy_ps_data_y1c",
+      "name": "copy_ps_data_y18",
       "title": "Copy printer server template at offset &18",
       "description": "Sets Y=&18 and falls through to copy_ps_data.\nCalled during workspace initialisation\n(svc_2_private_workspace) to set up the printer\nserver template at the standard offset.",
       "on_exit": {
@@ -37136,12 +37136,12 @@
         213,
         179
       ],
-      "comment_inline": "Copy initial PS template (1C bytes) into ws",
+      "comment_inline": "Copy the 8-byte PS template to RX buffer offset &18",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "copy_ps_data_y1c",
+      "operand": "copy_ps_data_y18",
       "target": 46037,
-      "target_label": "copy_ps_data_y1c"
+      "target_label": "copy_ps_data_y18"
     },
     {
       "addr": 36702,
@@ -73985,7 +73985,7 @@
         16,
         248
       ],
-      "comment_inline": "Loop through 10 separators",
+      "comment_inline": "Loop over the 9 separators and the PLA opcode",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "loop_check_sep_table",
@@ -103221,7 +103221,7 @@
         24
       ],
       "labels": [
-        "copy_ps_data_y1c"
+        "copy_ps_data_y18"
       ],
       "comment_inline": "Y=&18: standard offset for the PS template; fall into copy_ps_data",
       "xref_summaries": [

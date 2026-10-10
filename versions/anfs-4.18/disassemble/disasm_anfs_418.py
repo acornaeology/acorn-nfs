@@ -13428,11 +13428,11 @@ d.comment(0xB00F, "Restore Y", align=Align.INLINE)
 d.comment(0xB010, "Back to Y register", align=Align.INLINE)
 d.comment(0xB011, "Parse FS/PS arguments", align=Align.INLINE)
 d.comment(0xB014, "Jump to store station address", align=Align.INLINE)
-d.label(0xB017, "copy_ps_data_y1c")
+d.label(0xB017, "copy_ps_data_y18")
 
 d.subroutine(
     0xB017,
-    "copy_ps_data_y1c",
+    "copy_ps_data_y18",
     title="Copy printer server template at offset &18",
     description="""Sets Y=&18 and falls through to copy_ps_data.
 Called during workspace initialisation

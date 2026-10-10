@@ -2635,7 +2635,7 @@
     },
     {
       "addr": 45079,
-      "name": "copy_ps_data_y1c",
+      "name": "copy_ps_data_y18",
       "title": "Copy printer server template at offset &18",
       "description": "Sets Y=&18 and falls through to copy_ps_data.\nCalled during workspace initialisation\n(svc_2_private_workspace) to set up the printer\nserver template at the standard offset.",
       "fall_through": true
@@ -32117,9 +32117,9 @@
       "comment_inline": "Initialise station identity block",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "copy_ps_data_y1c",
+      "operand": "copy_ps_data_y18",
       "target": 45079,
-      "target_label": "copy_ps_data_y1c"
+      "target_label": "copy_ps_data_y18"
     },
     {
       "addr": 36604,
@@ -93090,7 +93090,7 @@
         24
       ],
       "labels": [
-        "copy_ps_data_y1c"
+        "copy_ps_data_y18"
       ],
       "comment_inline": "Start at offset &1C",
       "xref_summaries": [

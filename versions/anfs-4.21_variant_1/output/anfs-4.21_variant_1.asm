@@ -5119,7 +5119,7 @@ ps_template_base = load_transfer_params+1
 ; - Clears ws_page / tx_complete_flag and the receive-block remote-op flag.
 ; - On warm reset (last_break_type non-zero) and fs_flags bit 4 set, calls setup_ws_ptr
 ;   and zeroes the FS workspace page in a 256-byte loop.
-; - Calls copy_ps_data_y1c to install the printer- server template.
+; - Calls copy_ps_data_y18 to install the printer- server template.
 ; - Reads CMOS bytes &01..&04 via osbyte_a1, storing each into the workspace identity
 ;   block at nfs_workspace+{0..3}.
 ; - Reads CMOS byte &11 (Econet station): if zero, prints Station number in CMOS RAM
@@ -5180,7 +5180,7 @@ ps_template_base = load_transfer_params+1
     sta (fs_ws_ptr),y                                                 ; 8f56: 91 cc       ..       ; Clear byte in FS workspace
     iny                                                               ; 8f58: c8          .        ; Next workspace byte
     bne loop_zero_workspace                                           ; 8f59: d0 fb       ..       ; Loop until full page (256 bytes) cleared
-    jsr copy_ps_data_y1c                                              ; 8f5b: 20 d5 b3     ..      ; Copy initial PS template (1C bytes) into ws
+    jsr copy_ps_data_y18                                              ; 8f5b: 20 d5 b3     ..      ; Copy the 8-byte PS template to RX buffer offset &18
     ldx #1                                                            ; 8f5e: a2 01       ..       ; X=1: CMOS &01 = port number
     jsr osbyte_a1                                                     ; 8f60: 20 9a 8e     ..      ; Read CMOS &01
     sty hazel_fs_station                                              ; 8f63: 8c 00 c0    ...      ; Store at hazel_fs_station (workspace+0)
@@ -10390,7 +10390,7 @@ cmos_attr_table = osopt_cmos_writeback_jsr+1
     cmp sep_table_data,y                                              ; a48b: d9 97 a4    ...      ; Compare with separator
     beq separator_matched                                             ; a48e: f0 10       ..       ; Match: valid command boundary
     dey                                                               ; a490: 88          .        ; Try next separator
-    bpl loop_check_sep_table                                          ; a491: 10 f8       ..       ; Loop through 10 separators
+    bpl loop_check_sep_table                                          ; a491: 10 f8       ..       ; Loop over the 9 separators and the PLA opcode
     pla                                                               ; a493: 68          h        ; Restore matched-name length
     tay                                                               ; a494: a8          .        ; A = matched offset, save in Y
     bne loop_skip_to_next                                             ; a495: d0 e9       ..       ; ALWAYS branch: try next entry
@@ -14158,7 +14158,7 @@ cdir_size_thresholds = cdir_dispatch_col+2
 ; On Exit:
 ;     Y: &20 (advanced past the copied 8 bytes)
 ; &b3d5 referenced 1 time by &8f5b
-.copy_ps_data_y1c
+.copy_ps_data_y18
     ldy #&18                                                          ; b3d5: a0 18       ..       ; Y=&18: standard offset for the PS template; fall into copy_ps_data
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
@@ -17443,7 +17443,7 @@ save pydis_start, pydis_end
 ;     copy_pb_and_mark:              1
 ;     copy_pb_to_ws:                 1
 ;     copy_ps_data:                  1
-;     copy_ps_data_y1c:              1
+;     copy_ps_data_y18:              1
 ;     copy_scout_bytes:              1
 ;     copy_scout_to_buffer:          1
 ;     copy_ws_byte_to_pb:            1

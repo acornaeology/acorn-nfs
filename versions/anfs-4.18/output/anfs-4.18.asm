@@ -4960,7 +4960,7 @@ svc_dispatch_lo_offset = push_dispatch_lo+2
     bne loop_zero_workspace                                           ; 8ef3: d0 f9       ..       ; Loop until full page zeroed
     ldy #8                                                            ; 8ef5: a0 08       ..       ; Offset 8 in receive block
     sta (net_rx_ptr),y                                                ; 8ef7: 91 9c       ..       ; Clear protection flags
-    jsr copy_ps_data_y1c                                              ; 8ef9: 20 17 b0     ..      ; Initialise station identity block
+    jsr copy_ps_data_y18                                              ; 8ef9: 20 17 b0     ..      ; Initialise station identity block
     ldy #2                                                            ; 8efc: a0 02       ..       ; Offset 2 in receive block
     lda #&fe                                                          ; 8efe: a9 fe       ..       ; A=&FE: default station ID marker
     sta fs_server_stn                                                 ; 8f00: 8d 00 0e    ...      ; Store default station low
@@ -12007,7 +12007,7 @@ cdir_alloc_size_table = cdir_dispatch_col+2
 ; Sets Y=&18 and falls through to copy_ps_data. Called during workspace initialisation
 ; (svc_2_private_workspace) to set up the printer server template at the standard offset.
 ; &b017 referenced 1 time by &8ef9
-.copy_ps_data_y1c
+.copy_ps_data_y18
     ldy #&18                                                          ; b017: a0 18       ..       ; Start at offset &1C
 ; ***************************************************************************************
 ; Copy 8-byte printer server template to RX buffer
@@ -15218,7 +15218,7 @@ save pydis_start, pydis_end
 ;     copy_pb_and_mark:                         1
 ;     copy_pb_to_ws:                            1
 ;     copy_ps_data:                             1
-;     copy_ps_data_y1c:                         1
+;     copy_ps_data_y18:                         1
 ;     copy_scout_bytes:                         1
 ;     copy_scout_to_buffer:                     1
 ;     copy_ws_byte_to_pb:                       1

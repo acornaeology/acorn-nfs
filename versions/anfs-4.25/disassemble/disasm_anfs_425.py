@@ -6131,7 +6131,7 @@ sequence after page allocation:
 - On warm reset (`last_break_type` non-zero) and `fs_flags` bit 4
   set, calls [`setup_ws_ptr`](label:setup_ws_ptr) and zeroes the FS
   workspace page in a 256-byte loop.
-- Calls [`copy_ps_data_y1c`](label:copy_ps_data_y1c) to install the printer-
+- Calls [`copy_ps_data_y18`](label:copy_ps_data_y18) to install the printer-
   server template.
 - Reads CMOS bytes `&01..&04` via `osbyte_a1`, storing each into
   the workspace identity block at `nfs_workspace+{0..3}`.
@@ -6201,7 +6201,7 @@ d.label(0x8F74, "loop_zero_workspace")
 d.comment(0x8F74, "Clear byte in FS workspace", align=Align.INLINE)
 d.comment(0x8F76, "Next workspace byte", align=Align.INLINE)
 d.comment(0x8F77, "Loop until full page (256 bytes) cleared", align=Align.INLINE)
-d.comment(0x8F79, "Copy initial PS template (1C bytes) into ws", align=Align.INLINE)
+d.comment(0x8F79, "Copy the 8-byte PS template to RX buffer offset &18", align=Align.INLINE)
 d.comment(0x8F7C, "X=1: CMOS &01 = port number", align=Align.INLINE)
 d.comment(0x8F7E, "Read CMOS &01", align=Align.INLINE)
 d.comment(0x8F81, "Store at hazel_fs_station (workspace+0)", align=Align.INLINE)
@@ -12014,7 +12014,7 @@ d.label(0xA4A1, "loop_check_sep_table")
 d.comment(0xA4A1, "Compare with separator", align=Align.INLINE)
 d.comment(0xA4A4, "Match: valid command boundary", align=Align.INLINE)
 d.comment(0xA4A6, "Try next separator", align=Align.INLINE)
-d.comment(0xA4A7, "Loop through 10 separators", align=Align.INLINE)
+d.comment(0xA4A7, "Loop over the 9 separators and the PLA opcode", align=Align.INLINE)
 d.comment(0xA4A9, "Restore matched-name length", align=Align.INLINE)
 d.comment(0xA4AA, "A = matched offset, save in Y", align=Align.INLINE)
 d.comment(0xA4AB, "ALWAYS branch: try next entry", align=Align.INLINE)
@@ -16109,11 +16109,11 @@ d.comment(0xB403, "C clear: save ptr and continue", align=Align.INLINE)
 # UNMAPPED: d.comment(0xB3CE, "Back to Y register", align=Align.INLINE)
 d.comment(0xB40A, "Parse FS/PS arguments", align=Align.INLINE)
 d.comment(0xB40D, "Jump to store station address", align=Align.INLINE)
-d.label(0xB410, "copy_ps_data_y1c")
+d.label(0xB410, "copy_ps_data_y18")
 
 d.subroutine(
     0xB410,
-    "copy_ps_data_y1c",
+    "copy_ps_data_y18",
     title="Copy printer server template at offset &18",
     description="""Sets Y=&18 and falls through to copy_ps_data.
 Called during workspace initialisation
