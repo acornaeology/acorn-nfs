@@ -4789,62 +4789,12 @@ d.comment(0x8CD2, "Update next examine start offset", align=Align.INLINE)
 d.comment(0x8CD5, "Save updated start offset", align=Align.INLINE)
 d.comment(0x8CD7, "Reload batch size for next request", align=Align.INLINE)
 d.comment(0x8CD9, "Store batch size in command buffer", align=Align.INLINE)
-d.comment(0x8CDC, "Loop for remaining characters", align=Align.INLINE)
-d.comment(
-    0x8CDE,
-    """Option name encoding: in 3.35, the boot option names ("Off",
-"Load", "Run", "Exec") are scattered through the code rather
-than stored as a contiguous table. They are addressed via
-base+offset from c8cde (&8CDE), whose first four bytes
-(starting with the ROR A opcode &6A) double as the offset table:
-  &6A→&8D48 "Off", &7D→&8D5B "Load",
-  &A5→&8D83 "Run", &18→&8CF6 "Exec"
-Each string is terminated by the next instruction's opcode
-having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).""",
-)
 
 
-d.label(0x8CDE, "boot_option_strings")
-
-d.comment(0x8CDE, "Boot option string offset table", align=Align.INLINE)
-d.comment(0x8CDF, "Dual-purpose: offset data + code", align=Align.INLINE)
-d.comment(0x8CE2, "Fallthrough (also boot string 'L.!')", align=Align.INLINE)
-d.comment(0x8CE9, "CR terminator", align=Align.INLINE)
-
-d.subroutine(
-    0x8CE5,
-    "boot_cmd_strings",
-    title="Boot command strings for auto-boot",
-    description="""The four boot options use OSCLI strings at offsets within page &8C:
-  Option 0 (Off):  offset &F1 → &8CF1 = bare CR (empty command)
-  Option 1 (Load): offset &E2 → &8CE2 = "L.!BOOT" (dual-purpose:
-      the byte &4C='L' at &8CE2 is a JMP opcode and
-      operand bytes &2E='.' &21='!', forming the string "L.!")
-  Option 2 (Run):  offset &E4 → boot_cmd_strings-1 = "!BOOT" (*RUN)
-  Option 3 (Exec): offset &EA → &8CEA = "E.!BOOT"
-
-This is a classic BBC ROM space optimisation: the JMP instruction's
-bytes serve double duty as both executable code and ASCII text.""",
-)
 
 
-d.subroutine(
-    0x8CF2,
-    "boot_option_offsets",
-    title="Boot option → OSCLI string offset table",
-    description="""Four bytes indexed by the boot option value (0-3). Each byte
-is the low byte of a pointer into page &8C, where the OSCLI
-command string for that boot option lives. See boot_cmd_strings.""",
-)
-d.byte(0x8CF2, 1)
-d.comment(0x8CF2, "Opt 0 (Off): bare CR", align=Align.INLINE)
-d.byte(0x8CF3, 1)
-d.comment(0x8CF3, "Opt 1 (Load): L.!BOOT", align=Align.INLINE)
-d.byte(0x8CF4, 1)
-d.comment(0x8CF4, "Opt 2 (Run): !BOOT", align=Align.INLINE)
-d.byte(0x8CF5, 1)
-d.comment(0x8CF5, "Opt 3 (Exec): E.!BOOT", align=Align.INLINE)
-d.string(0x8CF6, 4)
+
+
 d.subroutine(
     0x8CFA,
     "print_file_info",
@@ -5240,8 +5190,8 @@ d.subroutine(
     title="Copy FS reply handles to workspace and execute boot command",
     description="""SEC entry (LOGIN): copies 4 bytes from &0F05-&0F08 (FS reply) to
 &0E02-&0E05 (URD, CSD, LIB handles and boot option), then
-looks up the boot option in boot_option_offsets to get the
-OSCLI command string and executes it via JMP oscli.
+then runs the boot command through
+[`boot_cmd_execute`](label:boot_cmd_execute).
 The carry flag distinguishes LOGIN (SEC) from SDISC (CLC) — both
 share the handle-copying code, but only LOGIN executes the boot
 command. This use of the carry flag to select behaviour between
@@ -5279,12 +5229,12 @@ d.subroutine(
     title="Execute boot command via OSCLI",
     description="""Reached from fsreply_1_copy_handles_boot when carry is set (LOGIN
 path). Reads the boot option from fs_boot_option (&0E05),
-looks up the OSCLI command string offset from boot_option_offsets+1,
-and executes the boot command via JMP oscli with page &8D.""",
+looks up the low byte of its command line in
+[`boot_cmd_offsets`](label:boot_cmd_offsets), and calls OSCLI with the page
+of [`boot_cmd_load`](label:boot_cmd_load) in Y.""",
 )
 d.comment(0x8E38, "Y = boot option from FS workspace", align=Align.INLINE)
 d.comment(0x8E3B, "X = command string offset from table", align=Align.INLINE)
-d.comment(0x8E3E, "Y = &8D (high byte of command address)", align=Align.INLINE)
 d.comment(0x8E40, "Execute boot command string via OSCLI", align=Align.INLINE)
 d.subroutine(
     0x8E43,
@@ -9161,12 +9111,6 @@ d.label(0x0D60, "pflags")
 d.label(0x0E11, "context_ptr_2_hi")
 
 
-d.byte(0x8CDF)
-d.byte(0x8CE0)
-d.byte(0x8CE1)
-d.byte(0x8CE2)
-d.byte(0x8CE3)
-d.byte(0x8CE4)
 
 
 d.label(0x9AA5, "imm_op_dispatch_lo")
@@ -9303,26 +9247,110 @@ d.string(0x8BE2, 2)
 d.byte(0x8BE4, 2)
 d.expr(0x8BE4, hi(sym("forward_star_cmd") - 1))
 d.expr(0x8BE5, lo(sym("forward_star_cmd") - 1))
+d.comment(0x8BE4, "forward_star_cmd - 1, high byte first", align=Align.INLINE)
 d.comment(0x8BE2, '"I.": dispatch to forward_star_cmd', align=Align.INLINE)
 d.string(0x8BE6, 4)
 d.byte(0x8BEA, 2)
 d.expr(0x8BEA, hi(sym("i_am_handler") - 1))
 d.expr(0x8BEB, lo(sym("i_am_handler") - 1))
+d.comment(0x8BEA, "i_am_handler - 1, high byte first", align=Align.INLINE)
 d.comment(0x8BE6, '"I AM": dispatch to i_am_handler', align=Align.INLINE)
 d.string(0x8BEC, 2)
 d.byte(0x8BEE, 2)
 d.expr(0x8BEE, hi(sym("ex_handler") - 1))
 d.expr(0x8BEF, lo(sym("ex_handler") - 1))
+d.comment(0x8BEE, "ex_handler - 1, high byte first", align=Align.INLINE)
 d.comment(0x8BEC, '"EX": dispatch to ex_handler', align=Align.INLINE)
 d.string(0x8BF0, 4)
 d.byte(0x8BF4, 2)
 d.expr(0x8BF4, hi(sym("bye_handler") - 1))
 d.expr(0x8BF5, lo(sym("bye_handler") - 1))
+d.comment(0x8BF4, "bye_handler - 1, high byte first", align=Align.INLINE)
 d.comment(0x8BF0, '"BYE" + CR: dispatch to bye_handler', align=Align.INLINE)
 d.byte(0x8BF6, 2)
 d.expr(0x8BF6, hi(sym("forward_star_cmd") - 1))
 d.expr(0x8BF7, lo(sym("forward_star_cmd") - 1))
-d.comment(0x8BF6, "Anything else: dispatch to forward_star_cmd", align=Align.INLINE)
+d.comment(0x8BF6, "Anything else: forward_star_cmd - 1, high byte first", align=Align.INLINE)
+
+d.comment(0x8CDC, 'Next batch (always: batch size is at least 1)', align=Align.INLINE)
+d.comment(0x8E3E, 'Y = page holding the boot commands', align=Align.INLINE)
+d.expr(0x8E3F, hi(sym("boot_cmd_load")))
+d.label(0x8CE2, "boot_cmd_load")
+d.string(0x8CE2, 2)
+d.label(0x8CE4, "boot_cmd_run")
+d.string(0x8CE4, 5)
+d.byte(0x8CE9)
+d.label(0x8CEA, "boot_cmd_exec")
+d.string(0x8CEA, 7)
+d.label(0x8CF1, "boot_cmd_off")
+d.byte(0x8CF1)
+d.comment(0x8CE2, '"L." of "L.!BOOT": Load command', align=Align.INLINE)
+d.comment(0x8CE4, '"!BOOT": Run command, the tail of the Load command', align=Align.INLINE)
+d.comment(0x8CE9, 'CR ends the Load and Run commands', align=Align.INLINE)
+d.comment(0x8CEA, '"E.!BOOT": Exec command', align=Align.INLINE)
+d.comment(0x8CF1, 'CR ends the Exec command; alone, the empty Off command', align=Align.INLINE)
+d.label(0x8CF2, "boot_cmd_offsets")
+d.byte(0x8CF2)
+d.byte(0x8CF3)
+d.byte(0x8CF4)
+d.byte(0x8CF5)
+d.expr(0x8CF2, lo(sym("boot_cmd_off")))
+d.comment(0x8CF2, 'Option 0 (Off): boot_cmd_off', align=Align.INLINE)
+d.expr(0x8CF3, lo(sym("boot_cmd_load")))
+d.comment(0x8CF3, 'Option 1 (Load): boot_cmd_load', align=Align.INLINE)
+d.expr(0x8CF4, lo(sym("boot_cmd_run")))
+d.comment(0x8CF4, 'Option 2 (Run): boot_cmd_run', align=Align.INLINE)
+d.expr(0x8CF5, lo(sym("boot_cmd_exec")))
+d.comment(0x8CF5, 'Option 3 (Exec): boot_cmd_exec', align=Align.INLINE)
+d.banner(
+    0x8CDE,
+    title="Boot option names and commands",
+    description="""The four boot options share this block with the names that *CAT
+prints for them.
+
+[`option_name_offsets`](label:option_name_offsets) holds, for boot
+options 0-3, the offset of each name from the table itself. The names
+sit in gaps between routines elsewhere in the ROM and have no
+terminator of their own: the opcode after each one has bit 7 set,
+which ends the print loop.
+
+[`boot_cmd_offsets`](label:boot_cmd_offsets) holds the low byte of each
+option's command line. [`boot_cmd_execute`](label:boot_cmd_execute)
+loads it into X and the page of [`boot_cmd_load`](label:boot_cmd_load)
+into Y, then calls OSCLI. The command lines overlap:
+
+* [`boot_cmd_load`](label:boot_cmd_load): `L.!BOOT` (option 1, Load)
+* [`boot_cmd_run`](label:boot_cmd_run): `!BOOT`, the tail of the Load
+  command (option 2, Run)
+* [`boot_cmd_exec`](label:boot_cmd_exec): `E.!BOOT` (option 3, Exec)
+* [`boot_cmd_off`](label:boot_cmd_off): the CR that ends `E.!BOOT`, an
+  empty command (option 0, Off)""",
+)
+d.label(0x8CDE, "option_name_offsets")
+d.byte(0x8CDE)
+d.byte(0x8CDF)
+d.byte(0x8CE0)
+d.byte(0x8CE1)
+d.expr(0x8CDE, sym("option_name_off") - sym("option_name_offsets"))
+d.comment(0x8CDE, 'Option 0: offset of "Off"', align=Align.INLINE)
+d.label(0x8D48, "option_name_off")
+d.string(0x8D48, 3)
+d.comment(0x8D48, '"Off": name of boot option 0, ended by the next opcode', align=Align.INLINE)
+d.expr(0x8CDF, sym("option_name_load") - sym("option_name_offsets"))
+d.comment(0x8CDF, 'Option 1: offset of "Load"', align=Align.INLINE)
+d.label(0x8D5B, "option_name_load")
+d.string(0x8D5B, 4)
+d.comment(0x8D5B, '"Load": name of boot option 1, ended by the next opcode', align=Align.INLINE)
+d.expr(0x8CE0, sym("option_name_run") - sym("option_name_offsets"))
+d.comment(0x8CE0, 'Option 2: offset of "Run"', align=Align.INLINE)
+d.label(0x8D83, "option_name_run")
+d.string(0x8D83, 3)
+d.comment(0x8D83, '"Run": name of boot option 2, ended by the next opcode', align=Align.INLINE)
+d.expr(0x8CE1, sym("option_name_exec") - sym("option_name_offsets"))
+d.comment(0x8CE1, 'Option 3: offset of "Exec"', align=Align.INLINE)
+d.label(0x8CF6, "option_name_exec")
+d.string(0x8CF6, 4)
+d.comment(0x8CF6, '"Exec": name of boot option 3, ended by the next opcode', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

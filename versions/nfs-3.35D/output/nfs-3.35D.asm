@@ -4588,14 +4588,14 @@ cmd_roff_str = copyright_string+3
 ; &8be2 used as index base 2 times by &8bbf, &8bcc
 .fs_cmd_match_table
     equs "I."                                                         ; 8be2: 49 2e       I.       ; "I.": dispatch to forward_star_cmd
-    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8be4: 80 b3       ..    
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8be4: 80 b3       ..       ; forward_star_cmd - 1, high byte first
     equs "I AM"                                                       ; 8be6: 49 20 41... I A...   ; "I AM": dispatch to i_am_handler
-    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8bea: 80 7d       .}    
+    equb >(i_am_handler - 1), <(i_am_handler - 1)                     ; 8bea: 80 7d       .}       ; i_am_handler - 1, high byte first
     equs "EX"                                                         ; 8bec: 45 58       EX       ; "EX": dispatch to ex_handler
-    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8bee: 8b f7       ..    
+    equb >(ex_handler - 1), <(ex_handler - 1)                         ; 8bee: 8b f7       ..       ; ex_handler - 1, high byte first
     equs "BYE", &0d                                                   ; 8bf0: 42 59 45... BYE...   ; "BYE" + CR: dispatch to bye_handler
-    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8bf4: 83 8c       ..    
-    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8bf6: 80 b3       ..       ; Anything else: dispatch to forward_star_cmd
+    equb >(bye_handler - 1), <(bye_handler - 1)                       ; 8bf4: 83 8c       ..       ; bye_handler - 1, high byte first
+    equb >(forward_star_cmd - 1), <(forward_star_cmd - 1)             ; 8bf6: 80 b3       ..       ; Anything else: forward_star_cmd - 1, high byte first
 ; ***************************************************************************************
 ; *EX handler (extended catalogue)
 ;
@@ -4678,10 +4678,10 @@ cmd_roff_str = copyright_string+3
     jsr print_hex                                                     ; 8c6d: 20 a5 8d     ..      ; Print boot option as hex digit
     jsr print_inline                                                  ; 8c70: 20 e2 85     ..      ; Print ' ('
     equs " ("                                                         ; 8c73: 20 28        (       ; Inline text, printed by print_inline
-    ldy boot_option_strings,x                                         ; 8c75: bc de 8c    ...      ; Y=string offset for this option
+    ldy option_name_offsets,x                                         ; 8c75: bc de 8c    ...      ; Y=string offset for this option
 ; &8c78 referenced 1 time by &8c81
 .print_option_char
-    lda boot_option_strings,y                                         ; 8c78: b9 de 8c    ...      ; Load next char of option name
+    lda option_name_offsets,y                                         ; 8c78: b9 de 8c    ...      ; Load next char of option name
     bmi done_option_name                                              ; 8c7b: 30 06       0.       ; Bit 7 set: end of option name
     jsr osasci                                                        ; 8c7d: 20 e3 ff     ..      ; Print character
     iny                                                               ; 8c80: c8          .        ; Next character
@@ -4721,46 +4721,48 @@ cmd_roff_str = copyright_string+3
     sta fs_work_4                                                     ; 8cd5: 85 b4       ..       ; Save updated start offset
     lda fs_work_5                                                     ; 8cd7: a5 b5       ..       ; Reload batch size for next request
     sta fs_data_count                                                 ; 8cd9: 8d 07 0f    ...      ; Store batch size in command buffer
-    bne cat_examine_loop                                              ; 8cdc: d0 d5       ..       ; Loop for remaining characters
-; Option name encoding: in 3.35, the boot option names ("Off", "Load", "Run", "Exec") are scattered through the code rather than stored as a contiguous table. They are addressed via base+offset from c8cde (&8CDE), whose first four bytes (starting with the ROR A opcode &6A) double as the offset table: &6A→&8D48 "Off", &7D→&8D5B "Load", &A5→&8D83 "Run", &18→&8CF6 "Exec" Each string is terminated by the next instruction's opcode having bit 7 set (e.g. LDA #imm = &A9, RTS = &60).
+    bne cat_examine_loop                                              ; 8cdc: d0 d5       ..       ; Next batch (always: batch size is at least 1)
+; ***************************************************************************************
+; Boot option names and commands
+;
+; The four boot options share this block with the names that *CAT prints for them.
+;
+; option_name_offsets holds, for boot options 0-3, the offset of each name from the table
+; itself. The names sit in gaps between routines elsewhere in the ROM and have no
+; terminator of their own: the opcode after each one has bit 7 set, which ends the print
+; loop.
+;
+; boot_cmd_offsets holds the low byte of each option's command line. boot_cmd_execute
+; loads it into X and the page of boot_cmd_load into Y, then calls OSCLI. The command
+; lines overlap:
+;
+; - boot_cmd_load: L.!BOOT (option 1, Load)
+; - boot_cmd_run: !BOOT, the tail of the Load command (option 2, Run)
+; - boot_cmd_exec: E.!BOOT (option 3, Exec)
+; - boot_cmd_off: the CR that ends E.!BOOT, an empty command (option 0, Off)
 ; &8cde used as index base 2 times by &8c75, &8c78
-.boot_option_strings
-    ror a                                                             ; 8cde: 6a          j        ; Boot option string offset table
-    equb &7d                                                          ; 8cdf: 7d          }        ; Dual-purpose: offset data + code
-    equb &a5                                                          ; 8ce0: a5          .     
-    equb &18                                                          ; 8ce1: 18          .     
-    equb &4c                                                          ; 8ce2: 4c          L        ; Fallthrough (also boot string 'L.!')
-    equb &2e                                                          ; 8ce3: 2e          .     
-    equb &21                                                          ; 8ce4: 21          !     
-; ***************************************************************************************
-; Boot command strings for auto-boot
-;
-; The four boot options use OSCLI strings at offsets within page &8C: Option 0 (Off):
-; offset &F1 → &8CF1 = bare CR (empty command) Option 1 (Load): offset &E2 → &8CE2 =
-; "L.!BOOT" (dual-purpose: the byte &4C='L' at &8CE2 is a JMP opcode and operand bytes
-; &2E='.' &21='!', forming the string "L.!") Option 2 (Run):  offset &E4 →
-; boot_cmd_strings-1 = "!BOOT" (*RUN) Option 3 (Exec): offset &EA → &8CEA = "E.!BOOT"
-;
-; This is a classic BBC ROM space optimisation: the JMP instruction's bytes serve double
-; duty as both executable code and ASCII text.
-.boot_cmd_strings
-    equs "BOOT"                                                       ; 8ce5: 42 4f 4f... BOO...
-    equb &0d                                                          ; 8ce9: 0d          .        ; CR terminator
-    equs "E.!BOOT"                                                    ; 8cea: 45 2e 21... E.!...
-    equb &0d                                                          ; 8cf1: 0d          .     
-; ***************************************************************************************
-; Boot option → OSCLI string offset table
-;
-; Four bytes indexed by the boot option value (0-3). Each byte is the low byte of a
-; pointer into page &8C, where the OSCLI command string for that boot option lives. See
-; boot_cmd_strings.
+.option_name_offsets
+    equb option_name_off - option_name_offsets                        ; 8cde: 6a          j        ; Option 0: offset of "Off"
+    equb option_name_load - option_name_offsets                       ; 8cdf: 7d          }        ; Option 1: offset of "Load"
+    equb option_name_run - option_name_offsets                        ; 8ce0: a5          .        ; Option 2: offset of "Run"
+    equb option_name_exec - option_name_offsets                       ; 8ce1: 18          .        ; Option 3: offset of "Exec"
+.boot_cmd_load
+    equs "L."                                                         ; 8ce2: 4c 2e       L.       ; "L." of "L.!BOOT": Load command
+.boot_cmd_run
+    equs "!BOOT"                                                      ; 8ce4: 21 42 4f... !BO...   ; "!BOOT": Run command, the tail of the Load command
+    equb &0d                                                          ; 8ce9: 0d          .        ; CR ends the Load and Run commands
+.boot_cmd_exec
+    equs "E.!BOOT"                                                    ; 8cea: 45 2e 21... E.!...   ; "E.!BOOT": Exec command
+.boot_cmd_off
+    equb &0d                                                          ; 8cf1: 0d          .        ; CR ends the Exec command; alone, the empty Off command
 ; &8cf2 used as index base 1 time by &8e3b
-.boot_option_offsets
-    equb &f1                                                          ; 8cf2: f1          .        ; Opt 0 (Off): bare CR
-    equb &e2                                                          ; 8cf3: e2          .        ; Opt 1 (Load): L.!BOOT
-    equb &e4                                                          ; 8cf4: e4          .        ; Opt 2 (Run): !BOOT
-    equb &ea                                                          ; 8cf5: ea          .        ; Opt 3 (Exec): E.!BOOT
-    equs "Exec"                                                       ; 8cf6: 45 78 65... Exe...
+.boot_cmd_offsets
+    equb <(boot_cmd_off)                                              ; 8cf2: f1          .        ; Option 0 (Off): boot_cmd_off
+    equb <(boot_cmd_load)                                             ; 8cf3: e2          .        ; Option 1 (Load): boot_cmd_load
+    equb <(boot_cmd_run)                                              ; 8cf4: e4          .        ; Option 2 (Run): boot_cmd_run
+    equb <(boot_cmd_exec)                                             ; 8cf5: ea          .        ; Option 3 (Exec): boot_cmd_exec
+.option_name_exec
+    equs "Exec"                                                       ; 8cf6: 45 78 65... Exe...   ; "Exec": name of boot option 3, ended by the next opcode
 ; ***************************************************************************************
 ; Print file catalogue line
 ;
@@ -4840,7 +4842,8 @@ cmd_roff_str = copyright_string+3
 .print_space
     lda #' '                                                          ; 8d44: a9 20       .        ; A=space character
     bne print_char_always                                             ; 8d46: d0 70       .p       ; Always taken (A=&20)
-    equs "Off"                                                        ; 8d48: 4f 66 66    Off   
+.option_name_off
+    equs "Off"                                                        ; 8d48: 4f 66 66    Off      ; "Off": name of boot option 0, ended by the next opcode
 ; ***************************************************************************************
 ; Copy filename to FS command buffer
 ;
@@ -4878,7 +4881,8 @@ cmd_roff_str = copyright_string+3
 ; &8d5a referenced 2 times by &8cfd, &8d64
 .return_5
     rts                                                               ; 8d5a: 60          `        ; Return; X = next free position in buffer
-    equs "Load"                                                       ; 8d5b: 4c 6f 61... Loa...
+.option_name_load
+    equs "Load"                                                       ; 8d5b: 4c 6f 61... Loa...   ; "Load": name of boot option 1, ended by the next opcode
 ; ***************************************************************************************
 ; Print directory name from reply buffer
 ;
@@ -4927,7 +4931,8 @@ cmd_roff_str = copyright_string+3
 .next_dir_entry
     inx                                                               ; 8d80: e8          .        ; Next byte in reply buffer
     bne print_dir_from_offset                                         ; 8d81: d0 de       ..       ; Loop until end of buffer
-    equs "Run"                                                        ; 8d83: 52 75 6e    Run   
+.option_name_run
+    equs "Run"                                                        ; 8d83: 52 75 6e    Run      ; "Run": name of boot option 2, ended by the next opcode
 ; ***************************************************************************************
 ; Print byte as 3-digit decimal number
 ;
@@ -5128,11 +5133,10 @@ cmd_roff_str = copyright_string+3
 ; Copy FS reply handles to workspace and execute boot command
 ;
 ; SEC entry (LOGIN): copies 4 bytes from &0F05-&0F08 (FS reply) to &0E02-&0E05 (URD, CSD,
-; LIB handles and boot option), then looks up the boot option in boot_option_offsets to
-; get the OSCLI command string and executes it via JMP oscli. The carry flag
-; distinguishes LOGIN (SEC) from SDISC (CLC) — both share the handle-copying code, but
-; only LOGIN executes the boot command. This use of the carry flag to select behaviour
-; between two callers avoids duplicating the handle-copy loop.
+; LIB handles and boot option), then then runs the boot command through boot_cmd_execute.
+; The carry flag distinguishes LOGIN (SEC) from SDISC (CLC) — both share the
+; handle-copying code, but only LOGIN executes the boot command. This use of the carry
+; flag to select behaviour between two callers avoids duplicating the handle-copy loop.
 .fsreply_1_copy_handles_boot
     sec                                                               ; 8e28: 38          8        ; Set carry: LOGIN path (copy + boot)
 ; ***************************************************************************************
@@ -5156,12 +5160,12 @@ cmd_roff_str = copyright_string+3
 ; Execute boot command via OSCLI
 ;
 ; Reached from fsreply_1_copy_handles_boot when carry is set (LOGIN path). Reads the boot
-; option from fs_boot_option (&0E05), looks up the OSCLI command string offset from
-; boot_option_offsets+1, and executes the boot command via JMP oscli with page &8D.
+; option from fs_boot_option (&0E05), looks up the low byte of its command line in
+; boot_cmd_offsets, and calls OSCLI with the page of boot_cmd_load in Y.
 .boot_cmd_execute
     ldy fs_boot_option                                                ; 8e38: ac 05 0e    ...      ; Y = boot option from FS workspace
-    ldx boot_option_offsets,y                                         ; 8e3b: be f2 8c    ...      ; X = command string offset from table
-    ldy #&8c                                                          ; 8e3e: a0 8c       ..       ; Y = &8D (high byte of command address)
+    ldx boot_cmd_offsets,y                                            ; 8e3b: be f2 8c    ...      ; X = command string offset from table
+    ldy #>(boot_cmd_load)                                             ; 8e3e: a0 8c       ..       ; Y = page holding the boot commands
     jmp oscli                                                         ; 8e40: 4c f7 ff    L..      ; Execute boot command string via OSCLI
 ; ***************************************************************************************
 ; *NET1: read file handle from received packet
@@ -8701,7 +8705,6 @@ save pydis_start, pydis_end
 ;     advance_rx_buffer_ptr:                    2
 ;     beginr:                                   2
 ;     binary_version:                           2
-;     boot_option_strings:                      2
 ;     brk_ptr:                                  2
 ;     call_fscv_shutdown:                       2
 ;     cb_template_main_start:                   2
@@ -8760,6 +8763,7 @@ save pydis_start, pydis_end
 ;     no_dot_exit:                              2
 ;     num01:                                    2
 ;     nvwrch:                                   2
+;     option_name_offsets:                      2
 ;     os_text_ptr_hi:                           2
 ;     osarg1:                                   2
 ;     osfind:                                   2
@@ -8868,7 +8872,7 @@ save pydis_start, pydis_end
 ;     begink:                                   1
 ;     bgetv_shared_jsr:                         1
 ;     block_addr_loop:                          1
-;     boot_option_offsets:                      1
+;     boot_cmd_offsets:                         1
 ;     bspsx:                                    1
 ;     bsxl0:                                    1
 ;     bsxl1:                                    1
@@ -9318,11 +9322,11 @@ save pydis_start, pydis_end
 
 ; Stats:
 ;     Total size (Code + Data) = 8192 bytes
-;     Code                     = 7583 bytes (93%)
-;     Data                     = 609 bytes (7%)
+;     Code                     = 7582 bytes (93%)
+;     Data                     = 610 bytes (7%)
 ;
-;     Number of instructions   = 3661
-;     Number of data bytes     = 357 bytes
+;     Number of instructions   = 3660
+;     Number of data bytes     = 355 bytes
 ;     Number of data words     = 28 bytes
-;     Number of string bytes   = 224 bytes
-;     Number of strings        = 36
+;     Number of string bytes   = 227 bytes
+;     Number of strings        = 37
