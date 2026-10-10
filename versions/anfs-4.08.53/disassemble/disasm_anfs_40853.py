@@ -5614,7 +5614,7 @@ identity, directory handles, and library path after
 a filing system reselection. Called by
 svc_2_private_workspace during init,
 deselect_fs_if_active during FS teardown, and
-flip_set_station_boot.""",
+set_lib_handle.""",
 )
 
 
@@ -6714,7 +6714,7 @@ d.comment(0x941B, "Raise 'Not found' error", align=Align.INLINE)
 d.comment(0x941E, "Error message text (error_inline_log)", align=Align.INLINE)
 d.label(0x9428, "dir_found_send")
 
-d.comment(0x9428, "Load current FS station byte", align=Align.INLINE)
+d.comment(0x9428, "Load the CSD handle", align=Align.INLINE)
 d.comment(0x942B, "Store in TX buffer", align=Align.INLINE)
 d.comment(0x942E, "X=1: buffer offset", align=Align.INLINE)
 d.comment(0x9430, "Y=7: change directory command code", align=Align.INLINE)
@@ -6943,7 +6943,7 @@ d.comment(0x94B5, "Bit 7 clear: skip port override", align=Align.INLINE)
 d.comment(0x94B7, "Bit 7 set: load alternative port", align=Align.INLINE)
 d.comment(0x94BA, "Override TXCB port byte", align=Align.INLINE)
 d.comment(0x94BD, "Always taken: V was clear when we entered (BVS at &97A4 didn't fire)", align=Align.INLINE)
-d.label(0x94BF, "use_lib_station")
+d.label(0x94BF, "use_urd_in_csd_slot")
 
 d.comment(0x94BF, "Bit 6: load station byte", align=Align.INLINE)
 d.comment(0x94C2, "Use station as TXCB port", align=Align.INLINE)
@@ -10062,95 +10062,33 @@ d.comment(0xA2D9, "Dispatch via indirect vector", align=Align.INLINE)
 d.label(0xA2DC, "fsreply_3_set_csd")
 
 d.entry(0xA2DC)
-d.comment(0xA2DC, "Find station with bit 3 set", align=Align.INLINE)
+d.comment(0xA2DC, "Record Y as the CSD handle", align=Align.INLINE)
 d.comment(0xA2DF, "Return with last flag state", align=Align.INLINE)
 d.label(0xA2E2, "fsreply_5_set_lib")
 
 d.entry(0xA2E2)
-d.comment(0xA2E2, "Flip/set station boot config", align=Align.INLINE)
+d.comment(0xA2E2, "Record Y as the library handle", align=Align.INLINE)
 d.comment(0xA2E5, "Return with last flag state", align=Align.INLINE)
-d.label(0xA2E8, "find_station_bit2")
-
-d.subroutine(
-    0xA2E8,
-    "find_station_bit2",
-    title="Find printer server station in table (bit 2)",
-    description="""Scans the 16-entry station table for a slot
-matching the current station/network address
-with bit 2 set (printer server active). Sets V
-if found, clears V if not. Falls through to
-allocate or update the matching slot with the
-new station address and status flags.""",
-)
+d.label(0xA2E8, "set_urd_handle")
 
 
-d.comment(0xA2E8, "X=&10: scan 16 slots (15 to 0)", align=Align.INLINE)
-d.comment(0xA2EA, "Clear V", align=Align.INLINE)
-d.label(0xA2EB, "loop_search_stn_bit2")
 
-d.comment(0xA2EB, "Try next slot", align=Align.INLINE)
-d.comment(0xA2EC, "All slots checked: not found", align=Align.INLINE)
-d.comment(0xA2EE, "Compare station/network", align=Align.INLINE)
-d.comment(0xA2F1, "No match: try next", align=Align.INLINE)
-d.comment(0xA2F3, "Load slot status byte", align=Align.INLINE)
-d.comment(0xA2F6, "Test bit 2 (PS active flag)?", align=Align.INLINE)
-d.comment(0xA2F8, "Not set: try next", align=Align.INLINE)
-d.comment(0xA2FA, "Transfer Y to A", align=Align.INLINE)
-d.comment(0xA2FB, "Store Y in slot data", align=Align.INLINE)
-d.comment(0xA2FE, "Set V (found match)", align=Align.INLINE)
-d.label(0xA301, "done_search_bit2")
+d.label(0xA2EB, "loop_find_urd_slot")
 
-d.comment(0xA301, "Store Y to l0e02", align=Align.INLINE)
-d.comment(0xA304, "V set: found, skip allocation", align=Align.INLINE)
-d.comment(0xA306, "Transfer Y to A", align=Align.INLINE)
-d.comment(0xA307, "Allocate FCB slot", align=Align.INLINE)
-d.comment(0xA30A, "Store allocation result", align=Align.INLINE)
-d.comment(0xA30D, "Zero: failed, restore context", align=Align.INLINE)
-d.label(0xA30F, "set_flags_bit2")
+d.label(0xA301, "done_find_urd_slot")
 
-d.comment(0xA30F, "A=&26: station flags value", align=Align.INLINE)
-d.comment(0xA311, "Match: store station flags and restore", align=Align.INLINE)
-d.label(0xA313, "find_station_bit3")
+d.label(0xA30F, "set_urd_slot_flags")
 
-d.subroutine(
-    0xA313,
-    "find_station_bit3",
-    title="Find file server station in table (bit 3)",
-    description="""Scans the 16-entry station table for a slot
-matching the current station/network address
-with bit 3 set (file server active). Sets V
-if found, clears V if not. Falls through to
-allocate or update the matching slot with the
-new station address and status flags.""",
-)
+d.label(0xA313, "set_csd_handle")
 
 
-d.comment(0xA313, "X=&10: scan 16 slots (15 to 0)", align=Align.INLINE)
-d.comment(0xA315, "Clear V", align=Align.INLINE)
-d.label(0xA316, "loop_search_stn_bit3")
 
-d.comment(0xA316, "Try next slot", align=Align.INLINE)
-d.comment(0xA317, "All slots checked: not found", align=Align.INLINE)
-d.comment(0xA319, "Compare station/network", align=Align.INLINE)
-d.comment(0xA31C, "No match: try next", align=Align.INLINE)
-d.comment(0xA31E, "Load slot status byte", align=Align.INLINE)
-d.comment(0xA321, "Test bit 3 (FS active flag)?", align=Align.INLINE)
-d.comment(0xA323, "Not set: try next", align=Align.INLINE)
-d.comment(0xA325, "Transfer Y to A", align=Align.INLINE)
-d.comment(0xA326, "Store Y in slot data", align=Align.INLINE)
-d.comment(0xA329, "Set V (found match)", align=Align.INLINE)
-d.label(0xA32C, "done_search_bit3")
+d.label(0xA316, "loop_find_csd_slot")
 
-d.comment(0xA32C, "Store Y to l0e03", align=Align.INLINE)
-d.comment(0xA32F, "V set: found, skip allocation", align=Align.INLINE)
-d.comment(0xA331, "Transfer Y to A", align=Align.INLINE)
-d.comment(0xA332, "Allocate FCB slot", align=Align.INLINE)
-d.comment(0xA335, "Store allocation result", align=Align.INLINE)
-d.comment(0xA338, "Zero: failed, restore context", align=Align.INLINE)
-d.label(0xA33A, "set_flags_bit3")
+d.label(0xA32C, "done_find_csd_slot")
 
-d.comment(0xA33A, "A=&2A: station flags value", align=Align.INLINE)
-d.comment(0xA33C, "Match: store station flags and restore", align=Align.INLINE)
+d.label(0xA33A, "set_csd_slot_flags")
+
 d.entry(0xA33E)
 d.label(0xA33E, "cmd_flip")
 
@@ -10161,9 +10099,9 @@ d.subroutine(
     description="""Exchanges the CSD and CSL (library) handles.
 Saves the current CSD handle (&0E03), loads the
 library handle (&0E04) into Y, and calls
-find_station_bit3 to install it as the new CSD.
+set_csd_handle to install it as the new CSD.
 Restores the original CSD handle and falls through
-to flip_set_station_boot to install it as the new
+to set_lib_handle to install it as the new
 library. Useful when files to be LOADed are in the
 library and *DIR/*LIB would be inconvenient.""",
     on_entry={"y": "command line offset in text pointer"},
@@ -10176,52 +10114,20 @@ d.comment(0xA342, "Load library handle into Y", align=Align.INLINE)
 d.comment(0xA345, "Install library as new CSD", align=Align.INLINE)
 d.comment(0xA348, "Restore original CSD handle", align=Align.INLINE)
 d.comment(0xA349, "Y = original CSD (becomes library)", align=Align.INLINE)
-d.label(0xA34A, "flip_set_station_boot")
-
-d.subroutine(
-    0xA34A,
-    "flip_set_station_boot",
-    title="Set boot option for a station in the table",
-    description="""Scans up to 16 station table entries for one
-matching the current address with bit 4 set
-(boot-eligible). Stores the requested boot type
-in the matching entry and calls
-restore_fs_context to re-establish the filing
-system state.""",
-)
+d.label(0xA34A, "set_lib_handle")
 
 
-d.comment(0xA34A, "X=&10: max 16 station entries", align=Align.INLINE)
-d.comment(0xA34C, "Clear V (no match found yet)", align=Align.INLINE)
-d.label(0xA34D, "loop_search_stn_boot")
 
-d.comment(0xA34D, "Decrement station index", align=Align.INLINE)
-d.comment(0xA34E, "All searched: exit loop", align=Align.INLINE)
-d.comment(0xA350, "Check if station[X] matches", align=Align.INLINE)
-d.comment(0xA353, "No match: try next station", align=Align.INLINE)
-d.comment(0xA355, "Load station flags byte", align=Align.INLINE)
-d.comment(0xA358, "Test bit 4 (active flag)", align=Align.INLINE)
-d.comment(0xA35A, "Not active: try next station", align=Align.INLINE)
-d.comment(0xA35C, "Transfer boot type to A", align=Align.INLINE)
-d.comment(0xA35D, "Store boot setting for station", align=Align.INLINE)
-d.comment(0xA360, "Set V flag (station match found)", align=Align.INLINE)
-d.label(0xA363, "done_search_boot")
+d.label(0xA34D, "loop_find_lib_slot")
 
-d.comment(0xA363, "Store boot type", align=Align.INLINE)
-d.comment(0xA366, "V set (matched): skip allocation", align=Align.INLINE)
-d.comment(0xA368, "Boot type to A", align=Align.INLINE)
-d.comment(0xA369, "Allocate FCB slot for new entry", align=Align.INLINE)
-d.comment(0xA36C, "Store allocation result", align=Align.INLINE)
-d.comment(0xA36F, "Zero: allocation failed, exit", align=Align.INLINE)
-d.label(0xA371, "set_flags_boot")
+d.label(0xA363, "done_find_lib_slot")
 
-d.comment(0xA371, "A=&32: station flags (active+boot)", align=Align.INLINE)
-d.label(0xA373, "store_stn_flags_restore")
+d.label(0xA371, "set_lib_slot_flags")
 
-d.comment(0xA373, "Store station flags", align=Align.INLINE)
+d.label(0xA373, "store_slot_flags_restore")
+
 d.label(0xA376, "jmp_restore_fs_ctx")
 
-d.comment(0xA376, "Restore FS context and return", align=Align.INLINE)
 d.label(0xA379, "fsreply_1_copy_handles_boot")
 
 d.entry(0xA379)
@@ -10233,12 +10139,12 @@ d.label(0xA383, "fsreply_2_copy_handles")
 
 d.entry(0xA383)
 d.comment(0xA383, "Save processor status", align=Align.INLINE)
-d.comment(0xA384, "Load station number from reply", align=Align.INLINE)
-d.comment(0xA387, "Find station entry with bit 2", align=Align.INLINE)
-d.comment(0xA38A, "Load network number from reply", align=Align.INLINE)
-d.comment(0xA38D, "Find station entry with bit 3", align=Align.INLINE)
-d.comment(0xA390, "Load boot type from reply", align=Align.INLINE)
-d.comment(0xA393, "Set boot config for station", align=Align.INLINE)
+d.comment(0xA384, "Y = URD handle from the reply", align=Align.INLINE)
+d.comment(0xA387, "Record it as the URD", align=Align.INLINE)
+d.comment(0xA38A, "Y = CSD handle from the reply", align=Align.INLINE)
+d.comment(0xA38D, "Record it as the CSD", align=Align.INLINE)
+d.comment(0xA390, "Y = library handle from the reply", align=Align.INLINE)
+d.comment(0xA393, "Record it as the library", align=Align.INLINE)
 d.comment(0xA396, "Restore processor status", align=Align.INLINE)
 d.comment(0xA397, "Carry set: proceed with boot", align=Align.INLINE)
 d.comment(0xA399, "Return with last flag", align=Align.INLINE)
@@ -10885,7 +10791,7 @@ d.comment(0xA6A9, "Restore flags", align=Align.INLINE)
 d.comment(0xA6AA, "Set bit 5 (handle reassigned)", align=Align.INLINE)
 d.comment(0xA6AC, "Save updated flags", align=Align.INLINE)
 d.comment(0xA6AD, "Get FCB high byte", align=Align.INLINE)
-d.comment(0xA6B0, "Store as handle 1 station", align=Align.INLINE)
+d.comment(0xA6B0, "Restore the URD handle from the slot", align=Align.INLINE)
 d.comment(0xA6B3, "FCB index", align=Align.INLINE)
 d.comment(0xA6B4, "Add &20 for FCB table offset", align=Align.INLINE)
 d.comment(0xA6B6, "Store as handle 1 FCB index", align=Align.INLINE)
@@ -10898,7 +10804,7 @@ d.comment(0xA6BE, "Restore flags", align=Align.INLINE)
 d.comment(0xA6BF, "Set bit 5", align=Align.INLINE)
 d.comment(0xA6C1, "Save updated flags", align=Align.INLINE)
 d.comment(0xA6C2, "Get FCB high byte", align=Align.INLINE)
-d.comment(0xA6C5, "Store as handle 2 station", align=Align.INLINE)
+d.comment(0xA6C5, "Restore the CSD handle from the slot", align=Align.INLINE)
 d.comment(0xA6C8, "FCB index", align=Align.INLINE)
 d.comment(0xA6C9, "Add &20 for FCB table offset", align=Align.INLINE)
 d.comment(0xA6CB, "Store as handle 2 FCB index", align=Align.INLINE)
@@ -10911,7 +10817,7 @@ d.comment(0xA6D3, "Restore flags", align=Align.INLINE)
 d.comment(0xA6D4, "Set bit 5", align=Align.INLINE)
 d.comment(0xA6D6, "Save updated flags", align=Align.INLINE)
 d.comment(0xA6D7, "Get FCB high byte", align=Align.INLINE)
-d.comment(0xA6DA, "Store as handle 3 station", align=Align.INLINE)
+d.comment(0xA6DA, "Restore the library handle from the slot", align=Align.INLINE)
 d.comment(0xA6DD, "FCB index", align=Align.INLINE)
 d.comment(0xA6DE, "Add &20 for FCB table offset", align=Align.INLINE)
 d.comment(0xA6E0, "Store as handle 3 FCB index", align=Align.INLINE)
@@ -16390,11 +16296,11 @@ d.comment(0x8C8C, 'Dispatch via RTS; the handler returns to loop_dispatch_help',
 d.subroutine(
     0xA2DC,
     "fsreply_3_set_csd",
-    title='Record the file-server station',
-    description="""Dispatch target for FS reply 3, also reached by a JMP after
-selecting the file system. Calls `find_station_bit3` to find or
-allocate the station-table slot for the current file server, then
-returns through `return_with_last_flag`.""",
+    title='Set the CSD handle (FS reply 3)',
+    description="""Dispatch target for FS reply 3, also reached by a JMP once *Dir has
+sent its directory change. Records Y as the CSD handle through
+[`set_csd_handle`](label:set_csd_handle), then returns through
+`return_with_last_flag`.""",
 )
 d.subroutine(
     0x8E0A,
@@ -16624,6 +16530,105 @@ d.subroutine(
 [`tube_escape_check`](label:tube_escape_check). The copy loop uses this
 address as its destination base.""",
 )
+
+d.subroutine(
+    0xA2E8,
+    "set_urd_handle",
+    title="Set the URD handle",
+    description="""Records Y as the user root directory (URD) handle. Searches the 16
+channel slots, last first, for one on the current file server whose
+status has bit 2 set (the slot holding the URD); if found, stores
+the handle in it. Otherwise allocates a new slot for the handle,
+giving up if none is free. Either way the slot status becomes &26,
+and the routine exits through `restore_fs_context`.""",
+    on_entry={"y": "the new URD handle"},
+)
+d.comment(0xA2E8, 'X=&10: scan the 16 channel slots', align=Align.INLINE)
+d.comment(0xA2EA, 'Clear V: no match yet', align=Align.INLINE)
+d.comment(0xA2EB, 'Previous slot', align=Align.INLINE)
+d.comment(0xA2EC, 'None left: not found', align=Align.INLINE)
+d.comment(0xA2EE, 'Is the slot on the current file server?', align=Align.INLINE)
+d.comment(0xA2F1, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA2F3, "Load the slot's status", align=Align.INLINE)
+d.comment(0xA2F6, 'Bit 2: does it hold the URD?', align=Align.INLINE)
+d.comment(0xA2F8, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA2FA, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA2FB, 'Store it in the slot', align=Align.INLINE)
+d.comment(0xA2FE, 'Set V: slot found', align=Align.INLINE)
+d.comment(0xA301, 'Record the URD handle', align=Align.INLINE)
+d.comment(0xA304, 'Found: just set the status', align=Align.INLINE)
+d.comment(0xA306, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA307, 'Allocate a slot for it', align=Align.INLINE)
+d.comment(0xA30A, 'Remember the slot', align=Align.INLINE)
+d.comment(0xA30D, 'None free: restore the context and return', align=Align.INLINE)
+d.comment(0xA30F, 'Status &26: bit 2 marks the URD slot', align=Align.INLINE)
+d.comment(0xA311, 'Always taken: store the status', align=Align.INLINE)
+d.subroutine(
+    0xA313,
+    "set_csd_handle",
+    title="Set the CSD handle",
+    description="""Records Y as the currently selected directory (CSD) handle. Searches
+the 16 channel slots, last first, for one on the current file server
+whose status has bit 3 set (the slot holding the CSD); if found,
+stores the handle in it. Otherwise allocates a new slot for the
+handle, giving up if none is free. Either way the slot status
+becomes &2A, and the routine exits through `restore_fs_context`.""",
+    on_entry={"y": "the new CSD handle"},
+)
+d.comment(0xA313, 'X=&10: scan the 16 channel slots', align=Align.INLINE)
+d.comment(0xA315, 'Clear V: no match yet', align=Align.INLINE)
+d.comment(0xA316, 'Previous slot', align=Align.INLINE)
+d.comment(0xA317, 'None left: not found', align=Align.INLINE)
+d.comment(0xA319, 'Is the slot on the current file server?', align=Align.INLINE)
+d.comment(0xA31C, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA31E, "Load the slot's status", align=Align.INLINE)
+d.comment(0xA321, 'Bit 3: does it hold the CSD?', align=Align.INLINE)
+d.comment(0xA323, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA325, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA326, 'Store it in the slot', align=Align.INLINE)
+d.comment(0xA329, 'Set V: slot found', align=Align.INLINE)
+d.comment(0xA32C, 'Record the CSD handle', align=Align.INLINE)
+d.comment(0xA32F, 'Found: just set the status', align=Align.INLINE)
+d.comment(0xA331, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA332, 'Allocate a slot for it', align=Align.INLINE)
+d.comment(0xA335, 'Remember the slot', align=Align.INLINE)
+d.comment(0xA338, 'None free: restore the context and return', align=Align.INLINE)
+d.comment(0xA33A, 'Status &2A: bit 3 marks the CSD slot', align=Align.INLINE)
+d.comment(0xA33C, 'Always taken: store the status', align=Align.INLINE)
+d.subroutine(
+    0xA34A,
+    "set_lib_handle",
+    title="Set the library handle",
+    description="""Records Y as the library (library) handle. Searches the 16 channel
+slots, last first, for one on the current file server whose status
+has bit 4 set (the slot holding the library); if found, stores the
+handle in it. Otherwise allocates a new slot for the handle, giving
+up if none is free. Either way the slot status becomes &32, and the
+routine exits through `restore_fs_context`. Also the second half of
+[`cmd_flip`](label:cmd_flip), which falls into it.""",
+    on_entry={"y": "the new library handle"},
+)
+d.comment(0xA34A, 'X=&10: scan the 16 channel slots', align=Align.INLINE)
+d.comment(0xA34C, 'Clear V: no match yet', align=Align.INLINE)
+d.comment(0xA34D, 'Previous slot', align=Align.INLINE)
+d.comment(0xA34E, 'None left: not found', align=Align.INLINE)
+d.comment(0xA350, 'Is the slot on the current file server?', align=Align.INLINE)
+d.comment(0xA353, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA355, "Load the slot's status", align=Align.INLINE)
+d.comment(0xA358, 'Bit 4: does it hold the library?', align=Align.INLINE)
+d.comment(0xA35A, 'No: try the next slot', align=Align.INLINE)
+d.comment(0xA35C, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA35D, 'Store it in the slot', align=Align.INLINE)
+d.comment(0xA360, 'Set V: slot found', align=Align.INLINE)
+d.comment(0xA363, 'Record the library handle', align=Align.INLINE)
+d.comment(0xA366, 'Found: just set the status', align=Align.INLINE)
+d.comment(0xA368, 'A = the new handle', align=Align.INLINE)
+d.comment(0xA369, 'Allocate a slot for it', align=Align.INLINE)
+d.comment(0xA36C, 'Remember the slot', align=Align.INLINE)
+d.comment(0xA36F, 'None free: restore the context and return', align=Align.INLINE)
+d.comment(0xA371, 'Status &32: bit 4 marks the library slot', align=Align.INLINE)
+d.comment(0xA373, 'Store the slot status', align=Align.INLINE)
+d.comment(0xA376, 'Restore the FS context and return', align=Align.INLINE)
 
 ir = d.disassemble()
 output = str(

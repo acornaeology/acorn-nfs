@@ -1310,7 +1310,7 @@
       "addr": 36532,
       "name": "osbyte_a1",
       "title": "OSBYTE &A1 (read Master CMOS RAM byte)",
-      "description": "Loads `A=&A1` and tail-jumps to `OSBYTE` \u2013 reads the Master 128\nCMOS RAM byte indexed by `X`. Two callers:\n[`format_filename_field`](label:format_filename_field) and\n[`flip_set_station_boot`](label:flip_set_station_boot).\n\n**Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as\nthe leading slot of the vector-dispatch table that\n[`write_vector_entry`](label:write_vector_entry) reads via\n`LDA osbyte_a1,Y` \u2013 a deliberate overlap so the routine's body\ndoubles as table data.",
+      "description": "Loads `A=&A1` and tail-jumps to `OSBYTE` \u2013 reads the Master 128\nCMOS RAM byte indexed by `X`. Two callers:\n[`format_filename_field`](label:format_filename_field) and\n[`set_lib_handle`](label:set_lib_handle).\n\n**Dual-use trick:** the 5 bytes `A9 A1 4C F4 FF` also serve as\nthe leading slot of the vector-dispatch table that\n[`write_vector_entry`](label:write_vector_entry) reads via\n`LDA osbyte_a1,Y` \u2013 a deliberate overlap so the routine's body\ndoubles as table data.",
       "on_entry": {
         "x": "CMOS RAM byte index"
       },
@@ -1447,7 +1447,7 @@
       "addr": 36973,
       "name": "restore_fs_context",
       "title": "Restore FS context from HAZEL into RX block",
-      "description": "Copies 8 bytes (offsets 2..9) from the HAZEL FS state block into\nthe receive control block at `(net_rx_ptr)+Y`. The source uses\nthe [`hazel_minus_2`](label:hazel_minus_2) indexing-base trick:\n`LDA hazel_minus_2,Y` with `Y` running 9 down to 2 lands at\n`&C007..&C000` (the [`hazel_fs_station`](label:hazel_fs_station) block --\nstation, network, saved station, CSD/lib slots, FS flags, etc.).\nRestores those bytes into the RX control block when the caller\nneeds to re-publish the FS context (e.g. after a flip-set boot).\n\nCalled by [`svc_2_priv_ws`](label:svc_2_priv_ws) during init,\n`deselect_fs_if_active` during FS teardown, and\n`flip_set_station_boot`.",
+      "description": "Copies 8 bytes (offsets 2..9) from the HAZEL FS state block into\nthe receive control block at `(net_rx_ptr)+Y`. The source uses\nthe [`hazel_minus_2`](label:hazel_minus_2) indexing-base trick:\n`LDA hazel_minus_2,Y` with `Y` running 9 down to 2 lands at\n`&C007..&C000` (the [`hazel_fs_station`](label:hazel_fs_station) block --\nstation, network, saved station, CSD/lib slots, FS flags, etc.).\nRestores those bytes into the RX control block when the caller\nneeds to re-publish the FS context (e.g. after a flip-set boot).\n\nCalled by [`svc_2_priv_ws`](label:svc_2_priv_ws) during init,\n`deselect_fs_if_active` during FS teardown, and\n`set_lib_handle`.",
       "on_exit": {
         "a, y": "clobbered (loop counter / data byte)"
       }
@@ -2011,7 +2011,7 @@
       "addr": 38795,
       "name": "save_net_tx_cb_vset",
       "title": "Save and send TXCB with V flag set",
-      "description": "Variant of [`save_net_tx_cb`](label:save_net_tx_cb) for callers that\nhave already set `V`. Copies the FS station address from `&0E02`\nto `&0F02`, then falls through to `txcb_copy_carry_clr` which\nclears carry and enters the common TXCB copy, send, and reply\npath.\n\nCalled by `check_and_setup_txcb`, `format_filename_field`, and\n`cmd_remove`.",
+      "description": "Variant of [`save_net_tx_cb`](label:save_net_tx_cb) for callers that\nhave already set `V`. Copies the URD handle from `&0E02`\nto `&0F02`, then falls through to `txcb_copy_carry_clr` which\nclears carry and enters the common TXCB copy, send, and reply\npath.\n\nCalled by `check_and_setup_txcb`, `format_filename_field`, and\n`cmd_remove`.",
       "on_entry": {
         "y": "FS function code",
         "x": "TX buffer payload length",
@@ -2885,8 +2885,8 @@
     {
       "addr": 42574,
       "name": "fsreply_3_set_csd",
-      "title": "FS reply handler: select CSD station",
-      "description": "Single-instruction wrapper: JSR find_station_bit3 to record the\nnew current-selected-directory (CSD) station in the table, then\nJMP return_with_last_flag to clean up and return. Single caller\n(the FS reply dispatch at &959B).",
+      "title": "Set the CSD handle (FS reply 3)",
+      "description": "Dispatch target for FS reply 3, also reached by a JMP once *Dir has\nsent its directory change. Records Y as the CSD handle through\n[`set_csd_handle`](label:set_csd_handle), then returns through\n`return_with_last_flag`.",
       "on_exit": {
         "a": "fs_last_byte_flag (loaded by return_with_last_flag)"
       }
@@ -2894,52 +2894,18 @@
     {
       "addr": 42580,
       "name": "fsreply_5_set_lib",
-      "title": "FS reply handler: set library station",
-      "description": "Two-instruction wrapper: `JSR\n`[`flip_set_station_boot`](label:flip_set_station_boot) to record the new library\nstation, then `JMP`\n[`return_with_last_flag`](label:return_with_last_flag). Reached only via the FS\nreply dispatch table."
-    },
-    {
-      "addr": 42586,
-      "name": "find_station_bit2",
-      "title": "Find printer server station in table (bit 2)",
-      "description": "Scans the 16-entry station table for a slot\nmatching the current station/network address\nwith bit 2 set (printer server active). Sets V\nif found, clears V if not. Falls through to\nallocate or update the matching slot with the\nnew station address and status flags.",
-      "on_exit": {
-        "v flag": "set if matching slot already had bit 2; clear if newly allocated",
-        "x": "table slot index of the matched/allocated entry"
-      },
-      "fall_through": true
-    },
-    {
-      "addr": 42629,
-      "name": "find_station_bit3",
-      "title": "Find file server station in table (bit 3)",
-      "description": "Scans the 16-entry station table for a slot\nmatching the current station/network address\nwith bit 3 set (file server active). Sets V\nif found, clears V if not. Falls through to\nallocate or update the matching slot with the\nnew station address and status flags.",
-      "on_exit": {
-        "v flag": "set if matching slot already had bit 3; clear if newly allocated",
-        "x": "table slot index of the matched/allocated entry"
-      },
-      "fall_through": true
+      "title": "Set the library handle (FS reply 5)",
+      "description": "Dispatch target for FS reply 5. Records Y as the library handle\nthrough [`set_lib_handle`](label:set_lib_handle), then returns\nthrough `return_with_last_flag`."
     },
     {
       "addr": 42672,
       "name": "cmd_flip",
       "title": "*Flip command handler",
-      "description": "Exchanges the CSD and CSL (library) handles. Saves the current\nCSD handle from [`hazel_fs_context_copy`](label:hazel_fs_context_copy), loads\nthe library handle from [`hazel_fs_prefix_stn`](label:hazel_fs_prefix_stn)\ninto Y, and calls [`find_station_bit3`](label:find_station_bit3) to install\nit as the new CSD. Restores the original CSD handle and falls\nthrough to [`flip_set_station_boot`](label:flip_set_station_boot) to install\nit as the new library. Useful when files to be LOADed are in\nthe library and *DIR/*LIB would be inconvenient.",
+      "description": "Exchanges the CSD and CSL (library) handles. Saves the current\nCSD handle from [`hazel_fs_csd_handle`](label:hazel_fs_csd_handle), loads\nthe library handle from [`hazel_fs_lib_handle`](label:hazel_fs_lib_handle)\ninto Y, and calls [`set_csd_handle`](label:set_csd_handle) to install\nit as the new CSD. Restores the original CSD handle and falls\nthrough to [`set_lib_handle`](label:set_lib_handle) to install\nit as the new library. Useful when files to be LOADed are in\nthe library and *DIR/*LIB would be inconvenient.",
       "on_entry": {
         "y": "command line offset in text pointer"
       },
       "fall_through": true
-    },
-    {
-      "addr": 42684,
-      "name": "flip_set_station_boot",
-      "title": "Set boot option for a station in the table",
-      "description": "Scans up to 16 station table entries for one\nmatching the current address with bit 4 set\n(boot-eligible). Stores the requested boot type\nin the matching entry and calls\nrestore_fs_context to re-establish the filing\nsystem state.",
-      "on_entry": {
-        "a": "boot type code to store"
-      },
-      "on_exit": {
-        "a, x, y": "clobbered"
-      }
     },
     {
       "addr": 42731,
@@ -2952,7 +2918,7 @@
       "addr": 42747,
       "name": "fsreply_2_copy_handles",
       "title": "FS reply 2: install handles and (optionally) boot",
-      "description": "Records the file-server / printer-server / library handles from\nthe I-AM reply into the station table by calling\n[`find_station_bit2`](label:find_station_bit2),\n[`find_station_bit3`](label:find_station_bit3), and\n[`flip_set_station_boot`](label:flip_set_station_boot) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](label:hazel_txcb_data),\n[`hazel_txcb_flag`](label:hazel_txcb_flag),\n[`hazel_txcb_count`](label:hazel_txcb_count)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](label:return_with_last_flag); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](label:boot_try_findlib), which OSCLIs\n`-NET-FindLib`, then falls into\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) (OSBYTE `&6D`\nwhen boot type \u2265 2), clears the auto-boot flag in\n[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags), and (unless CTRL is held)\nfalls through to [`boot_select_cmd`](label:boot_select_cmd) to execute the\n`!Boot` command.\n\nTwo entry contracts:\n\n- **Direct dispatch** via the FS-reply table entry at `&2C` \u2014\n  the dispatcher arrives with Carry clear, so `BCS` at `&A6FB`\n  is not taken and the routine exits via\n  `JMP return_with_last_flag` without ever reaching the `PLA`\n  at `&A732`. The stack contract is satisfied trivially.\n- **Fall-through from [`fsreply_1_boot`](label:fsreply_1_boot)** \u2014\n  fsreply_1_boot pushes A (the boot-type byte) and `SEC`s\n  before falling in, so `BCS` is taken and the boot path runs;\n  the `PLA` at `&A732` then pops the boot-type byte cleanly.\n\nDirect dispatch with Carry set is not part of the contract;\nthe boot path requires the pre-pushed A from fsreply_1_boot.",
+      "description": "Records the URD, CSD and library handles from\nthe I-AM reply by calling\n[`set_urd_handle`](label:set_urd_handle),\n[`set_csd_handle`](label:set_csd_handle), and\n[`set_lib_handle`](label:set_lib_handle) in turn with the three\nhandle bytes loaded from the TXCB reply\n([`hazel_txcb_data`](label:hazel_txcb_data),\n[`hazel_txcb_flag`](label:hazel_txcb_flag),\n[`hazel_txcb_count`](label:hazel_txcb_count)). PHP/PLP carry a flag across\nthe calls: when Carry is clear on entry the routine returns via\n[`return_with_last_flag`](label:return_with_last_flag); when Carry is set it\ncontinues into the boot path at\n[`boot_try_findlib`](label:boot_try_findlib), which OSCLIs\n`-NET-FindLib`, then falls into\n[`boot_persist_fs_maybe`](label:boot_persist_fs_maybe) (OSBYTE `&6D`\nwhen boot type \u2265 2), clears the auto-boot flag in\n[`hazel_fs_lib_flags`](label:hazel_fs_lib_flags), and (unless CTRL is held)\nfalls through to [`boot_select_cmd`](label:boot_select_cmd) to execute the\n`!Boot` command.\n\nTwo entry contracts:\n\n- **Direct dispatch** via the FS-reply table entry at `&2C` \u2014\n  the dispatcher arrives with Carry clear, so `BCS` at `&A6FB`\n  is not taken and the routine exits via\n  `JMP return_with_last_flag` without ever reaching the `PLA`\n  at `&A732`. The stack contract is satisfied trivially.\n- **Fall-through from [`fsreply_1_boot`](label:fsreply_1_boot)** \u2014\n  fsreply_1_boot pushes A (the boot-type byte) and `SEC`s\n  before falling in, so `BCS` is taken and the boot path runs;\n  the `PLA` at `&A732` then pops the boot-type byte cleanly.\n\nDirect dispatch with Carry set is not part of the contract;\nthe boot path requires the pre-pushed A from fsreply_1_boot.",
       "on_entry": {
         "a": "boot-type byte (pushed by fsreply_1_boot when arriving via fall-through; ignored on direct-dispatch C-clear path)",
         "carry": "set when boot processing should follow (only legal via fsreply_1_boot fall-through)"
@@ -4696,6 +4662,35 @@
       "name": "done_load_from_buf",
       "title": "Read a byte from an FCB buffer",
       "description": "Uses the FCB's byte count as the offset into its data buffer,\nincrements the count, and sets up the buffer pointer for the read."
+    },
+    {
+      "addr": 42586,
+      "name": "set_urd_handle",
+      "title": "Set the URD handle",
+      "description": "Records Y as the user root directory (URD) handle. Searches the 16\nchannel slots, last first, for one on the current file server whose\nstatus has bit 2 set (the slot holding the URD); if found, stores\nthe handle in it. Otherwise allocates a new slot for the handle,\ngiving up if none is free. Either way the slot status becomes &26,\nand the routine exits through `restore_fs_context`.",
+      "on_entry": {
+        "y": "the new URD handle"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 42629,
+      "name": "set_csd_handle",
+      "title": "Set the CSD handle",
+      "description": "Records Y as the currently selected directory (CSD) handle. Searches\nthe 16 channel slots, last first, for one on the current file server\nwhose status has bit 3 set (the slot holding the CSD); if found,\nstores the handle in it. Otherwise allocates a new slot for the\nhandle, giving up if none is free. Either way the slot status\nbecomes &2A, and the routine exits through `restore_fs_context`.",
+      "on_entry": {
+        "y": "the new CSD handle"
+      },
+      "fall_through": true
+    },
+    {
+      "addr": 42684,
+      "name": "set_lib_handle",
+      "title": "Set the library handle",
+      "description": "Records Y as the library (library) handle. Searches the 16 channel\nslots, last first, for one on the current file server whose status\nhas bit 4 set (the slot holding the library); if found, stores the\nhandle in it. Otherwise allocates a new slot for the handle, giving\nup if none is free. Either way the slot status becomes &32, and the\nroutine exits through `restore_fs_context`. Also the second half of\n[`cmd_flip`](label:cmd_flip), which falls into it.",
+      "on_entry": {
+        "y": "the new library handle"
+      }
     }
   ],
   "banners": [
@@ -5200,9 +5195,9 @@
     "ws_precomputed_value": 26763,
     "hazel_fs_station": 49152,
     "hazel_fs_network": 49153,
-    "hazel_fs_saved_station": 49154,
-    "hazel_fs_context_copy": 49155,
-    "hazel_fs_prefix_stn": 49156,
+    "hazel_fs_urd_handle": 49154,
+    "hazel_fs_csd_handle": 49155,
+    "hazel_fs_lib_handle": 49156,
     "hazel_boot_option": 49157,
     "hazel_fs_messages_flag": 49158,
     "hazel_fs_pending_state": 49159,
@@ -6973,7 +6968,7 @@
     },
     {
       "addr": 49155,
-      "name": "hazel_fs_context_copy",
+      "name": "hazel_fs_csd_handle",
       "length": 1,
       "group": "hazel",
       "access": [
@@ -6981,18 +6976,18 @@
         "w",
         "b"
       ],
-      "description": "Multi-purpose sub-byte of the &C000 block: CSD handle / matched-entry index / Y-indexed base into FS context block."
+      "description": "CSD handle, sent in FS command headers (set by set_csd_handle)."
     },
     {
       "addr": 49156,
-      "name": "hazel_fs_prefix_stn",
+      "name": "hazel_fs_lib_handle",
       "length": 1,
       "group": "hazel",
       "access": [
         "r",
         "w"
       ],
-      "description": "Multi-purpose sub-byte of the &C000 block: saved-prefix station / library handle / boot type."
+      "description": "Library handle, sent in FS command headers (set by set_lib_handle)."
     },
     {
       "addr": 49157,
@@ -46800,7 +46795,7 @@
       "labels": [
         "dir_found_send"
       ],
-      "comment_inline": "Load current FS station byte",
+      "comment_inline": "Load the CSD handle",
       "xref_summaries": [
         "&9578 referenced 1 time by &9567"
       ],
@@ -46812,9 +46807,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_context_copy",
+      "operand": "hazel_fs_csd_handle",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 38267,
@@ -50633,7 +50628,7 @@
       "labels": [
         "save_net_tx_cb_vset"
       ],
-      "comment_inline": "Read FS station from &C002 (saved from selection time)",
+      "comment_inline": "Read the URD handle",
       "xref_summaries": [
         "&978b referenced 2 times by &9e31, &a01e"
       ],
@@ -50649,9 +50644,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_saved_station",
+      "operand": "hazel_fs_urd_handle",
       "target": 49154,
-      "target_label": "hazel_fs_saved_station"
+      "target_label": "hazel_fs_urd_handle"
     },
     {
       "addr": 38798,
@@ -50756,9 +50751,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_context_copy,y",
+      "operand": "hazel_fs_csd_handle,y",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 38811,
@@ -50816,12 +50811,12 @@
         112,
         10
       ],
-      "comment_inline": "V (bit 6) set: use the library station instead",
+      "comment_inline": "Bit 6 set: send the URD in the CSD slot",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "use_lib_station",
+      "operand": "use_urd_in_csd_slot",
       "target": 38832,
-      "target_label": "use_lib_station"
+      "target_label": "use_urd_in_csd_slot"
     },
     {
       "addr": 38822,
@@ -50829,7 +50824,7 @@
         16,
         14
       ],
-      "comment_inline": "Neither bit set: leave the FS station copy intact",
+      "comment_inline": "Neither bit set: keep the CSD",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "done_vset_station",
@@ -50843,12 +50838,12 @@
         4,
         192
       ],
-      "comment_inline": "Bit 7 (FS-prefix) set: substitute the saved-prefix station from &C004",
+      "comment_inline": "Bit 7 set: send the library handle in the CSD slot",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_prefix_stn",
+      "operand": "hazel_fs_lib_handle",
       "target": 49156,
-      "target_label": "hazel_fs_prefix_stn"
+      "target_label": "hazel_fs_lib_handle"
     },
     {
       "addr": 38827,
@@ -50857,7 +50852,7 @@
         3,
         193
       ],
-      "comment_inline": "Override TX[3]'s station byte",
+      "comment_inline": "Override TX[3], the CSD slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_txcb_network",
@@ -50885,9 +50880,9 @@
         192
       ],
       "labels": [
-        "use_lib_station"
+        "use_urd_in_csd_slot"
       ],
-      "comment_inline": "use_lib_station: substitute the library station from &C002 (the original FS station, but bit 6 of fs_lib_flags redirects via lib path)",
+      "comment_inline": "Bit 6: substitute the URD handle",
       "xref_summaries": [
         "&97b0 referenced 1 time by &97a4"
       ],
@@ -50899,9 +50894,9 @@
       ],
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_saved_station",
+      "operand": "hazel_fs_urd_handle",
       "target": 49154,
-      "target_label": "hazel_fs_saved_station"
+      "target_label": "hazel_fs_urd_handle"
     },
     {
       "addr": 38835,
@@ -50910,7 +50905,7 @@
         3,
         193
       ],
-      "comment_inline": "Override TX[3] with the library station byte",
+      "comment_inline": "Override TX[3], the CSD slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_txcb_network",
@@ -71002,9 +70997,9 @@
       "comment_inline": "Load data byte from fs_csd_handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_context_copy,y",
+      "operand": "hazel_fs_csd_handle,y",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 41691,
@@ -71030,9 +71025,9 @@
       "comment_inline": "Load high data byte from fs_lib_handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_prefix_stn",
+      "operand": "hazel_fs_lib_handle",
       "target": 49156,
-      "target_label": "hazel_fs_prefix_stn"
+      "target_label": "hazel_fs_lib_handle"
     },
     {
       "addr": 41697,
@@ -71058,9 +71053,9 @@
       "comment_inline": "Load port from fs_urd_handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_saved_station",
+      "operand": "hazel_fs_urd_handle",
       "target": 49154,
-      "target_label": "hazel_fs_saved_station"
+      "target_label": "hazel_fs_urd_handle"
     },
     {
       "addr": 41703,
@@ -77041,7 +77036,7 @@
       "labels": [
         "fsreply_3_set_csd"
       ],
-      "comment_inline": "Find station-bit-3 entry",
+      "comment_inline": "Record Y as the CSD handle",
       "xref_summaries": [
         "&a64e referenced 1 time by &959b"
       ],
@@ -77053,9 +77048,9 @@
       ],
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "find_station_bit3",
+      "operand": "set_csd_handle",
       "target": 42629,
-      "target_label": "find_station_bit3"
+      "target_label": "set_csd_handle"
     },
     {
       "addr": 42577,
@@ -77081,12 +77076,12 @@
       "labels": [
         "fsreply_5_set_lib"
       ],
-      "comment_inline": "Record library station in station table",
+      "comment_inline": "Record Y as the library handle",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "flip_set_station_boot",
+      "operand": "set_lib_handle",
       "target": 42684,
-      "target_label": "flip_set_station_boot"
+      "target_label": "set_lib_handle"
     },
     {
       "addr": 42583,
@@ -77109,9 +77104,9 @@
         16
       ],
       "labels": [
-        "find_station_bit2"
+        "set_urd_handle"
       ],
-      "comment_inline": "X=&10: scan 16 entries",
+      "comment_inline": "X=&10: scan the 16 channel slots",
       "xref_summaries": [
         "&a65a referenced 1 time by &a6ff"
       ],
@@ -77130,7 +77125,7 @@
       "bytes": [
         184
       ],
-      "comment_inline": "Clear V (no-match marker)",
+      "comment_inline": "Clear V: no match yet",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -77140,9 +77135,9 @@
         202
       ],
       "labels": [
-        "loop_search_stn_bit2"
+        "loop_find_urd_slot"
       ],
-      "comment_inline": "Step to previous entry",
+      "comment_inline": "Previous slot",
       "xref_summaries": [
         "&a65d referenced 2 times by &a663, &a66a"
       ],
@@ -77165,12 +77160,12 @@
         48,
         19
       ],
-      "comment_inline": "Below 0: scan complete",
+      "comment_inline": "None left: not found",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "done_search_bit2",
+      "operand": "done_find_urd_slot",
       "target": 42611,
-      "target_label": "done_search_bit2"
+      "target_label": "done_find_urd_slot"
     },
     {
       "addr": 42592,
@@ -77179,7 +77174,7 @@
         87,
         185
       ],
-      "comment_inline": "Compare entry X's stn/net with caller's",
+      "comment_inline": "Is the slot on the current file server?",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_station_net",
@@ -77192,12 +77187,12 @@
         208,
         248
       ],
-      "comment_inline": "No match: continue",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_search_stn_bit2",
+      "operand": "loop_find_urd_slot",
       "target": 42589,
-      "target_label": "loop_search_stn_bit2"
+      "target_label": "loop_find_urd_slot"
     },
     {
       "addr": 42597,
@@ -77206,7 +77201,7 @@
         96,
         194
       ],
-      "comment_inline": "Match: read entry's flag byte at hazel_fcb_status+X",
+      "comment_inline": "Load the slot's status",
       "type": "code",
       "mnemonic": "lda",
       "operand": "hazel_fcb_status,x",
@@ -77219,7 +77214,7 @@
         41,
         4
       ],
-      "comment_inline": "Mask bit 2",
+      "comment_inline": "Bit 2: does it hold the URD?",
       "type": "code",
       "mnemonic": "and",
       "operand": "#4"
@@ -77230,19 +77225,19 @@
         240,
         241
       ],
-      "comment_inline": "Bit 2 clear: keep scanning",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "loop_search_stn_bit2",
+      "operand": "loop_find_urd_slot",
       "target": 42589,
-      "target_label": "loop_search_stn_bit2"
+      "target_label": "loop_find_urd_slot"
     },
     {
       "addr": 42604,
       "bytes": [
         152
       ],
-      "comment_inline": "Bit 2 set: A = matched entry index (Y)",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -77253,7 +77248,7 @@
         48,
         194
       ],
-      "comment_inline": "Store Y at hazel_fcb_slot_attr+X (link entry to slot)",
+      "comment_inline": "Store it in the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_attr,x",
@@ -77267,7 +77262,7 @@
         105,
         151
       ],
-      "comment_inline": "BIT always_set_v_byte: V <- 1 (match found)",
+      "comment_inline": "Set V: slot found",
       "type": "code",
       "mnemonic": "bit",
       "operand": "always_set_v_byte",
@@ -77282,9 +77277,9 @@
         192
       ],
       "labels": [
-        "done_search_bit2"
+        "done_find_urd_slot"
       ],
-      "comment_inline": "Save Y at hazel_fs_saved_station (matched entry index)",
+      "comment_inline": "Record the URD handle",
       "xref_summaries": [
         "&a673 referenced 1 time by &a65e"
       ],
@@ -77296,9 +77291,9 @@
       ],
       "type": "code",
       "mnemonic": "sty",
-      "operand": "hazel_fs_saved_station",
+      "operand": "hazel_fs_urd_handle",
       "target": 49154,
-      "target_label": "hazel_fs_saved_station"
+      "target_label": "hazel_fs_urd_handle"
     },
     {
       "addr": 42614,
@@ -77306,19 +77301,19 @@
         112,
         9
       ],
-      "comment_inline": "V set: skip new-slot alloc",
+      "comment_inline": "Found: just set the status",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "set_flags_bit2",
+      "operand": "set_urd_slot_flags",
       "target": 42625,
-      "target_label": "set_flags_bit2"
+      "target_label": "set_urd_slot_flags"
     },
     {
       "addr": 42616,
       "bytes": [
         152
       ],
-      "comment_inline": "A = caller's index",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -77329,7 +77324,7 @@
         211,
         184
       ],
-      "comment_inline": "Allocate a fresh FCB slot",
+      "comment_inline": "Allocate a slot for it",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "alloc_fcb_slot",
@@ -77343,7 +77338,7 @@
         114,
         194
       ],
-      "comment_inline": "Save FCB slot index at hazel_fcb_slot_1",
+      "comment_inline": "Remember the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_1",
@@ -77356,7 +77351,7 @@
         240,
         103
       ],
-      "comment_inline": "Z set: alloc failed -> restore FS context",
+      "comment_inline": "None free: restore the context and return",
       "type": "code",
       "mnemonic": "beq",
       "operand": "jmp_restore_fs_ctx",
@@ -77370,9 +77365,9 @@
         38
       ],
       "labels": [
-        "set_flags_bit2"
+        "set_urd_slot_flags"
       ],
-      "comment_inline": "A=&26: workspace flag for bit 2 search",
+      "comment_inline": "Status &26: bit 2 marks the URD slot",
       "xref_summaries": [
         "&a681 referenced 1 time by &a676"
       ],
@@ -77392,12 +77387,12 @@
         208,
         96
       ],
-      "comment_inline": "Match: store station flags and restore",
+      "comment_inline": "Always taken: store the status",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "store_stn_flags_restore",
+      "operand": "store_slot_flags_restore",
       "target": 42725,
-      "target_label": "store_stn_flags_restore"
+      "target_label": "store_slot_flags_restore"
     },
     {
       "addr": 42629,
@@ -77406,9 +77401,9 @@
         16
       ],
       "labels": [
-        "find_station_bit3"
+        "set_csd_handle"
       ],
-      "comment_inline": "X=&10: scan 16 entries",
+      "comment_inline": "X=&10: scan the 16 channel slots",
       "xref_summaries": [
         "&a685 referenced 3 times by &a64e, &a6b7, &a705"
       ],
@@ -77435,7 +77430,7 @@
       "bytes": [
         184
       ],
-      "comment_inline": "Clear V (no-match marker)",
+      "comment_inline": "Clear V: no match yet",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -77445,9 +77440,9 @@
         202
       ],
       "labels": [
-        "loop_search_stn_bit3"
+        "loop_find_csd_slot"
       ],
-      "comment_inline": "Step to previous entry",
+      "comment_inline": "Previous slot",
       "xref_summaries": [
         "&a688 referenced 2 times by &a68e, &a695"
       ],
@@ -77470,12 +77465,12 @@
         48,
         19
       ],
-      "comment_inline": "Below 0: scan complete",
+      "comment_inline": "None left: not found",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "done_search_bit3",
+      "operand": "done_find_csd_slot",
       "target": 42654,
-      "target_label": "done_search_bit3"
+      "target_label": "done_find_csd_slot"
     },
     {
       "addr": 42635,
@@ -77484,7 +77479,7 @@
         87,
         185
       ],
-      "comment_inline": "Compare entry's stn/net with caller's",
+      "comment_inline": "Is the slot on the current file server?",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_station_net",
@@ -77497,12 +77492,12 @@
         208,
         248
       ],
-      "comment_inline": "No match: continue",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_search_stn_bit3",
+      "operand": "loop_find_csd_slot",
       "target": 42632,
-      "target_label": "loop_search_stn_bit3"
+      "target_label": "loop_find_csd_slot"
     },
     {
       "addr": 42640,
@@ -77511,7 +77506,7 @@
         96,
         194
       ],
-      "comment_inline": "Match: read entry's flag byte at hazel_fcb_status+X",
+      "comment_inline": "Load the slot's status",
       "type": "code",
       "mnemonic": "lda",
       "operand": "hazel_fcb_status,x",
@@ -77524,7 +77519,7 @@
         41,
         8
       ],
-      "comment_inline": "Mask bit 3",
+      "comment_inline": "Bit 3: does it hold the CSD?",
       "type": "code",
       "mnemonic": "and",
       "operand": "#8"
@@ -77535,19 +77530,19 @@
         240,
         241
       ],
-      "comment_inline": "Bit 3 clear: keep scanning",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "loop_search_stn_bit3",
+      "operand": "loop_find_csd_slot",
       "target": 42632,
-      "target_label": "loop_search_stn_bit3"
+      "target_label": "loop_find_csd_slot"
     },
     {
       "addr": 42647,
       "bytes": [
         152
       ],
-      "comment_inline": "Bit 3 set: A = matched entry index (Y)",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -77558,7 +77553,7 @@
         48,
         194
       ],
-      "comment_inline": "Store Y at hazel_fcb_slot_attr+X (link entry to slot)",
+      "comment_inline": "Store it in the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_attr,x",
@@ -77572,7 +77567,7 @@
         105,
         151
       ],
-      "comment_inline": "BIT always_set_v_byte: V <- 1 (match found)",
+      "comment_inline": "Set V: slot found",
       "type": "code",
       "mnemonic": "bit",
       "operand": "always_set_v_byte",
@@ -77587,9 +77582,9 @@
         192
       ],
       "labels": [
-        "done_search_bit3"
+        "done_find_csd_slot"
       ],
-      "comment_inline": "Save Y at hazel_fs_context_copy (matched entry index)",
+      "comment_inline": "Record the CSD handle",
       "xref_summaries": [
         "&a69e referenced 1 time by &a689"
       ],
@@ -77601,9 +77596,9 @@
       ],
       "type": "code",
       "mnemonic": "sty",
-      "operand": "hazel_fs_context_copy",
+      "operand": "hazel_fs_csd_handle",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 42657,
@@ -77611,19 +77606,19 @@
         112,
         9
       ],
-      "comment_inline": "V set: skip new-slot alloc",
+      "comment_inline": "Found: just set the status",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "set_flags_bit3",
+      "operand": "set_csd_slot_flags",
       "target": 42668,
-      "target_label": "set_flags_bit3"
+      "target_label": "set_csd_slot_flags"
     },
     {
       "addr": 42659,
       "bytes": [
         152
       ],
-      "comment_inline": "A = caller's index",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -77634,7 +77629,7 @@
         211,
         184
       ],
-      "comment_inline": "Allocate a fresh FCB slot",
+      "comment_inline": "Allocate a slot for it",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "alloc_fcb_slot",
@@ -77648,7 +77643,7 @@
         115,
         194
       ],
-      "comment_inline": "Save FCB slot index at hazel_fcb_slot_2",
+      "comment_inline": "Remember the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_2",
@@ -77661,7 +77656,7 @@
         240,
         60
       ],
-      "comment_inline": "Z set: alloc failed -> restore FS context",
+      "comment_inline": "None free: restore the context and return",
       "type": "code",
       "mnemonic": "beq",
       "operand": "jmp_restore_fs_ctx",
@@ -77675,9 +77670,9 @@
         42
       ],
       "labels": [
-        "set_flags_bit3"
+        "set_csd_slot_flags"
       ],
-      "comment_inline": "A=&2A: workspace flag for bit 3 search",
+      "comment_inline": "Status &2A: bit 3 marks the CSD slot",
       "xref_summaries": [
         "&a6ac referenced 1 time by &a6a1"
       ],
@@ -77697,12 +77692,12 @@
         208,
         53
       ],
-      "comment_inline": "Match: store station flags and restore",
+      "comment_inline": "Always taken: store the status",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "store_stn_flags_restore",
+      "operand": "store_slot_flags_restore",
       "target": 42725,
-      "target_label": "store_stn_flags_restore"
+      "target_label": "store_slot_flags_restore"
     },
     {
       "addr": 42672,
@@ -77717,9 +77712,9 @@
       "comment_inline": "Load current CSD handle",
       "type": "code",
       "mnemonic": "lda",
-      "operand": "hazel_fs_context_copy",
+      "operand": "hazel_fs_csd_handle",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 42675,
@@ -77740,9 +77735,9 @@
       "comment_inline": "Load library handle into Y",
       "type": "code",
       "mnemonic": "ldy",
-      "operand": "hazel_fs_prefix_stn",
+      "operand": "hazel_fs_lib_handle",
       "target": 49156,
-      "target_label": "hazel_fs_prefix_stn"
+      "target_label": "hazel_fs_lib_handle"
     },
     {
       "addr": 42679,
@@ -77754,9 +77749,9 @@
       "comment_inline": "Install library as new CSD",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "find_station_bit3",
+      "operand": "set_csd_handle",
       "target": 42629,
-      "target_label": "find_station_bit3"
+      "target_label": "set_csd_handle"
     },
     {
       "addr": 42682,
@@ -77783,9 +77778,9 @@
         16
       ],
       "labels": [
-        "flip_set_station_boot"
+        "set_lib_handle"
       ],
-      "comment_inline": "X=&10: max 16 station entries",
+      "comment_inline": "X=&10: scan the 16 channel slots",
       "xref_summaries": [
         "&a6bc referenced 2 times by &a654, &a70b"
       ],
@@ -77808,7 +77803,7 @@
       "bytes": [
         184
       ],
-      "comment_inline": "Clear V (no match found yet)",
+      "comment_inline": "Clear V: no match yet",
       "type": "code",
       "mnemonic": "clv"
     },
@@ -77818,9 +77813,9 @@
         202
       ],
       "labels": [
-        "loop_search_stn_boot"
+        "loop_find_lib_slot"
       ],
-      "comment_inline": "Decrement station index",
+      "comment_inline": "Previous slot",
       "xref_summaries": [
         "&a6bf referenced 2 times by &a6c5, &a6cc"
       ],
@@ -77843,12 +77838,12 @@
         48,
         19
       ],
-      "comment_inline": "All searched: exit loop",
+      "comment_inline": "None left: not found",
       "type": "code",
       "mnemonic": "bmi",
-      "operand": "done_search_boot",
+      "operand": "done_find_lib_slot",
       "target": 42709,
-      "target_label": "done_search_boot"
+      "target_label": "done_find_lib_slot"
     },
     {
       "addr": 42690,
@@ -77857,7 +77852,7 @@
         87,
         185
       ],
-      "comment_inline": "Check if station[X] matches",
+      "comment_inline": "Is the slot on the current file server?",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "match_station_net",
@@ -77870,12 +77865,12 @@
         208,
         248
       ],
-      "comment_inline": "No match: try next station",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "bne",
-      "operand": "loop_search_stn_boot",
+      "operand": "loop_find_lib_slot",
       "target": 42687,
-      "target_label": "loop_search_stn_boot"
+      "target_label": "loop_find_lib_slot"
     },
     {
       "addr": 42695,
@@ -77884,7 +77879,7 @@
         96,
         194
       ],
-      "comment_inline": "Load station flags byte",
+      "comment_inline": "Load the slot's status",
       "type": "code",
       "mnemonic": "lda",
       "operand": "hazel_fcb_status,x",
@@ -77897,7 +77892,7 @@
         41,
         16
       ],
-      "comment_inline": "Test bit 4 (active flag)",
+      "comment_inline": "Bit 4: does it hold the library?",
       "type": "code",
       "mnemonic": "and",
       "operand": "#&10"
@@ -77908,19 +77903,19 @@
         240,
         241
       ],
-      "comment_inline": "Not active: try next station",
+      "comment_inline": "No: try the next slot",
       "type": "code",
       "mnemonic": "beq",
-      "operand": "loop_search_stn_boot",
+      "operand": "loop_find_lib_slot",
       "target": 42687,
-      "target_label": "loop_search_stn_boot"
+      "target_label": "loop_find_lib_slot"
     },
     {
       "addr": 42702,
       "bytes": [
         152
       ],
-      "comment_inline": "Transfer boot type to A",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -77931,7 +77926,7 @@
         48,
         194
       ],
-      "comment_inline": "Store boot setting for station",
+      "comment_inline": "Store it in the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_attr,x",
@@ -77945,7 +77940,7 @@
         105,
         151
       ],
-      "comment_inline": "Set V flag (station match found)",
+      "comment_inline": "Set V: slot found",
       "type": "code",
       "mnemonic": "bit",
       "operand": "always_set_v_byte",
@@ -77960,9 +77955,9 @@
         192
       ],
       "labels": [
-        "done_search_boot"
+        "done_find_lib_slot"
       ],
-      "comment_inline": "Store boot type",
+      "comment_inline": "Record the library handle",
       "xref_summaries": [
         "&a6d5 referenced 1 time by &a6c0"
       ],
@@ -77974,9 +77969,9 @@
       ],
       "type": "code",
       "mnemonic": "sty",
-      "operand": "hazel_fs_prefix_stn",
+      "operand": "hazel_fs_lib_handle",
       "target": 49156,
-      "target_label": "hazel_fs_prefix_stn"
+      "target_label": "hazel_fs_lib_handle"
     },
     {
       "addr": 42712,
@@ -77984,19 +77979,19 @@
         112,
         9
       ],
-      "comment_inline": "V set (matched): skip allocation",
+      "comment_inline": "Found: just set the status",
       "type": "code",
       "mnemonic": "bvs",
-      "operand": "set_flags_boot",
+      "operand": "set_lib_slot_flags",
       "target": 42723,
-      "target_label": "set_flags_boot"
+      "target_label": "set_lib_slot_flags"
     },
     {
       "addr": 42714,
       "bytes": [
         152
       ],
-      "comment_inline": "Boot type to A",
+      "comment_inline": "A = the new handle",
       "type": "code",
       "mnemonic": "tya"
     },
@@ -78007,7 +78002,7 @@
         211,
         184
       ],
-      "comment_inline": "Allocate FCB slot for new entry",
+      "comment_inline": "Allocate a slot for it",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "alloc_fcb_slot",
@@ -78021,7 +78016,7 @@
         116,
         194
       ],
-      "comment_inline": "Store allocation result",
+      "comment_inline": "Remember the slot",
       "type": "code",
       "mnemonic": "sta",
       "operand": "hazel_fcb_slot_3",
@@ -78034,7 +78029,7 @@
         240,
         5
       ],
-      "comment_inline": "Zero: allocation failed, exit",
+      "comment_inline": "None free: restore the context and return",
       "type": "code",
       "mnemonic": "beq",
       "operand": "jmp_restore_fs_ctx",
@@ -78048,9 +78043,9 @@
         50
       ],
       "labels": [
-        "set_flags_boot"
+        "set_lib_slot_flags"
       ],
-      "comment_inline": "A=&32: station flags (active+boot)",
+      "comment_inline": "Status &32: bit 4 marks the library slot",
       "xref_summaries": [
         "&a6e3 referenced 1 time by &a6d8"
       ],
@@ -78072,9 +78067,9 @@
         194
       ],
       "labels": [
-        "store_stn_flags_restore"
+        "store_slot_flags_restore"
       ],
-      "comment_inline": "Store station flags",
+      "comment_inline": "Store the slot status",
       "xref_summaries": [
         "&a6e5 referenced 2 times by &a683, &a6ae"
       ],
@@ -78104,7 +78099,7 @@
       "labels": [
         "jmp_restore_fs_ctx"
       ],
-      "comment_inline": "Restore FS context and return",
+      "comment_inline": "Restore the FS context and return",
       "xref_summaries": [
         "&a6e8 referenced 3 times by &a67f, &a6aa, &a6e1"
       ],
@@ -78235,7 +78230,7 @@
         5,
         193
       ],
-      "comment_inline": "Load station number from reply",
+      "comment_inline": "Y = URD handle from the reply",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "hazel_txcb_data",
@@ -78249,12 +78244,12 @@
         90,
         166
       ],
-      "comment_inline": "Find station entry with bit 2",
+      "comment_inline": "Record it as the URD",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "find_station_bit2",
+      "operand": "set_urd_handle",
       "target": 42586,
-      "target_label": "find_station_bit2"
+      "target_label": "set_urd_handle"
     },
     {
       "addr": 42754,
@@ -78263,7 +78258,7 @@
         6,
         193
       ],
-      "comment_inline": "Load network number from reply",
+      "comment_inline": "Y = CSD handle from the reply",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "hazel_txcb_flag",
@@ -78277,12 +78272,12 @@
         133,
         166
       ],
-      "comment_inline": "Find station entry with bit 3",
+      "comment_inline": "Record it as the CSD",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "find_station_bit3",
+      "operand": "set_csd_handle",
       "target": 42629,
-      "target_label": "find_station_bit3"
+      "target_label": "set_csd_handle"
     },
     {
       "addr": 42760,
@@ -78291,7 +78286,7 @@
         7,
         193
       ],
-      "comment_inline": "Load boot type from reply",
+      "comment_inline": "Y = library handle from the reply",
       "type": "code",
       "mnemonic": "ldy",
       "operand": "hazel_txcb_count",
@@ -78305,12 +78300,12 @@
         188,
         166
       ],
-      "comment_inline": "Set boot config for station",
+      "comment_inline": "Record it as the library",
       "type": "code",
       "mnemonic": "jsr",
-      "operand": "flip_set_station_boot",
+      "operand": "set_lib_handle",
       "target": 42684,
-      "target_label": "flip_set_station_boot"
+      "target_label": "set_lib_handle"
     },
     {
       "addr": 42766,
@@ -85366,12 +85361,12 @@
         2,
         192
       ],
-      "comment_inline": "Store as handle 1 station",
+      "comment_inline": "Restore the URD handle from the slot",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "hazel_fs_saved_station",
+      "operand": "hazel_fs_urd_handle",
       "target": 49154,
-      "target_label": "hazel_fs_saved_station"
+      "target_label": "hazel_fs_urd_handle"
     },
     {
       "addr": 43585,
@@ -85527,12 +85522,12 @@
         3,
         192
       ],
-      "comment_inline": "Store as handle 2 station",
+      "comment_inline": "Restore the CSD handle from the slot",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "hazel_fs_context_copy",
+      "operand": "hazel_fs_csd_handle",
       "target": 49155,
-      "target_label": "hazel_fs_context_copy"
+      "target_label": "hazel_fs_csd_handle"
     },
     {
       "addr": 43611,
@@ -85688,12 +85683,12 @@
         4,
         192
       ],
-      "comment_inline": "Store as handle 3 station",
+      "comment_inline": "Restore the library handle from the slot",
       "type": "code",
       "mnemonic": "sta",
-      "operand": "hazel_fs_prefix_stn",
+      "operand": "hazel_fs_lib_handle",
       "target": 49156,
-      "target_label": "hazel_fs_prefix_stn"
+      "target_label": "hazel_fs_lib_handle"
     },
     {
       "addr": 43637,

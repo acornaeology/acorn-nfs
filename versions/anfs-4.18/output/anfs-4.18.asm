@@ -5078,7 +5078,7 @@ ws_init_data = error_bad_station+2
 ; Copies 8 bytes (offsets 2 to 9) from the saved workspace at &0DFA back into the receive
 ; control block via (net_rx_ptr). This restores the station identity, directory handles,
 ; and library path after a filing system reselection. Called by svc_2_private_workspace
-; during init, deselect_fs_if_active during FS teardown, and flip_set_station_boot.
+; during init, deselect_fs_if_active during FS teardown, and set_lib_handle.
 ; &8f8c referenced 3 times by &8f3d, &8fa8, &a38e
 .restore_fs_context
     ldy #9                                                            ; 8f8c: a0 09       ..       ; Y=9: end of FS context block
@@ -6056,7 +6056,7 @@ ws_init_data = error_bad_station+2
     equs "Not found", &00                                             ; 9432: 4e 6f 74... Not...   ; Error message text (error_inline_log)
 ; &943c referenced 1 time by &942b
 .dir_found_send
-    lda fs_csd_handle                                                 ; 943c: ad 03 0e    ...      ; Load current FS station byte
+    lda fs_csd_handle                                                 ; 943c: ad 03 0e    ...      ; Load the CSD handle
     sta fs_cmd_data                                                   ; 943f: 8d 05 0f    ...      ; Store in TX buffer
     ldx #1                                                            ; 9442: a2 01       ..       ; X=1: buffer offset
     ldy #7                                                            ; 9444: a0 07       ..       ; Y=7: change directory command code
@@ -6222,13 +6222,13 @@ ws_init_data = error_bad_station+2
     dey                                                               ; 94c1: 88          .        ; Next byte
     bpl loop_copy_vset_stn                                            ; 94c2: 10 f7       ..       ; Loop until all copied
     bit fs_lib_flags                                                  ; 94c4: 2c 71 10    ,q.      ; Test library flag bits 6-7
-    bvs use_lib_station                                               ; 94c7: 70 0a       p.       ; Bit 6 set: use station as port
+    bvs use_urd_in_csd_slot                                           ; 94c7: 70 0a       p.       ; Bit 6 set: use station as port
     bpl done_vset_station                                             ; 94c9: 10 0e       ..       ; Bit 7 clear: skip port override
     lda fs_lib_handle                                                 ; 94cb: ad 04 0e    ...      ; Bit 7 set: load alternative port
     sta fs_cmd_csd                                                    ; 94ce: 8d 03 0f    ...      ; Override TXCB port byte
     bvc done_vset_station                                             ; 94d1: 50 06       P.       ; Always taken: V was clear when we entered (BVS at &97A4 didn't fire)
 ; &94d3 referenced 1 time by &94c7
-.use_lib_station
+.use_urd_in_csd_slot
     lda fs_urd_handle                                                 ; 94d3: ad 02 0e    ...      ; Bit 6: load station byte
     sta fs_cmd_csd                                                    ; 94d6: 8d 03 0f    ...      ; Use station as TXCB port
 ; &94d9 referenced 2 times by &94c9, &94d1
@@ -9090,96 +9090,104 @@ bad_prefix = bad_str_anchor+1
     lda #1                                                            ; a2ef: a9 01       ..       ; A=1
     jmp (fs_load_vector)                                              ; a2f1: 6c 09 0f    l..      ; Dispatch via indirect vector
 ; ***************************************************************************************
-; Record the file-server station
+; Set the CSD handle (FS reply 3)
 ;
-; Dispatch target for FS reply 3, also reached by a JMP after selecting the file system.
-; Calls find_station_bit3 to find or allocate the station-table slot for the current file
-; server, then returns through return_with_last_flag.
+; Dispatch target for FS reply 3, also reached by a JMP once *Dir has sent its directory
+; change. Records Y as the CSD handle through set_csd_handle, then returns through
+; return_with_last_flag.
 ; &a2f4 referenced 1 time by &945f
 .fsreply_3_set_csd
-    jsr find_station_bit3                                             ; a2f4: 20 2b a3     +.      ; Find station with bit 3 set
+    jsr set_csd_handle                                                ; a2f4: 20 2b a3     +.      ; Record Y as the CSD handle
     jmp return_with_last_flag                                         ; a2f7: 4c c7 9c    L..      ; Return with last flag state
 .fsreply_5_set_lib
-    jsr flip_set_station_boot                                         ; a2fa: 20 62 a3     b.      ; Flip/set station boot config
+    jsr set_lib_handle                                                ; a2fa: 20 62 a3     b.      ; Record Y as the library handle
     jmp return_with_last_flag                                         ; a2fd: 4c c7 9c    L..      ; Return with last flag state
 ; ***************************************************************************************
-; Find printer server station in table (bit 2)
+; Set the URD handle
 ;
-; Scans the 16-entry station table for a slot matching the current station/network
-; address with bit 2 set (printer server active). Sets V if found, clears V if not. Falls
-; through to allocate or update the matching slot with the new station address and status
-; flags.
+; Records Y as the user root directory (URD) handle. Searches the 16 channel slots, last
+; first, for one on the current file server whose status has bit 2 set (the slot holding
+; the URD); if found, stores the handle in it. Otherwise allocates a new slot for the
+; handle, giving up if none is free. Either way the slot status becomes &26, and the
+; routine exits through restore_fs_context.
+;
+; On Entry:
+;     Y: the new URD handle
 ; &a300 referenced 1 time by &a39f
-.find_station_bit2
-    ldx #&10                                                          ; a300: a2 10       ..       ; X=&10: scan 16 slots (15 to 0)
-    clv                                                               ; a302: b8          .        ; Clear V
+.set_urd_handle
+    ldx #&10                                                          ; a300: a2 10       ..       ; X=&10: scan the 16 channel slots
+    clv                                                               ; a302: b8          .        ; Clear V: no match yet
 ; &a303 referenced 2 times by &a309, &a310
-.loop_search_stn_bit2
-    dex                                                               ; a303: ca          .        ; Try next slot
-    bmi done_search_bit2                                              ; a304: 30 13       0.       ; All slots checked: not found
-    jsr match_station_net                                             ; a306: 20 86 b5     ..      ; Compare station/network
-    bne loop_search_stn_bit2                                          ; a309: d0 f8       ..       ; No match: try next
-    lda chan_status,x                                                 ; a30b: bd 60 10    .`.      ; Load slot status byte
-    and #4                                                            ; a30e: 29 04       ).       ; Test bit 2 (PS active flag)?
-    beq loop_search_stn_bit2                                          ; a310: f0 f1       ..       ; Not set: try next
-    tya                                                               ; a312: 98          .        ; Transfer Y to A
-    sta fcb_net_or_port,x                                             ; a313: 9d 30 10    .0.      ; Store Y in slot data
-    bit bit_test_ff                                                   ; a316: 2c 91 94    ,..      ; Set V (found match)
+.loop_find_urd_slot
+    dex                                                               ; a303: ca          .        ; Previous slot
+    bmi done_find_urd_slot                                            ; a304: 30 13       0.       ; None left: not found
+    jsr match_station_net                                             ; a306: 20 86 b5     ..      ; Is the slot on the current file server?
+    bne loop_find_urd_slot                                            ; a309: d0 f8       ..       ; No: try the next slot
+    lda chan_status,x                                                 ; a30b: bd 60 10    .`.      ; Load the slot's status
+    and #4                                                            ; a30e: 29 04       ).       ; Bit 2: does it hold the URD?
+    beq loop_find_urd_slot                                            ; a310: f0 f1       ..       ; No: try the next slot
+    tya                                                               ; a312: 98          .        ; A = the new handle
+    sta fcb_net_or_port,x                                             ; a313: 9d 30 10    .0.      ; Store it in the slot
+    bit bit_test_ff                                                   ; a316: 2c 91 94    ,..      ; Set V: slot found
 ; &a319 referenced 1 time by &a304
-.done_search_bit2
-    sty fs_urd_handle                                                 ; a319: 8c 02 0e    ...      ; Store Y to l0e02
-    bvs set_flags_bit2                                                ; a31c: 70 09       p.       ; V set: found, skip allocation
-    tya                                                               ; a31e: 98          .        ; Transfer Y to A
-    jsr alloc_fcb_slot                                                ; a31f: 20 09 b5     ..      ; Allocate FCB slot
-    sta handle_1_fcb                                                  ; a322: 8d 72 10    .r.      ; Store allocation result
-    beq jmp_restore_fs_ctx                                            ; a325: f0 67       .g       ; Zero: failed, restore context
+.done_find_urd_slot
+    sty fs_urd_handle                                                 ; a319: 8c 02 0e    ...      ; Record the URD handle
+    bvs set_urd_slot_flags                                            ; a31c: 70 09       p.       ; Found: just set the status
+    tya                                                               ; a31e: 98          .        ; A = the new handle
+    jsr alloc_fcb_slot                                                ; a31f: 20 09 b5     ..      ; Allocate a slot for it
+    sta handle_1_fcb                                                  ; a322: 8d 72 10    .r.      ; Remember the slot
+    beq jmp_restore_fs_ctx                                            ; a325: f0 67       .g       ; None free: restore the context and return
 ; &a327 referenced 1 time by &a31c
-.set_flags_bit2
-    lda #&26                                                          ; a327: a9 26       .&       ; A=&26: station flags value
-    bne store_stn_flags_restore                                       ; a329: d0 60       .`       ; Match: store station flags and restore
+.set_urd_slot_flags
+    lda #&26                                                          ; a327: a9 26       .&       ; Status &26: bit 2 marks the URD slot
+    bne store_slot_flags_restore                                      ; a329: d0 60       .`       ; Always taken: store the status
 ; ***************************************************************************************
-; Find file server station in table (bit 3)
+; Set the CSD handle
 ;
-; Scans the 16-entry station table for a slot matching the current station/network
-; address with bit 3 set (file server active). Sets V if found, clears V if not. Falls
-; through to allocate or update the matching slot with the new station address and status
-; flags.
+; Records Y as the currently selected directory (CSD) handle. Searches the 16 channel
+; slots, last first, for one on the current file server whose status has bit 3 set (the
+; slot holding the CSD); if found, stores the handle in it. Otherwise allocates a new
+; slot for the handle, giving up if none is free. Either way the slot status becomes &2A,
+; and the routine exits through restore_fs_context.
+;
+; On Entry:
+;     Y: the new CSD handle
 ; &a32b referenced 3 times by &a2f4, &a35d, &a3a5
-.find_station_bit3
-    ldx #&10                                                          ; a32b: a2 10       ..       ; X=&10: scan 16 slots (15 to 0)
-    clv                                                               ; a32d: b8          .        ; Clear V
+.set_csd_handle
+    ldx #&10                                                          ; a32b: a2 10       ..       ; X=&10: scan the 16 channel slots
+    clv                                                               ; a32d: b8          .        ; Clear V: no match yet
 ; &a32e referenced 2 times by &a334, &a33b
-.loop_search_stn_bit3
-    dex                                                               ; a32e: ca          .        ; Try next slot
-    bmi done_search_bit3                                              ; a32f: 30 13       0.       ; All slots checked: not found
-    jsr match_station_net                                             ; a331: 20 86 b5     ..      ; Compare station/network
-    bne loop_search_stn_bit3                                          ; a334: d0 f8       ..       ; No match: try next
-    lda chan_status,x                                                 ; a336: bd 60 10    .`.      ; Load slot status byte
-    and #8                                                            ; a339: 29 08       ).       ; Test bit 3 (FS active flag)?
-    beq loop_search_stn_bit3                                          ; a33b: f0 f1       ..       ; Not set: try next
-    tya                                                               ; a33d: 98          .        ; Transfer Y to A
-    sta fcb_net_or_port,x                                             ; a33e: 9d 30 10    .0.      ; Store Y in slot data
-    bit bit_test_ff                                                   ; a341: 2c 91 94    ,..      ; Set V (found match)
+.loop_find_csd_slot
+    dex                                                               ; a32e: ca          .        ; Previous slot
+    bmi done_find_csd_slot                                            ; a32f: 30 13       0.       ; None left: not found
+    jsr match_station_net                                             ; a331: 20 86 b5     ..      ; Is the slot on the current file server?
+    bne loop_find_csd_slot                                            ; a334: d0 f8       ..       ; No: try the next slot
+    lda chan_status,x                                                 ; a336: bd 60 10    .`.      ; Load the slot's status
+    and #8                                                            ; a339: 29 08       ).       ; Bit 3: does it hold the CSD?
+    beq loop_find_csd_slot                                            ; a33b: f0 f1       ..       ; No: try the next slot
+    tya                                                               ; a33d: 98          .        ; A = the new handle
+    sta fcb_net_or_port,x                                             ; a33e: 9d 30 10    .0.      ; Store it in the slot
+    bit bit_test_ff                                                   ; a341: 2c 91 94    ,..      ; Set V: slot found
 ; &a344 referenced 1 time by &a32f
-.done_search_bit3
-    sty fs_csd_handle                                                 ; a344: 8c 03 0e    ...      ; Store Y to l0e03
-    bvs set_flags_bit3                                                ; a347: 70 09       p.       ; V set: found, skip allocation
-    tya                                                               ; a349: 98          .        ; Transfer Y to A
-    jsr alloc_fcb_slot                                                ; a34a: 20 09 b5     ..      ; Allocate FCB slot
-    sta handle_2_fcb                                                  ; a34d: 8d 73 10    .s.      ; Store allocation result
-    beq jmp_restore_fs_ctx                                            ; a350: f0 3c       .<       ; Zero: failed, restore context
+.done_find_csd_slot
+    sty fs_csd_handle                                                 ; a344: 8c 03 0e    ...      ; Record the CSD handle
+    bvs set_csd_slot_flags                                            ; a347: 70 09       p.       ; Found: just set the status
+    tya                                                               ; a349: 98          .        ; A = the new handle
+    jsr alloc_fcb_slot                                                ; a34a: 20 09 b5     ..      ; Allocate a slot for it
+    sta handle_2_fcb                                                  ; a34d: 8d 73 10    .s.      ; Remember the slot
+    beq jmp_restore_fs_ctx                                            ; a350: f0 3c       .<       ; None free: restore the context and return
 ; &a352 referenced 1 time by &a347
-.set_flags_bit3
-    lda #&2a                                                          ; a352: a9 2a       .*       ; A=&2A: station flags value
-    bne store_stn_flags_restore                                       ; a354: d0 35       .5       ; Match: store station flags and restore
+.set_csd_slot_flags
+    lda #&2a                                                          ; a352: a9 2a       .*       ; Status &2A: bit 3 marks the CSD slot
+    bne store_slot_flags_restore                                      ; a354: d0 35       .5       ; Always taken: store the status
 ; ***************************************************************************************
 ; *Flip command handler
 ;
 ; Exchanges the CSD and CSL (library) handles. Saves the current CSD handle (&0E03),
-; loads the library handle (&0E04) into Y, and calls find_station_bit3 to install it as
-; the new CSD. Restores the original CSD handle and falls through to
-; flip_set_station_boot to install it as the new library. Useful when files to be LOADed
-; are in the library and *DIR/*LIB would be inconvenient.
+; loads the library handle (&0E04) into Y, and calls set_csd_handle to install it as the
+; new CSD. Restores the original CSD handle and falls through to set_lib_handle to
+; install it as the new library. Useful when files to be LOADed are in the library and
+; *DIR/*LIB would be inconvenient.
 ;
 ; On Entry:
 ;     Y: command line offset in text pointer
@@ -9187,48 +9195,54 @@ bad_prefix = bad_str_anchor+1
     lda fs_csd_handle                                                 ; a356: ad 03 0e    ...      ; Load current CSD handle
     pha                                                               ; a359: 48          H        ; Save CSD handle
     ldy fs_lib_handle                                                 ; a35a: ac 04 0e    ...      ; Load library handle into Y
-    jsr find_station_bit3                                             ; a35d: 20 2b a3     +.      ; Install library as new CSD
+    jsr set_csd_handle                                                ; a35d: 20 2b a3     +.      ; Install library as new CSD
     pla                                                               ; a360: 68          h        ; Restore original CSD handle
     tay                                                               ; a361: a8          .        ; Y = original CSD (becomes library)
 ; ***************************************************************************************
-; Set boot option for a station in the table
+; Set the library handle
 ;
-; Scans up to 16 station table entries for one matching the current address with bit 4
-; set (boot-eligible). Stores the requested boot type in the matching entry and calls
-; restore_fs_context to re-establish the filing system state.
+; Records Y as the library (library) handle. Searches the 16 channel slots, last first,
+; for one on the current file server whose status has bit 4 set (the slot holding the
+; library); if found, stores the handle in it. Otherwise allocates a new slot for the
+; handle, giving up if none is free. Either way the slot status becomes &32, and the
+; routine exits through restore_fs_context. Also the second half of cmd_flip, which falls
+; into it.
+;
+; On Entry:
+;     Y: the new library handle
 ; &a362 referenced 2 times by &a2fa, &a3ab
-.flip_set_station_boot
-    ldx #&10                                                          ; a362: a2 10       ..       ; X=&10: max 16 station entries
-    clv                                                               ; a364: b8          .        ; Clear V (no match found yet)
+.set_lib_handle
+    ldx #&10                                                          ; a362: a2 10       ..       ; X=&10: scan the 16 channel slots
+    clv                                                               ; a364: b8          .        ; Clear V: no match yet
 ; &a365 referenced 2 times by &a36b, &a372
-.loop_search_stn_boot
-    dex                                                               ; a365: ca          .        ; Decrement station index
-    bmi done_search_boot                                              ; a366: 30 13       0.       ; All searched: exit loop
-    jsr match_station_net                                             ; a368: 20 86 b5     ..      ; Check if station[X] matches
-    bne loop_search_stn_boot                                          ; a36b: d0 f8       ..       ; No match: try next station
-    lda chan_status,x                                                 ; a36d: bd 60 10    .`.      ; Load station flags byte
-    and #&10                                                          ; a370: 29 10       ).       ; Test bit 4 (active flag)
-    beq loop_search_stn_boot                                          ; a372: f0 f1       ..       ; Not active: try next station
-    tya                                                               ; a374: 98          .        ; Transfer boot type to A
-    sta fcb_net_or_port,x                                             ; a375: 9d 30 10    .0.      ; Store boot setting for station
-    bit bit_test_ff                                                   ; a378: 2c 91 94    ,..      ; Set V flag (station match found)
+.loop_find_lib_slot
+    dex                                                               ; a365: ca          .        ; Previous slot
+    bmi done_find_lib_slot                                            ; a366: 30 13       0.       ; None left: not found
+    jsr match_station_net                                             ; a368: 20 86 b5     ..      ; Is the slot on the current file server?
+    bne loop_find_lib_slot                                            ; a36b: d0 f8       ..       ; No: try the next slot
+    lda chan_status,x                                                 ; a36d: bd 60 10    .`.      ; Load the slot's status
+    and #&10                                                          ; a370: 29 10       ).       ; Bit 4: does it hold the library?
+    beq loop_find_lib_slot                                            ; a372: f0 f1       ..       ; No: try the next slot
+    tya                                                               ; a374: 98          .        ; A = the new handle
+    sta fcb_net_or_port,x                                             ; a375: 9d 30 10    .0.      ; Store it in the slot
+    bit bit_test_ff                                                   ; a378: 2c 91 94    ,..      ; Set V: slot found
 ; &a37b referenced 1 time by &a366
-.done_search_boot
-    sty fs_lib_handle                                                 ; a37b: 8c 04 0e    ...      ; Store boot type
-    bvs set_flags_boot                                                ; a37e: 70 09       p.       ; V set (matched): skip allocation
-    tya                                                               ; a380: 98          .        ; Boot type to A
-    jsr alloc_fcb_slot                                                ; a381: 20 09 b5     ..      ; Allocate FCB slot for new entry
-    sta handle_3_fcb                                                  ; a384: 8d 74 10    .t.      ; Store allocation result
-    beq jmp_restore_fs_ctx                                            ; a387: f0 05       ..       ; Zero: allocation failed, exit
+.done_find_lib_slot
+    sty fs_lib_handle                                                 ; a37b: 8c 04 0e    ...      ; Record the library handle
+    bvs set_lib_slot_flags                                            ; a37e: 70 09       p.       ; Found: just set the status
+    tya                                                               ; a380: 98          .        ; A = the new handle
+    jsr alloc_fcb_slot                                                ; a381: 20 09 b5     ..      ; Allocate a slot for it
+    sta handle_3_fcb                                                  ; a384: 8d 74 10    .t.      ; Remember the slot
+    beq jmp_restore_fs_ctx                                            ; a387: f0 05       ..       ; None free: restore the context and return
 ; &a389 referenced 1 time by &a37e
-.set_flags_boot
-    lda #&32                                                          ; a389: a9 32       .2       ; A=&32: station flags (active+boot)
+.set_lib_slot_flags
+    lda #&32                                                          ; a389: a9 32       .2       ; Status &32: bit 4 marks the library slot
 ; &a38b referenced 2 times by &a329, &a354
-.store_stn_flags_restore
-    sta chan_status,x                                                 ; a38b: 9d 60 10    .`.      ; Store station flags
+.store_slot_flags_restore
+    sta chan_status,x                                                 ; a38b: 9d 60 10    .`.      ; Store the slot status
 ; &a38e referenced 3 times by &a325, &a350, &a387
 .jmp_restore_fs_ctx
-    jmp restore_fs_context                                            ; a38e: 4c 8c 8f    L..      ; Restore FS context and return
+    jmp restore_fs_context                                            ; a38e: 4c 8c 8f    L..      ; Restore the FS context and return
 .fsreply_1_copy_handles_boot
     jsr close_all_net_chans                                           ; a391: 20 59 b5     Y.      ; Close all network channels
     sec                                                               ; a394: 38          8        ; Set carry flag
@@ -9236,12 +9250,12 @@ bad_prefix = bad_str_anchor+1
     sta fs_boot_option                                                ; a398: 8d 05 0e    ...      ; Store as current boot type
 .fsreply_2_copy_handles
     php                                                               ; a39b: 08          .        ; Save processor status
-    ldy fs_cmd_data                                                   ; a39c: ac 05 0f    ...      ; Load station number from reply
-    jsr find_station_bit2                                             ; a39f: 20 00 a3     ..      ; Find station entry with bit 2
-    ldy fs_func_code                                                  ; a3a2: ac 06 0f    ...      ; Load network number from reply
-    jsr find_station_bit3                                             ; a3a5: 20 2b a3     +.      ; Find station entry with bit 3
-    ldy fs_data_count                                                 ; a3a8: ac 07 0f    ...      ; Load boot type from reply
-    jsr flip_set_station_boot                                         ; a3ab: 20 62 a3     b.      ; Set boot config for station
+    ldy fs_cmd_data                                                   ; a39c: ac 05 0f    ...      ; Y = URD handle from the reply
+    jsr set_urd_handle                                                ; a39f: 20 00 a3     ..      ; Record it as the URD
+    ldy fs_func_code                                                  ; a3a2: ac 06 0f    ...      ; Y = CSD handle from the reply
+    jsr set_csd_handle                                                ; a3a5: 20 2b a3     +.      ; Record it as the CSD
+    ldy fs_data_count                                                 ; a3a8: ac 07 0f    ...      ; Y = library handle from the reply
+    jsr set_lib_handle                                                ; a3ab: 20 62 a3     b.      ; Record it as the library
     plp                                                               ; a3ae: 28          (        ; Restore processor status
     bcs check_auto_boot_flag                                          ; a3af: b0 03       ..       ; Carry set: proceed with boot
     jmp return_with_last_flag                                         ; a3b1: 4c c7 9c    L..      ; Return with last flag
@@ -9840,7 +9854,7 @@ bad_prefix = bad_str_anchor+1
     ora #&20                                                          ; a6a7: 09 20       .        ; Set bit 5 (handle reassigned)
     tay                                                               ; a6a9: a8          .        ; Save updated flags
     lda fcb_net_or_port,x                                             ; a6aa: bd 30 10    .0.      ; Get FCB high byte
-    sta fs_urd_handle                                                 ; a6ad: 8d 02 0e    ...      ; Store as handle 1 station
+    sta fs_urd_handle                                                 ; a6ad: 8d 02 0e    ...      ; Restore the URD handle from the slot
     txa                                                               ; a6b0: 8a          .        ; FCB index
     adc #&20                                                          ; a6b1: 69 20       i        ; Add &20 for FCB table offset
     sta handle_1_fcb                                                  ; a6b3: 8d 72 10    .r.      ; Store as handle 1 FCB index
@@ -9853,7 +9867,7 @@ bad_prefix = bad_str_anchor+1
     ora #&20                                                          ; a6bc: 09 20       .        ; Set bit 5
     tay                                                               ; a6be: a8          .        ; Save updated flags
     lda fcb_net_or_port,x                                             ; a6bf: bd 30 10    .0.      ; Get FCB high byte
-    sta fs_csd_handle                                                 ; a6c2: 8d 03 0e    ...      ; Store as handle 2 station
+    sta fs_csd_handle                                                 ; a6c2: 8d 03 0e    ...      ; Restore the CSD handle from the slot
     txa                                                               ; a6c5: 8a          .        ; FCB index
     adc #&20                                                          ; a6c6: 69 20       i        ; Add &20 for FCB table offset
     sta handle_2_fcb                                                  ; a6c8: 8d 73 10    .s.      ; Store as handle 2 FCB index
@@ -9866,7 +9880,7 @@ bad_prefix = bad_str_anchor+1
     ora #&20                                                          ; a6d1: 09 20       .        ; Set bit 5
     tay                                                               ; a6d3: a8          .        ; Save updated flags
     lda fcb_net_or_port,x                                             ; a6d4: bd 30 10    .0.      ; Get FCB high byte
-    sta fs_lib_handle                                                 ; a6d7: 8d 04 0e    ...      ; Store as handle 3 station
+    sta fs_lib_handle                                                 ; a6d7: 8d 04 0e    ...      ; Restore the library handle from the slot
     txa                                                               ; a6da: 8a          .        ; FCB index
     adc #&20                                                          ; a6db: 69 20       i        ; Add &20 for FCB table offset
     sta handle_3_fcb                                                  ; a6dd: 8d 74 10    .t.      ; Store as handle 3 FCB index
@@ -14802,7 +14816,6 @@ save pydis_start, pydis_end
 ;     fcb_stn_lo:                               3
 ;     filename_buf:                             3
 ;     find_matching_fcb:                        3
-;     find_station_bit3:                        3
 ;     fs_cmd_lib:                               3
 ;     fs_filename_buf_1:                        3
 ;     handle_invalid:                           3
@@ -14844,6 +14857,7 @@ save pydis_start, pydis_end
 ;     save_net_tx_cb_vset:                      3
 ;     save_text_ptr:                            3
 ;     send_disconnect_reply:                    3
+;     set_csd_handle:                           3
 ;     store_prot_mask:                          3
 ;     store_rx_result:                          3
 ;     svc_return_unclaimed:                     3
@@ -14931,7 +14945,6 @@ save pydis_start, pydis_end
 ;     fallback_calc_transfer:                   2
 ;     fcb_ctx_save:                             2
 ;     find_open_fcb:                            2
-;     flip_set_station_boot:                    2
 ;     format_filename_field:                    2
 ;     fs_access_level:                          2
 ;     fs_cmd_y_param:                           2
@@ -14970,7 +14983,10 @@ save pydis_start, pydis_end
 ;     loop_copy_ws_template:                    2
 ;     loop_drain_printer_buf:                   2
 ;     loop_dump_line:                           2
+;     loop_find_csd_slot:                       2
+;     loop_find_lib_slot:                       2
 ;     loop_find_pending_fcb:                    2
+;     loop_find_urd_slot:                       2
 ;     loop_next_fcb_slot:                       2
 ;     loop_pass_tx_delay:                       2
 ;     loop_poll_r1_vdu:                         2
@@ -14981,9 +14997,6 @@ save pydis_start, pydis_end
 ;     loop_restore_workspace:                   2
 ;     loop_scan_disconnect:                     2
 ;     loop_scan_empty_fcb:                      2
-;     loop_search_stn_bit2:                     2
-;     loop_search_stn_bit3:                     2
-;     loop_search_stn_boot:                     2
 ;     loop_skip_space_chars:                    2
 ;     loop_tx_delay:                            2
 ;     loop_wait_ws_status:                      2
@@ -15053,6 +15066,7 @@ save pydis_start, pydis_end
 ;     send_txcb_swap_addrs:                     2
 ;     send_wipe_request:                        2
 ;     set_conn_active:                          2
+;     set_lib_handle:                           2
 ;     set_nmi_rx_scout:                         2
 ;     set_options_ptr:                          2
 ;     setup_dir_display:                        2
@@ -15071,8 +15085,8 @@ save pydis_start, pydis_end
 ;     store_pb_result:                          2
 ;     store_ptr_at_ws_y:                        2
 ;     store_result_check_dir:                   2
+;     store_slot_flags_restore:                 2
 ;     store_station_result:                     2
-;     store_stn_flags_restore:                  2
 ;     store_tx_error:                           2
 ;     string_buf:                               2
 ;     svc_dispatch_lo_offset:                   2
@@ -15261,6 +15275,9 @@ save pydis_start, pydis_end
 ;     done_entry_newline:                       1
 ;     done_extra_arg_check:                     1
 ;     done_file_open:                           1
+;     done_find_csd_slot:                       1
+;     done_find_lib_slot:                       1
+;     done_find_urd_slot:                       1
 ;     done_find_write_fcb:                      1
 ;     done_flush_fcb:                           1
 ;     done_found_free_slot:                     1
@@ -15290,9 +15307,6 @@ save pydis_start, pydis_end
 ;     done_rom_checksum:                        1
 ;     done_run_dispatch:                        1
 ;     done_save_context:                        1
-;     done_search_bit2:                         1
-;     done_search_bit3:                         1
-;     done_search_boot:                         1
 ;     done_select_fcb:                          1
 ;     done_set_fcb_active:                      1
 ;     done_shared_cmds:                         1
@@ -15335,7 +15349,6 @@ save pydis_start, pydis_end
 ;     fcb_xfer_count_lo:                        1
 ;     fcb_xfer_count_mid:                       1
 ;     filev:                                    1
-;     find_station_bit2:                        1
 ;     fixup_reply_status_a:                     1
 ;     flush_fcb_if_stn_known:                   1
 ;     flush_fcb_with_init:                      1
@@ -15815,17 +15828,18 @@ save pydis_start, pydis_end
 ;     service_handler_lo:                       1
 ;     set_adlc_absent:                          1
 ;     set_c_and_return:                         1
-;     set_flags_bit2:                           1
-;     set_flags_bit3:                           1
-;     set_flags_boot:                           1
+;     set_csd_slot_flags:                       1
 ;     set_fs_select_flag:                       1
 ;     set_jsr_protection:                       1
+;     set_lib_slot_flags:                       1
 ;     set_port_and_ctrl:                        1
 ;     set_rx_buf_len_hi:                        1
 ;     set_text_and_xfer_ptr:                    1
 ;     set_timeout:                              1
 ;     set_tube_addr:                            1
 ;     set_tx_reply_flag:                        1
+;     set_urd_handle:                           1
+;     set_urd_slot_flags:                       1
 ;     set_wipe_cr_end:                          1
 ;     set_write_active:                         1
 ;     setup_csd_copy:                           1
@@ -15985,8 +15999,8 @@ save pydis_start, pydis_end
 ;     update_addr_from_offset9:                 1
 ;     update_cat_position:                      1
 ;     use_default_station:                      1
-;     use_lib_station:                          1
 ;     use_specified_slot:                       1
+;     use_urd_in_csd_slot:                      1
 ;     use_wipe_leaf_name:                       1
 ;     valid_osgbpb_op:                          1
 ;     validate_chan_close:                      1
