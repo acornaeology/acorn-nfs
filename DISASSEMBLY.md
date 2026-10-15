@@ -172,7 +172,7 @@ The driver script configures a `dasmos.Disassembler` instance through method cal
 ```python
 import dasmos
 from dasmos import Align
-from dasmos.hooks import stringhi_hook   # plus stringz_hook, stringcr_hook as needed
+from dasmos.hooks import stringhi_hook   # plus stringhi_skip_hook, stringz_hook as needed
 
 d = dasmos.Disassembler.create(cpu='6502')
 d.load(_rom_filepath, 0x8000)
@@ -197,7 +197,7 @@ CPU plug-ins are Stevedore-managed; for ANFS 4.21 (variant 1) use `cpu='65c02'`.
 
 **`d.add_move(dest, source, length)`** — Declare a relocated code block. The ROM contains code at `source` that is copied to `dest` at runtime. dasmos disassembles it using `dest` addresses. Returns a typed `Move` handle that is also a context manager: `with move: d.label(...)` scopes annotations under it.
 
-**`d.hook_subroutine(address, name, hook_function)`** — Register a custom Python function that dasmos calls when it encounters this subroutine during disassembly. Used for special handling of dispatch tables, inline data, etc. Bundled hooks live in `dasmos.hooks` (`stringhi_hook`, `stringz_hook`, `stringcr_hook`).
+**`d.hook_subroutine(address, name, hook_function)`** — Register a custom Python function that dasmos calls when it encounters this subroutine during disassembly. Used for special handling of dispatch tables, inline data, etc. Bundled hooks live in `dasmos.hooks` (`stringhi_hook`, `stringhi_skip_hook`, `stringz_hook`).
 
 **`d.rts_code_ptr(lo_address, hi_address)`** — Declare a paired lo/hi byte address entry used for PHA/PHA/RTS dispatch. Addresses in the table are stored minus 1 (the 6502 RTS convention).
 
