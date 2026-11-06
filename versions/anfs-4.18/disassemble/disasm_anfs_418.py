@@ -161,7 +161,7 @@ d.label(0x0014, "tube_claim_flag")
 
 d.label(0x0015, "tube_claimed_id")
 
-d.add_move(0x0016, 0xBEC3, 0x42)
+d.add_move(0x0016, 0xBEC3, 0x42, name="tube_zp_code")
 for i in range(1, 37):
     d.rts_code_ptr(0x89CA + i, 0x89EF + i)
 d.label(0x0016, "nmi_workspace_start")
@@ -399,7 +399,7 @@ d.label(0x0351, "vdu_display_start_hi")
 
 d.label(0x0355, "vdu_mode")
 
-d.add_move(0x0400, 0xBF04, 0xFC)
+d.add_move(0x0400, 0xBF04, 0xFC, name="tube_page4")
 d.entry(0x0400)
 d.label(0x0400, "tube_page4_vectors")
 
@@ -707,7 +707,7 @@ d.label(0x04F7, "store_xfer_end_addr")
 d.comment(0x04F7, "Store high byte of end address", align=Align.INLINE)
 d.comment(0x04F9, "Store byte 3 of end address", align=Align.INLINE)
 d.comment(0x04FB, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0xBC94, 0x1CE)
+d.add_move(0x0500, 0xBC94, 0x1CE, name="tube_page5")
 d.entry(0x0500)
 d.label(0x0500, "tube_r2_dispatch_table")
 

@@ -12,25 +12,25 @@
     ],
     "moves": [
       {
-        "name": "move_1",
+        "name": "tube_zp_code",
         "dest": 22,
         "src": 37640,
         "length": 97
       },
       {
-        "name": "move_2",
+        "name": "tube_page4",
         "dest": 1024,
         "src": 37709,
         "length": 256
       },
       {
-        "name": "move_3",
+        "name": "tube_page5",
         "dest": 1280,
         "src": 37965,
         "length": 256
       },
       {
-        "name": "move_4",
+        "name": "tube_page6",
         "dest": 1536,
         "src": 38221,
         "length": 256
@@ -304,7 +304,7 @@
     {
       "addr": 22,
       "binary_addr": 37640,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "name": "tube_brk_handler",
       "title": "Tube BRK handler (BRKV target) \u2014 reference: NFS11 NEWBR",
       "description": "Sends error information to the Tube co-processor via R2 and R4:\n\n1. Send `&FF` to R4 (`WRIFOR`) to signal error.\n2. Read R2 data (flush any pending byte).\n3. Send `&00` via R2, then error number from (`brk_ptr`),0.\n4. Loop sending error string bytes via R2 until zero terminator.\n5. Fall through to [`tube_reset_stack`](label:tube_reset_stack) \u2192 [`tube_main_loop`](label:tube_main_loop).\n\nThe main loop continuously polls R4 for `WRCH` requests (forwarded\nto `nvwrch`, the non-vectored `OSWRCH` entry at `&FFCB`) and R2 for\ncommand bytes (dispatched via the 14-entry\n[`tube_dispatch_table`](label:tube_dispatch_table)). The R2 command byte is stored\nat [`tube_dispatch_ptr_lo`](label:tube_dispatch_ptr_lo) (self-modifying the\n`JMP (tube_dispatch_table)` indirect low byte) before dispatch.",
@@ -313,7 +313,7 @@
     {
       "addr": 54,
       "binary_addr": 37672,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "name": "tube_enter_main_loop",
       "title": "Save registers and enter Tube polling loop",
       "description": "Saves X and Y to zp_temp_11/zp_temp_10, then falls through\nto tube_main_loop which polls Tube R1 (WRCH) and R2 (command)\nregisters in an infinite loop. Called from tube_init_reloc\nafter ROM relocation and from tube_dispatch_table handlers\nthat need to restart the main loop."
@@ -321,7 +321,7 @@
     {
       "addr": 1024,
       "binary_addr": 37709,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_code_page4",
       "title": "Tube host code page 4 \u2014 reference: NFS12 (BEGIN, ADRR, SENDW)",
       "description": "Copied from ROM at [`reloc_p4_src`](address:934D) during init. The first 28\nbytes (`&0400`\u2013`&041B`) overlap with the end of the ZP block \u2014 the same\nROM bytes serve both the ZP copy at `&005B`\u2013`&0076` and this page at\n`&0400`\u2013`&041B`.\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0400` | `JMP` to [`tube_begin`](label:tube_begin) (BEGIN \u2014 CLI parser / startup entry) |\n| `&0403` | `JMP` to [`tube_escape_check`](label:tube_escape_check) |\n| `&0406` | [`tube_addr_claim`](label:tube_addr_claim) \u2014 Tube address claim (ADRR protocol) |\n| `&0414` | [`tube_post_init`](label:tube_post_init) \u2014 clear claimed-address state to `&80` |\n| `&0426` | [`setup_data_transfer`](label:setup_data_transfer) \u2014 data transfer setup (SENDW), `&0426`\u2013`&0472` |\n| `&0473` | [`tube_begin`](label:tube_begin) \u2014 startup entry, sends ROM contents to Tube |\n| `&047A` | [`tube_init_reloc`](label:tube_init_reloc) \u2014 extract relocation address from ROM |\n| `&04E0` | [`tube_setup_transfer`](label:tube_setup_transfer) \u2014 claim Tube and start transfer |\n| `&04E7` | [`tube_rdch_handler`](label:tube_rdch_handler) \u2014 RDCHV target |\n| `&04EF` | [`tube_restore_regs`](label:tube_restore_regs) \u2014 restore X, Y; dispatch entry 6 |\n| `&04F7` | [`tube_read_r2`](label:tube_read_r2) \u2014 poll R2 status, read data byte to `A` |"
@@ -329,7 +329,7 @@
     {
       "addr": 1030,
       "binary_addr": 37715,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_addr_claim",
       "title": "Tube address claim / data transfer entry",
       "description": "The Tube host's claim entry point. A below &80 starts a data\ntransfer (falls into the transfer set-up). A in &80-&BF releases\nthe claim with ID A+&40 if it is the one held, by falling into\n`tube_post_init`. A in &C0-&FF claims address ID A: the claim is\ngranted if no claim is held or the ID is already ours (C=1), and\nrefused otherwise (C=0).",
@@ -344,7 +344,7 @@
     {
       "addr": 1044,
       "binary_addr": 37729,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_post_init",
       "title": "Clear the Tube address claim",
       "description": "Sets `tube_claim_flag` to &80, meaning no address is currently\nclaimed. Run once after the Tube host code is copied into place,\nand reached from `tube_addr_claim` to release a claim."
@@ -352,7 +352,7 @@
     {
       "addr": 1124,
       "binary_addr": 37809,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "flush_r3_nmi_check",
       "title": "Wait for R4 and flush Tube R3",
       "description": "Waits until Tube status register 4 is ready, reads R3 twice to\nflush it, and writes Y to the Tube control register.",
@@ -363,7 +363,7 @@
     {
       "addr": 1146,
       "binary_addr": 37831,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_init_reloc",
       "title": "Initialise relocation address for ROM transfer",
       "description": "Sets source page to `&8000` and page counter to `&80`. Checks\nROM-type bit 5 for a relocation address in the ROM header; if present,\nextracts the 4-byte address from after the copyright string. Otherwise\nuses the default `&8000` start.",
@@ -372,7 +372,7 @@
     {
       "addr": 1248,
       "binary_addr": 37933,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_setup_transfer",
       "title": "Start a Tube transfer from the address block at &0057",
       "description": "Points XY at the 4-byte transfer address at &0057 and jumps to\n`tube_addr_claim` with the transfer type in A.",
@@ -384,7 +384,7 @@
     {
       "addr": 1271,
       "binary_addr": 37956,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_read_r2",
       "title": "Read a byte from Tube data register R2",
       "description": "Polls Tube status register 2 until data is available (bit 7 set),\nthen loads A from Tube data register 2. Used by the Tube dispatch\nhandlers to receive data and parameters from the co-processor.",
@@ -395,7 +395,7 @@
     {
       "addr": 1280,
       "binary_addr": 37965,
-      "move": "move_3",
+      "move": "tube_page5",
       "name": "tube_dispatch_table",
       "title": "Tube host code page 5 \u2014 reference: NFS13 (TASKS, BPUT-FILE)",
       "description": "Copied from ROM during init (the 256 bytes immediately following\nthe page-4 source).\n\nLayout:\n\n| Range            | Role |\n|------------------|------|\n| `&0500`\u2013`&051B`  | 14-entry handler dispatch table (low / high address pairs) |\n| `&051C`          | [`tube_wrch_handler`](label:tube_wrch_handler) \u2014 WRCHV target |\n| `&051F`          | [`tube_send_and_poll`](label:tube_send_and_poll) \u2014 send byte via R2, poll for reply |\n| `&0527`          | [`tube_poll_r4_wrch`](label:tube_poll_r4_wrch) \u2014 service R4 WRCH while waiting for R2 |\n| `&053D`          | [`tube_release_return`](label:tube_release_return) \u2014 restore registers and `RTS` |\n| `&0543`          | [`tube_osbput`](label:tube_osbput) \u2014 write byte to file |\n| `&0550`          | [`tube_osbget`](label:tube_osbget) \u2014 read byte from file |\n| `&055B`          | [`tube_osrdch`](label:tube_osrdch) \u2014 read character |\n| `&0569`          | [`tube_osfind`](label:tube_osfind) \u2014 open file |\n| `&0580`          | [`tube_osfind_close`](label:tube_osfind_close) \u2014 close file (`A=0`) |\n| `&058C`          | [`tube_osargs`](label:tube_osargs) \u2014 file argument read / write |\n| `&05B1`          | [`tube_read_string`](label:tube_read_string) \u2014 read CR-terminated string into `&0700` |\n| `&05C5`          | [`tube_oscli`](label:tube_oscli) \u2014 execute `*` command |\n| `&05CB`          | [`tube_reply_ack`](label:tube_reply_ack) \u2014 send `&7F` acknowledge |\n| `&05CD`          | [`tube_reply_byte`](label:tube_reply_byte) \u2014 send byte and return to main loop |\n| `&05D8`          | [`tube_osfile`](label:tube_osfile) \u2014 whole-file operation |"
@@ -403,7 +403,7 @@
     {
       "addr": 1457,
       "binary_addr": 38142,
-      "move": "move_3",
+      "move": "tube_page5",
       "name": "tube_read_string",
       "title": "Read a string from Tube R2 into the string buffer",
       "description": "Reads bytes from R2 into the string buffer at &0700 until a CR,\nor until Y wraps to zero. Returns with X=0, Y=7 so that XY = &0700,\nready for OSCLI or OSFIND.",
@@ -416,7 +416,7 @@
     {
       "addr": 1536,
       "binary_addr": 38221,
-      "move": "move_4",
+      "move": "tube_page6",
       "name": "tube_code_page6",
       "title": "Tube host code page 6 \u2014 reference: NFS13 (GBPB-ESCA)",
       "description": "Copied from ROM during init (the 256 bytes immediately following\nthe page-5 source). `&0600`\u2013`&0601` is the tail of\n[`tube_osfile`](label:tube_osfile) (`BEQ` to\n[`tube_reply_byte`](label:tube_reply_byte) when done).\n\nLayout:\n\n| Addr    | Role |\n|---------|------|\n| `&0602` | [`tube_osgbpb`](label:tube_osgbpb) \u2014 multi-byte file I/O |\n| `&0626` | [`tube_osbyte_short`](label:tube_osbyte_short) \u2014 2-param `OSBYTE` (returns X) |\n| `&063B` | [`tube_osbyte_long`](label:tube_osbyte_long) \u2014 3-param `OSBYTE` (returns carry+Y+X) |\n| `&065D` | [`tube_osword`](label:tube_osword) \u2014 variable-length `OSWORD` (buffer at `&0130`) |\n| `&06A3` | [`tube_osword_rdln`](label:tube_osword_rdln) \u2014 `OSWORD 0` (read line, 5-byte params) |\n| `&06BB` | [`tube_rdln_send_line`](label:tube_rdln_send_line) \u2014 send input line from `&0700` |\n| `&06D0` | [`tube_send_r2`](label:tube_send_r2) \u2014 poll R2 status, write `A` to R2 data |\n| `&06D9` | [`tube_send_r4`](label:tube_send_r4) \u2014 poll R4 status, write `A` to R4 data |\n| `&06E2` | [`tube_escape_check`](label:tube_escape_check) \u2014 check `&FF`, forward escape to R1 |\n| `&06E8` | [`tube_event_handler`](label:tube_event_handler) \u2014 EVNTV: forward event (A, X, Y) via R1 |\n| `&06F7` | [`tube_send_r1`](label:tube_send_r1) \u2014 poll R1 status, write `A` to R1 data |"
@@ -424,7 +424,7 @@
     {
       "addr": 1744,
       "binary_addr": 38429,
-      "move": "move_4",
+      "move": "tube_page6",
       "name": "tube_send_r2",
       "title": "Send a byte to Tube data register R2",
       "description": "Polls Tube status register 2 until bit 6 is set, then writes A to\nthe data register.",
@@ -435,7 +435,7 @@
     {
       "addr": 1753,
       "binary_addr": 38438,
-      "move": "move_4",
+      "move": "tube_page6",
       "name": "tube_send_r4",
       "title": "Send a byte to Tube data register R4",
       "description": "Polls Tube status register 4 until bit 6 is set, then writes A to\nthe data register. R4 carries address claims, transfer set-up and\nrelease commands.",
@@ -446,7 +446,7 @@
     {
       "addr": 1783,
       "binary_addr": 38468,
-      "move": "move_4",
+      "move": "tube_page6",
       "name": "tube_send_r1",
       "title": "Send a byte to Tube data register R1",
       "description": "Polls Tube status register 1 until bit 6 is set, then writes A to\nthe data register. R1 carries events and Escape notifications to\nthe co-processor.",
@@ -2355,7 +2355,7 @@
     {
       "addr": 1762,
       "binary_addr": 38447,
-      "move": "move_4",
+      "move": "tube_page6",
       "name": "tube_escape_check",
       "title": "Forward an escape to the co-processor",
       "description": "Copies the MOS escape flag (bit 7 of &FF) into the top of A with\nSEC/ROR and, when an escape is pending, sends it through\n[`tube_send_r1`](label:tube_send_r1). Otherwise falls into\n[`tube_event_handler`](label:tube_event_handler). Reached by a JMP\nfrom the Tube escape vector code.",
@@ -2370,7 +2370,7 @@
     {
       "addr": 1139,
       "binary_addr": 37824,
-      "move": "move_2",
+      "move": "tube_page4",
       "name": "tube_begin",
       "title": "Tube host BEGIN entry",
       "description": "Enables interrupts, saves P and A, and sets the transfer pointer to\nstart sending the current language ROM from &8000. If the ROM header\nhas a relocation address (bit 5 of the ROM type), it skips the\ncopyright string and uses that address instead. Reached by a JMP\nfrom the page-0 entry.",
@@ -3080,7 +3080,7 @@
         {
           "addr": 1163,
           "kind": "indexed",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
@@ -3118,7 +3118,7 @@
         {
           "addr": 1178,
           "kind": "indexed",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -3144,7 +3144,7 @@
         {
           "addr": 1154,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -3172,7 +3172,7 @@
         {
           "addr": 1159,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -6736,7 +6736,7 @@
       "mnemonic": "sta",
       "operand": "tube_code_page4,y",
       "target": 1024,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_code_page4"
     },
     {
@@ -6765,7 +6765,7 @@
       "mnemonic": "sta",
       "operand": "tube_dispatch_table,y",
       "target": 1280,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_dispatch_table"
     },
     {
@@ -6794,7 +6794,7 @@
       "mnemonic": "sta",
       "operand": "tube_code_page6,y",
       "target": 1536,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_code_page6"
     },
     {
@@ -6831,7 +6831,7 @@
       "mnemonic": "jsr",
       "operand": "tube_post_init",
       "target": 1044,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_post_init"
     },
     {
@@ -6885,7 +6885,7 @@
       "mnemonic": "sta",
       "operand": "nmi_workspace_start,x",
       "target": 22,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "nmi_workspace_start"
     },
     {
@@ -25483,7 +25483,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -25597,7 +25597,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -26178,7 +26178,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -29887,7 +29887,7 @@
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -40692,7 +40692,7 @@
         255
       ],
       "binary_addr": 37640,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "nmi_workspace_start",
         "tube_brk_handler"
@@ -40719,13 +40719,13 @@
         6
       ],
       "binary_addr": 37642,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Send &FF error signal to Tube R4",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r4",
       "target": 1753,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r4"
     },
     {
@@ -40736,7 +40736,7 @@
         254
       ],
       "binary_addr": 37645,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Flush any pending R2 byte",
       "type": "code",
       "mnemonic": "lda",
@@ -40751,7 +40751,7 @@
         0
       ],
       "binary_addr": 37648,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "A=0: send zero prefix to R2",
       "type": "code",
       "mnemonic": "lda",
@@ -40765,7 +40765,7 @@
         6
       ],
       "binary_addr": 37650,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_send_zero_r2"
       ],
@@ -40774,7 +40774,7 @@
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -40783,7 +40783,7 @@
         168
       ],
       "binary_addr": 37653,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Y=0: start of error block at (&FD)",
       "type": "code",
       "mnemonic": "tay"
@@ -40795,7 +40795,7 @@
         253
       ],
       "binary_addr": 37654,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Load error number from (&FD),0",
       "type": "code",
       "mnemonic": "lda",
@@ -40811,13 +40811,13 @@
         6
       ],
       "binary_addr": 37656,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Send error number via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -40826,7 +40826,7 @@
         200
       ],
       "binary_addr": 37659,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_brk_send_loop"
       ],
@@ -40838,7 +40838,7 @@
         {
           "addr": 48,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         }
       ],
@@ -40852,7 +40852,7 @@
         253
       ],
       "binary_addr": 37660,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_send_error_byte"
       ],
@@ -40871,13 +40871,13 @@
         6
       ],
       "binary_addr": 37662,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Send error string byte via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -40886,7 +40886,7 @@
         170
       ],
       "binary_addr": 37665,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Zero byte = end of error string",
       "type": "code",
       "mnemonic": "tax"
@@ -40898,13 +40898,13 @@
         247
       ],
       "binary_addr": 37666,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Loop until zero terminator sent",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tube_brk_send_loop",
       "target": 41,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_brk_send_loop"
     },
     {
@@ -40914,7 +40914,7 @@
         255
       ],
       "binary_addr": 37668,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_reset_stack"
       ],
@@ -40929,7 +40929,7 @@
         154
       ],
       "binary_addr": 37670,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "TXS: set stack pointer from X",
       "type": "code",
       "mnemonic": "txs"
@@ -40940,7 +40940,7 @@
         88
       ],
       "binary_addr": 37671,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Enable interrupts for main loop",
       "type": "code",
       "mnemonic": "cli"
@@ -40952,7 +40952,7 @@
         17
       ],
       "binary_addr": 37672,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_enter_main_loop"
       ],
@@ -40964,13 +40964,13 @@
         {
           "addr": 1260,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1338,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -40987,7 +40987,7 @@
         16
       ],
       "binary_addr": 37674,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Save Y to temporary",
       "type": "code",
       "mnemonic": "sty",
@@ -41003,7 +41003,7 @@
         254
       ],
       "binary_addr": 37676,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_main_loop"
       ],
@@ -41015,43 +41015,43 @@
         {
           "addr": 72,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
           "addr": 1454,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1493,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1571,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1592,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1696,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1741,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -41068,13 +41068,13 @@
         6
       ],
       "binary_addr": 37679,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "R4 not ready: check R2 instead",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_poll_r2",
       "target": 69,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_poll_r2"
     },
     {
@@ -41085,7 +41085,7 @@
         254
       ],
       "binary_addr": 37681,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_handle_wrch"
       ],
@@ -41097,7 +41097,7 @@
         {
           "addr": 77,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         }
       ],
@@ -41115,7 +41115,7 @@
         255
       ],
       "binary_addr": 37684,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Write character",
       "type": "code",
       "mnemonic": "jsr",
@@ -41131,7 +41131,7 @@
         254
       ],
       "binary_addr": 37687,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_poll_r2"
       ],
@@ -41143,7 +41143,7 @@
         {
           "addr": 61,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         }
       ],
@@ -41160,13 +41160,13 @@
         240
       ],
       "binary_addr": 37690,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "R2 not ready: loop back to R4 check",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -41177,7 +41177,7 @@
         254
       ],
       "binary_addr": 37692,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Re-check R4: WRCH has priority over R2",
       "type": "code",
       "mnemonic": "bit",
@@ -41192,13 +41192,13 @@
         240
       ],
       "binary_addr": 37695,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "R4 ready: handle WRCH first",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "tube_handle_wrch",
       "target": 63,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_handle_wrch"
     },
     {
@@ -41209,7 +41209,7 @@
         254
       ],
       "binary_addr": 37697,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Read command byte from Tube R2 data",
       "type": "code",
       "mnemonic": "ldx",
@@ -41224,13 +41224,13 @@
         85
       ],
       "binary_addr": 37700,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "comment_inline": "Self-modify JMP low byte for dispatch",
       "type": "code",
       "mnemonic": "stx",
       "operand": "tube_dispatch_ptr_lo",
       "target": 85,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_dispatch_ptr_lo"
     },
     {
@@ -41241,7 +41241,7 @@
         5
       ],
       "binary_addr": 37702,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_dispatch_cmd"
       ],
@@ -41258,7 +41258,7 @@
       "mnemonic": "jmp",
       "operand": "(tube_dispatch_table)",
       "target": 1280,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_dispatch_table"
     },
     {
@@ -41267,7 +41267,7 @@
         0
       ],
       "binary_addr": 37705,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_transfer_addr"
       ],
@@ -41278,13 +41278,13 @@
         {
           "addr": 1144,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1171,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41299,7 +41299,7 @@
         128
       ],
       "binary_addr": 37706,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_xfer_page"
       ],
@@ -41310,13 +41310,13 @@
         {
           "addr": 1148,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1176,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41331,7 +41331,7 @@
         0
       ],
       "binary_addr": 37707,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_xfer_addr_2"
       ],
@@ -41342,7 +41342,7 @@
         {
           "addr": 1186,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41357,7 +41357,7 @@
         0
       ],
       "binary_addr": 37708,
-      "move": "move_1",
+      "move": "tube_zp_code",
       "labels": [
         "tube_xfer_addr_3"
       ],
@@ -41368,7 +41368,7 @@
         {
           "addr": 1184,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41385,7 +41385,7 @@
         4
       ],
       "binary_addr": 37709,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_code_page4"
       ],
@@ -41403,7 +41403,7 @@
       "mnemonic": "jmp",
       "operand": "tube_begin",
       "target": 1139,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_begin"
     },
     {
@@ -41414,7 +41414,7 @@
         6
       ],
       "binary_addr": 37712,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_escape_entry"
       ],
@@ -41423,7 +41423,7 @@
       "mnemonic": "jmp",
       "operand": "tube_escape_check",
       "target": 1762,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_escape_check"
     },
     {
@@ -41433,7 +41433,7 @@
         128
       ],
       "binary_addr": 37715,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_addr_claim"
       ],
@@ -41445,13 +41445,13 @@
         {
           "addr": 1212,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1252,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
@@ -41498,13 +41498,13 @@
         28
       ],
       "binary_addr": 37717,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "A<&80: data transfer setup (SENDW)",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "setup_data_transfer",
       "target": 1062,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "setup_data_transfer"
     },
     {
@@ -41514,7 +41514,7 @@
         192
       ],
       "binary_addr": 37719,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "A>=&C0: new address claim from another host",
       "type": "code",
       "mnemonic": "cmp",
@@ -41527,13 +41527,13 @@
         11
       ],
       "binary_addr": 37721,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "C=1: external claim, check ownership",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "addr_claim_external",
       "target": 1049,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "addr_claim_external"
     },
     {
@@ -41543,7 +41543,7 @@
         64
       ],
       "binary_addr": 37723,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Map &80-&BF range to &C0-&FF for comparison",
       "type": "code",
       "mnemonic": "ora",
@@ -41556,7 +41556,7 @@
         21
       ],
       "binary_addr": 37725,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Is this for our currently-claimed address?",
       "type": "code",
       "mnemonic": "cmp",
@@ -41571,13 +41571,13 @@
         17
       ],
       "binary_addr": 37727,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Not our address: return",
       "type": "code",
       "mnemonic": "bne",
       "operand": "return_tube_init",
       "target": 1061,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "return_tube_init"
     },
     {
@@ -41587,7 +41587,7 @@
         128
       ],
       "binary_addr": 37729,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_post_init"
       ],
@@ -41612,7 +41612,7 @@
         20
       ],
       "binary_addr": 37731,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store to claim-in-progress flag",
       "type": "code",
       "mnemonic": "sta",
@@ -41626,7 +41626,7 @@
         96
       ],
       "binary_addr": 37733,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Return from tube_post_init",
       "type": "code",
       "mnemonic": "rts"
@@ -41638,7 +41638,7 @@
         20
       ],
       "binary_addr": 37734,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "addr_claim_external"
       ],
@@ -41650,7 +41650,7 @@
         {
           "addr": 1036,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41667,13 +41667,13 @@
         6
       ],
       "binary_addr": 37736,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "C=1: we have an active claim",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "accept_new_claim",
       "target": 1059,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "accept_new_claim"
     },
     {
@@ -41683,7 +41683,7 @@
         21
       ],
       "binary_addr": 37738,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Compare with our claimed address",
       "type": "code",
       "mnemonic": "cmp",
@@ -41698,13 +41698,13 @@
         4
       ],
       "binary_addr": 37740,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Match: return (we already have it)",
       "type": "code",
       "mnemonic": "beq",
       "operand": "return_tube_init",
       "target": 1061,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "return_tube_init"
     },
     {
@@ -41713,7 +41713,7 @@
         24
       ],
       "binary_addr": 37742,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Not ours: CLC = we don't own this address",
       "type": "code",
       "mnemonic": "clc"
@@ -41724,7 +41724,7 @@
         96
       ],
       "binary_addr": 37743,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Return with C=0 (claim denied)",
       "type": "code",
       "mnemonic": "rts"
@@ -41736,7 +41736,7 @@
         21
       ],
       "binary_addr": 37744,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "accept_new_claim"
       ],
@@ -41748,7 +41748,7 @@
         {
           "addr": 1051,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41764,7 +41764,7 @@
         96
       ],
       "binary_addr": 37746,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "return_tube_init"
       ],
@@ -41776,13 +41776,13 @@
         {
           "addr": 1042,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1055,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41796,7 +41796,7 @@
         19
       ],
       "binary_addr": 37747,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "setup_data_transfer"
       ],
@@ -41808,7 +41808,7 @@
         {
           "addr": 1032,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41825,7 +41825,7 @@
         18
       ],
       "binary_addr": 37749,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store address pointer low byte",
       "type": "code",
       "mnemonic": "stx",
@@ -41841,13 +41841,13 @@
         6
       ],
       "binary_addr": 37751,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Send transfer type byte to co-processor",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r4",
       "target": 1753,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r4"
     },
     {
@@ -41856,7 +41856,7 @@
         170
       ],
       "binary_addr": 37754,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "X = transfer type for table lookup",
       "type": "code",
       "mnemonic": "tax"
@@ -41868,7 +41868,7 @@
         3
       ],
       "binary_addr": 37755,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=3: send 4 bytes (address + claimed addr)",
       "type": "code",
       "mnemonic": "ldy",
@@ -41881,7 +41881,7 @@
         18
       ],
       "binary_addr": 37757,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "send_xfer_addr_bytes"
       ],
@@ -41893,7 +41893,7 @@
         {
           "addr": 1078,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -41911,13 +41911,13 @@
         6
       ],
       "binary_addr": 37759,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Send address byte to co-processor via R4",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r4",
       "target": 1753,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r4"
     },
     {
@@ -41926,7 +41926,7 @@
         136
       ],
       "binary_addr": 37762,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Previous byte (big-endian: 3,2,1,0)",
       "type": "code",
       "mnemonic": "dey"
@@ -41938,13 +41938,13 @@
         248
       ],
       "binary_addr": 37763,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Loop for all 4 address bytes",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "send_xfer_addr_bytes",
       "target": 1072,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "send_xfer_addr_bytes"
     },
     {
@@ -41954,7 +41954,7 @@
         8
       ],
       "binary_addr": 37765,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=8: write to Tube control register",
       "type": "code",
       "mnemonic": "ldy",
@@ -41968,7 +41968,7 @@
         254
       ],
       "binary_addr": 37767,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Configure Tube for data transfer",
       "type": "code",
       "mnemonic": "sty",
@@ -41983,7 +41983,7 @@
         16
       ],
       "binary_addr": 37770,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=&10: data transfer control value",
       "type": "code",
       "mnemonic": "ldy",
@@ -41996,7 +41996,7 @@
         2
       ],
       "binary_addr": 37772,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Check transfer type (X=2?)",
       "type": "code",
       "mnemonic": "cpx",
@@ -42009,13 +42009,13 @@
         2
       ],
       "binary_addr": 37774,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "X<2: skip alternate control",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "tube_ctrl_write_2",
       "target": 1093,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_ctrl_write_2"
     },
     {
@@ -42025,7 +42025,7 @@
         144
       ],
       "binary_addr": 37776,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=&90: alternate control for X>=2",
       "type": "code",
       "mnemonic": "ldy",
@@ -42039,7 +42039,7 @@
         254
       ],
       "binary_addr": 37778,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_ctrl_write_2"
       ],
@@ -42051,7 +42051,7 @@
         {
           "addr": 1089,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42069,13 +42069,13 @@
         6
       ],
       "binary_addr": 37781,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Send data byte via Tube R4",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r4",
       "target": 1753,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r4"
     },
     {
@@ -42085,7 +42085,7 @@
         136
       ],
       "binary_addr": 37784,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=&88: post-transfer control value",
       "type": "code",
       "mnemonic": "ldy",
@@ -42097,7 +42097,7 @@
         138
       ],
       "binary_addr": 37786,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Transfer type to A for comparison",
       "type": "code",
       "mnemonic": "txa"
@@ -42109,13 +42109,13 @@
         20
       ],
       "binary_addr": 37787,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Type 0: go to NMI flush check",
       "type": "code",
       "mnemonic": "beq",
       "operand": "flush_r3_nmi_check",
       "target": 1124,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "flush_r3_nmi_check"
     },
     {
@@ -42125,7 +42125,7 @@
         2
       ],
       "binary_addr": 37789,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Check if type 2",
       "type": "code",
       "mnemonic": "cmp",
@@ -42138,13 +42138,13 @@
         16
       ],
       "binary_addr": 37791,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Type 2: go to NMI flush check",
       "type": "code",
       "mnemonic": "beq",
       "operand": "flush_r3_nmi_check",
       "target": 1124,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "flush_r3_nmi_check"
     },
     {
@@ -42155,7 +42155,7 @@
         254
       ],
       "binary_addr": 37793,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Write post-transfer control",
       "type": "code",
       "mnemonic": "sty",
@@ -42170,7 +42170,7 @@
         4
       ],
       "binary_addr": 37796,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Check if type 4 (SENDW)",
       "type": "code",
       "mnemonic": "cmp",
@@ -42183,13 +42183,13 @@
         23
       ],
       "binary_addr": 37798,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Not SENDW type: skip release path",
       "type": "code",
       "mnemonic": "bne",
       "operand": "return_tube_xfer",
       "target": 1138,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "return_tube_xfer"
     },
     {
@@ -42198,7 +42198,7 @@
         104
       ],
       "binary_addr": 37800,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Discard return address (low byte)",
       "type": "code",
       "mnemonic": "pla"
@@ -42209,7 +42209,7 @@
         104
       ],
       "binary_addr": 37801,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Discard return address (high byte)",
       "type": "code",
       "mnemonic": "pla"
@@ -42221,7 +42221,7 @@
         128
       ],
       "binary_addr": 37802,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "release_claim_restart"
       ],
@@ -42233,7 +42233,7 @@
         {
           "addr": 1208,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42248,7 +42248,7 @@
         20
       ],
       "binary_addr": 37804,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Clear claim-in-progress flag",
       "type": "code",
       "mnemonic": "sta",
@@ -42264,13 +42264,13 @@
         5
       ],
       "binary_addr": 37806,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Restart Tube main loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_byte",
       "target": 1485,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_byte"
     },
     {
@@ -42281,7 +42281,7 @@
         254
       ],
       "binary_addr": 37809,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "flush_r3_nmi_check"
       ],
@@ -42293,19 +42293,19 @@
         {
           "addr": 1102,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1106,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1127,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42322,13 +42322,13 @@
         251
       ],
       "binary_addr": 37812,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "V=0: not ready, poll again",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "flush_r3_nmi_check",
       "target": 1124,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "flush_r3_nmi_check"
     },
     {
@@ -42339,7 +42339,7 @@
         254
       ],
       "binary_addr": 37814,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Flush Tube R3 data register",
       "type": "code",
       "mnemonic": "bit",
@@ -42355,7 +42355,7 @@
         254
       ],
       "binary_addr": 37817,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Flush Tube R3 again",
       "type": "code",
       "mnemonic": "bit",
@@ -42371,7 +42371,7 @@
         254
       ],
       "binary_addr": 37820,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Write final control value",
       "type": "code",
       "mnemonic": "sty",
@@ -42385,7 +42385,7 @@
         96
       ],
       "binary_addr": 37823,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "return_tube_xfer"
       ],
@@ -42397,7 +42397,7 @@
         {
           "addr": 1113,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42410,7 +42410,7 @@
         88
       ],
       "binary_addr": 37824,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_begin"
       ],
@@ -42422,7 +42422,7 @@
         {
           "addr": 1024,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42435,7 +42435,7 @@
         8
       ],
       "binary_addr": 37825,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Save processor status",
       "type": "code",
       "mnemonic": "php"
@@ -42446,7 +42446,7 @@
         72
       ],
       "binary_addr": 37826,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Save A on stack",
       "type": "code",
       "mnemonic": "pha"
@@ -42458,7 +42458,7 @@
         0
       ],
       "binary_addr": 37827,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=0: start at beginning of page",
       "type": "code",
       "mnemonic": "ldy",
@@ -42471,13 +42471,13 @@
         87
       ],
       "binary_addr": 37829,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store to zero page pointer low byte",
       "type": "code",
       "mnemonic": "sty",
       "operand": "tube_transfer_addr",
       "target": 87,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_transfer_addr"
     },
     {
@@ -42487,7 +42487,7 @@
         128
       ],
       "binary_addr": 37831,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_init_reloc"
       ],
@@ -42503,13 +42503,13 @@
         88
       ],
       "binary_addr": 37833,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store &80 as source page high byte",
       "type": "code",
       "mnemonic": "sta",
       "operand": "tube_xfer_page",
       "target": 88,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_xfer_page"
     },
     {
@@ -42519,7 +42519,7 @@
         1
       ],
       "binary_addr": 37835,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store &80 as page counter initial value",
       "type": "code",
       "mnemonic": "sta",
@@ -42534,7 +42534,7 @@
         32
       ],
       "binary_addr": 37837,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "A=&20: bit 5 mask for ROM type check",
       "type": "code",
       "mnemonic": "lda",
@@ -42548,7 +42548,7 @@
         128
       ],
       "binary_addr": 37839,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "ROM type bit 5: reloc address in header?",
       "type": "code",
       "mnemonic": "and",
@@ -42563,13 +42563,13 @@
         25
       ],
       "binary_addr": 37842,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "No reloc addr: use defaults",
       "type": "code",
       "mnemonic": "beq",
       "operand": "store_xfer_end_addr",
       "target": 1184,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "store_xfer_end_addr"
     },
     {
@@ -42580,7 +42580,7 @@
         128
       ],
       "binary_addr": 37844,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Skip past copyright string to find reloc addr",
       "type": "code",
       "mnemonic": "ldx",
@@ -42594,7 +42594,7 @@
         232
       ],
       "binary_addr": 37847,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "scan_copyright_end"
       ],
@@ -42606,7 +42606,7 @@
         {
           "addr": 1166,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42621,7 +42621,7 @@
         128
       ],
       "binary_addr": 37848,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Load next byte from ROM header",
       "type": "code",
       "mnemonic": "lda",
@@ -42636,13 +42636,13 @@
         250
       ],
       "binary_addr": 37851,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Loop until null terminator found",
       "type": "code",
       "mnemonic": "bne",
       "operand": "scan_copyright_end",
       "target": 1162,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "scan_copyright_end"
     },
     {
@@ -42653,7 +42653,7 @@
         128
       ],
       "binary_addr": 37853,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Read 4-byte reloc address from ROM header",
       "type": "code",
       "mnemonic": "lda",
@@ -42668,13 +42668,13 @@
         87
       ],
       "binary_addr": 37856,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store reloc addr byte 1 as transfer addr",
       "type": "code",
       "mnemonic": "sta",
       "operand": "tube_transfer_addr",
       "target": 87,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_transfer_addr"
     },
     {
@@ -42685,7 +42685,7 @@
         128
       ],
       "binary_addr": 37858,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Load reloc addr byte 2",
       "type": "code",
       "mnemonic": "lda",
@@ -42700,13 +42700,13 @@
         88
       ],
       "binary_addr": 37861,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store as source page start",
       "type": "code",
       "mnemonic": "sta",
       "operand": "tube_xfer_page",
       "target": 88,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_xfer_page"
     },
     {
@@ -42717,7 +42717,7 @@
         128
       ],
       "binary_addr": 37863,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Load reloc addr byte 3",
       "type": "code",
       "mnemonic": "ldy",
@@ -42733,7 +42733,7 @@
         128
       ],
       "binary_addr": 37866,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Load reloc addr byte 4 (highest)",
       "type": "code",
       "mnemonic": "lda",
@@ -42748,7 +42748,7 @@
         90
       ],
       "binary_addr": 37869,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "store_xfer_end_addr"
       ],
@@ -42760,7 +42760,7 @@
         {
           "addr": 1157,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42768,7 +42768,7 @@
       "mnemonic": "sta",
       "operand": "tube_xfer_addr_3",
       "target": 90,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_xfer_addr_3"
     },
     {
@@ -42778,13 +42778,13 @@
         89
       ],
       "binary_addr": 37871,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Store byte 3 of end address",
       "type": "code",
       "mnemonic": "sty",
       "operand": "tube_xfer_addr_2",
       "target": 89,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_xfer_addr_2"
     },
     {
@@ -42793,7 +42793,7 @@
         104
       ],
       "binary_addr": 37873,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Restore A from stack",
       "type": "code",
       "mnemonic": "pla"
@@ -42804,7 +42804,7 @@
         40
       ],
       "binary_addr": 37874,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Restore processor status",
       "type": "code",
       "mnemonic": "plp"
@@ -42816,13 +42816,13 @@
         18
       ],
       "binary_addr": 37875,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Carry set: language entry (claim Tube)",
       "type": "code",
       "mnemonic": "bcs",
       "operand": "beginr",
       "target": 1210,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "beginr"
     },
     {
@@ -42831,7 +42831,7 @@
         170
       ],
       "binary_addr": 37877,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "X = A (preserved from entry)",
       "type": "code",
       "mnemonic": "tax"
@@ -42843,13 +42843,13 @@
         3
       ],
       "binary_addr": 37878,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Non-zero: check break type",
       "type": "code",
       "mnemonic": "bne",
       "operand": "begink",
       "target": 1198,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "begink"
     },
     {
@@ -42860,13 +42860,13 @@
         5
       ],
       "binary_addr": 37880,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "A=0: acknowledge and return",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_ack",
       "target": 1483,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_ack"
     },
     {
@@ -42876,7 +42876,7 @@
         0
       ],
       "binary_addr": 37883,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "begink"
       ],
@@ -42888,7 +42888,7 @@
         {
           "addr": 1193,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -42903,7 +42903,7 @@
         255
       ],
       "binary_addr": 37885,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=&FF for OSBYTE read",
       "type": "code",
       "mnemonic": "ldy",
@@ -42916,7 +42916,7 @@
         253
       ],
       "binary_addr": 37887,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "OSBYTE &FD: read last break type",
       "type": "code",
       "mnemonic": "lda",
@@ -42936,7 +42936,7 @@
         255
       ],
       "binary_addr": 37889,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Read/Write last break type",
       "type": "code",
       "mnemonic": "jsr",
@@ -42950,7 +42950,7 @@
         138
       ],
       "binary_addr": 37892,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Copy X to A",
       "type": "code",
       "mnemonic": "txa"
@@ -42962,13 +42962,13 @@
         163
       ],
       "binary_addr": 37893,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Soft break (0): skip ROM transfer",
       "type": "code",
       "mnemonic": "beq",
       "operand": "release_claim_restart",
       "target": 1117,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "release_claim_restart"
     },
     {
@@ -42978,7 +42978,7 @@
         255
       ],
       "binary_addr": 37895,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "beginr"
       ],
@@ -42990,13 +42990,13 @@
         {
           "addr": 1190,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1215,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -43012,13 +43012,13 @@
         4
       ],
       "binary_addr": 37897,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Claim Tube address via R4",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -43028,13 +43028,13 @@
         249
       ],
       "binary_addr": 37900,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Not claimed: retry until claimed",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "beginr",
       "target": 1210,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "beginr"
     },
     {
@@ -43044,7 +43044,7 @@
         1
       ],
       "binary_addr": 37902,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Transfer type 1 (parasite to host)",
       "type": "code",
       "mnemonic": "lda",
@@ -43058,13 +43058,13 @@
         4
       ],
       "binary_addr": 37904,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Set up Tube transfer parameters",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_setup_transfer",
       "target": 1248,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_setup_transfer"
     },
     {
@@ -43074,7 +43074,7 @@
         0
       ],
       "binary_addr": 37907,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Y=0: start at page boundary",
       "type": "code",
       "mnemonic": "ldy",
@@ -43087,7 +43087,7 @@
         0
       ],
       "binary_addr": 37909,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Source ptr low = 0",
       "type": "code",
       "mnemonic": "sty",
@@ -43102,7 +43102,7 @@
         64
       ],
       "binary_addr": 37911,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "X=&40: 64 pages (16KB) to transfer",
       "type": "code",
       "mnemonic": "ldx",
@@ -43115,7 +43115,7 @@
         0
       ],
       "binary_addr": 37913,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "send_rom_byte"
       ],
@@ -43127,13 +43127,13 @@
         {
           "addr": 1239,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1244,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -43151,7 +43151,7 @@
         254
       ],
       "binary_addr": 37915,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Send byte to Tube via R3",
       "type": "code",
       "mnemonic": "sta",
@@ -43167,7 +43167,7 @@
         254
       ],
       "binary_addr": 37918,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "poll_r3_ready"
       ],
@@ -43179,7 +43179,7 @@
         {
           "addr": 1236,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -43196,13 +43196,13 @@
         251
       ],
       "binary_addr": 37921,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Not ready: wait for Tube",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "poll_r3_ready",
       "target": 1233,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "poll_r3_ready"
     },
     {
@@ -43211,7 +43211,7 @@
         200
       ],
       "binary_addr": 37923,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Next byte in page",
       "type": "code",
       "mnemonic": "iny"
@@ -43223,13 +43223,13 @@
         243
       ],
       "binary_addr": 37924,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "More bytes in page: continue",
       "type": "code",
       "mnemonic": "bne",
       "operand": "send_rom_byte",
       "target": 1228,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "send_rom_byte"
     },
     {
@@ -43239,7 +43239,7 @@
         1
       ],
       "binary_addr": 37926,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Next source page",
       "type": "code",
       "mnemonic": "inc",
@@ -43253,7 +43253,7 @@
         202
       ],
       "binary_addr": 37928,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Decrement page counter",
       "type": "code",
       "mnemonic": "dex"
@@ -43265,13 +43265,13 @@
         238
       ],
       "binary_addr": 37929,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "More pages: continue transfer",
       "type": "code",
       "mnemonic": "bne",
       "operand": "send_rom_byte",
       "target": 1228,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "send_rom_byte"
     },
     {
@@ -43281,7 +43281,7 @@
         4
       ],
       "binary_addr": 37931,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Transfer type 4 (host to parasite burst)",
       "type": "code",
       "mnemonic": "lda",
@@ -43294,7 +43294,7 @@
         0
       ],
       "binary_addr": 37933,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_setup_transfer"
       ],
@@ -43306,7 +43306,7 @@
         {
           "addr": 1219,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -43321,7 +43321,7 @@
         87
       ],
       "binary_addr": 37935,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "X=&57: param block at &0057",
       "type": "code",
       "mnemonic": "ldx",
@@ -43335,13 +43335,13 @@
         4
       ],
       "binary_addr": 37937,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Claim Tube and start transfer",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -43351,7 +43351,7 @@
         1
       ],
       "binary_addr": 37940,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_rdch_handler"
       ],
@@ -43368,13 +43368,13 @@
         6
       ],
       "binary_addr": 37942,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Send OSRDCH request to host",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -43385,13 +43385,13 @@
         0
       ],
       "binary_addr": 37945,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Jump to RDCH completion handler",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_enter_main_loop",
       "target": 54,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_enter_main_loop"
     },
     {
@@ -43401,7 +43401,7 @@
         16
       ],
       "binary_addr": 37948,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_restore_regs"
       ],
@@ -43419,7 +43419,7 @@
         17
       ],
       "binary_addr": 37950,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Restore X from saved value",
       "type": "code",
       "mnemonic": "ldx",
@@ -43435,13 +43435,13 @@
         4
       ],
       "binary_addr": 37952,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Read result byte from R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -43450,7 +43450,7 @@
         10
       ],
       "binary_addr": 37955,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Shift carry into C flag",
       "type": "code",
       "mnemonic": "asl"
@@ -43463,7 +43463,7 @@
         254
       ],
       "binary_addr": 37956,
-      "move": "move_2",
+      "move": "tube_page4",
       "labels": [
         "tube_read_r2"
       ],
@@ -43475,133 +43475,133 @@
         {
           "addr": 1267,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1274,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1347,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1351,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1360,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1385,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1408,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1420,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1426,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1435,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1461,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1498,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1515,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1540,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1548,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1574,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1578,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1595,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1599,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1603,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1629,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1701,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -43618,13 +43618,13 @@
         251
       ],
       "binary_addr": 37959,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Bit 7 clear: R2 not ready, wait",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -43635,7 +43635,7 @@
         254
       ],
       "binary_addr": 37961,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Read byte from R2 data register",
       "type": "code",
       "mnemonic": "lda",
@@ -43649,7 +43649,7 @@
         96
       ],
       "binary_addr": 37964,
-      "move": "move_2",
+      "move": "tube_page4",
       "comment_inline": "Return with pointers initialised",
       "type": "code",
       "mnemonic": "rts",
@@ -43667,7 +43667,7 @@
         5
       ],
       "binary_addr": 37965,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_dispatch_table"
       ],
@@ -43679,7 +43679,7 @@
         {
           "addr": 84,
           "kind": "pointer",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
@@ -43707,7 +43707,7 @@
         5
       ],
       "binary_addr": 37967,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 1: OSCLI",
       "type": "word",
       "values": [
@@ -43729,7 +43729,7 @@
         6
       ],
       "binary_addr": 37969,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 2: OSBYTE (2-param)",
       "type": "word",
       "values": [
@@ -43751,7 +43751,7 @@
         6
       ],
       "binary_addr": 37971,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 3: OSBYTE (3-param)",
       "type": "word",
       "values": [
@@ -43773,7 +43773,7 @@
         6
       ],
       "binary_addr": 37973,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 4: OSWORD",
       "type": "word",
       "values": [
@@ -43795,7 +43795,7 @@
         6
       ],
       "binary_addr": 37975,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 5: OSWORD 0 (read line)",
       "type": "word",
       "values": [
@@ -43817,7 +43817,7 @@
         4
       ],
       "binary_addr": 37977,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 6: release/restore regs",
       "type": "word",
       "values": [
@@ -43839,7 +43839,7 @@
         5
       ],
       "binary_addr": 37979,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 7: restore regs, RTS",
       "type": "word",
       "values": [
@@ -43861,7 +43861,7 @@
         5
       ],
       "binary_addr": 37981,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 8: OSARGS",
       "type": "word",
       "values": [
@@ -43883,7 +43883,7 @@
         5
       ],
       "binary_addr": 37983,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 9: OSBGET",
       "type": "word",
       "values": [
@@ -43905,7 +43905,7 @@
         5
       ],
       "binary_addr": 37985,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 10: OSBPUT",
       "type": "word",
       "values": [
@@ -43927,7 +43927,7 @@
         5
       ],
       "binary_addr": 37987,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 11: OSFIND",
       "type": "word",
       "values": [
@@ -43949,7 +43949,7 @@
         5
       ],
       "binary_addr": 37989,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 12: OSFILE",
       "type": "word",
       "values": [
@@ -43971,7 +43971,7 @@
         6
       ],
       "binary_addr": 37991,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "cmd 13: OSGBPB",
       "type": "word",
       "values": [
@@ -43992,7 +43992,7 @@
         72
       ],
       "binary_addr": 37993,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_wrch_handler"
       ],
@@ -44007,7 +44007,7 @@
         0
       ],
       "binary_addr": 37994,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "A=0: send null prefix via R2",
       "type": "code",
       "mnemonic": "lda",
@@ -44021,7 +44021,7 @@
         6
       ],
       "binary_addr": 37996,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_send_and_poll"
       ],
@@ -44030,7 +44030,7 @@
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -44041,7 +44041,7 @@
         254
       ],
       "binary_addr": 37999,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "poll_r2_reply"
       ],
@@ -44053,13 +44053,13 @@
         {
           "addr": 1322,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1330,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -44076,13 +44076,13 @@
         14
       ],
       "binary_addr": 38002,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "R2 ready: go process reply",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "wrch_echo_reply",
       "target": 1333,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "wrch_echo_reply"
     },
     {
@@ -44093,7 +44093,7 @@
         254
       ],
       "binary_addr": 38004,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_poll_r4_wrch"
       ],
@@ -44111,13 +44111,13 @@
         246
       ],
       "binary_addr": 38007,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "No R4 data: back to polling R2",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "poll_r2_reply",
       "target": 1314,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "poll_r2_reply"
     },
     {
@@ -44128,7 +44128,7 @@
         254
       ],
       "binary_addr": 38009,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read WRCH character from R4",
       "type": "code",
       "mnemonic": "lda",
@@ -44144,7 +44144,7 @@
         255
       ],
       "binary_addr": 38012,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Write character (non-vectored OSWRCH)",
       "type": "code",
       "mnemonic": "jsr",
@@ -44160,7 +44160,7 @@
         5
       ],
       "binary_addr": 38015,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_resume_poll"
       ],
@@ -44169,7 +44169,7 @@
       "mnemonic": "jmp",
       "operand": "poll_r2_reply",
       "target": 1314,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "poll_r2_reply"
     },
     {
@@ -44178,7 +44178,7 @@
         104
       ],
       "binary_addr": 38018,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "wrch_echo_reply"
       ],
@@ -44190,7 +44190,7 @@
         {
           "addr": 1317,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -44205,7 +44205,7 @@
         254
       ],
       "binary_addr": 38019,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Echo character back via R2",
       "type": "code",
       "mnemonic": "sta",
@@ -44219,7 +44219,7 @@
         72
       ],
       "binary_addr": 38022,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Push for dispatch loop re-entry",
       "type": "code",
       "mnemonic": "pha"
@@ -44232,13 +44232,13 @@
         0
       ],
       "binary_addr": 38023,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Enter main dispatch loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_enter_main_loop",
       "target": 54,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_enter_main_loop"
     },
     {
@@ -44248,7 +44248,7 @@
         17
       ],
       "binary_addr": 38026,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_release_return"
       ],
@@ -44266,7 +44266,7 @@
         16
       ],
       "binary_addr": 38028,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Restore saved Y from temporary",
       "type": "code",
       "mnemonic": "ldy",
@@ -44280,7 +44280,7 @@
         104
       ],
       "binary_addr": 38030,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Restore saved A",
       "type": "code",
       "mnemonic": "pla"
@@ -44291,7 +44291,7 @@
         96
       ],
       "binary_addr": 38031,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return to caller",
       "type": "code",
       "mnemonic": "rts"
@@ -44304,7 +44304,7 @@
         4
       ],
       "binary_addr": 38032,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osbput"
       ],
@@ -44313,7 +44313,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44322,7 +44322,7 @@
         168
       ],
       "binary_addr": 38035,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=channel handle from R2",
       "type": "code",
       "mnemonic": "tay"
@@ -44335,13 +44335,13 @@
         4
       ],
       "binary_addr": 38036,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read data byte from R2 for BPUT",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44352,7 +44352,7 @@
         255
       ],
       "binary_addr": 38039,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_poll_r1_wrch"
       ],
@@ -44371,13 +44371,13 @@
         5
       ],
       "binary_addr": 38042,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "BPUT done: send acknowledge, return",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_ack",
       "target": 1483,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_ack"
     },
     {
@@ -44388,7 +44388,7 @@
         4
       ],
       "binary_addr": 38045,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osbget"
       ],
@@ -44397,7 +44397,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44406,7 +44406,7 @@
         168
       ],
       "binary_addr": 38048,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=channel handle for OSBGET",
       "type": "code",
       "mnemonic": "tay"
@@ -44419,7 +44419,7 @@
         255
       ],
       "binary_addr": 38049,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read a byte from the file (OSBGET)",
       "type": "code",
       "mnemonic": "jsr",
@@ -44433,7 +44433,7 @@
         72
       ],
       "binary_addr": 38052,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Save byte read from file",
       "type": "code",
       "mnemonic": "pha"
@@ -44446,13 +44446,13 @@
         5
       ],
       "binary_addr": 38053,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send carry+byte reply (BGET result)",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "send_reply_ok",
       "target": 1375,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "send_reply_ok"
     },
     {
@@ -44463,7 +44463,7 @@
         255
       ],
       "binary_addr": 38056,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osrdch"
       ],
@@ -44480,7 +44480,7 @@
         72
       ],
       "binary_addr": 38059,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Push A",
       "type": "code",
       "mnemonic": "pha"
@@ -44492,7 +44492,7 @@
         128
       ],
       "binary_addr": 38060,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "send_reply_ok"
       ],
@@ -44504,7 +44504,7 @@
         {
           "addr": 1368,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -44518,7 +44518,7 @@
         106
       ],
       "binary_addr": 38062,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_rdch_reply"
       ],
@@ -44534,13 +44534,13 @@
         6
       ],
       "binary_addr": 38063,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "= JSR tube_send_r2 (overlaps &053D entry)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -44549,7 +44549,7 @@
         104
       ],
       "binary_addr": 38066,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Restore read character/byte",
       "type": "code",
       "mnemonic": "pla"
@@ -44562,13 +44562,13 @@
         5
       ],
       "binary_addr": 38067,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return to Tube main loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_byte",
       "target": 1485,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_byte"
     },
     {
@@ -44579,7 +44579,7 @@
         4
       ],
       "binary_addr": 38070,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osfind"
       ],
@@ -44588,7 +44588,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44598,13 +44598,13 @@
         18
       ],
       "binary_addr": 38073,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "A=0: close file, else open with filename",
       "type": "code",
       "mnemonic": "beq",
       "operand": "tube_osfind_close",
       "target": 1408,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_osfind_close"
     },
     {
@@ -44613,7 +44613,7 @@
         72
       ],
       "binary_addr": 38075,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Save open mode while reading filename",
       "type": "code",
       "mnemonic": "pha"
@@ -44626,13 +44626,13 @@
         5
       ],
       "binary_addr": 38076,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read filename string from R2 into &0700",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_string",
       "target": 1457,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_read_string"
     },
     {
@@ -44641,7 +44641,7 @@
         104
       ],
       "binary_addr": 38079,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Recover open mode from stack",
       "type": "code",
       "mnemonic": "pla"
@@ -44654,7 +44654,7 @@
         255
       ],
       "binary_addr": 38080,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Open or close the file (OSFIND)",
       "type": "code",
       "mnemonic": "jsr",
@@ -44668,7 +44668,7 @@
         72
       ],
       "binary_addr": 38083,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Save file handle result",
       "type": "code",
       "mnemonic": "pha"
@@ -44680,7 +44680,7 @@
         255
       ],
       "binary_addr": 38084,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "A=&FF: success marker",
       "type": "code",
       "mnemonic": "lda",
@@ -44694,13 +44694,13 @@
         6
       ],
       "binary_addr": 38086,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send success marker via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -44709,7 +44709,7 @@
         104
       ],
       "binary_addr": 38089,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Restore file handle",
       "type": "code",
       "mnemonic": "pla"
@@ -44722,13 +44722,13 @@
         5
       ],
       "binary_addr": 38090,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send file handle result to co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_byte",
       "target": 1485,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_byte"
     },
     {
@@ -44739,7 +44739,7 @@
         4
       ],
       "binary_addr": 38093,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osfind_close"
       ],
@@ -44751,7 +44751,7 @@
         {
           "addr": 1388,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -44759,7 +44759,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44768,7 +44768,7 @@
         168
       ],
       "binary_addr": 38096,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=handle to close",
       "type": "code",
       "mnemonic": "tay"
@@ -44780,7 +44780,7 @@
         0
       ],
       "binary_addr": 38097,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "A=0: close command for OSFIND",
       "type": "code",
       "mnemonic": "lda",
@@ -44800,7 +44800,7 @@
         255
       ],
       "binary_addr": 38099,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "osfind: close one or all files",
       "type": "code",
       "mnemonic": "jsr",
@@ -44816,13 +44816,13 @@
         5
       ],
       "binary_addr": 38102,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Close done: send acknowledge, return",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_ack",
       "target": 1483,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_ack"
     },
     {
@@ -44833,7 +44833,7 @@
         4
       ],
       "binary_addr": 38105,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osargs"
       ],
@@ -44842,7 +44842,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44851,7 +44851,7 @@
         168
       ],
       "binary_addr": 38108,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=file handle for OSARGS",
       "type": "code",
       "mnemonic": "tay"
@@ -44863,7 +44863,7 @@
         3
       ],
       "binary_addr": 38109,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_read_params"
       ],
@@ -44880,7 +44880,7 @@
         4
       ],
       "binary_addr": 38111,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "read_osargs_params"
       ],
@@ -44892,7 +44892,7 @@
         {
           "addr": 1432,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -44900,7 +44900,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44910,7 +44910,7 @@
         0
       ],
       "binary_addr": 38114,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Params stored at &00-&03 (little-endian)",
       "type": "code",
       "mnemonic": "sta",
@@ -44924,7 +44924,7 @@
         202
       ],
       "binary_addr": 38116,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Decrement byte counter",
       "type": "code",
       "mnemonic": "dex"
@@ -44936,13 +44936,13 @@
         248
       ],
       "binary_addr": 38117,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Loop until all 4 bytes read",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "read_osargs_params",
       "target": 1426,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "read_osargs_params"
     },
     {
@@ -44951,7 +44951,7 @@
         232
       ],
       "binary_addr": 38119,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "X=0: reset index after loop",
       "type": "code",
       "mnemonic": "inx"
@@ -44964,13 +44964,13 @@
         4
       ],
       "binary_addr": 38120,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read OSARGS reason code from R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -44981,7 +44981,7 @@
         255
       ],
       "binary_addr": 38123,
-      "move": "move_3",
+      "move": "tube_page5",
       "comments_before_line": [
         "On return, A is the filing system number:\n\n| A | Meaning |\n|---|---|\n| 0 | no filing system selected |\n| 1 | 1200 baud CFS |\n| 2 | 300 baud CFS |\n| 3 | ROM filing system |\n| 4 | Disc filing system |\n| 5 | Network filing system |\n| 6 | Teletext filing system |\n| 7 | IEEE filing system |\n| 8 | ADFS |\n| 9 | Host filing system |\n| 10 | Videodisc filing system |"
       ],
@@ -45000,13 +45000,13 @@
         6
       ],
       "binary_addr": 38126,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send result A back to co-processor",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -45016,7 +45016,7 @@
         3
       ],
       "binary_addr": 38129,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return 4-byte result from ZP &00-&03",
       "type": "code",
       "mnemonic": "ldx",
@@ -45029,7 +45029,7 @@
         0
       ],
       "binary_addr": 38131,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "send_osargs_result"
       ],
@@ -45041,7 +45041,7 @@
         {
           "addr": 1452,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45059,13 +45059,13 @@
         6
       ],
       "binary_addr": 38133,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send byte to co-processor via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -45074,7 +45074,7 @@
         202
       ],
       "binary_addr": 38136,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Previous byte (count down)",
       "type": "code",
       "mnemonic": "dex"
@@ -45086,13 +45086,13 @@
         248
       ],
       "binary_addr": 38137,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Loop for all 4 bytes",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "send_osargs_result",
       "target": 1446,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "send_osargs_result"
     },
     {
@@ -45103,13 +45103,13 @@
         0
       ],
       "binary_addr": 38139,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return to Tube main loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -45119,7 +45119,7 @@
         0
       ],
       "binary_addr": 38142,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_read_string"
       ],
@@ -45131,19 +45131,19 @@
         {
           "addr": 1391,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1477,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1506,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45158,7 +45158,7 @@
         0
       ],
       "binary_addr": 38144,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=0: string buffer offset 0",
       "type": "code",
       "mnemonic": "ldy",
@@ -45172,7 +45172,7 @@
         4
       ],
       "binary_addr": 38146,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "strnh"
       ],
@@ -45184,7 +45184,7 @@
         {
           "addr": 1472,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45192,7 +45192,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -45203,7 +45203,7 @@
         7
       ],
       "binary_addr": 38149,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Store byte in string buffer at &0700+Y",
       "type": "code",
       "mnemonic": "sta",
@@ -45217,7 +45217,7 @@
         200
       ],
       "binary_addr": 38152,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Next buffer position",
       "type": "code",
       "mnemonic": "iny"
@@ -45229,13 +45229,13 @@
         4
       ],
       "binary_addr": 38153,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y overflow: string too long, truncate",
       "type": "code",
       "mnemonic": "beq",
       "operand": "string_buf_done",
       "target": 1474,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "string_buf_done"
     },
     {
@@ -45245,7 +45245,7 @@
         13
       ],
       "binary_addr": 38155,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Check for CR terminator",
       "type": "code",
       "mnemonic": "cmp",
@@ -45258,13 +45258,13 @@
         243
       ],
       "binary_addr": 38157,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Not CR: continue reading string",
       "type": "code",
       "mnemonic": "bne",
       "operand": "strnh",
       "target": 1461,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "strnh"
     },
     {
@@ -45274,7 +45274,7 @@
         7
       ],
       "binary_addr": 38159,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "string_buf_done"
       ],
@@ -45286,7 +45286,7 @@
         {
           "addr": 1468,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45300,7 +45300,7 @@
         96
       ],
       "binary_addr": 38161,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return with XY pointing to &0700",
       "type": "code",
       "mnemonic": "rts"
@@ -45313,7 +45313,7 @@
         5
       ],
       "binary_addr": 38162,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_oscli"
       ],
@@ -45322,7 +45322,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_string",
       "target": 1457,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_read_string"
     },
     {
@@ -45333,7 +45333,7 @@
         255
       ],
       "binary_addr": 38165,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Execute * command via OSCLI",
       "type": "code",
       "mnemonic": "jsr",
@@ -45348,7 +45348,7 @@
         127
       ],
       "binary_addr": 38168,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_reply_ack"
       ],
@@ -45360,19 +45360,19 @@
         {
           "addr": 1195,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1357,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1417,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45388,7 +45388,7 @@
         254
       ],
       "binary_addr": 38170,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_reply_byte"
       ],
@@ -45400,31 +45400,31 @@
         {
           "addr": 1121,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1382,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1405,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1488,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1720,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -45441,13 +45441,13 @@
         251
       ],
       "binary_addr": 38173,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Bit 6 clear: not ready, loop",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_reply_byte",
       "target": 1485,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_byte"
     },
     {
@@ -45458,7 +45458,7 @@
         254
       ],
       "binary_addr": 38175,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Write byte to R2 data register",
       "type": "code",
       "mnemonic": "sta",
@@ -45474,7 +45474,7 @@
         0
       ],
       "binary_addr": 38178,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "mj"
       ],
@@ -45486,7 +45486,7 @@
         {
           "addr": 1536,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -45494,7 +45494,7 @@
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -45504,7 +45504,7 @@
         16
       ],
       "binary_addr": 38181,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "tube_osfile"
       ],
@@ -45521,7 +45521,7 @@
         4
       ],
       "binary_addr": 38183,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "argsw"
       ],
@@ -45533,7 +45533,7 @@
         {
           "addr": 1504,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45541,7 +45541,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -45551,7 +45551,7 @@
         1
       ],
       "binary_addr": 38186,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Store at &01+X (descending)",
       "type": "code",
       "mnemonic": "sta",
@@ -45565,7 +45565,7 @@
         202
       ],
       "binary_addr": 38188,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Decrement byte counter",
       "type": "code",
       "mnemonic": "dex"
@@ -45577,13 +45577,13 @@
         248
       ],
       "binary_addr": 38189,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Loop for all 16 bytes",
       "type": "code",
       "mnemonic": "bne",
       "operand": "argsw",
       "target": 1498,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "argsw"
     },
     {
@@ -45594,13 +45594,13 @@
         5
       ],
       "binary_addr": 38191,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read filename string from R2 into &0700",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_string",
       "target": 1457,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_read_string"
     },
     {
@@ -45610,7 +45610,7 @@
         0
       ],
       "binary_addr": 38194,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "XY=&0700: filename pointer for OSFILE",
       "type": "code",
       "mnemonic": "stx",
@@ -45625,7 +45625,7 @@
         1
       ],
       "binary_addr": 38196,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Store Y=7 as pointer high byte",
       "type": "code",
       "mnemonic": "sty",
@@ -45640,7 +45640,7 @@
         0
       ],
       "binary_addr": 38198,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Y=0 for OSFILE control block offset",
       "type": "code",
       "mnemonic": "ldy",
@@ -45654,13 +45654,13 @@
         4
       ],
       "binary_addr": 38200,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Read OSFILE reason code from R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -45671,7 +45671,7 @@
         255
       ],
       "binary_addr": 38203,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Execute OSFILE operation",
       "type": "code",
       "mnemonic": "jsr",
@@ -45686,7 +45686,7 @@
         128
       ],
       "binary_addr": 38206,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Set bit 7: mark result as present",
       "type": "code",
       "mnemonic": "ora",
@@ -45700,13 +45700,13 @@
         6
       ],
       "binary_addr": 38208,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send result A (object type) to co-processor",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -45716,7 +45716,7 @@
         16
       ],
       "binary_addr": 38211,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Return 16-byte control block to co-processor",
       "type": "code",
       "mnemonic": "ldx",
@@ -45729,7 +45729,7 @@
         1
       ],
       "binary_addr": 38213,
-      "move": "move_3",
+      "move": "tube_page5",
       "labels": [
         "send_osfile_ctrl_blk"
       ],
@@ -45741,7 +45741,7 @@
         {
           "addr": 1534,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         }
       ],
@@ -45759,13 +45759,13 @@
         6
       ],
       "binary_addr": 38215,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Send byte to co-processor via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -45774,7 +45774,7 @@
         202
       ],
       "binary_addr": 38218,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Decrement byte counter",
       "type": "code",
       "mnemonic": "dex"
@@ -45786,13 +45786,13 @@
         248
       ],
       "binary_addr": 38219,
-      "move": "move_3",
+      "move": "tube_page5",
       "comment_inline": "Loop for all 16 bytes",
       "type": "code",
       "mnemonic": "bne",
       "operand": "send_osfile_ctrl_blk",
       "target": 1528,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "send_osfile_ctrl_blk"
     },
     {
@@ -45802,7 +45802,7 @@
         211
       ],
       "binary_addr": 38221,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_code_page6"
       ],
@@ -45820,7 +45820,7 @@
       "mnemonic": "beq",
       "operand": "mj",
       "target": 1493,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "mj"
     },
     {
@@ -45830,7 +45830,7 @@
         12
       ],
       "binary_addr": 38223,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osgbpb"
       ],
@@ -45847,7 +45847,7 @@
         4
       ],
       "binary_addr": 38225,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "read_gbpb_params"
       ],
@@ -45859,7 +45859,7 @@
         {
           "addr": 1546,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -45867,7 +45867,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -45877,7 +45877,7 @@
         0
       ],
       "binary_addr": 38228,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Store in zero page param block",
       "type": "code",
       "mnemonic": "sta",
@@ -45891,7 +45891,7 @@
         202
       ],
       "binary_addr": 38230,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next byte (descending)",
       "type": "code",
       "mnemonic": "dex"
@@ -45903,13 +45903,13 @@
         248
       ],
       "binary_addr": 38231,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until all 13 bytes read",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "read_gbpb_params",
       "target": 1540,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "read_gbpb_params"
     },
     {
@@ -45920,13 +45920,13 @@
         4
       ],
       "binary_addr": 38233,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read A (OSGBPB function code)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -45935,7 +45935,7 @@
         232
       ],
       "binary_addr": 38236,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "X=0 after loop",
       "type": "code",
       "mnemonic": "inx"
@@ -45947,7 +45947,7 @@
         0
       ],
       "binary_addr": 38237,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Y=0 for OSGBPB call",
       "type": "code",
       "mnemonic": "ldy",
@@ -45961,7 +45961,7 @@
         255
       ],
       "binary_addr": 38239,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Multi-byte file transfer (OSGBPB)",
       "type": "code",
       "mnemonic": "jsr",
@@ -45975,7 +45975,7 @@
         106
       ],
       "binary_addr": 38242,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Encode carry into result bit 7",
       "type": "code",
       "mnemonic": "ror"
@@ -45988,13 +45988,13 @@
         6
       ],
       "binary_addr": 38243,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send carry+result byte via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -46004,7 +46004,7 @@
         12
       ],
       "binary_addr": 38246,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "X=12: send 13 updated param bytes",
       "type": "code",
       "mnemonic": "ldx",
@@ -46017,7 +46017,7 @@
         0
       ],
       "binary_addr": 38248,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "send_gbpb_params"
       ],
@@ -46029,7 +46029,7 @@
         {
           "addr": 1569,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46047,13 +46047,13 @@
         6
       ],
       "binary_addr": 38250,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send param byte via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -46062,7 +46062,7 @@
         202
       ],
       "binary_addr": 38253,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next byte (descending)",
       "type": "code",
       "mnemonic": "dex"
@@ -46074,13 +46074,13 @@
         248
       ],
       "binary_addr": 38254,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until all 13 bytes sent",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "send_gbpb_params",
       "target": 1563,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "send_gbpb_params"
     },
     {
@@ -46091,13 +46091,13 @@
         0
       ],
       "binary_addr": 38256,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Return to main event loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -46108,7 +46108,7 @@
         4
       ],
       "binary_addr": 38259,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osbyte_short"
       ],
@@ -46117,7 +46117,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46126,7 +46126,7 @@
         170
       ],
       "binary_addr": 38262,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Save in X",
       "type": "code",
       "mnemonic": "tax"
@@ -46139,13 +46139,13 @@
         4
       ],
       "binary_addr": 38263,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read A (OSBYTE function code)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46156,7 +46156,7 @@
         255
       ],
       "binary_addr": 38266,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Execute OSBYTE A,X",
       "type": "code",
       "mnemonic": "jsr",
@@ -46172,7 +46172,7 @@
         254
       ],
       "binary_addr": 38269,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osbyte_send_x"
       ],
@@ -46184,13 +46184,13 @@
         {
           "addr": 1587,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1627,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46207,13 +46207,13 @@
         251
       ],
       "binary_addr": 38272,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_osbyte_send_x",
       "target": 1584,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osbyte_send_x"
     },
     {
@@ -46224,7 +46224,7 @@
         254
       ],
       "binary_addr": 38274,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send X result for 2-param OSBYTE",
       "type": "code",
       "mnemonic": "stx",
@@ -46240,7 +46240,7 @@
         0
       ],
       "binary_addr": 38277,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "bytex"
       ],
@@ -46252,7 +46252,7 @@
         {
           "addr": 1611,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46260,7 +46260,7 @@
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -46271,7 +46271,7 @@
         4
       ],
       "binary_addr": 38280,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osbyte_long"
       ],
@@ -46280,7 +46280,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46289,7 +46289,7 @@
         170
       ],
       "binary_addr": 38283,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Save in X",
       "type": "code",
       "mnemonic": "tax"
@@ -46302,13 +46302,13 @@
         4
       ],
       "binary_addr": 38284,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read Y parameter from co-processor",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46317,7 +46317,7 @@
         168
       ],
       "binary_addr": 38287,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Save in Y",
       "type": "code",
       "mnemonic": "tay"
@@ -46330,13 +46330,13 @@
         4
       ],
       "binary_addr": 38288,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read A (OSBYTE function code)",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46347,7 +46347,7 @@
         255
       ],
       "binary_addr": 38291,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Execute OSBYTE A,X,Y",
       "type": "code",
       "mnemonic": "jsr",
@@ -46362,7 +46362,7 @@
         157
       ],
       "binary_addr": 38294,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Test for OSBYTE &9D (fast Tube BPUT)",
       "type": "code",
       "mnemonic": "eor",
@@ -46375,13 +46375,13 @@
         235
       ],
       "binary_addr": 38296,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "OSBYTE &9D (fast Tube BPUT): no result needed",
       "type": "code",
       "mnemonic": "beq",
       "operand": "bytex",
       "target": 1592,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "bytex"
     },
     {
@@ -46391,7 +46391,7 @@
         64
       ],
       "binary_addr": 38298,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "A=&40: high bit will hold carry",
       "type": "code",
       "mnemonic": "lda",
@@ -46403,7 +46403,7 @@
         106
       ],
       "binary_addr": 38300,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Encode carry (error flag) into bit 7",
       "type": "code",
       "mnemonic": "ror"
@@ -46416,13 +46416,13 @@
         6
       ],
       "binary_addr": 38301,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send carry+status byte via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -46433,7 +46433,7 @@
         254
       ],
       "binary_addr": 38304,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osbyte_send_y"
       ],
@@ -46445,7 +46445,7 @@
         {
           "addr": 1622,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46462,13 +46462,13 @@
         251
       ],
       "binary_addr": 38307,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_osbyte_send_y",
       "target": 1619,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osbyte_send_y"
     },
     {
@@ -46479,7 +46479,7 @@
         254
       ],
       "binary_addr": 38309,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send Y result, then fall through to send X",
       "type": "code",
       "mnemonic": "sty",
@@ -46494,13 +46494,13 @@
         211
       ],
       "binary_addr": 38312,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "BVS &05FC: overlapping code \u2014 loops back to page 5 R2 poll to send X after Y",
       "type": "code",
       "mnemonic": "bvs",
       "operand": "tube_osbyte_send_x",
       "target": 1584,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osbyte_send_x"
     },
     {
@@ -46511,7 +46511,7 @@
         4
       ],
       "binary_addr": 38314,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword"
       ],
@@ -46520,7 +46520,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -46529,7 +46529,7 @@
         168
       ],
       "binary_addr": 38317,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Save OSWORD number in Y",
       "type": "code",
       "mnemonic": "tay"
@@ -46542,7 +46542,7 @@
         254
       ],
       "binary_addr": 38318,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword_read"
       ],
@@ -46554,7 +46554,7 @@
         {
           "addr": 1636,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46571,13 +46571,13 @@
         251
       ],
       "binary_addr": 38321,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_osword_read",
       "target": 1633,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osword_read"
     },
     {
@@ -46588,7 +46588,7 @@
         254
       ],
       "binary_addr": 38323,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read param block length from R2",
       "type": "code",
       "mnemonic": "ldx",
@@ -46602,7 +46602,7 @@
         202
       ],
       "binary_addr": 38326,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "DEX: length 0 means no params to read",
       "type": "code",
       "mnemonic": "dex"
@@ -46614,13 +46614,13 @@
         15
       ],
       "binary_addr": 38327,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "No params (length=0): skip read loop",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "skip_param_read",
       "target": 1659,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "skip_param_read"
     },
     {
@@ -46631,7 +46631,7 @@
         254
       ],
       "binary_addr": 38329,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword_read_lp"
       ],
@@ -46643,13 +46643,13 @@
         {
           "addr": 1647,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1656,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46666,13 +46666,13 @@
         251
       ],
       "binary_addr": 38332,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_osword_read_lp",
       "target": 1644,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osword_read_lp"
     },
     {
@@ -46683,7 +46683,7 @@
         254
       ],
       "binary_addr": 38334,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read param byte from R2",
       "type": "code",
       "mnemonic": "lda",
@@ -46699,7 +46699,7 @@
         1
       ],
       "binary_addr": 38337,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Store param bytes into block at &0130",
       "type": "code",
       "mnemonic": "sta",
@@ -46713,7 +46713,7 @@
         202
       ],
       "binary_addr": 38340,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next param byte (descending)",
       "type": "code",
       "mnemonic": "dex"
@@ -46725,13 +46725,13 @@
         242
       ],
       "binary_addr": 38341,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until all params read",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_osword_read_lp",
       "target": 1644,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osword_read_lp"
     },
     {
@@ -46740,7 +46740,7 @@
         152
       ],
       "binary_addr": 38343,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Restore OSWORD number from Y",
       "type": "code",
       "mnemonic": "tya"
@@ -46752,7 +46752,7 @@
         48
       ],
       "binary_addr": 38344,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "skip_param_read"
       ],
@@ -46764,7 +46764,7 @@
         {
           "addr": 1642,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46788,7 +46788,7 @@
         1
       ],
       "binary_addr": 38346,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Y=&01: param block at &0130",
       "type": "code",
       "mnemonic": "ldy",
@@ -46811,7 +46811,7 @@
         255
       ],
       "binary_addr": 38348,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Execute OSWORD with XY=&0130",
       "type": "code",
       "mnemonic": "jsr",
@@ -46826,7 +46826,7 @@
         255
       ],
       "binary_addr": 38351,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "A=&FF: result marker for co-processor",
       "type": "code",
       "mnemonic": "lda",
@@ -46840,13 +46840,13 @@
         6
       ],
       "binary_addr": 38353,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send result marker via R2",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -46857,7 +46857,7 @@
         254
       ],
       "binary_addr": 38356,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "poll_r2_osword_result"
       ],
@@ -46869,7 +46869,7 @@
         {
           "addr": 1674,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46886,13 +46886,13 @@
         251
       ],
       "binary_addr": 38359,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "poll_r2_osword_result",
       "target": 1671,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "poll_r2_osword_result"
     },
     {
@@ -46903,7 +46903,7 @@
         254
       ],
       "binary_addr": 38361,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read result block length from R2",
       "type": "code",
       "mnemonic": "ldx",
@@ -46917,7 +46917,7 @@
         202
       ],
       "binary_addr": 38364,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Decrement result byte counter",
       "type": "code",
       "mnemonic": "dex"
@@ -46929,13 +46929,13 @@
         14
       ],
       "binary_addr": 38365,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "No results to send: return to main loop",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "tube_return_main",
       "target": 1696,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_return_main"
     },
     {
@@ -46946,7 +46946,7 @@
         1
       ],
       "binary_addr": 38367,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword_write"
       ],
@@ -46958,7 +46958,7 @@
         {
           "addr": 1694,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -46976,7 +46976,7 @@
         254
       ],
       "binary_addr": 38370,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword_write_lp"
       ],
@@ -46988,7 +46988,7 @@
         {
           "addr": 1688,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47005,13 +47005,13 @@
         251
       ],
       "binary_addr": 38373,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_osword_write_lp",
       "target": 1685,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osword_write_lp"
     },
     {
@@ -47022,7 +47022,7 @@
         254
       ],
       "binary_addr": 38375,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send result byte via R2",
       "type": "code",
       "mnemonic": "sty",
@@ -47036,7 +47036,7 @@
         202
       ],
       "binary_addr": 38378,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next result byte (descending)",
       "type": "code",
       "mnemonic": "dex"
@@ -47048,13 +47048,13 @@
         242
       ],
       "binary_addr": 38379,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until all results sent",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "tube_osword_write",
       "target": 1682,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_osword_write"
     },
     {
@@ -47065,7 +47065,7 @@
         0
       ],
       "binary_addr": 38381,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_return_main"
       ],
@@ -47077,7 +47077,7 @@
         {
           "addr": 1680,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47085,7 +47085,7 @@
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -47095,7 +47095,7 @@
         4
       ],
       "binary_addr": 38384,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_osword_rdln"
       ],
@@ -47112,7 +47112,7 @@
         4
       ],
       "binary_addr": 38386,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "read_rdln_ctrl_block"
       ],
@@ -47124,7 +47124,7 @@
         {
           "addr": 1707,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47132,7 +47132,7 @@
       "mnemonic": "jsr",
       "operand": "tube_read_r2",
       "target": 1271,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_read_r2"
     },
     {
@@ -47142,7 +47142,7 @@
         0
       ],
       "binary_addr": 38389,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Store in zero page params",
       "type": "code",
       "mnemonic": "sta",
@@ -47156,7 +47156,7 @@
         202
       ],
       "binary_addr": 38391,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next byte (descending)",
       "type": "code",
       "mnemonic": "dex"
@@ -47168,13 +47168,13 @@
         248
       ],
       "binary_addr": 38392,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until all 5 bytes read",
       "type": "code",
       "mnemonic": "bpl",
       "operand": "read_rdln_ctrl_block",
       "target": 1701,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "read_rdln_ctrl_block"
     },
     {
@@ -47183,7 +47183,7 @@
         232
       ],
       "binary_addr": 38394,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "X=0 after loop, A=0 for OSWORD 0 (read line)",
       "type": "code",
       "mnemonic": "inx"
@@ -47195,7 +47195,7 @@
         0
       ],
       "binary_addr": 38395,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Y=0 for OSWORD 0",
       "type": "code",
       "mnemonic": "ldy",
@@ -47207,7 +47207,7 @@
         138
       ],
       "binary_addr": 38397,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "A=0: OSWORD 0 (read line)",
       "type": "code",
       "mnemonic": "txa"
@@ -47220,7 +47220,7 @@
         255
       ],
       "binary_addr": 38398,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Read input line from keyboard",
       "type": "code",
       "mnemonic": "jsr",
@@ -47235,13 +47235,13 @@
         5
       ],
       "binary_addr": 38401,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "C=0: line read OK; C=1: escape pressed",
       "type": "code",
       "mnemonic": "bcc",
       "operand": "tube_rdln_send_line",
       "target": 1723,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_rdln_send_line"
     },
     {
@@ -47251,7 +47251,7 @@
         255
       ],
       "binary_addr": 38403,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "&FF = escape/error signal to co-processor",
       "type": "code",
       "mnemonic": "lda",
@@ -47265,13 +47265,13 @@
         5
       ],
       "binary_addr": 38405,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Escape: send &FF error to co-processor",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_reply_byte",
       "target": 1485,
-      "target_move": "move_3",
+      "target_move": "tube_page5",
       "target_label": "tube_reply_byte"
     },
     {
@@ -47281,7 +47281,7 @@
         0
       ],
       "binary_addr": 38408,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_rdln_send_line"
       ],
@@ -47293,7 +47293,7 @@
         {
           "addr": 1716,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47308,7 +47308,7 @@
         127
       ],
       "binary_addr": 38410,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "&7F = line read successfully",
       "type": "code",
       "mnemonic": "lda",
@@ -47322,13 +47322,13 @@
         6
       ],
       "binary_addr": 38412,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send &7F (success) to co-processor",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -47339,7 +47339,7 @@
         7
       ],
       "binary_addr": 38415,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_rdln_send_loop"
       ],
@@ -47351,7 +47351,7 @@
         {
           "addr": 1739,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47369,7 +47369,7 @@
         6
       ],
       "binary_addr": 38418,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_rdln_send_byte"
       ],
@@ -47378,7 +47378,7 @@
       "mnemonic": "jsr",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -47387,7 +47387,7 @@
         232
       ],
       "binary_addr": 38421,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Next character",
       "type": "code",
       "mnemonic": "inx"
@@ -47399,7 +47399,7 @@
         13
       ],
       "binary_addr": 38422,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Check for CR terminator",
       "type": "code",
       "mnemonic": "cmp",
@@ -47412,13 +47412,13 @@
         245
       ],
       "binary_addr": 38424,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Loop until CR terminator sent",
       "type": "code",
       "mnemonic": "bne",
       "operand": "tube_rdln_send_loop",
       "target": 1730,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_rdln_send_loop"
     },
     {
@@ -47429,13 +47429,13 @@
         0
       ],
       "binary_addr": 38426,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Return to main event loop",
       "type": "code",
       "mnemonic": "jmp",
       "operand": "tube_main_loop",
       "target": 58,
-      "target_move": "move_1",
+      "target_move": "tube_zp_code",
       "target_label": "tube_main_loop"
     },
     {
@@ -47446,7 +47446,7 @@
         254
       ],
       "binary_addr": 38429,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_send_r2"
       ],
@@ -47458,109 +47458,109 @@
         {
           "addr": 32,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
           "addr": 38,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
           "addr": 44,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
           "addr": 1257,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1311,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1378,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1401,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1441,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1448,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1523,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1530,
           "kind": "direct",
-          "move": "move_3",
+          "move": "tube_page5",
           "move_id": 3
         },
         {
           "addr": 1558,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1565,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1616,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1668,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1727,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1733,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1747,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47577,13 +47577,13 @@
         251
       ],
       "binary_addr": 38432,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_send_r2",
       "target": 1744,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r2"
     },
     {
@@ -47594,7 +47594,7 @@
         254
       ],
       "binary_addr": 38434,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Write A to Tube R2 data register",
       "type": "code",
       "mnemonic": "sta",
@@ -47608,7 +47608,7 @@
         96
       ],
       "binary_addr": 38437,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Return to caller",
       "type": "code",
       "mnemonic": "rts"
@@ -47621,7 +47621,7 @@
         254
       ],
       "binary_addr": 38438,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_send_r4"
       ],
@@ -47633,31 +47633,31 @@
         {
           "addr": 24,
           "kind": "direct",
-          "move": "move_1",
+          "move": "tube_zp_code",
           "move_id": 1
         },
         {
           "addr": 1066,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1074,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1096,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         },
         {
           "addr": 1756,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47674,13 +47674,13 @@
         251
       ],
       "binary_addr": 38441,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_send_r4",
       "target": 1753,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r4"
     },
     {
@@ -47691,7 +47691,7 @@
         254
       ],
       "binary_addr": 38443,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Write A to Tube R4 data register",
       "type": "code",
       "mnemonic": "sta",
@@ -47705,7 +47705,7 @@
         96
       ],
       "binary_addr": 38446,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Return to caller",
       "type": "code",
       "mnemonic": "rts"
@@ -47717,7 +47717,7 @@
         255
       ],
       "binary_addr": 38447,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_escape_check"
       ],
@@ -47729,7 +47729,7 @@
         {
           "addr": 1027,
           "kind": "direct",
-          "move": "move_2",
+          "move": "tube_page4",
           "move_id": 2
         }
       ],
@@ -47745,7 +47745,7 @@
         56
       ],
       "binary_addr": 38449,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "SEC+ROR: put bit 7 of &FF into carry+bit 7",
       "type": "code",
       "mnemonic": "sec"
@@ -47756,7 +47756,7 @@
         106
       ],
       "binary_addr": 38450,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "ROR: shift escape bit 7 to carry",
       "type": "code",
       "mnemonic": "ror"
@@ -47768,13 +47768,13 @@
         15
       ],
       "binary_addr": 38451,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Escape set: forward to co-processor via R1",
       "type": "code",
       "mnemonic": "bmi",
       "operand": "tube_send_r1",
       "target": 1783,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r1"
     },
     {
@@ -47783,7 +47783,7 @@
         72
       ],
       "binary_addr": 38453,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_event_handler"
       ],
@@ -47798,7 +47798,7 @@
         0
       ],
       "binary_addr": 38454,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send &00 prefix (event notification)",
       "type": "code",
       "mnemonic": "lda",
@@ -47812,13 +47812,13 @@
         6
       ],
       "binary_addr": 38456,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send zero prefix via R1",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r1",
       "target": 1783,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r1"
     },
     {
@@ -47827,7 +47827,7 @@
         152
       ],
       "binary_addr": 38459,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Y value for event",
       "type": "code",
       "mnemonic": "tya"
@@ -47840,13 +47840,13 @@
         6
       ],
       "binary_addr": 38460,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send Y via R1",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r1",
       "target": 1783,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r1"
     },
     {
@@ -47855,7 +47855,7 @@
         138
       ],
       "binary_addr": 38463,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "X value for event",
       "type": "code",
       "mnemonic": "txa"
@@ -47868,13 +47868,13 @@
         6
       ],
       "binary_addr": 38464,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Send X via R1",
       "type": "code",
       "mnemonic": "jsr",
       "operand": "tube_send_r1",
       "target": 1783,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r1"
     },
     {
@@ -47883,7 +47883,7 @@
         104
       ],
       "binary_addr": 38467,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Restore A (event type)",
       "type": "code",
       "mnemonic": "pla"
@@ -47896,7 +47896,7 @@
         254
       ],
       "binary_addr": 38468,
-      "move": "move_4",
+      "move": "tube_page6",
       "labels": [
         "tube_send_r1"
       ],
@@ -47908,31 +47908,31 @@
         {
           "addr": 1766,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1771,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1775,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1779,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         },
         {
           "addr": 1786,
           "kind": "direct",
-          "move": "move_4",
+          "move": "tube_page6",
           "move_id": 4
         }
       ],
@@ -47949,13 +47949,13 @@
         251
       ],
       "binary_addr": 38471,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Not ready: keep polling",
       "type": "code",
       "mnemonic": "bvc",
       "operand": "tube_send_r1",
       "target": 1783,
-      "target_move": "move_4",
+      "target_move": "tube_page6",
       "target_label": "tube_send_r1"
     },
     {
@@ -47966,7 +47966,7 @@
         254
       ],
       "binary_addr": 38473,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Write A to Tube R1 data register",
       "type": "code",
       "mnemonic": "sta",
@@ -47980,7 +47980,7 @@
         96
       ],
       "binary_addr": 38476,
-      "move": "move_4",
+      "move": "tube_page6",
       "comment_inline": "Return to caller",
       "type": "code",
       "mnemonic": "rts"
@@ -54130,7 +54130,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -54676,7 +54676,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -64901,7 +64901,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {
@@ -64943,7 +64943,7 @@
       "mnemonic": "jsr",
       "operand": "tube_addr_claim",
       "target": 1030,
-      "target_move": "move_2",
+      "target_move": "tube_page4",
       "target_label": "tube_addr_claim"
     },
     {

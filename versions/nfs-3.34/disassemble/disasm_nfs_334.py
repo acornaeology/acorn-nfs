@@ -94,7 +94,7 @@ d.constant(20, "osbyte_explode_chars")
 d.label(0x0014, "tube_claim_flag")
 
 d.label(0x0015, "tube_claimed_id")
-d.add_move(0x0016, 0x9307, 0x61)
+d.add_move(0x0016, 0x9307, 0x61, name="tube_zp_code")
 d.label(0x16, "nmi_workspace_start")
 
 d.entry(0x0016)
@@ -326,7 +326,7 @@ d.label(0x00FD, "brk_ptr")
 
 d.constant(0xFE, "cb_stop")
 d.label(0x00FF, "escape_flag")
-d.add_move(0x0400, 0x934C, 0x100)
+d.add_move(0x0400, 0x934C, 0x100, name="tube_page4")
 d.entry(0x0400)
 d.subroutine(
     0x0400,
@@ -586,7 +586,7 @@ d.comment(0x04F7, "Poll R2 status register", align=Align.INLINE)
 d.comment(0x04FA, "Bit 7 clear: R2 not ready, wait", align=Align.INLINE)
 d.comment(0x04FC, "Read byte from R2 data register", align=Align.INLINE)
 d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0x944C, 0x100)
+d.add_move(0x0500, 0x944C, 0x100, name="tube_page5")
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
     d.expr(addr, sym(target_label))
@@ -787,7 +787,7 @@ d.comment(0x05F8, "Load control block byte", align=Align.INLINE)
 d.comment(0x05FA, "Send byte to co-processor via R2", align=Align.INLINE)
 d.comment(0x05FD, "Decrement byte counter", align=Align.INLINE)
 d.comment(0x05FE, "Loop for all 16 bytes", align=Align.INLINE)
-d.add_move(0x0600, 0x954C, 0x100)
+d.add_move(0x0600, 0x954C, 0x100, name="tube_page6")
 for addr in [
     0x055B,
     0x05C5,

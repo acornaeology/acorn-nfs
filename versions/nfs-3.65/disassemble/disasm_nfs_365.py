@@ -113,7 +113,7 @@ d.label(0x0014, "tube_claim_flag")
 
 d.label(0x0015, "tube_claimed_id")
 
-d.add_move(0x0016, 0x9324, 0x61)
+d.add_move(0x0016, 0x9324, 0x61, name="tube_zp_code")
 d.label(0x0016, "nmi_workspace_start")
 
 d.entry(0x0016)
@@ -353,7 +353,7 @@ d.label(0x0351, "vdu_colours")
 
 d.label(0x0355, "vdu_cursor_edit")
 
-d.add_move(0x0400, 0x9365, 0x100)
+d.add_move(0x0400, 0x9365, 0x100, name="tube_page4")
 d.entry(0x0400)
 d.comment(0x0400, "JMP to BEGIN startup entry", align=Align.INLINE)
 d.subroutine(
@@ -635,7 +635,7 @@ d.comment(0x04FF, "Return with pointers initialised", align=Align.INLINE)
 # as one 512-byte move recovers the instruction; declaring them
 # separately makes dasmos rightly render each byte as `equb` because
 # no instruction can span two distinct runtime spaces.
-d.add_move(0x0500, 0x9465, 0x1EB)
+d.add_move(0x0500, 0x9465, 0x1EB, name="tube_page5")
 
 
 for addr, target_label, desc in _tube_r2_entries:

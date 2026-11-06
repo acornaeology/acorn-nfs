@@ -112,7 +112,7 @@ d.constant(20, "osbyte_explode_chars")
 d.label(0x0014, "tube_claim_flag")
 
 d.label(0x0015, "tube_claimed_id")
-d.add_move(0x0016, 0x931C, 0x61)
+d.add_move(0x0016, 0x931C, 0x61, name="tube_zp_code")
 d.label(0x0016, "nmi_workspace_start")
 
 d.entry(0x0016)
@@ -336,7 +336,7 @@ d.label(0x00FD, "brk_ptr")
 
 d.constant(0xFE, "cb_stop")
 d.label(0x00FF, "escape_flag")
-d.add_move(0x0400, 0x935D, 0xF9)
+d.add_move(0x0400, 0x935D, 0xF9, name="tube_page4")
 d.entry(0x0400)
 d.subroutine(
     0x0400,
@@ -579,7 +579,7 @@ d.label(0x04F4, "store_xfer_end_addr")
 d.comment(0x04F4, "Store high byte of end address", align=Align.INLINE)
 d.comment(0x04F6, "Store byte 3 of end address", align=Align.INLINE)
 d.comment(0x04F8, "Return with pointers initialised", align=Align.INLINE)
-d.add_move(0x0500, 0x9456, 0x200)
+d.add_move(0x0500, 0x9456, 0x200, name="tube_page5")
 for addr, target_label, desc in _tube_r2_entries:
     d.word(addr)
     d.expr(addr, sym(target_label))
