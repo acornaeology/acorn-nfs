@@ -2,7 +2,15 @@
   "meta": {
     "schema_version": 4,
     "load_addr": 32768,
-    "end_addr": 49152
+    "end_addr": 49152,
+    "images": [
+      {
+        "name": "anfs-4.26.rom",
+        "load_addr": 32768,
+        "end_addr": 49152
+      }
+    ],
+    "moves": []
   },
   "constants": [
     {
